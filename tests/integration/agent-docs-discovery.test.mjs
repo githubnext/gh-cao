@@ -152,9 +152,9 @@ test("consolidated guides retain section links and expose their canonical source
     deployment: ["about-the-shared-data-flow", "what-every-option-guarantees"],
     "execution-and-safety": ["standard-control-envelope", "invariants", "failure-posture"],
     "rollout-and-routing": ["promotion-at-a-glance", "live-authority-check"],
-    dashboard: ["know-the-boundary", "design-queries-in-a-copilot-canvas"],
-    "dashboard-data-ingestion": ["canvas-administrative-actions", "hosted-server-data-pipeline", "use-local-postgresql"],
-    "agent-plugin": ["install-the-plugin", "open-a-copilot-canvas", "design-queries-in-a-copilot-canvas", "run-approved-commands", "compiler-version-evidence"],
+    dashboard: ["know-the-boundary", "dashboard-authoring"],
+    "dashboard-data-ingestion": ["native-maintenance", "hosted-server-data-pipeline", "use-local-postgresql"],
+    "agent-plugin": ["install-the-plugin", "dashboard-tools", "open-the-dashboard", "maintain-the-plugin"],
     "cao-cli": ["github-cli-extension", "guided-runtime-preparation", "control-plane-installer"],
   };
   const pages = new Map();

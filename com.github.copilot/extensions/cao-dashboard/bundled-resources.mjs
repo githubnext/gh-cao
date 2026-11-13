@@ -4,11 +4,6 @@ import { fileURLToPath } from "node:url";
 
 export const bundledResources = Object.freeze({
   queryEngine: "dashboard/site/src/data/queries/declarative.js",
-  canvasServer: "dashboard/canvas-server.mjs",
-  canvasGoHost: "dashboard/canvas-go-host.mjs",
-  serverModule: "server/go.mod",
-  serverCommand: "server/cmd/cao-dashboard/main.go",
-  nativeQueryModule: "internal/dashboardquery/go.mod",
   site: "dashboard/site",
   dataSpecification: "specs/dashboard-data.md",
   languageSpecification: "docs/dashboard-language-specification.md",

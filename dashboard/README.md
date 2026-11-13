@@ -23,7 +23,6 @@ local development uses the same Go server and views with PostgreSQL.
 - `dashboard/report`: deterministic collection modules executed by the activity action plus Dashboard Language source adaptation.
 - `dashboard/site`: the bundled Dashboard Language validator, presenter, configuration, and browser runtime.
 - `server/`: unified Go/PostgreSQL serving locally and hosted, plus synthetic-only Pages preview.
-- `dashboard/canvas-server.mjs`: internal loopback-only Copilot canvas authoring bridge, with JSON live reload; not a standalone server.
 
 The legacy Actions collector and dashboard artifact publisher are removed.
 Hosted collection uses reviewed Go adapters. Local tools consume explicitly
@@ -126,182 +125,31 @@ real-data responses cannot be selected through the changed data URLs.
 IndexedDB, Web Worker, service-worker caching, and cross-adapter conformance
 cost remain despite removing live publication and implicit acquisition paths.
 
-### Hosted serving and canvas authoring
+### Hosted serving and local maintenance
 
 Hosted deployments invoke `go -C server run ./cmd/cao-dashboard serve-hosted`.
-PostgreSQL owns canonical entities and query execution; reviewed policy selects
-the operational adapter, with PostgreSQL the default and Redis or acknowledged
-volatile memory explicit alternatives. OAuth, authorization and HTTPS/proxy
-protections remain required. See [`../server/README.md`](../server/README.md).
+PostgreSQL owns canonical entities and query execution; OAuth, authorization,
+and HTTPS/proxy protections remain required. See [`../server/README.md`](../server/README.md).
 
-The Copilot canvas launches the same Go server against a prepared,
-checksum-verified canonical JSONL artifact in the workspace's `.cao/`
-directory. It does not discover or download legacy Actions artifacts. Go owns its public
-loopback origin, static assets, query/diagnostics/memory APIs and revision events.
-It proxies only Copilot integration routes to a private Node adapter, which
-composes and watches JSON documents/fragments, reloads valid edits over a
-capability-protected WebSocket and runs trusted authoring/command callbacks.
-Invalid JSON is reported while the last valid canvas remains available.
-There is no Node data server, logical-source HTTP transport or browser ingestion
-fallback. Published inventory quality is read as metadata only; absent quality
-remains unknown. Snapshot compiler evidence is not mutated by live GitHub reads.
-The plugin includes its Go module and native query sources; install compatible
-Go or select an absolute `CAO_DASHBOARD_EXECUTABLE`. It never builds workspace
-executable code. The owning adapter manages the child's stdin lifetime and
-removes staged files only after stopping it, including failed startup.
-
-### Canvas CLI actions
-
-Dashboard documents may declare trusted canvas CLI actions.
-They are hidden from the published site and ordinary local Go serving. In the
-dashboard canvas, each
-action appears in the **Actions** menu for a command preview. Native execution
-also requires independent confirmation in the trusted Copilot host, bound to
-the exact resolved command, working directory, and standard input. A page POST
-alone cannot authorize execution. Approval authorizes only the exact queued invocation; hosts without interactive
-elicitation fail closed. Approved commands run in the server-owned queue, not
-the browser request. Closing a terminal or browser detaches its output stream
-without canceling approved work. Pending approvals do not authorize execution.
+The plugin registers no canvas. Run `gh cao dashboard` in an interactive terminal
+and open its private loopback URL in a browser. The native CLI owns acquisition,
+managed PostgreSQL, cached evidence, and terminal-approved maintenance. There is
+no Node authoring server, preview reload socket, staged site, or execution adapter.
 
 ### CLI command queue
 
-The built-in campaign update and repository upgrade actions include a quoted
-`--pr-message` (gh-aw v0.92.4 or later). Generated pull requests explain that they
-were requested through CAO, identify the affected campaign or repository and the
-reason for maintenance, and link back to the CAO project and dashboard. The
-message is part of the declarative command shown for approval; existing
-pull-request creation and auto-merge choices are unchanged. Backlinks use the
-actual control repository and explicitly supplied `caoUrl` or
-`CAO_DASHBOARD_URL`, not discovered Pages settings or the catalog demo.
+Local maintenance uses the Go server's durable PostgreSQL command queue. It
+admits only supported dashboard-declared update/upgrade actions for explicitly
+selected repositories, requires pull-request publication, and obtains fresh
+approval in the owning native CLI terminal before each execution. Missing
+terminal access fails closed. Compile, workflow dispatch, agent tasks, repository
+enrollment, and compiler-default administration are not enabled by local access.
 
-Command text supports literal `{{field}}` substitutions for validated row
-values. Three reserved placeholders come from the host, never browser-supplied
-row values: `{{cao-url}}` is the public dashboard base URL (with a trailing
-slash), `{{cao-repository}}` is its control repository slug, and
-`{{cao-repository-url}}` is that repository's GitHub URL. For example:
-
-```text
-gh aw upgrade --repo {{repository}} --pr-message 'Requested through {{cao-repository}}. See {{cao-url}}#page-maintenance.'
-```
-
-Supply `caoUrl` explicitly to the canvas or set
-`CAO_DASHBOARD_URL=https://ops.example.com/central/`; there is no GitHub Pages
-API discovery or catalog-demo fallback. URLs must use
-HTTPS and contain no credentials, query, fragment, whitespace, or command
-delimiters. Hosted dashboards use their own page base URL. Local preview
-capability URLs are never copied into PRs. Missing host context disables the
-action with an explicit message; queue admission rejects missing or overridden
-host context. Substitutions are literal, not expressions, and never run a shell.
-
-Trusted canvas sessions share one durable FIFO queue per
-checkout's PostgreSQL operational namespace. The online dashboard and ordinary
-read-only previews do not initialize a queue or request its APIs. Execution
-continues while the local server is running, even with every browser closed.
-Stopping the server terminates running work; interrupted executions are recorded
-as failed rather than silently repeated, and queued commands survive restart.
-After an unclean crash, termination of detached subprocesses cannot be assumed:
-the queue preserves history but pauses execution across subsequent restarts.
-Verify that every interrupted subprocess has stopped before explicitly starting
-with the canvas host's `cliQueueAcknowledgeRecovery` option to resume queued work. Interrupted entries
-remain failed and are never automatically retried. This acknowledgement is a
-local operator action, not a browser API.
-
-**Maintenance → Commands** lists queued, running, completed, failed, canceled,
-and timed-out commands. Attach by command ID to replay retained stdout/stderr
-and follow new output. Cancel explicitly to terminate work; Retry creates a new
-entry linked to a failed or timed-out command.
-
-The command service runs displayed `gh aw` and `gh cao` commands in a
-pseudo-terminal through `node-pty`, capturing colors even when gh-aw requires
-TTY detection. Install its native runtime with `npm ci` in `dashboard/site`.
-The pseudo-terminal combines stdout and stderr in terminal order. Authentication,
-JSON preparation, and stdin-backed commands retain separate pipes. Color settings
-apply only to displayed commands, not authentication or JSON preparation reads.
-The browser terminal preserves standard, bright, 256-color, and true-color
-sequences across chunks and retained replay on both stdout and stderr; stderr
-is not automatically recolored because it also carries progress and status.
-Copying a transcript removes ANSI formatting without changing the terminal or
-retained output; copying a pull-request result still copies only its URL.
-GitHub CLI prompts and pagers are disabled. These terminal settings do not
-change the parent shell environment.
-
-The queue defaults to four concurrent executions (configure with
-the canvas host's `cliQueueConcurrency` option, from 1 through 32) and a 15-minute execution deadline, beginning when
-a command starts. GitHub-dependent work uses the existing
-Go GitHub quota service through a local helper, refreshing quota with the same
-GitHub CLI authentication context as execution. Missing quota evidence pauses
-starts instead of bypassing protection. Running commands are not terminated
-merely because quota falls. A source checkout can run the helper with Go.
-Installed runtimes require a prebuilt `cao-cli-quota` on `PATH` or selected by
-`CAO_CLI_QUOTA_EXECUTABLE`; without it GitHub-dependent work remains paused.
-
-The capability-protected local API exposes:
-
-- `POST __cli_commands`: enqueue a declared action; an `Idempotency-Key` header
-  or `idempotencyKey` field deduplicates repeated requests.
-- `GET __cli_commands`: list commands with `status`, `limit`, and `offset`.
-- `GET __cli_commands/:id`: retrieve persistent execution details.
-- `GET __cli_commands/:id/output?after=N`: replay and stream ordered output
-  after sequence `N` as newline-delimited JSON.
-- `POST __cli_commands/:id/cancel` and `POST __cli_commands/:id/retry`: explicit
-  lifecycle operations; retries revalidate the current action and approval.
-
-The `status` filter accepts one status or a comma-separated set; filtering and
-the matching total count are applied before pagination.
-Mutations require same-origin JSON requests as well as the preview capability.
-Queue retention defaults to 30 days and removes terminal history only in wholly
-expired UTC Monday-based seven-day windows, including while idle; active commands never expire. Queue
-records contain operational command history and remain in the private PostgreSQL
-namespace. PostgreSQL operational capacity and per-command output limits bound
-storage; there is no separate database-file quota or file-backed queue.
-Output is framed by line for cross-chunk credential redaction;
-overlong lines above 16 KiB and output beyond the budgets are discarded with an
-explicit truncation warning. Terminal output can therefore lag until a line
-ends or execution finishes.
-
-```yaml
-dashboard:
-  cli-actions:
-    - id: upgrade-repository
-      label: Upgrade
-      description: Upgrade the repository's Agentic Workflows files.
-      icon: download
-      command: gh aw upgrade --repo {{repository}}
-      placement: settings
-      arguments:
-        - id: create-pull-request
-          label: Create pull request
-          description: Create a pull request with the generated workflow upgrades.
-          type: boolean
-          flag: --create-pull-request
-          default: true
-        - id: pre-releases
-          label: Include pre-releases
-          type: boolean
-          flag: --pre-releases
-          default: false
-```
-
-Commands must be single-line `gh aw ...` or `gh workflow run <workflow> ...`
-invocations; the latter triggers workflows that declare `workflow_dispatch`.
-Workflow dispatch actions may set `--repo`, `--ref`, and non-file-backed inputs
-with `--raw-field` (`-f`). File-reading forms such as `--field` (`-F`) are
-rejected. The canvas extension runs GitHub CLI directly without a shell and
-supplies the user-approved `GITHUB_TOKEN` as `GH_TOKEN` to that process. For
-`gh aw` commands, it also derives an ephemeral
-author and committer identity from the currently authenticated GitHub CLI user
-so pull-request actions can create commits without changing global or
-repository Git configuration. When `gh aw` is unavailable, an approved action first attempts
-`gh extension install github/gh-aw`. If that installation fails, it downloads
-and runs the installer version declared by `gh-aw-version` in
-`.github/workflows/cao.json` from the official `github/gh-aw`
-repository, then verifies `gh aw` before continuing. Boolean action arguments
-render as checkboxes and may append only their declared
-canonical long option to the command preview and executed argv.
-
-The canvas accepts prompts up to 100,000 UTF-16 code units and bounds each JSON
-request to 1 MiB, including JSON escaping and UTF-8 overhead. Oversized requests
-are rejected before approval or execution.
+Commands continue independently of browser connections while the native CLI runs.
+The server owns queue history, ordered output replay, explicit cancellation, and
+manual retries. Cancellation is not proof of subprocess exit: execution remains
+claimed until the native adapter confirms settlement. Hosted CLI execution is
+separately enabled and authorized; see [`../specs/server-hosted-cli.md`](../specs/server-hosted-cli.md).
 
 Catalog contributors can run `npm run dashboard:local`; the build composes
 top-level campaign documents. Select a cached operational snapshot or set
@@ -322,7 +170,7 @@ This starts the local preview through Playwright with the Pixel 7 profile and a 
 The catalog's `docs.yml` rebuilds documentation and the synthetic enterprise
 demo daily, independently of operational collection or Dashboard artifact
 freshness. Operational snapshots are explicit private inputs, not Pages artifacts. Bounded operational artifacts remain necessary for authorized
-local analysis, canvas use, and hosted ingestion.
+local analysis and hosted ingestion.
 
 An upgrade alone does not scrub an old Pages deployment or browser cache.
 Rebuild and redeploy the demo to replace current site artifacts, or unpublish

@@ -120,7 +120,6 @@ export const VIEW_ELEMENT_VALUES = [
   'all-campaign-memory',
   'link-button-list',
   'markdown',
-  'query-editor',
   'command-terminal',
   'storage-info',
   'environment-defaults',
@@ -159,7 +158,6 @@ export const GRAPHICAL_LAYOUT_EXEMPT_PAGE_IDS = new Set([
   'work-roadmap',
   'evidence',
   'insights',
-  'query-editor',
   'commands',
   'governance',
   'command'

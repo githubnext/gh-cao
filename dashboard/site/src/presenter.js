@@ -2717,7 +2717,7 @@ function renderElementView(pageId, title, view, viewIndex, sources, contextDetai
   const elementName = typeof view.element === 'string' ? view.element : '';
   const sourceNames = getViewSources(view);
   const viewData = isPlainObject(view.data) ? view.data : undefined;
-  if (sourceNames.length === 0 && !['query-editor', 'command-terminal', 'storage-info', 'environment-defaults', 'prompt-wizard'].includes(elementName)) {
+  if (sourceNames.length === 0 && !['command-terminal', 'storage-info', 'environment-defaults', 'prompt-wizard'].includes(elementName)) {
     return renderCustomViewState(pageId, title, null, 'unavailable', [...contextDetails, 'No sources declared for element view.'], headingTag);
   }
 

@@ -148,7 +148,7 @@ export function renderCommandTerminal(context) {
   }, { signal: scope.signal });
   scope.bind(root);
   if (!cliQueueAvailable()) {
-    message.set('Commands are available only in an authorized local admin or canvas dashboard.');
+    message.set('Commands require an authorized local or hosted command service.');
   } else if (!id) {
     message.set('Select a command from Maintenance → Commands.');
   } else void attach();

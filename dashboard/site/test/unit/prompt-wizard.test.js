@@ -308,7 +308,7 @@ describe('wizard interaction and lifecycle', () => {
     expect(root.querySelector('.table-intent-preview')?.textContent).not.toContain('acme/*');
   });
 
-  it('starts an app session with the reviewed prompt only after an explicit canvas handoff', async () => {
+  it('ignores retired canvas handoff metadata and retains a copy-only prompt preview', async () => {
     const meta = document.createElement('meta');
     meta.name = 'dashboard-copilot-session';
     meta.content = '/__copilot_session';
@@ -319,38 +319,9 @@ describe('wizard interaction and lifecycle', () => {
     fillBehavior(root);
     button(root, 'Generate').click();
     expect(fetch).not.toHaveBeenCalled();
-    expect(root.textContent).not.toContain('Copy prompt');
-    const start = button(root, 'Start session');
-    start.click();
-    start.click();
-    await vi.waitFor(() => expect(root.textContent).toContain('Session started in the Copilot app.'));
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0][0].pathname).toBe('/__copilot_session');
-    expect(JSON.parse(fetch.mock.calls[0][1].body).prompt).toMatch(/^Create a Pull Request for the following task:\n/);
-    expect(JSON.parse(fetch.mock.calls[0][1].body).prompt).toContain('Triage issues.');
-    expect(start.disabled).toBe(true);
+    expect(root.textContent).toContain('Copy prompt');
+    expect(root.textContent).not.toContain('Start session');
     expect(queue.enqueue).not.toHaveBeenCalled();
-  });
-
-  it('reports canvas session failures and cancels detached handoffs', async () => {
-    const meta = document.createElement('meta');
-    meta.name = 'dashboard-copilot-session';
-    meta.content = '/__copilot_session';
-    document.head.append(meta);
-    const fetch = vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Session unavailable.' }) });
-    vi.stubGlobal('fetch', fetch);
-    const root = mount();
-    fillBehavior(root);
-    button(root, 'Generate').click();
-    const start = button(root, 'Start session');
-    start.click();
-    await vi.waitFor(() => expect(root.textContent).toContain('Session unavailable.'));
-    expect(start.disabled).toBe(false);
-    root.remove();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    start.click();
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
   });
 
   it('allows direct backward step navigation without losing answers or bypassing validation', async () => {

@@ -94,7 +94,7 @@ WebMCP is progressive enhancement. The runtime feature-detects `document.modelCo
 WebMCP is experimental and only reachable from a secure context (`https:` or `localhost`).
 
 1. Use Chromium 146 or newer and enable `chrome://flags/#enable-webmcp-testing` (`edge://flags/#enable-webmcp-testing` on Edge), then restart the browser.
-2. From the repository root, acquire a real operational snapshot and run `npm run dashboard:local -- --sqlite PATH` to build and serve through Go/SQLite (relative Go paths resolve from `server/`). To exercise the synthetic Pages demo and browser IndexedDB, run `npm run dashboard:pages:build` and then `npm run dashboard:pages -- --base-path /gh-cao/`. There is no real-data demo input option. The Node canvas authoring bridge is internal to the Copilot extension, not a standalone server.
+2. From the repository root, acquire a real operational snapshot and run `npm run dashboard:local -- --source PATH --postgres-url URL` to build and serve through Go/PostgreSQL (relative Go paths resolve from `server/`). To exercise the synthetic Pages demo and browser IndexedDB, run `npm run dashboard:pages:build` and then `npm run dashboard:pages -- --base-path /gh-cao/`. There is no real-data demo input option or Copilot canvas integration.
 3. Open the dashboard and confirm the API is present in DevTools:
 
    ```js

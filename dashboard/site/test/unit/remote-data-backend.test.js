@@ -167,7 +167,7 @@ describe("remote dashboard data backend", () => {
     expect(usesRemoteDataBackend(document)).toBe(true);
   });
 
-  it("keeps canvas API requests inside the server-injected capability path", async () => {
+  it("keeps API requests inside an explicitly configured server base path", async () => {
     const meta = document.createElement("meta");
     meta.name = "dashboard-api-base";
     meta.content = "/preview-capability/";

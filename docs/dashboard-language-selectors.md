@@ -1,6 +1,6 @@
 ---
 title: Dashboard Language CLI Action Selectors
-description: Declarative repository selection, wildcard enrollment, and bounded canvas lookup requirements.
+description: Declarative repository selection, wildcard enrollment, and bounded command-service lookup requirements.
 ---
 
 This section extends the [Dashboard Language Specification](./dashboard-language-specification.md)
@@ -43,9 +43,12 @@ matches, and does not enroll future matches or grant credential access.
 
 ## Lookup and interaction
 
-Selectors render only in executable canvas mode. Lookup is a bounded read-only
-GitHub CLI search on the canvas server, not a query over canonical dashboard
-evidence. The server resolves the query and mapping from the declared action ID;
+Selectors render only when a command service is explicitly available. Declaring
+one does not authorize lookup or enrollment, and the native maintenance service
+does not execute `gh cao repos add`. No canvas execution or search server is
+provided. A service that supports lookup must expose bounded read-only GitHub
+search, not a query over canonical dashboard evidence. It resolves the query
+and mapping from the declared action ID;
 clients cannot supply a command, fields, or mapping. Search input is a separate
 argv value, never shell-interpolated. These transient external choices do not
 become dashboard sources. Changing input immediately invalidates prior selection
@@ -61,5 +64,6 @@ cancellation remain available while waiting; abandoned lookups and their
 slow-search timers must not update later searches. Presenters support keyboard
 selection and disable execution until a mapped value
 passes command-template validation. Selection never executes a command; fresh,
-exact per-invocation approval in the canvas remains mandatory. The native
-extension validates the reviewed command without a second host confirmation prompt.
+exact per-invocation approval and the selected service's authorization remain
+mandatory. Unsupported operations must fail closed rather than use a browser
+callback or another executor.

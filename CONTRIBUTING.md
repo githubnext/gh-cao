@@ -119,7 +119,7 @@ For the root dashboard contracts, build `.tmp/cao-dashboard` with
 `POSTGRES_URL=... npm run test:unit:area -- dashboard` against an explicitly
 disposable numeric-loopback PostgreSQL instance. The role must be able to create
 databases. The runner provisions canonical and operational stores once through
-the production bootstrap, clones a private database for each canvas fixture,
+the production bootstrap, clones a private database for each dashboard fixture,
 and removes the template when the test runner finishes.
 
 Workflow source changes must pass `npm run compile`. Run
@@ -208,7 +208,7 @@ Keep one procedural home per task: [setup](docs/setup-quickstarts.md),
 [credential provisioning](docs/control-plane-authentication.md),
 [runtime authentication](docs/authentication.md),
 [operational artifacts and the synthetic Pages demo](docs/deployment-actions.md), and
-[plugin/canvas use](docs/agent-plugin.md). Scope-specific guides should retain
+[plugin use](docs/agent-plugin.md). Scope-specific guides should retain
 their distinct decisions and caveats, linking to shared procedures instead of
 copying them.
 

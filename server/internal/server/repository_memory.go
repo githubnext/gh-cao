@@ -18,9 +18,6 @@ var repositoryMemoryLog = logger.New("cao:server:repository-memory")
 var errRepositoryMemoryIntegrityFailure = errors.New("repository-memory file failed integrity validation")
 
 func (a *App) repositoryMemoryDirectory() string {
-	if a.config.Canvas != nil {
-		return a.config.Canvas.MemoryDirectory
-	}
 	return a.config.SourceDirectory
 }
 

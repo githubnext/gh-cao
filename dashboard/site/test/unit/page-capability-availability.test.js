@@ -45,7 +45,7 @@ describe('page capability prerequisites', () => {
   it.each([
     ['published', undefined, false],
     ['local preview', undefined, false],
-    ['canvas', undefined, true],
+    ['native maintenance', undefined, true],
     ['hosted reader', undefined, true],
     ['local admin', true, true],
     ['hosted admin', true, false]

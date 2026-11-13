@@ -397,8 +397,8 @@ func resolveSessionArchiveConfig(config Config) (sessionarchive.Config, SessionA
 	if err != nil || !archive.Enabled {
 		return archive, SessionArchiveReadAccess{}, err
 	}
-	if config.Canvas != nil || config.HostProfile.Listener == HostListenerPlatform {
-		return archive, SessionArchiveReadAccess{}, errors.New("session archive requires a persistent non-canvas server lifecycle")
+	if config.HostProfile.Listener == HostListenerPlatform {
+		return archive, SessionArchiveReadAccess{}, errors.New("session archive requires a persistent server lifecycle")
 	}
 	if config.Collector != nil && (config.Collector.AdmitOnly || config.Collector.Workers <= 0) {
 		return archive, SessionArchiveReadAccess{}, errors.New("session archive requires co-resident collection workers")

@@ -10,7 +10,7 @@ const identifier = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
 /**
  * Validate the closed, read-only lookup vocabulary shared by the presenter and
- * canvas server. Search text is always a separate argv value, never a command.
+ * command service. Search text is always a separate argv value, never a command.
  * @param {unknown} input
  * @param {string[]} templateFields
  * @returns {asserts input is DialogSelector}

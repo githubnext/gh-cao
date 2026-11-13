@@ -16,7 +16,8 @@ test("Agent Plugins manifest exposes portable skills and Copilot namespace", asy
   );
   assert.equal(manifest.name, "central-agentic-ops");
   assert.match(manifest.description, /analyze activity data/);
-  assert.match(manifest.description, /local CAO dashboard previews/);
+  assert.match(manifest.description, /execute dashboard queries/);
+  assert.doesNotMatch(manifest.description, /canvas|previews/);
   assert.deepEqual(manifest.extensions, { "com.github.copilot": {} });
   for (const skillName of [
     "setup-cao",
@@ -51,7 +52,7 @@ test("add-cao-campaign requires discovery, consent, and review-safe installation
   assert.match(skill, /\.github\/cao\/<campaign-slug>\.md/);
 });
 
-test("Copilot extension uses the current Canvas provider contract", async () => {
+test("Copilot extension contributes only dashboard query and specification tools", async () => {
   const extensionRoot = new URL(
     "com.github.copilot/extensions/cao-dashboard/",
     root,
@@ -67,22 +68,14 @@ test("Copilot extension uses the current Canvas provider contract", async () => 
   assert.deepEqual(metadata, { name: "cao-dashboard", version: 1 });
   assert.match(entry, /@github\/copilot-sdk\/extension/);
   assert.match(entry, /joinSession\(config\)/);
-  assert.match(source, /canvases:/);
-  assert.match(source, /createCanvas\(\{/);
-  assert.match(source, /context\.session\?\.workingDirectory/);
-  assert.match(source, /startLocalDashboardPreview/);
-  assert.match(source, /requestedEnvironmentVariables: \["GH_TOKEN", "GITHUB_TOKEN"\]/);
+  assert.doesNotMatch(source, /canvases:|createCanvas|startLocalDashboardPreview|requestedEnvironmentVariables/);
   assert.doesNotMatch(source, /executeDashboardCommand|approveCommand|executeSessionTool/);
   assert.match(source, /cao_dashboard_execute_query/);
   assert.match(source, /cao_dashboard_read_data_specification/);
   assert.match(source, /onSessionStart:/);
-  assert.match(source, /onSessionEnd: async/);
-  assert.match(source, /if \(reason === "user_exit"\) await closePreviews\(\)/);
-  assert.match(source, /onClose:/);
   assert.match(source, /additionalProperties: false/);
   assert.doesNotMatch(source, /github\.io|https:/);
-  assert.match(entry, /process\.once\("SIGTERM", shutdown\)/);
-  assert.doesNotMatch(entry, /process\.once\("exit"/);
+  assert.doesNotMatch(entry, /process\.once|closePreviews/);
   assert.match(entry, /createDashboardExtension\(\)/);
   assert.doesNotMatch(entry, /approveDashboardCommand|approveCommand|executeSessionTool|session\.rpc/);
   assert.doesNotMatch(entry, /session\.ui\.confirm|session\.ui\.elicitation/);
@@ -113,7 +106,7 @@ test("portable skill validation rejects client-specific top-level fields and bro
     ].join("\n"));
     const fixedErrors = await validateAgentPlugin(directory);
     assert.ok(!fixedErrors.some((error) => error.includes("unsupported skill field")));
-    assert.ok(fixedErrors.some((error) => error.includes("dashboard/canvas-server.mjs: missing package file")));
+    assert.ok(fixedErrors.some((error) => error.includes("specs/dashboard-data.md: missing package file")));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

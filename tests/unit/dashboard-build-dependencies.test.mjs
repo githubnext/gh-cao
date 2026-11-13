@@ -9,7 +9,7 @@ test("Docker installs dashboard build dependencies without test tooling or insta
   const lock = JSON.parse(readFileSync(new URL("dashboard/site/package-lock.json", root), "utf8"));
   const dockerfile = readFileSync(new URL("server/Dockerfile", root), "utf8");
 
-  const buildDependencies = ["@xterm/addon-fit", "@xterm/addon-web-links", "@xterm/xterm", "esbuild", "node-pty", "strip-ansi", "yaml"];
+  const buildDependencies = ["@xterm/addon-fit", "@xterm/addon-web-links", "@xterm/xterm", "esbuild", "strip-ansi", "yaml"];
   assert.deepEqual(Object.keys(manifest.dependencies).sort(), buildDependencies);
   assert.ok(!Object.hasOwn(manifest.devDependencies, "rollup"));
   assert.ok(!Object.hasOwn(lock.packages, "node_modules/rollup"));

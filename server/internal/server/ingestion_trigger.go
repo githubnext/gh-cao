@@ -5,8 +5,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 )
+
+var operatorAdapterPrefix = regexp.MustCompile(`^/[a-f0-9]{48}$`)
 
 // startIngestion asks the owning local CLI to begin a collection pass now.
 // The adapter coalesces requests; it never widens repository scope or quota.
@@ -44,7 +47,7 @@ func (a *App) startIngestion(response http.ResponseWriter, request *http.Request
 func validOperatorAdapterURL(value string) bool {
 	adapter, err := url.Parse(value)
 	if err != nil || adapter.Scheme != "http" || adapter.User != nil || adapter.RawQuery != "" ||
-		adapter.Fragment != "" || !canvasPrefix.MatchString(adapter.Path) || adapter.Port() == "" {
+		adapter.Fragment != "" || !operatorAdapterPrefix.MatchString(adapter.Path) || adapter.Port() == "" {
 		return false
 	}
 	ip := net.ParseIP(adapter.Hostname())

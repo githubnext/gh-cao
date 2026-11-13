@@ -3,7 +3,6 @@ import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { promisify } from "node:util";
-import { startCanvasServer } from "../helpers/canvas-snapshot.mjs";
 
 test("ordinary dashboard development uses Go, not the canvas server", async () => {
   const root = JSON.parse(await readFile(new URL("../../package.json", import.meta.url)));
@@ -29,17 +28,11 @@ test("local setup and browser debug launchers explicitly select disk-backed dash
   assert.match(stdout, /serve --site "[^"]+\/dashboard\/site\/dist"/);
 });
 
-test("the canvas module has no standalone CLI, admin mode or process replacement", async () => {
-  const canvas = await import("../../dashboard/canvas-server.mjs");
-  assert.deepEqual(Object.keys(canvas), ["startCanvasServer"]);
-  const source = await readFile(new URL("../../dashboard/canvas-server.mjs", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /process\.argv|process\.kill|__DASHBOARD_ADMIN__|serve-hosted|CODESPACE/);
-});
-
-test("canvas development requires loopback and trusted execution adapters", async () => {
-  for (const host of ["0.0.0.0", "::", "example.com"]) {
-    await assert.rejects(startCanvasServer({ host }), /requires a loopback host/);
+test("retired canvas servers and operational helpers are not shipped", async () => {
+  for (const path of ["dashboard/canvas-server.mjs", "dashboard/canvas-go-host.mjs",
+    "dashboard/cli-action-api.mjs", "dashboard/cli-action-queue.mjs", "dashboard/cli-action-quota.mjs",
+    "com.github.copilot/extensions/cao-dashboard/local-preview.mjs",
+    "server/cmd/cao-cli-quota/main.go", "server/internal/server/canvas.go"]) {
+    await assert.rejects(readFile(new URL(`../../${path}`, import.meta.url)), { code: "ENOENT" });
   }
-  await assert.rejects(startCanvasServer({ approveCliAction: async () => false }), /requires a CLI action executor/);
-  await assert.rejects(startCanvasServer({ executeCliAction: async () => {} }), /requires trusted CLI action approval/);
 });

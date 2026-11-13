@@ -213,7 +213,7 @@ describe('persistent command terminal', () => {
     queue.available.mockReturnValue(false);
     const root = renderCommandTerminal(context);
     document.body.append(root);
-    expect(root.textContent).toContain('authorized local admin or canvas');
+    expect(root.textContent).toContain('authorized local or hosted command service');
     expect(queue.get).not.toHaveBeenCalled();
     expect(queue.attach).not.toHaveBeenCalled();
   });

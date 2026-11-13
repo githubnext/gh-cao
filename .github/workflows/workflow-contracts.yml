@@ -134,7 +134,7 @@ jobs:
           echo "port=$postgres_port" >> "$GITHUB_OUTPUT"
           mkdir -p .tmp
           go -C server build -o ../.tmp/cao-dashboard ./cmd/cao-dashboard
-      # Terminal contracts need node-pty's native build and terminal preparation.
+      # Dashboard contracts use the browser renderer and build dependencies.
       - name: Install dashboard dependencies
         if: matrix.area == 'dashboard'
         run: npm ci --prefix dashboard/site

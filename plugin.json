@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "central-agentic-ops",
   "version": "0.1.0",
-  "description": "Discover, install, and create Central Agentic Ops campaigns, analyze activity data, execute dashboard queries, and open local CAO dashboard previews.",
+  "description": "Discover, install, and create Central Agentic Ops campaigns, analyze activity data, and execute dashboard queries.",
   "author": {
     "name": "GitHub Next"
   },

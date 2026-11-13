@@ -70,7 +70,7 @@ rebuilds it.
 
 From the repository root, `npm run dev` or `npm run dashboard:local` builds
 the dashboard and starts Go serve with PostgreSQL. The Node
-server is retired; only an internal loopback canvas authoring bridge remains.
+server and Copilot canvas integration are removed.
 
 ### Self-contained executable and disk-backed iteration
 
@@ -380,13 +380,10 @@ External publications refresh active subscriptions; local request caching is
 disabled. The local profile requires loopback listeners and bearer authentication.
 Database credentials remain in the Go process.
 
-The Copilot canvas uses this same host with --canvas-config, a private
-capability path and a loopback integration adapter. It requires verified
-canonical JSONL artifacts and PostgreSQL. GitHub resource reads and their cache
-are owned by Go/PostgreSQL; the Node adapter owns only authoring, session and
-approved execution callbacks. EOF on the owner's stdin stops the child host.
-Neither canvas nor local storage grants hosted OAuth, collection, dispatch or
-GitHub App authority. Missing evidence remains partial or unavailable.
+Copilot canvas support and the --canvas-config adapter are removed.
+Use gh cao dashboard in an interactive terminal and open its private browser URL.
+The native CLI retains acquisition and terminal-approved maintenance; the Go
+server retains durable queue ownership. Missing evidence remains partial or unavailable.
 
 ## Single-process memory operational storage
 
@@ -551,7 +548,7 @@ namespace to `hosted-dashboard` and the operational namespace to the canonical
 namespace when no operational override is set.
 These changes do not migrate or delete existing data or Redis keys.
 
-Local `serve`, `ingest`, `read`, `local-queue`, and `doctor` use `--namespace`
+Local `serve`, `ingest`, `read` and `doctor` use `--namespace`
 instead of `--redis-namespace`. `CAO_DATABASE_NAMESPACE` supplies the default
 before the checkout-derived namespace. The old flag, `REDIS_NAMESPACE`, and
 `CAO_REDIS_NAMESPACE` are rejected. `ingest --redis-url` is also rejected because

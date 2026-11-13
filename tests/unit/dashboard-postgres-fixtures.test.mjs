@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import test from "node:test";
 import { promisify } from "node:util";
-import { prepareCanvasPostgres, prepareCanvasPostgresTemplate } from "../helpers/canvas-snapshot.mjs";
+import { prepareDashboardPostgres, prepareDashboardPostgresTemplate } from "../helpers/dashboard-snapshot.mjs";
 
 const execute = promisify(execFile);
 const sql = async (endpoint, statement) => {
@@ -15,18 +15,18 @@ const sql = async (endpoint, statement) => {
   })).stdout.trim();
 };
 
-test("canvas template clones preserve production stores and isolate fixture mutations", async (t) => {
-  const template = await prepareCanvasPostgresTemplate();
+test("dashboard template clones preserve production stores and isolate fixture mutations", async (t) => {
+  const template = await prepareDashboardPostgresTemplate();
   t.after(() => template.close());
-  const first = await prepareCanvasPostgres({ template: template.postgresURL });
+  const first = await prepareDashboardPostgres({ template: template.postgresURL });
   t.after(() => first.close());
-  const second = await prepareCanvasPostgres({ template: template.postgresURL });
+  const second = await prepareDashboardPostgres({ template: template.postgresURL });
   t.after(() => second.close());
   assert.notEqual(new URL(first.postgresURL).pathname, new URL(second.postgresURL).pathname);
   assert.equal(first.namespace, second.namespace);
   for (const fixture of [first, second]) {
     assert.equal(await sql(fixture.postgresURL,
-      "SELECT namespace FROM cao_operational_namespaces"), "canvas-test");
+      "SELECT namespace FROM cao_operational_namespaces"), "dashboard-test");
     assert.equal(await sql(fixture.postgresURL, "SELECT count(*) FROM repositories"), "0");
   }
   await sql(first.postgresURL, "CREATE TABLE fixture_marker (value text); INSERT INTO fixture_marker VALUES ('first')");
@@ -35,15 +35,15 @@ test("canvas template clones preserve production stores and isolate fixture muta
   await first.close();
   await first.close();
   assert.equal(await sql(second.postgresURL, "SELECT count(*) FROM repositories"), "0");
-  const third = await prepareCanvasPostgres({ template: template.postgresURL });
+  const third = await prepareDashboardPostgres({ template: template.postgresURL });
   t.after(() => third.close());
   assert.equal(await sql(third.postgresURL, "SELECT to_regclass('fixture_marker') IS NULL"), "t");
 });
 
-test("canvas fixtures reject a template on another server before creating a database", async () => {
-  await assert.rejects(prepareCanvasPostgres({
+test("dashboard fixtures reject a template on another server before creating a database", async () => {
+  await assert.rejects(prepareDashboardPostgres({
     endpoint: "postgresql://postgres@127.0.0.1:5432/tests",
-    template: "postgresql://postgres@127.0.0.1:5433/canvas_template_" + "a".repeat(20)
-      + "?search_path=canvas_test_" + "b".repeat(20),
+    template: "postgresql://postgres@127.0.0.1:5433/dashboard_template_" + "a".repeat(20)
+      + "?search_path=dashboard_test_" + "b".repeat(20),
   }), /configured PostgreSQL test server/);
 });

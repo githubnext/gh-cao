@@ -1,23 +1,17 @@
-import { writeCanvasArtifact } from './canvas-fixture.js';
+import { writeServerArtifact } from './server-fixture.js';
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-const { startCanvasServer } = await import(new URL("../../../../tests/helpers/canvas-snapshot.mjs", import.meta.url).href);
+const { startDashboardServer } = await import(new URL("../../../../tests/helpers/dashboard-server.mjs", import.meta.url).href);
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
-  test(`canvas queries PostgreSQL without opening browser IndexedDB at ${viewport.width}px`, async ({ page }, testInfo) => {
-    const preview = await startCanvasServer({
+  test(`local server queries PostgreSQL without opening browser IndexedDB at ${viewport.width}px`, async ({ page }, testInfo) => {
+    const preview = await startDashboardServer({
       workingDirectory: fileURLToPath(new URL("../../../../", import.meta.url)),
       repository: "acme/control",
-      port: 0,
-      approveCliAction: async () => false,
-      executeCliAction: async () => { throw new Error("CLI actions are not expected."); },
-      output: () => {},
-      requestOutput: () => {},
-      traceOutput: () => {},
       prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
-        await writeCanvasArtifact(destination, { sources: {
+        await writeServerArtifact(destination, { sources: {
           repositories: {
             metadata: {
               "as-of": new Date().toISOString(), availability: "available",
@@ -29,6 +23,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       },
     });
     try {
+      await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize(viewport);
       await page.addInitScript(() => {
         let opens = 0;
@@ -46,7 +41,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         }).observe(document, { childList: true, subtree: true });
         IDBFactory.prototype.open = () => {
           opens += 1;
-          throw new Error("Canvas must not open browser IndexedDB.");
+          throw new Error("The local server must not open browser IndexedDB.");
         };
       });
       const response = page.waitForResponse((response) => response.url().endsWith("/api/v1/query")
@@ -60,14 +55,18 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       expect(await page.evaluate(() => Object.getOwnPropertyDescriptor(globalThis, "__indexedDbOpens")?.get?.())).toBe(0);
       expect(await page.evaluate(() => Object.getOwnPropertyDescriptor(globalThis, "__browserImportScreens")?.get?.())).toBe(0);
       const repositories = await page.evaluate(async () => {
-        const { queryRemoteDashboard } = await import(new URL("./src/remote-data-backend.js", location.href).href);
-        return queryRemoteDashboard(["repositories"], { pages: [] });
+        const response = await fetch("/api/v1/query", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourceNames: ["repositories"] }),
+        });
+        if (!response.ok) throw new Error(`Canonical query failed: ${response.status}`);
+        return response.json();
       });
       expect(repositories.sources.repositories.rows).toHaveLength(1);
       expect(repositories.sources.repositories.rows[0].repository).toBe("control");
-      await page.screenshot({ path: testInfo.outputPath(`canvas-postgres-${viewport.width}.png`), fullPage: true });
-      await testInfo.attach(`canvas-postgres-${viewport.width}`, {
-        path: testInfo.outputPath(`canvas-postgres-${viewport.width}.png`), contentType: "image/png",
+      await page.screenshot({ path: testInfo.outputPath(`server-postgres-${viewport.width}.png`), fullPage: true });
+      await testInfo.attach(`server-postgres-${viewport.width}`, {
+        path: testInfo.outputPath(`server-postgres-${viewport.width}.png`), contentType: "image/png",
       });
     } finally {
       await page.goto("about:blank");

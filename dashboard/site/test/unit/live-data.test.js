@@ -68,13 +68,11 @@ describe("live Dashboard Language sources", () => {
     expect(preview).not.toContain('window.indexedDB');
     expect(preview).toContain('has("fixtures")');
     expect(preview).toContain("Unable to load live dashboard data:");
-    expect(preview).toContain('window.addEventListener("dashboard-preview-update"');
-    expect(preview).toContain('renderSources(renderedSources, "ready", renderedSourcesPrepared, renderedPageSourceLoader)');
-    expect(preview).toContain('event: "preview.rendered"');
-    expect(preview).toContain('get("local-preview")');
+    expect(preview).not.toContain('dashboard-preview-update');
+    expect(preview).not.toContain('get("local-preview")');
     expect(preview).not.toContain('viewer.json');
     expect(preview).not.toContain('localViewer');
-    expect(preview).toContain('new URL("./__dashboard_socket", window.location.href)');
+    expect(preview).not.toContain('__dashboard_socket');
     expect(preview).not.toContain("copilot-prompt");
     expect(preview).not.toContain("dashboard-copilot");
     expect(preview).not.toContain("Retain the illustrative fixture data");

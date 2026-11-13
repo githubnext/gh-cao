@@ -304,7 +304,7 @@ This removes live-data Pages publication and implicit public snapshot acquisitio
 not the IndexedDB, Web Worker, service-worker caching, or cross-adapter conformance
 cost. Those paths still require isolation, recovery, quota, cancellation, and
 semantic-parity testing. Bounded operational artifacts remain necessary for
-authorized local analysis, canvas use, and hosted ingestion.
+authorized local analysis and hosted ingestion.
 
 Changing source alone does not scrub an old deployed Pages site or browser
 cache. Rebuilding and redeploying Pages replaces the current site artifacts;
@@ -313,50 +313,16 @@ and exposure. Existing browser real-data databases are unused disposable state.
 The demo must not automatically delete databases or caches outside its scoped
 namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
-The Copilot canvas launches the installed `gh cao dashboard` command in the
-session's working directory, optionally selecting one explicit repository.
-The native CLI owns bounded acquisition, managed PostgreSQL, cached canonical
-evidence and the capability-protected Go serving origin. It emits machine-readable
-readiness with `--json`, keeps diagnostics on stderr and stops collection and
-its server when `--exit-on-stdin-close` observes the extension's pipe close.
-The extension validates and probes the loopback readiness URL before returning it.
-It never builds or imports executable workspace code, stages a site, or requires
-a prepared `.cao/` snapshot. There is no legacy-host or browser ingestion fallback.
-The canvas retains native maintenance actions and their trusted interactive-terminal
-approval boundary. Missing terminal access fails explicitly rather than approving
-commands from canvas access alone.
-The former canvas-only query editor, custom views and session handoff are not
-part of this native canvas; bundled agent query/specification tools remain.
+The plugin contributes read-only Dashboard Language query and specification tools.
+It registers no canvas, requests no GitHub credentials, and starts no dashboard
+or command executor. Operators run `gh cao dashboard` in an interactive terminal
+and use the private browser URL. The native CLI owns acquisition, managed
+PostgreSQL, and scoped maintenance with trusted terminal approval; the Go server
+owns command admission, durable queue state, output, and cancellation.
+The Node authoring host, canvas adapter routes, preview reload socket, and local
+quota helper are removed. Hosted execution retains its separate reviewed
+authentication, admission, and worker contracts.
 
-The separate developer harness `dashboard/canvas-server.mjs` remains a private
-loopback-only integration adapter
-for JSON composition/live reload, authoring and trusted command callbacks.
-Bounded local-user GitHub reads and their cache remain in Go/PostgreSQL.
-Go proxies only those integration
-routes on the same public origin. This harness uses `dashboard/canvas-go-host.mjs`
-and an explicitly prepared checksum-verified canonical snapshot; it is not the
-installed Copilot canvas startup path.
-The adapter owns the Go child's stdin lifetime, stops it before removing staged
-assets, and cleans up failed startup. Canvas command execution requires paired
-trusted execution and approval callbacks; read-only authoring starts no command queue.
-Trusted canvas CLI actions use a separate, single-owner
-operational PostgreSQL queue namespace, never browser IndexedDB
-or the disposable dashboard projection. Capability-protected local endpoints
-admit only declared, validated actions with the existing trusted approval
-boundary. One existing CLI executor runs approved FIFO work independently of
-browser connections, with bounded concurrency, a fifteen-minute execution
-deadline, explicit cancellation, persistent ordered output and manual retries
-as new entries. Terminal history follows UTC seven-day retention windows;
-active work must not expire. Unclean shutdowns fail closed when subprocess
-termination cannot be verified: interrupted entries fail without automatic
-retry, and only explicit local operator acknowledgement after reconciliation
-resumes queued work. The local quota helper reuses the Go
-`githubquota` service against authoritative observations from the execution
-credential context; unavailable evidence fails closed. Queue operations and
-reactive runtime-source queries cross the browser data worker. Dashboard
-Language owns command selection, filtering and view composition, while terminal
-components only present output and interactions. Published dashboards initialize
-no queue, perform no queue requests and gain no execution authority.
 The focused `CLICommandQueues` / `CLICommandQueue` operational service contracts
 also provide PostgreSQL-backed command storage through `OperationalServices.CLICommands`.
 This is separate from the collection task queue and does not enable hosted
@@ -599,7 +565,7 @@ timeline/summary endpoints. Responses recheck authorization, are bounded to
 8 MiB/10000 rows and 30 seconds, and never expose arbitrary SQL/KQL, paths,
 credentials, or caller-selected generations. Existing dashboard query backends,
 frontend and native ADX profiles are unchanged. Persistent single-owner hosts
-are required; canvas, ephemeral/per-request hosts and distributed ownership
+are required; ephemeral/per-request hosts and distributed ownership
 are unsupported. Sampling without existing frozen membership, compaction,
 arbitrary queries, training and new acquisition remain deferred or fail closed.
 The ADR remains proposed pending its independent local/hosted acceptance gates
@@ -982,7 +948,7 @@ requires Actions read access and introduces no hosted snapshot-export API.
 Manifest SHA-256 verification and canonical-version validation precede atomic
 publication; failed ingestion preserves the prior committed state.
 The profile is loopback-only and bearer-authenticated. Database credentials
-stay in the server process, never in the browser or canvas adapter. Externally
+stay in the server process, never in the browser. Externally
 committed revisions notify active subscriptions through the ordinary query
 boundary. Local storage does not grant hosted collection or execution authority.
 
@@ -1540,7 +1506,7 @@ and removal remain authenticated and never hydrate notification payloads.
 | `activity/` | Deterministic Activity collection, JSONL ingestion, PostgreSQL projection, and the `cao` CLI. |
 | `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Entirely Go operator-facing `gh cao` executable, including onboarding, policy management, PostgreSQL-backed queries, computations and MCP; embeds the authoritative JSON contracts and uses the bundled server's canonical read boundary. Actions packaging remains Node-owned. |
 | `internal/dashboardquery/` | Independent Go module owning bounded native Dashboard Language evaluation and the canonical read-session contract; PostgreSQL reads stay behind the server-owned adapter. |
-| `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
+| `dashboard/` | Dashboard campaign, report/source adapters and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
 | `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Container Apps deployment templates. |
 | `server/cmd/cao-webhook-gateway/`, `server/internal/webhookgateway/`, `server/internal/webhookgatewayhost/` | Optional isolated gateway entry point, consumer contracts and pure decisions, and host adapters; durable state extends the existing PostgreSQL operational adapter. |
 | `server/spec/` | Editable TypeSpec HTTP/SSE, fresh Postgres storage and optional ADX export contracts; generates OpenAPI 3.1, wire JSON Schemas, standalone SQL DDL, Go bindings and ADX setup KQL; checks routes, payloads and canonical field coverage. |
@@ -1746,7 +1712,7 @@ artifact/attestation access, not npm.
 The materializer installs only owned canonical destinations from the archive
 and does not replace consumer-owned root package metadata. Installed control
 repositories keep the
-repository-local pipeline CLI, collection and query runtime, canvas authoring,
+repository-local pipeline CLI, collection and query runtime,
 dashboard production sources, build inputs, and dependency manifests. Tests,
 fixtures, screenshots, contributor tooling, and catalog-only component
 manifests stay in the catalog. Dashboard workflow builds install production

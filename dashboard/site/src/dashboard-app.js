@@ -1,4 +1,4 @@
-      import { dashboardPagePaginatedSourceBindings, dashboardPageSourceNames, disposeDashboard, renderDashboard, updateWithViewTransition } from "./presenter.js";
+      import { dashboardPagePaginatedSourceBindings, dashboardPageSourceNames, disposeDashboard, renderDashboard } from "./presenter.js";
       import { setLoadingProgressState } from "./loading-progress.js";
       import { isDataProcessingCancellation, offerCancelCommand, offerStartupRecovery } from "./cancel-command.js";
       import { resetBrowserDashboardData } from "./components/reset-dashboard-control.js";
@@ -217,32 +217,8 @@
       resetDashboardState(dashboardSchema);
       const root = document.querySelector("#root");
       if (!(root instanceof HTMLElement)) throw new Error("Dashboard root element is missing.");
-      /** @type {Record<string, import('./presenter.js').LogicalSourceInput>} */
-      let renderedSources = {};
-      let renderedSourcesPrepared = false;
       /** @type {((pageId: string, options: { signal: AbortSignal, onUpdate: (sources: Record<string, import('./presenter.js').LogicalSourceInput>) => void }) => Promise<Record<string, import('./presenter.js').LogicalSourceInput>>) | undefined} */
       let renderedPageSourceLoader;
-      const previewMode = new URLSearchParams(window.location.search).get("local-preview");
-      /** @type {WebSocket | undefined} */
-      let dashboardSocket;
-      if (previewMode === "canvas" || previewMode === "admin") {
-        const dashboardSocketUrl = new URL("./__dashboard_socket", window.location.href);
-        dashboardSocketUrl.protocol = dashboardSocketUrl.protocol.replace(/^http/, "ws");
-        dashboardSocket = new WebSocket(dashboardSocketUrl);
-        dashboardSocket.addEventListener("message", (event) => {
-          const message = JSON.parse(event.data);
-          if (message?.type === "dashboard-update" && message.dashboard) {
-            window.dispatchEvent(new CustomEvent("dashboard-preview-update", {
-              detail: { dashboard: message.dashboard, traceId: message.traceId },
-            }));
-          } else if (!message?.type) {
-            window.dispatchEvent(new CustomEvent("dashboard-preview-update", {
-              detail: { dashboard: message },
-            }));
-          }
-        });
-        console.log("Dashboard preview socket initialized.");
-      }
       /**
        * Keeps the generated WebMCP tools aligned with the rendered dashboard
        * definition. WebMCP is progressive enhancement: browsers without
@@ -274,16 +250,13 @@
       * @param {{ createdAt: string } | null} [snapshot]
       */
       const renderSources = (sources, state = "ready", prepared = false, loadPageSources, retryRefresh, snapshot = null) => {
-        const canExecuteCliActions = previewMode === "canvas" || previewMode === "admin"
-          || localCliQueueAvailable();
-        renderedSources = sources;
-        renderedSourcesPrepared = prepared;
+        const canExecuteCliActions = localCliQueueAvailable();
         renderedPageSourceLoader = loadPageSources;
         const cliContext = cliActionTemplateContext({
           repository: dashboardDocument.dashboard.repository,
           githubUrlBase: dashboardDocument.dashboard["github-url-base"],
           caoUrl: document.querySelector('meta[name="cao-url"]')?.getAttribute("content")
-            ?? (!previewMode && window.location.protocol === "https:" ? new URL(".", window.location.href).href : undefined),
+            ?? (window.location.protocol === "https:" ? new URL(".", window.location.href).href : undefined),
         });
         setDeclaredCliActions(dashboardDocument.dashboard["cli-actions"] ?? [], {
           canExecute: canExecuteCliActions,
@@ -335,69 +308,6 @@
         syncDashboardWebMCP();
         return dashboard;
       };
-      window.addEventListener("dashboard-preview-update", (event) => {
-        const previewEvent = /** @type {CustomEvent<{ dashboard: { 'language-version': string, dashboard: import('./presenter.js').PresentableDashboard }, traceId?: string }>} */ (event);
-        const { dashboard: schema, traceId } = previewEvent.detail;
-        const previousDashboardDocument = dashboardDocument;
-        const previousDashboardQueries = [...dashboardQueries];
-        const previousDashboardPageChunks = dashboardPageChunks;
-        const previousLoadedDashboardPages = new Set(loadedDashboardPages);
-        try {
-          resetDashboardState(schema);
-          updateWithViewTransition(document, () => renderSources(renderedSources, "ready", renderedSourcesPrepared, renderedPageSourceLoader));
-          if (traceId && dashboardSocket?.readyState === WebSocket.OPEN) {
-            dashboardSocket.send(JSON.stringify({
-              type: "browser.trace",
-              traceId,
-              event: "preview.rendered",
-              details: {
-                pageCount: schema.dashboard.pages.length,
-                activeHash: window.location.hash,
-              },
-            }));
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          const errorLog = error instanceof Error && error.stack ? error.stack : message;
-          let recovered = false;
-          let recoveryErrorLog = "";
-          dashboardDocument = previousDashboardDocument;
-          dashboardPageChunks = previousDashboardPageChunks;
-          dashboardQueries.splice(0, dashboardQueries.length, ...previousDashboardQueries);
-          loadedDashboardPages.clear();
-          for (const pageId of previousLoadedDashboardPages) loadedDashboardPages.add(pageId);
-          syncDashboardContext();
-          try {
-            renderSources(renderedSources, "ready", renderedSourcesPrepared, renderedPageSourceLoader);
-            recovered = true;
-          } catch (recoveryError) {
-            recoveryErrorLog = recoveryError instanceof Error && recoveryError.stack
-              ? recoveryError.stack
-              : String(recoveryError);
-          }
-          const combinedErrorLog = [
-            errorLog,
-            recoveryErrorLog ? `Preview recovery failed:\n${recoveryErrorLog}` : "",
-          ].filter(Boolean).join("\n\n").slice(0, 6000);
-          console.error("Dashboard preview hot reload failed.", {
-            message,
-            recovered,
-          });
-          if (traceId && dashboardSocket?.readyState === WebSocket.OPEN) {
-            dashboardSocket.send(JSON.stringify({
-              type: "browser.trace",
-              traceId,
-              event: "preview.render.failed",
-              details: {
-                message,
-                errorLog: combinedErrorLog,
-                recovered,
-              },
-            }));
-          }
-        }
-      });
-
       /**
        * @param {Record<string, unknown>} sources
        * @param {boolean} [ingest]

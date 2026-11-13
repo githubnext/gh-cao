@@ -23,7 +23,7 @@ type LocalOperatorActionsConfig struct {
 }
 
 // LocalOperatorConfig binds terminal-approved maintenance independently of
-// canvas presentation or the canonical PostgreSQL ingestion connection.
+// the canonical PostgreSQL ingestion connection.
 type LocalOperatorConfig struct {
 	AdapterURL      string                      `json:"adapterUrl"`
 	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
@@ -34,11 +34,7 @@ func (c *LocalOperatorActionsConfig) allows(repository string) bool {
 }
 
 func (a *App) operatorConnection() *LocalOperatorConfig {
-	connection := a.config.OperatorActions
-	if connection == nil && a.config.Canvas != nil {
-		connection = &LocalOperatorConfig{AdapterURL: a.config.Canvas.AdapterURL, OperatorActions: a.config.Canvas.OperatorActions}
-	}
-	return connection
+	return a.config.OperatorActions
 }
 
 func (a *App) enableOperatorActions(ctx context.Context) error {

@@ -1,33 +1,32 @@
 import { createHash, randomBytes } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { CANONICAL_SCHEMA_VERSION } from "../../dashboard/site/src/data/model/schema.js";
 import { NORMALIZED_JSONL_INGESTION_VERSION } from "../../dashboard/site/src/data/ingest/coordinator.js";
 import { normalize } from "../../dashboard/site/src/data/normalize/index.js";
-import { startCanvasServer as startPreparedCanvasServer } from "../../dashboard/canvas-server.mjs";
 
 const execute = promisify(execFile);
 
-function canvasPostgresEndpoint(value) {
-  if (!value) throw new Error("Canvas tests require an explicitly configured disposable POSTGRES_URL.");
+function dashboardPostgresEndpoint(value) {
+  if (!value) throw new Error("Dashboard tests require an explicitly configured disposable POSTGRES_URL.");
   const endpoint = new URL(value);
-  if (!["127.0.0.1", "[::1]"].includes(endpoint.hostname)) throw new Error("Canvas tests require numeric-loopback PostgreSQL.");
+  if (!["127.0.0.1", "[::1]"].includes(endpoint.hostname)) throw new Error("Dashboard tests require numeric-loopback PostgreSQL.");
   return endpoint;
 }
 
 const postgresCommand = (endpoint, sql) => execute("psql", ["-X", "--dbname", endpoint,
   "-v", "ON_ERROR_STOP=1", "-At", "-c", sql], { timeout: 120_000, maxBuffer: 1 << 20 });
 
-export async function prepareCanvasPostgresTemplate(endpoint = process.env.POSTGRES_URL) {
-  const target = canvasPostgresEndpoint(endpoint);
-  const database = "canvas_template_" + randomBytes(10).toString("hex");
+export async function prepareDashboardPostgresTemplate(endpoint = process.env.POSTGRES_URL) {
+  const target = dashboardPostgresEndpoint(endpoint);
+  const database = "dashboard_template_" + randomBytes(10).toString("hex");
   const close = () => postgresCommand(endpoint, "DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
   await postgresCommand(endpoint, "CREATE DATABASE " + database);
   target.pathname = "/" + database;
   try {
-    const fixture = await prepareCanvasPostgres({ endpoint: target.href, template: null });
+    const fixture = await prepareDashboardPostgres({ endpoint: target.href, template: null });
     await postgresCommand(endpoint, "ALTER DATABASE " + database + " ALLOW_CONNECTIONS false");
     return { postgresURL: fixture.postgresURL, close };
   } catch (error) {
@@ -36,28 +35,28 @@ export async function prepareCanvasPostgresTemplate(endpoint = process.env.POSTG
   }
 }
 
-export async function prepareCanvasPostgres({
+export async function prepareDashboardPostgres({
   endpoint: configuredEndpoint = process.env.POSTGRES_URL,
-  template = process.env.CAO_CANVAS_POSTGRES_TEMPLATE,
+  template = process.env.CAO_TEST_POSTGRES_TEMPLATE,
 } = {}) {
-  const endpoint = canvasPostgresEndpoint(configuredEndpoint);
+  const endpoint = dashboardPostgresEndpoint(configuredEndpoint);
   if (template) {
-    const source = canvasPostgresEndpoint(template);
+    const source = dashboardPostgresEndpoint(template);
     if (source.host !== endpoint.host || source.username !== endpoint.username
-        || source.password !== endpoint.password || !/^\/canvas_template_[a-f0-9]{20}$/.test(source.pathname)
-        || !/^canvas_test_[a-f0-9]{20}$/.test(source.searchParams.get("search_path") ?? "")) {
-      throw new Error("Canvas template must belong to the configured PostgreSQL test server.");
+        || source.password !== endpoint.password || !/^\/dashboard_template_[a-f0-9]{20}$/.test(source.pathname)
+        || !/^dashboard_test_[a-f0-9]{20}$/.test(source.searchParams.get("search_path") ?? "")) {
+      throw new Error("Dashboard template must belong to the configured PostgreSQL test server.");
     }
-    const database = "canvas_clone_" + randomBytes(10).toString("hex");
+    const database = "dashboard_clone_" + randomBytes(10).toString("hex");
     await postgresCommand(configuredEndpoint, "CREATE DATABASE " + database + " TEMPLATE " + source.pathname.slice(1));
     source.pathname = "/" + database;
     return {
-      postgresURL: source.href, namespace: "canvas-test",
+      postgresURL: source.href, namespace: "dashboard-test",
       close: () => postgresCommand(configuredEndpoint, "DROP DATABASE IF EXISTS " + database + " WITH (FORCE)"),
     };
   }
-  const schema = "canvas_test_" + randomBytes(10).toString("hex");
-  const namespace = "canvas-test";
+  const schema = "dashboard_test_" + randomBytes(10).toString("hex");
+  const namespace = "dashboard-test";
   const binary = process.env.CAO_DASHBOARD_EXECUTABLE ?? resolve(".tmp/cao-dashboard");
   const psql = (sql) => postgresCommand(configuredEndpoint, sql);
   await psql("CREATE SCHEMA " + schema);
@@ -85,59 +84,8 @@ export async function prepareCanvasPostgres({
   }
 }
 
-/**
- * @param {NonNullable<Parameters<typeof startPreparedCanvasServer>[0]> & {
- *   prepareSnapshot?: (destination: string, repository?: string, ghExecutable?: string, workingDirectory?: string) => Promise<unknown>
- * }} options
- */
-export async function startCanvasServer({ prepareSnapshot, ...options } = {}) {
-  if (Object.hasOwn(options, "cliQueuePath")) return startPreparedCanvasServer(options);
-  // An unconfigured fixture must not consult the developer's GitHub credentials.
-  options.ghExecutable ??= process.execPath;
-  const directory = prepareSnapshot
-    ? await mkdtemp(join(options.workingDirectory ?? process.cwd(), ".cao-fixture-"))
-    : null;
-  let postgres;
-  try {
-    if (prepareSnapshot && directory) {
-      const prepared = await prepareSnapshot(directory, options.repository, options.ghExecutable, options.workingDirectory);
-      if (prepared && typeof prepared === "object" && "repository" in prepared && typeof prepared.repository === "string") {
-        options.repository ??= prepared.repository;
-      }
-    }
-    if (!options.postgresURL) postgres = await prepareCanvasPostgres();
-    const preview = await startPreparedCanvasServer({ ...options,
-      ...(postgres ? { postgresURL: postgres.postgresURL, namespace: postgres.namespace } : {}),
-      ...(directory ? { snapshotDirectory: directory } : {}) });
-    return {
-      ...preview,
-      async ingestSnapshot() {
-        if (!directory || !postgres) throw new Error("Snapshot ingestion requires a prepared PostgreSQL fixture.");
-        await execute(process.env.CAO_DASHBOARD_EXECUTABLE ?? resolve(".tmp/cao-dashboard"),
-          ["ingest", "--source", directory, "--namespace", postgres.namespace, "--database-queries",
-            resolve(import.meta.dirname, "../../dashboard/site/src/data/queries/database.json")], {
-            env: { ...process.env, CAO_POSTGRES_URL: postgres.postgresURL,
-              CAO_OPERATIONAL_NAMESPACE: postgres.namespace, OTEL_SDK_DISABLED: "true" },
-            timeout: 120_000, maxBuffer: 1 << 20,
-          });
-      },
-      async close() {
-        try { await preview.close(); }
-        finally {
-          await postgres?.close();
-          if (directory) await rm(directory, { recursive: true, force: true });
-        }
-      },
-    };
-  } catch (error) {
-    await postgres?.close();
-    if (directory) await rm(directory, { recursive: true, force: true });
-    throw error;
-  }
-}
-
 // Artifact fixtures use canonical records, not the removed logical-source HTTP transport.
-export async function writeCanvasSnapshot(destination, records = {}) {
+export async function writeDashboardSnapshot(destination, records = {}) {
   await mkdir(destination, { recursive: true });
   const hashes = {};
   for (const phase of ["runs", "records"]) {

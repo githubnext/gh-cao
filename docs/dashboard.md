@@ -142,21 +142,21 @@ rollout mode, safe output, outcome, and operational value.
 Reading dashboard evidence does not start work, approve an output, grant
 workflow authority, change rollout policy, or write to a repository. Make those
 decisions through the control repository and its reviewed workflows and policy.
-The synthetic Pages demo is read-only; native canvas/terminal maintenance and
+The synthetic Pages demo is read-only; native terminal maintenance and
 [hosted CLI actions](https://github.com/githubnext/gh-cao/blob/main/server/README.md#hosted-cli-actions)
 have separate authorization and approval requirements.
 
-<span id="design-queries-in-a-copilot-canvas"></span>
+### Dashboard authoring
 
-The [Copilot plugin](agent-plugin.md#design-queries-in-a-copilot-canvas)
-provides conversation-based dashboard authoring skills and query tools. Its
-native CLI canvas does not expose the former canvas-only Query editor or saved views.
+The [Copilot plugin](agent-plugin.md#dashboard-tools) provides conversation-based
+dashboard authoring skills and read-only query tools. Run the native dashboard
+in a browser; no canvas, query-editor page, or saved-view bridge is registered.
 
 ### Configure compiler defaults
 
 **Maintenance → Governance** is visible only to an authorized hosted
 administrator with a current, assured session. It is hidden in published
-dashboards, local Go previews and Copilot canvases, including through direct
+dashboards, local Go previews, including through direct
 links. The standalone Node `--admin` mode has been retired.
 
 Hosted repository installation tokens cannot administer organization or
@@ -191,5 +191,5 @@ perform these operations, so editing remains disabled for hosted administrators.
 - Let browser agents read the same pages through [WebMCP](dashboard-webmcp.md),
 	and agents without a browser or shell through
 	[Agent analysis](agent-analysis.md).
-- Use the [Copilot plugin and canvas](agent-plugin.md) for local activity evidence
+- Use the [Copilot plugin](agent-plugin.md) for local activity evidence
 	and conversation-based query authoring. Maintenance retains trusted terminal approval.

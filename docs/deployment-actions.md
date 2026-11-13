@@ -138,7 +138,7 @@ Isolation, offline recovery, quota behavior, and query conformance still matter.
 - Inspect Activity and Dashboard workflow logs for artifact, integrity, and
   coverage failures; inspect Documentation Pages separately for demo failures.
 - Keep operational artifacts bounded and access-controlled. They remain needed
-  for authorized local analysis, canvas use, and hosted ingestion.
+  for authorized local analysis and hosted ingestion.
 - Actions caches are evictable and artifacts expire. Neither is an archive or
   evidence of complete collection. GitHub history and retained source evidence
   remain authoritative.

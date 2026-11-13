@@ -235,7 +235,7 @@ is currently supported on Unix; Windows cannot execute these actions.
 No maintenance command runs merely because the dashboard starts, and this mode
 does not mutate remote runs, dispatch workflows, change rollout policy or enable
 hosted execution.
-The native adapter is independent of canvas integration. Its normal server
+The native adapter uses the ordinary local server. Its
 endpoints require bearer authentication and same-origin mutation requests in
 addition to fresh terminal approval.
 
@@ -621,7 +621,6 @@ for deployment and administration contracts.
 
 Other server binaries are separate process boundaries, not `gh cao` subcommands:
 `cao-webhook-gateway` selects isolated receive, dispatch, local, or discover roles;
-`cao-cli-quota` consumes an internal stdin/stdout scheduling protocol; and
 `cao-cli-relay` wraps a hosted workload inside its network-isolated container.
 The npm `cao` bin and `npm run dashboard:data -- <command>` invoke the same
 Node entry point, not additional command registrations. npm dashboard serving
@@ -980,14 +979,15 @@ The slug is the last component of the installed package name (`root` for
 fail before updates or gh-aw upgrades. Campaign selection does not narrow a
 required gh-aw compiler upgrade, which may refresh shared workflow files.
 
-The canvas Repositories page exposes a **+ Add repository** control in both
-chart and table modes; Updates retains the same control. Search GitHub, enter
-an exact `OWNER/REPO`, or select a wildcard such as `owner/service-*` or `owner/*`.
-Execution still requires fresh approval of the command. Quote wildcards at the CLI:
-`gh cao repos add 'owner/service-*'`. Patterns resolve current accessible matches
-to exact policy entries, not future matches. Incomplete discovery, no matches,
-more than 100 matches, or any failed exact access check leaves policy unchanged.
-Enrollment
+Enroll a repository explicitly with `gh cao repos add OWNER/REPO`, or quote a
+wildcard pattern such as `gh cao repos add 'owner/service-*'` or
+`gh cao repos add 'owner/*'`. Patterns resolve current accessible matches to exact
+policy entries, not future matches. Incomplete discovery, no matches, more than
+100 matches, or any failed exact access check leaves policy unchanged.
+Repositories and Updates declare an **Add repository** selector, but a selector
+does not grant command authority. The native dashboard's maintenance service
+does not execute enrollment; run the reviewed command explicitly at the CLI.
+No canvas execution or search server is provided. Enrollment
 requires existing exact owner and repository allowlists and does not rewrite a
 broad discovery policy. An already enrolled repository is unchanged. New targets
 stay in review mode even when a campaign defaults to live. The command neither

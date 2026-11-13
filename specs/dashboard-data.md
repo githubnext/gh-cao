@@ -181,46 +181,13 @@ Every routing view SHALL describe its actionable decision in the supported
 `subject`, `objective` and `acceptance` metadata. Page-level `intent` remains
 supported; view-level `intent` is not part of Dashboard Language.
 
-### Canvas query authoring boundary
+### Dashboard authoring boundary
 
-The canvas-only query editor SHALL submit a complete Dashboard Language document
-to the data worker for structural and semantic validation before rendering it.
-Preview documents SHALL contain exactly one custom `query-preview` page with
-data marks only, no new CLI capabilities or named UI elements, and an explicit
-per-view output limit of at most 200 rows. Every view source, including filter
-options, SHALL reference a declared query with `query.limit` between 1 and the
-view's `data.limit`; layered charts SHALL omit `data.limit` and bound their
-source query to at most 200 rows. The worker SHALL execute the query bound
-before returning rows.
-Preview documents SHALL NOT declare forms, lazy pagination, or drill navigation.
-Invalid documents SHALL preserve the
-last accepted preview and expose validation diagnostics.
-
-Accepted previews SHALL execute through the existing canonical query and
-view-payload compiler and retain an abort-scoped subscription. Canonical database
-changes SHALL refresh their payloads; replacing the document or leaving the page
-SHALL cancel old subscriptions and requests. No main-thread query fallback or
-test-only logical-source synthesis is permitted.
-Local canvas queries SHALL execute through the Go server over the canonical
-PostgreSQL namespace without opening browser IndexedDB. The canvas SHALL
-NOT offer a query-backend selector or a browser fallback. Document validation
-SHALL remain in the browser data worker.
-
-Authoring intent and drafts are local interaction state, not canonical entities.
-The editor SHALL NOT add IndexedDB stores, alter retention or relationships, or
-write preview rows to storage. A user-requested save SHALL persist only the
-validated Dashboard Language document under the workspace-local
-`.cao/dashboard/custom-views/` directory, not evidence rows or browser entities.
-Saved queries, views, card templates, and units SHALL have isolated identifiers;
-the local set SHALL survive canvas/server restarts and SHALL NOT be loaded by
-static or hosted dashboards. Source JSON/YAML SHALL be an optional disclosure;
-the rendered view SHALL be primary.
-Hosted SQL ingestion and storage remain unchanged:
-this feature is available only in a loopback Copilot canvas, not the static or
-hosted dashboard. Its preview uses the existing browser/SQL Dashboard Language
-contract rather than a separate query dialect or execution service. SDK generation
-SHALL receive authoring text and trusted language/skill context, not canonical
-source rows, and SHALL have no filesystem, shell, MCP, or repository-write tools.
+Copilot canvas support, its query-editor page, custom-view persistence, and
+session handoff are removed. Dashboard authoring uses checked-in Dashboard
+Language documents and the plugin's read-only query/specification tools.
+Local and hosted queries SHALL retain the production Go/PostgreSQL boundary;
+removing the canvas MUST NOT introduce a Node query or execution fallback.
 
 | Browser storage | IndexedDB keeps all available run summaries and expires detailed run-linked records after 7 days. |
 | --- | --- |
@@ -488,10 +455,8 @@ An explicit `DASHBOARD_DATA_URL` or URL argument SHALL name an operational
 `payload-hashes.json` directly, not a site root or directory-discovery endpoint.
 Authenticated Actions artifact acquisition followed by PostgreSQL ingestion
 remains supported. This contract does not introduce a hosted export API.
-Operational downloaders and canvas acquisition SHALL reject synthetic manifests
-and manifests without canonical shard checksums. The canvas SHALL read a prepared
-PostgreSQL namespace populated from verified canonical shards; it SHALL NOT discover Actions artifacts, legacy dashboard bundles,
-Pages data, or a dashboard backlink from Pages settings.
+Operational downloaders SHALL reject synthetic manifests and manifests without
+canonical shard checksums. No canvas acquisition or serving path is supported.
 
 The demo SHALL put data files under `demo-data/`, not root
 `payload-hashes.json`, suffix browser storage keys with `synthetic-demo`,
@@ -854,8 +819,8 @@ underlying canonical storage or shard download volume in this increment.
 ## 5.2 Go server profile
 
 Go SHALL be the serving runtime for local and hosted PostgreSQL, and explicit
-synthetic-only Pages previews. The Node.js authoring bridge SHALL remain internal to
-Copilot canvas development rather than provide a standalone serving mode. The
+synthetic-only Pages previews. A Copilot canvas or Node authoring host SHALL NOT
+provide another serving mode. The
 Go server data profile SHALL:
 
 * ingest `inventory-sources.json`, `payload-hashes.json`, and compacted
@@ -1118,7 +1083,7 @@ NOT grant local rollout, dispatch or hosted execution authority. Separately,
 declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
 pull-request publication, and fresh trusted terminal approval per command.
-The native maintenance adapter SHALL be independent of canvas presentation and
+The native maintenance adapter SHALL be independent of presentation and
 require ordinary server bearer authentication plus same-origin mutation checks.
 Credentials and subprocesses MUST remain in the owning CLI, not the read-only
 query server. Cancellation MUST terminate the owned execution; loss of transport

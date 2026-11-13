@@ -329,7 +329,7 @@ export function normalizeDashboardPageChunk(chunk) {
 /**
  * Builds the relative chunk path a page's JSON is written to / fetched from,
  * given its id and the (optional) chunk directory name. Shared by
- * `splitDashboardDocument`, `scripts/build.mjs`, and `canvas-server.mjs` so
+ * `splitDashboardDocument` and `scripts/build.mjs` so
  * the naming scheme only needs to change in one place.
  * @param {string} pageId
  * @param {string} [chunkDirectory]

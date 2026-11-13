@@ -17,7 +17,6 @@ import (
 
 func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	app, _ := newLocalPostgresTestApp(t, false)
-	prefix := "/" + strings.Repeat("a", 48)
 	adapterPrefix := "/" + strings.Repeat("b", 48)
 	calls := make(chan []string, 1)
 	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -33,8 +32,8 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 		_, _ = w.Write([]byte("{\"stream\":\"stdout\",\"data\":\"maintenance ready\\n\"}\n{\"complete\":true,\"exitCode\":0}\n"))
 	}))
 	defer adapter.Close()
-	app.config.Canvas = &LocalCanvasConfig{
-		Prefix: prefix, AdapterURL: adapter.URL + adapterPrefix,
+	app.config.OperatorActions = &LocalOperatorConfig{
+		AdapterURL:      adapter.URL + adapterPrefix,
 		OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
 	}
 	document := `{"dashboard":{"cli-actions":[
@@ -52,6 +51,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 		req := httptest.NewRequestWithContext(t.Context(), method, "http://127.0.0.1:8080"+path, bytes.NewBufferString(body))
 		req.URL.Scheme, req.URL.Host = "", ""
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+testAccessToken)
 		if origin != "" {
 			req.Header.Set("Origin", origin)
 		}
@@ -64,14 +64,13 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 		path, body, origin string
 		status             int
 	}{
-		{"/__cli_commands", valid, "http://127.0.0.1:8080", 404},
-		{prefix + "/__cli_commands", valid, "https://evil.example", 403},
-		{prefix + "/__cli_commands", valid, "", 403},
-		{prefix + "/__cli_commands", `{"id":"dispatch","values":{"repository":"github/gh-aw"}}`, "http://127.0.0.1:8080", 403},
-		{prefix + "/__cli_commands", `{"id":"upgrade-repository","values":{"repository":"octo/other"}}`, "http://127.0.0.1:8080", 403},
-		{prefix + "/__cli_commands", `{"id":"upgrade-repository","values":{"repository":"github/gh-aw"},"arguments":{"create-pull-request":false}}`, "http://127.0.0.1:8080", 422},
-		{prefix + "/__cli_commands", valid, "http://127.0.0.1:8080", 202},
-		{prefix + "/__cli_commands", valid, "http://127.0.0.1:8080", 202},
+		{"/__cli_commands", valid, "https://evil.example", 403},
+		{"/__cli_commands", valid, "", 403},
+		{"/__cli_commands", `{"id":"dispatch","values":{"repository":"github/gh-aw"}}`, "http://127.0.0.1:8080", 403},
+		{"/__cli_commands", `{"id":"upgrade-repository","values":{"repository":"octo/other"}}`, "http://127.0.0.1:8080", 403},
+		{"/__cli_commands", `{"id":"upgrade-repository","values":{"repository":"github/gh-aw"},"arguments":{"create-pull-request":false}}`, "http://127.0.0.1:8080", 422},
+		{"/__cli_commands", valid, "http://127.0.0.1:8080", 202},
+		{"/__cli_commands", valid, "http://127.0.0.1:8080", 202},
 	} {
 		response := request(http.MethodPost, test.path, test.body, test.origin)
 		if response.Code != test.status {
@@ -104,7 +103,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	output := request(http.MethodGet, prefix+"/__cli_commands/1/output", "", "")
+	output := request(http.MethodGet, "/__cli_commands/1/output", "", "")
 	if output.Code != 200 || !strings.Contains(output.Body.String(), "maintenance ready") || !strings.Contains(output.Body.String(), `"type":"complete"`) {
 		t.Fatalf("output could not be reattached: %d %s", output.Code, output.Body.String())
 	}
@@ -112,7 +111,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	if err != nil || commands.Total != 1 {
 		t.Fatalf("idempotent admission duplicated maintenance: %+v %v", commands, err)
 	}
-	index := request(http.MethodGet, prefix+"/?local-preview=canvas", "", "")
+	index := request(http.MethodGet, "/", "", "")
 	if !strings.Contains(index.Body.String(), "__CLI_QUEUE__ = true") || !strings.Contains(index.Body.String(), "__LOCAL_CLI_QUEUE__ = true") {
 		t.Fatal("native dashboard did not activate local maintenance controls")
 	}
@@ -138,7 +137,7 @@ func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
 		}
 	}))
 	defer adapter.Close()
-	app.config.Canvas = &LocalCanvasConfig{AdapterURL: adapter.URL}
+	app.config.OperatorActions = &LocalOperatorConfig{AdapterURL: adapter.URL}
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	type result struct {
@@ -190,7 +189,7 @@ func TestOperatorDisconnectDoesNotConfirmNativeExit(t *testing.T) {
 		_, _ = w.Write([]byte("{\"stream\":\"stderr\",\"data\":\"interrupted\\n\"}\n"))
 	}))
 	defer adapter.Close()
-	app.config.Canvas = &LocalCanvasConfig{AdapterURL: adapter.URL}
+	app.config.OperatorActions = &LocalOperatorConfig{AdapterURL: adapter.URL}
 	code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
 		ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
 			Command: "gh aw upgrade --repo github/gh-aw --create-pull-request", Repository: "github/gh-aw",
