@@ -116,6 +116,19 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1/4, 2/4, 3/4, 4/4]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: cao_browser_test
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cao_browser_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: dashboard/site
@@ -151,7 +164,11 @@ jobs:
         run: |
           sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
           npx playwright install --with-deps chromium webkit
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
       - name: End-to-end tests
+        env:
+          POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_browser_test?sslmode=disable
         run: npm run test:e2e -- --shard=${{ matrix.shard }}
       - name: Retain browser test reports and failures
         if: always()

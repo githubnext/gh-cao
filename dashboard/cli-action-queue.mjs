@@ -71,7 +71,7 @@ export async function createCliActionQueue({
   };
   const request = async (operation, values = {}) => {
     const result = await adapter.request({ operation, ...values });
-    if (["enqueue", "cancel", "append", "finish", "settle", "retain"].includes(operation)) emit();
+    if (["enqueue", "claim", "cancel", "append", "finish", "settle", "retain"].includes(operation)) emit();
     return result;
   };
   const sanitize = (text) => {
