@@ -14,7 +14,6 @@ test("every root unit test runs in exactly one topical area", () => {
   assert.deepEqual(Object.values(partition).flat().sort(), files);
   assert.ok(partition.activity.includes("activity-normalized-shards.test.mjs"));
   assert.ok(partition.documentation.includes("docs-workflow-ecosystem-layout.test.mjs"));
-  assert.ok(partition.tooling.includes("azure-local-harness.test.mjs"));
   assert.ok(partition.tooling.includes("backfill-stress-report.test.mjs"));
   assert.ok(partition.tooling.includes("company-stress.test.mjs"));
   assert.ok(partition.tooling.includes("source-map-compat.test.mjs"));

@@ -544,7 +544,7 @@ test("control policy rejects inconsistent host capabilities", () => {
 });
 
 test("control policy validates every deployment module and rejects incompatible composition", () => {
-  const targetModules = ["container", "azure-functions"];
+  const targetModules = ["container"];
   const redisModules = [
     "generic", "local", "upstash", "aws-elasticache", "redis-cloud",
     "gcp-memorystore", "railway", "render", "digitalocean",
@@ -573,7 +573,7 @@ test("control policy validates every deployment module and rejects incompatible 
   const incompatible = JSON.parse(minimalPolicy);
   incompatible["control-plane"].web = {
     host: {
-      target: { module: "azure-functions" },
+      target: { module: "generic", authentication: "github-oauth", listener: "external" },
       redis: { module: "upstash" },
     },
   };

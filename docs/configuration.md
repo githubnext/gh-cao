@@ -404,7 +404,7 @@ Steering can refine evidence, priorities, and selection within resolved policy. 
 
 ## Optional Observability
 
-The dispatcher span is built into `shared/control.md`; exporter configuration determines where gh-aw sends it. Set the `GH_AW_DEFAULT_OTLP_ENDPOINT` Actions variable and `GH_AW_DEFAULT_OTLP_HEADERS` Actions secret at repository, organization, or enterprise scope. Export is disabled when the endpoint or matching headers are absent. Hosted dashboard servers configure their own OpenTelemetry export; see [Azure](deployment-azure.md#monitoring-the-deployment).
+The dispatcher span is built into `shared/control.md`; exporter configuration determines where gh-aw sends it. Set the `GH_AW_DEFAULT_OTLP_ENDPOINT` Actions variable and `GH_AW_DEFAULT_OTLP_HEADERS` Actions secret at repository, organization, or enterprise scope. Export is disabled when the endpoint or matching headers are absent. Independently configured hosted Go servers have their own OpenTelemetry settings; the [Container Apps review bundle](deployment-azure.md) supports container logs, not OTLP.
 
 ```bash
 CONTROL_REPO="acme/central-agentic-ops"

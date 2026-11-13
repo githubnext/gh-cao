@@ -129,15 +129,13 @@ func ReviewRules(solution Solution) RuleReport {
 		required = slices.Clone(compactSecretNames)
 	} else if input.Features.Deployment == "azure-container-apps" {
 		required = slices.Clone(containerAppsSecretNames)
-	} else if input.Features.Acquisition == "collector" {
-		required = append(required, "collectorPrivateKey", "githubWebhookSecret")
 	}
 	required = append(required, additionalRuntimeSecrets(input.Features)...)
 	nodes := map[string]bool{}
 	for _, node := range solution.Topology.Nodes {
 		nodes[node.ID] = true
 	}
-	known := slices.Contains([]string{"single-vm", "minimal-azure", "azure-functions", "azure-container-apps"}, input.Features.Deployment)
+	known := slices.Contains([]string{"single-vm", "minimal-azure", "azure-container-apps"}, input.Features.Deployment)
 	authorized := false
 	for _, field := range []string{"githubAllowedOrganizations", "githubAllowedTeams", "githubAllowedUsers"} {
 		if users, ok := list(input.Azure.Parameters[field]); ok && len(users) > 0 {

@@ -94,9 +94,9 @@ test("Azure asset bundle contains exactly the allowlisted Docker build inputs", 
     "dashboard/site/src/",
     "dashboard/site/tsconfig.json",
     "internal/dashboardquery/",
+    "internal/topology/assets/container-apps/",
     "server/Dockerfile",
     "server/azure/empty-data/",
-    "server/azure/main.json",
     "server/azure/provision.sh",
     "server/azure/provision.sql",
     "server/cmd/cao-dashboard/",
@@ -148,8 +148,8 @@ test("Azure asset manifest records the source revision and every file digest", (
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.revision, revision);
   assert.equal(manifest.dockerfile, "server/Dockerfile");
-  assert.equal(manifest.template, "server/azure/main.json");
-  assert.deepEqual(manifest.targets, ["azure-functions-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"]);
+  assert.equal(manifest.template, "internal/topology/assets/container-apps/main.generated.json");
+  assert.deepEqual(manifest.targets, ["azure-container-apps-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"]);
   const contents = entries.filter((entry) => entry.path !== AZURE_ASSET_MANIFEST);
   assert.deepEqual(Object.keys(manifest.files), contents.map((entry) => entry.path));
   for (const entry of contents) {
@@ -197,9 +197,9 @@ test("Azure Dockerfile legacy ACR targets and their preceding stages read only b
     visit(/^FROM (\S+)/.exec(stage)[1]);
     for (const match of stage.matchAll(/--from=(\S+)/g)) visit(match[1]);
   };
-  for (const target of ["azure-functions-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"]) visit(target);
+  for (const target of ["azure-container-apps-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"]) visit(target);
   const order = [...stages.keys()].filter(Boolean);
-  for (const target of ["azure-functions-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"]) {
+  for (const target of ["azure-container-apps-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"]) {
     assert.ok(order.includes(target), `${target} must exist`);
     for (const preceding of order.slice(0, order.indexOf(target) + 1)) reachable.add(preceding);
   }
@@ -227,11 +227,9 @@ test("Azure Dockerfile legacy ACR targets and their preceding stages read only b
   assert.match(stages.get("azure-ingest-runtime"), /^COPY --from=cao-ingest-source --chown=cao:cao \/ \/data\/$/m);
 });
 
-test("development CLI and release bundles consume the same reviewed Azure asset allowlist", () => {
-  const shared = readFileSync(path.join(root, "internal/cli/deploy_azure_assets.json"), "utf8");
+test("release bundles consume the reviewed Container Apps asset allowlist", () => {
+  const shared = readFileSync(path.join(root, "scripts/cao-azure-assets.json"), "utf8");
   assert.deepEqual(AZURE_ASSET_ALLOWLIST, JSON.parse(shared));
   assert.ok(AZURE_ASSET_ALLOWLIST.includes("dashboard/site/manifest.webmanifest"));
-  const native = readFileSync(path.join(root, "internal/cli/deploy_azure_images.go"), "utf8");
-  assert.match(native, /\/\/go:embed deploy_azure_assets\.json/);
-  assert.match(native, /for _, entry := range deployAzureAssetAllowlist/);
+  assert.ok(AZURE_ASSET_ALLOWLIST.includes("internal/topology/assets/container-apps/"));
 });

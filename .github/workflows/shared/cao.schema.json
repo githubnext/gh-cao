@@ -341,7 +341,7 @@
       "properties": {
         "module": {
           "type": "string",
-          "enum": ["generic", "container", "azure-functions"]
+          "enum": ["generic", "container"]
         },
         "name": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
         "authentication": { "type": "string", "enum": ["github-oauth"] },

@@ -297,21 +297,6 @@ func TestHostAndRedisModulesComposeIndependently(t *testing.T) {
 	if !resolved.SingleReplicaConfirmed {
 		t.Fatal("policy resolution ignored the single-replica target configuration")
 	}
-
-	azure, err := (hostPolicy{
-		Target: targetPolicy{Module: "azure-functions"},
-		Redis:  redisPolicy{Module: "redis-cloud"},
-	}).resolve(mapLookup(map[string]string{
-		"REDIS_URL": "rediss://cache.example.com:6379",
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if azure.Profile.Listener != HostListenerPlatform ||
-		!azure.Profile.TrustsPlatformProxy ||
-		azure.Profile.RedisSession != HostRedisPooled {
-		t.Fatalf("Azure target did not compose with Redis Cloud: %+v", azure.Profile)
-	}
 }
 
 func TestExternalHostProfileComposesWithRedis(t *testing.T) {
@@ -339,7 +324,7 @@ func TestDeploymentModuleRegistry(t *testing.T) {
 		targets = append(targets, name)
 	}
 	sort.Strings(targets)
-	if !slices.Equal(targets, []string{"azure-functions", "container", "generic"}) {
+	if !slices.Equal(targets, []string{"container", "generic"}) {
 		t.Fatalf("unexpected host target modules: %v", targets)
 	}
 	providers := make([]string, 0, len(redisProviderModules))
@@ -362,7 +347,7 @@ func TestModulesRejectUnknownOrOverriddenCapabilities(t *testing.T) {
 		{Target: targetPolicy{Module: "container"}, Redis: redisPolicy{Module: "unknown"}},
 		{Target: targetPolicy{Module: "container", Replicas: 1}, Redis: redisPolicy{Module: "upstash", Session: HostRedisPooled}},
 		{Target: targetPolicy{Module: "container", Replicas: 1}, Redis: redisPolicy{Module: "upstash", TLS: redisTLSPolicy{Mode: redisTLSDisabled}}},
-		{Target: targetPolicy{Module: "azure-functions"}, Redis: redisPolicy{Module: "upstash"}},
+		{Target: targetPolicy{Module: "azure-functions"}, Redis: redisPolicy{Module: "generic"}},
 		{Target: targetPolicy{Module: "container"}, Redis: redisPolicy{Module: "upstash"}},
 	}
 	for _, policy := range tests {

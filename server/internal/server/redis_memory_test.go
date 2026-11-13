@@ -251,15 +251,6 @@ func (redisPressureMaintenanceClient) DoMany(context.Context, [][]string) ([]any
 	return nil, errors.New("unexpected maintenance pipeline")
 }
 
-func TestAzureRedisMaintenanceStopsOnDrain(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
-	handler := &azureFunctionsHandler{app: &App{}, stopMaintenance: cancel}
-	handler.Drain()
-	if ctx.Err() == nil {
-		t.Fatal("platform maintenance outlived drain")
-	}
-}
-
 type managedRedisMaintenanceClient struct{}
 
 func (managedRedisMaintenanceClient) Do(_ context.Context, command ...string) (any, error) {

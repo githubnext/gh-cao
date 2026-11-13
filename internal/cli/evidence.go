@@ -54,9 +54,9 @@ func defaultEvidenceDeps(version string) evidenceDeps {
 }
 
 type evidenceReleaseOptions struct {
-	Repository, Revision, Image, AzureReceipt, Output string
-	PackageRun, PromotionRun                          int64
-	Verify                                            bool
+	Repository, Revision, Image, Output string
+	PackageRun, PromotionRun            int64
+	Verify                              bool
 }
 
 func (o evidenceReleaseOptions) validate() error {
@@ -88,7 +88,7 @@ configured image read-back is not running-image measurement, and artifact refere
 do not establish independent retention, governance or Type 2 effectiveness.
 
 Optional provenance verification uses gh attestation verify with the exact image,
-source digest and reusable publisher. Azure receipts remain development-only.`,
+source digest and reusable publisher.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if cmd.Flags().Changed("promotion-run") && !evidenceID(options.PromotionRun) {
@@ -116,7 +116,6 @@ source digest and reusable publisher. Azure receipts remain development-only.`,
 	flags.StringVar(&options.Image, "image", "", "Exact ghcr.io/OWNER/REPO/cao-server@sha256:DIGEST")
 	flags.Int64Var(&options.PackageRun, "package-run", 0, "Existing CAO package workflow run ID")
 	flags.Int64Var(&options.PromotionRun, "promotion-run", 0, "Optional existing prerelease-to-latest promotion run ID")
-	flags.StringVar(&options.AzureReceipt, "azure-receipt", "", "Optional existing development-only Azure receipt")
 	flags.BoolVar(&options.Verify, "verify-provenance", false, "Verify exact image/source/publisher/run-attempt provenance with gh")
 	flags.StringVar(&options.Output, "output", "", "New JSON file to write (mode 0600 where supported); never overwritten")
 	group.AddCommand(release)
@@ -147,28 +146,6 @@ func evidenceBinaryHash() (string, error) {
 		return "", errors.New("collector executable identity unavailable")
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-func evidenceReadReceipt(path string) ([]byte, error) {
-	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() {
-		return nil, errors.New("selected Azure receipt must be a readable regular file")
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, errors.New("cannot read selected Azure receipt")
-	}
-	defer func() { _ = file.Close() }()
-	current, err := file.Stat()
-	if err != nil || !os.SameFile(info, current) {
-		return nil, errors.New("selected Azure receipt changed while opening")
-	}
-	const limit = 1024 * 1024
-	content, err := io.ReadAll(io.LimitReader(file, limit+1))
-	if err != nil || len(content) > limit {
-		return nil, errors.New("selected Azure receipt is unreadable or exceeds 1 MiB")
-	}
-	return content, nil
 }
 
 func writeReleaseEvidence(ctx context.Context, path string, report evidenceReleaseReport) error {

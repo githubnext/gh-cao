@@ -20,7 +20,7 @@ var compactSecretNames = []string{
 func solveCompact(ctx context.Context, input Requirements) (Solution, error) {
 	result := Solution{Requirements: input}
 	if input.Azure.Hosts != nil {
-		return result, fmt.Errorf("azure.hosts is only supported by the azure-functions deployment")
+		return result, fmt.Errorf("azure.hosts is only supported by the Container Apps deployment")
 	}
 	definitions, parameters, defaults, err := deploymentParameters(input, "assets/compact/main.generated.json", compactSecretNames)
 	if err != nil {

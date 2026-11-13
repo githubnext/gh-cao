@@ -896,8 +896,8 @@ workload termination in this model.
   enabled, missing Podman, image or delegated controllers fails the test rather
   than skipping workload-isolation evidence. `.github/workflows/podman.yml` runs
   this test on relevant pull requests and pushes using a rootless user session,
-  preloads the production digest-pinned image, and runs the real Azure local
-  service integration with `CAO_CONTAINER_ENGINE=podman`. Enforcing-SELinux
+  preloads the production digest-pinned image, and checks container-engine
+  selection. Enforcing-SELinux
   validation still requires a separate host with SELinux enabled.
 - `server/internal/operational/postgres/cli_execution_test.go`:
   durable execution identity, immutable registration, and lease-fenced recovery.

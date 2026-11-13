@@ -85,7 +85,7 @@ flowchart TB
 | Local/headless | Go over a selected canonical PostgreSQL namespace | The Activity pipeline owns ordinary snapshot creation, retention, and repair | Operator analysis, CLI consumption, and local development |
 | Production hosted | Go over PostgreSQL using bounded, parameterized SQL | Server-side canonical namespace plus separately owned operational state | Authenticated shared dashboards and optionally native acquisition |
 
-Containers, Azure Functions, and external-listener hosts use the **complete
+Containers and external-listener hosts use the **complete
 Go handler on one origin**: HTML, assets, OAuth, query APIs, and revision
 events. The server injects `server-http`; clients never receive database
 credentials. Hosted startup rejects missing dashboard assets, and hosted
@@ -357,8 +357,7 @@ yet execute `session-query`. Queries never fall back to dashboard storage.
 
 **Deployment qualification:** the archive is independently default-off and its
 ADR remains proposed pending required acceptance evidence. Persistent
-single-owner hosts are required; the Azure Functions platform-listener profile,
-ephemeral/per-request hosts, standalone collection jobs and multi-replica
+single-owner hosts are required; ephemeral/per-request hosts, standalone collection jobs and multi-replica
 archives are unsupported. Hosted activation requires real Azure conformance
 bound to the approved Blob/ADX destination, not a successful upload, simulator
 or acceptance flag. The native producer does not activate the native collector,
@@ -639,23 +638,26 @@ policy admission, or required validation are unavailable.
 ## 13. Azure service mapping
 
 Map **domain services to deployment resources**, not every interface to a new
-Azure product. The experimental `server/azure/main.bicep` baseline composes the
-Go service on Azure Functions with PostgreSQL for both analytical and operational
-adapters. Optional resources and operator-managed analytics remain separate
-decisions; this map neither provisions them nor authorizes production use.
+Azure product. The experimental Container Apps review bundle composes the
+hosted Go service with private PostgreSQL for both canonical and operational
+adapters. Generate and check it offline with `gh cao deploy init --deployment
+azure-container-apps`, `deploy generate` and `deploy check`; operators execute
+reviewed templates separately. Optional infrastructure remains explicitly
+selected and staged. This map neither provisions resources nor authorizes
+production use; offline checks are not real destination acceptance.
 
 ```mermaid
 flowchart TB
-  accTitle: Azure baseline and separately approved lake host
-  accDescr: The baseline hosts one Go handler in Functions and uses private PostgreSQL, Key Vault, ACR and runtime storage. A separately approved persistent lake host uses private Blob and ADX; the Functions runtime storage is not a session lake.
-  Browser["Authorized browser"] --> Functions["Azure Functions: complete Go handler"]
-  Functions --> PG[("PostgreSQL Flexible Server")]
+  accTitle: Container Apps baseline and separately approved lake host
+  accDescr: Container Apps hosts the complete Go handler with private PostgreSQL, Key Vault, ACR and Log Analytics. A separately approved persistent lake host uses private Blob and ADX; ephemeral container storage is not a session lake.
+  Browser["Authorized browser"] --> App["Azure Container Apps: complete Go handler"]
+  App --> PG[("PostgreSQL Flexible Server")]
   Jobs["Container Apps provisioning and ingestion jobs"] --> PG
-  Functions --> KV["Key Vault via managed identity"]
+  App --> KV["Key Vault via managed identity"]
   Jobs --> KV
-  ACR["Container Registry: reviewed digest-pinned images"] --> Functions
+  ACR["Azure Container Registry: reviewed digest-pinned images"] --> App
   ACR --> Jobs
-  Functions --> Runtime[("Functions runtime Storage account")]
+  App --> Logs["Log Analytics: container logs"]
   subgraph optional["Separate operator-approved analytics topology"]
     Host["Persistent single-owner OAuth host"] --> Blob[("Private session-lake Blob objects")]
     Host --> ADX["ADX external-table query service"]
@@ -665,32 +667,33 @@ flowchart TB
 
 | Domain responsibility | Azure service mapping | Provisioning and capability boundary |
 | --- | --- | --- |
-| Same-origin UI, OAuth, query APIs and revision events | Azure Functions custom Linux container on an Elastic Premium App Service plan | Baseline hosts the complete Go handler; GitHub remains the OAuth and membership provider, not Entra. No separate frontend or browser database credentials |
+| Same-origin UI, OAuth, query APIs and revision events | Azure Container Apps Consumption, one hosted Go replica | Baseline hosts the complete Go handler; GitHub remains the OAuth and membership provider, not Entra. No separate frontend or browser database credentials; independently verify trusted private proxy peers |
 | Canonical entity/query adapter | Azure Database for PostgreSQL Flexible Server | Private delegated subnet and verified TLS; typed canonical tables are a rebuildable read model, not raw-session storage |
 | Focused operational services: OAuth sessions, revocations, queues, leases, quotas, deduplication and durable audit | The same PostgreSQL Flexible Server through the separate operational adapter | `cao_operational_*` tables retain separate lifecycle, atomicity and protected-state bounds. Baseline requires neither Redis nor Azure Service Bus; they are not implied adapter substitutions |
 | Schema ownership and selected snapshot ingestion | Separate manual Azure Container Apps provisioning and ingestion jobs | Distinct identities and owner/runtime credentials; explicit verified snapshot or empty evidence. Jobs do not become archive publishers |
-| Optional collection and backfill | `collector.bicep` Container Apps and backfill job when explicitly configured | Separate enrollment, acquisition profile and durable ownership gates; provisioning a worker does not activate native acquisition or authorize more repositories |
-| Image distribution | Azure Container Registry, managed-identity pulls | Baseline builds/selects Functions, provisioning and ingestion images; digest pinning alone is not production scan, SBOM or provenance assurance |
+| Acquisition | Explicitly selected Actions snapshots | Base profile does not support collector acquisition; optional host infrastructure does not activate collection or authorize more repositories |
+| Image distribution | Azure Container Registry, managed-identity pulls | Operators prepare/select dashboard, provisioning and ingestion images; digest pinning alone is not production scan, SBOM or provenance assurance |
 | Secret resolution | Azure Key Vault and managed identities with secret-scoped roles | Secrets remain outside policy and browser payloads. Managed-identity Key Vault access does not itself authenticate Blob/ADX archive adapters, which require their separately configured application credentials |
-| Functions platform state | Azure Storage account | Runtime state only, **not the session lake**. A private archive Blob root, content approval, credentials and publication lifecycle are separate operator configuration |
-| Private unified-session lake: `BlobStore` | Private Azure Blob Storage for immutable Parquet, manifests, lease and conditional pointer publication | Operator-managed, independently default-off; not provisioned or enabled by the Functions runtime storage resource. Use an approved persistent single-owner host, not the Functions platform listener |
-| Private lake analytics: `QueryService` | Azure Data Explorer external table over approved Blob Parquet | Real destination-bound conformance, exact generation membership and runtime/setup role separation are mandatory. `adx.bicep` optionally provisions a paid cluster/private endpoint with `adxEnabled=true`, but no external table, exporter or archive activation |
-| Direct canonical-snapshot or unified-trace analytics | Separately selected ADX streaming exporters | Independent scope, approval, durable state and single-exporter gates; not Blob archive queries and not supported on the Functions platform-listener profile |
-| Operational observability | One shared Log Analytics workspace and workspace-backed Application Insights component | Container logs and configured telemetry, not session-lake content or canonical query storage. Go telemetry requires an explicitly configured operator-managed OTLP collector; host Insights settings alone do not enable Go export |
-| Private database/destination connectivity | Virtual network, delegated subnets, private DNS; optional ADX private endpoint | Database, Functions and Container Apps access are separated. ADX needs its own reviewed network/DNS path; a private endpoint is not a data-access grant |
+| Private unified-session lake: `BlobStore` | Private Azure Blob Storage for immutable Parquet, manifests, lease and conditional pointer publication | Independently default-off; optional staged infrastructure is not activation. Use an approved persistent single-owner host; ephemeral container storage is not the session lake |
+| Private lake analytics: `QueryService` | Azure Data Explorer external table over approved Blob Parquet | Real destination-bound conformance, exact generation membership and runtime/setup role separation are mandatory. Optional infrastructure provides no external table, exporter or archive activation |
+| Direct canonical-snapshot or unified-trace analytics | Separately selected ADX streaming exporters | Independent scope, approval, durable state and single-exporter gates; not Blob archive queries. Base Container Apps topology supports no base ADX analytics |
+| Optional webhook gateway | Separate staged receiver and dispatcher hosts | Exact-revision policy, credentials, connectivity and runtime acceptance are independent gates; deployment does not grant dispatch authority |
+| Operational observability | Log Analytics container logs | No Application Insights or OTLP in the base profile; logs are not session-lake content, canonical storage or proof of application-exporter delivery |
+| Private database/destination connectivity | Virtual network, delegated subnets, private DNS; separately reviewed optional destination connectivity | Database and Container Apps access are separated. ADX needs its own reviewed network/DNS path; a private endpoint is not a data-access grant |
 
-**Provisioning is not activation.** The baseline Storage account cannot be
-relabeled as a lake, and enabling `adxEnabled` does not inject exporter settings,
-grant runtime data roles, install archive external tables or satisfy single-owner
-and acceptance gates. Review backup/retention, cost, network reach, privacy
+**Provisioning is not activation.** Keep `runtimeEnabled: false` until separate
+provisioning and explicit snapshot/empty ingestion succeed. ARM dependencies
+do not execute or verify jobs. Optional infrastructure does not inject exporter
+settings, grant runtime data roles, install archive external tables or satisfy
+single-owner and acceptance gates. Review backup/retention, cost, network reach, privacy
 cleanup and live adapter evidence for each selected service independently.
 Managed service names alone promise no HA, numerical SLO, RPO/RTO or compliance.
 
-**Source:** [Azure deployment guide](deployment-azure.md#azure-resources) and
-[optional ADX destination](deployment-azure.md#optional-azure-data-explorer-destination);
-`server/azure/main.bicep`, `network.bicep`, `provisioning.bicep`,
-`ingestion.bicep`, `collector.bicep`, `function-roles.bicep`,
-`worker-roles.bicep`, and `adx.bicep`;
+**Source:** [Azure deployment guide](deployment-azure.md#azure-resources-and-boundaries) and
+[Container Apps topology](deployment-topology.md#azure-container-apps);
+`internal/topology/assets/container-apps/main.bicep`,
+`server/azure/provisioning.bicep`, `server/azure/ingestion.bicep`,
+and `server/azure/worker-roles.bicep`;
 [Operational contracts](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md#contracts-and-composition);
 [Archive service adapters](https://github.com/githubnext/gh-cao/blob/main/server/internal/sessionarchiveblob/services.go).
 

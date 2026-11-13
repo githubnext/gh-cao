@@ -1,11 +1,10 @@
 // Optional collection workers for the server ingestion profile.
 //
 // This module deploys nothing unless a collector image is supplied, so the
-// default deployment stays exactly as it is: a Function App serving the
-// dashboard from snapshots published by the Activity workflow.
+// hosted dashboard remains independent of these optional collection workers.
 //
 // The workers run native Go acquisition in the `collect` role and share the
-// durable PostgreSQL operational queue with the Function App.
+// durable PostgreSQL operational queue with the hosted server.
 
 @description('Location for the collection workers.')
 param location string
@@ -59,7 +58,7 @@ param operationalProtectedMaxBytes int = 134217728
 @description('Maximum number of protected operational records.')
 param operationalProtectedMaxEntries int = 200000
 
-@description('Operational PostgreSQL namespace shared with the Function App.')
+@description('Operational PostgreSQL namespace shared with the hosted server.')
 param operationalNamespace string
 
 @description('Control repository named by the reviewed inventory.')

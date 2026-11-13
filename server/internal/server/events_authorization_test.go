@@ -104,7 +104,7 @@ func eventAuthorizationApp(t *testing.T, membershipState string) (*App, *memory.
 	database.revision.Store(1)
 	app := &App{
 		services: store.OperationalServices(), database: database, hub: newEventHub(),
-		config: Config{HostProfile: azureFunctionsHostProfile(),
+		config: Config{HostProfile: platformHostProfile(),
 			Proxy: ProxyPolicy{AllowedHosts: []string{"dashboard.example.com"}, RequireHTTPS: true}},
 		oauth: newGitHubOAuth(*config, sessions, store, store), drain: make(chan struct{}),
 	}

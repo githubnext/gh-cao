@@ -634,7 +634,7 @@ capabilities before configuring authentication or ingestion. Target modules own
 authentication, listener ownership, HTTPS, and trusted-proxy requirements.
 Redis modules own environment mappings, session semantics, process namespace
 isolation, replica constraints, and collection support. Local, host-neutral
-container, Azure Functions, and Upstash are compositions rather than provider
+container and Upstash are compositions rather than provider
 checks in shared request handling.
 Startup rejects configurations or services that do not satisfy the selected
 per-feature coordination scope and restart-persistence capabilities. Business
@@ -1054,7 +1054,7 @@ The hosted dashboard has one strict storage split:
 
 The Go HTTP(S) server serves the hosted dashboard itself, including its built
 HTML, JavaScript and other assets, OAuth routes, query API, and revision events
-on one origin. Container, Azure Functions, and externally owned listeners all
+on one origin. Container and externally owned listeners all
 expose the complete CAO handler, not an API behind a separately hosted Pages
 application. Hosted startup requires a readable, non-empty built `index.html`.
 The server injects the `server-http` backend bootstrap into dashboard entry
@@ -1502,7 +1502,7 @@ and removal remain authenticated and never hydrate notification payloads.
 | `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Entirely Go operator-facing `gh cao` executable, including onboarding, policy management, PostgreSQL-backed queries, computations and MCP; embeds the authoritative JSON contracts and uses the bundled server's canonical read boundary. Actions packaging remains Node-owned. |
 | `internal/dashboardquery/` | Independent Go module owning bounded native Dashboard Language evaluation and the canonical read-session contract; PostgreSQL reads stay behind the server-owned adapter. |
 | `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
-| `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Functions deployment profile. |
+| `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Container Apps deployment templates. |
 | `server/cmd/cao-webhook-gateway/`, `server/internal/webhookgateway/`, `server/internal/webhookgatewayhost/` | Optional isolated gateway entry point, consumer contracts and pure decisions, and host adapters; durable state extends the existing PostgreSQL operational adapter. |
 | `server/spec/` | Editable TypeSpec HTTP/SSE, fresh Postgres storage and optional ADX export contracts; generates OpenAPI 3.1, wire JSON Schemas, standalone SQL DDL, Go bindings and ADX setup KQL; checks routes, payloads and canonical field coverage. |
 | `dashboard/site/src/data/` | Canonical browser data model, adapters, normalization, storage, and declarative query engine. |
@@ -1936,21 +1936,21 @@ not authorize cross-repository evidence access.
   rotation can retain the previous key until sessions and revocations drain.
   Refreshed sessions use an atomic compare-and-swap so logout cannot be undone
   by a concurrent OAuth refresh.
-- The Azure deployment baseline provisions private PostgreSQL for both canonical
-  and operational storage, without Redis. One Log Analytics workspace and one
-  workspace-backed Application Insights component are shared by the deployment.
+- The `azure-container-apps` topology (`internal/topology/`) uses the
+  existing process-owned container host with PostgreSQL operational state,
+  managed HTTPS ingress and explicitly verified private proxy peers. It reuses
+  private PostgreSQL and the separate provisioning/ingestion job modules, but
+  uses Log Analytics without Application Insights or Redis.
   A private manual ingestion job publishes explicitly selected adopter snapshots
   or an explicit empty dataset; builds never download a catalog-owned dataset
   implicitly. Instance policy, credentials, and target enrollment remain
   adopter-owned inputs, not public deployment defaults.
-- The additive `azure-container-apps` topology (`internal/topology/`) uses the
-  existing process-owned container host with PostgreSQL operational state,
-  managed HTTPS ingress and explicitly verified private proxy peers. It reuses
-  private PostgreSQL and the separate provisioning/ingestion job modules, but
-  omits Functions, runtime Storage, the Premium plan and Application Insights.
   Web activation is default-off until independently verified provisioning and
-  ingestion succeed. Topology generation remains offline/review-only; the native
-  `deploy azure --apply` command still targets the Functions baseline.
+  ingestion succeed. `deploy init --deployment azure-container-apps`,
+  `deploy generate` and `deploy check` produce an offline review bundle;
+  operators separately execute reviewed Container Apps templates. Generation
+  does not deploy or establish runtime acceptance. Azure Functions runtime,
+  deployment commands and local harness support are retired.
 - Explicit `CAO_GITHUB_LOCAL_USER` development OAuth replaces membership
   authorization with one configured GitHub login and a valid numeric account
   ID. Classic login requests `read:user` without `read:org`; GitHub App clients

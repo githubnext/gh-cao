@@ -8,7 +8,6 @@ import { root, workflow } from "./workflow-contract.helpers.mjs";
 
 const mainOnlyWorkflows = [
   "actions.yml",
-  "azure-local-integration.yml",
   "dashboard-deployed-integration.yml",
   "dashboard-views.yml",
 ];
@@ -90,13 +89,6 @@ test("slow integration workflows run on relevant main pushes, not pull requests"
   assert.ok(parse(workflow("dashboard-deployed-integration.yml")).on.schedule.length > 0);
 });
 
-
-test("service integration harnesses provision canonical storage before starting runtime processes", () => {
-  const azure = readFileSync(join(root, "scripts/azure-local/azure-local.sh"), "utf8");
-  assert.match(azure, /CAO_DATABASE_ADMIN_URL="\$CAO_POSTGRES_URL" run_logged "canonical database bootstrap" database-bootstrap\.log \\\n\s+"\$APP_DIR\/cao-dashboard" database bootstrap --store canonical --namespace "\$namespace"/);
-  assert.ok(azure.indexOf('"$APP_DIR/cao-dashboard" database bootstrap') < azure.indexOf('"$APP_DIR/cao-dashboard" ingest'));
-  assert.doesNotMatch(azure, /export CAO_DATABASE_ADMIN_URL/);
-});
 
 test("Go dashboard integration bootstraps both stores in the runtime namespace", () => {
   const job = parse(workflow("cgo.yml")).jobs["redis-dashboard-integration"];
@@ -212,15 +204,14 @@ test("Go extension quality checks cover root-module sources and lint configurati
       "package.json",
       "package-lock.json",
       "aw.yml",
-      "server/cmd/cao-dashboard/azure_functions.go",
-      "server/internal/server/azure.go",
+      "server/cmd/cao-dashboard/serve_hosted.go",
+      "server/internal/server/proxy.go",
       "server/internal/server/server.go",
       "server/internal/simulator/setup_integration_test.go",
       "server/internal/simulator/setup_hosted_cli_integration_test.go",
-      "server/internal/simulator/setup_azure_integration_test.go",
       "server/internal/simulator/bootstrap_integration_test.go",
-      "server/azure/main.bicep",
-      "server/azure/main.json",
+      "internal/topology/assets/container-apps/main.bicep",
+      "internal/topology/assets/container-apps/main.generated.json",
       "server/Dockerfile",
       "server/go.mod",
       "server/go.sum",
@@ -308,23 +299,12 @@ test("Go extension setup simulator runs only on main pushes, independently witho
   const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
   const install = steps.find((step) => step.uses === "./.github/actions/setup-gh-aw");
   const run = steps.find((step) => step.run === "npm run test:integration:setup");
-  const azure = steps.find((step) => step.name === "Run Azure setup with official Azurite and local control-plane simulation");
-  const azurePrerequisites = steps.find((step) => step.name === "Prepare offline Azure simulation prerequisites");
-  assert.ok(azure);
-  assert.deepEqual(azure.run.trim().split("\n"), [
-    "npm run test:integration:setup-azure",
-    "npm run test:integration:azure-install-journey",
-  ]);
   assert.deepEqual(permissions, { contents: "read" });
   assert.equal(checkout.with["persist-credentials"], false);
   assert.equal(go.with["go-version-file"], "go.mod");
   assert.ok(go.with["cache-dependency-path"].includes("server/go.sum"));
   assert.ok(install);
   assert.ok(steps.indexOf(install) < steps.indexOf(run));
-  assert.ok(steps.indexOf(install) < steps.indexOf(azure));
-  assert.ok(steps.indexOf(azurePrerequisites) < steps.indexOf(azure));
-  assert.match(azurePrerequisites.run, /go mod download/);
-  assert.match(azurePrerequisites.run, /docker pull mcr\.microsoft\.com\/azure-storage\/azurite:3\.37\.0@sha256:[a-f0-9]{64}/);
   assert.deepEqual(run.env, {
     GH_TOKEN: "",
     GITHUB_TOKEN: "",
@@ -337,27 +317,10 @@ test("Go extension setup simulator runs only on main pushes, independently witho
   assert.ok(triggers.pull_request, "PR quality and authenticated doctor checks remain enabled");
   assert.equal(job.needs, undefined);
   assert.equal(run["continue-on-error"], undefined);
-  assert.deepEqual(azure.env, {
-    ...run.env,
-    POSTGRES_URL: "postgres://postgres@127.0.0.1:5432/cao?sslmode=disable",
-  });
-  assert.match(job.services.postgres.image, /^postgres:16-alpine@sha256:[a-f0-9]{64}$/);
-  assert.deepEqual(job.services.postgres.env, {
-    POSTGRES_DB: "cao",
-    POSTGRES_HOST_AUTH_METHOD: "trust",
-  });
-  assert.deepEqual(job.services.postgres.ports, ["5432:5432"]);
-  assert.match(job.services.postgres.options, /pg_isready -U postgres -d cao/);
-  assert.equal(azure.if, undefined);
-  assert.equal(azure["continue-on-error"], undefined);
   assert.doesNotMatch(JSON.stringify(job), /secrets\.|github\.token|id-token/);
   const { scripts } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   assert.match(scripts["test:integration:setup"], /CAO_SETUP_INTEGRATION=1 go -C server test -race/);
   assert.match(scripts["test:integration:setup"], /-run '\^\(TestCAO\(Setup\|HostedCLISetup\)Integration\|TestSetup\)'/);
-  assert.match(scripts["test:integration:setup-azure"], /CAO_SETUP_AZURE_INTEGRATION=1 GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOVCS='\*:off' go -C server test -race/);
-  assert.match(scripts["test:integration:setup-azure"], /-run '\^\(TestCAOSetupAzureIntegration\|TestSetupAzure\|TestLocalTransport\)'/);
-  assert.match(scripts["test:integration:azure-install-journey"], /CAO_SETUP_AZURE_INTEGRATION=1 GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOVCS='\*:off' go -C server test -race/);
-  assert.match(scripts["test:integration:azure-install-journey"], /-run '\^TestCAOAzureInstallJourneyIntegration\$'/);
 });
 
 test("Docker samples runtime has an independent read-only workflow", () => {
@@ -451,7 +414,6 @@ test("main pushes retain browser and integration coverage for representative inp
     ["actions.yml", "tests/helpers/dashboard-pages-preview.mjs"],
     ["actions.yml", "tests/e2e/dashboard-tree-analysis.mjs"],
     ["actions.yml", "self-care/dashboard-fragments/overview.json"],
-    ["azure-local-integration.yml", "scripts/azure-local/azure-local.sh"],
     ["dashboard-deployed-integration.yml", "server/go.mod"],
     ["dashboard-deployed-integration.yml", "dashboard/site/package-lock.json"],
     ["dashboard-views.yml", "self-care/dashboard.json"],

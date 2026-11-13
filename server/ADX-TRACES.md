@@ -79,7 +79,7 @@ PostgreSQL, restart-durable operational services, explicit Entra credentials,
 exact canonical repository scope, and one confirmed exporter replica.
 Traces additionally require **co-resident collection workers**. Static/Pages,
 snapshot-only servers, admission-only, standalone collect/backfill and
-per-request Azure Functions cannot capture traces. A narrower trace scope is
+per-request hosts cannot capture traces. A narrower trace scope is
 allowed; it cannot exceed `CAO_ADX_REPOSITORY_IDS`.
 
 Print `cao-dashboard adx schema` and review/apply the generated tables, mappings,

@@ -39,9 +39,8 @@ type redisProviderModule struct {
 }
 
 var hostTargetModules = map[string]hostTargetModule{
-	"generic":         {configurable: true},
-	"container":       {authentication: HostAuthenticationOAuth, listener: HostListenerProcess, requireHTTPS: true, supportsSingleReplica: true},
-	"azure-functions": {authentication: HostAuthenticationOAuth, listener: HostListenerPlatform, requireHTTPS: true, trustPlatformProxy: true},
+	"generic":   {configurable: true},
+	"container": {authentication: HostAuthenticationOAuth, listener: HostListenerProcess, requireHTTPS: true, supportsSingleReplica: true},
 }
 
 var redisProviderModules = map[string]redisProviderModule{

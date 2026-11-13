@@ -21,9 +21,8 @@ func TestDeploymentSamples(t *testing.T) {
 	}{
 		{"single-vm", 1, 0, 0, 0, false},
 		{"minimal-azure", 1, 1, 0, 0, true},
-		{"azure-functions", 0, 1, 1, 1, true},
 		{"azure-container-apps", 0, 1, 0, 1, true},
-		{"full-azure", 3, 1, 1, 1, true},
+		{"full-azure", 3, 1, 0, 1, true},
 	} {
 		t.Run(sample.name, func(t *testing.T) {
 			content, err := ExampleFor(sample.name)
@@ -65,7 +64,7 @@ func TestDeploymentSamples(t *testing.T) {
 					t.Fatalf("%s: got %d %s resources, want %d", sample.name, counts[kind], kind, expected)
 				}
 			}
-			if input.Features.Deployment != "azure-functions" {
+			if sample.name != "full-azure" {
 				for _, absent := range []string{"Microsoft.Web/serverfarms", "Microsoft.Storage/storageAccounts", "Microsoft.Insights/components"} {
 					if counts[absent] != 0 {
 						t.Fatalf("profile accidentally carries %s", absent)
