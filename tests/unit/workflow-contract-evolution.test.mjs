@@ -130,6 +130,15 @@ test("CAO Evolution is review-first, role-scoped, and deduplicated", () => {
   assert.match(campaignSkill, /coding agents may inspect the disposable cache only through the canonical storage\/query APIs or Playwright/);
 });
 
+test("CAO Evolution integrity gives a safe path for its focused contract test", () => {
+  const source = workflow("cao-evolution-integrity.md");
+
+  assert.match(source, /node --test tests\/unit\/workflow-contract-evolution\.test\.mjs/);
+  assert.match(source, /NODE_USE_SYSTEM_CA=1 npm ci --ignore-scripts/);
+  assert.match(source, /Keep TLS verification enabled/);
+  assert.match(source, /If approved-feed access still fails, call `report_incomplete`/);
+});
+
 test("CAO Evolution compiler security worker runs the full validation suite", () => {
   const source = workflow("cao-evolution-compiler-security.md");
 
