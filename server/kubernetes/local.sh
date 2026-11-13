@@ -102,7 +102,8 @@ prepare() {
   admin=$(openssl rand -hex 32)
   owner=$(openssl rand -hex 32)
   runtime=$(openssl rand -hex 32)
-  openssl req -x509 -newkey rsa:3072 -nodes -days 30 \
+  MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/CN=" \
+    openssl req -x509 -newkey rsa:3072 -nodes -days 30 \
     -subj /CN=CAO-local-development-CA \
     -addext basicConstraints=critical,CA:TRUE \
     -keyout "$state/ca.key" -out "$state/ca.crt" 2>"$state/openssl.log"
@@ -124,7 +125,8 @@ prepare() {
 
 certificate() {
   local name=$1 dns=$2
-  openssl req -new -newkey rsa:3072 -nodes -subj "/CN=$dns" \
+  MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/CN=" \
+    openssl req -new -newkey rsa:3072 -nodes -subj "/CN=$dns" \
     -keyout "$state/$name.key" -out "$state/$name.csr" 2>>"$state/openssl.log"
   printf 'subjectAltName=DNS:%s\nextendedKeyUsage=serverAuth\nbasicConstraints=critical,CA:FALSE\n' \
     "$dns" > "$state/$name.ext"
@@ -134,6 +136,10 @@ certificate() {
 }
 
 build() {
+  local go_proxy=${CAO_LOCAL_GO_PROXY:-}
+  case "$go_proxy" in
+    *"@"*|*"?"*|*"#"*) fail "CAO_LOCAL_GO_PROXY must not contain credentials or query parameters." ;;
+  esac
   check_docker building
   test -s "$state/ca.crt" || fail "Run prepare first."
   mkdir -p "$state/build-policy"
@@ -146,6 +152,7 @@ build() {
     if test "$target" = kubernetes-db-maintenance; then image=cao-db-maintenance; fi
     docker build --target "$target" \
       --build-arg CAO_NPM_REGISTRY=https://packagefeedproxy.microsoft.io/npm/ \
+      --build-arg "GOPROXY=$go_proxy" \
       --build-arg "REVISION=$(git -C "$root" rev-parse HEAD)" \
       --label "io.github.cao.policy-sha256=$digest" \
       --build-context "cao-policy=$state/build-policy" \

@@ -47,6 +47,23 @@ test("bare inventory is source-bound to policy validated by the production resol
   assert.throws(() => reviewedBareInventory('{"version":1}', "octo/ops", "a".repeat(40)));
 });
 
+test("prepare creates a CA and valid server certificates", (t) => {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const directory = mkdtempSync(join(root, ".tmp/kubernetes-prepare-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const localAssets = join(directory, "server/kubernetes");
+  mkdirSync(localAssets, { recursive: true });
+  const localScript = join(localAssets, "local.sh");
+  copyFileSync(script, localScript);
+
+  const prepared = spawnSync("bash", [localScript, "prepare"], { encoding: "utf8" });
+  assert.equal(prepared.status, 0, prepared.stderr);
+  const state = join(directory, ".tmp/cao-kubernetes-local");
+  const verified = spawnSync("openssl", ["verify", "-CAfile", join(state, "ca.crt"),
+    join(state, "postgres.crt"), join(state, "web.crt")], { encoding: "utf8" });
+  assert.equal(verified.status, 0, verified.stderr);
+});
+
 function fixture(t, options = {}) {
   mkdirSync(join(root, ".tmp"), { recursive: true });
   const directory = mkdtempSync(join(root, ".tmp/kubernetes-test-"));
@@ -180,6 +197,32 @@ test("an explicit kind cluster selects its own context and rejects unsafe names 
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /Invalid CAO_LOCAL_KIND_CLUSTER/);
   assert.equal(rejected.calls().length, 0);
+});
+
+test("local builds pass an explicitly selected Go proxy without credentials", (t) => {
+  const f = fixture(t);
+  const argsFile = join(f.directory, "docker-args");
+  writeFileSync(argsFile, "");
+  writeFileSync(join(f.directory, "bin", "docker"), `#!/usr/bin/env bash
+if [ "$1" = context ]; then
+  echo desktop-linux
+elif [ "$1" = build ]; then
+  printf '%s\\n' "$@" > "$DOCKER_ARGS"
+  exit 42
+else
+  exit 1
+fi
+`, { mode: 0o700 });
+  const env = { DOCKER_ARGS: argsFile, CAO_LOCAL_GO_PROXY: "http://host.docker.internal:5000" };
+  const result = f.run("build", env);
+  assert.equal(result.status, 42, result.stderr);
+  assert.ok(readFileSync(argsFile, "utf8").split("\n").includes(`GOPROXY=${env.CAO_LOCAL_GO_PROXY}`));
+
+  writeFileSync(argsFile, "");
+  const rejected = f.run("build", { ...env, CAO_LOCAL_GO_PROXY: "https://user:password@example.com" });
+  assert.notEqual(rejected.status, 0);
+  assert.match(rejected.stderr, /must not contain credentials/);
+  assert.equal(readFileSync(argsFile, "utf8"), "");
 });
 
 test("database preflight checks the second namespace before creating a missing first namespace", (t) => {

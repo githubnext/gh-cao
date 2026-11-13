@@ -67,10 +67,16 @@ test("collector image contains the Go worker, reviewed policy and Git without a 
 test("local Kubernetes builds opt into the npm feed without changing CI defaults", async () => {
   const dockerfile = await text("server/Dockerfile");
   assert.match(dockerfile, /^ARG CAO_NPM_REGISTRY$/m);
+  assert.match(dockerfile, /^ARG GOPROXY$/m);
   assert.match(dockerfile, /npm config set registry "\$\{CAO_NPM_REGISTRY\}"/);
   assert.match(dockerfile, /test "\$\(npm config get registry\)" = "\$\{CAO_NPM_REGISTRY\}"/);
   assert.match(dockerfile, /FROM dashboard-runtime AS kubernetes-runtime\nHEALTHCHECK NONE/);
   assert.match(dockerfile, /FROM azure-db-provision AS kubernetes-db-maintenance/);
+});
+
+test("the Linux database provisioner handles Windows checkouts", async () => {
+  const dockerfile = await text("server/Dockerfile");
+  assert.match(dockerfile, /RUN sed -i 's\/\\r\$\/\/' \/app\/azure\/provision\.sh/);
 });
 
 test("Hosted CLI relay exports a separate source-bound static artifact", async () => {

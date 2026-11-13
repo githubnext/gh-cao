@@ -1,4 +1,4 @@
-# Local Docker Desktop Kubernetes
+# Local Kubernetes evaluation
 
 This is an operator-run, **single-node, non-HA local evaluation**, not a new
 `gh cao deploy` backend or a production Kubernetes platform. It runs the actual
@@ -8,12 +8,13 @@ There is no Redis, mock identity, executor, host socket, cloud deployment,
 public tunnel or automatic workflow dispatch. An explicitly selected native
 collector is an alternative to snapshot ingestion.
 
-All Kubernetes commands select `--context docker-desktop`. The helper owns only
-`cao-local` (web/ingestion) and `cao-local-system` (database/owner jobs); it refuses
-existing namespaces without its ownership label. Existing roles, policy and
-other local repositories are not deployment inputs. The checked-in `policy.json`
-is the build-time and mounted runtime policy: one container replica, PostgreSQL,
-only `githubnext/gh-cao` evidence and no enabled operations.
+By default, the helper selects `--context docker-desktop`; the optional Aspire
+workflow below selects a standalone kind context. It owns only `cao-local`
+(web/ingestion) and `cao-local-system` (database/owner jobs); it refuses existing
+namespaces without its ownership label. Existing roles, policy and other local
+repositories are not deployment inputs. The checked-in `policy.json` is the
+build-time and mounted runtime policy: one container replica, PostgreSQL, only
+`githubnext/gh-cao` evidence and no enabled operations.
 Set `CAO_LOCAL_POLICY` to an explicitly reviewed policy path for another authorized
 scope, using the same path for build, serve and native activation.
 
@@ -47,7 +48,18 @@ the same script, manifests, image checks, TLS, OAuth and readiness rules apply.
 You need Docker, [kind](https://kind.sigs.k8s.io/), kubectl, Bash, OpenSSL,
 Node.js with the root dependencies, the .NET 10 SDK and the
 [Aspire CLI](https://aspire.dev). NuGet restores use the Microsoft feed in
-`server/kubernetes/aspire/nuget.config`. From the repository root:
+`server/kubernetes/aspire/nuget.config`.
+
+On a Microsoft-managed machine, start the Terrapin Go credential provider and
+set the proxy address before starting Aspire:
+
+```sh
+export CAO_LOCAL_GO_PROXY=http://host.docker.internal:5000
+```
+
+Docker Desktop resolves that address to the host. Use a proxy address reachable
+from the Docker builder on other hosts; do not put credentials in the URL.
+From the repository root:
 
 ```sh
 aspire start --apphost server/kubernetes/aspire/apphost.cs
@@ -55,7 +67,8 @@ aspire start --apphost server/kubernetes/aspire/apphost.cs
 
 Watch the `prepare`, `build` and `database` resources finish in the Aspire
 dashboard. For the remaining steps, point your kubeconfig at the cluster and
-tell the script to use it:
+tell the script to use it. The export changes your current context; set
+`KUBECONFIG` to a separate file first if you want to keep it unchanged.
 
 ```sh
 kind export kubeconfig --name cao-local
@@ -92,6 +105,8 @@ long cluster shutdown, before resuming the web:
 kubectl --context docker-desktop -n cao-local-system create job \
   --from=cronjob/cao-canonical-maintenance cao-maintenance-manual
 ```
+
+For the Aspire kind cluster, use `--context kind-cao-local` instead.
 
 Audit retention/deletion and external evidence delivery are **not enabled**.
 No independent audit archive, backup, disaster recovery or production capacity
