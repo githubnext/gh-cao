@@ -300,8 +300,10 @@ async function bundleSiteJavascript(destinationPath) {
       return modules;
     };
     const startupModules = collectStaticModules(startupOutput);
-    const mainOutput = join(bundlePath, "main.js");
-    const mainModules = collectStaticModules(relative(destinationPath, mainOutput));
+    const mainOutput = Object.entries(result.metafile.outputs)
+      .find(([, output]) => output.entryPoint === "src/main.js")?.[0];
+    if (!mainOutput) throw new Error("Dashboard main entry point is missing.");
+    const mainModules = collectStaticModules(mainOutput);
     const coreModules = [...startupModules].filter((path) => !mainModules.has(path));
     const corePaths = new Set(coreModules.map((path) => resolve(destinationPath, path)));
     const coalescedPath = join(destinationPath, ".coalesced");
@@ -359,7 +361,7 @@ async function bundleSiteJavascript(destinationPath) {
     }
     await cp(bundlePath, join(destinationPath, "src"), { recursive: true });
     const startupChunks = [coreFile, ...new Set([startupOutput, ...mainModules])]
-      .filter((path) => !path.endsWith("/main.js"))
+      .filter((path) => path !== mainOutput)
       .map((path) => basename(path));
     const preloads = [
       '    <link rel="stylesheet" href="./styles.css">',
@@ -407,7 +409,7 @@ async function listFiles(directory, root = directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) files.push(...await listFiles(path, root));
-    else if (entry.isFile()) files.push(relative(root, path));
+    else if (entry.isFile()) files.push(relative(root, path).replaceAll("\\", "/"));
   }
   return files;
 }

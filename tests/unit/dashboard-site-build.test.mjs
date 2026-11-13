@@ -290,6 +290,14 @@ test("docs dashboard installs renderer assets without experimental campaign page
     assert.ok(chunkMaps.some((map) => map.sources.some((source) => source.endsWith("/src/dashboard-app.js"))));
     const preloadedChunks = [...builtIndex.matchAll(/<link rel="modulepreload" href="\.\/src\/([^"]+)" fetchpriority="low">/g)]
       .map((match) => match[1]).filter((file) => file.startsWith("chunk-"));
+    const modulePreloads = [...builtIndex.matchAll(/<link rel="modulepreload" href="([^"]+)"/g)]
+      .map((match) => match[1]);
+    assert.equal(modulePreloads.filter((href) => href.startsWith("./src/main.js")).length, 1,
+      "main entry point is preloaded only once");
+    for (const href of modulePreloads) {
+      assert.ok(!href.includes("\\"), `module preload uses URL separators: ${href}`);
+      await readFile(new URL(href, destination));
+    }
     assert.ok(preloadedChunks.length > 0 && preloadedChunks.length <= 6,
       "startup preloads stay bounded and leave bandwidth for the render-blocking stylesheet");
     assert.ok(preloadedChunks.some((file) => chunkMaps[chunkFiles.indexOf(file)].sources
@@ -307,6 +315,11 @@ test("docs dashboard installs renderer assets without experimental campaign page
         "recovery and unsupported-browser entry points remain deferred");
     }
     const serviceWorker = await readFile(new URL("service-worker.js", destination), "utf8");
+    const appAssets = JSON.parse(serviceWorker.match(/const APP_ASSETS = (\[[^\n]*\]);/)[1]);
+    for (const asset of appAssets) {
+      assert.ok(!asset.includes("\\"), `precache asset uses URL separators: ${asset}`);
+      if (asset !== "./") await readFile(new URL(asset, destination));
+    }
     for (const file of chunkFiles) {
       assert.ok(serviceWorker.includes(`src/${file}`), `precache includes ${file}`);
       assert.ok(!serviceWorker.includes(`src/${file}.map`), "precache excludes source maps");
