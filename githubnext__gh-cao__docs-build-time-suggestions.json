@@ -1,35 +1,7 @@
 {
- "source_sha": "d0b4a18292a24f97502b1860cf3d79367faae583",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "b52e46d6ff6a99190519f050767524d76e2f789a",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T18:36:51Z",
-   "worker_run_id": "43280597853",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558
-   ],
-   "outcome": "complete, not actionable: latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; within 14 days; HEAD f85ff07). Excluded: 1 cancelled superseded run 43206161686. Comparable n=19 successful runs (18 push, 1 schedule 43161224542; 5-run minimum met); docs.yml steps unchanged since d57c4c8 (063cbe9 removed only the activity/** path filter). Metrics from job/step metadata (job logs HTTP 403 DIFC, not read; single attempt): Upload Pages artifact median 2 s (p90 3); Configure Pages median 1 s (p90 1); build-end to deploy-start handoff median 6 s (p90 7); deploy job queue median 5 s (p90 6); Deploy Pages median 7 s (p90 14); packaging-to-deploy-end tail median 21 s (p90 30); build-start to deploy-end median 85 s (p90 123). github-pages artifact 8.27-8.34 MB. Gate = 15% of 85 s = 12.75 s. Controllable upload plus configure = 3 s median; halving the artifact saves about 1 s; merging deploy into build saves about 12 s of handoff and queue but moves id-token: write and the github-pages environment into the build job that runs npm ci lifecycle scripts, so it is rejected. Cache: metadata only; node-cache-Linux-x64-npm-e62f... (278.9 MB, refs/heads/main) active; Post Set up Node.js 0-1 s in 19/19, consistent with exact-key hits but not log-verified. Carry-forward for scheduling category (not a suggestion): run-to-build-job waits of 43 s and 27 s occurred (43228124764, 43206235849), consistent with concurrency queueing; cancelled 43206161686 superseded. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T18:55:30Z",
    "worker_run_id": "43283815200",
@@ -841,10 +813,37 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:21:27Z to 2026-11-13T03:56:23Z; all within 14 days; none in progress; no docs.yml run since 43362224525 at 03:56Z, so the window equals the 04:35Z evaluation; source d0b4a18 = HEAD = source_sha). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed push 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata re-fetched; medians match the prior evaluation. Category step Build synthetic enterprise demo (node scripts/simulate-dashboard-pages.mjs: synthetic normalization plus dashboard site build, then cp to dist/cao): median 4 s, p90 4.3 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 84.5 s (p90 111.1 s). 15% gate = 12.7 s; full removal saves at most 4 s, so the gate is unreachable. Caching or reusing generated demo output would stale synthetic dates and commit-specific output. A separate dashboard job adds checkout (median 24.5 s) plus handoff, so it is net negative. No duplicate dashboard build found: astro.config.mjs only links dashboard pages and docs:build is astro build plus validators. Build logs still HTTP 403 difc_forbidden (re-probed 04:52Z on build job 131678162945); cache state inferred from Post Set up Node.js 0 s. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T05:21:00Z",
+   "worker_run_id": "43370949051",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43249903823,
+    43242792853,
+    43236057780,
+    43228124764,
+    43228046118,
+    43225202834,
+    43206235849,
+    43206080696
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T11:05:24Z to 2026-11-13T04:58:50Z; all within 14 days; 2 in-progress/pending runs 43371217266 and 43371269326 excluded; source b52e46d = checkout HEAD = new source_sha). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata only: job logs HTTP 403 difc_forbidden (re-probed once 05:20Z on build job 131678162945; not retried). build-start-to-deploy-end median 85 s (p90 111.1 s); 15 percent gate 12.75 s. Category steps: Upload Pages artifact median 2 s (p90 3); Configure Pages median 0.5 s (p90 1); Configure plus upload per-run median 3 s (p90 4); build-end to deploy-create handoff median 0 s (p90 1); deploy queue median 5 s (p90 6); Deploy Pages median 7 s (p90 11.2, GitHub-managed). github-pages artifact median 8.33 MB (range 8.29-8.37 MB, 18 runs; stable). Removing all upload and configure work saves at most about 3 s; halving the artifact saves at most about 1 s and is unmeasured; merging deploy into build saves about 5 s of handoff and queue but moves id-token: write and the github-pages environment into the job that runs npm ci lifecycle scripts, and none of these clear the gate. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T04:53:07Z",
+  "verified_at": "2026-11-13T05:21:00Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 src/cache-restore.ts",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<glob.hashFiles(root package-lock.json)>",
   "hash_rule": "sha256 over the raw digest bytes of each file (verified: sha256(raw digest of HEAD package-lock.json) = e62f6006)",
@@ -852,14 +851,52 @@
   "head_root_lock_key_suffix": "e62f60064d02",
   "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278.9 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T04:21Z, refs/heads/main",
   "other_keys_note": "node-cache-Linux-x64-npm-9328fd17 (73.9 MB, main, created 04:01Z) is keyed on dashboard/site/package-lock.json by other workflows; not used by docs.yml",
-  "cache_listing": "58 entries, 10.6 GB total at 04:20Z (above 10 GB cap; LRU eviction applies)",
+  "cache_listing": "58 entries, 10.6 GB total at 04:20Z (above 10 GB cap; LRU eviction applies); 05:20Z key-prefix listing shows node-cache-Linux-x64-npm-cfaf2485 entries on PR branches; docs.yml main key not re-verified in this run",
   "logs": "HTTP 403 difc_forbidden (re-probed 2026-11-13T04:52Z on build job 131678162945); hit/miss inferred from Post Set up Node.js 0 s in all 18 successes"
  },
  "run_samples": {
-  "window_created": "2026-11-12T06:21:27Z..2026-11-13T03:56:23Z",
-  "evaluated_at": "2026-11-13T04:53:07Z",
+  "window_created": "2026-11-12T11:05:24Z..2026-11-13T04:58:50Z",
+  "evaluated_at": "2026-11-13T05:21:00Z",
   "note": "compact per-run seconds for the latest 20 completed docs.yml runs; cancelled 43206161686 and failed 43297524311 disclosed; queue_s=build job created to started; exec_s=build start to deploy end; wall_s=run created to deploy end; post_node=Post Set up Node.js (0 in all successes)",
   "rows": [
+   {
+    "run": 43368963164,
+    "head": "b52e46d",
+    "conc": "succ",
+    "queue_s": 2,
+    "exec_s": 85,
+    "wall_s": 119,
+    "steps": {
+     "checkout": 24,
+     "node": 2,
+     "install": 20,
+     "docs": 14,
+     "demo": 4,
+     "pages_cfg": 1,
+     "upload": 2,
+     "post_node": 0,
+     "deploy_pages": 8
+    }
+   },
+   {
+    "run": 43368845651,
+    "head": "655be67",
+    "conc": "succ",
+    "queue_s": 3,
+    "exec_s": 98,
+    "wall_s": 101,
+    "steps": {
+     "checkout": 26,
+     "node": 6,
+     "install": 23,
+     "docs": 14,
+     "demo": 5,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "deploy_pages": 7
+    }
+   },
    {
     "run": 43362224525,
     "head": "fa659ce",
@@ -876,7 +913,7 @@
      "pages_cfg": 0,
      "upload": 3,
      "post_node": 0,
-     "deploy_pages": 10
+     "deploy_pages": 6
     }
    },
    {
@@ -895,7 +932,7 @@
      "pages_cfg": 0,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 10
+     "deploy_pages": 6
     }
    },
    {
@@ -914,7 +951,7 @@
      "pages_cfg": 0,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 9
+     "deploy_pages": 6
     }
    },
    {
@@ -933,7 +970,7 @@
      "pages_cfg": 1,
      "upload": 3,
      "post_node": 0,
-     "deploy_pages": 8
+     "deploy_pages": 6
     }
    },
    {
@@ -952,7 +989,7 @@
      "pages_cfg": 1,
      "upload": 3,
      "post_node": 0,
-     "deploy_pages": 9
+     "deploy_pages": 7
     }
    },
    {
@@ -971,7 +1008,7 @@
      "pages_cfg": 0,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 10
+     "deploy_pages": 7
     }
    },
    {
@@ -990,7 +1027,7 @@
      "pages_cfg": 1,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 11
+     "deploy_pages": 7
     }
    },
    {
@@ -1009,27 +1046,18 @@
      "pages_cfg": 1,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 10
+     "deploy_pages": 6
     }
    },
    {
     "run": 43297524311,
     "head": "e465d28",
     "conc": "fail",
-    "queue_s": 2,
-    "exec_s": 62,
-    "wall_s": 65,
-    "steps": {
-     "checkout": 24,
-     "node": 3,
-     "install": 17,
-     "docs": 14,
-     "demo": 0,
-     "pages_cfg": 0,
-     "upload": 0,
-     "post_node": 0,
-     "deploy_pages": 0
-    }
+    "queue_s": null,
+    "exec_s": null,
+    "wall_s": null,
+    "steps": null,
+    "note": "disclosed, excluded from medians"
    },
    {
     "run": 43249903823,
@@ -1047,7 +1075,7 @@
      "pages_cfg": 1,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 12
+     "deploy_pages": 8
     }
    },
    {
@@ -1066,7 +1094,7 @@
      "pages_cfg": 0,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 13
+     "deploy_pages": 9
     }
    },
    {
@@ -1085,7 +1113,7 @@
      "pages_cfg": 0,
      "upload": 3,
      "post_node": 0,
-     "deploy_pages": 13
+     "deploy_pages": 10
     }
    },
    {
@@ -1104,7 +1132,7 @@
      "pages_cfg": 1,
      "upload": 3,
      "post_node": 0,
-     "deploy_pages": 12
+     "deploy_pages": 8
     }
    },
    {
@@ -1123,7 +1151,7 @@
      "pages_cfg": 0,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 9
+     "deploy_pages": 6
     }
    },
    {
@@ -1142,7 +1170,7 @@
      "pages_cfg": 1,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 8
+     "deploy_pages": 6
     }
    },
    {
@@ -1161,13 +1189,18 @@
      "pages_cfg": 0,
      "upload": 3,
      "post_node": 0,
-     "deploy_pages": 18
+     "deploy_pages": 14
     }
    },
    {
     "run": 43206161686,
     "head": "5b51c35",
-    "conc": "canc"
+    "conc": "canc",
+    "queue_s": null,
+    "exec_s": null,
+    "wall_s": null,
+    "steps": null,
+    "note": "disclosed, excluded from medians"
    },
    {
     "run": 43206080696,
@@ -1185,55 +1218,12 @@
      "pages_cfg": 1,
      "upload": 2,
      "post_node": 0,
-     "deploy_pages": 19
-    }
-   },
-   {
-    "run": 43194788185,
-    "head": "40b8a11",
-    "conc": "succ",
-    "queue_s": 3,
-    "exec_s": 78,
-    "wall_s": 81,
-    "steps": {
-     "checkout": 24,
-     "node": 2,
-     "install": 15,
-     "docs": 12,
-     "demo": 3,
-     "pages_cfg": 0,
-     "upload": 2,
-     "post_node": 0,
-     "deploy_pages": 11
-    }
-   },
-   {
-    "run": 43167568535,
-    "head": "d4bf131",
-    "conc": "succ",
-    "queue_s": 2,
-    "exec_s": 90,
-    "wall_s": 93,
-    "steps": {
-     "checkout": 28,
-     "node": 3,
-     "install": 18,
-     "docs": 14,
-     "demo": 3,
-     "pages_cfg": 1,
-     "upload": 2,
-     "post_node": 0,
-     "deploy_pages": 11
+     "deploy_pages": 15
     }
    }
   ]
  },
  "observations_pending": [
-  {
-   "observed_at": "2026-11-13T04:23:20Z",
-   "source": "docs.yml Checkout step fetch-depth 0",
-   "note": "Checkout median 24.5 s, p90 42 s across 18 successes this window (about 29 percent of median execution); largest non-build step. Full history is needed for correctness: docs/plugins/starlight-agent/resource.ts runs git log -1 -- <file> per resource for sourceCommittedAt, and a depth-1 clone would return HEAD date for every file. Only a partial clone (blob:none) keeping commit history could cut cost; unmeasured; outside the five rotation categories, so evaluate only with separate repeated timing evidence."
-  },
   {
    "observed_at": "2026-11-13T04:23:20Z",
    "source": "docs.yml push paths vs dashboard build inputs",
@@ -1243,6 +1233,11 @@
    "observed_at": "2026-11-13T04:23:20Z",
    "source": "docs.yml install step node_modules cache feasibility",
    "note": "Only lever that could clear the 12.75 s gate is a node_modules cache. Needs a measured restore of root plus dashboard/site node_modules at or under about 6 s on a hit, plus a measured miss penalty. Re-evaluate only with that timing evidence."
+  },
+  {
+   "observed_at": "2026-11-13T05:21:00Z",
+   "source": "docs.yml Checkout step fetch-depth 0",
+   "note": "Checkout median 24.5 s, p90 42.2 s across 18 successes this window (about 29 percent of median execution); largest non-build step. Full history is needed for correctness: docs/plugins/starlight-agent/resource.ts runs git log -1 -- <file> per resource for sourceCommittedAt. Only a partial clone (blob:none) keeping commit history could cut cost; unmeasured; outside the five rotation categories."
   }
  ]
 }
