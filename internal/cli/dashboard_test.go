@@ -122,6 +122,23 @@ func TestDashboardRepositoryResolution(t *testing.T) {
 	if err != nil || first != second || !reflect.DeepEqual(repositories, []string{"octo/api"}) {
 		t.Fatalf("explicit repository scope was not canonical/deduplicated: %v %v", repositories, err)
 	}
+	if options.localRepository != "octo/api" {
+		t.Fatalf("current checkout repository was not recorded: %q", options.localRepository)
+	}
+	t.Chdir(t.TempDir())
+	if err := os.MkdirAll(filepath.Join(".github", "aw", "logs"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	remote := &dashboardOptions{window: dashboardMaximumDuration, count: 200, repositories: []string{"Remote/Target"}}
+	repositories, _, err = resolveDashboardOptions(cmd, remote, dashboardTestGH(t, time.Now()))
+	if err != nil || !reflect.DeepEqual(repositories, []string{"remote/target"}) || remote.localRepository != "octo/api" {
+		t.Fatalf("explicit remote target was not separated from the checkout: %v %q %v", repositories, remote.localRepository, err)
+	}
+	failing := func(context.Context, ...string) (string, string, error) { return "", "", errors.New("not a checkout") }
+	outside := &dashboardOptions{window: dashboardMaximumDuration, count: 200, repositories: []string{"remote/target"}}
+	if _, _, err := resolveDashboardOptions(cmd, outside, failing); err != nil || outside.localRepository != "" {
+		t.Fatalf("explicit remote target must not require a GitHub checkout: %q %v", outside.localRepository, err)
+	}
 }
 
 func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
@@ -538,22 +555,32 @@ func TestDashboardArtifactCachesKeepExactScopeAndOwnership(t *testing.T) {
 }
 
 func TestDashboardOptionalLocalArtifactCache(t *testing.T) {
-	for _, present := range []bool{false, true} {
-		t.Run(map[bool]string{false: "without local files", true: "with local cache"}[present], func(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		present       bool
+		local, reused string
+	}{
+		{name: "without local files", local: "octo/api"},
+		{name: "with local cache", present: true, local: "octo/api", reused: "octo/api"},
+		{name: "remote target ignores local cache", present: true, local: "octo/other"},
+		{name: "unknown checkout ignores local cache", present: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
 			t.Chdir(t.TempDir())
 			local := filepath.Join(".github", "aw", "logs")
-			if present {
+			if test.present {
 				if err := os.MkdirAll(local, 0o700); err != nil {
 					t.Fatal(err)
 				}
 			}
+			reuse := test.reused != ""
 			cache := t.TempDir()
 			writeLogs := dashboardTestLogs(t)
 			logs := func(ctx context.Context, request dashboardLogRequest) error {
-				if request.ManagedCache == present {
+				if request.ManagedCache == reuse {
 					t.Fatalf("local artifact cache selection changed: %+v", request)
 				}
-				if present {
+				if reuse {
 					expected, err := filepath.Abs(local)
 					if err != nil || request.Directory != expected {
 						t.Fatalf("existing local cache was not reused: %+v, %v", request, err)
@@ -562,7 +589,7 @@ func TestDashboardOptionalLocalArtifactCache(t *testing.T) {
 				return writeLogs(ctx, request)
 			}
 			if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache,
-				dashboardOptions{window: dashboardMaximumDuration, count: 2},
+				dashboardOptions{window: dashboardMaximumDuration, count: 2, localRepository: test.local},
 				dashboardTestGH(t, time.Now().UTC().Add(-time.Second)), logs); err != nil {
 				t.Fatal(err)
 			}

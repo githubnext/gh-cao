@@ -84,7 +84,7 @@ func setupAzurePrivateFarm(t *testing.T, ctx context.Context, f *setupFixture, c
 	}
 	remote := filepath.Join(f.root, "published-control.git")
 	bootstrapRun(t, ctx, f.root, f.env, "git", "init", "--bare", "--quiet", "--initial-branch=main", remote)
-	bootstrapRun(t, ctx, f.checkout, f.env, "git", "add", ".github", "activity")
+	bootstrapRun(t, ctx, f.checkout, f.env, "git", "add", ".github")
 	bootstrapRun(t, ctx, f.checkout, f.env, "git", "-c", "user.name=CAO simulator", "-c", "user.email=simulator@example.invalid",
 		"commit", "-qm", "Publish reviewed private control plane")
 	bootstrapRun(t, ctx, f.checkout, f.env, "git", "push", remote, "HEAD:main")

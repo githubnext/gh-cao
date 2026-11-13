@@ -16,9 +16,10 @@ import (
 )
 
 func TestEmbeddedDashboardResources(t *testing.T) {
-	t.Chdir(t.TempDir())
 	original, fixture := newLocalPostgresTestApp(t, false)
 	_ = original
+	// Leave the source checkout only after the fixture reads its relative query files.
+	t.Chdir(t.TempDir())
 	app := fixture.app(t, Config{
 		Listen: "127.0.0.1:8080", AccessToken: testAccessToken, MCPEnabled: true,
 	})

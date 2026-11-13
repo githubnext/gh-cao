@@ -88,7 +88,7 @@ test("Go unit jobs partition every package exactly once, including future packag
     const result = spawnSync("bash", ["-c", `
       go() {
         if [[ "$3" == "list" ]]; then printf '%s\\n' "$MOCK_PACKAGES";
-        else shift 6; printf '%s\\n' "$@"; fi
+        else shift 7; printf '%s\\n' "$@"; fi
       }
       ${step.run}
     `], {
@@ -149,7 +149,7 @@ test("storage shards execute every discovered test exactly once with existing te
       else
         [[ "$*" == *" $GO_TEST_MODE "* ]] || return 42
         [[ "\${!#}" == "./internal/postgresx" ]] || return 43
-        printf '%s\\n' "$8"
+        printf '%s\\n' "$9"
       fi
     }
   `;

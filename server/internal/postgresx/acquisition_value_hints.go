@@ -93,7 +93,8 @@ func (a Acquisition) CompleteValueHint(ctx context.Context, scope collectnative.
 	}
 	var retryAt any
 	if !retry.IsZero() {
-		retryAt = retry.UTC()
+		// timestamptz stores microseconds and rounds; truncate so retry_at round-trips exactly.
+		retryAt = retry.UTC().Truncate(time.Microsecond)
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE cao_acquisition_value_hints SET
 		processed=CASE WHEN $6::timestamptz IS NULL THEN greatest(processed,$4) ELSE processed END,

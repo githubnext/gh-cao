@@ -15,6 +15,7 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/query"
+	"github.com/githubnext/gh-cao/server/internal/testutil/pgtemplate"
 )
 
 func nativeTestStore(t *testing.T) (*Store, *pgx.ConnConfig) {
@@ -22,6 +23,20 @@ func nativeTestStore(t *testing.T) (*Store, *pgx.ConnConfig) {
 	endpoint := os.Getenv("POSTGRES_URL")
 	if endpoint == "" {
 		t.Skip("POSTGRES_URL is unset")
+	}
+	if config, ok := pgtemplate.Clone(t, t.Context(), endpoint, func(ctx context.Context, config *pgx.ConnConfig) error {
+		store, err := NewConfig(ctx, config)
+		if err != nil {
+			return err
+		}
+		return store.Close()
+	}); ok {
+		store, err := NewConfig(t.Context(), config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = store.Close() })
+		return store, config
 	}
 	config, err := pgx.ParseConfig(endpoint)
 	if err != nil {

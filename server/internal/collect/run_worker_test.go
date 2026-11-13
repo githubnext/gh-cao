@@ -149,7 +149,7 @@ func TestNativeRunWorkerCrashAfterPublicationRecoversInAnotherProcess(t *testing
 	child := exec.CommandContext(t.Context(), executable, "-test.run=^TestNativeRunWorkerRecoverySubprocess$", "-test.v")
 	child.Env = []string{
 		"PATH=/nonexistent", "CAO_NATIVE_RUN_DSN=" + dsn, "CAO_NATIVE_RUN_NAMESPACE=" + namespace,
-		"CAO_NATIVE_RUN_SCHEMA=" + config.RuntimeParams["search_path"], "CAO_NATIVE_RUN_RECORDED=" + recorded,
+		"CAO_NATIVE_RUN_SCHEMA=" + config.RuntimeParams["search_path"], "CAO_NATIVE_RUN_CANONICAL_DSN=" + config.ConnString(), "CAO_NATIVE_RUN_RECORDED=" + recorded,
 	}
 	output, err := child.CombinedOutput()
 	if err != nil || !strings.Contains(string(output), "historical durable handoff verified") {
@@ -187,7 +187,7 @@ func TestNativeRunWorkerRecoverySubprocess(t *testing.T) {
 	if err != nil || len(leases) != 1 || leases[0].Task.Attempt != 3 || leases[0].Task.Failures != 0 {
 		t.Fatalf("recovered exact historical attempt: %v %v", leases, err)
 	}
-	config, err := pgx.ParseConfig(dsn)
+	config, err := pgx.ParseConfig(os.Getenv("CAO_NATIVE_RUN_CANONICAL_DSN"))
 	if err != nil {
 		t.Fatal(err)
 	}

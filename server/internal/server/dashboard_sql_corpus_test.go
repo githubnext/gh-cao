@@ -16,19 +16,33 @@ import (
 )
 
 func TestDashboardQueryCorpusUsesPostgres(t *testing.T) {
-	assertDashboardQueriesUsePostgres(t, nil)
+	assertDashboardQueriesUsePostgres(t)
 }
 
+// TestRepositoryQueriesUsePostgres guards that repository queries stay in the
+// deployed corpus, which TestDashboardQueryCorpusUsesPostgres executes in full.
 func TestRepositoryQueriesUsePostgres(t *testing.T) {
-	assertDashboardQueriesUsePostgres(t, []string{
+	definitions, _, err := dashboardSQLCorpus()
+	if err != nil {
+		t.Fatal(err)
+	}
+	deployed := make(map[string]bool, len(definitions))
+	for _, definition := range definitions {
+		deployed[definition.Name] = true
+	}
+	for _, name := range []string{
 		"repository-run-statistics", "repository-run-identities",
 		"repository-import-totals", "repository-run-totals",
 		"repository-aic-totals", "repository-activity",
 		"repository-observed-run-counts", "repository-run-inventory",
-	})
+	} {
+		if !deployed[name] {
+			t.Errorf("repository query %q is missing from the deployed dashboard corpus", name)
+		}
+	}
 }
 
-func assertDashboardQueriesUsePostgres(t *testing.T, requested []string) {
+func assertDashboardQueriesUsePostgres(t *testing.T) {
 	t.Helper()
 	store := integrationDatabase(t)
 	definitions, parameters, err := dashboardSQLCorpus()
@@ -41,11 +55,9 @@ func assertDashboardQueriesUsePostgres(t *testing.T, requested []string) {
 	if err := query.Validate(definitions); err != nil {
 		t.Fatalf("validate deployed dashboard query corpus: %v", err)
 	}
-	if requested == nil {
-		requested = make([]string, len(definitions))
-		for index, definition := range definitions {
-			requested[index] = definition.Name
-		}
+	requested := make([]string, len(definitions))
+	for index, definition := range definitions {
+		requested[index] = definition.Name
 	}
 	runtimeSource := func(_ context.Context, name string) (model.Source, error) {
 		return model.Source{

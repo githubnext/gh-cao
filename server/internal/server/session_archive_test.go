@@ -223,9 +223,13 @@ func TestSessionArchiveResultBudgetsErrorsAndRevocation(t *testing.T) {
 }
 
 func TestSessionArchiveResponseClosesReader(t *testing.T) {
+	// Outcomes share one app; each subtest restores the credential it may revoke
+	// and installs its own archive service.
+	app, _ := newLocalPostgresTestApp(t, false)
+	accessToken := app.accessToken
 	for _, outcome := range []string{"success", "withdrawn", "oversize", "authorization-revoked", "authorization-revoked-at-delivery", "query-error"} {
 		t.Run(outcome, func(t *testing.T) {
-			app, _ := newLocalPostgresTestApp(t, false)
+			app.accessToken = accessToken
 			reader := &sessionArchiveReadProbe{}
 			delivered := false
 			reader.deliver = func(deliver func() error) error {

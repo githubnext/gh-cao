@@ -286,9 +286,9 @@ jobs:
                   }
                 }')"
             test -n "$pattern"
-            go -C server test -p 1 "$GO_TEST_MODE" -run "^($pattern)$" "${packages[@]}"
+            go -C server test -p 1 "$GO_TEST_MODE" -v -run "^($pattern)$" "${packages[@]}"
           else
-            go -C server test -p 1 "$GO_TEST_MODE" "${packages[@]}"
+            go -C server test -p 1 "$GO_TEST_MODE" -v "${packages[@]}"
           fi
 
   server-integration:
