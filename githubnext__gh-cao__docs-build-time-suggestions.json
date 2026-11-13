@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T11:20:05Z",
-   "worker_run_id": "43415491413",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; none queued or in progress at 11:18Z; source f0c3fc4 unchanged; identical window to run_samples). Excluded and disclosed: failed 43297524311 (Build documentation failed, deploy skipped). Comparable n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test): median 14 s, p90 15 s, range 9-15 s = 16.5% of median execution 85 s (p90 106 s). 15% gate 12.75 s needs about 91% removal; 60 s unreachable. Astro-internal split not visible (job logs HTTP 403 difc_forbidden; not re-read). Code read (docs/plugins/starlight-agent/resource.ts, scope exception disclosed): resolveBuildProvenance spawns git log -1 per agent resource for sourceCommittedAt; its share of the 14 s is unmeasured and cannot clear the gate alone. Shallow depth-1 checkout would make every resource sourceCommittedAt the HEAD date (correctness loss): rejected. Carry-forward lead, not evaluated as Astro: Checkout median 24 s (p90 41, max 56) = 28% of median execution; partial clone (filter blob:none keeps commits and trees for git log -- path) is plausible but savings unmeasured; needs maintainer-branch timing before any issue. Cache: node-cache-Linux-x64-npm-e62f6006 (278.9 MB) created 2026-11-12T06:18:07Z, last accessed 2026-11-13T11:14:46Z; Post Set up Node.js 0 s in 19/19 (consistent with exact-key hits). Open worker issues: none (label search empty). No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T11:33:49Z",
    "worker_run_id": "43417424126",
@@ -868,6 +839,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; source HEAD 7cb5134, docs.yml relevant source 7c8faf4). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4 lock change; build job Install dependencies failed at 17 s; Set up Node.js 1 s vs 2-8 s on hits, consistent with a cache miss on the new root-lock key 7808ecf8; log HTTP 403). 43505502149 success kept in window but step timings not re-read (gh proxy outage this run). Comparable successes with step data n=18 (push). Install dependencies median 16 s, p90 24 (range 11-25) = 18.9% of median exec 84.5 s (p90 93); Set up Node.js median 4 s (p90 7); setup+install median 20.5 s. 15% gate 12.7 s unmet by any evidenced candidate: node_modules cache (restore unmeasured; needs restore at or below about 4 s), dashboard lock in cache-dependency-path (dashboard install is --omit=dev; unmeasured, small), npm flags (negligible). No suggestion; no issue (open 20815 is checkout category). next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T21:34:40Z",
+   "worker_run_id": "43511136391",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 created 2026-11-13T20:56:37Z back to 43378369544 created 06:23:31Z); none queued or in progress; source 7cb5134 = HEAD = source_sha; window identical to the 21:24Z evaluation. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; Build documentation and deploy skipped; log HTTP 403 DIFC re-probed, cause unverified). n=19 successful push runs; 5-run gate met; 43505502149 timings now readable and included. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15, range 9-15 s = 14.3% of median exec 84 s (p90 93). 15% gate 12.6 s: full removal would save at most 12 s and is blocked because deploy consumes its output; 60 s gate unreachable. Validation inside the step is a correctness gate and must stay on the publish path. Astro-internal split unmeasured (logs 403). Cache: Post Set up Node.js 0-1 s in 19/19 successes (exact-key hits). Checkout remains the largest step (median 25 s, 30% of exec); open issue 20815 (docs-checkout-blobless-history-v1, OPEN) covers it and was not re-filed. Critical status: site reflects last successful run 43505502149 (f695ad3); 7c8faf4 docs changes unpublished until a green docs.yml run. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,330 +884,334 @@
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API.",
   "note_2026_11_13_1728Z": "head key node-cache-Linux-x64-npm-e62f6006... last_accessed 2026-11-13T17:28:44Z (caches API); unchanged created 2026-11-12T06:18:07Z",
   "note_2026_11_13_1935Z": "head key node-cache-Linux-x64-npm-e62f6006 created 2026-11-12T06:18:07Z, last_accessed 2026-11-13T19:28:45Z (caches API); root package-lock.json recomputes to e62f6006 (unchanged). dashboard/site/package-lock.json recomputes to 9328fd17, a separate main-branch key created 2026-11-13T04:01:40Z that docs.yml does not use (docs.yml key covers the root lock only).",
-  "note_2026_11_13_2124Z": "Root lock hash now 7808ecf8 (sha256 of raw digest, same rule as e62f6006), changed by 7c8faf4. No docs.yml run has saved a cache for it: failed run 43506161539 had Set up Node.js 1 s and skipped post step. Caches API not re-read (gh proxy outage); cache-state claims are inferred."
+  "note_2026_11_13_2135Z": "Head root lock hash 7808ecf8 recomputed (sha256 of sha256 digest of package-lock.json). Caches API: node-cache-Linux-x64-npm-7808ecf8 exists for refs/pull/20818/merge (created 2026-11-13T20:02:28Z) and refs/heads/main (created 20:57:12Z, after failed run 43506161539). Post Set up Node.js 0-1 s in 19/19 successful runs (exact-key hits). Failure cause not verifiable (job log HTTP 403); cache existence alone does not prove the next run restores it."
  },
  "run_samples": {
   "window_created": "2026-11-13T06:23:31Z..2026-11-13T20:56:37Z",
-  "evaluated_at": "2026-11-13T21:24:25Z",
-  "note": "per-run seconds, 18 successful push runs with step timings in window 43378369544..43504143936 (latest 20 completed docs.yml runs incl. failed 43506161539, which is excluded; 43505502149 success has no step timings this run). exec_s=build job start to deploy end; wait_s=run created to build created. Jobs API timings; logs not read (HTTP 403 DIFC).",
-  "step_stats_median_p90_s": {
+  "evaluated_at": "2026-11-13T21:34:40Z",
+  "note": "window = latest 20 completed docs.yml runs (43378369544..43506161539); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC.",
+  "median_p90_s": {
    "Checkout": [
-    25,
-    31
-   ],
-   "Install dependencies": [
-    16,
-    24
-   ],
-   "Build documentation": [
-    12,
-    15
-   ],
-   "Build synthetic enterprise demo": [
-    3.5,
-    4
+    25.0,
+    31.0
    ],
    "Set up Node.js": [
-    4,
-    7
+    4.0,
+    7.0
+   ],
+   "Install dependencies": [
+    16.0,
+    24.0
+   ],
+   "Build documentation": [
+    12.0,
+    15.0
+   ],
+   "Build synthetic enterprise demo": [
+    3.0,
+    4.0
+   ],
+   "Upload Pages artifact": [
+    2.0,
+    3.0
+   ],
+   "exec": [
+    84.0,
+    93.0
+   ],
+   "queue_wait": [
+    1.0,
+    51.0
+   ],
+   "deploy_job": [
+    9.0,
+    12.0
    ]
   },
-  "wait_median_p90_s": [
-   1,
-   51
-  ],
-  "exec_median_p90_s": [
-   84.5,
-   93
-  ],
   "rows": [
    {
+    "run": 43506161539,
+    "c": "fail",
+    "exec": 46.0,
+    "wait": 1.0,
+    "co": 24.0,
+    "node": 1.0,
+    "post_node": 0.0,
+    "inst": 17.0,
+    "docs": 0.0,
+    "demo": 0.0,
+    "up": 0.0,
+    "deploy": 0.0
+   },
+   {
+    "run": 43505502149,
+    "c": "succ",
+    "exec": 81.0,
+    "wait": 1.0,
+    "co": 24.0,
+    "node": 2.0,
+    "post_node": 1.0,
+    "inst": 16.0,
+    "docs": 11.0,
+    "demo": 3.0,
+    "up": 1.0,
+    "deploy": 13.0
+   },
+   {
     "run": 43504143936,
-    "exec_s": 90,
-    "build_s": 77,
-    "queue_s": 3,
-    "wait_s": 68,
-    "handoff_s": 1,
-    "deploy_s": 7,
-    "checkout_s": 24,
-    "install_s": 24,
-    "docs_s": 14,
-    "demo_s": 4,
-    "node_setup_s": 4
+    "c": "succ",
+    "exec": 90.0,
+    "wait": 68.0,
+    "co": 24.0,
+    "node": 4.0,
+    "post_node": 0.0,
+    "inst": 24.0,
+    "docs": 14.0,
+    "demo": 4.0,
+    "up": 2.0,
+    "deploy": 7.0
    },
    {
     "run": 43504093917,
-    "exec_s": 84,
-    "build_s": 69,
-    "queue_s": 2,
-    "wait_s": 1,
-    "handoff_s": 1,
-    "deploy_s": 9,
-    "checkout_s": 26,
-    "install_s": 15,
-    "docs_s": 12,
-    "demo_s": 3,
-    "node_setup_s": 7
+    "c": "succ",
+    "exec": 84.0,
+    "wait": 1.0,
+    "co": 26.0,
+    "node": 7.0,
+    "post_node": 0.0,
+    "inst": 15.0,
+    "docs": 12.0,
+    "demo": 3.0,
+    "up": 3.0,
+    "deploy": 9.0
    },
    {
     "run": 43503897533,
-    "exec_s": 68,
-    "build_s": 54,
-    "queue_s": 2,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "checkout_s": 20,
-    "install_s": 11,
-    "docs_s": 9,
-    "demo_s": 4,
-    "node_setup_s": 3
+    "c": "succ",
+    "exec": 68.0,
+    "wait": 1.0,
+    "co": 20.0,
+    "node": 3.0,
+    "post_node": 0.0,
+    "inst": 11.0,
+    "docs": 9.0,
+    "demo": 4.0,
+    "up": 3.0,
+    "deploy": 9.0
    },
    {
     "run": 43503506778,
-    "exec_s": 78,
-    "build_s": 61,
-    "queue_s": 2,
-    "wait_s": 0,
-    "handoff_s": 0,
-    "deploy_s": 12,
-    "checkout_s": 23,
-    "install_s": 14,
-    "docs_s": 11,
-    "demo_s": 4,
-    "node_setup_s": 2
+    "c": "succ",
+    "exec": 78.0,
+    "wait": 0.0,
+    "co": 23.0,
+    "node": 2.0,
+    "post_node": 0.0,
+    "inst": 14.0,
+    "docs": 11.0,
+    "demo": 4.0,
+    "up": 2.0,
+    "deploy": 12.0
    },
    {
     "run": 43502660435,
-    "exec_s": 83,
-    "build_s": 67,
-    "queue_s": 3,
-    "wait_s": 42,
-    "handoff_s": 0,
-    "deploy_s": 11,
-    "checkout_s": 25,
-    "install_s": 15,
-    "docs_s": 14,
-    "demo_s": 4,
-    "node_setup_s": 3
+    "c": "succ",
+    "exec": 83.0,
+    "wait": 42.0,
+    "co": 25.0,
+    "node": 3.0,
+    "post_node": 0.0,
+    "inst": 15.0,
+    "docs": 14.0,
+    "demo": 4.0,
+    "up": 3.0,
+    "deploy": 11.0
    },
    {
     "run": 43502562196,
-    "exec_s": 77,
-    "build_s": 64,
-    "queue_s": 2,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 8,
-    "checkout_s": 21,
-    "install_s": 20,
-    "docs_s": 10,
-    "demo_s": 3,
-    "node_setup_s": 5
+    "c": "succ",
+    "exec": 77.0,
+    "wait": 1.0,
+    "co": 21.0,
+    "node": 5.0,
+    "post_node": 1.0,
+    "inst": 20.0,
+    "docs": 10.0,
+    "demo": 3.0,
+    "up": 1.0,
+    "deploy": 8.0
    },
    {
     "run": 43494667529,
-    "exec_s": 93,
-    "build_s": 79,
-    "queue_s": 3,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "checkout_s": 31,
-    "install_s": 17,
-    "docs_s": 15,
-    "demo_s": 4,
-    "node_setup_s": 4
+    "c": "succ",
+    "exec": 93.0,
+    "wait": 1.0,
+    "co": 31.0,
+    "node": 4.0,
+    "post_node": 0.0,
+    "inst": 17.0,
+    "docs": 15.0,
+    "demo": 4.0,
+    "up": 3.0,
+    "deploy": 9.0
    },
    {
     "run": 43484369040,
-    "exec_s": 80,
-    "build_s": 66,
-    "queue_s": 3,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "checkout_s": 26,
-    "install_s": 15,
-    "docs_s": 9,
-    "demo_s": 3,
-    "node_setup_s": 4
+    "c": "succ",
+    "exec": 80.0,
+    "wait": 1.0,
+    "co": 26.0,
+    "node": 4.0,
+    "post_node": 0.0,
+    "inst": 15.0,
+    "docs": 9.0,
+    "demo": 3.0,
+    "up": 3.0,
+    "deploy": 9.0
    },
    {
     "run": 43465706802,
-    "exec_s": 89,
-    "build_s": 74,
-    "queue_s": 3,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "checkout_s": 25,
-    "install_s": 20,
-    "docs_s": 15,
-    "demo_s": 4,
-    "node_setup_s": 4
+    "c": "succ",
+    "exec": 89.0,
+    "wait": 1.0,
+    "co": 25.0,
+    "node": 4.0,
+    "post_node": 0.0,
+    "inst": 20.0,
+    "docs": 15.0,
+    "demo": 4.0,
+    "up": 2.0,
+    "deploy": 10.0
    },
    {
     "run": 43447728981,
-    "exec_s": 92,
-    "build_s": 77,
-    "queue_s": 2,
-    "wait_s": 1,
-    "handoff_s": 1,
-    "deploy_s": 9,
-    "checkout_s": 23,
-    "install_s": 25,
-    "docs_s": 12,
-    "demo_s": 3,
-    "node_setup_s": 8
+    "c": "succ",
+    "exec": 92.0,
+    "wait": 1.0,
+    "co": 23.0,
+    "node": 8.0,
+    "post_node": 0.0,
+    "inst": 25.0,
+    "docs": 12.0,
+    "demo": 3.0,
+    "up": 2.0,
+    "deploy": 9.0
    },
    {
     "run": 43447111490,
-    "exec_s": 73,
-    "build_s": 59,
-    "queue_s": 2,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "checkout_s": 23,
-    "install_s": 13,
-    "docs_s": 11,
-    "demo_s": 3,
-    "node_setup_s": 3
+    "c": "succ",
+    "exec": 73.0,
+    "wait": 1.0,
+    "co": 23.0,
+    "node": 3.0,
+    "post_node": 1.0,
+    "inst": 13.0,
+    "docs": 11.0,
+    "demo": 3.0,
+    "up": 1.0,
+    "deploy": 9.0
    },
    {
     "run": 43440055797,
-    "exec_s": 90,
-    "build_s": 75,
-    "queue_s": 3,
-    "wait_s": 0,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "checkout_s": 24,
-    "install_s": 23,
-    "docs_s": 14,
-    "demo_s": 5,
-    "node_setup_s": 3
+    "c": "succ",
+    "exec": 90.0,
+    "wait": 0.0,
+    "co": 24.0,
+    "node": 3.0,
+    "post_node": 0.0,
+    "inst": 23.0,
+    "docs": 14.0,
+    "demo": 5.0,
+    "up": 2.0,
+    "deploy": 10.0
    },
    {
     "run": 43430232636,
-    "exec_s": 91,
-    "build_s": 76,
-    "queue_s": 3,
-    "wait_s": 51,
-    "handoff_s": 0,
-    "deploy_s": 10,
-    "checkout_s": 25,
-    "install_s": 18,
-    "docs_s": 15,
-    "demo_s": 3,
-    "node_setup_s": 5
+    "c": "succ",
+    "exec": 91.0,
+    "wait": 51.0,
+    "co": 25.0,
+    "node": 5.0,
+    "post_node": 0.0,
+    "inst": 18.0,
+    "docs": 15.0,
+    "demo": 3.0,
+    "up": 3.0,
+    "deploy": 10.0
    },
    {
     "run": 43430166810,
-    "exec_s": 77,
-    "build_s": 63,
-    "queue_s": 2,
-    "wait_s": 1,
-    "handoff_s": 1,
-    "deploy_s": 8,
-    "checkout_s": 25,
-    "install_s": 14,
-    "docs_s": 11,
-    "demo_s": 3,
-    "node_setup_s": 3
+    "c": "succ",
+    "exec": 77.0,
+    "wait": 1.0,
+    "co": 25.0,
+    "node": 3.0,
+    "post_node": 0.0,
+    "inst": 14.0,
+    "docs": 11.0,
+    "demo": 3.0,
+    "up": 2.0,
+    "deploy": 8.0
    },
    {
     "run": 43388781287,
-    "exec_s": 85,
-    "build_s": 72,
-    "queue_s": 3,
-    "wait_s": 0,
-    "handoff_s": 0,
-    "deploy_s": 9,
-    "checkout_s": 28,
-    "install_s": 17,
-    "docs_s": 14,
-    "demo_s": 4,
-    "node_setup_s": 3
+    "c": "succ",
+    "exec": 85.0,
+    "wait": 0.0,
+    "co": 28.0,
+    "node": 3.0,
+    "post_node": 0.0,
+    "inst": 17.0,
+    "docs": 14.0,
+    "demo": 4.0,
+    "up": 2.0,
+    "deploy": 9.0
    },
    {
     "run": 43380585034,
-    "exec_s": 114,
-    "build_s": 101,
-    "queue_s": 3,
-    "wait_s": 0,
-    "handoff_s": 1,
-    "deploy_s": 8,
-    "checkout_s": 56,
-    "install_s": 16,
-    "docs_s": 15,
-    "demo_s": 4,
-    "node_setup_s": 3
+    "c": "succ",
+    "exec": 114.0,
+    "wait": 0.0,
+    "co": 56.0,
+    "node": 3.0,
+    "post_node": 0.0,
+    "inst": 16.0,
+    "docs": 15.0,
+    "demo": 4.0,
+    "up": 3.0,
+    "deploy": 8.0
    },
    {
     "run": 43378597209,
-    "exec_s": 91,
-    "build_s": 75,
-    "queue_s": 3,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 11,
-    "checkout_s": 27,
-    "install_s": 16,
-    "docs_s": 12,
-    "demo_s": 3,
-    "node_setup_s": 7
+    "c": "succ",
+    "exec": 91.0,
+    "wait": 1.0,
+    "co": 27.0,
+    "node": 7.0,
+    "post_node": 0.0,
+    "inst": 16.0,
+    "docs": 12.0,
+    "demo": 3.0,
+    "up": 4.0,
+    "deploy": 11.0
    },
    {
     "run": 43378369544,
-    "exec_s": 75,
-    "build_s": 58,
-    "queue_s": 2,
-    "wait_s": 1,
-    "handoff_s": 0,
-    "deploy_s": 12,
-    "checkout_s": 20,
-    "install_s": 15,
-    "docs_s": 9,
-    "demo_s": 3,
-    "node_setup_s": 5
+    "c": "succ",
+    "exec": 75.0,
+    "wait": 1.0,
+    "co": 20.0,
+    "node": 5.0,
+    "post_node": 0.0,
+    "inst": 15.0,
+    "docs": 9.0,
+    "demo": 3.0,
+    "up": 2.0,
+    "deploy": 12.0
    }
-  ],
-  "transfer_stats_20_runs": {
-   "measured_at": "2026-11-13T20:35:11Z",
-   "configure_pages_s": [
-    0,
-    1
-   ],
-   "upload_pages_artifact_s": [
-    2,
-    3
-   ],
-   "handoff_s": [
-    5,
-    6
-   ],
-   "deploy_setup_s": [
-    1,
-    1
-   ],
-   "deploy_pages_s": [
-    7,
-    8
-   ],
-   "controllable_overhead_median_s": 8,
-   "controllable_overhead_p90_s": 10,
-   "exec_median_s": 89,
-   "exec_p90_s": 98
-  }
+  ]
  },
  "observations_pending": [
-  {
-   "observed_at": "2026-11-13T14:21:00Z",
-   "source": "docs.yml dependency category (worker 43441140909)",
-   "note": "Install dependencies median 17 s (p90 22) with exact-key npm cache hits in 20/20 runs; setup plus install must fall to about 8 s to clear the 13.1 s gate. Only node_modules caching could plausibly reach that, and its restore time is unmeasured; re-evaluate only with a maintainer-branch run timing setup plus node_modules restore."
-  },
   {
    "observed_at": "2026-11-13T14:54:30Z",
    "source": "docs.yml reusable dashboard generation (worker 43446486267)",
@@ -1229,11 +1233,6 @@
    "note": "Queued docs.yml run 37642403569 (created 2026-10-07T15:12:12Z, event workflow_run, headSha 6206962) is still queued and was excluded from samples; completed-run timings are unaffected. Re-evaluate only if it blocks a current push run in the documentation-pages concurrency group."
   },
   {
-   "observed_at": "2026-11-13T19:53:52Z",
-   "source": "docs.yml Astro documentation generation (worker 43495727601)",
-   "note": "Window 43362224525..43494667529 (20 success, 19 push + schedule). Build documentation median 14 s (p90 15, range 9-15) = 15.7% of median exec 89 s; 15% gate 13.35 s needs at least 95% of the step removed, which is the docs build itself (deploy requires its output). Astro-internal split unmeasured: build-job log read 403 DIFC (re-probed 19:5xZ). Re-evaluate only if the Build documentation median reaches 20 s or more, or a maintainer-branch run with readable logs shows one Astro sub-step at 13.35 s or more."
-  },
-  {
    "observed_at": "2026-11-13T20:35:11Z",
    "source": "docs.yml artifact transfer and Pages packaging (worker 43502124062)",
    "note": "Controllable transfer overhead median 8 s (p90 10) = 9.0% of median exec 89 s; below the 13.35 s gate even at full removal. Deploy-into-build merge (about 6 s) rejected for least privilege. Re-evaluate only if the deploy job is removed by a maintainer design change or transfer overhead median reaches 13 s."
@@ -1247,6 +1246,11 @@
    "observed_at": "2026-11-13T21:24:25Z",
    "source": "docs.yml FAILURE 43506161539 (push 7c8faf4, 2026-11-13T20:56:37Z)",
    "note": "build job Install dependencies failed at 17 s; Build documentation and deploy skipped, so Pages was not updated. Log unreadable (HTTP 403 DIFC), so cause unverified. Root and dashboard locks both changed in 7c8faf4 (node-pty and node-addon-api removed; hasInstallScript flags removed). Root lock still resolves 163 entries to ms-feed-*.pkgs.visualstudio.com; dashboard lock has 6. Next docs-path push or 05:23Z schedule reruns the same cold-cache install. Maintainer should read run 43506161539 install log and confirm a green docs.yml run on main; re-evaluate timing only after a green run."
+  },
+  {
+   "observed_at": "2026-11-13T21:34:40Z",
+   "source": "docs.yml Astro documentation generation (worker 43511136391)",
+   "note": "Window 43378369544..43506161539 (19 successful push, 1 failed). Build documentation median 12 s (p90 15, range 9-15) = 14.3% of median exec 84 s; full elimination (12 s) stays below the 12.6 s gate and is blocked because deploy consumes the output. Astro-internal split unmeasured (logs 403 DIFC, re-probed). Re-evaluate only if Build documentation median reaches 20 s or more, or readable maintainer-branch logs show one Astro sub-step at 12.6 s or more."
   }
  ],
  "checkout_probe": {
