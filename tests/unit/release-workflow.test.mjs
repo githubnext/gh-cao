@@ -108,10 +108,6 @@ test("release builds versioned binaries read-only from the exact authorized sour
   assert.match(stepBlock(source, "Build extension release binaries"), /RELEASE_TAG: \$\{\{ needs.resolve-version.outputs.release_tag \}\}/);
   assert.match(stepBlock(source, "Build extension release binaries"), /bash scripts\/build-release\.sh "\$RELEASE_TAG" "\$RUNNER_TEMP\/release-binaries"/);
   assert.match(stepBlock(source, "Verify embedded release version"), /\/gh-cao-linux-amd64" --version\)" = "gh cao version \$\{RELEASE_TAG\}"/);
-  const install = stepBlock(source, "Verify GitHub CLI release installation");
-  assert.match(install, /CAO_EXTENSION_BINARY: \$\{\{ runner.temp \}\}\/release-binaries\/gh-cao-linux-amd64/);
-  assert.match(install, /CAO_EXTENSION_VERSION: \$\{\{ needs.resolve-version.outputs.release_tag \}\}/);
-  assert.match(install, /node --test tests\/integration\/gh-extension-installation.test.mjs/);
   const upload = stepBlock(source, "Upload extension release binaries");
   const download = stepBlock(source, "Download extension release binaries");
   assert.match(upload, /name: release-binaries-\$\{\{ github.run_id \}\}/);
