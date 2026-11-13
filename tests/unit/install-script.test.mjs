@@ -433,7 +433,8 @@ async function createConsumer(t, ghAwVersion, { repository = "alpha-org/control"
     ...inheritedEnv,
     PATH: `${bin}${path.delimiter}${systemPath}`,
     CI: "",
-    ...(process.platform === "win32" ? { PATHEXT: ".CMD;.COM;.EXE;.BAT" } : {}),
+    // Native callers must use gh.exe so cmd.exe cannot split API query strings at '&'.
+    ...(process.platform === "win32" ? { PATHEXT: ".COM;.EXE;.BAT;.CMD" } : {}),
     NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${pathToFileURL(mockFetch).href}`].filter(Boolean).join(" "),
     FAKE_CATALOG: catalog,
     FAKE_GH_SCRIPT: path.join(bin, "gh"),
