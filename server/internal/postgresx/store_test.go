@@ -46,6 +46,38 @@ func TestDecodeJSONPreservesNumbers(t *testing.T) {
 	}
 }
 
+func TestHasDataRevisionRequiresPublishedNamespace(t *testing.T) {
+	store, config := nativeTestStore(t)
+	if current, err := store.HasDataRevision(t.Context(), "typed"); err != nil || current {
+		t.Fatalf("empty namespace matched publication: current=%v err=%v", current, err)
+	}
+	nativeSeed(t.Context(), t, store, nil)
+	for revision, want := range map[string]bool{"typed": true, "different": false, "": false} {
+		if current, err := store.HasDataRevision(t.Context(), revision); err != nil || current != want {
+			t.Fatalf("publication %q current=%v want=%v err=%v", revision, current, want, err)
+		}
+	}
+	other, err := NewConfig(t.Context(), config, "other")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = other.Close() }()
+	if current, err := other.HasDataRevision(t.Context(), "typed"); err != nil || current {
+		t.Fatalf("publication leaked across namespaces: current=%v err=%v", current, err)
+	}
+	if _, err := store.db.ExecContext(t.Context(), "UPDATE cao_state SET revision=0 WHERE namespace=$1", store.namespace); err != nil {
+		t.Fatal(err)
+	}
+	if current, err := store.HasDataRevision(t.Context(), "typed"); err != nil || current {
+		t.Fatalf("unpublished identity matched: current=%v err=%v", current, err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := store.HasDataRevision(ctx, "typed"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("publication identity lookup hid cancellation: %v", err)
+	}
+}
+
 func TestNamespaceRequired(t *testing.T) {
 	if _, err := NewWithNamespace(t.Context(), "postgres://127.0.0.1/postgres?sslmode=disable", ""); err == nil {
 		t.Fatal("empty namespace accepted")

@@ -189,7 +189,7 @@ func (s *Store) CurateAudits(ctx context.Context) (State, error) {
 		return State{}, fmt.Errorf("lock audit curation: %w", err)
 	}
 	reader := &readTransaction{store: s, tx: tx}
-	state, err := reader.State(ctx)
+	state, err := reader.stateHeader(ctx)
 	if err != nil {
 		return State{}, err
 	}

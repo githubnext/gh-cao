@@ -63,7 +63,7 @@ func newQueryTracer() (*queryTracer, error) {
 	}
 	duration, err := meter.Float64Histogram(postgresQueryDuration,
 		metric.WithUnit("s"),
-		metric.WithDescription("Postgres statement latency, excluding connection-pool wait"))
+		metric.WithDescription("Postgres operation latency, excluding connection-pool wait; pipelined statements are timed as one batch"))
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (t *queryTracer) start(ctx context.Context, operation string) context.Conte
 }
 
 func (t *queryTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
-	t.finish(ctx, data.Err)
+	t.finish(ctx, data.Err, true)
 }
 
 func (t *queryTracer) TraceCopyFromStart(ctx context.Context, _ *pgx.Conn, _ pgx.TraceCopyFromStartData) context.Context {
@@ -122,10 +122,30 @@ func (t *queryTracer) TraceCopyFromStart(ctx context.Context, _ *pgx.Conn, _ pgx
 }
 
 func (t *queryTracer) TraceCopyFromEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceCopyFromEndData) {
-	t.finish(ctx, data.Err)
+	t.finish(ctx, data.Err, true)
 }
 
-func (t *queryTracer) finish(ctx context.Context, err error) {
+func (t *queryTracer) TraceBatchStart(ctx context.Context, _ *pgx.Conn, _ pgx.TraceBatchStartData) context.Context {
+	return t.start(ctx, "batch")
+}
+
+func (t *queryTracer) TraceBatchQuery(ctx context.Context, _ *pgx.Conn, data pgx.TraceBatchQueryData) {
+	outcome := "success"
+	if data.Err != nil {
+		outcome = "error"
+	}
+	t.count.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("db.system.name", "postgresql"),
+		attribute.String("db.operation.name", postgresOperation(data.SQL)),
+		attribute.String("cao_dashboard.postgres.outcome", outcome),
+	))
+}
+
+func (t *queryTracer) TraceBatchEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceBatchEndData) {
+	t.finish(ctx, data.Err, false)
+}
+
+func (t *queryTracer) finish(ctx context.Context, err error, countQuery bool) {
 	state, ok := ctx.Value(queryTraceKey{}).(queryTrace)
 	if !ok {
 		return
@@ -148,7 +168,9 @@ func (t *queryTracer) finish(ctx context.Context, err error) {
 		attribute.String("db.operation.name", state.operation),
 		attribute.String("cao_dashboard.postgres.outcome", outcome),
 	)
-	t.count.Add(ctx, 1, attrs)
+	if countQuery {
+		t.count.Add(ctx, 1, attrs)
+	}
 	t.duration.Record(ctx, duration, attrs)
 	t.standard.Record(ctx, duration, metric.WithAttributes(state.attrs...))
 }
@@ -178,3 +200,4 @@ func validSQLState(code string) bool {
 
 var _ pgx.QueryTracer = (*queryTracer)(nil)
 var _ pgx.CopyFromTracer = (*queryTracer)(nil)
+var _ pgx.BatchTracer = (*queryTracer)(nil)
