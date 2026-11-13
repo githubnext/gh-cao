@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDialogSelector } from '../../src/components/dialog-selector.js';
 import { renderDeclaredCliAction, setDeclaredCliActions } from '../../src/components/cli-actions.js';
 import { validateDashboardDocument } from '../../src/validator.js';
+import { validateViewActions } from '../../src/validator-views.js';
+import { state as validationState } from '../../src/validator-state.js';
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
 import { DataRequestWorker } from '../data-request-worker.js';
 
@@ -43,6 +45,27 @@ afterEach(() => {
 });
 
 describe('declarative external dialog selector', () => {
+  it('offers exact input and wildcard patterns only when declared and clears selection on edits', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const control = picker({ ...definition, 'allow-patterns': true, mapping: { ...definition.mapping, target: 'repository-pattern' } });
+    for (const value of ['octo/repo', 'octo/service-*', 'octo/*']) {
+      control.type(value);
+      expect(control.select).toHaveBeenLastCalledWith(null);
+      control.root.querySelector('button')?.click();
+      expect(control.select).toHaveBeenLastCalledWith(value);
+    }
+    control.type('octo/*;echo');
+    expect(control.select).toHaveBeenLastCalledWith(null);
+    expect(control.root.querySelector('button')).toBeNull();
+    expect(control.root.textContent).toContain('Enter an owner/repository pattern');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(fetch).not.toHaveBeenCalled();
+    control.reset();
+    expect(control.input.value).toBe('');
+    expect(control.root.querySelector('button')).toBeNull();
+  });
+
   it('debounces input and uses only action identity and opaque text in requests', async () => {
     const fetch = vi.fn().mockResolvedValue(response());
     vi.stubGlobal('fetch', fetch);
@@ -186,7 +209,7 @@ describe('declarative external dialog selector', () => {
     vi.stubGlobal('Worker', DataRequestWorker);
     setDeclaredCliActions([action], { canExecute: false });
     expect(renderDeclaredCliAction(action.id)).toBeNull();
-    setDeclaredCliActions([action], { canExecute: true });
+    setDeclaredCliActions([action], { canExecute: true, templateValues: { repository: 'acme/control', unrelated: 'must-not-be-sent' } });
     const fetch = vi.fn().mockResolvedValueOnce(response())
       .mockResolvedValueOnce(Response.json({ id: 'persistent-1', status: 'queued' }, { status: 202 }))
       .mockResolvedValueOnce({
@@ -229,5 +252,20 @@ describe('declarative external dialog selector', () => {
     const invalid = structuredClone(authoritativeDashboard);
     invalid.dashboard['cli-actions'].find((/** @type {{ id: string }} */ candidate) => candidate.id === action.id).selector.mapping.target = 'undeclared';
     expect(validateDashboardDocument(JSON.stringify(invalid)).ok).toBe(false);
+  });
+
+  it('rejects missing, duplicate, and non-view action references', () => {
+    validationState.declaredCliActions = new Map(authoritativeDashboard.dashboard['cli-actions'].map(
+      (/** @type {{ id: string }} */ action) => [action.id, action]));
+    try {
+      for (const actions of [[], ['missing'], ['add-repository', 'add-repository'], ['create-agent-task']]) {
+        /** @type {import('../../src/validator.js').ValidationError[]} */
+        const errors = [];
+        validateViewActions({ mark: 'chart', actions }, '$.view', errors);
+        expect(errors.length).toBeGreaterThan(0);
+      }
+    } finally {
+      validationState.declaredCliActions = new Map();
+    }
   });
 });

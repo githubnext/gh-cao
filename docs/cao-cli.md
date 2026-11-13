@@ -953,7 +953,15 @@ The slug is the last component of the installed package name (`root` for
 fail before updates or gh-aw upgrades. Campaign selection does not narrow a
 required gh-aw compiler upgrade, which may refresh shared workflow files.
 
-Enroll a repository explicitly with `gh cao repos add OWNER/REPO`. Enrollment
+Enroll a repository explicitly with `gh cao repos add OWNER/REPO`, or quote a
+wildcard pattern such as `gh cao repos add 'owner/service-*'` or
+`gh cao repos add 'owner/*'`. Patterns resolve current accessible matches to exact
+policy entries, not future matches. Incomplete discovery, no matches, more than
+100 matches, or any failed exact access check leaves policy unchanged.
+Repositories and Updates declare an **Add repository** selector, but a selector
+does not grant command authority. The native dashboard's maintenance service
+does not execute enrollment; run the reviewed command explicitly at the CLI.
+No canvas execution or search server is provided. Enrollment
 requires existing exact owner and repository allowlists and does not rewrite a
 broad discovery policy. An already enrolled repository is unchanged. New targets
 stay in review mode even when a campaign defaults to live. The command neither

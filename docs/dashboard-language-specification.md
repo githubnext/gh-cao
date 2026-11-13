@@ -1599,38 +1599,22 @@ A list may declare `list.actions`, a non-empty sequence of unique view-placed
 CLI action IDs, alongside its existing `list.action`. Actions render in declared
 order beside the list heading, including when the list has no rows.
 
+Data marks (`table`, `chart`, and `list`) may also declare view-level
+`actions`, a non-empty sequence of unique view-placed CLI action IDs. These
+controls remain available for empty evidence and use the same execution gating
+and explicit approval as list actions; they do not consume or derive source rows.
+
 A list shows its declared description inline in the header. Presenters do not
 repeat that same explanation in a separate heading tooltip.
 View descriptions do not automatically create help icon buttons. Section
 descriptions remain available as accessible descriptions; explicitly declared
 tooltips retain their configured controls.
 
-A view-placed `operate` CLI action may declare a reusable `selector` dialog
-configuration: `label`, optional `placeholder`, `debounce-ms` (100–2000),
-`query: { command: "gh search repos", fields: [...], limit: 1–50 }`, and
-`mapping: { value, label, description?, target }`. Mapping fields must be selected
-by the query; `target` must name one command template token. For example:
-
-```json
-{
-  "id": "add-repository",
-  "level": "operate",
-  "label": "Add repository",
-  "icon": "plus",
-  "placement": "view",
-  "command": "gh cao repos add {{repository}}",
-  "selector": {
-    "label": "Repository",
-    "debounce-ms": 300,
-    "query": { "command": "gh search repos", "fields": ["fullName", "description"], "limit": 20 },
-    "mapping": { "value": "fullName", "label": "fullName", "description": "description", "target": "repository" }
-  }
-}
-```
-
-Selectors are declarative metadata only unless the selected command service
-explicitly supplies a bounded, authorized lookup endpoint. No canvas search
-server is provided. Selection never authorizes or executes a command.
+A view-placed `operate` CLI action may declare a reusable `selector` dialog.
+Its configuration, example, wildcard rules, and interaction requirements are
+specified in [CLI action selectors](./dashboard-language-selectors.md).
+Selectors do not grant command or lookup authority. No canvas search server is
+provided; the selected command service must explicitly support the operation.
 
 A CLI action may declare `copy-only: true`. Presenters must expose its resolved
 command for copying and must not execute it.

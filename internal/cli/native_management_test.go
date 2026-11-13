@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -200,6 +201,83 @@ func TestNativeManagementEnrollmentFailsClosed(t *testing.T) {
 			content, _ := os.ReadFile(policyPath)
 			if string(content) != tt.source || output.Len() != 0 {
 				t.Fatal("failed enrollment modified policy or reported success")
+			}
+		})
+	}
+}
+
+func TestNativeManagementWildcardEnrollment(t *testing.T) {
+	for _, failure := range []string{"", "empty", "lookup", "truncated", "too many"} {
+		t.Run(failure, func(t *testing.T) {
+			nativeManagementDirectory(t)
+			writeTestFile(t, policyPath, nativeManagementPolicy)
+			gh := func(_ context.Context, args ...string) (string, string, error) {
+				if args[0] == "repo" && args[1] == "list" {
+					rows := []map[string]string{
+						{"nameWithOwner": "Owner/service-b", "visibility": "PUBLIC"},
+						{"nameWithOwner": "Owner/service-a", "visibility": "PRIVATE"},
+						{"nameWithOwner": "Owner/other", "visibility": "PUBLIC"},
+					}
+					if failure == "empty" {
+						return "[]", "", nil
+					}
+					count := 0
+					switch failure {
+					case "truncated":
+						count = 1000
+					case "too many":
+						count = 101
+					}
+					if count > 0 {
+						rows = nil
+						for i := 0; i < count; i++ {
+							rows = append(rows, map[string]string{"nameWithOwner": fmt.Sprintf("owner/service-%d", i), "visibility": "PUBLIC"})
+						}
+					}
+					data, _ := json.Marshal(rows)
+					return string(data), "", nil
+				}
+				if args[0] == "repo" && args[1] == "view" {
+					if failure == "lookup" && args[2] == "Owner/service-b" {
+						return "", "permission denied", errors.New("denied")
+					}
+					return args[2], "", nil
+				}
+				t.Fatalf("unexpected command: %q", args)
+				return "", "", nil
+			}
+			cmd, output, _ := testCommand(t, gh, nil)
+			cmd.SetArgs([]string{"repos", "add", "owner/service-*"})
+			err := cmd.Execute()
+			content, _ := os.ReadFile(policyPath)
+			if failure != "" {
+				if err == nil || string(content) != nativeManagementPolicy || output.Len() != 0 {
+					t.Fatalf("failed expansion must preserve policy: %v, %s", err, output)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			policy, err := nativeReadValidatedPolicy()
+			if err != nil {
+				t.Fatal(err)
+			}
+			control := policy["control-plane"].(map[string]any)
+			scope := control["scope"].(map[string]any)
+			if !reflect.DeepEqual(scope["allowed-repositories"], []any{"owner/repo", "Owner/service-a", "Owner/service-b"}) {
+				t.Fatalf("unexpected wildcard scope: %#v", scope)
+			}
+			for _, value := range control["campaigns"].(map[string]any) {
+				targets := value.(map[string]any)["targets"].(map[string]any)
+				for _, repo := range []string{"Owner/service-a", "Owner/service-b"} {
+					if !reflect.DeepEqual(targets[repo], map[string]any{"mode": "review"}) {
+						t.Fatalf("target not in review: %#v", targets)
+					}
+				}
+			}
+			if !reflect.DeepEqual(control["activity"], map[string]any{"repositories": []any{"owner/repo"}}) {
+				t.Fatal("wildcard enrollment widened Activity scope")
 			}
 		})
 	}

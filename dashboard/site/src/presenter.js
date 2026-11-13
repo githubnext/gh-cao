@@ -15,7 +15,7 @@ import { elementBindsPageSources, elementHandlesEmptyRows, elementHandlesUnavail
 import { publishSource, sourceState } from './source-store.js';
 import { renderDataView, renderPromptPreviewAction, supportsIncrementalChartContinuation } from './components/data-view.js';
 import { renderPageLoadError } from './components/page-load-error.js';
-import { declaredAgentTaskActionId } from './components/cli-actions.js';
+import { declaredAgentTaskActionId, renderDeclaredCliAction } from './components/cli-actions.js';
 import { effectiveViewSemantics } from './view-semantics.js';
 import { semanticViewPrompt } from './semantic-view-prompt.js';
 import { normalizeViewAction } from './action-model.js';
@@ -2515,6 +2515,22 @@ function summarizeDataState(pageSources) {
  * @returns {HTMLElement}
  */
 function renderCustomView(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext) {
+  const root = renderCustomViewContent(pageId, view, index, sources, units, cardTemplates, headingTag, routeParameter, queryContext);
+  const actions = (isPlainObject(view) && Array.isArray(view.actions) ? view.actions : [])
+    .map((/** @type {string} */ id) => renderDeclaredCliAction(id)).filter(Boolean);
+  if (actions.length) {
+    const toolbar = h('div', { className: 'document-list-header' },
+      h('span', null),
+      h('span', { className: 'document-list-actions' }, ...actions));
+    const heading = root.querySelector(':scope > h2, :scope > h3, :scope > h4, :scope > .document-list-header');
+    if (heading) heading.after(toolbar);
+    else root.append(toolbar);
+  }
+  return root;
+}
+
+/** @type {typeof renderCustomView} */
+function renderCustomViewContent(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext) {
   const fallbackTitle = `View ${index + 1}`;
   if (!isPlainObject(view)) {
     return renderCustomViewState(pageId, fallbackTitle, null, 'unavailable', ['Invalid custom view definition.'], headingTag);

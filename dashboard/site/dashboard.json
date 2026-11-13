@@ -1247,13 +1247,14 @@
         "id": "add-repository",
         "level": "operate",
         "label": "Add repository",
-        "description": "Stage one exact repository in local CAO policy in review mode. Review and commit the policy change before activation; credential access is configured separately.",
+        "description": "Stage individual repositories or wildcard matches in local CAO policy in review mode. Wildcards resolve to exact accessible repositories now, not future matches. Review and commit the policy change before activation; credential access is configured separately.",
         "icon": "plus",
-        "command": "gh cao repos add {{repository}}",
+        "command": "gh cao repos add {{repository-pattern}}",
         "placement": "view",
         "selector": {
           "label": "Repository",
-          "placeholder": "Search owner/repository",
+          "placeholder": "Search owner/repository or enter owner/*",
+          "allow-patterns": true,
           "debounce-ms": 300,
           "query": {
             "command": "gh search repos",
@@ -1264,7 +1265,7 @@
             "value": "fullName",
             "label": "fullName",
             "description": "description",
-            "target": "repository"
+            "target": "repository-pattern"
           }
         }
       }

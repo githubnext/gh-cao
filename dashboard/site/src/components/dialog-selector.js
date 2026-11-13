@@ -3,6 +3,7 @@ import { debounce } from '../debounce.js';
 import { createDebug, diagnosticErrorName } from '../debug.js';
 import { effect, render, state } from '../reactive.js';
 import { renderLiveRegion } from './ui-primitives.js';
+import { REPOSITORY_PATTERN } from '../dialog-selector.js';
 
 const debugSelector = createDebug('components:dialog-selector');
 
@@ -80,6 +81,17 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       selected.set(null);
       select(null);
       const text = input.value.trim();
+      if (definition['allow-patterns'] && REPOSITORY_PATTERN.test(text)) {
+        choices.set([{ value: text, label: text, description: text.includes('*')
+          ? 'Use wildcard: resolve accessible matches to exact repositories in review mode.'
+          : 'Use this exact repository; access is verified before enrollment.' }]);
+        message.set('Select this repository or pattern to review the command. No policy changes have been made.');
+        return;
+      }
+      if (definition['allow-patterns'] && text.includes('*')) {
+        message.set('Enter an owner/repository pattern, for example octo/* or octo/service-*.');
+        return;
+      }
       message.set(text.length < 2 ? 'Type at least 2 characters to search GitHub repositories.' : 'Waiting to search...');
       if (text.length >= 2) lookup(text);
     }

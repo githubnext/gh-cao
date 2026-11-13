@@ -589,7 +589,10 @@ func nativeSetupMatches(pattern, repo string) bool {
 }
 
 func nativeSetupExpand(cmd *cobra.Command, gh ghExecutor, control nativeSetupRepository, answer string, publicOnly ...bool) ([]nativeSetupRepository, error) {
-	result := []nativeSetupRepository{control}
+	result := []nativeSetupRepository{}
+	if control.Repository != "" {
+		result = append(result, control)
+	}
 	var organizations []string
 	organizationsLoaded := false
 	cache := map[string][]nativeSetupRepository{}

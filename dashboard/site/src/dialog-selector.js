@@ -1,6 +1,8 @@
 import { createDebug } from './debug.js';
 
-/** @typedef {{ label: string, placeholder?: string, 'debounce-ms': number, query: { command: 'gh search repos', fields: string[], limit: number }, mapping: { value: string, label: string, description?: string, target: string } }} DialogSelector */
+/** @typedef {{ label: string, placeholder?: string, 'allow-patterns'?: boolean, 'debounce-ms': number, query: { command: 'gh search repos', fields: string[], limit: number }, mapping: { value: string, label: string, description?: string, target: string } }} DialogSelector */
+
+export const REPOSITORY_PATTERN = /^[A-Za-z0-9_.*][A-Za-z0-9_.*-]*\/[A-Za-z0-9_.*][A-Za-z0-9_.*-]*$/;
 
 const repositoryFields = ['fullName', 'description', 'name', 'owner', 'url', 'visibility', 'isArchived', 'isPrivate'];
 const debugDialogSelector = createDebug('src:dialog-selector');
@@ -19,7 +21,9 @@ export function assertDialogSelector(input, templateFields) {
   const keys = (/** @type {object} */ value, /** @type {string[]} */ allowed) =>
     Object.keys(value).every((key) => allowed.includes(key));
   const invalid = !object(selector) || !selector
-    || !keys(selector, ['label', 'placeholder', 'debounce-ms', 'query', 'mapping'])
+    || !keys(selector, ['label', 'placeholder', 'allow-patterns', 'debounce-ms', 'query', 'mapping'])
+    || (selector['allow-patterns'] !== undefined && typeof selector['allow-patterns'] !== 'boolean')
+    || (selector['allow-patterns'] === true && selector.mapping?.target !== 'repository-pattern')
     || typeof selector.label !== 'string' || !selector.label.trim()
     || (selector.placeholder !== undefined && (typeof selector.placeholder !== 'string' || !selector.placeholder.trim()))
     || typeof selector['debounce-ms'] !== 'number' || !Number.isInteger(selector['debounce-ms']) || selector['debounce-ms'] < 100 || selector['debounce-ms'] > 2000
