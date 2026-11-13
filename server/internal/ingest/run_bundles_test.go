@@ -150,6 +150,23 @@ func TestManifestedRunBundlesAndExplicitReconciliation(t *testing.T) {
 	if err != nil || unchanged.Revision != after.Revision {
 		t.Fatalf("failed recovery changed publication: %+v %v", unchanged, err)
 	}
+	changedShard := append(bytes.Clone(shard), '\n')
+	changedHash := sha256.Sum256(changedShard)
+	manifest[runs[0]] = hex.EncodeToString(changedHash[:])
+	manifest[RunBundlesFile] = hex.EncodeToString(hash[:])
+	changed, err = json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTestFile(t, shardPath, changedShard)
+	writeTestFile(t, filepath.Join(directory, "payload-hashes.json"), changed)
+	if recovered, err := RunBundles(ctx, store, directory, options); err != nil || recovered.Revision != after.Revision {
+		t.Fatalf("verified changed snapshot did not recover: %+v %v", recovered, err)
+	}
+	writeTestFile(t, shardPath, []byte("corrupt changed recovery shard\n"))
+	if _, err := RunBundles(ctx, store, directory, options); err == nil || !strings.Contains(err.Error(), "hash mismatch") {
+		t.Fatalf("fallback granted an unchecked mutable-path receipt: %v", err)
+	}
 	writeTestFile(t, shardPath, shard)
 	writeTestFile(t, filepath.Join(directory, "payload-hashes.json"), encoded)
 	if recovered, err := RunBundles(ctx, store, directory, options); err != nil || recovered.Revision != after.Revision {
