@@ -314,6 +314,9 @@ func runFleetStress(t *testing.T, repositories, developers, days int) {
 }
 
 func TestGitHubSimulatorFleetSmoke(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow fleet simulation; covered by daily full validation")
+	}
 	runFleetStress(t, 10, 10, 2)
 }
 

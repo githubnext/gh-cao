@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { parse } from "yaml";
 import { changedFiles, testPlan } from "../../scripts/ci-test-plan.mjs";
-import { buildCIReport } from "../../scripts/ci-report.mjs";
+import { buildCIReport, reportCIFailure } from "../../scripts/ci-report.mjs";
 import { unitTestAreas } from "../../scripts/run-unit-area.mjs";
 
 const load = (name) => parse(readFileSync(`.github/workflows/${name}`, "utf8"));
@@ -61,6 +61,13 @@ test("daily calls every suite at the same revision and reports even on failure",
     assert.equal(job.secrets, undefined, "test suites do not inherit deployment secrets");
   }
   assert.equal(daily.jobs.report.if, "always()");
+  assert.equal(daily.jobs.report.permissions.issues, "write");
+  assert.equal(daily.permissions.issues, undefined);
+  const publish = daily.jobs.report.steps.find((step) => step.name === "Publish suite outcomes and slowest jobs");
+  assert.equal(publish.env.REPORT_FAILURE,
+    "${{ github.ref == 'refs/heads/main' && needs.revision.result == 'success' }}");
+  assert.match(publish.with.script, /if \(process\.env\.REPORT_FAILURE === 'true'\) await reportCIFailure/);
+  assert.match(publish.with.script, /if \(report\.status !== 'success'\) core\.setFailed/);
   assert.deepEqual(daily.jobs.deployed.with, { full: true });
   assert.deepEqual(daily.jobs["company-stress"].with, { preset: "large" });
   assert.equal(daily.jobs["worker-memory"].needs, "revision");
@@ -116,4 +123,73 @@ test("daily reporting counts runner time, ranks slow jobs, and rejects incomplet
   assert.equal(buildCIReport({ suite: { result: "success" } }, [], "", "").status, "incomplete");
   assert.equal(buildCIReport({ suite: { result: "success" } }, jobs, "", "").status, "incomplete");
   assert.equal(buildCIReport({ suite: { result: "success" } }, [jobs[0]], "", "").status, "success");
+});
+
+test("daily validation opens one failure issue and updates it with the latest evidence", async () => {
+  const repo = { owner: "octo", repo: "control" };
+  const calls = [];
+  const open = [{ number: 1, title: "Daily full validation failed", body: "unrelated" }];
+  const github = {
+    rest: {
+      issues: {
+        listForRepo: Symbol("list"),
+        create: async (request) => {
+          calls.push(["create", request]);
+          open.push({ number: 2, ...request });
+        },
+        update: async (request) => calls.push(["update", request]),
+      },
+    },
+    paginate: async (method, request) => {
+      assert.equal(method, github.rest.issues.listForRepo);
+      assert.deepEqual(request, { ...repo, state: "open", creator: "github-actions[bot]", per_page: 100 });
+      return open;
+    },
+  };
+  const report = buildCIReport({ server: { result: "failure" } }, [], "https://example.com/run", "first-sha");
+  await reportCIFailure(github, repo, report);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], "create");
+  assert.equal(calls[0][1].title, "Daily full validation failed");
+  assert.ok(calls[0][1].body.includes(report.markdown));
+  const latest = buildCIReport({ server: { result: "cancelled" } }, [], "https://example.com/retry", "next-sha");
+  await reportCIFailure(github, repo, latest);
+  assert.deepEqual(calls[1], ["update", {
+    ...repo, issue_number: 2, body: `<!-- cao-daily-validation-failure -->\n\n${latest.markdown}`,
+  }]);
+  // A copied marker in a PR must not turn a pull request into the failure tracker.
+  open[1].pull_request = {};
+  await reportCIFailure(github, repo, latest);
+  assert.equal(calls[2][0], "create");
+});
+
+test("successful daily validation does not call the issue API", async () => {
+  const job = {
+    name: "server", status: "completed", conclusion: "success",
+    started_at: "2026-01-01T00:00:00Z", completed_at: "2026-01-01T00:00:30Z",
+  };
+  const report = buildCIReport({ server: { result: "success" } }, [job], "", "");
+  assert.equal(report.status, "success");
+  await reportCIFailure({}, {}, report);
+});
+
+test("daily failure reporting propagates issue API errors", async () => {
+  const error = new Error("issue API unavailable");
+  const report = buildCIReport({ server: { result: "failure" } }, [], "", "");
+  for (const operation of ["list", "create", "update"]) {
+    const github = {
+      rest: {
+        issues: {
+          listForRepo: Symbol("list"),
+          create: async () => { throw error; },
+          update: async () => { throw error; },
+        },
+      },
+      paginate: async () => {
+        if (operation === "list") throw error;
+        return operation === "create" ? [] : [{ number: 2, body: "<!-- cao-daily-validation-failure -->" }];
+      },
+    };
+    await assert.rejects(reportCIFailure(github, {}, report), error);
+  }
 });

@@ -127,11 +127,13 @@ test("Go dashboard integration shards complete test coverage across isolated ser
   assert.deepEqual(tests.env, {
     TEST_SHARD: "${{ matrix.shard }}",
     TEST_SHARD_COUNT: "${{ strategy.job-total }}",
+    GO_TEST_MODE: "${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '-count=1' || '-short' }}",
   });
   assert.match(tests.run, /set -euo pipefail/);
   assert.match(tests.run, /test -n "\$pattern"/);
   assert.match(tests.run, /go -C server test -p 1 -run "\^\(\$pattern\)\$" \.\/\.\.\./);
-  assert.doesNotMatch(tests.run, /-timeout|-short|-skip/);
+  assert.match(tests.run, /go -C server test .* "\$GO_TEST_MODE"/);
+  assert.doesNotMatch(tests.run, /-timeout|-skip/);
   assert.equal(tests["continue-on-error"], undefined);
   assert.equal(tests.if, undefined);
   for (const name of [
@@ -152,14 +154,14 @@ test("Go dashboard integration shards complete test coverage across isolated ser
   const mock = [
     "go() {",
     '  if [[ "$*" == *" -list "* ]]; then printf "%s\\n" "$MOCK_LIST";',
-    '  else printf "%s\\n" "$7"; fi',
+    '  else [[ "${!#}" == "$GO_TEST_MODE" ]] || return 42; printf "%s\\n" "$7"; fi',
     "}",
   ].join("\n");
   for (const shard of job.strategy.matrix.shard) {
     const result = spawnSync("bash", ["-c", `${mock}\n${tests.run}`], {
       encoding: "utf8",
       env: {
-        ...process.env, MOCK_LIST: output, TEST_SHARD: String(shard),
+        ...process.env, MOCK_LIST: output, TEST_SHARD: String(shard), GO_TEST_MODE: "-count=1",
         TEST_SHARD_COUNT: String(job.strategy.matrix.shard.length),
       },
     });
@@ -174,7 +176,7 @@ test("Go dashboard integration shards complete test coverage across isolated ser
   const empty = spawnSync("bash", ["-c", `${mock}\n${tests.run}`], {
     encoding: "utf8",
     env: {
-      ...process.env, MOCK_LIST: "ok example/empty", TEST_SHARD: "0",
+      ...process.env, MOCK_LIST: "ok example/empty", TEST_SHARD: "0", GO_TEST_MODE: "-short",
       TEST_SHARD_COUNT: String(job.strategy.matrix.shard.length),
     },
   });
@@ -182,7 +184,7 @@ test("Go dashboard integration shards complete test coverage across isolated ser
   const failed = spawnSync("bash", ["-c", `go() { return 23; }\n${tests.run}`], {
     encoding: "utf8",
     env: {
-      ...process.env, TEST_SHARD: "0",
+      ...process.env, TEST_SHARD: "0", GO_TEST_MODE: "-short",
       TEST_SHARD_COUNT: String(job.strategy.matrix.shard.length),
     },
   });

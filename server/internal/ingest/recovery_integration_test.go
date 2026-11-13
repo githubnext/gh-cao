@@ -13,6 +13,9 @@ import (
 )
 
 func TestEmptyPostgresRebuildAndFailedIngestionPreservesCurrentData(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	ctx, store := ingestTestStore(t)
 	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
 	options := Options{DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json"}

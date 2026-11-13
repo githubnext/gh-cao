@@ -25,6 +25,9 @@ func (engineAuditProvider) Jobs(_ context.Context, run collectnative.Run, visit 
 }
 
 func TestNativeLegacyEngineAndGatewayPostgresPublication(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL publication integration; covered by daily full validation")
+	}
 	for _, test := range []struct{ engine, content string }{
 		{"codex", "thinking\ntool github.read({})\ntokens used\n60,001"},
 		{"claude", `prefix {'usage':{'input_tokens':60000,'output_tokens':1},'cost':0.25}`},

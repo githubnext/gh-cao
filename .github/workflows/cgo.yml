@@ -257,7 +257,7 @@ jobs:
           GO_TEST_AREA: ${{ matrix.area }}
           TEST_SHARD: ${{ matrix.shard }}
           TEST_SHARD_COUNT: ${{ matrix.shards }}
-          GO_TEST_MODE: ${{ github.event_name == 'pull_request' && '-short' || '-count=1' }}
+          GO_TEST_MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '-count=1' || '-short' }}
           POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
           CAO_TEST_POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_server_test?sslmode=disable
         run: |
@@ -268,12 +268,16 @@ jobs:
             storage) packages=(./internal/postgresx) ;;
             core)
               all_packages="$(go -C server list ./...)"
-              mapfile -t packages < <(printf '%s\n' "$all_packages" | grep -vE '/internal/(server|hostedcli|postgresx)$')
+              packages=()
+              while IFS= read -r package; do packages+=("$package"); done < <(printf '%s\n' "$all_packages" |
+                grep -vE '/internal/(server|hostedcli|postgresx)$' |
+                LC_ALL=C sort |
+                awk -v shard="$TEST_SHARD" -v count="$TEST_SHARD_COUNT" 'NR % count == shard')
               ;;
             *) echo "Unknown Go test area: $GO_TEST_AREA" >&2; exit 1 ;;
           esac
           test "${#packages[@]}" -gt 0
-          if (( TEST_SHARD_COUNT > 1 )); then
+          if [[ "$GO_TEST_AREA" != core ]] && (( TEST_SHARD_COUNT > 1 )); then
             pattern="$(go -C server test -p 1 "$GO_TEST_MODE" -list '^(Test|Example|Fuzz)' "${packages[@]}" |
               LC_ALL=C sort -u |
               awk -v shard="$TEST_SHARD" -v count="$TEST_SHARD_COUNT" '
@@ -620,6 +624,7 @@ jobs:
         env:
           TEST_SHARD: ${{ matrix.shard }}
           TEST_SHARD_COUNT: ${{ strategy.job-total }}
+          GO_TEST_MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '-count=1' || '-short' }}
         run: |
           set -euo pipefail
           pattern=$(go -C server test -p 1 -list '^(Test|Example|Fuzz)' ./... |
@@ -631,7 +636,7 @@ jobs:
                 }
               }')
           test -n "$pattern"
-          go -C server test -p 1 -run "^($pattern)$" ./...
+          go -C server test -p 1 -run "^($pattern)$" ./... "$GO_TEST_MODE"
       - name: Build dashboard and server
         if: matrix.shard == 0
         run: |
