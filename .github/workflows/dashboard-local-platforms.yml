@@ -19,6 +19,7 @@ on:
       - scripts/prepare-dashboard-embed.mjs
       - scripts/build-release.sh
       - tests/unit/dashboard-local-platforms.test.mjs
+      - tests/unit/dashboard-site-build.test.mjs
   push:
     branches: [main]
     paths: *paths
@@ -99,6 +100,9 @@ jobs:
           mkdir -p .tmp
           go -C server build -mod=readonly -o "../.tmp/cao-dashboard${EXE_SUFFIX}" ./cmd/cao-dashboard
           go build -mod=readonly -o ".tmp/gh-cao${EXE_SUFFIX}" ./cmd/gh-cao
+      - name: Verify dashboard build assets
+        shell: bash
+        run: node --test --test-name-pattern="^docs dashboard installs renderer assets without experimental campaign pages$" tests/unit/dashboard-site-build.test.mjs
       - name: Test real local serving
         shell: bash
         env:
