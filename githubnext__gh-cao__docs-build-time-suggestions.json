@@ -1,34 +1,7 @@
 {
  "source_sha": "4b78c815aada40179d7da86383075bb4504321e4",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T06:41:58Z",
-   "worker_run_id": 43379955962,
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43249903823,
-    43242792853
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43378597209 back to 43242792853; created 2026-11-12T14:58:38Z to 2026-11-13T06:25:25Z; all within 14 days; no in-progress runs; source HEAD b999dc4 = new source_sha, 2 commits ahead of f0bb5f4; compare API shows docs.yml unchanged in that range, 6 docs-trigger paths changed). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba; logs not read). No cancelled run in window. Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). No separate dashboard job; dashboard generation = step Build synthetic enterprise demo inside build. Step median 4 s (p90 5 s; range 2-5 s) = 4.7% of median build-start-to-deploy-end 85 s (p90 98 s); 15% gate 12.75 s; full removal saves at most about 4 s; 60 s unreachable. A separate job would need its own checkout (median 24 s) and an artifact handoff, net negative; caching or reuse would cost a restore of similar size and would weaken daily synthetic-date freshness (carried from prior evaluations; scripts not re-inspected because scope is docs.yml and its runs). Queue created-to-build-start median 3 s (p90 4 s); build-complete to deploy-created median 0 s (p90 1 s); deploy queue 5 s. Wall median 89 s (p90 135 s, concurrency tail). No suggestion; no issue created; no open issue with this worker label checked this run. next_category advanced to artifact transfer and Pages packaging."
-  },
   {
    "evaluated_at": "2026-11-13T06:55:00Z",
    "worker_run_id": 43381404709,
@@ -867,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 2026-11-13T14:57:34Z; all within 14 days; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; no newer docs.yml run after 14:57Z). Source: workspace HEAD 4b78c81 is 2 commits ahead of f369d46 (docs-run head); compare API shows no docs-trigger path changed, so no rebuild expected. Jobs API re-fetched this run for all 20 runs, matches stored samples. Medians (p90): exec 87.5 s (98); build job 72 s (84); wait to build 3 s; Checkout 24.5 s (31); Install dependencies 17 s (23); Build documentation (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs) 14 s (p90 15; range 9-15) = 16% of exec median; 15% gate 13.1 s would need about 94% of the step removed, which drops the docs build and validation; 60 s gate unreachable. Astro-vs-validation split not measurable: logs 403 difc_forbidden (re-probed); local npm ci in sandbox fails on a self-signed TLS chain from the package feed and was not bypassed. Validation and discovery test only read dist/ and run git ls-files and rev-parse HEAD (no duplicate astro build), so moving them to parallel steps saves seconds. No suggestion; no issue created; open issues with this worker label: none. Carry-forward outside rotation: Checkout fetch-depth 0 is the largest controllable step (28% of exec); docs/plugins/starlight-agent/resource.ts runs git log -1 per resource for sourceCommittedAt, so a shallow clone changes output; partial-clone variant unmeasured and needs a maintainer decision. next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T16:35:42Z",
+   "worker_run_id": "43463458503",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 14:57:34Z; all within 14 days; none queued or in progress; newest docs run head f369d46; local HEAD 4b78c81 is 2 commits ahead and the compare API shows no docs-trigger path changed). Excluded: none (20/20 success, no cancelled or failed run; failed 43297524311 left the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics; 5-run gate met. Jobs API metadata re-fetched for all 20 runs; step medians match the stored run_samples. Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao, inside the build job): push median 4 s, p90 5 s, range 3-5 s = 4.5 percent of push median build-start-to-deploy-end 89 s (p90 106 s); 15 percent gate 13.35 s unreachable; full removal saves at most 4 s, 60 s unreachable. docs.yml has no dashboard job (the task text names one). A separate job would add its own checkout (median 24 s) plus handoff, net negative. Reuse is capped at about 4 s and stale-unsafe: the workflow comment says the daily cron exists to refresh synthetic dates. Job logs not read (403 difc_forbidden on prior probes; not retried), so the dashboard install inside shared Install dependencies (median 17 s) is not separable. Cache hit inferred from Post Set up Node.js 0-1 s in 20/20. No suggestion; no issue created; no open issue with label self-care:docs-build-time-investigator. next_category advanced to artifact transfer and Pages packaging. Carry-forward outside rotation: Checkout fetch-depth 0 median 24 s (p90 31), largest controllable step, unevaluated.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,8 +886,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T01:29:30Z..2026-11-13T14:57:34Z",
-  "evaluated_at": "2026-11-13T16:23:20Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from artifacts API. Jobs API timings (logs 403). Re-measured by worker 43456406182; re-verified by worker 43461190855 (jobs API, 20/20 success, medians unchanged).",
+  "evaluated_at": "2026-11-13T16:35:42Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from artifacts API. Jobs API timings (logs 403). Re-measured by worker 43456406182; re-verified by worker 43461190855 (jobs API, 20/20 success, medians unchanged). Re-verified by worker 43463458503 at 2026-11-13T16:35:42Z (jobs API, 20/20 success, step medians unchanged).",
   "step_stats_median_p90_s": {
    "Set up job": [
     1,
