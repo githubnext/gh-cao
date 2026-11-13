@@ -1,36 +1,7 @@
 {
-  "source_sha": "dfe04168c3c2ef516d21bcb45752efb108dc0e34",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "f101be5a90c93a14c489f1580e6e23967dd3c793",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T17:20:40Z",
-      "worker_run_id": "43267264818",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43249903823,
-        43242792853,
-        43236057780,
-        43228124764,
-        43228046118,
-        43225202834,
-        43206235849,
-        43206161686,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T23:39:34Z to 2026-11-12T15:38:00Z; 0 in progress; 0 failed; source HEAD 926141fc). Excluded: 1 cancelled superseded pending run 43206161686 (no jobs). n=19 successful comparable build+deploy publications (18 push, 1 schedule 43161224542; identical job and step shape; docs.yml last changed 063cbe91, before the window steps). Concurrency (documentation-pages, cancel-in-progress false): run created to build created median 1 s (p90 27 s, max 43 s; 2 of 19 waited behind an in-progress publication: 43206235849 and 43228124764); build queue median 3 s; build-end to deploy-start median 6 s; deploy queue median 5 s; execution build start to deploy end median 85 s (p90 123 s); 15 percent gate 12.75 s. Avoidable rebuilds: compare-API file sets for each consecutive head range (19 ranges) each contain at least one build-consumed path (docs/**, dashboard/report, dashboard/site/src, astro or package config, root or campaign aw.yml, shared policy or actions-log, docs.yml); 0 of 18 push runs provably avoidable, so narrowing triggers saves 0. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy; saves only rare overlap waits), per-job concurrency split (parallel builds risk out-of-order Pages deploys; saves queue only), removing the 05:23 UTC schedule (required synthetic-date refresh). Caveat: stale queued workflow_run run 37642403569 (created 2026-10-07, outside window) remains queued; it did not block window runs. Job logs not read (not required for this category). No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-12T17:33:39Z",
       "worker_run_id": "43269821308",
@@ -841,6 +812,34 @@
         43165397534
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml push runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; all within 14 days; none in progress; HEAD dfe0416; docs.yml last changed 063cbe9). Excluded and disclosed: failed 43297524311 (Build documentation failed; deploy skipped) and cancelled 43206161686 (no jobs). 18 comparable successes. Packaging-only steps (Upload Pages artifact median 2 s p90 3 s; Configure Pages median 1 s) total median 3 s p90 4 s; build-to-deploy job gap plus deploy-job overhead median 9 s p90 10 s (inherent to the separate environment-gated deploy job; merging would weaken deployment safety); Deploy Pages median 7 s p90 14 s is required. Best safe saving about 3 s (under 15 percent of median wall 84.5 s and far below 60 s). Job logs HTTP 403 DIFC so artifact size and cache state not log-verified; timings from trusted step metadata. Queue outliers 46 s, 30 s, 83 s on 43228124764, 43206235849, 43341730805 are runner scheduling, not packaging. No dashboard job exists; dashboard generation is the Build synthetic enterprise demo step."
+    },
+    {
+      "evaluated_at": "2026-11-13T03:53:53Z",
+      "worker_run_id": "43361368650",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43360893141,
+        43347280419,
+        43345305064,
+        43341730805,
+        43341713733,
+        43339642321,
+        43301807773,
+        43297524311,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:17:12Z to 2026-11-13T03:43:58Z; all within 14 days; none in progress; HEAD f101be5; no schedule run in window). Excluded: cancelled superseded 43206161686 (no jobs) and failed 43297524311 (Build documentation failed at e465d28, deploy skipped; fixed by cd1e0ba 43301807773 about 25 min later). Comparable n=18 successful push publications; 5-run minimum met. Job and step metadata only (log endpoints not re-read this run). Scheduling: run created to build job created (concurrency wait, group documentation-pages) median 1 s, p90 43 s, max 81 s; 3 of 18 waited behind an in-progress publication (43341730805 81 s behind c1fa69c; 43228124764 43 s behind 6ed8658; 43206235849 27 s behind 26bd463); build job queue median 3 s (p90 4); deploy job queue median 5 s; build-end to deploy-job creation median 0 s (p90 1). Run created to deploy end median 88 s (p90 169, includes waits); build start to deploy end median 84.5 s (p90 123); 15 percent gate 12.7 s; 60 s unreachable. Avoidable rebuilds: compare API for all 18 consecutive head ranges; every range contains at least one build-consumed path (docs/** content, dashboard/site/** or dashboard/site/scripts/build.mjs, astro.config.mjs, and .github/workflows/shared/policy.mjs, which the dashboard build imports); 0 of 18 pushes avoidable, so trigger narrowing saves 0. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy; median saving 0), split concurrency per job or removing the group (out-of-order Pages deploys; median saving 0), merging deploy into build (environment gate and id-token scope; about 5 s), conditional cron (weakens daily synthetic-date refresh; no per-run saving). Tail waits are queue-only and do not reach the 15 percent median gate. Observation, not timing: dashboard/site/scripts/build.mjs embeds gh-aw-version from .github/workflows/cao.json, which is not in the docs.yml push path filter, so a policy-only commit does not refresh the synthetic demo until the next docs-triggering commit or the daily cron. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -855,18 +854,37 @@
     "logs": "HTTP 403 difc_forbidden re-verified 2026-11-13T03:40Z (gh api actions/jobs/<id>/logs); hit/miss inferred from metadata (Post Set up Node.js 0 s in all successful runs); not log-verified"
   },
   "run_samples": {
-    "window_created": "2026-11-12T06:02:55Z..2026-11-13T01:45:42Z",
-    "evaluated_at": "2026-11-13T03:40:00Z",
-    "note": "compact per-run job/step seconds for the latest 20 completed docs.yml runs; failed 43297524311 and cancelled 43206161686 disclosed; re-derived 03:19Z from gh run view job metadata, identical values; re-verified 03:40Z via gh run view jobs/steps, values identical",
+    "window_created": "2026-11-12T06:17:12Z..2026-11-13T03:43:58Z",
+    "evaluated_at": "2026-11-13T03:53:53Z",
+    "note": "compact per-run job/step seconds for the latest 20 completed docs.yml runs; cancelled 43206161686 and failed 43297524311 disclosed; sec: queue=job created to started, exec=build start to deploy end, wall=run created to deploy end",
     "rows": [
+      {
+        "run": 43360893141,
+        "head": "f101be5",
+        "conc": "succ",
+        "runToBuildJob": 1,
+        "queue_s": 3,
+        "exec_s": 79,
+        "wall_s": 83,
+        "steps": {
+          "checkout": 25,
+          "node": 3,
+          "install": 14,
+          "docs": 11,
+          "demo": 4,
+          "pages_cfg": 0,
+          "upload": 2,
+          "deploy_pages": 6
+        }
+      },
       {
         "run": 43347280419,
         "head": "ba15d39",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 3,
         "exec_s": 82,
-        "wall_s": 85,
+        "wall_s": 86,
         "steps": {
           "checkout": 24,
           "node": 5,
@@ -875,19 +893,17 @@
           "demo": 3,
           "pages_cfg": 0,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 67,
-          "deploy_job": 9
+          "deploy_pages": 6
         }
       },
       {
         "run": 43345305064,
         "head": "6b37c52",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 3,
         "exec_s": 97,
-        "wall_s": 100,
+        "wall_s": 101,
         "steps": {
           "checkout": 31,
           "node": 8,
@@ -896,19 +912,17 @@
           "demo": 4,
           "pages_cfg": 1,
           "upload": 3,
-          "post_node": 0,
-          "build_job": 84,
-          "deploy_job": 8
+          "deploy_pages": 6
         }
       },
       {
         "run": 43341730805,
         "head": "cf80d5c",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 81,
         "queue_s": 2,
         "exec_s": 92,
-        "wall_s": 94,
+        "wall_s": 175,
         "steps": {
           "checkout": 25,
           "node": 5,
@@ -917,19 +931,17 @@
           "demo": 4,
           "pages_cfg": 1,
           "upload": 3,
-          "post_node": 0,
-          "build_job": 78,
-          "deploy_job": 9
+          "deploy_pages": 7
         }
       },
       {
         "run": 43341713733,
         "head": "c1fa69c",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 4,
         "exec_s": 83,
-        "wall_s": 87,
+        "wall_s": 88,
         "steps": {
           "checkout": 24,
           "node": 7,
@@ -938,16 +950,14 @@
           "demo": 3,
           "pages_cfg": 0,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 68,
-          "deploy_job": 10
+          "deploy_pages": 7
         }
       },
       {
         "run": 43339642321,
         "head": "deb5da8",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 0,
         "queue_s": 3,
         "exec_s": 85,
         "wall_s": 88,
@@ -959,19 +969,17 @@
           "demo": 4,
           "pages_cfg": 1,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 69,
-          "deploy_job": 11
+          "deploy_pages": 7
         }
       },
       {
         "run": 43301807773,
         "head": "cd1e0ba",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 2,
         "exec_s": 82,
-        "wall_s": 84,
+        "wall_s": 85,
         "steps": {
           "checkout": 24,
           "node": 3,
@@ -980,19 +988,17 @@
           "demo": 4,
           "pages_cfg": 1,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 67,
-          "deploy_job": 10
+          "deploy_pages": 6
         }
       },
       {
         "run": 43297524311,
         "head": "e465d28",
-        "event": "push",
         "conc": "fail",
+        "runToBuildJob": 1,
         "queue_s": 2,
         "exec_s": 62,
-        "wall_s": 64,
+        "wall_s": 65,
         "steps": {
           "checkout": 24,
           "node": 3,
@@ -1000,20 +1006,17 @@
           "docs": 14,
           "demo": 0,
           "pages_cfg": 0,
-          "upload": 0,
-          "post_node": 0,
-          "build_job": 62,
-          "deploy_job": 0
+          "upload": 0
         }
       },
       {
         "run": 43249903823,
         "head": "15db224",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 3,
         "exec_s": 83,
-        "wall_s": 86,
+        "wall_s": 87,
         "steps": {
           "checkout": 24,
           "node": 7,
@@ -1022,19 +1025,17 @@
           "demo": 2,
           "pages_cfg": 1,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 65,
-          "deploy_job": 12
+          "deploy_pages": 8
         }
       },
       {
         "run": 43242792853,
         "head": "11644f9",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 4,
         "exec_s": 85,
-        "wall_s": 89,
+        "wall_s": 90,
         "steps": {
           "checkout": 24,
           "node": 2,
@@ -1043,19 +1044,17 @@
           "demo": 5,
           "pages_cfg": 0,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 66,
-          "deploy_job": 13
+          "deploy_pages": 9
         }
       },
       {
         "run": 43236057780,
         "head": "a5dfc36",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 2,
         "exec_s": 87,
-        "wall_s": 89,
+        "wall_s": 90,
         "steps": {
           "checkout": 25,
           "node": 3,
@@ -1064,19 +1063,17 @@
           "demo": 4,
           "pages_cfg": 0,
           "upload": 3,
-          "post_node": 0,
-          "build_job": 68,
-          "deploy_job": 13
+          "deploy_pages": 10
         }
       },
       {
         "run": 43228124764,
         "head": "3eed0d6",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 43,
         "queue_s": 3,
         "exec_s": 123,
-        "wall_s": 126,
+        "wall_s": 169,
         "steps": {
           "checkout": 45,
           "node": 5,
@@ -1085,19 +1082,17 @@
           "demo": 4,
           "pages_cfg": 1,
           "upload": 3,
-          "post_node": 0,
-          "build_job": 104,
-          "deploy_job": 12
+          "deploy_pages": 8
         }
       },
       {
         "run": 43228046118,
         "head": "6ed8658",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 2,
         "exec_s": 68,
-        "wall_s": 70,
+        "wall_s": 71,
         "steps": {
           "checkout": 20,
           "node": 3,
@@ -1106,19 +1101,17 @@
           "demo": 4,
           "pages_cfg": 0,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 53,
-          "deploy_job": 9
+          "deploy_pages": 6
         }
       },
       {
         "run": 43225202834,
         "head": "313a385",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 3,
         "exec_s": 79,
-        "wall_s": 82,
+        "wall_s": 83,
         "steps": {
           "checkout": 27,
           "node": 3,
@@ -1127,19 +1120,17 @@
           "demo": 3,
           "pages_cfg": 1,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 64,
-          "deploy_job": 8
+          "deploy_pages": 6
         }
       },
       {
         "run": 43206235849,
         "head": "203826e",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 27,
         "queue_s": 3,
         "exec_s": 127,
-        "wall_s": 130,
+        "wall_s": 157,
         "steps": {
           "checkout": 47,
           "node": 9,
@@ -1148,25 +1139,22 @@
           "demo": 4,
           "pages_cfg": 0,
           "upload": 3,
-          "post_node": 0,
-          "build_job": 103,
-          "deploy_job": 18
+          "deploy_pages": 14
         }
       },
       {
         "run": 43206161686,
         "head": "5b51c35",
-        "event": "push",
         "conc": "canc"
       },
       {
         "run": 43206080696,
         "head": "26bd463",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 2,
         "exec_s": 84,
-        "wall_s": 86,
+        "wall_s": 87,
         "steps": {
           "checkout": 21,
           "node": 3,
@@ -1175,16 +1163,14 @@
           "demo": 2,
           "pages_cfg": 1,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 60,
-          "deploy_job": 19
+          "deploy_pages": 15
         }
       },
       {
         "run": 43194788185,
         "head": "40b8a11",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 0,
         "queue_s": 3,
         "exec_s": 78,
         "wall_s": 81,
@@ -1196,19 +1182,17 @@
           "demo": 3,
           "pages_cfg": 0,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 61,
-          "deploy_job": 11
+          "deploy_pages": 7
         }
       },
       {
         "run": 43167568535,
         "head": "d4bf131",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 2,
         "exec_s": 90,
-        "wall_s": 92,
+        "wall_s": 93,
         "steps": {
           "checkout": 28,
           "node": 3,
@@ -1217,19 +1201,17 @@
           "demo": 3,
           "pages_cfg": 1,
           "upload": 2,
-          "post_node": 0,
-          "build_job": 74,
-          "deploy_job": 11
+          "deploy_pages": 7
         }
       },
       {
         "run": 43167070179,
         "head": "063cbe9",
-        "event": "push",
         "conc": "succ",
+        "runToBuildJob": 1,
         "queue_s": 3,
         "exec_s": 119,
-        "wall_s": 122,
+        "wall_s": 123,
         "steps": {
           "checkout": 49,
           "node": 8,
@@ -1238,39 +1220,21 @@
           "demo": 4,
           "pages_cfg": 1,
           "upload": 3,
-          "post_node": 0,
-          "build_job": 105,
-          "deploy_job": 9
-        }
-      },
-      {
-        "run": 43165397534,
-        "head": "912a57a",
-        "event": "push",
-        "conc": "succ",
-        "queue_s": 3,
-        "exec_s": 67,
-        "wall_s": 70,
-        "steps": {
-          "checkout": 22,
-          "node": 2,
-          "install": 11,
-          "docs": 10,
-          "demo": 4,
-          "pages_cfg": 1,
-          "upload": 2,
-          "post_node": 0,
-          "build_job": 55,
-          "deploy_job": 8
+          "deploy_pages": 7
         }
       }
     ]
   },
   "observations_pending": [
     {
-      "observed_at": "2026-11-13T03:40:00Z",
+      "observed_at": "2026-11-13T03:53:53Z",
       "source": "docs.yml Checkout step fetch-depth 0",
-      "note": "Checkout median 24 s p90 47 s across 18 successes; largest non-build step. Not in the artifact category; candidate for a later cycle only after repeated evidence and in-scope verification that the build needs full history."
+      "note": "Checkout median 24.5 s, p90 47 s across 18 successes (29 percent of median exec); largest non-build step. Full history is needed for correctness, not just convenience: docs/plugins/starlight-agent/resource.ts runs git log -1 -- <file> per resource for sourceCommittedAt, and a depth-1 clone would silently return HEAD's date for every file. Only a partial clone (blob:none) that keeps commit history could cut cost; unmeasured, and it does not fit the five rotation categories, so evaluate only with separate repeated timing evidence."
+    },
+    {
+      "observed_at": "2026-11-13T03:53:53Z",
+      "source": "docs.yml push paths vs dashboard build inputs",
+      "note": "dashboard/site/scripts/build.mjs embeds gh-aw-version from .github/workflows/cao.json; cao.json is not a docs.yml push path, so a policy-only commit does not refresh the synthetic demo until the next docs-triggering commit or the daily cron. Freshness observation only; adding the path would add rebuilds, so do not treat it as a timing suggestion without its own evaluation."
     }
   ]
 }
