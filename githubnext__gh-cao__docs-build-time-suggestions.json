@@ -1,35 +1,7 @@
 {
- "source_sha": "f82ecc5560fb0c71dca58f5fb22d252f74381950",
- "next_category": "Astro documentation generation",
+ "source_sha": "f0bb5f47d6d7298d278c5cd96e0e47fa9f500b0c",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T19:36:19Z",
-   "worker_run_id": "43290658107",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; within 14 days; no docs.yml run since 15:38Z; workflow shape unchanged). Excluded: 1 cancelled superseded pending run 43206161686 (no jobs). Comparable n=19 successes (18 push + 1 schedule 43161224542; identical 11-step build and 3-step deploy shapes; 5-run minimum met). Medians (p90), metadata only: execution build-start-to-deploy-end 85 s (120 s); created-to-deploy wall 88 s (123 s); build job 68 s (103 s); deploy job 11 s (14 s); build queue 3 s; deploy queue 5 s; handoff 0 s (1 s). Astro step 'Build documentation' (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 14 s, p90 15 s, range 8-15 s = 16.5% of median execution; 15% gate = 12.75 s needs about 91% of the step removed, which would drop the published docs build and validation. PUBLIC_PAGES_BUILD_COMMIT=github.sha keeps output commit-specific; output caching unmeasured and not shown safe. Build job log read returned HTTP 403 difc_forbidden (one attempt this run, not retried): Astro-internal split and cache hit/miss unverified from logs. Cache metadata: active node-cache key e62f... (278.9 MB, created 06:18Z, main); Post Set up Node.js 0-1 s in 19/19, consistent with restore hits. Carry-forward lead, not evaluated under this docs.yml-only scope: Checkout fetch-depth 0 median 24 s, p90 45 s, largest build step; a shallow or partial alternative needs history-correctness evidence first. Prior issues 20380 (closed 16:26Z) and 20131 (closed 13:13Z) not repeated. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T19:53:14Z",
    "worker_run_id": 43294026575,
@@ -841,10 +813,39 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43228046118 to 43373049149; created 2026-11-12T13:31Z to 2026-11-13T05:35Z; all within 14 days; in-progress 43374719202 excluded; source HEAD f82ecc5). Disclosed: 1 failed push 43297524311 (e465d28, build failed at docs step after 14 s, fixed by cd1e0ba, logs HTTP 403) excluded. Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Medians (p90), job and step metadata: exec 85 s (106); wall 90 s; install 17 s (23) = 20 percent of exec, 15 percent gate 12.75 s; Set up Node.js 3 s (7); Post Set up Node.js 0 s in 19/19 = exact-key hit (setup-node saves only on miss). Cache: active key node-cache-Linux-x64-npm-e62f6006 recomputed from HEAD root lock (match); 278.9 MB; created 06:18Z 11-12, lock unchanged since; last accessed 05:51:48Z. docs.yml last changed 063cbe9 (commits API), so the local f82ecc5 new-file display is a shallow-clone artifact. Install shape: root npm ci 765 entries (108 devDependency-only; astro is a runtime dependency); dashboard --omit=dev 36 of 327 entries, so its share is small. Levers: node_modules cache for both locks best case about 13 s before unmeasured restore, save and miss overhead, plus native-binary staleness risk; same lever as #19689 (closed NOT_PLANNED 2026-11-07 at install 23 s), not repeated since install median fell to 17 s; root --omit=dev skips devDependencies only, bounded under 5 s, unmeasured; --no-audit/--no-fund and dashboard-install parallelism are seconds. None reaches 12.75 s with repeated evidence. Carry-forward outside rotation: Checkout fetch-depth 0 median 24 s (p90 41). No suggestion; no issue created; no open issue with this worker label. next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T06:26:57Z",
+   "worker_run_id": 43378217584,
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311,
+    43249903823,
+    43242792853,
+    43236057780
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43378369544 back to 43236057780; created 2026-11-12T14:19:54Z to 2026-11-13T06:23:31Z; all within 14 days; checkout HEAD f0bb5f4 = source_sha; newest run 94c68e8 is one docs-input commit ahead, comparable). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba; logs 403). Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Step 'Build documentation' (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test; split not visible, logs 403 difc_forbidden on one probe this run) median 14 s (p90 15; range 9-15) = 16.5% of median exec 85 s (p90 98). 15% gate 12.75 s needs about 91% of the step removed, which would drop the published docs build and validation; 60 s unreachable. Per-file git provenance is not a lever (sandbox micro-bench: 60 git log -1 calls 0.11 s; PUBLIC_PAGES_BUILD_COMMIT set so rev-parse skipped). Medians (p90), metadata only: exec 85 s (98); wall 89 s (135, concurrency tail); build job 68 s (84); deploy job 10 s (13); build queue 3 s; deploy queue 5 s; handoff 0 s (1). Checkout median 24 s (p90 31) carry-forward, not in rotation. No suggestion; no issue created; no open issue with this worker label (open 20440 and 20719 are gh-aw failure reports). next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T05:54:45Z",
+  "verified_at": "2026-11-13T06:26:57Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 src/cache-restore.ts",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<glob.hashFiles(root package-lock.json)>",
   "hash_rule": "sha256 over the raw digest bytes of each file (re-verified: sha256(raw digest of HEAD package-lock.json) = e62f60064d02...)",
@@ -852,13 +853,55 @@
   "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278.9 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T05:51:48Z, refs/heads/main (listing by key prefix, one entry)",
   "lock_history": "root package-lock.json unchanged since 063cbe9 (06:17Z 11-12); dashboard/site lock unchanged in window",
   "install_shape": "root npm ci: 765 lock entries (657 non-dev, 108 dev-only; 4 with install scripts); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries",
-  "logs": "HTTP 403 difc_forbidden; hit inferred from Post Set up Node.js 0 s in 19/19 successes and last-accessed metadata"
+  "logs": "HTTP 403 difc_forbidden (probed again this run, not retried); hit inferred from Post Set up Node.js 0 s in 19/19 successes"
  },
  "run_samples": {
-  "window_created": "2026-11-12T13:31:05Z..2026-11-13T05:35:46Z",
-  "evaluated_at": "2026-11-13T05:54:45Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed); queue_s=build job created to started; concwait_s=run created to build job created; exec_s=build start to deploy end; wall_s=run created to deploy end. Completed-run timings reused from prior evaluation; only 43373049149 newly fetched (jobs API).",
+  "window_created": "2026-11-12T14:19:54Z..2026-11-13T06:23:31Z",
+  "evaluated_at": "2026-11-13T06:26:57Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed); queue_s=build job created to started; concwait_s=run created to build job created; exec_s=build start to deploy end; wall_s=run created to deploy end. Job timings refetched this run; overlapping step rows verified identical to prior rows.",
   "rows": [
+   {
+    "run": 43378369544,
+    "event": "push",
+    "head": "94c68e8",
+    "conc": "succ",
+    "concwait_s": 1,
+    "queue_s": 2,
+    "exec_s": 75,
+    "wall_s": 78,
+    "steps": {
+     "checkout": 20,
+     "node": 5,
+     "install": 15,
+     "docs": 9,
+     "demo": 3,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "deploy_pages": 8
+    }
+   },
+   {
+    "run": 43374719202,
+    "event": "push",
+    "head": "f0bb5f4",
+    "conc": "succ",
+    "concwait_s": 1,
+    "queue_s": 2,
+    "exec_s": 81,
+    "wall_s": 84,
+    "steps": {
+     "checkout": 24,
+     "node": 2,
+     "install": 17,
+     "docs": 14,
+     "demo": 4,
+     "pages_cfg": 0,
+     "upload": 2,
+     "post_node": 0,
+     "deploy_pages": 6
+    }
+   },
    {
     "run": 43373049149,
     "event": "push",
@@ -1220,48 +1263,6 @@
      "upload": 3,
      "post_node": 0,
      "deploy_pages": 10
-    }
-   },
-   {
-    "run": 43228124764,
-    "event": "push",
-    "head": "3eed0d6",
-    "conc": "succ",
-    "concwait_s": 43,
-    "queue_s": 3,
-    "exec_s": 123,
-    "wall_s": 169,
-    "steps": {
-     "checkout": 45,
-     "node": 5,
-     "install": 25,
-     "docs": 15,
-     "demo": 4,
-     "pages_cfg": 1,
-     "upload": 3,
-     "post_node": 0,
-     "deploy_pages": 8
-    }
-   },
-   {
-    "run": 43228046118,
-    "event": "push",
-    "head": "6ed8658",
-    "conc": "succ",
-    "concwait_s": 1,
-    "queue_s": 2,
-    "exec_s": 68,
-    "wall_s": 71,
-    "steps": {
-     "checkout": 20,
-     "node": 3,
-     "install": 12,
-     "docs": 8,
-     "demo": 4,
-     "pages_cfg": 0,
-     "upload": 2,
-     "post_node": 0,
-     "deploy_pages": 6
     }
    }
   ]
