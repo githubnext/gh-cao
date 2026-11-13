@@ -9,6 +9,7 @@ import { usesRemoteDataBackend } from "./backend-mode.js";
 import { createDebug, diagnosticErrorName } from "./debug.js";
 import { updateRateLimitNotification } from "./rate-limit-notification.js";
 import { publishNotification } from "./notification-service.js";
+import { localIngestionProgress } from "./dashboard-data-status.js";
 export { disableRemoteDashboardPwa, usesRemoteDataBackend } from "./backend-mode.js";
 
 const debugRemoteBackend = createDebug("remote-data-backend");
@@ -353,6 +354,8 @@ function startRemoteRevisionStream() {
   let attempt = 0;
   /** @type {ReturnType<typeof publishNotification> | undefined} */
   let connectionNotice;
+  /** @type {WebSocket | undefined} */
+  let socket;
 
   /**
    * @param {(subscriber: { onRevision: (revision: number, healthRevision: number | null) => void, onError?: (error: Error) => void }) => void} callback
@@ -377,6 +380,21 @@ function startRemoteRevisionStream() {
   const emit = (data) => {
     try {
       const payload = JSON.parse(data);
+      if (payload?.type === "ingestion-progress") {
+        const progress = payload.progress;
+        if (progress === null) {
+          localIngestionProgress.set(null);
+        } else if (typeof progress?.passId === "string" && typeof progress.repository === "string"
+            && ["discovering", "receiving", "ingesting", "waiting", "paused", "failed"].includes(progress.phase)
+            && Number.isSafeInteger(progress.receivedRuns) && progress.receivedRuns >= 0
+            && typeof progress.startedAt === "string" && Number.isFinite(Date.parse(progress.startedAt))
+            && typeof progress.updatedAt === "string" && Number.isFinite(Date.parse(progress.updatedAt))) {
+          localIngestionProgress.set(progress);
+        } else {
+          throw new Error("Invalid local ingestion progress update.");
+        }
+        return;
+      }
       if (Number.isSafeInteger(payload?.revision)) {
         const healthRevision = Number.isSafeInteger(payload.healthRevision)
           ? payload.healthRevision
@@ -397,6 +415,7 @@ function startRemoteRevisionStream() {
         }
       }
     } catch (error) {
+      localIngestionProgress.set(null);
       const failure = error instanceof Error ? error : new Error(String(error));
       notifySubscribers((subscriber) => subscriber.onError?.(failure), "error");
     }
@@ -404,10 +423,53 @@ function startRemoteRevisionStream() {
 
   const connect = async () => {
     attempt += 1;
+    let localSocket = false;
     debugRemoteBackend({ event: "stream-connecting", attempt, subscriberCount: remoteRevisionSubscribers.size });
     try {
       const oauth = usesGitHubAuthentication();
       const token = oauth ? "" : accessToken();
+      localSocket = !oauth && typeof WebSocket === "function"
+        && document.querySelector('meta[name="dashboard-live-transport"]')?.getAttribute("content") === "websocket";
+      if (localSocket) {
+        const url = new URL(apiUrl("/api/v1/events/ws"));
+        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+        const capability = btoa(token).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+        await new Promise((resolve, reject) => {
+          socket = new WebSocket(url, ["cao-dashboard", ...(token ? [`cao-bearer.${capability}`] : [])]);
+          const current = socket;
+          const abort = () => {
+            clearTimeout(timeout);
+            current.close();
+            resolve(undefined);
+          };
+          const timeout = setTimeout(() => {
+            reject(new Error("Dashboard WebSocket connection timed out."));
+            current.close();
+          }, 10_000);
+          current.addEventListener("open", () => {
+            clearTimeout(timeout);
+            connectionNotice?.dismiss();
+            connectionNotice = undefined;
+            attempt = 0;
+            debugRemoteBackend({ event: "stream-connected", transport: "websocket" });
+          });
+          current.addEventListener("message", (event) => {
+            if (!stopped && current === socket && typeof event.data === "string") emit(event.data);
+          });
+          current.addEventListener("error", () => {
+            clearTimeout(timeout);
+            reject(new Error("Dashboard WebSocket is unavailable."));
+            current.close();
+          });
+          current.addEventListener("close", () => {
+            clearTimeout(timeout);
+            controller.signal.removeEventListener("abort", abort);
+            reject(new Error("Dashboard WebSocket disconnected."));
+          });
+          controller.signal.addEventListener("abort", abort, { once: true });
+        });
+        return;
+      }
       const response = await fetch(apiUrl("/api/v1/events"), {
         cache: "no-store",
         credentials: oauth ? "same-origin" : "omit",
@@ -447,15 +509,19 @@ function startRemoteRevisionStream() {
       throw new Error("Dashboard data server event stream disconnected.");
     } catch (error) {
       if (stopped || controller.signal.aborted) return;
+      localIngestionProgress.set(null);
       const errorName = diagnosticErrorName(error);
-      debugRemoteBackend({ event: "stream-reconnecting", errorName, attempt, retryDelayMs: 1000 });
+      const retryDelayMs = localSocket
+        ? Math.min(30_000, 1000 * 2 ** Math.max(0, Math.min(attempt - 1, 5)))
+        : 1000;
+      debugRemoteBackend({ event: "stream-reconnecting", errorName, attempt, retryDelayMs });
       // A lost event stream does not invalidate the last successful query.
       connectionNotice ??= publishNotification({
         message: "Live dashboard updates are paused. Reconnecting automatically; existing data remains visible. If this continues, check your connection or sign in again.",
         tone: "warning",
         duration: 0
       });
-      retry = setTimeout(() => void connect(), 1000);
+      retry = setTimeout(() => void connect(), retryDelayMs);
     }
   };
   void connect();
@@ -463,6 +529,8 @@ function startRemoteRevisionStream() {
     stopped = true;
     if (retry !== undefined) clearTimeout(retry);
     controller.abort();
+    socket?.close();
+    localIngestionProgress.set(null);
     connectionNotice?.dismiss();
   };
 }

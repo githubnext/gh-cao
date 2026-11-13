@@ -9,15 +9,115 @@ import {
   usesRemoteDataBackend,
 } from "../../src/remote-data-backend.js";
 import { authoritativeDashboard } from "../authoritative-dashboard.js";
+import { localIngestionProgress } from "../../src/dashboard-data-status.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
   document.head.replaceChildren();
   localStorage.clear();
   document.cookie = "cao_csrf=; Max-Age=0; Path=/";
+  localIngestionProgress.set(null);
 });
 
 describe("remote dashboard data backend", () => {
+  it("shares local WebSocket progress without issuing queries and cleans up on unsubscribe", () => {
+    const meta = document.createElement("meta");
+    meta.name = "dashboard-live-transport";
+    meta.content = "websocket";
+    document.head.append(meta);
+    localStorage.setItem("cao-dashboard-access-token", "private-capability");
+    const socket = Object.assign(new EventTarget(), { close: vi.fn() });
+    const Socket = vi.fn(function (/** @type {URL} */ url, /** @type {string[]} */ protocols) {
+      expect(url.pathname).toBe("/api/v1/events/ws");
+      expect(url.href).not.toContain("private-capability");
+      expect(protocols).toEqual(["cao-dashboard", `cao-bearer.${btoa("private-capability").replace(/=+$/, "")}`]);
+      return socket;
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("WebSocket", Socket);
+    vi.stubGlobal("fetch", fetchMock);
+    const revision = vi.fn();
+    const stop = subscribeRemoteRevision(revision);
+    const stopSecond = subscribeRemoteRevision(vi.fn());
+    try {
+      expect(Socket).toHaveBeenCalledOnce();
+      socket.dispatchEvent(new Event("open"));
+      const progress = {
+        passId: "pass-1", repository: "octo/api", phase: "receiving", receivedRuns: 7,
+        startedAt: "2026-11-13T18:00:00Z", updatedAt: "2026-11-13T18:00:01Z"
+      };
+      socket.dispatchEvent(new MessageEvent("message", { data: JSON.stringify({ type: "ingestion-progress", progress }) }));
+      expect(localIngestionProgress.get()).toEqual(progress);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(revision).not.toHaveBeenCalled();
+      stop();
+      expect(socket.close).not.toHaveBeenCalled();
+      stopSecond();
+      expect(socket.close).toHaveBeenCalled();
+      expect(localIngestionProgress.get()).toBeNull();
+      socket.dispatchEvent(new MessageEvent("message", { data: JSON.stringify({ type: "ingestion-progress", progress }) }));
+      expect(localIngestionProgress.get()).toBeNull();
+    } finally { stop(); stopSecond(); }
+  });
+
+  it("never attempts WebSockets for hosted OAuth even with a local transport marker", async () => {
+    for (const [name, content] of [["cao-auth-mode", "github"], ["dashboard-live-transport", "websocket"]]) {
+      const meta = document.createElement("meta");
+      meta.name = name;
+      meta.content = content;
+      document.head.append(meta);
+    }
+    const Socket = vi.fn();
+    vi.stubGlobal("WebSocket", Socket);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(new ReadableStream(), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const stop = subscribeRemoteRevision(vi.fn());
+    try {
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+      expect(Socket).not.toHaveBeenCalled();
+      expect(fetchMock.mock.calls[0][0]).toContain("/api/v1/events");
+      expect(fetchMock.mock.calls[0][1].credentials).toBe("same-origin");
+    } finally { stop(); }
+  });
+
+  it("clears lost local progress, reconnects once and stops retrying after unsubscribe", async () => {
+    vi.useFakeTimers();
+    const meta = document.createElement("meta");
+    meta.name = "dashboard-live-transport";
+    meta.content = "websocket";
+    document.head.append(meta);
+    /** @type {Array<EventTarget & { close: ReturnType<typeof vi.fn> }>} */
+    const sockets = [];
+    vi.stubGlobal("WebSocket", vi.fn(function () {
+      const socket = Object.assign(new EventTarget(), { close: vi.fn() });
+      sockets.push(socket);
+      return socket;
+    }));
+    vi.stubGlobal("fetch", vi.fn());
+    const stop = subscribeRemoteRevision(vi.fn());
+    try {
+      const progress = {
+        passId: "pass-1", repository: "octo/api", phase: "receiving", receivedRuns: 7,
+        startedAt: "2026-11-13T18:00:00Z", updatedAt: "2026-11-13T18:00:01Z"
+      };
+      sockets[0].dispatchEvent(new Event("open"));
+      sockets[0].dispatchEvent(new MessageEvent("message", { data: JSON.stringify({ type: "ingestion-progress", progress }) }));
+      expect(localIngestionProgress.get()).toEqual(progress);
+      sockets[0].dispatchEvent(new Event("close"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(localIngestionProgress.get()).toBeNull();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(sockets).toHaveLength(2);
+      sockets[0].dispatchEvent(new MessageEvent("message", { data: JSON.stringify({ type: "ingestion-progress", progress }) }));
+      expect(localIngestionProgress.get()).toBeNull();
+      sockets[1].dispatchEvent(new Event("open"));
+      stop();
+      expect(sockets[1].close).toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(sockets).toHaveLength(2);
+    } finally { stop(); vi.useRealTimers(); }
+  });
+
   it("preserves a coded query limit and failing query ID", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
       error: 'Query "campaign-repository-coverage" needs more retained data.',

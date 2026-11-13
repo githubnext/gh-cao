@@ -49,6 +49,7 @@ type dashboardLogRequest struct {
 	CheckQuota                              func(context.Context, int) error
 	Limited                                 *bool
 	OnRuns                                  func(context.Context, []map[string]any) error
+	OnRunReceived                           func(context.Context, map[string]any) error
 }
 
 type dashboardLogsCollector func(context.Context, dashboardLogRequest) error
@@ -74,6 +75,24 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 	if err != nil {
 		return nil, err
 	}
+	progress := newDashboardProgress(cache, now)
+	if err := progress.publish("discovering", ""); err != nil {
+		return nil, err
+	}
+	defer func() {
+		phase := "waiting"
+		if state.Status == "paused" {
+			phase = "paused"
+		}
+		if err != nil {
+			phase = "failed"
+			if errors.Is(err, errDashboardQuota) {
+				phase = "paused"
+			}
+		}
+		err = errors.Join(err, progress.publish(phase, progress.value.Repository))
+	}()
+	options.progress = progress
 	if state.TargetHours != 0 && state.TargetHours != options.window.Hours()*float64(len(repositories)) {
 		state.Cursors = map[string]dashboardHistoryCursor{}
 		state.NextRepo = 0
@@ -130,6 +149,9 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 	repositoryIndex := state.NextRepo % len(repositories)
 	for _, repository := range repositories[repositoryIndex : repositoryIndex+1] {
 		state.Repository = repository
+		if err := options.progress.publish("discovering", repository); err != nil {
+			return nil, err
+		}
 		if err := writeDashboardIngestion(ctx, cache, *state); err != nil {
 			return nil, err
 		}
@@ -262,6 +284,26 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				before, after = max(before, id), min(after, id)
 				workflowCounts[nativeScalar(run["workflowDatabaseId"])]++
 			}
+			selectedRun := func(record map[string]any) (map[string]any, error) {
+				id := nativeScalar(record["run_id"])
+				rawIndex := slices.IndexFunc(richRuns, func(raw map[string]any) bool {
+					return nativeScalar(raw["databaseId"]) == id
+				})
+				if !strings.EqualFold(nativeText(record["repository"]), repository) || rawIndex < 0 {
+					return nil, errors.New("gh-aw streamed a run outside the selected observations")
+				}
+				raw := richRuns[rawIndex]
+				workflowIndex := slices.IndexFunc(workflows, func(workflow dashboardWorkflow) bool {
+					return strconv.FormatInt(workflow.ID, 10) == nativeScalar(raw["workflowDatabaseId"])
+				})
+				if workflowIndex < 0 || nativeText(record["workflow_path"]) != workflows[workflowIndex].Path {
+					return nil, errors.New("gh-aw streamed a mismatched workflow identity")
+				}
+				if nativeScalar(record["run_attempt"]) != nativeScalar(raw["attempt"]) {
+					return nil, nil
+				}
+				return raw, nil
+			}
 			onRuns := func(streamCtx context.Context, records []map[string]any) error {
 				source := dashboardRepositoryEvidence{
 					Repository: repository, Workflows: workflows, Directory: directory,
@@ -269,21 +311,12 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				}
 				for _, record := range records {
 					id := nativeScalar(record["run_id"])
-					rawIndex := slices.IndexFunc(richRuns, func(raw map[string]any) bool {
-						return nativeScalar(raw["databaseId"]) == id
-					})
-					if !strings.EqualFold(nativeText(record["repository"]), repository) || rawIndex < 0 {
-						return errors.New("gh-aw streamed a run outside the selected observations")
-					}
-					raw := richRuns[rawIndex]
-					workflowIndex := slices.IndexFunc(workflows, func(workflow dashboardWorkflow) bool {
-						return strconv.FormatInt(workflow.ID, 10) == nativeScalar(raw["workflowDatabaseId"])
-					})
-					if workflowIndex < 0 || nativeText(record["workflow_path"]) != workflows[workflowIndex].Path {
-						return errors.New("gh-aw streamed a mismatched workflow identity")
+					raw, err := selectedRun(record)
+					if err != nil {
+						return err
 					}
 					// Fresh Actions attempts remain authoritative, including during reruns.
-					if nativeScalar(record["run_attempt"]) != nativeScalar(raw["attempt"]) {
+					if raw == nil {
 						continue
 					}
 					streamed[id], source.Enriched[id] = record, record
@@ -292,7 +325,16 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				if len(source.Runs) == 0 {
 					return nil
 				}
-				return publishDashboardEvidence(streamCtx, repositories, cache, options, []dashboardRepositoryEvidence{source}, *state, now)
+				if err := options.progress.publish("ingesting", repository); err != nil {
+					return err
+				}
+				if err := publishDashboardEvidence(streamCtx, repositories, cache, options, []dashboardRepositoryEvidence{source}, *state, now); err != nil {
+					return err
+				}
+				return options.progress.publish("receiving", repository)
+			}
+			if err := options.progress.publish("receiving", repository); err != nil {
+				return nil, err
 			}
 			err = logs(ctx, dashboardLogRequest{
 				Repository: repository, Directory: directory, Cache: shard,
@@ -302,6 +344,13 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				WorkflowCounts: workflowCounts, WorkflowPaths: workflowPaths, BeforeRunID: before + 1, AfterRunID: max(0, after-1),
 				MaxAPIUsed: budget.ceiling, CheckQuota: budget.check, Limited: &limited,
 				OnRuns: onRuns,
+				OnRunReceived: func(_ context.Context, record map[string]any) error {
+					raw, err := selectedRun(record)
+					if err != nil || raw == nil {
+						return err
+					}
+					return options.progress.receive(repository, record)
+				},
 			})
 			if err != nil {
 				if errors.Is(err, errDashboardQuota) {
@@ -342,6 +391,9 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		state.NextRepo = (repositoryIndex + 1) % len(repositories)
 	}
 	normalizationStart := time.Now()
+	if err := options.progress.publish("ingesting", state.Repository); err != nil {
+		return nil, err
+	}
 	batch, err := projectDashboardEvidence(evidence, cutoff, now)
 	if err != nil {
 		return nil, err

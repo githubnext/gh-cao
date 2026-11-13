@@ -9,3 +9,9 @@ export const dashboardDataStatus = state(
     snapshot: null
   })
 );
+
+/**
+ * Transient local acquisition telemetry, not canonical query results.
+ * @typedef {{ passId: string, repository: string, phase: 'discovering' | 'receiving' | 'ingesting' | 'waiting' | 'paused' | 'failed', receivedRuns: number, startedAt: string, updatedAt: string }} LocalIngestionProgress
+ */
+export const localIngestionProgress = state(/** @type {LocalIngestionProgress | null} */ (null));

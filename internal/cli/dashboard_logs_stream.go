@@ -14,8 +14,32 @@ import (
 var errDashboardLogsIncomplete = errors.New("gh-aw JSONL stream ended without a final summary and complete event")
 
 func streamDashboardLogs(ctx context.Context, request dashboardLogRequest, args []string, command dashboardLogCommand) error {
+	publishCtx := ctx
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	publish := request.OnRuns
+	batches := make(chan []map[string]any, 2)
+	published := make(chan error, 1)
+	go func() {
+		for batch := range batches {
+			if publish != nil {
+				if err := publish(publishCtx, batch); err != nil {
+					cancel()
+					published <- err
+					return
+				}
+			}
+		}
+		published <- nil
+	}()
+	request.OnRuns = func(ctx context.Context, batch []map[string]any) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case batches <- batch:
+			return nil
+		}
+	}
 	reader, writer := io.Pipe()
 	defer func() { _ = reader.Close() }()
 	done := make(chan error, 1)
@@ -29,7 +53,12 @@ func streamDashboardLogs(ctx context.Context, request dashboardLogRequest, args 
 		cancel()
 		_ = reader.CloseWithError(parseErr)
 	}
+	close(batches)
+	publishErr := <-published
 	commandErr := <-done
+	if publishErr != nil {
+		return publishErr
+	}
 	if (errors.Is(parseErr, context.Canceled) || errors.Is(parseErr, context.DeadlineExceeded)) &&
 		commandErr != nil && !errors.Is(commandErr, context.Canceled) && !errors.Is(commandErr, context.DeadlineExceeded) {
 		return commandErr
@@ -43,8 +72,15 @@ func streamDashboardLogs(ctx context.Context, request dashboardLogRequest, args 
 	if parseErr != nil {
 		return parseErr
 	}
-	if request.OnRuns != nil {
-		return request.OnRuns(ctx, summary)
+	for _, record := range summary {
+		if request.OnRunReceived != nil {
+			if err := request.OnRunReceived(ctx, record); err != nil {
+				return err
+			}
+		}
+	}
+	if publish != nil {
+		return publish(ctx, summary)
 	}
 	return ctx.Err()
 }
@@ -160,6 +196,11 @@ func readDashboardLogStream(ctx context.Context, input io.Reader, request dashbo
 				return nil, errors.New("gh-aw stream contains an invalid or out-of-budget run event")
 			}
 			dashboardStreamRunIdentity(event.Run)
+			if request.OnRunReceived != nil {
+				if err := request.OnRunReceived(ctx, event.Run); err != nil {
+					return nil, err
+				}
+			}
 			pending = append(pending, event.Run)
 			if !published || len(pending) == 16 {
 				if err := flush(); err != nil {

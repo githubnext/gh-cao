@@ -60,7 +60,7 @@ func canvasAdapterPath(path string) bool {
 
 func canvasDataAPI(path string) bool {
 	switch path {
-	case "/api/v1/query", "/api/v1/refresh", "/api/v1/diagnostics", "/api/v1/events":
+	case "/api/v1/query", "/api/v1/refresh", "/api/v1/diagnostics", "/api/v1/events", "/api/v1/events/ws":
 		return true
 	}
 	return strings.HasPrefix(path, "/api/v1/memory/") || strings.HasPrefix(path, "/api/v1/github/")
