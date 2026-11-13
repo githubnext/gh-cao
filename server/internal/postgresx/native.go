@@ -161,6 +161,7 @@ type Writer struct {
 	capacityRanked          bool
 	accounting              map[string]*collectionAccounting
 	bundleEpoch             *time.Time
+	verifiedSnapshot        *string
 }
 
 func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
@@ -219,10 +220,10 @@ func (s *Store) beginCanonicalWrite(ctx context.Context) (*Writer, error) {
 		VALUES ($1,0,0,'','','epoch',$2) ON CONFLICT (namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
 		return fail(err)
 	}
-	if err := tx.QueryRow(ctx, `SELECT revision,data_revision,workflow_subject_revision,workflow_subject_digest,bundle_epoch
+	if err := tx.QueryRow(ctx, `SELECT revision,data_revision,workflow_subject_revision,workflow_subject_digest,bundle_epoch,verified_snapshot
 		FROM cao_state WHERE namespace=$1 FOR UPDATE`, s.namespace).Scan(
 		&writer.revision, &writer.PreviousDataRevision, &writer.workflowSubjectRevision, &writer.workflowSubjectDigest,
-		&writer.bundleEpoch); err != nil {
+		&writer.bundleEpoch, &writer.verifiedSnapshot); err != nil {
 		return fail(err)
 	}
 	if _, err := tx.Exec(ctx, "SET CONSTRAINTS ALL DEFERRED"); err != nil {
@@ -478,6 +479,12 @@ func (w *Writer) Quality(ctx context.Context, source string, metadata model.Meta
 }
 
 func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error) {
+	return w.PublishVerifiedSnapshot(ctx, dataRevision, "")
+}
+
+// PublishVerifiedSnapshot binds verified ingestion input identity to the same
+// atomic publication as its canonical rows. Other full writers clear the receipt.
+func (w *Writer) PublishVerifiedSnapshot(ctx context.Context, dataRevision, snapshot string) (State, error) {
 	if dataRevision == "" {
 		return State{}, errors.New("data revision is required")
 	}
@@ -714,9 +721,9 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		workflowRevision++
 	}
 	if err := w.tx.QueryRow(ctx, `UPDATE cao_state SET revision=revision+1,data_revision=$1,evaluated_at=$2,schema_version=$3,
-		workflow_subject_revision=$4,workflow_subject_digest=$5,bundle_epoch=$7
+		workflow_subject_revision=$4,workflow_subject_digest=$5,bundle_epoch=$7,verified_snapshot=nullif($8,'')
 		WHERE namespace=$6 RETURNING revision`, dataRevision, w.evaluatedAt, model.SchemaVersion,
-		workflowRevision, workflowDigest, w.store.namespace, w.ingestedAt).Scan(&state.Revision); err != nil {
+		workflowRevision, workflowDigest, w.store.namespace, w.ingestedAt, snapshot).Scan(&state.Revision); err != nil {
 		return State{}, err
 	}
 	state.WorkflowSubjectRevision = workflowRevision
