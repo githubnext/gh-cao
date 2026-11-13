@@ -162,6 +162,7 @@ func (b *bridge) handle(ctx context.Context, req request) decision {
 		return b.unknown(req.ID)
 	case githubquota.StatusParked:
 		return decision{ID: req.ID, Reason: "parked", RetryAt: room.parkedUntil.UTC().Format(time.RFC3339)}
+	case githubquota.StatusAvailable, githubquota.StatusExhausted:
 	}
 	available, retry := room.available, room.resetAt
 	capacity, reason := admissionOutcome(req.Operation, concurrency, active, req.Running, available)
