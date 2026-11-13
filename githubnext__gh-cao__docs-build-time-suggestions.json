@@ -1,34 +1,7 @@
 {
  "source_sha": "f0c3fc4aff1ab9e7ee0d7020df3c19c545784e26",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T23:20:00Z",
-   "worker_run_id": "43326962788",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43301807773,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba = HEAD = source_sha; no new completed runs since the 22:56Z evaluation). Excluded and disclosed: 1 failed 43297524311 (e465d28, fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542). 'Build documentation' (npm run docs:build) from step metadata: median 14 s (p90 15 s; range 8-15 s; push-only median 14 s) = 16.6% of median build-start-to-deploy-end 84.5 s (p90 120 s) and 21% of build job median 67 s. 15% gate = 12.7 s, reachable only by removing nearly the whole step, which is required for publication, so no qualifying change. Internal Astro split not visible: job logs re-verified 403 difc_forbidden at 23:17Z. Cache list has no Astro-specific key (only setup-node npm keys); Astro-internal caching is unmeasured and cannot be shown to save 12.7 s. Only docs.yml-level option found: overlapping the dashboard step (median 4 s) saves at most 4 s. No suggestion; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T23:34:22Z",
    "worker_run_id": "43329323016",
@@ -852,6 +825,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha). Disclosed and excluded from timing: 1 failed 43297524311 (Build documentation failed at 14 s; deploy skipped). Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Medians (p90): exec 85 s (99.6); build job 70 s (85.4); deploy job 10 s (11); checkout 24 s (33); Set up Node.js 3 s (7); Install dependencies 17 s (21.2; range 12-23) = 20% of exec median; 15% gate 12.8 s and 60 s gate both require install to drop to <=4 s or lose >=12.8 s. Cache verified from actions/caches metadata: node-cache-Linux-x64-npm-e62f6006 (exact key, no restore-keys) created 2026-11-12T06:18:07Z, before the window; root package-lock last changed at 063cbe9 (2026-11-12T06:17Z), unchanged through HEAD (path commit listing); dashboard lock and docs.yml unchanged in window; Post Set up Node.js 0 s in 19/19 (no save upload) = exact-key hits in all 19; install variance 12-23 s occurs on warm hits, not misses. Logs 403 DIFC (re-probed 09:20Z). Install shape: root 765 entries, 657 prod-reachable, 4 with install scripts; dashboard 327 entries, 36 prod-only (omit=dev). Candidates rejected, none meeting 12.8 s: node_modules caching (restore must be <=4 s to meet gate; current 279 MB npm cache restores in 3 s median; node_modules restore unmeasured); root --omit=dev (108 of 765 entries dev-only; est <=2.4 s); parallel root and dashboard npm ci (saving bounded by dashboard share, <=8.5 s by construction, dashboard is 36 prod entries); --no-audit/--no-fund (network audit only; est few s, unmeasured); root --ignore-scripts (4 install-script packages; Linux postinstall prepare-terminal.mjs is a darwin-only no-op; cost unmeasured, not a 12.8 s lever). No open worker issue; no suggestion; no issue created. next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T09:35:00Z",
+   "worker_run_id": "43401837430",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none in progress or queued; source f0c3fc4 = HEAD = source_sha; window identical to the 09:23Z evaluation). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s, deploy skipped; fixed by cd1e0ba; correctness failure, not timing). Comparable n=18 push successes plus 1 schedule 43371878284 (19 successes); 5-run gate met. Category step 'Build documentation' (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): push-only median 14 s, p90 15 s, range 9-15 s = 16.5% of median build-start-to-deploy-end 85 s (p90 99.6 s). 15% gate = 12.75 s, which needs about 91% of the step removed; only full removal clears it, and generated docs are required for publication, so rejected. Astro sub-steps not separable: job log reads re-verified HTTP 403 DIFC at 09:34Z. docs.yml has no Astro-specific cache (setup-node npm cache only); Astro-internal caching unmeasured and cannot show >=12.75 s. Sub-step parallelism (validate or node --test alongside astro build) is bounded by a few seconds, below the gate. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -867,7 +869,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-12T20:09:54Z..2026-11-13T07:51:43Z",
-  "evaluated_at": "2026-11-13T09:23:00Z",
+  "evaluated_at": "2026-11-13T09:35:00Z",
   "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed; 18 push, 1 schedule 43371878284). exec_s=build start to deploy end; wall_s=run created to run updated; step values from Actions jobs API (logs 403 DIFC). Jobs API omits job createdAt in this window, so queue and handoff are not recomputed.",
   "rows": [
    {
