@@ -129,8 +129,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-    env:
-      POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_browser_test?sslmode=disable
     defaults:
       run:
         working-directory: dashboard/site
@@ -169,6 +167,8 @@ jobs:
       - name: Install PostgreSQL client
         run: sudo apt-get install -y postgresql-client
       - name: End-to-end tests
+        env:
+          POSTGRES_URL: postgresql://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_browser_test?sslmode=disable
         run: npm run test:e2e -- --shard=${{ matrix.shard }}
       - name: Retain browser test reports and failures
         if: always()

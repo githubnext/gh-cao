@@ -103,7 +103,9 @@ test("dashboard CI runs the campaign quality gates", () => {
   const browserJob = parse(source).jobs["playwright-integration"];
   assert.equal(browserJob.services.postgres.env.POSTGRES_DB, "cao_browser_test");
   assert.equal(browserJob.services.postgres.env.POSTGRES_HOST_AUTH_METHOD, "trust");
-  assert.match(browserJob.env.POSTGRES_URL, /127\.0\.0\.1:\$\{\{ job\.services\.postgres\.ports\['5432'\] \}\}\/cao_browser_test/);
+  assert.equal(browserJob.env?.POSTGRES_URL, undefined);
+  const browserTestStep = browserJob.steps.find(step => step.name === "End-to-end tests");
+  assert.match(browserTestStep.env.POSTGRES_URL, /127\.0\.0\.1:\$\{\{ job\.services\.postgres\.ports\['5432'\] \}\}\/cao_browser_test/);
   assert.ok(browserJob.steps.some(step => /apt-get install -y postgresql-client/.test(step.run)));
   assert.deepEqual(ingestionScale.needs, []);
   // The synthetic ingestion payload is slow, so the gate stays on main.
