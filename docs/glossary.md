@@ -222,6 +222,10 @@ The canonical gh-aw capability that persists files with unlimited retention in a
 
 One execution of a coordinator, worker, or standalone workflow. A coordinator run may produce many dispatches; each dispatch starts a separate worker run. A run records activity and evidence, but successful completion alone does not prove operational value. Use **run** rather than **session**: a run is the canonical execution entity, and canonical Domain, Tool, Audit, and Issue records link directly to it.
 
+## Run bundle
+
+An explicitly selected `run-bundles` publication of 1-16 uniquely identified Runs, carried in a fixed `run-bundles.json` sidecar. After an initial authoritative snapshot, a bundle updates only accepted Runs, their source-owned children, and supplied structural parents; it never replaces the full canonical snapshot. Each Run-owned collection declares `complete`, `partial`, or `unavailable` coverage, and attempt, observation, and shared-parent fences reject stale or conflicting evidence. Final reconciliation remains a full verified snapshot. See [Dashboard data](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md) §5.2 and [CAO CLI](cao-cli.md).
+
 ## Run-linked detail
 
 The Domain, Tool, Skill, Friction, Audit, Issue, experiment assignment, grader observation, and eval observation records attached to a Run. Browser IndexedDB and PostgreSQL expire run-linked detail after a bounded 7-day window by default while retaining Run summaries for 30 days and compact Operational Value records for at least 365 days; the Go server's canonical Postgres schema expires the same run-linked tables independently from run retention on its own configurable window. Rich current Value evidence and collection health remain independent of Run-detail expiry. Expiring run-linked detail MUST NOT remove its retained Run or the Run's structural parents. See `specs/dashboard-data.md`, `specs/value.md`, and [Activity](activity.md).
