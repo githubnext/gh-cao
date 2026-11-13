@@ -21,7 +21,10 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
-type existingQueryTracer struct{ starts, ends, copyStarts, copyEnds int }
+type existingQueryTracer struct {
+	starts, ends, copyStarts, copyEnds   int
+	batchStarts, batchQueries, batchEnds int
+}
 
 func (t *existingQueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, _ pgx.TraceQueryStartData) context.Context {
 	t.starts++
@@ -38,6 +41,19 @@ func (t *existingQueryTracer) TraceCopyFromStart(ctx context.Context, _ *pgx.Con
 
 func (t *existingQueryTracer) TraceCopyFromEnd(context.Context, *pgx.Conn, pgx.TraceCopyFromEndData) {
 	t.copyEnds++
+}
+
+func (t *existingQueryTracer) TraceBatchStart(ctx context.Context, _ *pgx.Conn, _ pgx.TraceBatchStartData) context.Context {
+	t.batchStarts++
+	return ctx
+}
+
+func (t *existingQueryTracer) TraceBatchQuery(context.Context, *pgx.Conn, pgx.TraceBatchQueryData) {
+	t.batchQueries++
+}
+
+func (t *existingQueryTracer) TraceBatchEnd(context.Context, *pgx.Conn, pgx.TraceBatchEndData) {
+	t.batchEnds++
 }
 
 func installPostgresTelemetry(t *testing.T) (*tracetest.InMemoryExporter, *sdkmetric.ManualReader) {
@@ -249,5 +265,88 @@ func TestPostgresOperationIsBounded(t *testing.T) {
 		if got := postgresOperation(statement); got != expected {
 			t.Errorf("postgresOperation(%q) = %q, want %q", statement, got, expected)
 		}
+	}
+}
+
+func TestPostgresBatchTelemetryCountsStatementsAndTimesBatch(t *testing.T) {
+	exporter, reader := installPostgresTelemetry(t)
+	existing := &existingQueryTracer{}
+	config, err := pgx.ParseConfig("postgres://localhost/test?sslmode=disable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.Tracer = existing
+	config, err = instrumentConfig(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batcher, ok := config.Tracer.(pgx.BatchTracer)
+	if !ok {
+		t.Fatal("batch instrumentation is missing")
+	}
+	failure := &pgconn.PgError{Code: "23505", Message: "private database detail"}
+	for _, batchError := range []error{nil, failure} {
+		batch := &pgx.Batch{}
+		batch.Queue("SELECT private FROM sensitive_table WHERE token=$1", "private-credential")
+		batch.Queue("DELETE FROM sensitive_table WHERE token=$1", "private-credential")
+		ctx := batcher.TraceBatchStart(t.Context(), nil, pgx.TraceBatchStartData{Batch: batch})
+		for i, queued := range batch.QueuedQueries {
+			queryError := batchError
+			if i == 0 {
+				queryError = nil
+			}
+			batcher.TraceBatchQuery(ctx, nil, pgx.TraceBatchQueryData{
+				SQL: queued.SQL, Args: queued.Arguments, Err: queryError,
+			})
+		}
+		batcher.TraceBatchEnd(ctx, nil, pgx.TraceBatchEndData{Err: batchError})
+	}
+	if existing.batchStarts != 2 || existing.batchQueries != 4 || existing.batchEnds != 2 {
+		t.Fatalf("existing batch tracer lost events: %+v", existing)
+	}
+	spans := exporter.GetSpans()
+	if len(spans) != 2 || spans[0].Status.Code != codes.Ok || spans[1].Status.Code != codes.Error {
+		t.Fatalf("batch spans = %+v", spans)
+	}
+	for _, span := range spans {
+		attrs := attribute.NewSet(span.Attributes...)
+		operation, _ := attrs.Value(attribute.Key("db.operation.name"))
+		if operation.AsString() != "BATCH" {
+			t.Fatalf("batch operation = %q", operation.AsString())
+		}
+		for _, value := range span.Attributes {
+			if strings.Contains(value.Value.String(), "private") || strings.Contains(value.Value.String(), "sensitive") {
+				t.Fatalf("batch telemetry leaked SQL, arguments or error text: %s", value.Key)
+			}
+		}
+	}
+	var measured metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &measured); err != nil {
+		t.Fatal(err)
+	}
+	counts := map[string]int64{}
+	var durations uint64
+	for _, scope := range measured.ScopeMetrics {
+		for _, recorded := range scope.Metrics {
+			switch recorded.Name {
+			case postgresQueryCount:
+				for _, point := range recorded.Data.(metricdata.Sum[int64]).DataPoints {
+					op, _ := point.Attributes.Value(attribute.Key("db.operation.name"))
+					outcome, _ := point.Attributes.Value(attribute.Key("cao_dashboard.postgres.outcome"))
+					counts[op.AsString()+"/"+outcome.AsString()] += point.Value
+				}
+			case postgresQueryDuration:
+				for _, point := range recorded.Data.(metricdata.Histogram[float64]).DataPoints {
+					op, _ := point.Attributes.Value(attribute.Key("db.operation.name"))
+					if op.AsString() != "batch" || point.Sum < 0 {
+						t.Fatalf("invalid batch duration: %+v", point)
+					}
+					durations += point.Count
+				}
+			}
+		}
+	}
+	if counts["select/success"] != 2 || counts["delete/success"] != 1 || counts["delete/error"] != 1 || len(counts) != 3 || durations != 2 {
+		t.Fatalf("batch metrics lost or double-counted work: counts=%v duration samples=%d", counts, durations)
 	}
 }

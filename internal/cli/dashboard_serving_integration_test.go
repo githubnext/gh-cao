@@ -371,7 +371,40 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 			}
 			return baseGH(ctx, args...)
 		}
-		command := dashboardCommand("integration", gh, dashboardTestLogs(t))
+		streamVisible := make(chan struct{})
+		collectionFinished := make(chan struct{})
+		logs := dashboardTestLogs(t)
+		if phase == 0 {
+			writeLogs := logs
+			logs = func(ctx context.Context, request dashboardLogRequest) error {
+				defer close(collectionFinished)
+				return downloadDashboardLogs(ctx, request, func(ctx context.Context, _ []string, output io.Writer) error {
+					if err := writeLogs(ctx, request); err != nil {
+						return err
+					}
+					cached, err := readDashboardLogCache(request.Cache, request.Repository)
+					if err != nil {
+						return err
+					}
+					run := cached.Enriched["123"]
+					run["workflow_path"] = ".github/workflows/agent.lock.yml"
+					encoder := json.NewEncoder(output)
+					if err := encoder.Encode(map[string]any{"type": "run", "run": run}); err != nil {
+						return err
+					}
+					select {
+					case <-streamVisible:
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+					if err := encoder.Encode(map[string]any{"type": "summary", "data": map[string]any{"runs": []any{run}}}); err != nil {
+						return err
+					}
+					return encoder.Encode(map[string]any{"type": "complete"})
+				})
+			}
+		}
+		command := dashboardCommand("integration", gh, logs)
 		command.SilenceUsage, command.SilenceErrors = true, true
 		command.SetOut(output)
 		command.SetErr(output)
@@ -460,6 +493,19 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 						row["repository"] == "api" && row["run-status"] == "in_progress")
 				}
 				if found && result.Revision > 0 {
+					if phase == 0 {
+						select {
+						case <-collectionFinished:
+							t.Fatal("collection finished before the streamed run became queryable in PostgreSQL")
+						default:
+						}
+						close(streamVisible)
+						select {
+						case <-collectionFinished:
+						case <-session.Done():
+							t.Fatal("collection did not finish after publishing the streamed run")
+						}
+					}
 					break
 				}
 			}
@@ -515,6 +561,26 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 			t.Fatal("cancellation did not reap the native dashboard child")
 		}
 		client.CloseIdleConnections()
+		if phase == 0 && engine == nil {
+			command := dashboardCollectCommand(baseGH, dashboardTestLogs(t))
+			command.SetArgs([]string{"--repo", "octo/api", "--cache-dir", cache,
+				"--server-executable", binary, "--site", builtSite, "--postgres-url", postgresURL, "--json", "--count", "2"})
+			var report bytes.Buffer
+			command.SetOut(&report)
+			command.SetErr(&report)
+			if err := command.ExecuteContext(ctx); err != nil {
+				t.Fatalf("one-shot collect command failed against real PostgreSQL: %v\n%s", err, report.String())
+			}
+			var result struct {
+				Status string             `json:"status"`
+				Phases map[string]float64 `json:"phase_ms"`
+				Counts map[string]int     `json:"retained_counts"`
+			}
+			if err := json.Unmarshal(report.Bytes(), &result); err != nil || result.Status != "completed" ||
+				result.Phases["postgres"] <= 0 || result.Counts["runs"] != 1 {
+				t.Fatalf("one-shot command did not exercise and measure real ingestion: %s, %v", report.String(), err)
+			}
+		}
 		check, err := client.Get(origin + "/api/readiness")
 		if err == nil {
 			_ = check.Body.Close()

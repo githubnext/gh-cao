@@ -41,6 +41,8 @@ type dashboardOptions struct {
 	// onCollecting, when set, runs synchronously once a pass has published its
 	// "collecting" status so the serving process can show it before the pass ends.
 	onCollecting func()
+	onPublished  func() error
+	timings      *dashboardCollectionTimings
 }
 
 func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector) *cobra.Command {
@@ -56,32 +58,20 @@ CAO_POSTGRES_URL is supplied, a local PostgreSQL container is pulled, started
 and provisioned automatically using Docker or Podman (Docker is tried first).
 Pass --container-engine docker|podman (or set CAO_CONTAINER_ENGINE) to use only
 that engine. Data stays in the ignored local dashboard cache.
-GitHub CLI authentication is required for collection. The pinned gh-aw log
-collector is embedded; no separate gh-aw installation is needed. Existing
+GitHub CLI authentication and an installed gh-aw extension supporting
+'gh aw logs --format jsonl' are required for collection. Existing
 gh-aw artifact caches are reused. The evidence window defaults to seven days;
 the server lifetime defaults to 48 hours. Bounded background passes resume
 historical discovery while reserving GitHub API quota for other work.
 Ctrl-C stops the server; the private local snapshot is retained for reuse.
 Collection never changes policy, workflows, or remote repository state.`,
 	}
-	cmd.Flags().StringArrayVarP(&options.repositories, "repo", "R", nil, "Exact OWNER/REPO (repeatable; defaults to current repository)")
-	cmd.Flags().StringVar(&options.cache, "cache-dir", "", "Private cache directory (default .github/cao/dashboard/<repository-scope>)")
-	cmd.Flags().DurationVar(&options.window, "window", dashboardMaximumWindow, "Recent evidence window (positive, at most 168h)")
-	cmd.Flags().IntVar(&options.count, "count", 200, "Per-repository limit for recent runs and cached usage samples (1-1000 each)")
-	cmd.Flags().StringVar(&options.logs, "logs-dir", "", "Existing gh-aw artifact cache to reuse (single repository only)")
+	dashboardCollectionFlags(cmd, options)
 	cmd.Flags().StringVar(&options.listen, "listen", "127.0.0.1:0", "Numeric loopback listener; port 0 selects an available port")
 	cmd.Flags().DurationVar(&options.duration, "duration", dashboardMaximumDuration, "Server lifetime (positive, at most 48h)")
 	cmd.Flags().DurationVar(&options.refresh, "refresh", 5*time.Minute, "Refresh interval (at least 1m)")
-	cmd.Flags().StringVar(&options.server, "server-executable", "", "Explicit existing cao-dashboard binary for source development")
-	cmd.Flags().StringVar(&options.site, "site", "", "Explicit built dashboard site for source development")
-	cmd.Flags().StringVar(&options.postgresURL, "postgres-url", "", "PostgreSQL connection URL (or CAO_POSTGRES_URL)")
-	cmd.Flags().StringVar(&options.containerEngine, "container-engine", "", "Container engine for managed PostgreSQL: docker or podman (or CAO_CONTAINER_ENGINE; otherwise auto-detect)")
 	cmd.Flags().BoolVar(&options.json, "json", false, "Emit a JSON readiness message on stdout; diagnostics stay on stderr")
 	cmd.Flags().BoolVar(&options.exitOnStdinClose, "exit-on-stdin-close", false, "Stop when the parent closes stdin")
-	_ = cmd.RegisterFlagCompletionFunc("container-engine", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-		return []string{"docker", "podman"}, cobra.ShellCompDirectiveNoFileComp
-	})
-	cmd.MarkFlagsRequiredTogether("server-executable", "site")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if options.duration <= 0 || options.duration > dashboardMaximumDuration {
 			return errors.New("--duration must be positive and at most 48h")
@@ -92,27 +82,48 @@ Collection never changes policy, workflows, or remote repository state.`,
 		if err := validateDashboardListen(options.listen); err != nil {
 			return err
 		}
-		if cmd.Flags().Changed("postgres-url") && strings.TrimSpace(options.postgresURL) == "" {
-			return errors.New("--postgres-url must name a PostgreSQL connection when specified")
-		}
-		if options.postgresURL == "" {
-			options.postgresURL = os.Getenv("CAO_POSTGRES_URL")
-		}
-		if options.postgresURL != "" && strings.TrimSpace(options.postgresURL) == "" {
-			return errors.New("CAO_POSTGRES_URL must name a PostgreSQL connection when set")
-		}
-		engine, err := resolveDashboardContainerEngine(options.containerEngine, cmd.Flags().Changed("container-engine"))
-		if err != nil {
+		if err := resolveDashboardStorageOptions(cmd, options); err != nil {
 			return err
 		}
-		options.containerEngine = engine
 		repositories, cache, err := resolveDashboardOptions(cmd, options, gh)
 		if err != nil {
 			return err
 		}
 		return serveDashboard(cmd, version, repositories, cache, *options, gh, logs)
 	}
+	cmd.AddCommand(dashboardCollectCommand(gh, logs))
 	return cmd
+}
+
+func dashboardCollectionFlags(cmd *cobra.Command, options *dashboardOptions) {
+	cmd.Flags().StringArrayVarP(&options.repositories, "repo", "R", nil, "Exact OWNER/REPO (repeatable; defaults to current repository)")
+	cmd.Flags().StringVar(&options.cache, "cache-dir", "", "Private cache directory (default .github/cao/dashboard/<repository-scope>)")
+	cmd.Flags().DurationVar(&options.window, "window", dashboardMaximumWindow, "Recent evidence window (positive, at most 168h)")
+	cmd.Flags().IntVar(&options.count, "count", 200, "Per-repository limit for recent runs and cached usage samples (1-1000 each)")
+	cmd.Flags().StringVar(&options.logs, "logs-dir", "", "Existing gh-aw artifact cache to reuse (single repository only)")
+	cmd.Flags().StringVar(&options.server, "server-executable", "", "Explicit existing cao-dashboard binary for source development")
+	cmd.Flags().StringVar(&options.site, "site", "", "Explicit built dashboard site for source development")
+	cmd.Flags().StringVar(&options.postgresURL, "postgres-url", "", "PostgreSQL connection URL (or CAO_POSTGRES_URL)")
+	cmd.Flags().StringVar(&options.containerEngine, "container-engine", "", "Container engine for managed PostgreSQL: docker or podman (or CAO_CONTAINER_ENGINE; otherwise auto-detect)")
+	_ = cmd.RegisterFlagCompletionFunc("container-engine", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{"docker", "podman"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	cmd.MarkFlagsRequiredTogether("server-executable", "site")
+}
+
+func resolveDashboardStorageOptions(cmd *cobra.Command, options *dashboardOptions) error {
+	if cmd.Flags().Changed("postgres-url") && strings.TrimSpace(options.postgresURL) == "" {
+		return errors.New("--postgres-url must name a PostgreSQL connection when specified")
+	}
+	if options.postgresURL == "" {
+		options.postgresURL = os.Getenv("CAO_POSTGRES_URL")
+	}
+	if options.postgresURL != "" && strings.TrimSpace(options.postgresURL) == "" {
+		return errors.New("CAO_POSTGRES_URL must name a PostgreSQL connection when set")
+	}
+	engine, err := resolveDashboardContainerEngine(options.containerEngine, cmd.Flags().Changed("container-engine"))
+	options.containerEngine = engine
+	return err
 }
 
 func resolveDashboardOptions(cmd *cobra.Command, options *dashboardOptions, gh ghExecutor) ([]string, string, error) {

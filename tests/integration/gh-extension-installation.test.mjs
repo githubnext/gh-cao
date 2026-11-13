@@ -32,6 +32,14 @@ async function standaloneDashboard(t, directory, env, requests) {
   const gh = process.env.PATH.split(delimiter).map((path) => join(path, ghName)).find(existsSync);
   assert.ok(gh, "the release check requires the real GitHub CLI");
   copyFileSync(gh, join(bin, ghName));
+  assert.ok(process.env.CAO_GH_AW_BINARY && existsSync(process.env.CAO_GH_AW_BINARY),
+    "the release dashboard check requires CAO_GH_AW_BINARY naming a real gh-aw binary with JSONL streaming support");
+  const awDirectory = join(env.XDG_DATA_HOME, "gh", "extensions", "gh-aw");
+  mkdirSync(awDirectory, { recursive: true });
+  const awBinary = join(awDirectory, process.platform === "win32" ? "gh-aw.exe" : "gh-aw");
+  copyFileSync(process.env.CAO_GH_AW_BINARY, awBinary);
+  writeFileSync(join(awDirectory, "manifest.yml"),
+    `name: gh-aw\nowner: github\nhost: github.com\ntag: v1.2.3\npath: ${JSON.stringify(awBinary)}\n`);
   const engineName = process.env.CAO_CONTAINER_ENGINE || "docker";
   assert.ok(["docker", "podman"].includes(engineName));
   const executable = engineName + (process.platform === "win32" ? ".exe" : "");
@@ -132,7 +140,7 @@ async function standaloneDashboard(t, directory, env, requests) {
   const snapshot = join(cache, "payload-hashes.json");
   assert.ok(Object.keys(JSON.parse(readFileSync(snapshot, "utf8"))).some((name) => name.startsWith("gh-aw-logs-runs/")));
   assert.ok(requests.some((path) => path.startsWith("/repos/octo/api/actions/workflows/42/runs")),
-    `embedded collector was not exercised:\n${requests.join("\n")}`);
+    `installed JSONL collector was not exercised:\n${requests.join("\n")}`);
   assert.equal(await done, 0, output);
   assert.ok(existsSync(snapshot), "canonical input must survive server shutdown");
   await assert.rejects(fetch(url, { signal: AbortSignal.timeout(1_000) }), /fetch failed/);
@@ -152,6 +160,7 @@ test("real GitHub CLI discovers, installs, and dispatches native release assets"
   // GitHub CLI's socket transport keeps the real github.com install command offline.
   writeFileSync(join(config, "config.yml"), `http_unix_socket: ${JSON.stringify(socket)}\n`);
   const origin = "https://api.github.com";
+  const quotaReset = Math.floor(Date.now() / 1000) + 3600;
   let runtimeOnly = true;
   const requests = [];
   const server = createServer((request, response) => {
@@ -177,7 +186,7 @@ test("real GitHub CLI discovers, installs, and dispatches native release assets"
       body = { data: { repository: { id: "R_fixture", name: "api", owner: { login: "octo" },
         nameWithOwner: "octo/api", url: "https://github.com/octo/api" } } };
     } else if (path === "/rate_limit") {
-      body = { resources: { core: { limit: 5000, remaining: 4999, used: 1, reset: Math.floor(Date.now() / 1000) + 3600 } } };
+      body = { resources: { core: { limit: 5000, remaining: 4999, used: 1, reset: quotaReset } } };
     } else if (path === "/repos/octo/api/actions/workflows") {
       body = { total_count: 1, workflows: [workflow] };
     } else if (path === "/repos/octo/api/actions/workflows/42") {
@@ -260,7 +269,7 @@ test("real GitHub CLI discovers, installs, and dispatches native release assets"
       assert.match(readFileSync(manifest, "utf8"), new RegExp(`tag: ${scenario.pinned ? "v1.2.4" : "v1.2.3"}`));
       if (!scenario.pinned) {
         // Source builds embed no dashboard bundle; the release workflow supplies a release binary.
-        await t.test("dashboard runs with gh, its installed extension and the selected container engine", {
+        await t.test("dashboard runs with gh, installed CAO and gh-aw extensions and the selected container engine", {
           skip: !process.env.CAO_EXTENSION_BINARY && "requires a release binary via CAO_EXTENSION_BINARY",
         }, async (t) => {
           await standaloneDashboard(t, directory, env, requests);

@@ -18,6 +18,13 @@ func TestDashboardCanvasReadinessAndParentLifetime(t *testing.T) {
 	directory := t.TempDir()
 	server := filepath.Join(directory, "test-server")
 	if err := os.WriteFile(server, []byte(`#!/bin/sh
+if [ "$1" = "ingest" ]; then
+  printf '%s\n' '{"type":"ready"}'
+  while IFS= read -r request; do
+    printf '%s\n' '{"type":"complete","result":{"revision":1}}'
+  done
+  exit 0
+fi
 if [ "$1" != "serve" ]; then exit 0; fi
 printf '%s\n' 'serving local dashboard at http://127.0.0.1:12345/?access_token=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' >&2
 printf 'server diagnostics\n'

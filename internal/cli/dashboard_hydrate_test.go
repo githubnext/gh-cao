@@ -3,12 +3,106 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestDashboardStreamPublishesAndReconcilesWhileCollecting(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run(map[bool]string{false: "complete", true: "late-failure"}[fail], func(t *testing.T) {
+			now := time.Now().UTC().Add(-time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+			cache := t.TempDir()
+			published := make(chan struct{}, 2)
+			publications := 0
+			options := dashboardOptions{window: dashboardMaximumDuration, count: 2, onPublished: func() error {
+				publications++
+				rows := readDashboardPublishedCollection(t, cache, "runs")
+				if len(rows) != 1 || rows[0]["aicTotal"] != float64(publications) {
+					t.Fatalf("incremental publication was missing, duplicated or stale: %v", rows)
+				}
+				state, err := readDashboardIngestion(ctx, cache)
+				if err != nil || state.Status != "collecting" || len(state.Cursors) != 0 {
+					t.Fatalf("provisional evidence advanced history or completed acquisition: %+v %v", state, err)
+				}
+				published <- struct{}{}
+				return nil
+			}}
+			logs := func(ctx context.Context, request dashboardLogRequest) error {
+				return downloadDashboardLogs(ctx, request, func(ctx context.Context, _ []string, output io.Writer) error {
+					record := map[string]any{
+						"run_id": 123, "run_attempt": "1", "repository": "octo/api",
+						"workflow_path":       ".github/workflows/agent.lock.yml",
+						"token_usage_summary": map[string]any{"total_aic": 1},
+					}
+					encoder := json.NewEncoder(output)
+					if err := encoder.Encode(map[string]any{"type": "run", "run": record}); err != nil {
+						return err
+					}
+					select {
+					case <-published:
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+					if fail {
+						return errors.New("late acquisition failure")
+					}
+					record["token_usage_summary"] = map[string]any{"total_aic": 2}
+					if err := encoder.Encode(map[string]any{"type": "summary", "data": map[string]any{"runs": []any{record}}}); err != nil {
+						return err
+					}
+					return encoder.Encode(map[string]any{"type": "complete"})
+				})
+			}
+			_, err := collectDashboard(ctx, []string{"octo/api"}, cache, options, dashboardTestGH(t, now), logs)
+			if (err != nil) != fail || publications != map[bool]int{false: 2, true: 1}[fail] {
+				t.Fatalf("unexpected streaming collection outcome: publications=%d err=%v", publications, err)
+			}
+			rows := readDashboardPublishedCollection(t, cache, "runs")
+			if len(rows) != 1 || rows[0]["aicTotal"] != float64(publications) {
+				t.Fatalf("final publication lost streamed data or double counted: %v", rows)
+			}
+			if fail {
+				state, err := readDashboardIngestion(ctx, cache)
+				if err != nil || state.Status != "failed" || len(state.Cursors) != 0 {
+					t.Fatalf("failed stream lost its checkpoint or failure status: %+v %v", state, err)
+				}
+			}
+		})
+	}
+}
+
+func TestDashboardStreamRejectsUnselectedEvidence(t *testing.T) {
+	for _, field := range []string{"repository", "workflow_path", "run_id", "run_attempt"} {
+		t.Run(field, func(t *testing.T) {
+			cache := t.TempDir()
+			now := time.Now().UTC().Add(-time.Second)
+			options := dashboardOptions{window: dashboardMaximumDuration, count: 2, onPublished: func() error {
+				t.Fatal("unselected or mismatched-attempt stream evidence was published")
+				return nil
+			}}
+			logs := func(ctx context.Context, request dashboardLogRequest) error {
+				record := map[string]any{"run_id": 123, "run_attempt": "1", "repository": "octo/api", "workflow_path": ".github/workflows/agent.lock.yml"}
+				record[field] = "unselected"
+				return request.OnRuns(ctx, []map[string]any{record})
+			}
+			_, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, dashboardTestGH(t, now), logs)
+			if field == "run_attempt" {
+				if err != nil {
+					t.Fatalf("mismatched attempt should not block fresh Actions evidence: %v", err)
+				}
+			} else if err == nil {
+				t.Fatal("out-of-scope streamed evidence was accepted")
+			}
+		})
+	}
+}
 
 func TestDashboardHydratesRichCachedAndUnifiedEvidence(t *testing.T) {
 	now := time.Now().UTC().Add(-time.Second)

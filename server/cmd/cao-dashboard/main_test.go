@@ -107,7 +107,7 @@ func TestIngestFlagContract(t *testing.T) {
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
 		flags = append(flags, flag.Name)
 	})
-	if got, want := strings.Join(flags, ","), "database-queries,namespace,postgres-url,source"; got != want {
+	if got, want := strings.Join(flags, ","), "database-queries,namespace,postgres-url,source,stdin"; got != want {
 		t.Fatalf("ingest flags = %s, want %s", got, want)
 	}
 	if err := cmd.ParseFlags([]string{"--namespace", "ingestion-test", "--postgres-url", "postgres://localhost/cao", "--source", "snapshot"}); err != nil {

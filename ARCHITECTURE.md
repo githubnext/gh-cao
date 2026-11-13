@@ -599,6 +599,12 @@ ANALYZE capability preserves ingestion statistics without runtime ownership.
 Publication refreshes native estimates before daily reconciliation and integrity
 checks. Counts, evidence clocks, and capacity accounting use source-local plans
 to avoid planner amplification across the daily partition horizon.
+Snapshot publication pipelines independent deletion, evidence-clock, count, and
+quality statements within its existing transaction, retaining separate SQL plans.
+Database telemetry counts individual statements and times each pipelined batch
+as one operation rather than inventing per-statement execution durations.
+Unchanged ingestion checks publication identity without counting sources, then
+curates audits under the namespace writer lock and reads the resulting counts once.
 Canonical snapshot, admission, and conclusion writes enforce the same
 namespace-local Run-subtree capacity boundary: 200,000 rows per Run-owned source
 and 256 MiB of combined logical typed-row bytes. After daily-count reconciliation,

@@ -867,7 +867,13 @@ implicit query-server authority.
 
 The explicitly selected `gh cao dashboard` operator profile MAY create and
 refresh a separate private PostgreSQL namespace through its native
-acquisition adapter, outside the Go server. It MUST select the current verified
+acquisition adapter, outside the Go server. `gh cao dashboard collect` MAY run
+one bounded acquisition and ingestion pass without serving HTTP. It MUST use
+the same scope, checkpoint, lock, quota, normalization and publication boundaries;
+forcing a pass MUST NOT bypass an active collection lock. Machine-readable timing
+reports SHALL distinguish setup from collection and exclusive wall-time stages
+from overlapping acquisition; successful execution MUST NOT imply complete data.
+It MUST select the current verified
 GitHub.com repository or an explicit bounded list of exact repositories, retain
 at most a seven-day recent window, and serve for at most 48 hours per invocation.
 When no PostgreSQL connection is supplied, this operator profile SHALL manage
@@ -881,7 +887,8 @@ storage using owner credentials; query and ingestion processes SHALL receive
 only the non-owner runtime login and the reviewed privilege contracts.
 An explicit `--postgres-url` or `CAO_POSTGRES_URL` SHALL bypass container
 management and automatic provisioning, without fallback after connection failure.
-The adapter MUST use the pinned gh-aw collector and canonical repository,
+The adapter MUST use an installed gh-aw collector supporting
+`gh aw logs --format jsonl` and canonical repository,
 workflow, and repository-scoped Run identities; fresh Actions observations MUST
 take precedence over cached status and mismatched-attempt enrichment MUST NOT
 be attached. Unknown usage MUST NOT become zero or a guessed engine/model.
@@ -890,12 +897,23 @@ MUST reconcile the canonical daily projection in the same publication transactio
 using the receipts, classification and retention contract in §72.2, MUST NOT
 infer complete upstream history or campaign/rollout authority,
 and MUST NOT modify or migrate an ordinary Activity snapshot. Publication MUST
-be atomic and failed collection MUST preserve previously published evidence and
-its discovery checkpoint. Acquisition SHALL resume fixed-interval pagination
+be atomic. Accepted streamed Run observations MAY be normalized and published
+before collection finishes; final summary Run observations SHALL reconcile by
+canonical identity, not add duplicate observations. Final summary acceptance
+MUST require both a terminal `complete` event and a successful command exit.
+The first accepted run SHOULD be published promptly. Subsequent run events MAY
+be coalesced on a bounded cadence or batch size while collection remains active;
+they MUST NOT wait for the full collection to finish. A persistent local ingestion
+process MAY reuse its connections, but each request MUST verify the configured
+canonical snapshot and preserve ordinary transactional publication and failure
+semantics. Its request stream MUST NOT change source, namespace or credentials.
+Malformed or incomplete streams MUST fail explicitly. Failed collection MUST
+preserve previously published evidence, including admitted streamed observations,
+and its discovery checkpoint. Acquisition SHALL resume fixed-interval pagination
 across passes and restarts, split intervals exceeding the provider's filtered
 search ceiling, retain earlier admitted pages inside the requested detail
 window, and preserve same-second run boundaries. It SHALL bound each pass to
-100 core API points shared across selected repositories and embedded collectors,
+100 core API points shared across selected repositories and installed collectors,
 reserve at least 1000 points or 20% of the reported core quota, and fail closed
 when quota cannot be observed. Quota exhaustion SHALL pause rather than consume
 the reserve. Concurrent unrelated clients share the provider quota.

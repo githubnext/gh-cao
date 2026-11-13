@@ -627,6 +627,13 @@ for (const [state, initialVersion, expectedVersion, expectedLog] of [
   });
 }
 
+test("installer keeps the streaming gh-aw minimum when a local manifest requests an older version", async (t) => {
+  const { consumer, env, installedGhAw } = await createConsumer(t);
+  await writeFile(path.join(consumer, "aw.yml"), "min-version: v0.92.0\n");
+  await streamInstaller(consumer, env);
+  assert.equal(await installedGhAw(), "v1.2.3\n");
+});
+
 test("public tool installation bypasses SAML-restricted tokens without changing control repository credentials", async (t) => {
   const { root, consumer, env, log } = await createConsumer(t);
   const config = path.join(root, "gh-config");

@@ -199,16 +199,16 @@ func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
 	if err := writer.stageAdmittedRuns(ctx); err != nil {
 		return fail(err)
 	}
+	deletes := &pgx.Batch{}
 	for _, source := range tableNames() {
 		statement, args, err := sqlbuilder.Build("DELETE FROM {} WHERE namespace={}", sqlbuilder.Identifier(entityTables[source].name), s.namespace)
 		if err != nil {
-			return nil, err
-		}
-		if _, err := tx.Exec(ctx, statement, args...); err != nil {
 			return fail(err)
 		}
+		deletes.Queue(statement, args...)
 	}
-	if _, err := tx.Exec(ctx, "DELETE FROM cao_quality WHERE namespace=$1", s.namespace); err != nil {
+	deletes.Queue("DELETE FROM cao_quality WHERE namespace=$1", s.namespace)
+	if err := tx.SendBatch(ctx, deletes).Close(); err != nil {
 		return fail(err)
 	}
 	return writer, nil
@@ -622,20 +622,12 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		}
 	}
 	clockSources = append(clockSources, "SELECT max(greatest(as_of,retrieved_at)) AS instant FROM cao_quality WHERE namespace=$1")
-	var latest *time.Time
-	// Keep partitioned-source plans independent as the daily horizon grows.
+	clocks := &pgx.Batch{}
 	for _, statement := range clockSources {
-		var instant *time.Time
-		if err := w.tx.QueryRow(ctx, statement, w.store.namespace).Scan(&instant); err != nil {
-			return State{}, err
-		}
-		if instant != nil && (latest == nil || instant.After(*latest)) {
-			latest = instant
-		}
+		clocks.Queue(statement, w.store.namespace)
 	}
-	w.evaluatedAt = time.Unix(0, 0).UTC()
-	if latest != nil {
-		w.evaluatedAt = latest.UTC()
+	if err := w.readEvidenceClock(ctx, clocks); err != nil {
+		return State{}, err
 	}
 	// Keep the source clock even when its latest event is a discarded copy.
 	if _, err := w.tx.Exec(ctx, auditCurationStatement(), w.store.namespace); err != nil {
@@ -645,21 +637,26 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		return State{}, err
 	}
 	state := State{Ready: true, DataRevision: dataRevision, EvaluatedAt: w.evaluatedAt.UTC(), Counts: map[string]int{}}
+	counts, quality := &pgx.Batch{}, &pgx.Batch{}
+	var collections []string
 	for _, source := range tableNames() {
 		if entityTables[source].internal {
 			continue
 		}
-		var count int
-		if err := w.tx.QueryRow(ctx, "SELECT count(*) FROM "+query.SQLIdentifier(entityTables[source].name)+" WHERE namespace=$1", w.store.namespace).Scan(&count); err != nil {
-			return State{}, err
-		}
-		state.Counts[source] = count
-		if _, err := w.tx.Exec(ctx, `INSERT INTO cao_quality(namespace,collection,availability,completeness,freshness)
+		collections = append(collections, source)
+		counts.Queue("SELECT count(*) FROM "+query.SQLIdentifier(entityTables[source].name)+" WHERE namespace=$1", w.store.namespace)
+	}
+	if err := w.readCounts(ctx, counts, collections, state.Counts); err != nil {
+		return State{}, err
+	}
+	for _, source := range collections {
+		quality.Queue(`INSERT INTO cao_quality(namespace,collection,availability,completeness,freshness)
 			VALUES($1,$2,$3,'complete','current') ON CONFLICT(namespace,collection) DO UPDATE SET
 			availability=CASE WHEN cao_quality.availability='unavailable' THEN 'unavailable' ELSE excluded.availability END`,
-			w.store.namespace, source, map[bool]string{true: "empty", false: "available"}[count == 0]); err != nil {
-			return State{}, err
-		}
+			w.store.namespace, source, map[bool]string{true: "empty", false: "available"}[state.Counts[source] == 0])
+	}
+	if err := w.tx.SendBatch(ctx, quality).Close(); err != nil {
+		return State{}, err
 	}
 	if _, err := w.tx.Exec(ctx, `UPDATE cao_quality SET completeness='partial',availability='available'
 		WHERE namespace=$1 AND collection IN ('$runs','$workflows','$repositories')
@@ -700,6 +697,40 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 	_ = w.connection.Close(ctx)
 	w.connection = nil
 	return state, nil
+}
+
+// Pipeline source-local plans without combining daily partitions into one wide plan.
+func (w *Writer) readEvidenceClock(ctx context.Context, batch *pgx.Batch) error {
+	results := w.tx.SendBatch(ctx, batch)
+	defer func() { _ = results.Close() }()
+	var latest *time.Time
+	for range batch.Len() {
+		var instant *time.Time
+		if err := results.QueryRow().Scan(&instant); err != nil {
+			return err
+		}
+		if instant != nil && (latest == nil || instant.After(*latest)) {
+			latest = instant
+		}
+	}
+	w.evaluatedAt = time.Unix(0, 0).UTC()
+	if latest != nil {
+		w.evaluatedAt = latest.UTC()
+	}
+	return results.Close()
+}
+
+func (w *Writer) readCounts(ctx context.Context, batch *pgx.Batch, collections []string, counts map[string]int) error {
+	results := w.tx.SendBatch(ctx, batch)
+	defer func() { _ = results.Close() }()
+	for _, source := range collections {
+		var count int
+		if err := results.QueryRow().Scan(&count); err != nil {
+			return err
+		}
+		counts[source] = count
+	}
+	return results.Close()
 }
 
 func workflowSubjectDigestPGX(ctx context.Context, tx pgx.Tx, namespace string) (string, error) {

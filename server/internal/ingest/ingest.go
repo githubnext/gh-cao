@@ -168,16 +168,18 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 	} else if options.Supplement != nil {
 		return Result{}, errors.New("supplement requires a content revision")
 	}
-	active, err := store.State(ctx)
-	if err != nil {
-		return Result{}, err
-	}
-	if !options.Force && active.Ready && active.DataRevision == dataRevision {
-		active, err = store.CurateAudits(ctx)
+	if !options.Force {
+		current, err := store.HasDataRevision(ctx, dataRevision)
 		if err != nil {
 			return Result{}, err
 		}
-		return stateResult(active), nil
+		if current {
+			active, err := store.CurateAudits(ctx)
+			if err != nil {
+				return Result{}, err
+			}
+			return stateResult(active), nil
+		}
 	}
 	writer, err := store.BeginIngestion(ctx)
 	if err != nil {
@@ -222,7 +224,7 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 			return Result{}, fmt.Errorf("project server evidence: %w", err)
 		}
 	}
-	active, err = writer.Publish(ctx, dataRevision)
+	active, err := writer.Publish(ctx, dataRevision)
 	if err != nil {
 		return Result{}, err
 	}
