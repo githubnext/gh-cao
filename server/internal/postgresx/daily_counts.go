@@ -182,6 +182,10 @@ func maintainDailyCounts(ctx context.Context, namespace string, now time.Time, e
 // contributions, and publication of detail, commit or roll back together.
 // Work remains in SQL: no full-detail Go materialization or retained run payloads.
 func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time.Time, exec func(context.Context, string, ...any) error, batchEnd func(context.Context) (string, error)) error {
+	return reconcileDailyCountKeys(ctx, namespace, runID, "", now, exec, batchEnd)
+}
+
+func reconcileDailyCountKeys(ctx context.Context, namespace, runID, scope string, now time.Time, exec func(context.Context, string, ...any) error, batchEnd func(context.Context) (string, error)) error {
 	if err := maintainDailyCounts(ctx, namespace, now, exec); err != nil {
 		return err
 	}
@@ -205,10 +209,14 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 	}
 	// Freeze only changed identities before updating receipts. Replayed snapshots
 	// otherwise pay every batch's joins and temporary-table writes again.
+	filter := ""
+	if scope != "" {
+		filter = " AND EXISTS(SELECT 1 FROM " + query.SQLIdentifier(scope) + " k WHERE k.id=r.id AND k.run_at=r.run_at)"
+	}
 	if err := exec(ctx, `CREATE TEMP TABLE daily_reconcile_keys ON COMMIT DROP AS
 		SELECT r.id FROM runs r LEFT JOIN run_count_contributions p ON p.namespace=r.namespace AND p.id=r.id
 		JOIN daily_run_count_state s ON s.namespace=r.namespace AND s.id='daily-run-counts'
-		WHERE r.namespace=$1 AND ($2='' OR r.id=$2)
+		WHERE r.namespace=$1 AND ($2='' OR r.id=$2)`+filter+`
 		AND (p.id IS NOT NULL OR r.started_at IS NULL
 			OR (r.started_at>=s.cutoff_at AND r.started_at<s.cutoff_at+interval '504 hours'))
 		AND (`+strings.Join(changed, " OR ")+`)`, namespace, runID); err != nil {
@@ -384,7 +392,7 @@ func reconcileDailyCounts(ctx context.Context, namespace, runID string, now time
 			return err
 		}
 		after = last
-		if runID != "" {
+		if runID != "" || scope != "" {
 			return maintainDailyCounts(ctx, namespace, now, exec)
 		}
 	}

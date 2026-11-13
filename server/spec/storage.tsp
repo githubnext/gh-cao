@@ -1052,6 +1052,41 @@ namespace Storage {
     dataRevision: string;
     evaluatedAt: utcDateTime;
     schemaVersion: int64;
+    capacityRevision?: int64;
+    bundleEpoch?: utcDateTime;
+  }
+
+  /** Revision-qualified publication bookkeeping, never a canonical source or authority. */
+  model caoIngestionAccounting {
+    `namespace`: string;
+    collection: string;
+    revision: int64;
+    records: int64;
+    nextOrdinal: int64;
+    evidenceAt?: utcDateTime;
+  }
+
+  /** Exact typed Run-subtree footprint, valid only at the accounting publication revision. */
+  model caoRunAccounting {
+    `namespace`: string;
+    runId: string;
+    collection: string;
+    runAt: utcDateTime;
+    attempt?: int64;
+    records: int64;
+    bytes: int64;
+    nextOrdinal: int64;
+    evidenceAt?: utcDateTime;
+  }
+
+  /** Accepted local bundle source version and content identity; contains no evidence payload. */
+  model caoBundleVersions {
+    `namespace`: string;
+    collection: string;
+    id: string;
+    attempt?: int64;
+    observedAt: utcDateTime;
+    digest: string;
   }
 
   /** Private native acquisition scope epochs. Not an independent enrollment authority. */

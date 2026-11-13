@@ -144,7 +144,18 @@ on a one-second cadence or at 16 records, with pending evidence flushed at EOF
 or a collection error. They pass through the production canonical normalizer and
 are ingested into PostgreSQL while collection continues. One owned ingestion
 process reuses its connection pool for the session instead of restarting for each
-record. Database commits and normal revision subscriptions update the open data
+record. After initial full ingestion, streamed groups use explicit Run-bundle
+deltas: only accepted Runs, supplied children and structural parents are
+updated, rather than replacing every canonical row. Streamed child coverage is
+partial, so missing same-attempt evidence is retained; newer attempts replace
+older-attempt details. Replays are idempotent and older observations cannot undo
+newer accepted evidence. Final reconciliation remains a full verified snapshot.
+The private cache still contains a complete recovery snapshot and every
+manifested shard is hash-verified on each request. Frozen statistical bundles
+are still rebuilt atomically; these file and statistical costs are not eliminated
+by scoped canonical writes. The updated physical layout requires fresh,
+provisioned canonical storage, not automatic migration of an existing database.
+Database commits and normal revision subscriptions update the open data
 status dialog and active views; its run count and latest-run timestamp remain
 canonical query results, not estimates from CLI progress events. The normal revision
 subscription refreshes the active dashboard. The final summary reconciles those

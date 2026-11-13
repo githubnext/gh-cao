@@ -781,12 +781,15 @@ detail does not constitute persisted bundles.
 The persisted frame SHALL expose `storage-mode: persisted-bundles`,
 `source-data-revision`, and `source-revision`. It describes its recorded
 publication watermark and evidence revision, not the latest incremental state.
-Incremental writes and partition maintenance SHALL NOT mutate or independently
-expire sampled children, recompute weights, or refill membership. A subsequent
-canonical revision SHALL make the frozen source stale, without changing its
-historical weights. Only complete canonical snapshot publication SHALL replace
-the frame and bundles, rebuilding the seven-day window at that snapshot's
-recorded watermark. This is bounded snapshot persistence, not a continuously
+Independent admission, conclusion, lifecycle writes and partition maintenance
+SHALL NOT mutate or independently expire sampled children, recompute weights,
+or refill membership. Those subsequent canonical revisions SHALL make the frozen
+source stale, without changing its historical weights. Complete canonical snapshot
+publication and explicit Run-bundle publication (§5.2) SHALL replace the entire
+frame and bundles, rebuilding the seven-day window from canonical state at the
+publication's recorded watermark in the same transaction. Run-bundle publication
+does not incrementally patch sampled rows or turn partial acquisition into a
+complete population. This is bounded snapshot persistence, not a continuously
 maintained reservoir or an extension of exact retention.
 
 Bundle admission SHALL be all-or-nothing and bounded to 200,000 records per
@@ -923,6 +926,52 @@ they MUST NOT wait for the full collection to finish. A persistent local ingesti
 process MAY reuse its connections, but each request MUST verify the configured
 canonical snapshot and preserve ordinary transactional publication and failure
 semantics. Its request stream MUST NOT change source, namespace or credentials.
+After an initial authoritative snapshot, that process MAY accept an explicitly
+selected `run-bundles` publication, never infer a delta from a small snapshot.
+Version 1 SHALL contain 1-16 uniquely identified Runs with exact positive int64
+attempts and a nonzero, microsecond-aligned local `observedAt` timestamp. The fixed
+`run-bundles.json` sidecar MUST be at most 32 MiB and covered by the same verified
+payload manifest. Unknown envelope fields, trailing JSON, unsupported protocol
+modes, and snapshot force/supplement options MUST fail explicitly. All manifested
+snapshot shards MUST still be verified; the producer SHALL retain its complete
+on-disk recovery snapshot. Initial and final reconciliations SHALL remain explicit
+full snapshots, and final publication SHALL remove the sidecar's manifest entry.
+
+Each supplied Run-owned collection SHALL declare `complete`, `partial`, or
+`unavailable` coverage. Complete coverage SHALL replace only that Run's
+source-owned collection; complete-empty SHALL remove it. Omitted, partial, and
+unavailable collections SHALL preserve same-attempt evidence; unavailable
+collections MUST contain no rows. A newer attempt SHALL discard older-attempt
+Run facts and children before accepting new evidence. Same-attempt sparse
+updates SHALL preserve missing fields and distinguish explicit null. They MUST
+preserve independently admitted conclusion evidence and repository lifecycle
+facts under their existing ownership rules; an API-only observation MUST NOT
+erase richer same-attempt conclusion facts. Producers SHALL NOT impersonate
+reserved conclusion identities or provenance. The local streaming producer
+SHALL mark supplied collections partial, not claim artifact completeness.
+
+Run attempts, Run observation clocks, and accepted local source versions SHALL
+fence stale updates. Identical accepted replays SHALL NOT advance the revision;
+conflicting content at the same accepted version SHALL fail. Shared structural
+parents SHALL have independent observation/digest fences, so a delayed bundle
+for another Run cannot overwrite newer parent facts. Full reconciliation SHALL
+establish a local-clock epoch and clear bundle version receipts; observations
+at or before that epoch SHALL be ignored. This is a local producer/publication
+clock contract, not a globally synchronized remote ingestion protocol.
+
+Run-bundle publication SHALL retain the namespace writer lock, atomic revision
+and quality publication, native integrity checks, cancellation, Audit curation,
+retention, daily contribution reconciliation, and whole-subtree capacity limits.
+Ordinary publication SHALL mutate only accepted Run subtrees and supplied
+structural parents, except for necessary capacity eviction and complete frozen
+statistical reconstruction. Private typed per-Run footprints and per-source
+counts, ordinals and evidence clocks MAY accelerate writes only at the locked
+canonical revision; independent writers SHALL invalidate them, requiring
+reconstruction from authoritative native rows. They are not query sources or
+canonical entities. Delta coverage SHALL remain partial or unavailable rather
+than imply full-source completeness. Physical bookkeeping changes require the
+existing fresh-schema provisioning contract, not an automatic migration.
+
 Malformed or incomplete streams MUST fail explicitly. Failed collection MUST
 preserve previously published evidence, including admitted streamed observations,
 and its discovery checkpoint. Acquisition SHALL resume fixed-interval pagination

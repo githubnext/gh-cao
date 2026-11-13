@@ -7,18 +7,20 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"time"
 )
 
 // Calls are serialized by the owning collection loop.
 type dashboardIngestor struct {
-	child   *exec.Cmd
-	input   io.WriteCloser
-	output  io.ReadCloser
-	decoder *json.Decoder
-	cancel  context.CancelFunc
-	ctx     context.Context
-	closed  bool
+	child      *exec.Cmd
+	input      io.WriteCloser
+	output     io.ReadCloser
+	decoder    *json.Decoder
+	cancel     context.CancelFunc
+	ctx        context.Context
+	closed     bool
+	runBundles bool
 }
 
 func startDashboardIngestor(ctx context.Context, server, site, cache, namespace, postgresURL string, diagnostics io.Writer) (*dashboardIngestor, error) {
@@ -53,21 +55,34 @@ func startDashboardIngestor(ctx context.Context, server, site, cache, namespace,
 		decoder: json.NewDecoder(io.LimitReader(output, 256<<20)), cancel: cancel, ctx: parent,
 	}
 	var response struct {
-		Type string `json:"type"`
+		Type  string   `json:"type"`
+		Modes []string `json:"modes"`
 	}
 	if err := worker.decoder.Decode(&response); err != nil || response.Type != "ready" {
 		cancel()
 		_ = worker.Close()
 		return nil, errors.New("canonical ingestion process did not become ready; the server must support ingest --stdin")
 	}
+	worker.runBundles = slices.Contains(response.Modes, "run-bundles")
 	return worker, nil
 }
 
 func (w *dashboardIngestor) Ingest() error {
+	return w.ingest("snapshot")
+}
+
+func (w *dashboardIngestor) IngestRunBundles() error {
+	if !w.runBundles {
+		return errors.New("canonical ingestion process does not support Run-bundle publications; rebuild the server")
+	}
+	return w.ingest("run-bundles")
+}
+
+func (w *dashboardIngestor) ingest(mode string) error {
 	if w.closed {
 		return errors.New("canonical ingestion process is closed")
 	}
-	if err := json.NewEncoder(w.input).Encode(map[string]string{"type": "ingest"}); err != nil {
+	if err := json.NewEncoder(w.input).Encode(map[string]string{"type": "ingest", "mode": mode}); err != nil {
 		return errors.New("canonical ingestion process is unavailable")
 	}
 	var response struct {

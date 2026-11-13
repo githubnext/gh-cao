@@ -93,6 +93,10 @@ func publishDashboardSnapshot(ctx context.Context, cache string, batch map[strin
 // The cache retains verified canonical input, not a second query backend.
 // PostgreSQL owns query execution and daily-count reconciliation.
 func writeDashboardSnapshot(ctx context.Context, cache string, batch map[string][]map[string]any, keepHistory bool) (err error) {
+	return writeDashboardSnapshotWithBundles(ctx, cache, batch, keepHistory, nil)
+}
+
+func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch map[string][]map[string]any, keepHistory bool, bundles []byte) (err error) {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -188,6 +192,15 @@ func writeDashboardSnapshot(ctx context.Context, cache string, batch map[string]
 	}
 	hash := sha256.Sum256(inventory)
 	manifest["inventory-sources.json"] = hex.EncodeToString(hash[:])
+	names := []string{"gh-aw-logs-runs", "gh-aw-logs-records", "inventory-sources.json", "payload-hashes.json"}
+	if bundles != nil {
+		if err := os.WriteFile(filepath.Join(staging, "run-bundles.json"), bundles, 0o600); err != nil {
+			return err
+		}
+		hash := sha256.Sum256(bundles)
+		manifest["run-bundles.json"] = hex.EncodeToString(hash[:])
+		names = append(names, "run-bundles.json")
+	}
 	content, err := json.Marshal(manifest)
 	if err != nil {
 		return err
@@ -195,7 +208,7 @@ func writeDashboardSnapshot(ctx context.Context, cache string, batch map[string]
 	if err := os.WriteFile(filepath.Join(staging, "payload-hashes.json"), content, 0o600); err != nil {
 		return err
 	}
-	return nativePublishDownload(staging, cache, []string{"gh-aw-logs-runs", "gh-aw-logs-records", "inventory-sources.json", "payload-hashes.json"})
+	return nativePublishDownload(staging, cache, names)
 }
 
 func readDashboardArtifactBatch(ctx context.Context, cache string) (map[string][]map[string]any, error) {

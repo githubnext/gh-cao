@@ -358,7 +358,7 @@ func nativePublishDownload(staging, destination string, names []string) (err err
 	}
 	for _, name := range names {
 		switch name {
-		case "payload-hashes.json", "inventory-sources.json", "gh-aw-logs-runs", "gh-aw-logs-records":
+		case "payload-hashes.json", "inventory-sources.json", "gh-aw-logs-runs", "gh-aw-logs-records", "run-bundles.json":
 		default:
 			return rollback(nativeErrorf("Activity snapshot contains an unsafe publication path: %s", name))
 		}

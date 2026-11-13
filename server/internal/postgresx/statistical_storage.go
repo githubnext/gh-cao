@@ -319,17 +319,24 @@ func (w *Writer) copyStatisticalBundles(ctx context.Context, maxBytes int64) err
 		}
 		relation := query.SQLIdentifier(table.name) + " t WHERE t.namespace=$1 AND (" + predicate + ")"
 		var rows, size int64
-		// Measure expanded typed values; compressed TOAST pointers cannot hide an oversized bundle.
-		bounded := "(SELECT t.* FROM " + relation + fmt.Sprintf(" LIMIT %d) t", query.MaxInputRows+1)
-		if err := w.tx.QueryRow(ctx, "SELECT count(*),coalesce(sum("+entityBytesSQL(table, "t")+"),0)::bigint FROM "+bounded, w.store.namespace).Scan(&rows, &size); err != nil {
+		// Select once, measure expanded typed values, then admit the whole source
+		// before inserting it. Keep dependency sources in separate bounded plans.
+		statement := `WITH selected AS MATERIALIZED (
+			SELECT t.* FROM ` + relation + fmt.Sprintf(" LIMIT %d", query.MaxInputRows+1) + `
+		), measured AS MATERIALIZED (
+			SELECT count(*) AS rows,coalesce(sum(` + entityBytesSQL(table) + `),0)::bigint AS bytes
+			FROM selected t
+		), copied AS (
+			INSERT INTO ` + query.SQLIdentifier(statisticalTables[source].name) + `
+			SELECT t.* FROM selected t CROSS JOIN measured m
+			WHERE m.rows<=$2 AND m.rows<=$3 AND m.bytes<=$4
+		) SELECT rows,bytes FROM measured`
+		if err := w.tx.QueryRow(ctx, statement, w.store.namespace, query.MaxInputRows, int64(query.MaxWorkingRows)-count, maxBytes-bytes).Scan(&rows, &size); err != nil {
 			return err
 		}
 		count, bytes = count+rows, bytes+size
 		if rows > query.MaxInputRows || count > query.MaxWorkingRows || bytes > maxBytes {
 			return dashboardquery.ErrStatisticalBudget
-		}
-		if _, err := w.tx.Exec(ctx, "INSERT INTO "+query.SQLIdentifier(statisticalTables[source].name)+" SELECT t.* FROM "+relation, w.store.namespace); err != nil {
-			return err
 		}
 	}
 	return nil

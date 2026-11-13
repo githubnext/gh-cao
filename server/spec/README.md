@@ -49,9 +49,24 @@ not additional canonical ingestion sources. `Storage.Statistical` declares typed
 frame, membership, and stratum metadata; copied quality and structural parents
 keep statistical queries independent of mutable canonical detail. Snapshot
 publication replaces these tables atomically under the namespace writer lock,
-with whole-bundle admission limits. Incremental writes only make the publication
-stale; a complete snapshot rebuilds its seven-day frame. Exact retention, browser
-sampling, hot-tier eviction, and daily contributions are unchanged.
+with whole-bundle admission limits. Explicit Run-bundle publication also rebuilds
+the complete seven-day frame and frozen bundles from the resulting canonical
+state, in the same transaction. Independent admission, conclusion and lifecycle
+writes only make the publication stale. Exact retention, browser sampling,
+hot-tier eviction, and daily contributions are unchanged.
+
+`cao_ingestion_accounting` and `cao_run_accounting` are private typed writer
+receipts for source counts, ordinals, evidence clocks and per-Run logical
+footprints/partition locators. `cao_state.capacity_revision` and the receipts'
+revision fence their reuse; independent canonical writers force reconstruction.
+Public reads still count authoritative entity tables. `cao_bundle_versions`
+retains accepted Run attempts and independent structural-parent observation
+digests; `cao_state.bundle_epoch` fences observations preceding full
+reconciliation. These are local publication bookkeeping, not new canonical
+entities, query sources, HTTP operations, or a remote synchronization protocol.
+The explicit contract is in `specs/dashboard-data.md` §5.2. Provision fresh
+canonical storage and rebuild verified input when adopting this physical layout;
+do not migrate an existing layout or remove independent operational state.
 
 `operationalValueEvidence.facts` is an entity-owned typed array. The emitter
 generates its private relational child table and native scalar bindings.

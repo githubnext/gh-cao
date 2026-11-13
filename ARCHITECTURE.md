@@ -614,6 +614,32 @@ Database telemetry counts individual statements and times each pipelined batch
 as one operation rather than inventing per-statement execution durations.
 Unchanged ingestion checks publication identity without counting sources, then
 curates audits under the namespace writer lock and reads the resulting counts once.
+Invocation preservation stages structural and conclusion dependencies only when
+the locked namespace actually contains retained invocation Runs. Statistical
+bundle publication selects each source into a bounded materialized relation once,
+measures expanded typed bytes there, and inserts only if both source and cumulative
+budgets admit it. Each dependency remains a separate SQL plan; an over-budget
+source is not inserted, and publication clears all bundles before exposing the
+unavailable frame. Neither optimization changes the full-snapshot replacement
+contract or bypasses native integrity checks.
+Explicit Run-bundle publication uses a separate bounded contract after the first
+authoritative snapshot: typed staging and UPSERTs affect only accepted Runs,
+their source-owned children and supplied structural parents. Coverage controls
+replacement versus enrichment; attempt, observation and shared-parent version
+fences reject stale or conflicting evidence. Full reconciliation establishes a
+local-clock epoch, preventing old sidecars from reapplying afterward.
+Revision-qualified private accounting locates Run partitions and retains source
+counts, ordinals, evidence clocks and expanded-byte footprints. Independent
+writers invalidate that acceleration state; authoritative rows reconstruct it.
+Daily reconciliation, curation and native ANALYZE are scoped to affected keys or
+sources, while capacity ordering still scans compact namespace receipts.
+Frozen statistical frame and bundle reconstruction remains synchronous and
+namespace-wide in the same transaction: delta publication is not constant-time
+or an online reservoir. Independent admission and conclusion writes retain their
+existing stale-sample behavior. The local collector explicitly negotiates
+`run-bundles`, verifies its fixed manifested sidecar and all recovery shards, and
+keeps initial/final full reconciliation. It still writes a complete disk snapshot.
+The new private bookkeeping requires freshly provisioned canonical storage.
 Canonical snapshot, admission, and conclusion writes enforce the same
 namespace-local Run-subtree capacity boundary: 200,000 rows per Run-owned source
 and 256 MiB of combined logical typed-row bytes. After daily-count reconciliation,

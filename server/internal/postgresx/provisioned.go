@@ -21,7 +21,8 @@ func checkProvisionedContract(ctx context.Context, db *sql.DB) error {
 		return errors.New("native storage contract changed; provision a new canonical database without removing operational audit history")
 	}
 	var statistics bool
-	if err := db.QueryRowContext(ctx, `SELECT coalesce(has_function_privilege(to_regprocedure('cao_analyze_native()'), 'EXECUTE'), false)`).Scan(&statistics); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT coalesce(has_function_privilege(to_regprocedure('cao_analyze_native()'), 'EXECUTE'), false)
+		AND coalesce(has_function_privilege(to_regprocedure('cao_analyze_native(text[])'), 'EXECUTE'), false)`).Scan(&statistics); err != nil {
 		return err
 	}
 	if !statistics {
@@ -52,6 +53,23 @@ func initializeStatistics(ctx context.Context, db *sql.DB) error {
 		body.WriteString("ANALYZE " + pgx.Identifier{schema, entityTables[source].name}.Sanitize() + ";\n")
 	}
 	body.WriteString("END; $statistics$; REVOKE ALL ON FUNCTION " + name + "() FROM PUBLIC;")
+	if _, err := tx.ExecContext(ctx, body.String()); err != nil {
+		return err
+	}
+	var sources []string
+	for _, source := range tableNames() {
+		sources = append(sources, "'"+source+"'")
+	}
+	body.Reset()
+	body.WriteString("CREATE OR REPLACE FUNCTION " + name + "(sources text[]) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $statistics$ BEGIN\n")
+	body.WriteString("IF sources IS NULL OR cardinality(sources)>" + fmt.Sprint(len(sources)) +
+		" OR EXISTS(SELECT 1 FROM unnest(sources) s WHERE s IS NULL OR s NOT IN (" +
+		strings.Join(sources, ",") + ")) THEN RAISE EXCEPTION 'invalid canonical statistics scope'; END IF;\n")
+	for _, source := range tableNames() {
+		body.WriteString("IF '" + source + "'=ANY(sources) THEN ANALYZE " +
+			pgx.Identifier{schema, entityTables[source].name}.Sanitize() + "; END IF;\n")
+	}
+	body.WriteString("END; $statistics$; REVOKE ALL ON FUNCTION " + name + "(text[]) FROM PUBLIC;")
 	if _, err := tx.ExecContext(ctx, body.String()); err != nil {
 		return err
 	}
