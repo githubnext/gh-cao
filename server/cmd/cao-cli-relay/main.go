@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -67,11 +68,17 @@ func run() int {
 			cancel()
 		}
 	}()
+	return runWorkload(ctx, os.Args[1:], os.Environ(), os.Stdin, os.Stdout, os.Stderr)
+}
+
+// runWorkload runs the workload with every proxy variable pointed at the relay
+// and returns the relay exit status.
+func runWorkload(ctx context.Context, args, environ []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	// #nosec G204 G702 -- fixed bootstrap and validated CLI arguments supplied by the Docker lifecycle, never host execution.
-	command := exec.CommandContext(ctx, os.Args[1], os.Args[2:]...)
-	command.Stdin, command.Stdout, command.Stderr = os.Stdin, os.Stdout, os.Stderr
-	command.Env = workloadEnv(os.Environ())
-	relayLog.Printf("starting workload: args=%d", len(os.Args)-2)
+	command := exec.CommandContext(ctx, args[0], args[1:]...)
+	command.Stdin, command.Stdout, command.Stderr = stdin, stdout, stderr
+	command.Env = workloadEnv(environ)
+	relayLog.Printf("starting workload: args=%d", len(args)-1)
 	return workloadExitCode(command.Run())
 }
 
@@ -79,6 +86,7 @@ func run() int {
 // workload's own code when it exited, 125 when it could not be run or was killed.
 func workloadExitCode(err error) int {
 	if err == nil {
+		relayLog.Printf("workload exited: code=0")
 		return 0
 	}
 	var exit *exec.ExitError
