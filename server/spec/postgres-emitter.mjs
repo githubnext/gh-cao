@@ -125,7 +125,7 @@ export async function $onEmit(context) {
       'PRIMARY KEY (namespace, collection)',
       'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
       `CHECK (collection IN (${tables.filter((t) => !t.runtime && !t.owner).map((t) => `'${t.source}'`).join(',')}))`,
-      'CHECK (revision >= 0 AND records >= 0 AND next_ordinal >= 0)'
+      'CHECK (revision >= 0 AND records >= 0 AND bytes >= 0 AND next_ordinal >= 0)'
     ] : table.name === 'cao_run_accounting' ? [
       'PRIMARY KEY (namespace, collection, run_id)',
       'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',

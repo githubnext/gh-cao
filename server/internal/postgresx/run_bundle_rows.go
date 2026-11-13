@@ -76,7 +76,6 @@ func (w *Writer) applyRunBundleRows(ctx context.Context) (map[string]bool, error
 			if err != nil {
 				return nil, err
 			}
-			w.accounting[source].records -= tag.RowsAffected()
 			changed[source] = tag.RowsAffected() > 0
 		}
 		if moved {
@@ -265,7 +264,9 @@ func (w *Writer) upsertBundleStage(ctx context.Context, source string) (int64, e
 	if err != nil {
 		return 0, fmt.Errorf("publish run bundle %s: %w", source, err)
 	}
-	w.accounting[source].records += inserted
+	if !table.partitioned {
+		w.accounting[source].records += inserted
+	}
 	w.accounting[source].nextOrdinal += w.ordinals[source]
 	return changed, nil
 }

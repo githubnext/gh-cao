@@ -46,6 +46,22 @@ func entityBytesSQL(table entityTable) string {
 }
 
 func (w *Writer) capRuns(ctx context.Context) error {
+	if w.delta {
+		limits := w.store.capacity()
+		var bytes int64
+		fits := true
+		for source, value := range w.accounting {
+			if entityTables[source].partitioned {
+				fits = fits && value.records <= int64(limits.rows)
+				bytes += value.bytes
+			}
+		}
+		if fits && bytes <= limits.bytes {
+			_, err := w.tx.Exec(ctx, "UPDATE cao_state SET capacity_revision=revision+1 WHERE namespace=$1", w.store.namespace)
+			return err
+		}
+	}
+	w.capacityRanked = true
 	return capRunSubtrees(ctx, w.store.namespace, w.store.capacity(), capacitySQL{
 		measured:    w.delta,
 		auditClocks: true,

@@ -1062,6 +1062,7 @@ namespace Storage {
     collection: string;
     revision: int64;
     records: int64;
+    bytes: int64;
     nextOrdinal: int64;
     evidenceAt?: utcDateTime;
   }

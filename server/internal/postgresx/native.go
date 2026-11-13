@@ -158,6 +158,7 @@ type Writer struct {
 	preserveValues          bool
 	preservedRuns           bool
 	delta                   bool
+	capacityRanked          bool
 	accounting              map[string]*collectionAccounting
 	bundleEpoch             *time.Time
 }
@@ -667,7 +668,14 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 			continue
 		}
 		collections = append(collections, source)
-		counts.Queue("SELECT count(*),coalesce(max(ordinal)+1,0) FROM "+query.SQLIdentifier(entityTables[source].name)+" WHERE namespace=$1", w.store.namespace)
+		size := "0::bigint"
+		args := []any{w.store.namespace}
+		if entityTables[source].partitioned {
+			size = "(SELECT coalesce(sum(bytes),0)::bigint FROM cao_run_accounting WHERE namespace=$1 AND collection=$2)"
+			args = append(args, source)
+		}
+		counts.Queue("SELECT count(*),coalesce(max(ordinal)+1,0),"+size+" FROM "+
+			query.SQLIdentifier(entityTables[source].name)+" WHERE namespace=$1", args...)
 	}
 	if err := w.readCounts(ctx, counts, collections, state.Counts); err != nil {
 		return State{}, err
@@ -752,11 +760,13 @@ func (w *Writer) readCounts(ctx context.Context, batch *pgx.Batch, collections [
 	for _, source := range collections {
 		var count int
 		var next int64
-		if err := results.QueryRow().Scan(&count, &next); err != nil {
+		var size int64
+		if err := results.QueryRow().Scan(&count, &next, &size); err != nil {
 			return err
 		}
 		counts[source] = count
 		w.accounting[source].records, w.accounting[source].nextOrdinal = int64(count), next
+		w.accounting[source].bytes = size
 	}
 	return results.Close()
 }

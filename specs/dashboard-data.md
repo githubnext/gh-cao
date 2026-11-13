@@ -987,8 +987,8 @@ Ordinary publication SHALL mutate only accepted Run subtrees and supplied
 structural parents, except for necessary capacity eviction. Run-bundle publication
 SHALL mark cached statistical summaries stale without rebuilding them. Private
 typed per-Run footprints and per-source
-counts, ordinals and evidence clocks MAY accelerate writes only at the locked
-canonical revision; independent writers SHALL invalidate them, requiring
+counts, logical byte totals, ordinals and evidence clocks MAY accelerate writes
+only at the locked canonical revision; independent writers SHALL invalidate them, requiring
 reconstruction from authoritative native rows. They are not query sources or
 canonical entities. Delta coverage SHALL remain partial or unavailable rather
 than imply full-source completeness. Physical bookkeeping changes require the
@@ -3896,6 +3896,15 @@ logical typed-row bytes. Byte accounting uses 64 bytes plus the column count
 per row and the UTF-8 text byte lengths of its typed column values; it is a
 logical resource envelope, not a physical disk, transaction-peak, or RSS limit.
 Query resource guards SHALL NOT be raised to accommodate larger history.
+
+Run-bundle publication MAY skip namespace-wide footprint aggregation and ranking
+when revision-fenced per-source row totals and combined logical byte totals prove
+every limit fits. Totals SHALL incorporate old and new receipts for all accepted
+Run subtrees, including removed collections and winning attempts, in the same
+transaction. Evidence-clock maxima SHALL remain exact after replacements,
+including removal of the previous maximum. Over-budget writes SHALL retain exact
+deterministic ranking and reconstruct totals after eviction; independent writers
+SHALL invalidate cached totals before another delta can use this fast path.
 
 After reconciling additive daily contributions, a write SHALL evict the oldest
 complete Run subtrees atomically until the newest retained prefix fits every
