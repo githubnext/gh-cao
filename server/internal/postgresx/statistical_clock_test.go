@@ -53,24 +53,29 @@ func TestOversizedStatisticalInputIsCappedBeforePublication(t *testing.T) {
 	if err != nil || state.Counts["$runs"] != query.MaxInputRows {
 		t.Fatalf("publication did not cap retained input: %+v %v", state, err)
 	}
-	results, _, err := store.ExecuteSQLPlan(t.Context(), []query.Definition{
+	definitions := []query.Definition{
 		{Name: "sample", From: "$statisticalMembership"},
 		{Name: "exact", From: "$repositories"},
 		{Name: "retained", From: "$runs", Aggregate: &query.Aggregate{
 			Values: []query.AggregateValue{{Field: "id", As: "runs", Reducer: "count"}},
 		}},
-	}, []string{"sample", "exact", "retained"})
-	if err != nil {
-		t.Fatal(err)
 	}
-	if results["sample"].Metadata["availability"] != "available" || len(results["sample"].Rows) == 0 {
-		t.Fatalf("bounded retained frame became unavailable: %+v", results["sample"].Metadata)
-	}
-	if rows := results["retained"].Rows; len(rows) != 1 || fmt.Sprint(rows[0]["runs"]) != fmt.Sprint(query.MaxInputRows) {
-		t.Fatalf("retained exact query was not usable at capacity: %+v", results["retained"])
-	}
-	if len(results["exact"].Rows) != 1 || results["exact"].Rows[0]["id"] != "repository" {
-		t.Fatalf("sampling budget changed exact evidence: %+v", results["exact"])
+	for _, phase := range []string{"cold", "cached"} {
+		t.Run(phase, func(t *testing.T) {
+			results, _, err := store.ExecuteSQLPlan(t.Context(), definitions, []string{"sample", "exact", "retained"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if results["sample"].Metadata["availability"] != "available" || len(results["sample"].Rows) == 0 {
+				t.Fatalf("bounded retained frame became unavailable: %+v", results["sample"].Metadata)
+			}
+			if rows := results["retained"].Rows; len(rows) != 1 || fmt.Sprint(rows[0]["runs"]) != fmt.Sprint(query.MaxInputRows) {
+				t.Fatalf("retained exact query was not usable at capacity: %+v", results["retained"])
+			}
+			if len(results["exact"].Rows) != 1 || results["exact"].Rows[0]["id"] != "repository" {
+				t.Fatalf("sampling budget changed exact evidence: %+v", results["exact"])
+			}
+		})
 	}
 }
 

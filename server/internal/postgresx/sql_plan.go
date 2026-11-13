@@ -50,6 +50,7 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	ctx, cancel := context.WithTimeout(ctx, inputlimits.PostgresReadTransactionTimeout)
 	defer cancel()
 	metadata := map[string]model.Metadata{}
+	usesStatisticalCache := false
 	retrievedAt := time.Now().UTC().Format(time.RFC3339Nano)
 	definitions = frozenStatisticalDefinitions(definitions)
 	var keysetPlan *query.PagePlan
@@ -108,6 +109,7 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 			return typedRowsSQLSource(name, table, source)
 		}
 		if strings.HasPrefix(name, statisticalSnapshotPrefix) {
+			usesStatisticalCache = true
 			if len(options.Repositories) > 0 {
 				return query.SQLRelation{}, fmt.Errorf("hosted local Value cannot query unscoped statistical source %q", name)
 			}
@@ -116,6 +118,7 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 			return relation, err
 		}
 		if name == "$statisticalMembership" {
+			usesStatisticalCache = true
 			if len(options.Repositories) > 0 {
 				return query.SQLRelation{}, fmt.Errorf("hosted local Value cannot query unscoped statistical source %q", name)
 			}
@@ -201,6 +204,14 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 	}
 	if err != nil {
 		return nil, model.Metrics{}, err
+	}
+	if usesStatisticalCache {
+		// Parallel workers copy the entire bound parameter list into shared
+		// memory, including cached summary arrays unrelated to their scan.
+		// Keep these plans serial without changing canonical-only reads.
+		if _, err := r.tx.ExecContext(ctx, "SET LOCAL max_parallel_workers_per_gather = 0"); err != nil {
+			return nil, model.Metrics{}, fmt.Errorf("configure statistical SQL execution: %w", err)
+		}
 	}
 
 	statsSQL, statsArgs, err := plan.StatisticsStatement()

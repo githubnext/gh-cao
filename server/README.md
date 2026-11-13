@@ -41,6 +41,12 @@ Go durations of at least `1ms`; invalid values fail storage startup.
 The cache and single-flight throttle belong to one Store/server process.
 Replicas and restarted processes have independent attempt fences.
 
+SQL plans consuming cached summaries run without parallel workers for that read
+transaction. PostgreSQL otherwise copies all bound summary arrays into parallel
+query shared memory, even for an independent exact-table scan in the same plan.
+Canonical-only reads retain the server's parallel-query settings; no global or
+CI shared-memory configuration change is required.
+
 For the browser/IndexedDB projection, set
 `globalThis.__CAO_DASHBOARD_CONFIG__.statisticalRefreshIntervalMs` in the
 deployment bootstrap to a positive safe-integer millisecond duration
