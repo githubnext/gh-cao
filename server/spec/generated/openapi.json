@@ -1589,6 +1589,169 @@
         ]
       }
     },
+    "/api/v1/events/ws": {
+      "get": {
+        "operationId": "Queries_websocket",
+        "description": "Local-only WebSocket upgrade. Offer `cao-dashboard` and `cao-bearer.<base64url capability>` subprotocols; only `cao-dashboard` is selected, never the credential. Requires an exact same-origin Origin header. Hosted deployments return 404. Sends RevisionEvent JSON messages and LocalIngestionProgressEvent messages on change, with a heartbeat every 20 seconds. Progress is transient acquisition telemetry, not canonical evidence; it does not advance the query revision or trigger queries. No credential is accepted in the URL.",
+        "parameters": [
+          {
+            "name": "Sec-WebSocket-Protocol",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "Informational",
+            "headers": {
+              "Upgrade": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "websocket"
+                  ]
+                }
+              },
+              "Sec-WebSocket-Protocol": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "cao-dashboard"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "An error response. The message is diagnostic, not a stable error code."
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Queries"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/github-quota/usage": {
       "get": {
         "operationId": "Operations_quotaUsage",
@@ -5336,6 +5499,77 @@
             "items": {
               "$ref": "#/components/schemas/SelectedField"
             }
+          }
+        }
+      },
+      "LocalIngestionProgress": {
+        "type": "object",
+        "required": [
+          "passId",
+          "repository",
+          "phase",
+          "receivedRuns",
+          "startedAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "passId": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "discovering",
+              "receiving",
+              "ingesting",
+              "waiting",
+              "paused",
+              "failed"
+            ]
+          },
+          "receivedRuns": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Counts unique validated rich run attempts received in the current local collection pass, before normalization or PostgreSQL commit. Does not count retained canonical runs or imply successful ingestion."
+      },
+      "LocalIngestionProgressEvent": {
+        "type": "object",
+        "required": [
+          "type",
+          "progress"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ingestion-progress"
+            ]
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocalIngestionProgress"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when no local progress receipt is available. Clients clear transient progress on disconnect."
           }
         }
       },

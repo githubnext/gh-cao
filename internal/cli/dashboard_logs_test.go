@@ -318,6 +318,110 @@ func TestDashboardLogsStreamPublicationFailureCancelsProducer(t *testing.T) {
 	}
 }
 
+func TestDashboardLogsStreamReceivesWhilePublicationIsBlocked(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	publishing := make(chan struct{})
+	received := make(chan struct{})
+	first := true
+	err := streamDashboardLogs(ctx, dashboardLogRequest{
+		Count: 2,
+		OnRunReceived: func(_ context.Context, run map[string]any) error {
+			if nativeScalar(run["run_id"]) == "124" {
+				select {
+				case <-received:
+				default:
+					close(received)
+				}
+			}
+			return nil
+		},
+		OnRuns: func(ctx context.Context, _ []map[string]any) error {
+			if first {
+				first = false
+				close(publishing)
+				select {
+				case <-received:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+			return nil
+		},
+	}, nil, func(ctx context.Context, _ []string, output io.Writer) error {
+		if _, err := fmt.Fprintln(output, `{"type":"run","run":{"run_id":123}}`); err != nil {
+			return err
+		}
+		select {
+		case <-publishing:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		_, err := io.WriteString(output, "{\"type\":\"run\",\"run\":{\"run_id\":124}}\n"+
+			"{\"type\":\"summary\",\"data\":{\"runs\":[{\"run_id\":123},{\"run_id\":124}]}}\n{\"type\":\"complete\"}\n")
+		return err
+	})
+	if err != nil {
+		t.Fatalf("receipt stalled behind PostgreSQL publication: %v", err)
+	}
+}
+
+func TestDashboardProgressCountsUniqueAttemptsBeforePublication(t *testing.T) {
+	cache := t.TempDir()
+	progress := newDashboardProgress(cache, time.Now().UTC())
+	for _, attempt := range []int{1, 1, 2} {
+		if err := progress.receive("octo/api", map[string]any{"run_id": "123", "run_attempt": attempt}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	content, err := os.ReadFile(filepath.Join(cache, "ingestion-progress.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var receipt struct {
+		ReceivedRuns int    `json:"receivedRuns"`
+		Phase        string `json:"phase"`
+	}
+	if err := json.Unmarshal(content, &receipt); err != nil {
+		t.Fatal(err)
+	}
+	if receipt.ReceivedRuns != 2 || receipt.Phase != "receiving" {
+		t.Fatalf("receipt counted duplicates or implied ingestion: %+v", receipt)
+	}
+	if err := progress.publish("failed", "octo/api"); err != nil {
+		t.Fatal(err)
+	}
+	next := newDashboardProgress(cache, time.Now().UTC())
+	if err := next.publish("discovering", "octo/api"); err != nil || next.value.ReceivedRuns != 0 {
+		t.Fatalf("a new pass reused previous counts: %v", err)
+	}
+}
+
+func TestDashboardProgressPreservesQuotaPause(t *testing.T) {
+	cache := t.TempDir()
+	gh := func(context.Context, ...string) (string, string, error) {
+		content, err := json.Marshal(map[string]any{"resources": map[string]any{"core": dashboardQuota{
+			Limit: 5000, Used: 4000, Remaining: 1000, Reset: time.Now().Add(time.Hour).Unix(),
+		}}})
+		return string(content), "", err
+	}
+	_, err := collectDashboard(t.Context(), []string{"octo/api"}, cache,
+		dashboardOptions{window: time.Hour, count: 1, refresh: time.Minute}, gh, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(cache, "ingestion-progress.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var progress struct {
+		Phase string `json:"phase"`
+	}
+	if err := json.Unmarshal(content, &progress); err != nil || progress.Phase != "paused" {
+		t.Fatalf("quota pause was reported as successful idle acquisition: %s, %v", content, err)
+	}
+}
+
 func TestDashboardLogsPrerequisite(t *testing.T) {
 	for _, mode := range []string{"installed", "stderr-help", "missing", "outdated", "install-fails", "still-unsupported", "canceled"} {
 		t.Run(mode, func(t *testing.T) {

@@ -800,6 +800,9 @@ func (a *App) Handler() http.Handler {
 	register("GET /api/readiness", a.readiness)
 	register("GET /llms.txt", a.llms)
 	register("GET /api/v1/events", a.events)
+	if a.oauth == nil {
+		register("GET /api/v1/events/ws", a.websocketEvents)
+	}
 	register("POST /api/v1/query", a.query)
 	register("GET /api/v1/session-archive/status", a.sessionArchiveStatus)
 	register("POST /api/v1/session-archive/query", a.sessionArchiveQuery)
@@ -1028,6 +1031,11 @@ func validLocalRequestHost(value string) bool {
 }
 
 func (a *App) authorized(request *http.Request) bool {
+	if a.oauth == nil && request.Method == http.MethodGet && request.URL.Path == "/api/v1/events/ws" {
+		if token, err := websocketCapability(request); err == nil && constantTimeTokenEqual(token, a.accessToken) {
+			return true
+		}
+	}
 	token, ok := bearerToken(request)
 	if ok && constantTimeTokenEqual(token, a.accessToken) {
 		return true
@@ -2119,6 +2127,9 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	html := string(content)
 	storageBackend := "postgres"
 	injections := `<meta name="dashboard-data-backend" content="server-http"><meta name="dashboard-storage-backend" content="` + storageBackend + `">`
+	if a.oauth == nil {
+		injections += `<meta name="dashboard-live-transport" content="websocket">`
+	}
 	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
 		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
 	}

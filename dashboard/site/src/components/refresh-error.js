@@ -4,7 +4,7 @@ import { formatMediumUtcDateTime, formatUtcDateTime, renderActionLabel, renderTo
 import { publishNotification } from '../notification-service.js';
 import { createDebug } from '../debug.js';
 import { derived, effect, render, state, untracked } from '../reactive.js';
-import { dashboardDataStatus } from '../dashboard-data-status.js';
+import { dashboardDataStatus, localIngestionProgress } from '../dashboard-data-status.js';
 import { isDashboardRateLimited } from '../rate-limit-notification.js';
 import { createFactoryScope } from './factory-elements.js';
 import { requestLocalIngestion, usesRemoteDataBackend } from '../remote-data-backend.js';
@@ -159,7 +159,17 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
   render(description, () => {
     const current = presentation.get();
     const progress = ingestionRow.get();
-    if (!progress) return current.detail;
+    const acquisition = remote ? localIngestionProgress.get() : null;
+    const receipt = acquisition ? [
+      h('span', { className: 'ingestion-status-runs' },
+        h('span', null, 'Runs received this pass'),
+        h('strong', null, ingestionNumber(acquisition.receivedRuns))),
+      h('small', { className: 'ingestion-status-receiving' },
+        `${acquisition.phase} · pass started ${formatNumber(Math.max(0, Math.floor((clock.get() - Date.parse(acquisition.startedAt)) / 1000)))}s ago`)
+    ] : [];
+    if (!progress) return acquisition
+      ? h('span', { className: 'ingestion-status-card' }, current.detail, ...receipt)
+      : current.detail;
     const scanned = progress['scanned-hours'];
     const target = progress['target-hours'];
     const determinate = typeof scanned === 'number' && Number.isFinite(scanned) && scanned >= 0
@@ -180,6 +190,7 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
       determinate
         ? h('progress', { max: target, value: scanned, 'aria-label': 'History scanned', 'aria-valuetext': `${ingestionNumber(scanned)} of ${ingestionNumber(target)} repository-hours` })
         : h('span', { className: 'ingestion-status-unavailable' }, 'History unavailable'),
+      ...receipt,
       h('span', { className: 'ingestion-status-runs' },
         h('span', null, 'Runs ingested'),
         h('strong', null, ingestionNumber(ingestedRuns.get()))),

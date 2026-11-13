@@ -1,17 +1,15 @@
 ---
-description: Reviews ready pull requests with pinned Matt Pocock engineering skills and repository-specific change context.
+description: Reviews pull requests with pinned Matt Pocock engineering skills and CAO contracts.
 engine:
   id: copilot
   max-continuations: 6
 max-ai-credits: 500
 max-daily-ai-credits: -1
 name: Matt Pocock Skills Reviewer
-"on":
+on:
   reaction: none
   slash_command:
-    events:
-    - pull_request_comment
-    - pull_request_review_comment
+    events: [pull_request_comment, pull_request_review_comment]
     name: matt
     strategy: centralized
 permissions:
@@ -19,6 +17,8 @@ permissions:
   copilot-requests: write
   pull-requests: read
 private: true
+imports:
+  - shared/pr-review-context.md
 safe-outputs:
   create-pull-request-review-comment:
     max: 10
@@ -27,61 +27,54 @@ safe-outputs:
   submit-pull-request-review:
     max: 1
 skills:
-- mattpocock/skills/diagnosing-bugs@3cca18b368ae95cdbdebbff572ccafa662551015
-- mattpocock/skills/tdd@3cca18b368ae95cdbdebbff572ccafa662551015
-- mattpocock/skills/improve-codebase-architecture@3cca18b368ae95cdbdebbff572ccafa662551015
-- mattpocock/skills/grill-with-docs@3cca18b368ae95cdbdebbff572ccafa662551015
-- mattpocock/skills/codebase-design@3cca18b368ae95cdbdebbff572ccafa662551015
-steps:
-- env:
-    GH_TOKEN: ${{ github.token }}
-    PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || fromJSON(github.event.inputs.aw_context || '{}').item_number }}
-    REPOSITORY: ${{ github.repository }}
-  name: Prefetch bounded pull request context
-  run: "set -euo pipefail\nmkdir -p /tmp/gh-aw/agent\ngh pr view \"$PR_NUMBER\" \\\n  --repo \"$REPOSITORY\" \\\n  --json number,title,body,headRefName,headRefOid,additions,deletions,changedFiles,files \\\n  > /tmp/gh-aw/agent/pr-meta.json\nif gh pr diff \"$PR_NUMBER\" --repo \"$REPOSITORY\" > /tmp/gh-aw/agent/pr-diff.raw; then\n  awk '\n      /^diff --git / {\n        excluded = ($0 ~ /\\.lock\\.yml/ || $0 ~ /\\/dist\\// || $0 ~ /\\/build\\//)\n      }\n      !excluded && emitted < 3000 { print; emitted++ }\n    ' \\\n    /tmp/gh-aw/agent/pr-diff.raw \\\n    > /tmp/gh-aw/agent/pr-diff.patch\nelse\n  printf '# Pull request diff could not be prefetched.\\n' > /tmp/gh-aw/agent/pr-diff.patch\nfi\nrm -f /tmp/gh-aw/agent/pr-diff.raw\nif ! gh api --paginate \"repos/$REPOSITORY/pulls/$PR_NUMBER/comments?per_page=100\" \\\n    --jq '.[] | {id, path, line: (.line // .original_line), body: .body[:300], user: .user.login}' \\\n    | jq -s '.' \\\n    > /tmp/gh-aw/agent/pr-review-comments.json; then\n  printf '[]\\n' > /tmp/gh-aw/agent/pr-review-comments.json\nfi\n"
+  - mattpocock/skills/diagnosing-bugs@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+  - mattpocock/skills/tdd@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+  - mattpocock/skills/improve-codebase-architecture@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+  - mattpocock/skills/grill-with-docs@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+  - mattpocock/skills/codebase-design@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
 strict: true
-timeout-minutes: 20
+timeout-minutes: 30
 tools:
   bash: true
   github:
     min-integrity: approved
     mode: gh-proxy
-    toolsets:
-    - pull_requests
-    - repos
+    toolsets: [pull_requests, repos]
 ---
+
 # Matt Pocock Skills Reviewer
 
-Review the pull request's changed lines with the smallest relevant set of the installed Matt Pocock engineering skills.
+Adapted from [github/gh-aw's reviewer](https://github.com/github/gh-aw/blob/7517bb740093e38f08ca54f6c2758ee7bfb6f53d/.github/workflows/mattpocock-skills-reviewer.md)
+under the repository's MIT license. Keep local invocation and authority limits.
 
-## Process
+Review changed lines with the smallest relevant set of the installed Matt Pocock
+engineering skills. Read the shared review summary, then `pr-meta.json`,
+`pr-files.json`, `pr-diff.patch` and `pr-review-comments.json` under
+`/tmp/gh-aw/agent/` before using GitHub tools.
 
-1. Read these pre-fetched files before using any GitHub tool:
-   - `/tmp/gh-aw/agent/pr-meta.json`
-   - `/tmp/gh-aw/agent/pr-diff.patch`
-   - `/tmp/gh-aw/agent/pr-review-comments.json`
-2. Discover available `SKILL.md` files under the engine's installed skill locations. Read only the one or two skills relevant to the change.
-3. Classify the change and choose skills:
-   - bug fix: `diagnosing-bugs` and `tdd`;
-   - feature: `tdd` and `grill-with-docs`;
-   - refactor or architecture: `codebase-design` and `improve-codebase-architecture`;
-   - documentation or workflow intent: `grill-with-docs`;
-   - mixed: `codebase-design` and `tdd`.
-4. Apply this repository's contracts while reviewing:
-   - `.github/workflows/*.lock.yml` files are generated and must not be reviewed as source;
-   - workflow behavior comes from the matching Markdown source;
-  - CAO authority, gh-aw execution authority, and credentials must remain separate; target files must not alter CAO activation authority;
-   - missing policy or evidence must fail closed;
-   - changes spanning multiple areas should remain navigable and use existing domain language.
-5. Review changed lines only. Prioritize security, correctness, authority boundaries, tests, then maintainability. Do not comment on formatting or subjective style.
-6. Check `/tmp/gh-aw/agent/pr-review-comments.json` before emitting a finding. Do not duplicate an existing finding.
-7. Create at most ten inline comments. Prefix each with the applied skill, explain the concrete risk, and state the smallest corrective action.
-8. Submit exactly one overall review:
-   - `REQUEST_CHANGES` for correctness, security, or authority-boundary defects;
-   - `COMMENT` for non-blocking actionable observations;
-   - `APPROVE` only when no actionable defect remains.
-9. If the context cannot support a review, call `noop` with the specific missing evidence. Otherwise, approve a pull request with no actionable defect instead of posting generic praise.
+Discover installed `SKILL.md` files, then read only one or two relevant skills:
+
+- bug fix: `diagnosing-bugs` and `tdd`;
+- feature: `tdd` and `grill-with-docs`;
+- refactor or architecture: `codebase-design` and `improve-codebase-architecture`;
+- tests only: `tdd`;
+- documentation or workflow intent: `grill-with-docs`;
+- mixed: `codebase-design` and `tdd`.
+
+Classify directly from the prefetch; do not require a separate triage agent.
+Prioritize high-impact non-generated files, security, correctness, authority
+boundaries, regression coverage, then maintainability. Do not comment on style,
+invent defects, or infer red-green test history from a final diff.
+
+For each finding, identify the changed path/line, the applied skill, concrete
+risk and smallest corrective action. Emit at most ten inline comments and
+exactly one overall review through the declared safe outputs:
+
+- `REQUEST_CHANGES` for evidenced correctness, security or authority defects;
+- `COMMENT` for non-blocking actionable observations or incomplete review scope;
+- `APPROVE` only when complete evidence supports no actionable defect.
+
+Use `noop` when evidence cannot support any useful review. Do not post generic
+praise or re-fetch the diff to work around the 3000-line limit.
 
 In every inline comment and overall review body, use `###` for every heading; never use `#`, `##`, or `####` and deeper headings. Put every Markdown table inside a clearly named `<details>` element.
-
-Do not fetch the full diff again. If the 3000-line prefetch is insufficient, state the review limitation instead of making unsupported claims.
