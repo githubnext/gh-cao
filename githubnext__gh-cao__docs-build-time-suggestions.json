@@ -1,34 +1,7 @@
 {
  "source_sha": "e71feab47cfa2954c794cc5739333a8c31153a7f",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T21:34:39Z",
-   "worker_run_id": "43310646702",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "43301807773",
-    "43249903823",
-    "43242792853",
-    "43236057780",
-    "43228124764",
-    "43228046118",
-    "43225202834",
-    "43206235849",
-    "43206080696",
-    "43194788185",
-    "43167568535",
-    "43167070179",
-    "43165397534",
-    "43161224542",
-    "43145803206",
-    "43141528595",
-    "43139972486",
-    "43138878761"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; within 14 days; source HEAD cd1e0ba equals source_sha). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed after 14 s, deploy skipped, fixed by cd1e0ba; logs 403) and 1 cancelled 43206161686 (no jobs). Comparable n=18 successes (17 push, 1 schedule 43161224542; one identical 11-step build and 3-step deploy shape; 5-run gate met). Medians (p90), job and step metadata: 'Build documentation' step 14 s (p90 15; range 8-15 s) = 16.6% of execution median 84.5 s (p90 120 s) and 21% of build job 67 s. 15% gate = 12.7 s, which needs about 91% of the step removed, so no in-step change qualifies; the 60 s gate is unreachable. validate-agent-docs.mjs and agent-docs-discovery.test.mjs read dist/ and do not rebuild (no duplicate Astro build). Per-file 'git log' provenance in resolveBuildProvenance runs inside that 14 s bound; the astro/validate/test split is not visible (logs 403). No dashboard job exists. Carry-forward lead, not a suggestion: Checkout (fetch-depth 0) median 24 s (p90 46; 28% of execution, largest build step). fetch-depth 1 would change output (verified in resource.ts: git log -1 returns nothing, sourceCommittedAt becomes undefined). 'filter: blob:none' is untested and savings are unmeasured (repo size 1,451,382 KB vs 10.48 MiB HEAD pack); promotion needs a measured A/B in a maintainer branch. No open issue with this worker label; open #20683 is another campaign. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T21:53:50Z",
    "worker_run_id": "43313936448",
@@ -847,6 +820,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38Z to 2026-11-13T06:42Z; all within 14 days; source e71feab = HEAD = source_sha; none in progress). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=19 successes (all push). Medians (p90), jobs API: exec 85 s (106); Set up Node.js 5 s (7); Install dependencies 17 s (22; range 12-23) = 20% of exec; 15% gate = 12.75 s; setup+install 22 s (28). Cache verified via actions/caches: node-cache-Linux-x64-npm-e62f6006 (278.9 MB, created 2026-11-12T06:18Z, accessed 07:28Z); Post Set up Node.js 0 s in 19/19 = exact-key hits; root package-lock unchanged since 063cbe9 (commits API). Candidates, none qualifying: node_modules exact-key cache (clears gate only if node setup plus restore is under about 9 s; restore unmeasured; issue 19689 closed NOT_PLANNED); npm ci --no-audit/--no-fund (seconds); root --ignore-scripts (4 prod install scripts incl. node-pty 1.1.0; saving unmeasured and bounded by the install step); dashboard install parallelization (small; 36 prod entries). Job logs re-probed: 403. No open issue with this worker label. No suggestion; no issue created. next_category advanced to Astro documentation generation. Carry-forward outside rotation: Checkout fetch-depth 0 median 24 s (p90 41), 28% of exec; partial-clone idea unmeasured.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T07:53:40Z",
+   "worker_run_id": "43388461559",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "43380585034",
+    "43378597209",
+    "43378369544",
+    "43374719202",
+    "43373049149",
+    "43371878284",
+    "43371269326",
+    "43371217266",
+    "43368963164",
+    "43368845651",
+    "43362224525",
+    "43360893141",
+    "43347280419",
+    "43345305064",
+    "43341730805",
+    "43341713733",
+    "43339642321",
+    "43301807773",
+    "43297524311",
+    "43249903823"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38Z to 2026-11-13T06:42Z; all within 14 days; source e71feab = checkout HEAD = source_sha; in-progress 43388781287 at f0c3fc4 excluded as not completed). Excluded and disclosed: 1 failed 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba; logs 403). Comparable n=19 successes (18 push, 1 schedule 43371878284; identical 11-step build shape; 5-run gate met). Step 'Build documentation' (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs) median 14 s (p90 15; range 9-15) = 16.5% of exec median 85 s (p90 106). 15% gate 12.75 s needs about 91% of the step removed; 60 s gate unreachable. Post-build work is cheap: both scripts read dist/ and run only git ls-files / git rev-parse; no duplicate Astro build. Astro vs validation split not visible (logs 403), but no in-step change or validation split clears the gate. Medians (p90): checkout 24 s (41), install 17 s (22), build job 70 s (91). Open issues 20440 and 20719 are gh-aw failure reports, not this work. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1393,6 +1395,11 @@
    "observed_at": "2026-11-13T07:36:00Z",
    "source": "docs.yml install step, dependency category",
    "note": "Set up Node.js plus Install dependencies median 22 s (p90 28) in 19/19 exact-key hits. A node_modules cache clears the 12.75 s gate only if node setup plus the node_modules restore totals under about 9 s. Unmeasured; re-evaluate only with a maintainer-branch restore timing."
+  },
+  {
+   "observed_at": "2026-11-13T07:53:40Z",
+   "source": "docs.yml Build documentation step, Astro category",
+   "note": "Astro build parallelism or moving validate/discovery into a parallel job is unmeasured and bounded by a few seconds, below the 12.75 s gate. Re-evaluate only with maintainer-branch step timing or readable logs that split astro build from validation."
   }
  ]
 }
