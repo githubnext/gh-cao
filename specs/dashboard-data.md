@@ -1,7 +1,7 @@
 ---
 title: Central Agentic Ops Dashboard Data Architecture Specification
 description: Canonical data model, ingestion, IndexedDB persistence, consistency, recovery, and scale requirements for the gh-cao dashboard.
-version: 1.8.3
+version: 1.8.4
 status: Working Draft
 editors:
   - GitHub Next
@@ -9,7 +9,7 @@ editors:
 
 # Central Agentic Ops Dashboard Data Architecture Specification
 
-**Version:** 1.8.3
+**Version:** 1.8.4
 **Status:** Working Draft
 **Repository:** `githubnext/gh-cao`
 **Target implementation:** Dashboard data subsystem
@@ -3774,6 +3774,15 @@ overall wait. A missing, unsupported, or stalled size probe MUST NOT block the
 shard download or completion of the import; byte and time estimates may remain
 unknown while file and stage progress remains determinate.
 
+The worker MUST fetch the published payload manifest and every shard it
+ingests through a bounded retry with exponential backoff, so a transient
+failure, including a non-success response or a manifest reported as missing,
+does not fail the import on its first attempt. Retries MUST stop when the
+ingestion request is aborted. Shard downloads MUST bypass the HTTP cache. A
+failure that persists after the final attempt MUST fail the import without
+treating the manifest as absent, without accepting the missing shard, and
+without replacing the previously committed dashboard snapshot.
+
 Once import work has completed, the browser SHOULD estimate remaining time from
 elapsed time and worker-owned weighted file and stage progress even when shard
 byte sizes are unavailable. Cached shards SHALL be excluded from measured
@@ -5351,6 +5360,13 @@ set or enumerate unrelated worker partitions.
 ---
 
 # 74. Change Log
+
+## Version 1.8.4 — Bounded browser ingestion fetch retry
+
+* Added a §35 requirement that the data worker retry manifest and shard
+  fetches with bounded exponential backoff, stop retrying on abort, bypass the
+  HTTP cache for shard downloads, and preserve the prior committed snapshot
+  when a failure persists.
 
 ## Version 1.8.3 — Removed Go row evaluator fallback
 
