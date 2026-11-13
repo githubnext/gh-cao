@@ -46,3 +46,36 @@ func TestParseCanvasConfig(t *testing.T) {
 		}
 	}
 }
+
+func TestReadOperatorConfigOmittedPathDisablesMaintenance(t *testing.T) {
+	config, err := readOperatorConfig("")
+	if err != nil || config != nil {
+		t.Fatalf("got %v, %v; want nil, nil", config, err)
+	}
+}
+
+func TestReadOperatorConfigFromFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "operator.json")
+	if err := os.WriteFile(path, []byte(`{"adapterUrl":"http://127.0.0.1:1"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	config, err := readOperatorConfig(path)
+	if err != nil || config.AdapterURL != "http://127.0.0.1:1" || config.OperatorActions != nil {
+		t.Fatalf("got %+v, %v", config, err)
+	}
+}
+
+func TestReadOperatorConfigMissingFile(t *testing.T) {
+	_, err := readOperatorConfig(filepath.Join(t.TempDir(), "absent.json"))
+	if err == nil || err.Error() != "read native operator configuration" {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestParseOperatorConfigRejectsInvalidDocuments(t *testing.T) {
+	for _, bad := range []string{"", "not json", `{"adapterUrl":1}`} {
+		if _, err := parseOperatorConfig([]byte(bad)); err == nil || err.Error() != "invalid native operator configuration" {
+			t.Errorf("%q: got %v", bad, err)
+		}
+	}
+}

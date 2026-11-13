@@ -33,15 +33,22 @@ func parseCanvasConfig(content []byte) (*server.LocalCanvasConfig, error) {
 
 func readOperatorConfig(path string) (*server.LocalOperatorConfig, error) {
 	if path == "" {
+		commandLog.Printf("native operator integration disabled: reason=no_config_path")
 		return nil, nil //nolint:nilnil // An omitted adapter configuration disables native maintenance.
 	}
 	content, err := os.ReadFile(path) // #nosec G304 -- explicitly selected private native adapter configuration.
 	if err != nil {
 		return nil, errors.New("read native operator configuration")
 	}
+	return parseOperatorConfig(content)
+}
+
+// parseOperatorConfig decodes a native operator configuration document.
+func parseOperatorConfig(content []byte) (*server.LocalOperatorConfig, error) {
 	var config server.LocalOperatorConfig
 	if err := json.Unmarshal(content, &config); err != nil {
 		return nil, errors.New("invalid native operator configuration")
 	}
+	commandLog.Printf("loaded native operator configuration")
 	return &config, nil
 }
