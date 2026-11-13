@@ -311,7 +311,7 @@ test("deployment profile extends cao.json without replacing rollout policy", () 
     extends: "cao.json",
     "control-plane": { web: { host: {
       target: { module: "container", name: "test" },
-      redis: { module: "generic" },
+      "operational-store": { backend: "redis", redis: { module: "generic" } },
     } } },
   }));
   const profile = loadPolicyFile(join(directory, "cao.test.json"));
@@ -319,7 +319,7 @@ test("deployment profile extends cao.json without replacing rollout policy", () 
   assert.deepEqual(profile["control-plane"].campaigns, base["control-plane"].campaigns);
   assert.equal(profile["control-plane"].web.experimental, true);
   assert.equal(profile["control-plane"].web.host.target.name, "test");
-  assert.equal(profile["control-plane"].web.host.redis.module, "generic");
+  assert.equal(profile["control-plane"].web.host["operational-store"].redis.module, "generic");
 });
 
 test("deployment profiles reject rollout overrides, cycles, and directory traversal", () => {
@@ -332,7 +332,7 @@ test("deployment profiles reject rollout overrides, cycles, and directory traver
     extends: "cao.json",
     "control-plane": {
       campaigns: { dependabot: { mode: "live" } },
-      web: { host: { target: { module: "container" }, redis: { module: "generic" } } },
+      web: { host: { target: { module: "container" }, "operational-store": { backend: "redis" } } },
     },
   }));
   assert.throws(() => loadPolicyFile(widening), /unknown key deployment profile\.control-plane\.campaigns/);
@@ -367,13 +367,16 @@ test("control policy validates provider-neutral host and Redis configuration", (
         listener: "process",
         "require-https": true,
       },
-      redis: {
-        module: "redis-cloud",
-        "url-env": "REDIS_URL",
-        tls: {
-          mode: "required",
-          "server-name-env": "REDIS_TLS_SERVER_NAME",
-          "ca-certificate-env": "REDIS_TLS_CA_CERT",
+      "operational-store": {
+        backend: "redis",
+        redis: {
+          module: "redis-cloud",
+          "url-env": "REDIS_URL",
+          tls: {
+            mode: "required",
+            "server-name-env": "REDIS_TLS_SERVER_NAME",
+            "ca-certificate-env": "REDIS_TLS_CA_CERT",
+          },
         },
       },
     },
@@ -454,6 +457,24 @@ test("control policy preserves Redis selection and provider restrictions", () =>
   assert.notEqual(validate(JSON.stringify(policy)).status, 0);
 });
 
+test("control policy rejects legacy host Redis selection and provider namespace configuration", () => {
+  for (const host of [
+    { target: { module: "container" }, redis: { module: "generic" } },
+    { target: { module: "container" }, "operational-store": {
+      backend: "redis", redis: { module: "generic", "namespace-env": "CACHE_NAMESPACE" },
+    } },
+  ]) {
+    const policy = JSON.parse(minimalPolicy);
+    policy["control-plane"].web = { host };
+    const result = validate(JSON.stringify(policy));
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /unknown key/);
+  }
+  assert.equal(schema.$defs.modularHost.additionalProperties, false);
+  assert.equal(schema.$defs.modularHost.properties.redis, undefined);
+  assert.equal(schema.$defs.redisModule.properties["namespace-env"], undefined);
+});
+
 test("control policy accepts explicit PostgreSQL operational storage without Redis or volatile topology", () => {
   const policy = JSON.parse(minimalPolicy);
   const operational = {
@@ -492,7 +513,7 @@ test("control policy validates host CORS configuration", () => {
   policy["control-plane"].web = {
     host: {
       target: { module: "container" },
-      redis: { module: "render" },
+      "operational-store": { backend: "redis", redis: { module: "render" } },
       cors: {
         "allowed-origins": ["https://tools.example.com", "http://localhost:5173"],
         "max-age": 600,
@@ -534,7 +555,7 @@ test("control policy rejects inconsistent host capabilities", () => {
         authentication: "github-oauth",
         listener: "process",
       },
-      redis: { module: "generic", session: "pooled", "single-replica": true },
+      "operational-store": { backend: "redis", redis: { module: "generic", session: "pooled", "single-replica": true } },
     },
   };
 
@@ -555,7 +576,7 @@ test("control policy validates every deployment module and rejects incompatible 
   for (const module of targetModules) {
     const policy = JSON.parse(minimalPolicy);
     policy["control-plane"].web = {
-      host: { target: { module }, redis: { module: "generic" } },
+      host: { target: { module }, "operational-store": { backend: "redis" } },
     };
     assert.equal(validate(JSON.stringify(policy)).status, 0, module);
   }
@@ -564,7 +585,7 @@ test("control policy validates every deployment module and rejects incompatible 
     policy["control-plane"].web = {
       host: {
         target: { module: "container", ...(module === "upstash" ? { replicas: 1 } : {}) },
-        redis: { module },
+        "operational-store": { backend: "redis", redis: { module } },
       },
     };
     assert.equal(validate(JSON.stringify(policy)).status, 0, module);
@@ -574,7 +595,7 @@ test("control policy validates every deployment module and rejects incompatible 
   incompatible["control-plane"].web = {
     host: {
       target: { module: "generic", authentication: "github-oauth", listener: "external" },
-      redis: { module: "upstash" },
+      "operational-store": { backend: "redis", redis: { module: "upstash" } },
     },
   };
   assert.match(validate(JSON.stringify(incompatible)).stderr, /single-replica requirement/);
@@ -583,7 +604,7 @@ test("control policy validates every deployment module and rejects incompatible 
   missingReplicaCount["control-plane"].web = {
     host: {
       target: { module: "container" },
-      redis: { module: "upstash" },
+      "operational-store": { backend: "redis", redis: { module: "upstash" } },
     },
   };
   assert.match(validate(JSON.stringify(missingReplicaCount)).stderr, /target\.replicas must be 1/);

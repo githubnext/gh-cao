@@ -312,7 +312,6 @@
         "port-env": { "$ref": "#/$defs/environmentVariable" },
         "username-env": { "$ref": "#/$defs/environmentVariable" },
         "password-env": { "$ref": "#/$defs/environmentVariable" },
-        "namespace-env": { "$ref": "#/$defs/environmentVariable" },
         "session": { "type": "string", "enum": ["pooled", "serialized"] },
         "isolate-process-namespace": { "type": "boolean" },
         "single-replica": { "type": "boolean" },
@@ -371,10 +370,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["target"],
-      "not": { "required": ["redis", "operational-store"] },
       "properties": {
         "target": { "$ref": "#/$defs/hostTarget" },
-        "redis": { "$ref": "#/$defs/redisModule" },
         "operational-store": { "$ref": "#/$defs/operationalStore" },
         "cors": { "$ref": "#/$defs/hostCORS" }
       },

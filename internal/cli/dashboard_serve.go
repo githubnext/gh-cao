@@ -145,7 +145,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	}
 	defer stopActions()
 	child := exec.CommandContext(ctx, server, "serve", "--source", cache,
-		"--redis-namespace", namespace,
+		"--namespace", namespace,
 		"--site", site, "--listen", options.listen, "--exit-on-stdin-close",
 		"--operator-config", actionsConfig,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"),
@@ -279,6 +279,16 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	// shows ingestion as running while GitHub evidence is acquired.
 	options.onCollecting = func() { _ = ingest() }
 	options.onPublished = ingest
+	options.onRunBundles = func() error {
+		if err := ingestor.IngestRunBundles(); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+			return err
+		}
+		return nil
+	}
 	// Initial ingestion must finish before collection can replace snapshot files.
 	// The server announces its listener only after ingesting the initial source.
 	ticker := time.NewTimer(options.refresh)

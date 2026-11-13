@@ -80,13 +80,13 @@ func TestServerLogsAuthorization(t *testing.T) {
 					t.Fatalf("Cache-Control = %q", got)
 				}
 				var snapshot struct {
-					Logs  []json.RawMessage `json:"logs"`
-					Redis struct {
+					Logs        []json.RawMessage `json:"logs"`
+					Operational struct {
 						Status string `json:"status"`
-					} `json:"redis"`
+					} `json:"operational"`
 				}
 				if err := json.Unmarshal(response.Body.Bytes(), &snapshot); err != nil ||
-					snapshot.Logs == nil || snapshot.Redis.Status != "not-configured" {
+					snapshot.Logs == nil || snapshot.Operational.Status != "not-configured" {
 					t.Fatalf("invalid log snapshot: %s (%v)", response.Body.String(), err)
 				}
 			}
@@ -128,27 +128,30 @@ func TestServerLogsOnlyExportsSafeRedisCounters(t *testing.T) {
 			if err := json.Unmarshal(response.Body.Bytes(), &snapshot); err != nil {
 				t.Fatal(err)
 			}
-			if snapshot.Logs == nil || snapshot.Redis.Status != test.status {
+			if snapshot.Logs == nil || snapshot.Operational.Status != test.status {
 				t.Fatalf("unexpected snapshot: %s", response.Body.String())
+			}
+			if strings.Contains(response.Body.String(), `"redis":`) {
+				t.Fatalf("legacy Redis response field was retained: %s", response.Body.String())
 			}
 			if strings.Contains(response.Body.String(), "private") ||
 				strings.Contains(response.Body.String(), "lastFailureCode") {
 				t.Fatalf("internal Redis data leaked: %s", response.Body.String())
 			}
-			if test.status == "ok" && (len(snapshot.Redis.Counters) != 1 ||
-				snapshot.Redis.Counters["taskQueued"] != 3) {
+			if test.status == "ok" && (len(snapshot.Operational.Counters) != 1 ||
+				snapshot.Operational.Counters["taskQueued"] != 3) {
 				t.Fatalf("unexpected counters: %s", response.Body.String())
 			}
-			if test.status == "unavailable" && snapshot.Redis.Counters != nil {
+			if test.status == "unavailable" && snapshot.Operational.Counters != nil {
 				t.Fatalf("exposed counters on failure: %s", response.Body.String())
 			}
-			if test.collection && test.status == "ok" && (snapshot.Redis.QueueDepth == nil || *snapshot.Redis.QueueDepth != 3 ||
-				snapshot.Redis.PendingTasks == nil || *snapshot.Redis.PendingTasks != 4 ||
-				snapshot.Redis.DeadLetters == nil || *snapshot.Redis.DeadLetters != 5) {
+			if test.collection && test.status == "ok" && (snapshot.Operational.QueueDepth == nil || *snapshot.Operational.QueueDepth != 3 ||
+				snapshot.Operational.PendingTasks == nil || *snapshot.Operational.PendingTasks != 4 ||
+				snapshot.Operational.DeadLetters == nil || *snapshot.Operational.DeadLetters != 5) {
 				t.Fatalf("unexpected collection queue counts: %s", response.Body.String())
 			}
-			if !test.collection && (snapshot.Redis.QueueDepth != nil ||
-				snapshot.Redis.PendingTasks != nil || snapshot.Redis.DeadLetters != nil) {
+			if !test.collection && (snapshot.Operational.QueueDepth != nil ||
+				snapshot.Operational.PendingTasks != nil || snapshot.Operational.DeadLetters != nil) {
 				t.Fatalf("collection queue counts should be absent: %s", response.Body.String())
 			}
 		})

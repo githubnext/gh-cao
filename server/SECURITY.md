@@ -866,7 +866,7 @@ See the [Container Apps guide](../docs/deployment-azure.md).
   in HTML, browser configuration, API payloads, or query URLs.
 - Every deployment uses a validated Redis namespace. The default is derived
   deterministically from the absolute checkout/worktree path, and
-  `--redis-namespace` may supply an explicit deployment identifier.
+  `--namespace` may supply an explicit deployment identifier.
 - The namespace applies to operational keys, including sessions, queues,
   coordination, rate limits, and bounded caches.
 

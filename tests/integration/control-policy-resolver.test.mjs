@@ -99,13 +99,16 @@ test("control.mjs resolves deployment profiles for control settings", () => {
             module: "container",
             name: "container",
           },
-          redis: {
-            module: "local",
-            "url-env": "REDIS_URL",
-            "namespace-env": "REDIS_NAMESPACE",
-            "allow-private-plaintext": true,
-            tls: {
-              mode: "disabled",
+          "operational-store": {
+            backend: "redis",
+            "namespace-env": "CAO_OPERATIONAL_NAMESPACE",
+            redis: {
+              module: "local",
+              "url-env": "REDIS_URL",
+              "allow-private-plaintext": true,
+              tls: {
+                mode: "disabled",
+              },
             },
           },
         },
@@ -119,6 +122,7 @@ test("control.mjs resolves deployment profiles for control settings", () => {
     const settings = JSON.parse(result.stdout);
     assert.deepEqual(settings.allowed_repositories, ["acme/target"]);
     assert.equal(settings.web.host.target.name, "container");
+    assert.equal(settings.web.host["operational-store"].backend, "redis");
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

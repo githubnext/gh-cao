@@ -1,99 +1,9 @@
 package redisx
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
-
-func TestNormalizeNamespace(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{input: "team-one", expected: "cao:team-one"},
-		{input: " CAO:Team_One ", expected: "cao:team_one"},
-		{input: "9", expected: "cao:9"},
-	}
-	for _, test := range tests {
-		actual, err := NormalizeNamespace(test.input)
-		if err != nil {
-			t.Fatalf("NormalizeNamespace(%q): %v", test.input, err)
-		}
-		if actual != test.expected {
-			t.Fatalf("NormalizeNamespace(%q) = %q, want %q", test.input, actual, test.expected)
-		}
-	}
-	for _, input := range []string{"", "cao:", "team*", "team?", "team[1]", "team:name", "team.name", strings.Repeat("a", 65)} {
-		if _, err := NormalizeNamespace(input); err == nil {
-			t.Errorf("NormalizeNamespace(%q) accepted an ambiguous namespace", input)
-		}
-	}
-}
-
-func TestDefaultNamespaceIsStablePerCheckout(t *testing.T) {
-	checkout := t.TempDir()
-	if err := os.WriteFile(filepath.Join(checkout, ".git"), []byte("gitdir: test"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	serverDirectory := filepath.Join(checkout, "server", "internal")
-	if err := os.MkdirAll(serverDirectory, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	fromRoot, err := DefaultNamespace(checkout)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fromServer, err := DefaultNamespace(serverDirectory)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fromRoot != fromServer {
-		t.Fatalf("checkout namespace changed by working directory: %q != %q", fromRoot, fromServer)
-	}
-	other, err := DefaultNamespace(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if other == fromRoot {
-		t.Fatalf("different checkout paths shared namespace %q", fromRoot)
-	}
-	if !strings.HasPrefix(fromRoot, namespacePrefix+"checkout-") || len(fromRoot) > 64 {
-		t.Fatalf("unexpected default namespace %q", fromRoot)
-	}
-}
-
-func TestCheckoutRootFindsGitMarker(t *testing.T) {
-	checkout := t.TempDir()
-	if err := os.WriteFile(filepath.Join(checkout, ".git"), []byte("gitdir: test"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	nested := filepath.Join(checkout, "server", "internal")
-	if err := os.MkdirAll(nested, 0o700); err != nil {
-		t.Fatal(err)
-	}
-
-	root, source := checkoutRoot(nested)
-	if root != checkout {
-		t.Fatalf("checkoutRoot(%q) root = %q, want %q", nested, root, checkout)
-	}
-	if source != checkoutRootSourceGitMarker {
-		t.Fatalf("checkoutRoot(%q) source = %q, want %q", nested, source, checkoutRootSourceGitMarker)
-	}
-}
-
-func TestCheckoutRootFallsBackWithoutGitMarker(t *testing.T) {
-	directory := t.TempDir()
-
-	root, source := checkoutRoot(directory)
-	if root != directory {
-		t.Fatalf("checkoutRoot(%q) root = %q, want the original directory", directory, root)
-	}
-	if source != checkoutRootSourceFallback {
-		t.Fatalf("checkoutRoot(%q) source = %q, want %q", directory, source, checkoutRootSourceFallback)
-	}
-}
 
 func TestStoreNamespacesUseDisjointOperationalKeys(t *testing.T) {
 	first := NewStore(&Client{}, "first")

@@ -121,7 +121,25 @@ export async function $onEmit(context) {
     `-- Inventory normalization contract: ${createHash('sha256').update(JSON.stringify(inventoryContract.observations.filter((o) => ['campaign','repository','workflow'].includes(o.kind)))).digest('hex')}`
   ];
   for (const table of systems) {
-    const constraints = table.name === 'cao_github_resources' ? [
+    const constraints = table.name === 'cao_ingestion_accounting' ? [
+      'PRIMARY KEY (namespace, collection)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      `CHECK (collection IN (${tables.filter((t) => !t.runtime && !t.owner).map((t) => `'${t.source}'`).join(',')}))`,
+      'CHECK (revision >= 0 AND records >= 0 AND next_ordinal >= 0)'
+    ] : table.name === 'cao_run_accounting' ? [
+      'PRIMARY KEY (namespace, collection, run_id)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      `CHECK (collection IN (${tables.filter((t) => t.partitioned).map((t) => `'${t.source}'`).join(',')}))`,
+      "CHECK (run_id <> '' AND isfinite(run_at))",
+      'CHECK (records >= 0 AND bytes >= 0 AND next_ordinal >= 0)'
+    ] : table.name === 'cao_bundle_versions' ? [
+      'PRIMARY KEY (namespace, collection, id)',
+      'FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE',
+      "CHECK (collection IN ('$runs','$campaigns','$repositories','$workflows','$experiments','$graders','$evals'))",
+      "CHECK (id <> '' AND isfinite(observed_at))",
+      "CHECK ((collection='$runs' AND attempt IS NOT NULL AND attempt > 0) OR (collection<>'$runs' AND attempt IS NULL))",
+      "CHECK (digest ~ '^[a-f0-9]{64}$')"
+    ] : table.name === 'cao_github_resources' ? [
       'PRIMARY KEY (namespace, id)',
       'CHECK (octet_length(id) <= 512)',
       'CHECK (octet_length(etag) <= 4096 AND octet_length(upstream_etag) <= 4096)'
@@ -221,6 +239,10 @@ export async function $onEmit(context) {
       "CHECK (freshness IN ('current','stale','unknown'))"
     ];
     statements.push(`CREATE TABLE IF NOT EXISTS ${table.name} (\n${table.columns.map((c) => `  ${c.name} ${c.sql}${c.required ? ' NOT NULL' : ''}${table.name === 'cao_acquisition_inventory' && c.name === 'published_generation' ? ' DEFAULT 0' : ''}`).join(',\n')},\n  ${constraints.join(',\n  ')}\n);`);
+    if (table.name === 'cao_run_accounting') {
+      statements.push('CREATE INDEX IF NOT EXISTS cao_run_accounting_run ON cao_run_accounting(namespace, run_id, run_at);');
+      statements.push('CREATE INDEX IF NOT EXISTS cao_run_accounting_clock ON cao_run_accounting(namespace, collection, evidence_at DESC NULLS LAST);');
+    }
     if (table.name === 'cao_repository_lifecycle') statements.push('CREATE INDEX IF NOT EXISTS cao_repository_lifecycle_coordinate ON cao_repository_lifecycle (namespace, owner, name);');
     if (table.name === 'cao_github_resources') statements.push('CREATE INDEX IF NOT EXISTS cao_github_resources_expiry ON cao_github_resources (namespace, validated_at, id);');
     if (table.name === 'cao_acquisition_attempts') statements.push('CREATE INDEX IF NOT EXISTS cao_acquisition_pending ON cao_acquisition_attempts (namespace, repository, run_id, attempt) WHERE digest IS DISTINCT FROM consumed_digest;');

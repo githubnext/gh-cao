@@ -273,14 +273,24 @@ func (w *Writer) stageAdmittedRuns(ctx context.Context) error {
 		}
 		statement := "CREATE TEMP TABLE " + query.SQLIdentifier("admitted_"+table.name) + " ON COMMIT DROP AS SELECT * FROM " +
 			query.SQLIdentifier(table.name) + " WHERE namespace=$1 AND " + filter
-		if _, err := w.tx.Exec(ctx, statement, w.store.namespace); err != nil {
+		tag, err := w.tx.Exec(ctx, statement, w.store.namespace)
+		if err != nil {
 			return err
+		}
+		if source == "$runs" {
+			w.preservedRuns = tag.RowsAffected() > 0
+			if !w.preservedRuns {
+				return nil
+			}
 		}
 	}
 	return w.stageConcludedRecords(ctx)
 }
 
 func (w *Writer) restoreAdmittedRuns(ctx context.Context) error {
+	if !w.preservedRuns {
+		return nil
+	}
 	if err := w.prepareConcludedReplacement(ctx); err != nil {
 		return err
 	}

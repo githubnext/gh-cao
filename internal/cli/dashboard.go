@@ -42,6 +42,7 @@ type dashboardOptions struct {
 	// "collecting" status so the serving process can show it before the pass ends.
 	onCollecting func()
 	onPublished  func() error
+	onRunBundles func() error
 	timings      *dashboardCollectionTimings
 }
 

@@ -31,7 +31,7 @@ async function status(ingestionStatus = "paused", scannedHours = 48) {
   await writeCanvasSnapshot(directory, records);
   await execute(resolve(".tmp/cao-dashboard"), [
     "ingest", "--source", directory, "--postgres-url", postgres.postgresURL,
-    "--redis-namespace", postgres.namespace, "--database-queries", join(site, "src/data/queries/database.json"),
+    "--namespace", postgres.namespace, "--database-queries", join(site, "src/data/queries/database.json"),
   ], { env: { ...process.env, OTEL_SDK_DISABLED: "true" }, timeout: 60_000 });
 }
 
@@ -55,7 +55,7 @@ test.beforeAll(async () => {
   const environment = Object.fromEntries(Object.entries(process.env)
     .filter(([name]) => !/^(?:CAO_|DASHBOARD_|GH_|GITHUB_|OTEL_)/.test(name)));
   child = spawn(resolve(".tmp/cao-dashboard"), [
-    "serve", "--postgres-url", postgres.postgresURL, "--redis-namespace", postgres.namespace, "--site", site,
+    "serve", "--postgres-url", postgres.postgresURL, "--namespace", postgres.namespace, "--site", site,
     "--listen", "127.0.0.1:0", "--access-token", accessToken, "--exit-on-stdin-close",
     "--database-queries", join(site, "src/data/queries/database.json"),
     "--dashboard-queries", join(site, "src/agent/queries.generated.json"),

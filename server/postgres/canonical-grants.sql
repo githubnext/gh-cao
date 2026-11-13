@@ -6,6 +6,10 @@ GRANT USAGE ON SCHEMA :"schema" TO :"runtime";
 REVOKE ALL ON :"schema".cao_contract, :"schema".cao_state FROM PUBLIC, :"runtime";
 GRANT SELECT ON :"schema".cao_contract TO :"runtime";
 GRANT SELECT, INSERT, UPDATE ON :"schema".cao_state TO :"runtime";
+REVOKE ALL ON :"schema".cao_ingestion_accounting, :"schema".cao_run_accounting,
+    :"schema".cao_bundle_versions FROM PUBLIC, :"runtime";
+GRANT SELECT, INSERT, UPDATE, DELETE ON :"schema".cao_ingestion_accounting,
+    :"schema".cao_run_accounting, :"schema".cao_bundle_versions TO :"runtime";
 REVOKE ALL ON :"schema".cao_acquisition_scopes, :"schema".cao_acquisition_attempts,
     :"schema".cao_acquisition_outcomes, :"schema".cao_acquisition_value_hints,
     :"schema".cao_acquisition_inventory_config, :"schema".cao_acquisition_inventory,
@@ -48,6 +52,8 @@ GRANT SELECT, INSERT, DELETE ON
     :"schema".cao_sample_statistical_strata, :"schema".cao_sample_cao_quality TO :"runtime";
 REVOKE ALL ON FUNCTION :"schema".cao_analyze_native() FROM PUBLIC, :"runtime";
 GRANT EXECUTE ON FUNCTION :"schema".cao_analyze_native() TO :"runtime";
+REVOKE ALL ON FUNCTION :"schema".cao_analyze_native(text[]) FROM PUBLIC, :"runtime";
+GRANT EXECUTE ON FUNCTION :"schema".cao_analyze_native(text[]) TO :"runtime";
 GRANT SELECT, INSERT, UPDATE, DELETE ON
     :"schema".cao_github_resources, :"schema".cao_quality, :"schema".cao_repository_lifecycle,
     :"schema".repositories, :"schema".campaigns, :"schema".workflows,

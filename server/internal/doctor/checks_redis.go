@@ -644,7 +644,7 @@ func classifyRedisNamespace(namespace string, keyCount int, complete bool) names
 		return namespaceClassification{
 			status:     StatusWarn,
 			summary:    fmt.Sprintf("namespace %q holds no keys", namespace),
-			remedy:     "confirm --redis-namespace matches the writer; an empty namespace looks identical to an empty database",
+			remedy:     "confirm --namespace matches the writer; an empty namespace looks identical to an empty database",
 			reason:     namespaceReasonEmpty,
 			countLabel: countLabel,
 		}

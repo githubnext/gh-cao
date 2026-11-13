@@ -621,6 +621,28 @@ Database telemetry counts individual statements and times each pipelined batch
 as one operation rather than inventing per-statement execution durations.
 Unchanged ingestion checks publication identity without counting sources, then
 curates audits under the namespace writer lock and reads the resulting counts once.
+Invocation preservation stages structural and conclusion dependencies only when
+the locked namespace actually contains retained invocation Runs. This optimization
+does not change the full-snapshot replacement contract or bypass native integrity
+checks.
+Explicit Run-bundle publication uses a separate bounded contract after the first
+authoritative snapshot: typed staging and UPSERTs affect only accepted Runs,
+their source-owned children and supplied structural parents. Coverage controls
+replacement versus enrichment; attempt, observation and shared-parent version
+fences reject stale or conflicting evidence. Full reconciliation establishes a
+local-clock epoch, preventing old sidecars from reapplying afterward.
+Revision-qualified private accounting locates Run partitions and retains source
+counts, ordinals, evidence clocks and expanded-byte footprints. Independent
+writers invalidate that acceleration state; authoritative rows reconstruct it.
+Daily reconciliation, curation and native ANALYZE are scoped to affected keys or
+sources, while capacity ordering still scans compact namespace receipts.
+Run-bundle publication marks cached statistical summaries stale without rebuilding
+them; sampling remains demand-driven rather than an online reservoir. Independent
+admission and conclusion writes retain their stale-sample behavior. The local
+collector explicitly negotiates
+`run-bundles`, verifies its fixed manifested sidecar and all recovery shards, and
+keeps initial/final full reconciliation. It still writes a complete disk snapshot.
+The new private bookkeeping requires freshly provisioned canonical storage.
 Canonical snapshot, admission, and conclusion writes enforce the same
 namespace-local Run-subtree capacity boundary: 200,000 rows per Run-owned source
 and 256 MiB of combined logical typed-row bytes. After daily-count reconciliation,
@@ -896,7 +918,8 @@ between cancellation-aware polling attempts. Application-owned maintenance
 reclaims only bounded expired state. Sessions, accepted work, enrollment,
 checkpoints, and pending revocations survive process restart under the database's
 configured durability. Backend selection comes from reviewed host policy, with PostgreSQL as the
-selector-free default and explicit legacy Redis configuration preserved.
+selector-free default and Redis available only through the explicit
+`operational-store` selector. The former `host.redis` selector is rejected.
 This is not an operational-state migration, fallback, or campaign rollout change.
 The read-only doctor opens existing
 operational state without initializing it.
@@ -1103,8 +1126,8 @@ the non-secret `control-plane.web.host` section of
 than storing connection URLs, credentials, server-name overrides, or CA
 certificates. Managed-provider modules map provider conventions into the same
 generic URL and verified-TLS configuration; they do not create provider-specific
-runtime paths. When no host section exists, legacy environment configuration is
-retained for existing deployments.
+runtime paths. Hosted startup requires the reviewed host section and rejects
+environment-only host configuration.
 
 Modules are compiled registry entries, not dynamically loaded code. Policy
 selects one target and one operational backend; Redis selection also resolves one provider module. Unknown names, attempts to

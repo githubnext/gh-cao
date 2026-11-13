@@ -665,7 +665,7 @@ jobs:
         env:
           DASHBOARD_SERVER_COMMAND: >-
             ${{ github.workspace }}/.tmp/cao-dashboard serve
-            --redis-namespace "$CAO_OPERATIONAL_NAMESPACE"
+            --namespace "$CAO_OPERATIONAL_NAMESPACE"
             --source "$DASHBOARD_SERVER_SOURCE"
             --access-token ${{ env.DASHBOARD_SERVER_ACCESS_TOKEN }}
             --site ${{ github.workspace }}/dashboard/site/dist

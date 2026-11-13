@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/namespaces"
 	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
@@ -64,7 +65,7 @@ func integrationStore(t *testing.T) (*redisx.Store, context.Context) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	namespace, err := redisx.NormalizeNamespace("collect-" + strconv.FormatInt(time.Now().UnixNano(), 36))
+	namespace, err := namespaces.NormalizeNamespace("collect-" + strconv.FormatInt(time.Now().UnixNano(), 36))
 	if err != nil {
 		t.Fatal(err)
 	}

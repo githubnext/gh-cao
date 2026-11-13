@@ -31,7 +31,7 @@ and CAO_DATABASE_ADMIN_URL only for separately invoked schema-owner bootstrap.
 
 Provision both stores with cao-dashboard database bootstrap --store canonical
 --namespace local and the same command with --store operational. Start serve
-with --redis-namespace local and optionally --source DIRECTORY to ingest an
+with --namespace local and optionally --source DIRECTORY to ingest an
 explicitly acquired, verified canonical JSONL artifact. Set
 CAO_OPERATIONAL_NAMESPACE=local for independent executor and audit processes.
 Native CLI queries use CAO_DATABASE_NAMESPACE=local.
@@ -180,7 +180,9 @@ PGOPTIONS='-c role=cao_owner -c search_path=cao' \
 
 Use the exact operational `CAO_OPERATIONAL_NAMESPACE` and resolved capacity
 environment settings used by every replica. The canonical namespace is the
-existing `REDIS_NAMESPACE` (the hosted default is `hosted-dashboard`).
+`CAO_DATABASE_NAMESPACE` (the hosted default is `hosted-dashboard`). When updating
+from the removed `REDIS_NAMESPACE` setting, retain its exact value here; the
+configuration rename does not move data.
 With separate databases/schemas, supply the corresponding owner connection for
 each command. Both bootstrap orders are supported in a shared schema: canonical
 bootstrap's exact-name allowlist includes all operational tables, including

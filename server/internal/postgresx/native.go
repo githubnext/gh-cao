@@ -156,39 +156,19 @@ type Writer struct {
 	ingestedAt              time.Time
 	staged                  map[string]bool
 	preserveValues          bool
+	preservedRuns           bool
+	delta                   bool
+	accounting              map[string]*collectionAccounting
+	bundleEpoch             *time.Time
 }
 
 func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
-	connection, err := pgx.ConnectConfig(ctx, s.config.Copy())
+	writer, err := s.beginCanonicalWrite(ctx)
 	if err != nil {
 		return nil, err
 	}
-	tx, err := connection.Begin(ctx)
-	if err != nil {
-		_ = connection.Close(ctx)
-		return nil, err
-	}
-	writer := &Writer{store: s, connection: connection, tx: tx, ordinals: map[string]int64{}, inventoryOrdinals: map[string]int64{}, inventoryTables: map[string]bool{}, batches: map[string][][]any{}, evaluatedAt: time.Unix(0, 0).UTC(), ingestedAt: time.Now().UTC(), staged: map[string]bool{}}
+	tx := writer.tx
 	fail := func(err error) (*Writer, error) { writer.Abort(ctx); return nil, err }
-	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock_shared(712083241, 17484)`); err != nil {
-		return fail(err)
-	}
-	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || ':' || $1, 0))`, s.namespace); err != nil {
-		return fail(err)
-	}
-	if _, err := tx.Exec(ctx, `INSERT INTO cao_state
-		(namespace, revision, workflow_subject_revision, workflow_subject_digest, data_revision, evaluated_at, schema_version)
-		VALUES ($1,0,0,'','','epoch',$2) ON CONFLICT (namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
-		return fail(err)
-	}
-	if err := tx.QueryRow(ctx, `SELECT revision,data_revision,workflow_subject_revision,workflow_subject_digest
-		FROM cao_state WHERE namespace=$1 FOR UPDATE`, s.namespace).Scan(
-		&writer.revision, &writer.PreviousDataRevision, &writer.workflowSubjectRevision, &writer.workflowSubjectDigest); err != nil {
-		return fail(err)
-	}
-	if _, err := tx.Exec(ctx, "SET CONSTRAINTS ALL DEFERRED"); err != nil {
-		return fail(err)
-	}
 	if err := writer.preserveValuePublications(ctx); err != nil {
 		return fail(err)
 	}
@@ -208,9 +188,46 @@ func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
 		deletes.Queue(statement, args...)
 	}
 	deletes.Queue("DELETE FROM cao_quality WHERE namespace=$1", s.namespace)
+	deletes.Queue("DELETE FROM cao_bundle_versions WHERE namespace=$1", s.namespace)
 	if err := tx.SendBatch(ctx, deletes).Close(); err != nil {
 		return fail(err)
 	}
+	return writer, nil
+}
+
+func (s *Store) beginCanonicalWrite(ctx context.Context) (*Writer, error) {
+	connection, err := pgx.ConnectConfig(ctx, s.config.Copy())
+	if err != nil {
+		return nil, err
+	}
+	tx, err := connection.Begin(ctx)
+	if err != nil {
+		_ = connection.Close(ctx)
+		return nil, err
+	}
+	writer := &Writer{store: s, connection: connection, tx: tx, ordinals: map[string]int64{}, inventoryOrdinals: map[string]int64{}, inventoryTables: map[string]bool{}, batches: map[string][][]any{}, evaluatedAt: time.Unix(0, 0).UTC(), ingestedAt: time.Now().UTC(), staged: map[string]bool{}, accounting: newCollectionAccounting()}
+	fail := func(err error) (*Writer, error) { writer.Abort(ctx); return nil, err }
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock_shared(712083241, 17484)`); err != nil {
+		return fail(err)
+	}
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended(current_schema() || ':' || $1, 0))`, s.namespace); err != nil {
+		return fail(err)
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO cao_state
+		(namespace, revision, workflow_subject_revision, workflow_subject_digest, data_revision, evaluated_at, schema_version)
+		VALUES ($1,0,0,'','','epoch',$2) ON CONFLICT (namespace) DO NOTHING`, s.namespace, model.SchemaVersion); err != nil {
+		return fail(err)
+	}
+	if err := tx.QueryRow(ctx, `SELECT revision,data_revision,workflow_subject_revision,workflow_subject_digest,bundle_epoch
+		FROM cao_state WHERE namespace=$1 FOR UPDATE`, s.namespace).Scan(
+		&writer.revision, &writer.PreviousDataRevision, &writer.workflowSubjectRevision, &writer.workflowSubjectDigest,
+		&writer.bundleEpoch); err != nil {
+		return fail(err)
+	}
+	if _, err := tx.Exec(ctx, "SET CONSTRAINTS ALL DEFERRED"); err != nil {
+		return fail(err)
+	}
+	writer.ingestedAt = time.Now().UTC().Truncate(time.Microsecond)
 	return writer, nil
 }
 
@@ -394,7 +411,7 @@ func (w *Writer) Flush(ctx context.Context) error {
 		tableName := table.name
 		if sourceName != source {
 			tableName += "_inventory"
-		} else if table.partitioned && table.name != "runs" {
+		} else if w.delta || table.partitioned && table.name != "runs" {
 			tableName += "_stage"
 			if !w.staged[sourceName] {
 				if _, err := w.tx.Exec(ctx, "CREATE TEMP TABLE "+query.SQLIdentifier(tableName)+" ON COMMIT DROP AS SELECT * FROM "+query.SQLIdentifier(table.name)+" WITH NO DATA"); err != nil {
@@ -605,6 +622,7 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		}
 	}
 	var clockSources []string
+	var clockCollections []string
 	for _, source := range tableNames() {
 		table := entityTables[source]
 		var fields []string
@@ -619,17 +637,22 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		}
 		if len(fields) > 0 {
 			clockSources = append(clockSources, "SELECT max(greatest("+strings.Join(fields, ",")+")) AS instant FROM "+query.SQLIdentifier(table.name)+" WHERE namespace=$1")
+			clockCollections = append(clockCollections, source)
 		}
 	}
 	clockSources = append(clockSources, "SELECT max(greatest(as_of,retrieved_at)) AS instant FROM cao_quality WHERE namespace=$1")
+	clockCollections = append(clockCollections, "")
 	clocks := &pgx.Batch{}
 	for _, statement := range clockSources {
 		clocks.Queue(statement, w.store.namespace)
 	}
-	if err := w.readEvidenceClock(ctx, clocks); err != nil {
+	if err := w.readEvidenceClock(ctx, clocks, clockCollections); err != nil {
 		return State{}, err
 	}
 	// Keep the source clock even when its latest event is a discarded copy.
+	if err := w.captureAuditClocks(ctx, ""); err != nil {
+		return State{}, err
+	}
 	if _, err := w.tx.Exec(ctx, auditCurationStatement(), w.store.namespace); err != nil {
 		return State{}, fmt.Errorf("curate native audits before publication: %w", err)
 	}
@@ -644,9 +667,12 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 			continue
 		}
 		collections = append(collections, source)
-		counts.Queue("SELECT count(*) FROM "+query.SQLIdentifier(entityTables[source].name)+" WHERE namespace=$1", w.store.namespace)
+		counts.Queue("SELECT count(*),coalesce(max(ordinal)+1,0) FROM "+query.SQLIdentifier(entityTables[source].name)+" WHERE namespace=$1", w.store.namespace)
 	}
 	if err := w.readCounts(ctx, counts, collections, state.Counts); err != nil {
+		return State{}, err
+	}
+	if err := w.saveAccounting(ctx, w.revision+1); err != nil {
 		return State{}, err
 	}
 	for _, source := range collections {
@@ -680,9 +706,9 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		workflowRevision++
 	}
 	if err := w.tx.QueryRow(ctx, `UPDATE cao_state SET revision=revision+1,data_revision=$1,evaluated_at=$2,schema_version=$3,
-		workflow_subject_revision=$4,workflow_subject_digest=$5
+		workflow_subject_revision=$4,workflow_subject_digest=$5,bundle_epoch=$7
 		WHERE namespace=$6 RETURNING revision`, dataRevision, w.evaluatedAt, model.SchemaVersion,
-		workflowRevision, workflowDigest, w.store.namespace).Scan(&state.Revision); err != nil {
+		workflowRevision, workflowDigest, w.store.namespace, w.ingestedAt).Scan(&state.Revision); err != nil {
 		return State{}, err
 	}
 	state.WorkflowSubjectRevision = workflowRevision
@@ -697,17 +723,20 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 }
 
 // Pipeline source-local plans without combining daily partitions into one wide plan.
-func (w *Writer) readEvidenceClock(ctx context.Context, batch *pgx.Batch) error {
+func (w *Writer) readEvidenceClock(ctx context.Context, batch *pgx.Batch, collections []string) error {
 	results := w.tx.SendBatch(ctx, batch)
 	defer func() { _ = results.Close() }()
 	var latest *time.Time
-	for range batch.Len() {
+	for _, source := range collections {
 		var instant *time.Time
 		if err := results.QueryRow().Scan(&instant); err != nil {
 			return err
 		}
 		if instant != nil && (latest == nil || instant.After(*latest)) {
 			latest = instant
+		}
+		if state := w.accounting[source]; state != nil {
+			state.evidenceAt = instant
 		}
 	}
 	w.evaluatedAt = time.Unix(0, 0).UTC()
@@ -722,10 +751,12 @@ func (w *Writer) readCounts(ctx context.Context, batch *pgx.Batch, collections [
 	defer func() { _ = results.Close() }()
 	for _, source := range collections {
 		var count int
-		if err := results.QueryRow().Scan(&count); err != nil {
+		var next int64
+		if err := results.QueryRow().Scan(&count, &next); err != nil {
 			return err
 		}
 		counts[source] = count
+		w.accounting[source].records, w.accounting[source].nextOrdinal = int64(count), next
 	}
 	return results.Close()
 }

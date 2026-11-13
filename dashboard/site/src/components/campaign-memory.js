@@ -1,6 +1,6 @@
 import { h } from '../dom.js';
 import { listRepositoryMemory, listRepositoryMemoryCampaigns, readRepositoryMemoryFile } from '../data-processor.js';
-import { createDebug } from '../debug.js';
+import { createDebug, diagnosticErrorName } from '../debug.js';
 import { octicon } from '../octicons.js';
 import { effect, onCleanup, render, state } from '../reactive.js';
 import { bindFactorySources, createFactoryScope } from './factory-elements.js';
@@ -89,6 +89,7 @@ export function renderCampaignMemory({ campaignId, campaignName }) {
     selectedPath.set(campaign.files[0]?.path ?? '');
   }).catch((error) => {
     if (error?.name !== 'AbortError') {
+      debugCampaignMemory({ operation: 'list-manifest', status: 'error', errorName: diagnosticErrorName(error) });
       manifestState.set({
         status: 'error',
         branch: '',
@@ -323,6 +324,7 @@ function renderCampaignTree(campaigns, signal) {
       }
     }).catch((error) => {
       if (error?.name !== 'AbortError') {
+        debugCampaignMemory({ operation: 'read-file', status: 'error', scope: 'all-campaigns', errorName: diagnosticErrorName(error) });
         fileBody.replaceChildren(renderEmptyMessage(
           `Unable to load this memory file. ${errorMessage(error)}`,
           { role: 'alert' }
@@ -337,7 +339,10 @@ function renderCampaignTree(campaigns, signal) {
       else showManifests[index](manifest);
     });
   }).catch((error) => {
-    if (!signal.aborted && error?.name !== 'AbortError') showErrors.forEach((showError) => showError(error));
+    if (!signal.aborted && error?.name !== 'AbortError') {
+      debugCampaignMemory({ operation: 'list-campaigns', status: 'error', campaignCount: campaigns.length, errorName: diagnosticErrorName(error) });
+      showErrors.forEach((showError) => showError(error));
+    }
   });
   return layout;
 }

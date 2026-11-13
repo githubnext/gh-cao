@@ -1298,20 +1298,19 @@ func (a *App) health(response http.ResponseWriter, request *http.Request) {
 	ctx, cancel := context.WithTimeout(request.Context(), 3*time.Second)
 	defer cancel()
 	active, activeErr := a.database.State(ctx)
-	redisHealthy := a.services.Health.Ping(ctx) == nil
+	operationalHealthy := a.services.Health.Ping(ctx) == nil
 	status := http.StatusOK
-	if !redisHealthy || activeErr != nil {
+	if !operationalHealthy || activeErr != nil {
 		status = http.StatusServiceUnavailable
 	}
-	serverLog.PrintfContext(request.Context(), "health status=%d redis=%t data=%t", status, redisHealthy, active.Ready)
+	serverLog.PrintfContext(request.Context(), "health status=%d operational=%t data=%t", status, operationalHealthy, active.Ready)
 	data := map[string]any{"available": active.Ready, "rebuildRequired": !active.Ready}
 	if active.Ready && !active.EvaluatedAt.IsZero() {
 		data["evaluatedAt"] = active.EvaluatedAt.UTC().Format(time.RFC3339Nano)
 	}
 	payload := map[string]any{
 		"status":      "healthy",
-		"redis":       map[string]any{"connected": redisHealthy},
-		"operational": a.operationalHealth(redisHealthy),
+		"operational": a.operationalHealth(operationalHealthy),
 		"data":        data,
 	}
 	if status != http.StatusOK {
@@ -1340,8 +1339,8 @@ func (a *App) readiness(response http.ResponseWriter, request *http.Request) {
 	ctx, cancel := context.WithTimeout(request.Context(), 3*time.Second)
 	defer cancel()
 	active, activeErr := a.database.State(ctx)
-	redisHealthy := a.services.Health.Ping(ctx) == nil
-	ready := redisHealthy && activeErr == nil && active.Ready
+	operationalHealthy := a.services.Health.Ping(ctx) == nil
+	ready := operationalHealthy && activeErr == nil && active.Ready
 	if collector := a.Collector(); collector != nil {
 		ready = ready && collector.RecoveryReady()
 	}
@@ -1358,8 +1357,7 @@ func (a *App) readiness(response http.ResponseWriter, request *http.Request) {
 	}
 	writeJSON(response, status, map[string]any{
 		"ready":       ready,
-		"redis":       map[string]any{"connected": redisHealthy},
-		"operational": a.operationalHealth(redisHealthy),
+		"operational": a.operationalHealth(operationalHealthy),
 		"data":        data,
 	})
 }

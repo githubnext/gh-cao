@@ -40,7 +40,7 @@ describe('administrator server logs', () => {
   });
 
   it('opens only for authorized viewers and displays escaped full-width preformatted logs', async () => {
-    fetchServerLogs.mockResolvedValue({ logs: [{ message: '<script>alert(1)</script>' }], redis: { status: 'ok' } });
+    fetchServerLogs.mockResolvedValue({ logs: [{ message: '<script>alert(1)</script>' }], operational: { status: 'ok' } });
     const open = vi.fn();
     const section = renderServerLogsSetting(open);
     if (!section) throw new Error('server logs setting did not render');
@@ -55,7 +55,7 @@ describe('administrator server logs', () => {
     document.body.append(view);
     await vi.waitFor(() => expect(view.querySelector('pre code')?.textContent).toContain('<script>alert(1)</script>'));
     expect(view.querySelector('script')).toBeNull();
-    expect(view.querySelector('pre')?.textContent).toContain('"redis"');
+    expect(view.querySelector('pre')?.textContent).toContain('"operational"');
     view.querySelector('button')?.click();
     expect(back).toHaveBeenCalledOnce();
   });

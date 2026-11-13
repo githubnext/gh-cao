@@ -104,7 +104,7 @@ test("Go dashboard integration bootstraps both stores in the runtime namespace",
   }
   assert.ok(steps.indexOf(bootstrap) > steps.findIndex((step) => step.name === "Build dashboard and server"));
   assert.ok(steps.indexOf(bootstrap) < steps.indexOf(runtime));
-  assert.match(runtime.env.DASHBOARD_SERVER_COMMAND, /--redis-namespace "\$CAO_OPERATIONAL_NAMESPACE"/);
+  assert.match(runtime.env.DASHBOARD_SERVER_COMMAND, /--namespace "\$CAO_OPERATIONAL_NAMESPACE"/);
   assert.equal(job.env.CAO_DATABASE_ADMIN_URL, undefined);
   assert.equal(runtime.env.CAO_DATABASE_ADMIN_URL, undefined);
 });

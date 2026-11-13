@@ -32,6 +32,43 @@ func admissionRunRows(t *testing.T, store *Store) []model.Row {
 	return result["admission-runs"].Rows
 }
 
+func TestReplacementWithoutInvocationEvidenceSkipsPreservationDependencies(t *testing.T) {
+	store, config := nativeTestStore(t)
+	nativeSeed(t.Context(), t, store, nil)
+	other, err := NewConfig(t.Context(), config, "other")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = other.Close() }()
+	if err := other.RecordAdmittedRun(t.Context(), admissionIdentity()); err != nil {
+		t.Fatal(err)
+	}
+	before := admissionRunRows(t, other)
+	writer, err := store.BeginIngestion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Abort(t.Context())
+	var dependencies int
+	if err := writer.tx.QueryRow(t.Context(), `SELECT count(*) FROM pg_class
+		WHERE relnamespace=pg_my_temp_schema() AND relname IN
+		('admitted_workflows','admitted_repositories','admitted_audits',
+		 'admitted_grader_observations','admitted_graders')`).Scan(&dependencies); err != nil {
+		t.Fatal(err)
+	}
+	if dependencies != 0 {
+		t.Fatal("snapshot without retained invocations staged their preservation dependencies")
+	}
+	nativeParents(t.Context(), t, writer)
+	state, err := writer.Publish(t.Context(), "replacement-without-invocations")
+	if err != nil || state.Counts["$runs"] != 1 {
+		t.Fatalf("ordinary replacement failed: %+v %v", state, err)
+	}
+	if !reflect.DeepEqual(before, admissionRunRows(t, other)) {
+		t.Fatal("replacement changed another namespace's invocation evidence")
+	}
+}
+
 func TestAdmittedRunProjectionIsCanonicalAndIdempotent(t *testing.T) {
 	store, _ := nativeTestStore(t)
 	identity := admissionIdentity()
