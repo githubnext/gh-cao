@@ -1,6 +1,6 @@
 ---
 name: author-dashboard-intent
-description: Draft or refine Dashboard Language intent, subject, objective, and acceptance criteria as a coherent authoring contract. Use before query generation or when improving all four fields in the canvas query editor.
+description: Draft or refine Dashboard Language intent, subject, objective, and acceptance criteria as a coherent authoring contract. Use before query generation or when improving semantic metadata in a dashboard document.
 ---
 
 # Author dashboard intent
@@ -53,7 +53,7 @@ without asking questions or attempting to inspect evidence.
 
 ## Tool-free editor output
 
-When called by the canvas editor, return **only** one JSON object with exactly
+When a caller requests structured authoring metadata, return **only** one JSON object with exactly
 these four nonempty string properties:
 
 ```json

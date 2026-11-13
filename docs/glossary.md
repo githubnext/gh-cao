@@ -76,7 +76,7 @@ The Actions-only `cao-validate.yml` workflow, implemented in the shipped JavaScr
 
 ## CLI command queue
 
-A durable first-in-first-out queue of declared `cao` actions, separate from the collection task queue. Local admin and trusted canvas sessions share one queue per checkout in the selected PostgreSQL operational namespace. Queued commands survive restart, interrupted executions are recorded as failed and never retried automatically, and the online dashboard and read-only previews do not initialize it. See the [dashboard README](https://github.com/githubnext/gh-cao/blob/main/dashboard/README.md#cli-command-queue) and the [operational storage specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+A durable first-in-first-out queue of declared CLI actions, separate from the collection task queue. The Go server owns local maintenance state in the selected PostgreSQL operational namespace, while the native CLI requires fresh terminal approval before execution. Hosted actions have separate enablement and authorization. Queued commands survive restart; uncertain subprocess termination blocks new starts until reconciled. See the [dashboard README](https://github.com/githubnext/gh-cao/blob/main/dashboard/README.md#cli-command-queue) and the [operational storage specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 
 ## Cold-start seed
 
@@ -93,10 +93,6 @@ The CAO operator-facing name for the workflow that selects and dispatches work f
 ## Control plane
 
 The repository that hosts CAO workflows and policy. It coordinates work across explicitly enrolled target repositories. This is CAO's implementation of the gh-aw [Central Control Plane](https://github.github.com/gh-aw/reference/glossary/#central-control-plane) pattern.
-
-## Copilot canvas
-
-The local, loopback-only **Central Agentic Ops** Copilot SDK surface that hosts the experimental dashboard **Query editor** page for authoring and previewing custom views. It is not enabled on the static website, hosted server, or ordinary local preview, and its authoring sessions have no filesystem, shell, MCP, or repository-write tools. See [Design queries in a Copilot canvas](agent-plugin.md#design-queries-in-a-copilot-canvas).
 
 ## Copilot requests token broker
 

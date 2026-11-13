@@ -25,7 +25,7 @@ export function renderEnvironmentDefaults(context) {
   const previewed = state('');
   const output = state('');
   const status = state(available ? 'Select a scope and target, then load its current defaults.'
-    : 'Editing compiler defaults is unavailable in local previews and canvas development. Hosted repository installation tokens cannot administer organization or enterprise variables; use gh aw env with administrative credentials outside the dashboard.');
+    : 'Editing compiler defaults is unavailable in local previews. Hosted repository installation tokens cannot administer organization or enterprise variables; use gh aw env with administrative credentials outside the dashboard.');
   const snapshot = () => JSON.stringify([scope.get(), target.get(), visibility.get(), draft.get()]);
   const validTarget = () => (scope.get() === 'repo'
     ? /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+$/

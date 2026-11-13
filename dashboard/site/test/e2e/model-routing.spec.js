@@ -5,7 +5,7 @@ import { join, relative, sep } from 'node:path';
 import { parseUnifiedSessionDocument } from '../../src/data/adapters/unified-session.js';
 import { normalizedActivityShards } from './normalized-shard.js';
 import { originalSessions, replay, runCacheLine } from '../model-resolution-fixture.js';
-import { writeCanvasArtifact } from './canvas-fixture.js';
+import { writeServerArtifact } from './server-fixture.js';
 import routingContract from '../fixtures/model-routing-contract.json' with { type: 'json' };
 
 /**
@@ -15,24 +15,20 @@ import routingContract from '../fixtures/model-routing-contract.json' with { typ
  */
 async function startRoutingServer(shards, timestamp, repository = 'octo/api') {
   const [organization, name] = repository.split('/');
-  const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
+  const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
   const workspace = await mkdtemp(fileURLToPath(new URL('../../../../.cao-routing-e2e-', import.meta.url)));
   const siteRoot = fileURLToPath(new URL('../../', import.meta.url));
   await cp(siteRoot, join(workspace, 'site'), {
     recursive: true,
     filter: (path) => !['node_modules', 'dist', '.tmp', 'test', 'test-results', 'scripts'].includes(relative(siteRoot, path).split(sep)[0])
   });
-  /** @type {{ url: string, close: () => Promise<void> }} */
+  /** @type {{ url: string, headers: Record<string, string>, close: () => Promise<void> }} */
   let server;
   try {
-    server = await startCanvasServer({
-      workingDirectory: workspace, siteRoot: join(workspace, 'site'), catalogRoot: null,
-      port: 0,
-      output: () => {}, requestOutput: () => {}, traceOutput: () => {},
-      executeCliAction: async () => { throw new Error('CLI actions are disabled in routing browser tests.'); },
-      approveCliAction: async () => false,
+    server = await startDashboardServer({
+      workingDirectory: workspace, siteRoot: join(workspace, 'site'),
       prepareSnapshot: async (/** @type {string} */ destination) => {
-        await writeCanvasArtifact(destination, { sources: {
+        await writeServerArtifact(destination, { sources: {
           repositories: { rows: [{ organization, repository: name, 'observed-at': timestamp }],
             metadata: { 'as-of': timestamp, 'artifact-generation': 'routing-e2e' } }
         }, shards: [shards.runs, shards.records] });
@@ -84,7 +80,7 @@ async function inTables(page, width, check) {
 }
 
   test.describe('Go PostgreSQL model routing', () => {
-    /** @type {{ url: string, close: () => Promise<void> }} */
+    /** @type {{ url: string, headers: Record<string, string>, close: () => Promise<void> }} */
     let server;
     let workspace = '';
 
@@ -137,7 +133,8 @@ async function inTables(page, width, check) {
         const real = await startRoutingServer(shards, timestamp, 'github/gh-aw');
         try {
           await page.setViewportSize({ width, height: 900 });
-          await page.goto(`${real.server.url}/?local-preview=canvas#page-model-routing`);
+          await page.setExtraHTTPHeaders(real.server.headers);
+          await page.goto(`${real.server.url}/#page-model-routing`);
           await expect(page.getByRole('dialog', { name: 'Preparing your dashboard' })).toBeHidden();
           await expectFiveViews(page);
           const health = page.locator('[data-view-id="routing-health"]');
@@ -168,7 +165,8 @@ async function inTables(page, width, check) {
 
       test(`renders populated routing and drill-down at ${width}px`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 });
-        await page.goto(`${server.url}/?local-preview=canvas#page-model-routing`);
+        await page.setExtraHTTPHeaders(server.headers);
+        await page.goto(`${server.url}/#page-model-routing`);
         await expect(page.getByRole('dialog', { name: 'Preparing your dashboard' })).toBeHidden();
         await expectFiveViews(page);
         await expect(page.getByRole('heading', { name: 'Models picked over time', exact: true })).toBeVisible();
@@ -218,7 +216,7 @@ async function inTables(page, width, check) {
   });
 
   test.describe('Go PostgreSQL model resolution', () => {
-    /** @type {{ url: string, close: () => Promise<void> }} */
+    /** @type {{ url: string, headers: Record<string, string>, close: () => Promise<void> }} */
     let server;
     let workspace = '';
 
@@ -238,7 +236,8 @@ async function inTables(page, width, check) {
     for (const width of [1280, 390]) {
       test(`renders resolution Problems and run resolution drill-down at ${width}px`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 });
-        await page.goto(`${server.url}/?local-preview=canvas#page-model-routing`);
+        await page.setExtraHTTPHeaders(server.headers);
+        await page.goto(`${server.url}/#page-model-routing`);
         await expect(page.getByRole('dialog', { name: 'Preparing your dashboard' })).toBeHidden();
         await expectFiveViews(page);
         const problems = page.locator('[data-view-id="routing-problems"]');

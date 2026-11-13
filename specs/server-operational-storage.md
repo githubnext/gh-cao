@@ -291,7 +291,7 @@ requiring CLI commands MUST set `Requirements.CLICommands` and reject an absent,
 typed-nil, unsupported, or volatile service. Storage support MUST NOT enable
 hosted execution, expose new HTTP actions, bypass declared-action validation or
 trusted approval, or provide credentials, quota admission, or subprocess control.
-The local-admin/canvas queue MUST use PostgreSQL. Hosted
+The local maintenance queue MUST use PostgreSQL. Hosted
 execution is a separate opt-in contract defined by
 [`server-hosted-cli.md`](server-hosted-cli.md).
 
@@ -416,10 +416,9 @@ accept only loopback listeners and confine file access to its selected site;
 directory listings and escaping symlinks MUST be rejected. It MUST NOT become
 a fallback for a failed PostgreSQL service.
 
-`dashboard/canvas-server.mjs` remains an internal, loopback-only authoring
-bridge. It has no standalone CLI, admin mode or process-replacement facility.
-Its command queue requires paired trusted execution and approval callbacks;
-read-only canvas authoring MUST NOT initialize a command queue.
+Copilot canvas serving and its Node authoring/execution bridge are removed.
+Local maintenance MUST use the native CLI adapter and server-owned PostgreSQL
+queue, not browser callbacks or a separate Node executor.
 The Go application MUST cancel and join owned workers before store close.
 
 ## Restart and manual recovery

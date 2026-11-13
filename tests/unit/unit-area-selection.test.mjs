@@ -35,7 +35,7 @@ test("CI runs every defined unit test area", () => {
   );
 });
 
-test("terminal contract jobs build the dashboard's native dependencies before testing", () => {
+test("dashboard contract jobs install browser dependencies before testing", () => {
   const workflow = parse(readFileSync(".github/workflows/workflow-contracts.yml", "utf8"));
   for (const [jobId, testCommand] of [
     ["unit", "npm run test:unit:area"],
@@ -46,7 +46,7 @@ test("terminal contract jobs build the dashboard's native dependencies before te
     const testIndex = steps.findIndex((step) => step.run?.includes(testCommand));
     assert.ok(installIndex >= 0 && installIndex < testIndex, `${jobId} must install before testing`);
     assert.equal(steps[installIndex].run, "npm ci --prefix dashboard/site",
-      `${jobId} must run node-pty's native build and the terminal preparation lifecycle`);
+      `${jobId} must install the dashboard build and browser test dependencies`);
   }
 });
 

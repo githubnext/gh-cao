@@ -21,7 +21,6 @@ import { clearTimeWindowFilter, isTimeWindowFilterActive } from './filter-bar.js
 import { processScatterPoints } from '../data-processor.js';
 import { MAX_RENDERED_SCATTER_POINTS } from '../scatter-clustering.js';
 import { createPromptCliActionControl, renderDeclaredCliAction, renderRowCliAction } from './cli-actions.js';
-import { createPromptSessionControl } from './prompt-session.js';
 import { effect, onCleanup, state } from '../reactive.js';
 import { createFactoryScope } from './factory-elements.js';
 import { createDebug, diagnosticErrorName } from '../debug.js';
@@ -1793,7 +1792,7 @@ export function renderPromptPreviewAction(action, getContent, actionId, iconName
   const promptCliAction = typeof action.actionId === 'string'
     ? createPromptCliActionControl(action.actionId, content.get, { level: action.level, label })
     : null;
-  const activeControl = promptCliAction ?? createPromptSessionControl(content.get) ?? createCopyControl({
+  const activeControl = promptCliAction ?? createCopyControl({
     getContent: content.get,
     label: 'Copy prompt',
     buttonClassName: 'table-intent-copy-button',

@@ -523,7 +523,7 @@ func TestRegisterNamespaceFlagWithEnvOverrideFallsBackToCheckout(t *testing.T) {
 
 func TestCommandsRejectLegacyRedisFlags(t *testing.T) {
 	for _, newCommand := range []func() *cobra.Command{
-		newServeCommand, newIngestCommand, newReadCommand, newDoctorCommand, newLocalQueueCommand,
+		newServeCommand, newIngestCommand, newReadCommand, newDoctorCommand,
 	} {
 		command := newCommand()
 		t.Run(command.Name(), func(t *testing.T) {
@@ -868,13 +868,14 @@ func TestActionsEnvironmentPresentReportsPresenceNotValues(t *testing.T) {
 }
 
 func TestRootCommandRegistersEverySubcommand(t *testing.T) {
-	want := []string{"admission", "adx", "app-key-check", "audit", "backfill", "benchmark-queries", "collect", "compile-queries", "database", "doctor", "execute-cli", "hosted-cli", "ingest", "local-queue", "otel-smoke", "provision-inventory", "read", "serve", "serve-hosted", "serve-pages", "simulate-api", "simulate-webhooks"}
+	want := []string{"admission", "adx", "app-key-check", "audit", "backfill", "benchmark-queries", "collect", "compile-queries", "database", "doctor", "execute-cli", "hosted-cli", "ingest", "otel-smoke", "provision-inventory", "read", "serve", "serve-hosted", "serve-pages", "simulate-api", "simulate-webhooks"}
 	root := newRootCommand()
 
 	got := make([]string, 0, len(want))
 	for _, cmd := range root.Commands() {
 		got = append(got, cmd.Name())
 	}
+
 	sort.Strings(got)
 
 	if len(got) != len(want) {
@@ -885,6 +886,19 @@ func TestRootCommandRegistersEverySubcommand(t *testing.T) {
 			t.Errorf("newRootCommand() registered %v, want %v", got, want)
 			break
 		}
+	}
+}
+
+func TestRetiredCanvasEntryPointsAreUnavailable(t *testing.T) {
+	command := newServeCommand()
+	command.SetArgs([]string{"--canvas-config", "untrusted.json"})
+	if err := command.Execute(); err == nil || !strings.Contains(err.Error(), "unknown flag") {
+		t.Fatalf("retired canvas flag was accepted: %v", err)
+	}
+	root := newRootCommand()
+	root.SetArgs([]string{"local-queue"})
+	if err := root.Execute(); err == nil || !strings.Contains(err.Error(), "unknown command") {
+		t.Fatalf("retired Node queue protocol was accepted: %v", err)
 	}
 }
 

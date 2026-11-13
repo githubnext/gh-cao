@@ -889,7 +889,7 @@ export function validateView(view, viewNode, path, viewIds, errors) {
       ));
     }
     if (view.mark === 'element') {
-      if (!(typeof view.element === 'string' && ['query-editor', 'command-terminal', 'storage-info', 'environment-defaults', 'prompt-wizard'].includes(view.element) && Array.isArray(view.data.sources) && view.data.sources.length === 0)) {
+      if (!(typeof view.element === 'string' && ['command-terminal', 'storage-info', 'environment-defaults', 'prompt-wizard'].includes(view.element) && Array.isArray(view.data.sources) && view.data.sources.length === 0)) {
         validateSourceSequence(view.data.sources, `${path}.data.sources`, errors);
       }
       if (view.data.source !== undefined) {

@@ -46,13 +46,12 @@ be available while Run and artifact coverage remain unknown or partial; absence
 must not become healthy zero activity. The synthetic Pages demo is never an
 operational source, repair path or hosted fallback.
 
-<span id="canvas-administrative-actions"></span>
+### Native maintenance
 
-Canvas command execution is separate from ingestion. Ordinary Go local serving
-and synthetic Pages previews cannot execute local commands. See
-[Run approved commands](agent-plugin.md#run-approved-commands) and
-[Compiler-version evidence](agent-plugin.md#compiler-version-evidence) for the
-approval and evidence boundaries.
+Native command execution is separate from ingestion. Ordinary read-only Go
+serving and synthetic Pages previews enable no commands. `gh cao dashboard`
+uses the scoped native maintenance adapter with trusted terminal approval;
+see [the native dashboard guide](cao-cli.md#on-demand-local-dashboard).
 
 ## Hosted server data pipeline
 
@@ -367,13 +366,11 @@ server reader. Node cao retains artifact preparation and catalog discovery, not 
 second local database backend. Removed ingestion and repair commands have no
 compatibility path.
 
-The [Copilot canvas](agent-plugin.md) launches the installed `gh cao dashboard`
-command, which acquires bounded recent activity and manages local PostgreSQL
-unless an explicit connection is supplied. It needs no prepared snapshot or
-private authoring bridge. Maintenance execution retains the native CLI's trusted
-terminal approval checks; canvas access alone does not approve a command.
-Neither local storage nor canvas access grants rollout, credential or hosted
-execution authority.
+Run the installed `gh cao dashboard` command in an interactive terminal. It
+acquires bounded recent activity and manages local PostgreSQL unless an explicit
+connection is supplied. Open its private loopback URL in a browser. Maintenance
+requires trusted terminal approval; viewing evidence grants no rollout,
+credential, or hosted execution authority.
 
 ### Query the private session archive
 

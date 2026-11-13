@@ -92,7 +92,7 @@ function resultText(result) {
 }
 
 /**
- * Create the canvas-only control that starts an agent task from a generated prompt.
+ * Create the server-authorized control that starts an agent task from a generated prompt.
  * @param {string} actionId
  * @param {() => string} getPrompt
  * @param {{ level?: import('../action-model.js').ActionLevel, label?: string }} [options]

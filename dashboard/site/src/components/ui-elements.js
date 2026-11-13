@@ -156,10 +156,6 @@ const LAZY_ELEMENT_RENDERERS = new Map([
         ? renderOutcomeDetailSection(outcome, context.elementConfig.body) : null;
     }
   )],
-  ['query-editor-lazy', lazyElementRenderer(
-    () => import('./query-editor.js'),
-    ({ renderQueryEditor }, context) => renderQueryEditor(context)
-  )],
   ['campaign-route-lazy', lazyElementRenderer(
     () => import('./campaign-route-view.js'),
     ({ renderCampaignRouteView }, context) => renderCampaignRouteView(context)

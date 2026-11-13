@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "generate:dashboard-ingest": "node scripts/generate-dashboard-ingest.mjs",
-    "postinstall": "node dashboard/site/scripts/prepare-terminal.mjs",
     "install:gh-aw": "GH_AW_VERSION=$(node .github/workflows/shared/control.mjs compiler-version .github/workflows/cao.json) && curl -sL https://raw.githubusercontent.com/github/gh-aw/main/install-gh-aw.sh | bash -s -- \"$GH_AW_VERSION\"",
     "dashboard:local": "CAO_MARKETPLACE_POLICY_PATH=\"${CAO_MARKETPLACE_POLICY_PATH:-$PWD/.github/workflows/cao.json}\" go -C server run ./cmd/cao-dashboard serve --site ../dashboard/site/dist",
     "predashboard:local": "CAO_DASHBOARD_PROFILE=server npm --prefix dashboard/site run build -- dist ../../.github/workflows/cao.json",
@@ -99,7 +98,6 @@
     "esbuild": "0.28.2",
     "http-cache-semantics": "file:packages/astro-no-cache",
     "mermaid": "11.17.2",
-    "node-pty": "^1.1.0",
     "source-map-js": "file:dashboard/site/packages/source-map-compat",
     "starlight-github-alerts": "0.4.0",
     "starlight-llms-txt": "0.12.0"

@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { prepareCanvasPostgres, writeCanvasSnapshot } from "../helpers/canvas-snapshot.mjs";
+import { prepareDashboardPostgres, writeDashboardSnapshot } from "../helpers/dashboard-snapshot.mjs";
 
 const execute = promisify(execFile);
 const accessToken = "0123456789abcdef0123456789abcdef";
@@ -28,7 +28,7 @@ async function status(ingestionStatus = "paused", scannedHours = 48) {
     nextAttemptAt: new Date(Date.now() + 3_600_000).toISOString(),
     ingestionMessage: "Synthetic local ingestion fixture. History and artifact coverage remain partial.",
   });
-  await writeCanvasSnapshot(directory, records);
+  await writeDashboardSnapshot(directory, records);
   await execute(resolve(".tmp/cao-dashboard"), [
     "ingest", "--source", directory, "--postgres-url", postgres.postgresURL,
     "--namespace", postgres.namespace, "--database-queries", join(site, "src/data/queries/database.json"),
@@ -37,7 +37,7 @@ async function status(ingestionStatus = "paused", scannedHours = 48) {
 
 test.beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "cao-local-ingestion-"));
-  postgres = await prepareCanvasPostgres();
+  postgres = await prepareDashboardPostgres();
   const now = new Date().toISOString();
   put("repositories", { id: "repository:octo%2Fapi", owner: "octo", name: "api", observedAt: now });
   put("workflows", {

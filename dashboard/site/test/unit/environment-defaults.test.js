@@ -237,7 +237,7 @@ describe('compiler defaults editor', () => {
       document.head.append(meta);
     } else vi.stubGlobal('__CLI_QUEUE__', false);
     const root = mount();
-    expect(root.textContent).toContain('Editing compiler defaults is unavailable in local previews and canvas development.');
+    expect(root.textContent).toContain('Editing compiler defaults is unavailable in local previews.');
     expect([...root.querySelectorAll('input, select, textarea, button')]
       .filter((control) => control.getAttribute('aria-label') !== null)
       .every((control) => Reflect.get(control, 'disabled'))).toBe(true);

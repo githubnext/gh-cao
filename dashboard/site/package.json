@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "node scripts/prepare-terminal.mjs",
     "build": "node ./scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . && node ./scripts/lint-octicons.mjs && npm run validate:dashboards",
     "test": "vitest run --environment jsdom",
+    "pretest:e2e": "CAO_DASHBOARD_PROFILE=server node ./scripts/build.mjs dist ../../.github/workflows/cao.json",
     "test:e2e": "npx playwright test --config=playwright.config.mjs",
     "test:performance": "node ./scripts/build.mjs dist test/performance/fixtures/control-settings.json && node ./test/performance/lighthouse.mjs",
     "validate:corpus": "node ./scripts/validate-corpus.mjs",
@@ -27,7 +27,6 @@
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
     "esbuild": "^0.28.2",
-    "node-pty": "^1.1.0",
     "strip-ansi": "^7.2.0",
     "yaml": "^2.9.0"
   },

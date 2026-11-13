@@ -1,20 +1,19 @@
-import { writeCanvasArtifact } from './canvas-fixture.js';
+import { writeServerArtifact } from './server-fixture.js';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
-const { startCanvasServer } = await import(new URL('../../../../tests/helpers/canvas-snapshot.mjs', import.meta.url).href);
+const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
   test(`Upgrade copy dialog contains clicks inside the repository card at ${width}px`, async ({ page }, testInfo) => {
-    const preview = await startCanvasServer({
+    const preview = await startDashboardServer({
       workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
-      repository: 'acme/control', caoUrl: 'https://ops.example.com/central/', port: 0,
-      output: () => {}, requestOutput: () => {}, traceOutput: () => {},
+      repository: 'acme/control', caoUrl: 'https://ops.example.com/central/',
       prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
         const metadata = { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' };
-        await writeCanvasArtifact(destination, { sources: {
+        await writeServerArtifact(destination, { sources: {
           repositories: { metadata, rows: [{ organization: 'octo', repository: 'example' }] },
           workflows: { metadata, rows: [{
             organization: 'octo', repository: 'example', workflow: 'demo.md', 'workflow-name': 'Demo',
@@ -24,6 +23,7 @@ for (const width of [1440, 390]) {
       }
     });
     try {
+      await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${preview.url}/#page-maintenance`);
       const repositoryLink = page.locator('[data-view-id="maintenance-repositories"] [data-card-drill="external"]');
@@ -68,14 +68,13 @@ for (const width of [1440, 390]) {
   });
 
   test(`Maintenance actions use exact retained coordinates at ${width}px`, async ({ page }, testInfo) => {
-    const preview = await startCanvasServer({
+    const preview = await startDashboardServer({
       workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
-      repository: 'acme/control', caoUrl: 'https://ops.example.com/central/', port: 0,
-      output: () => {}, requestOutput: () => {}, traceOutput: () => {},
+      repository: 'acme/control', caoUrl: 'https://ops.example.com/central/',
       prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });
         const metadata = { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' };
-        await writeCanvasArtifact(destination, { sources: {
+        await writeServerArtifact(destination, { sources: {
           campaigns: { metadata, rows: [
             {
               campaign: 'activity', 'campaign-name': 'Activity', 'campaign-source': 'acme/catalog/activity',
@@ -131,6 +130,7 @@ for (const width of [1440, 390]) {
       }
     });
     try {
+      await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${preview.url}/#page-maintenance`);
       const compilerPage = page.locator('#page-maintenance');

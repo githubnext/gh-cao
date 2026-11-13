@@ -340,7 +340,6 @@ func newRootCommand() *cobra.Command {
 		newIngestCommand(),
 		newProvisionInventoryCommand(),
 		newReadCommand(),
-		newLocalQueueCommand(),
 		newCollectCommand(),
 		newExecuteCLICommand(),
 		newHostedCLICommand(),
@@ -688,9 +687,7 @@ func newServeCommand() *cobra.Command {
 	agentCatalog := cmd.Flags().String("agent-catalog", "", "materialized read-only agent catalog (default: selected dashboard resources)")
 	mcpContract := cmd.Flags().String("mcp-contract", "", "shared MCP tool contract (default: selected dashboard resources)")
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
-	canvasConfigPath := cmd.Flags().String("canvas-config", "", "private local Copilot adapter configuration; stdin owns the host lifetime")
 	operatorConfigPath := cmd.Flags().String("operator-config", "", "private native maintenance adapter configuration")
-	cmd.MarkFlagsMutuallyExclusive("operator-config", "canvas-config")
 	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local serving when the owning CLI closes stdin")
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
 		resolveServeResources(cmd, *siteDirectory)
@@ -703,10 +700,6 @@ func newServeCommand() *cobra.Command {
 		}
 		if selected {
 			return errors.New("reviewed operational-store selection requires serve-hosted or an external OAuth host; local bearer serve cannot override it")
-		}
-		canvas, err := readCanvasConfig(*canvasConfigPath)
-		if err != nil {
-			return err
 		}
 		operator, err := readOperatorConfig(*operatorConfigPath)
 		if err != nil {
@@ -721,7 +714,7 @@ func newServeCommand() *cobra.Command {
 		commandLog.Printf("serve flags parsed tls=%t source_ingestion=%t", *cert != "", *source != "")
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
-		if canvas != nil || *exitOnStdinClose {
+		if *exitOnStdinClose {
 			go func() {
 				_, _ = io.Copy(io.Discard, cmd.InOrStdin())
 				stop()
@@ -758,20 +751,12 @@ func newServeCommand() *cobra.Command {
 				ActionsRepository:    actionsEnv.Repository,
 				GitHubAPIURL:         actionsEnv.APIURL,
 				Logger:               log.New(os.Stderr, "cao-dashboard: ", log.LstdFlags),
-				Canvas:               canvas,
 				OperatorActions:      operator,
 			}
-			if canvas != nil || operator != nil {
+			if operator != nil {
 				// Ambient local credentials are not an Actions identity
 				// admitted through the MCP endpoint.
 				config.GitHubActionsToken, config.GitHubActionsActor = "", ""
-			}
-			if canvas != nil {
-				config.OnListen = func(address string) error {
-					return json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]string{
-						"url": "http://" + address + canvas.Prefix,
-					})
-				}
 			}
 			return config, nil
 		}

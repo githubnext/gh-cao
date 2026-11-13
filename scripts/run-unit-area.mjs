@@ -58,14 +58,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   let result;
   try {
     if (area === "dashboard" && process.env.POSTGRES_URL) {
-      // Provision partitions once; each canvas fixture still owns a private database.
-      const { prepareCanvasPostgresTemplate } = await import("../tests/helpers/canvas-snapshot.mjs");
-      template = await prepareCanvasPostgresTemplate();
+      // Provision partitions once; each dashboard fixture still owns a private database.
+      const { prepareDashboardPostgresTemplate } = await import("../tests/helpers/dashboard-snapshot.mjs");
+      template = await prepareDashboardPostgresTemplate();
     }
     result = spawnSync(process.execPath, ["--test",
       ...(process.env.POSTGRES_URL ? ["--test-concurrency=4"] : []), ...selected], {
       stdio: "inherit",
-      env: { ...process.env, ...(template ? { CAO_CANVAS_POSTGRES_TEMPLATE: template.postgresURL } : {}) },
+      env: { ...process.env, ...(template ? { CAO_TEST_POSTGRES_TEMPLATE: template.postgresURL } : {}) },
     });
   } finally {
     await template?.close();

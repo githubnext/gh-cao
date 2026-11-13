@@ -142,8 +142,8 @@ export async function validateAgentPlugin(pluginRoot) {
   }
   const extensionRoot = join(root, "com.github.copilot", "extensions", "cao-dashboard");
   for (const filename of [
-    "extension.mjs", "dashboard-extension.mjs", "approval.mjs", "cli-actions.mjs",
-    "local-preview.mjs", "dashboard-agent-tools.mjs", "bundled-resources.mjs", "query-designer.mjs", "copilot-extension.json",
+    "extension.mjs", "dashboard-extension.mjs", "dashboard-agent-tools.mjs",
+    "bundled-resources.mjs", "copilot-extension.json",
   ]) {
     await checkPath(join(extensionRoot, filename));
   }

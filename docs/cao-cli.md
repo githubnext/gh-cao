@@ -209,7 +209,7 @@ is currently supported on Unix; Windows cannot execute these actions.
 No maintenance command runs merely because the dashboard starts, and this mode
 does not mutate remote runs, dispatch workflows, change rollout policy or enable
 hosted execution.
-The native adapter is independent of canvas integration. Its normal server
+The native adapter uses the ordinary local server. Its
 endpoints require bearer authentication and same-origin mutation requests in
 addition to fresh terminal approval.
 
@@ -595,7 +595,6 @@ for deployment and administration contracts.
 
 Other server binaries are separate process boundaries, not `gh cao` subcommands:
 `cao-webhook-gateway` selects isolated receive, dispatch, local, or discover roles;
-`cao-cli-quota` consumes an internal stdin/stdout scheduling protocol; and
 `cao-cli-relay` wraps a hosted workload inside its network-isolated container.
 The npm `cao` bin and `npm run dashboard:data -- <command>` invoke the same
 Node entry point, not additional command registrations. npm dashboard serving
@@ -954,9 +953,7 @@ The slug is the last component of the installed package name (`root` for
 fail before updates or gh-aw upgrades. Campaign selection does not narrow a
 required gh-aw compiler upgrade, which may refresh shared workflow files.
 
-The canvas Updates page exposes **Add repository** beside Repositories. Its
-debounced GitHub search only selects a target; execution still requires fresh
-approval of the exact `gh cao repos add OWNER/REPO` command. Enrollment
+Enroll a repository explicitly with `gh cao repos add OWNER/REPO`. Enrollment
 requires existing exact owner and repository allowlists and does not rewrite a
 broad discovery policy. An already enrolled repository is unchanged. New targets
 stay in review mode even when a campaign defaults to live. The command neither

@@ -7,7 +7,6 @@ import { inboxStyles } from './styles-inbox.js';
 import { overviewStyles } from './styles-overview.js';
 import { operationStyles } from './styles-operations.js';
 import { contentStyles } from './styles-content.js';
-import { queryEditorStyles } from './styles-query-editor.js';
 import { governanceStyles } from './styles-governance.js';
 import { promptWizardStyles } from './styles-prompt-wizard.js';
 import { workflowValueStyles } from './styles-workflow-value.js';
@@ -25,7 +24,6 @@ export const primerStyles = [
   overviewStyles,
   operationStyles,
   contentStyles,
-  queryEditorStyles,
   governanceStyles,
   promptWizardStyles,
   workflowValueStyles,

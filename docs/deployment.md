@@ -87,7 +87,7 @@ optional staged infrastructure is not native collection activation.
 
 ## What every option guarantees
 
-- **Evidence is not authority.** Viewing a result grants no execution or write permission. Pages is read-only; optional canvas commands and hosted CLI actions have separate authorization and approval requirements. See [Know the boundary](dashboard.md#know-the-boundary).
+- **Evidence is not authority.** Viewing a result grants no execution or write permission. Pages is read-only; native maintenance and hosted CLI actions have separate authorization and approval requirements. See [Know the boundary](dashboard.md#know-the-boundary).
 - **Rebuildable dashboard data.** Browser IndexedDB and canonical PostgreSQL hold derived evidence projections. Protected operational state such as audit history, queues, and revocation records is separate and must not be treated as a disposable cache. See the [operational-storage contract](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 - **Verified payloads.** Each payload file is checked against `payload-hashes.json` before it is parsed. A missing manifest, a hash mismatch, an unsafe path, or a malformed record stops ingestion.
 - **No exposed secrets.** Secrets never appear in the dashboard site, API responses, URLs, or logs.

@@ -40,13 +40,12 @@ tab to return directly without losing answers; future steps cannot bypass valida
 
 On **Scope and behavior**, **Generate** replaces Next at the bottom right.
 It validates your answers and opens the full prompt preview directly; there is
-no separate Review tab. In the Copilot app canvas, **Start session** creates a new app session with
-that prompt. Outside the app, **Copy prompt** copies it for your coding agent.
+no separate Review tab. **Copy prompt** copies the reviewed text for your coding
+agent; no Copilot canvas or app-session handoff is provided.
 The prompt is natural language, beginning “Create a Pull Request for the following
 task:”. It includes only relevant selected requirements, with Campaign guidance
 only for a Campaign, and omits raw pattern JSON, provenance, rankings and anti-patterns.
-Both AWs and Campaigns use this flow; opening a preview starts nothing. Starting
-a session requires a separate explicit click and never uses `gh agent-task`.
+Both AWs and Campaigns use this flow; opening or copying a preview starts nothing.
 The prompt requests a draft pull request, not installation or live activation.
 Draft answers are page-local memory; leaving the page discards them. Never
 enter secrets.

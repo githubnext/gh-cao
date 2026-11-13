@@ -68,7 +68,6 @@ type Config struct {
 	CertFile               string
 	KeyFile                string
 	AccessToken            string
-	Canvas                 *LocalCanvasConfig
 	OperatorActions        *LocalOperatorConfig
 	OnListen               func(string) error
 	HostProfile            HostProfile
@@ -174,13 +173,10 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	}
 	postgresDatabase, isPostgres := config.Database.(*postgresx.Store)
 	local := config.HostProfile == (HostProfile{}) || config.HostProfile == localHostProfile()
-	if err := validateLocalCanvas(config, local); err != nil {
-		return nil, err
-	}
 	if config.Database == nil || isPostgres && postgresDatabase == nil {
 		return nil, errors.New("dashboard database is required")
 	}
-	if config.OperatorActions != nil && (!local || config.GitHubOAuth != nil || config.Canvas != nil) {
+	if config.OperatorActions != nil && (!local || config.GitHubOAuth != nil) {
 		return nil, errors.New("native operator configuration requires local bearer serving")
 	}
 	if local && config.RateLimits.Query.Capacity == 0 {
@@ -431,8 +427,7 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	if err := app.configureSessionArchive(ctx); err != nil {
 		return nil, fmt.Errorf("configure session archive: %w", err)
 	}
-	if config.Canvas != nil && config.Canvas.OperatorActions != nil ||
-		config.OperatorActions != nil && config.OperatorActions.OperatorActions != nil {
+	if config.OperatorActions != nil && config.OperatorActions.OperatorActions != nil {
 		if err := app.enableOperatorActions(ctx); err != nil {
 			return nil, err
 		}
@@ -746,7 +741,7 @@ func (a *App) Serve(ctx context.Context) error {
 	}
 	if a.oauth != nil {
 		a.config.Logger.Printf("serving hosted dashboard on %s", a.config.Listen)
-	} else if a.config.Canvas == nil {
+	} else {
 		a.config.Logger.Printf("serving local dashboard at %s", a.capabilityURL())
 	}
 	serveDone := make(chan struct{})
@@ -928,7 +923,7 @@ func (a *App) Handler() http.Handler {
 		}
 		instrumented.ServeHTTP(response, safe)
 	})
-	return a.canvasHandler(securityHeaders(safeTelemetry))
+	return securityHeaders(safeTelemetry)
 }
 
 type originalHTTPRequestKey struct{}
@@ -1278,15 +1273,10 @@ func constantTimeTokenEqual(candidate, expected string) bool {
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("X-Content-Type-Options", "nosniff")
-		if request.Context().Value(localCanvasContextKey{}) != true {
-			response.Header().Set("X-Frame-Options", "DENY")
-		}
+		response.Header().Set("X-Frame-Options", "DENY")
 		response.Header().Set("Referrer-Policy", "same-origin")
 		response.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		response.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
-		if request.Context().Value(localCanvasContextKey{}) == true {
-			response.Header().Set("Cache-Control", "no-store")
-		}
 		if strings.HasPrefix(request.URL.Path, "/api/") {
 			response.Header().Set("Cache-Control", "no-store")
 		}
@@ -2082,7 +2072,7 @@ func (a *App) static(response http.ResponseWriter, request *http.Request) {
 	defer closeSite()
 	file, err := root.Open(clean)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) && a.config.Canvas == nil {
+		if errors.Is(err, os.ErrNotExist) {
 			a.serveIndex(response, request, "")
 		} else {
 			http.NotFound(response, request)
@@ -2105,9 +2095,6 @@ func (a *App) static(response http.ResponseWriter, request *http.Request) {
 	}
 	if strings.EqualFold(filepath.Ext(clean), ".md") {
 		response.Header().Set("Content-Type", "text/markdown; charset=utf-8")
-		if a.config.Canvas != nil {
-			response.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		}
 	}
 	seeker, ok := file.(io.ReadSeeker)
 	if !ok {
@@ -2134,12 +2121,6 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	injections := `<meta name="dashboard-data-backend" content="server-http"><meta name="dashboard-storage-backend" content="` + storageBackend + `">`
 	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
 		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
-	}
-	if a.config.Canvas != nil {
-		injections += `<meta name="dashboard-api-base" content="` + a.config.Canvas.Prefix + `/">`
-		if a.config.Canvas.OperatorActions != nil {
-			injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
-		}
 	}
 	if a.oauth != nil {
 		injections += `<meta name="cao-auth-mode" content="github">`

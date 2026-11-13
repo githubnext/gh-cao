@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { processDataRequest } from '../../src/data-worker.js';
-import editor from '../../canvas-query-editor.json' with { type: 'json' };
 import { validateDashboardDocument } from '../../src/validator.js';
 import previewFixture from '../fixtures/query-editor.json' with { type: 'json' };
 import layeredFixture from '../fixtures/chart-layer-facet-contract.json' with { type: 'json' };
@@ -11,10 +10,6 @@ const previewDocument = () => structuredClone(previewFixture);
 const validate = (document) => processDataRequest({ operation: 'validate-query-editor-document', content: JSON.stringify(document) });
 
 describe('query editor worker validation', () => {
-  it('validates the canvas-only declarative authoring page', () => {
-    expect(validateDashboardDocument(JSON.stringify(editor))).toMatchObject({ ok: true });
-  });
-
   it('accepts complete bounded Dashboard Language and reports preview sources', async () => {
     expect(await validate(previewDocument())).toMatchObject({
       ok: true, pageId: 'query-preview', sourceNames: ['failure-counts'], errors: []
@@ -111,7 +106,7 @@ describe('query editor worker validation', () => {
     }
   });
 
-  it('rejects editor recursion, unbounded views, other page IDs, and new capabilities', async () => {
+  it('rejects unbounded views, other page IDs, and new capabilities', async () => {
     const unbounded = previewDocument();
     unbounded.dashboard.pages[0].views[0].data.limit = 201;
     expect(await validate(unbounded)).toMatchObject({ ok: false, errors: [expect.objectContaining({ code: 'QUERY-EDITOR' })] });
@@ -121,7 +116,6 @@ describe('query editor worker validation', () => {
     const otherPage = previewDocument();
     otherPage.dashboard.pages[0].id = 'overview';
     expect(await validate(otherPage)).toMatchObject({ ok: false });
-    expect(await validate(editor)).toMatchObject({ ok: false });
     const actions = {
       ...previewDocument(),
       dashboard: { ...previewDocument().dashboard, 'cli-actions': [{ id: 'write', label: 'Write', icon: 'code', command: 'gh aw update' }] }

@@ -4,7 +4,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { syncBuiltinESMExports } from "node:module";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import test from "node:test";
 import { parse } from "yaml";
 import { buildCaoRuntime, runtimeResources, validateCaoRuntimeArtifact } from "../../scripts/build-cao-runtime.mjs";
@@ -47,44 +46,20 @@ test("producer artifact binds its production inventory to an immutable revision"
     "jsonl_helpers.cjs", "json_schema_validation.cjs", "mcp_scripts_validation.cjs",
     "memory_schema_contract.cjs", "LICENSE", "source.json",
   ]) assert.ok(metadata.files[`dashboard/report/vendor/gh-aw/${file}`]);
-  assert.ok(metadata.files["dashboard/server-process.mjs"]);
+  assert.ok(metadata.files["dashboard/site/src/environment-defaults.js"]);
   for (const file of [
-    "dashboard/cli-terminal-process.mjs",
-    "dashboard/cli-terminal-child.mjs",
-    "dashboard/site/scripts/prepare-terminal.mjs",
-  ]) assert.ok(metadata.files[file], `missing terminal runtime file: ${file}`);
-  for (const file of [
-    "dashboard/environment-defaults.mjs",
-    "dashboard/site/src/environment-defaults.js",
-  ]) assert.ok(metadata.files[file], `missing Governance runtime file: ${file}`);
+    "dashboard/canvas-server.mjs", "dashboard/server-process.mjs", "dashboard/cli-actions.mjs",
+    "dashboard/cli-terminal-process.mjs", "dashboard/cli-terminal-child.mjs",
+  ]) assert.equal(metadata.files[file], undefined, `retired canvas runtime file: ${file}`);
   const dashboardManifest = JSON.parse(readFileSync(path.join(root, "dashboard/site/package.json"), "utf8"));
   const dashboardLock = JSON.parse(readFileSync(path.join(root, "dashboard/site/package-lock.json"), "utf8"));
-  assert.ok(dashboardManifest.dependencies["node-pty"]);
-  assert.equal(dashboardManifest.scripts.postinstall, "node scripts/prepare-terminal.mjs");
-  assert.equal(dashboardLock.packages[""].dependencies["node-pty"], dashboardManifest.dependencies["node-pty"]);
-  assert.ok(dashboardLock.packages["node_modules/node-pty"].hasInstallScript);
+  assert.equal(dashboardManifest.dependencies["node-pty"], undefined);
+  assert.equal(dashboardLock.packages["node_modules/node-pty"], undefined);
   assert.equal(existsSync(path.join(root, "node_modules")), false);
   assert.match(readFileSync(path.join(root, "dashboard/site/src/validator-dashboard.js"), "utf8"), /from '\.\/vendor\/yaml\.js'/);
   assert.doesNotMatch(readFileSync(path.join(root, "dashboard/site/src/environment-defaults.js"), "utf8"), /from ['"].*yaml/);
   assert.equal(existsSync(path.join(root, "dashboard/site/node_modules")), false);
   assert.throws(() => validateCaoRuntimeArtifact(root, "2".repeat(40)), /provenance does not match/);
-});
-
-test("the prebuilt archive loads the Governance CLI transport with dependency-free defaults parsing", async (t) => {
-  const root = unpack(t);
-  const { executeDashboardCommand } = await import(pathToFileURL(path.join(root, "dashboard/cli-actions.mjs")));
-  const yaml = 'default_max_turns: "20"\n';
-  const result = await executeDashboardCommand({
-    command: "gh aw env get cao-governance.yml --scope org --org acme",
-    workingDirectory: root,
-    githubToken: "test-fixture",
-    execute: async (_executable, args, options) => {
-      if (!args.includes("--help")) writeFileSync(path.join(options.cwd, "cao-governance.yml"), yaml);
-      return { stdout: "", stderr: "" };
-    },
-  });
-  assert.equal(result.ok, true);
-  assert.equal(result.stdout, yaml);
 });
 
 test("producer archives are reproducible with drive-safe relative tar archive paths", (t) => {
