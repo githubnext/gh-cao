@@ -1,35 +1,7 @@
 {
  "source_sha": "d0b4a18292a24f97502b1860cf3d79367faae583",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T18:21:52Z",
-   "worker_run_id": "43278180143",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945,
-    43124416558
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:03:16Z to 2026-11-12T15:38:00Z; 0 in progress; 1 cancelled excluded: 43206161686, no jobs). No docs.yml run after 15:38Z; HEAD 64cc27f (17:49Z) and 926141f change no docs-triggering paths (compare API). Comparable n=19 successful publications (18 push, 1 schedule 43161224542; 5-run minimum met). Job and step metadata only; build-log read HTTP 403 DIFC (re-probed). Dashboard step Build synthetic enterprise demo (node scripts/simulate-dashboard-pages.mjs: synthetic data plus dashboard site build; no dashboard job exists): median 4 s, p90 4 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 85 s (p90 123 s). 15% gate = 12.75 s; full removal saves at most 4 s; 60 s unreachable. Reuse or caching would weaken synthetic-date freshness. A separate demo job would add checkout (median 24 s) and artifact handoff, so net negative. Dashboard-site install share bounded statically: dashboard/site lock has 36 production packages under --omit=dev versus 657 root production packages; cannot reach the gate alone; the 17 s Install dependencies step is not split by metadata. Carry-forward lead outside this category, unverified: Checkout fetch-depth 0 median 24 s (p90 47 s), largest build step; partial-clone saving unmeasured; reason for full history not confirmed. No suggestion; no issue created; no open issue with this worker label. next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T18:36:51Z",
    "worker_run_id": "43280597853",
@@ -840,10 +812,39 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:21:27Z to 2026-11-13T03:56:23Z; unchanged since the 04:23Z evaluation; none in progress; source HEAD d0b4a18 changes no docs.yml trigger path vs fa659ce per compare API). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata only; build-log read HTTP 403 difc_forbidden (one attempt, not retried), so the Astro split (astro build vs validate-agent-docs vs discovery test) and cache state are unverified. Build documentation (npm run docs:build): median 14 s, p90 15 s, range 8-15 s = 16.6% of median build-start-to-deploy-end 84.5 s (p90 111.1 s); 15% gate = 12.67 s, so only near-total removal qualifies. Removing the step would drop the published docs build; validation and discovery test are correctness gates with unmeasured share; any cache restore adds its own time. Build job median 67.5 s (p90 94.6), deploy job 10.5 s (14.5), build-to-deploy handoff 5.5 s (6.3). No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T04:53:07Z",
+   "worker_run_id": "43367892040",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311,
+    43249903823,
+    43242792853,
+    43236057780,
+    43228124764,
+    43228046118,
+    43225202834,
+    43206235849,
+    43206161686,
+    43206080696,
+    43194788185,
+    43167568535
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:21:27Z to 2026-11-13T03:56:23Z; all within 14 days; none in progress; no docs.yml run since 43362224525 at 03:56Z, so the window equals the 04:35Z evaluation; source d0b4a18 = HEAD = source_sha). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed push 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata re-fetched; medians match the prior evaluation. Category step Build synthetic enterprise demo (node scripts/simulate-dashboard-pages.mjs: synthetic normalization plus dashboard site build, then cp to dist/cao): median 4 s, p90 4.3 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 84.5 s (p90 111.1 s). 15% gate = 12.7 s; full removal saves at most 4 s, so the gate is unreachable. Caching or reusing generated demo output would stale synthetic dates and commit-specific output. A separate dashboard job adds checkout (median 24.5 s) plus handoff, so it is net negative. No duplicate dashboard build found: astro.config.mjs only links dashboard pages and docs:build is astro build plus validators. Build logs still HTTP 403 difc_forbidden (re-probed 04:52Z on build job 131678162945); cache state inferred from Post Set up Node.js 0 s. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T04:23:20Z",
+  "verified_at": "2026-11-13T04:53:07Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 src/cache-restore.ts",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<glob.hashFiles(root package-lock.json)>",
   "hash_rule": "sha256 over the raw digest bytes of each file (verified: sha256(raw digest of HEAD package-lock.json) = e62f6006)",
@@ -852,11 +853,11 @@
   "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278.9 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T04:21Z, refs/heads/main",
   "other_keys_note": "node-cache-Linux-x64-npm-9328fd17 (73.9 MB, main, created 04:01Z) is keyed on dashboard/site/package-lock.json by other workflows; not used by docs.yml",
   "cache_listing": "58 entries, 10.6 GB total at 04:20Z (above 10 GB cap; LRU eviction applies)",
-  "logs": "HTTP 403 difc_forbidden (last seen 03:40Z, not re-probed this run); hit/miss inferred from Post Set up Node.js 0 s"
+  "logs": "HTTP 403 difc_forbidden (re-probed 2026-11-13T04:52Z on build job 131678162945); hit/miss inferred from Post Set up Node.js 0 s in all 18 successes"
  },
  "run_samples": {
   "window_created": "2026-11-12T06:21:27Z..2026-11-13T03:56:23Z",
-  "evaluated_at": "2026-11-13T04:35:37Z",
+  "evaluated_at": "2026-11-13T04:53:07Z",
   "note": "compact per-run seconds for the latest 20 completed docs.yml runs; cancelled 43206161686 and failed 43297524311 disclosed; queue_s=build job created to started; exec_s=build start to deploy end; wall_s=run created to deploy end; post_node=Post Set up Node.js (0 in all successes)",
   "rows": [
    {
