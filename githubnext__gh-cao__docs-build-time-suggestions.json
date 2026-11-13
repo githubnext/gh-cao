@@ -1,35 +1,7 @@
 {
- "source_sha": "ac905474c686c25e0a1cd6ccdb59ae062fdbe992",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "01e2e1cd96cc35fc78b79689f5653d128d309059",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T08:36:49Z",
-   "worker_run_id": "43393959257",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; source f0c3fc4 = workspace HEAD = source_sha). Excluded and disclosed: 1 failed 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba); 0 cancelled. Comparable n=19 successes (18 push, 1 schedule 43371878284; identical step names in all 19). docs.yml defines only build and deploy jobs; dashboard work is the build step 'Build synthetic enterprise demo' (median 4 s), not a dashboard job. Chain medians (p90) from job and step metadata: Upload Pages artifact 2 s (3); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy Set up job 1 s; Deploy Pages 7 s (8). Chain total 15 s (p90 16) = 17.6% of median exec 85 s (p90 99.6). No concrete change removes 12.75 s (15% gate) from this category: merging deploy into build saves about 6 s (queue plus setup plus handoff), 7% of median exec, and grants id-token and pages write to the job that runs npm ci and the Astro build (least-privilege regression); rejected. Upload is 2 s total, so artifact size reduction saves at most about 1-2 s; artifact github-pages median 8.30 MB (8.26-8.38), stable. Deploy Pages is GitHub-managed. Logs 403 DIFC re-probed 2026-11-13T08:35Z; no log-based attribution. Open issues: none with label self-care:docs-build-time-investigator; 20440 and 20719 are gh-aw failure reports, not evaluated. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T08:53:34Z",
    "worker_run_id": "43396036088",
@@ -870,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days, so the 20-run cap binds; 20/20 success, 19 push + 1 schedule 43371878284; none queued or in progress; no docs.yml run since 16:44Z; no failed or cancelled run in window). source: workspace HEAD ac905474 = source_sha; compare 75c762e...ac905474 is 1 commit touching only server/cmd/cao-cli-quota (no docs trigger path). Evidence: Actions jobs and steps API re-fetched for all 20 runs; docs job logs not read (403 difc_forbidden not re-probed). Category step Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs: production normalization plus buildDashboardSite, then cp to dist/cao): median 4 s, p90 5 s, range 3-5 s = 4.6 percent of median build-start-to-deploy-end 87.5 s (p90 98); push-only n=19 median 4 s, 4.5 percent of push median 89 s. 15 percent gate 13.1 s unreachable; full removal saves at most 4 s; 60 s gate unreachable. No separate dashboard job (jobs: build, deploy); docs:build (astro build, validate-agent-docs, agent-docs-discovery test) does not reference buildDashboardSite, so no duplicate build. Cross-run reuse stale-unsafe: scripts/dashboard-demo-data.mjs embeds generatedAt and observed_at. Separate job rejected (checkout median 24.5 s plus install). Open issue 20815 (fingerprint docs-checkout-blobless-history-v1, blobless checkout, expected about 19.5 s) remains open and unlanded; not re-proposed. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging. Carry-forward: Checkout fetch-depth 0 median 24.5 s (p90 29; push p90 41) remains the largest step; covered by 20815.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T18:53:04Z",
+   "worker_run_id": "43486180054",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43484369040 back to 43360893141; created 2026-11-13T03:43:58Z to 18:37:04Z; all within 14 days; none in progress; long-queued 37642403569 (2026-10-07) is outside the window; source = workspace HEAD 01e2e1c, newest docs run head f60a3f2; docs.yml last changed 063cbe9 before the window). Excluded: 0 failed, 0 cancelled. Comparable n=20 successes (19 push, 1 schedule 43371878284); 5-run gate met. Medians (p90): exec 87.5 s (98); build job 72 s (82); deploy job 10 s (10-11). Transfer chain: Configure Pages 0 s (1); Upload Pages artifact 2 s (3); build-end to deploy-created 0 s (1); deploy queue 5 s (5); deploy Set up job 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable overhead (first five) median 8 s, p90 10 s, max 10 s = 9.1% of median exec; 15% gate 13.1 s unmet even at full removal; 60 s unreachable. github-pages artifact median 8.30 MB (8.26-8.38); shrinking saves at most 1-2 s. Merging deploy into build saves about 6 s and moves id-token and pages write into the npm-ci build job: rejected (least privilege). Demo cp into dist/cao is sub-second inside the 4 s demo step. No suggestion; no issue created (open issue 20815 already carries the prior docs-checkout-blobless-history-v1 suggestion and is not repeated). next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -887,312 +888,295 @@
   "note_2026_11_13_1728Z": "head key node-cache-Linux-x64-npm-e62f6006... last_accessed 2026-11-13T17:28:44Z (caches API); unchanged created 2026-11-12T06:18:07Z"
  },
  "run_samples": {
-  "window_created": "2026-11-13T01:45:42Z..2026-11-13T16:44:14Z",
-  "evaluated_at": "2026-11-13T18:35:29Z",
-  "note": "per-run seconds, latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success). exec_s=build job start to deploy end; build_s=build job; queue_s=build created to start; handoff_s=build end to deploy created; deploy_s=deploy job; checkout_s, install_s, docs_s=build-job steps. Jobs API timings, logs not read.",
+  "window_created": "2026-11-13T03:43:58Z..2026-11-13T18:37:04Z",
+  "evaluated_at": "2026-11-13T18:53:04Z",
+  "note": "per-run seconds, latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success). exec_s=build job start to deploy end; build_s=build job; queue_s=build created to start; handoff_s=build end to deploy created; deploy_s=deploy job. Jobs API timings; logs not read (403 DIFC).",
   "step_stats_median_p90_s": {
    "Checkout": [
-    24.5,
-    29
+    25.0,
+    29.0
    ],
    "Install dependencies": [
-    17.5,
-    23
+    17.0,
+    23.0
    ],
    "Build documentation": [
-    14,
-    15
+    14.0,
+    15.0
    ],
    "Build synthetic enterprise demo": [
-    4,
-    5
+    4.0,
+    5.0
    ],
    "Set up Node.js": [
-    3,
-    7
+    3.0,
+    7.0
+   ],
+   "Configure Pages": [
+    0.0,
+    1.0
    ],
    "Upload Pages artifact": [
-    2,
-    3
+    2.0,
+    3.0
    ],
    "Deploy Pages": [
-    7,
-    8
+    7.0,
+    8.0
    ],
-   "Set up job": [
-    1,
-    2
+   "deploy queue": [
+    5.0,
+    5.0
+   ],
+   "deploy set up job": [
+    1.0,
+    1.0
    ]
   },
   "rows": [
    {
+    "run": 43484369040,
+    "exec_s": 80,
+    "build_s": 66,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 9,
+    "checkout_s": 26,
+    "install_s": 15,
+    "docs_s": 9,
+    "demo_s": 3
+   },
+   {
     "run": 43465706802,
-    "exec_s": 89.0,
-    "build_s": 74.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 10.0,
-    "checkout_s": 25.0,
-    "install_s": 20.0,
-    "docs_s": 15.0,
-    "demo_s": 4.0
+    "exec_s": 89,
+    "build_s": 74,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 10,
+    "checkout_s": 25,
+    "install_s": 20,
+    "docs_s": 15,
+    "demo_s": 4
    },
    {
     "run": 43447728981,
-    "exec_s": 92.0,
-    "build_s": 77.0,
-    "queue_s": 2.0,
-    "handoff_s": 1.0,
-    "deploy_s": 9.0,
-    "checkout_s": 23.0,
-    "install_s": 25.0,
-    "docs_s": 12.0,
-    "demo_s": 3.0
+    "exec_s": 92,
+    "build_s": 77,
+    "queue_s": 2,
+    "handoff_s": 1,
+    "deploy_s": 9,
+    "checkout_s": 23,
+    "install_s": 25,
+    "docs_s": 12,
+    "demo_s": 3
    },
    {
     "run": 43447111490,
-    "exec_s": 73.0,
-    "build_s": 59.0,
-    "queue_s": 2.0,
-    "handoff_s": 0.0,
-    "deploy_s": 9.0,
-    "checkout_s": 23.0,
-    "install_s": 13.0,
-    "docs_s": 11.0,
-    "demo_s": 3.0
+    "exec_s": 73,
+    "build_s": 59,
+    "queue_s": 2,
+    "handoff_s": 0,
+    "deploy_s": 9,
+    "checkout_s": 23,
+    "install_s": 13,
+    "docs_s": 11,
+    "demo_s": 3
    },
    {
     "run": 43440055797,
-    "exec_s": 90.0,
-    "build_s": 75.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 10.0,
-    "checkout_s": 24.0,
-    "install_s": 23.0,
-    "docs_s": 14.0,
-    "demo_s": 5.0
+    "exec_s": 90,
+    "build_s": 75,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 10,
+    "checkout_s": 24,
+    "install_s": 23,
+    "docs_s": 14,
+    "demo_s": 5
    },
    {
     "run": 43430232636,
-    "exec_s": 91.0,
-    "build_s": 76.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 10.0,
-    "checkout_s": 25.0,
-    "install_s": 18.0,
-    "docs_s": 15.0,
-    "demo_s": 3.0
+    "exec_s": 91,
+    "build_s": 76,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 10,
+    "checkout_s": 25,
+    "install_s": 18,
+    "docs_s": 15,
+    "demo_s": 3
    },
    {
     "run": 43430166810,
-    "exec_s": 77.0,
-    "build_s": 63.0,
-    "queue_s": 2.0,
-    "handoff_s": 1.0,
-    "deploy_s": 8.0,
-    "checkout_s": 25.0,
-    "install_s": 14.0,
-    "docs_s": 11.0,
-    "demo_s": 3.0
+    "exec_s": 77,
+    "build_s": 63,
+    "queue_s": 2,
+    "handoff_s": 1,
+    "deploy_s": 8,
+    "checkout_s": 25,
+    "install_s": 14,
+    "docs_s": 11,
+    "demo_s": 3
    },
    {
     "run": 43388781287,
-    "exec_s": 85.0,
-    "build_s": 72.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 9.0,
-    "checkout_s": 28.0,
-    "install_s": 17.0,
-    "docs_s": 14.0,
-    "demo_s": 4.0
+    "exec_s": 85,
+    "build_s": 72,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 9,
+    "checkout_s": 28,
+    "install_s": 17,
+    "docs_s": 14,
+    "demo_s": 4
    },
    {
     "run": 43380585034,
-    "exec_s": 114.0,
-    "build_s": 101.0,
-    "queue_s": 3.0,
-    "handoff_s": 1.0,
-    "deploy_s": 8.0,
-    "checkout_s": 56.0,
-    "install_s": 16.0,
-    "docs_s": 15.0,
-    "demo_s": 4.0
+    "exec_s": 114,
+    "build_s": 101,
+    "queue_s": 3,
+    "handoff_s": 1,
+    "deploy_s": 8,
+    "checkout_s": 56,
+    "install_s": 16,
+    "docs_s": 15,
+    "demo_s": 4
    },
    {
     "run": 43378597209,
-    "exec_s": 91.0,
-    "build_s": 75.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 11.0,
-    "checkout_s": 27.0,
-    "install_s": 16.0,
-    "docs_s": 12.0,
-    "demo_s": 3.0
+    "exec_s": 91,
+    "build_s": 75,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 11,
+    "checkout_s": 27,
+    "install_s": 16,
+    "docs_s": 12,
+    "demo_s": 3
    },
    {
     "run": 43378369544,
-    "exec_s": 75.0,
-    "build_s": 58.0,
-    "queue_s": 2.0,
-    "handoff_s": 0.0,
-    "deploy_s": 12.0,
-    "checkout_s": 20.0,
-    "install_s": 15.0,
-    "docs_s": 9.0,
-    "demo_s": 3.0
+    "exec_s": 75,
+    "build_s": 58,
+    "queue_s": 2,
+    "handoff_s": 0,
+    "deploy_s": 12,
+    "checkout_s": 20,
+    "install_s": 15,
+    "docs_s": 9,
+    "demo_s": 3
    },
    {
     "run": 43374719202,
-    "exec_s": 81.0,
-    "build_s": 67.0,
-    "queue_s": 2.0,
-    "handoff_s": 0.0,
-    "deploy_s": 9.0,
-    "checkout_s": 24.0,
-    "install_s": 17.0,
-    "docs_s": 14.0,
-    "demo_s": 4.0
+    "exec_s": 81,
+    "build_s": 67,
+    "queue_s": 2,
+    "handoff_s": 0,
+    "deploy_s": 9,
+    "checkout_s": 24,
+    "install_s": 17,
+    "docs_s": 14,
+    "demo_s": 4
    },
    {
     "run": 43373049149,
-    "exec_s": 95.0,
-    "build_s": 79.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 11.0,
-    "checkout_s": 24.0,
-    "install_s": 21.0,
-    "docs_s": 15.0,
-    "demo_s": 4.0
+    "exec_s": 95,
+    "build_s": 79,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 11,
+    "checkout_s": 24,
+    "install_s": 21,
+    "docs_s": 15,
+    "demo_s": 4
    },
    {
     "run": 43371878284,
-    "exec_s": 86.0,
-    "build_s": 70.0,
-    "queue_s": 2.0,
-    "handoff_s": 0.0,
-    "deploy_s": 11.0,
-    "checkout_s": 29.0,
-    "install_s": 14.0,
-    "docs_s": 14.0,
-    "demo_s": 3.0
+    "exec_s": 86,
+    "build_s": 70,
+    "queue_s": 2,
+    "handoff_s": 0,
+    "deploy_s": 11,
+    "checkout_s": 29,
+    "install_s": 14,
+    "docs_s": 14,
+    "demo_s": 3
    },
    {
     "run": 43371269326,
-    "exec_s": 89.0,
-    "build_s": 72.0,
-    "queue_s": 2.0,
-    "handoff_s": 1.0,
-    "deploy_s": 11.0,
-    "checkout_s": 23.0,
-    "install_s": 22.0,
-    "docs_s": 14.0,
-    "demo_s": 4.0
+    "exec_s": 89,
+    "build_s": 72,
+    "queue_s": 2,
+    "handoff_s": 1,
+    "deploy_s": 11,
+    "checkout_s": 23,
+    "install_s": 22,
+    "docs_s": 14,
+    "demo_s": 4
    },
    {
     "run": 43371217266,
-    "exec_s": 69.0,
-    "build_s": 56.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 8.0,
-    "checkout_s": 21.0,
-    "install_s": 12.0,
-    "docs_s": 10.0,
-    "demo_s": 3.0
+    "exec_s": 69,
+    "build_s": 56,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 8,
+    "checkout_s": 21,
+    "install_s": 12,
+    "docs_s": 10,
+    "demo_s": 3
    },
    {
     "run": 43368963164,
-    "exec_s": 85.0,
-    "build_s": 70.0,
-    "queue_s": 2.0,
-    "handoff_s": 0.0,
-    "deploy_s": 10.0,
-    "checkout_s": 24.0,
-    "install_s": 20.0,
-    "docs_s": 14.0,
-    "demo_s": 4.0
+    "exec_s": 85,
+    "build_s": 70,
+    "queue_s": 2,
+    "handoff_s": 0,
+    "deploy_s": 10,
+    "checkout_s": 24,
+    "install_s": 20,
+    "docs_s": 14,
+    "demo_s": 4
    },
    {
     "run": 43368845651,
-    "exec_s": 98.0,
-    "build_s": 82.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 11.0,
-    "checkout_s": 26.0,
-    "install_s": 23.0,
-    "docs_s": 14.0,
-    "demo_s": 5.0
+    "exec_s": 98,
+    "build_s": 82,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 11,
+    "checkout_s": 26,
+    "install_s": 23,
+    "docs_s": 14,
+    "demo_s": 5
    },
    {
     "run": 43362224525,
-    "exec_s": 106.0,
-    "build_s": 91.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 10.0,
-    "checkout_s": 41.0,
-    "install_s": 18.0,
-    "docs_s": 14.0,
-    "demo_s": 5.0
+    "exec_s": 106,
+    "build_s": 91,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 10,
+    "checkout_s": 41,
+    "install_s": 18,
+    "docs_s": 14,
+    "demo_s": 5
    },
    {
     "run": 43360893141,
-    "exec_s": 79.0,
-    "build_s": 64.0,
-    "queue_s": 3.0,
-    "handoff_s": 0.0,
-    "deploy_s": 10.0,
-    "checkout_s": 25.0,
-    "install_s": 14.0,
-    "docs_s": 11.0,
-    "demo_s": 4.0
-   },
-   {
-    "run": 43347280419,
-    "exec_s": 82.0,
-    "build_s": 67.0,
-    "queue_s": 3.0,
-    "handoff_s": 1.0,
-    "deploy_s": 9.0,
-    "checkout_s": 24.0,
-    "install_s": 18.0,
-    "docs_s": 12.0,
-    "demo_s": 3.0
+    "exec_s": 79,
+    "build_s": 64,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 10,
+    "checkout_s": 25,
+    "install_s": 14,
+    "docs_s": 11,
+    "demo_s": 4
    }
   ]
  },
  "observations_pending": [
-  {
-   "observed_at": "2026-11-13T06:55:00Z",
-   "source": "docs.yml deploy job separation (artifact chain)",
-   "note": "Merging build and deploy saves about 6 s (deploy queue 5 s plus setup 1 s) and would give id-token: write to the job that runs npm ci and the Astro build. Rejected on least-privilege grounds; re-evaluate only if the deploy job is removed by a maintainer design change."
-  },
-  {
-   "observed_at": "2026-11-13T06:55:00Z",
-   "source": "docs.yml non-completed run record",
-   "note": "Run 37642403569 (event workflow_run, queued since 2026-10-07T15:12Z, head 6206962) is outside the 14-day window and not a docs.yml build sample. Checked 2026-11-13: it does not appear to block the documentation-pages group (19 later runs had concurrency waits median 1 s, not behind it). Housekeeping for a maintainer; no build-time saving."
-  },
-  {
-   "observed_at": "2026-11-13T07:53:40Z",
-   "source": "docs.yml Build documentation step, Astro category",
-   "note": "Astro build parallelism or moving validate/discovery into a parallel job is unmeasured and bounded by a few seconds, below the 12.75 s gate. Re-evaluate only with maintainer-branch step timing or readable logs that split astro build from validation."
-  },
-  {
-   "observed_at": "2026-11-13T08:22:43Z",
-   "source": "docs.yml dashboard generation (rotation category 3)",
-   "note": "docs.yml has no 'dashboard' job; the dashboard runs as 'Build synthetic enterprise demo' (median 4 s, p90 5 s) inside build. Reuse saving is capped at about 4 s, below the 12.75 s gate. Demo output embeds run time, so cross-run reuse would be stale. Re-evaluate only if the demo grows beyond about 12 s median."
-  },
-  {
-   "observed_at": "2026-11-13T10:32:31Z",
-   "source": "docs.yml concurrency wait definition",
-   "note": "Verified via run and jobs APIs: 43341730805 run created 01:01:49Z, build created 01:03:10Z (81 s wait), build started 01:03:12Z; 43371269326 run 05:19:29Z, build created 05:20:13Z (44 s). Concurrency waits sit before build-job creation. Runner-queue column is 2-3 s in all runs."
-  },
   {
    "observed_at": "2026-11-13T14:21:00Z",
    "source": "docs.yml dependency category (worker 43441140909)",
@@ -1222,6 +1206,11 @@
    "observed_at": "2026-11-13T17:38:10Z",
    "source": "docs.yml checkout (worker 43473225781) CORRECTION",
    "note": "Pinned actions/checkout v7.0.1 (3d3c42e5) exposes filter (action.yml line 60). Earlier note claiming no filter input was wrong. Shallow checkout remains unsafe (git log per file would give HEAD date). filter blob:none keeps commits and trees, so provenance is unchanged. Suggestion issued: fingerprint docs-checkout-blobless-history-v1."
+  },
+  {
+   "observed_at": "2026-11-13T18:53:04Z",
+   "source": "docs.yml artifact transfer and Pages packaging (worker 43486180054)",
+   "note": "Controllable transfer overhead median 8 s (p90 10) = 9.1% of median exec 87.5 s; below the 13.1 s gate even at full removal. Deploy-into-build merge saves about 6 s and is rejected (least privilege). Re-evaluate only if the deploy job is removed by a maintainer design change or transfer overhead median reaches 13 s."
   }
  ],
  "checkout_probe": {
