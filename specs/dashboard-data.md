@@ -919,7 +919,19 @@ attempts and a nonzero, microsecond-aligned local `observedAt` timestamp. The fi
 `run-bundles.json` sidecar MUST be at most 32 MiB and covered by the same verified
 payload manifest. Unknown envelope fields, trailing JSON, unsupported protocol
 modes, and snapshot force/supplement options MUST fail explicitly. All manifested
-snapshot shards MUST still be verified; the producer SHALL retain its complete
+snapshot shards MUST be verified on full ingestion. A delta MAY reuse the
+already-ingested snapshot only when its compacted-shard manifest identity and
+resolved source directory match a durable verified receipt published atomically
+with that snapshot in the same PostgreSQL namespace. Publication MUST recheck
+this identity under the namespace writer lock. This receipt identifies verified
+database content, not current mutable recovery-file bytes; a delta MUST NOT read
+or import unverified recovery shards on this path. Changed identities MUST
+undergo full shard hash verification before delta publication, without granting
+a new reusable receipt. Bundle bytes MUST be hash-verified on every request.
+Process-local path/mtime caches SHALL NOT substitute for verified content.
+Ordinary full writers SHALL clear the receipt unless publishing verified input.
+Full reconciliation MUST independently verify recovery files, even when the
+receipt matches. The producer SHALL retain its complete
 on-disk recovery snapshot. Initial and final reconciliations SHALL remain explicit
 full snapshots, and final publication SHALL remove the sidecar's manifest entry.
 

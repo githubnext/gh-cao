@@ -46,6 +46,17 @@ type Options struct {
 type Manifest map[string]string
 
 func ValidateManifest(directory string) (Manifest, []string, []string, error) {
+	manifest, runs, records, err := readManifest(directory)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err := verifyShards(directory, manifest, runs, records); err != nil {
+		return nil, nil, nil, err
+	}
+	return manifest, runs, records, nil
+}
+
+func readManifest(directory string) (Manifest, []string, []string, error) {
 	// #nosec G304 -- the operator selects the deployment directory.
 	content, err := os.ReadFile(filepath.Join(directory, "payload-hashes.json"))
 	if err != nil {
@@ -70,25 +81,13 @@ func ValidateManifest(directory string) (Manifest, []string, []string, error) {
 		if _, err := hex.DecodeString(expected); err != nil {
 			return nil, nil, nil, fmt.Errorf("manifest hash for %q is not SHA-256", name)
 		}
-		shard := false
 		switch {
 		case strings.HasPrefix(name, "gh-aw-logs-runs/") && strings.HasSuffix(name, ".jsonl"):
 			runs = append(runs, name)
-			shard = true
 		case strings.HasPrefix(name, "gh-aw-logs-records/") && strings.HasSuffix(name, ".jsonl"):
 			records = append(records, name)
-			shard = true
 		case strings.HasPrefix(name, "gh-aw-logs-shards/"):
 			return nil, nil, nil, errors.New("raw activity JSONL is not supported; compacted run/record shards are required")
-		}
-		if shard {
-			actual, err := fileHash(filepath.Join(directory, filepath.FromSlash(name)))
-			if err != nil {
-				return nil, nil, nil, fmt.Errorf("read manifested payload %q: %w", name, err)
-			}
-			if !strings.EqualFold(actual, expected) {
-				return nil, nil, nil, fmt.Errorf("payload hash mismatch for %q", name)
-			}
 		}
 	}
 	if len(runs) == 0 {
@@ -97,6 +96,41 @@ func ValidateManifest(directory string) (Manifest, []string, []string, error) {
 	sort.Strings(runs)
 	sort.Strings(records)
 	return manifest, runs, records, nil
+}
+
+func verifyShards(directory string, manifest Manifest, phases ...[]string) error {
+	for _, names := range phases {
+		for _, name := range names {
+			actual, err := fileHash(filepath.Join(directory, filepath.FromSlash(name)))
+			if err != nil {
+				return fmt.Errorf("read manifested payload %q: %w", name, err)
+			}
+			if !strings.EqualFold(actual, manifest[name]) {
+				return fmt.Errorf("payload hash mismatch for %q", name)
+			}
+		}
+	}
+	return nil
+}
+
+// This identifies already ingested shard content, not the current bytes at a
+// mutable path. Full snapshots always verify and read those bytes independently.
+func snapshotIdentity(directory string, manifest Manifest, phases ...[]string) (string, error) {
+	source, err := filepath.EvalSymlinks(directory)
+	if err != nil {
+		return "", err
+	}
+	source, err = filepath.Abs(source)
+	if err != nil {
+		return "", err
+	}
+	shards := Manifest{}
+	for _, names := range phases {
+		for _, name := range names {
+			shards[name] = manifest[name]
+		}
+	}
+	return directoryRevision(shards, source), nil
 }
 
 func fileHash(path string) (string, error) {
@@ -147,6 +181,10 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 		span.End()
 	}()
 	manifest, runs, records, err := ValidateManifest(directory)
+	if err != nil {
+		return Result{}, err
+	}
+	verifiedSnapshot, err := snapshotIdentity(directory, manifest, runs, records)
 	if err != nil {
 		return Result{}, err
 	}
@@ -224,7 +262,7 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 			return Result{}, fmt.Errorf("project server evidence: %w", err)
 		}
 	}
-	active, err := writer.Publish(ctx, dataRevision)
+	active, err := writer.PublishVerifiedSnapshot(ctx, dataRevision, verifiedSnapshot)
 	if err != nil {
 		return Result{}, err
 	}

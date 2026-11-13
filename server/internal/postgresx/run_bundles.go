@@ -103,6 +103,28 @@ func validateRunBundles(input RunBundlePublication) error {
 // Full reconciliation remains a separate operation; small snapshots are never
 // interpreted as deltas.
 func (s *Store) PublishRunBundles(ctx context.Context, input RunBundlePublication) (State, error) {
+	return s.publishRunBundles(ctx, input, "")
+}
+
+var ErrSnapshotIdentityChanged = errors.New("verified snapshot identity changed; retry ingestion")
+
+// HasVerifiedSnapshot checks durable content identity, never local file metadata.
+func (s *Store) HasVerifiedSnapshot(ctx context.Context, identity string) (bool, error) {
+	var verified bool
+	err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM cao_state
+		WHERE namespace=$1 AND revision>0 AND verified_snapshot=$2)`, s.namespace, identity).Scan(&verified)
+	return verified, err
+}
+
+// PublishVerifiedRunBundles rechecks the verified base under the writer lock.
+func (s *Store) PublishVerifiedRunBundles(ctx context.Context, input RunBundlePublication, identity string) (State, error) {
+	if identity == "" {
+		return State{}, errors.New("verified snapshot identity is required")
+	}
+	return s.publishRunBundles(ctx, input, identity)
+}
+
+func (s *Store) publishRunBundles(ctx context.Context, input RunBundlePublication, identity string) (State, error) {
 	if err := validateRunBundles(input); err != nil {
 		return State{}, err
 	}
@@ -111,6 +133,9 @@ func (s *Store) PublishRunBundles(ctx context.Context, input RunBundlePublicatio
 		return State{}, err
 	}
 	defer w.Abort(ctx)
+	if identity != "" && (w.verifiedSnapshot == nil || *w.verifiedSnapshot != identity) {
+		return State{}, ErrSnapshotIdentityChanged
+	}
 	w.delta = true
 	if w.revision == 0 {
 		return State{}, errors.New("run-bundle ingestion requires an initial authoritative snapshot")

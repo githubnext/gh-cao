@@ -43,9 +43,22 @@ func RunBundles(ctx context.Context, store *postgresx.Store, directory string, o
 	if _, err := loadDefinitions(options.DatabaseQueriesPath); err != nil {
 		return Result{}, err
 	}
-	manifest, _, _, err := ValidateManifest(directory)
+	manifest, runs, records, err := readManifest(directory)
 	if err != nil {
 		return Result{}, err
+	}
+	identity, err := snapshotIdentity(directory, manifest, runs, records)
+	if err != nil {
+		return Result{}, err
+	}
+	verified, err := store.HasVerifiedSnapshot(ctx, identity)
+	if err != nil {
+		return Result{}, err
+	}
+	if !verified {
+		if err := verifyShards(directory, manifest, runs, records); err != nil {
+			return Result{}, err
+		}
 	}
 	expected := manifest[RunBundlesFile]
 	if expected == "" {
@@ -78,7 +91,12 @@ func RunBundles(ctx context.Context, store *postgresx.Store, directory string, o
 	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
 		return Result{}, errors.New("run-bundle publication contains trailing JSON")
 	}
-	state, err := store.PublishRunBundles(ctx, publication)
+	var state postgresx.State
+	if verified {
+		state, err = store.PublishVerifiedRunBundles(ctx, publication, identity)
+	} else {
+		state, err = store.PublishRunBundles(ctx, publication)
+	}
 	if err != nil {
 		return Result{}, err
 	}
