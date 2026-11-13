@@ -134,6 +134,8 @@ Validate these boundaries together:
 
 Do not duplicate the agentic-workflow health workers: ignore general gh-aw release upgrades, compiler health, and ordinary target-repository workflow defects unless they prove a CAO policy, authority, ownership, or registration inconsistency.
 
+Before finishing, run the focused CAO Evolution contract test from the repository root: `node --test tests/unit/workflow-contract-evolution.test.mjs`. If dependencies are missing, restore them from the checked-in lockfile using the approved feed and system certificate store: `NODE_USE_SYSTEM_CA=1 npm ci --ignore-scripts`. Keep TLS verification enabled; do not change `.npmrc`, use another registry, or modify lockfiles. If approved-feed access still fails, call `report_incomplete` with the exact error and do not claim the test passed.
+
 ## Outcome
 
 Search all open issues in `SAFE_OUTPUT_REPO` for the exact configured prefix and labels before writing. The canonical unprefixed issue subject is exactly `Control-plane integrity requires attention`; never add a date, run ID, count, severity, target name, or other volatile text.
