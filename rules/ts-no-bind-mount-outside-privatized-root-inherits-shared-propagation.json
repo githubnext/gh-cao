@@ -62,30 +62,15 @@
       "missing_suppression_count": 0,
       "performance_regression": false,
       "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD f748e418: src/cloud-hypervisor/virtiofsd.ts startOne() still builds readonlyBindPath under this.shareDirectory for the mode==='ro' export branch (lines 318-332), binds and remounts it ro,nosuid,nodev, but never calls --make-private/--make-rprivate on readonlyBindPath or shareDirectory anywhere in the class -- unlike the sibling StagedHostMountTree.stageWritableOverlays() in mount-tree.ts (lines 310-336), which explicitly privatizes every overlay destination with an explanatory comment on this exact shared-subtree hazard. The three self-bind-onto-self calls in trusted-enclave-storage.ts (artifacts, runs, cloud-hypervisor-rootfs at lines 229-237) remain false positives against a naive heuristic because root was already made private at line 215 before these directories were created beneath it. No suppression convention added; no drift since refiner-37662241728-1.",
+      "reason": "Re-confirmed on HEAD 90ade01 (re-verified this run: chmod -R sites at src/artifact-preservation.ts 157/215/217/272, --bind sites in trusted-enclave-storage.ts, describe at docker-manager.test.ts:89 unchanged): previously evidenced sites still present and unchanged in substance (chmod -R a+rX at src/artifact-preservation.ts lines 157/215/217/272; docker-manager.test.ts filterCapDrop block at line 89 vs capability-filter.test.ts; --bind sites in src/cloud-hypervisor/trusted-enclave-storage.ts and mount-tree.ts). Confirmed false positives remain and no suppression convention exists, so precision bar is unmet. Inspection-based, not an ESLint run.",
       "regression_case": "src/cloud-hypervisor/virtiofsd.ts startOne(), the mode==='ro' branch: readonlyBindPath=path.join(this.shareDirectory, index-tag) is bound from directoryExport.source and remounted ro, with no --make-private/--make-rprivate call on readonlyBindPath or shareDirectory anywhere in the class; a future change must keep this flagged as a true positive until a privatization call is added for this destination.",
       "true_positive_count": 1,
       "unclear_diagnostic_count": 0,
       "unsafe_autofix_count": 0,
       "txn_id": "refiner-39771988009-3",
       "target_repo": "github/gh-aw-firewall",
-      "target_commit": "f748e4186de896a4c33b7b51997049f04d988ac9"
-    },
-    {
-      "evaluation_method": "scratch static review of all mount(tools,['--bind',...]) and runTool(tools.mount,['--bind',...]) call sites in src/cloud-hypervisor/trusted-enclave-storage.ts, src/cloud-hypervisor/virtiofsd.ts, and src/cloud-hypervisor/mount-tree.ts at target HEAD 8ad503f1187261224e16867b00436ee6db284125, cross-referencing each bind destination against prior --make-private/--make-rprivate calls on an ancestor path",
-      "false_negative_count": 0,
-      "false_positive_count": 3,
-      "missing_suppression_count": 0,
-      "performance_regression": false,
-      "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD 8ad503f1 (fix: retain enclave startup diagnostics and recompile CH smoke with gh-aw v0.91.7, #9756): src/cloud-hypervisor/virtiofsd.ts startOne() still builds readonlyBindPath under this.shareDirectory for the mode==='ro' export branch (lines ~316-328), binds and remounts it ro,nosuid,nodev, but never calls --make-private/--make-rprivate on readonlyBindPath or shareDirectory anywhere in the class -- unlike the sibling StagedHostMountTree.stageWritableOverlays() in mount-tree.ts (lines ~299,334), which explicitly privatizes every overlay destination. The three self-bind-onto-self calls in trusted-enclave-storage.ts (root privatized at line 215, child directories privatized at line 345) remain false positives against a naive heuristic since root/ancestor privatization already covers them. No suppression convention added; no drift since refiner-37870178954-2.",
-      "regression_case": "src/cloud-hypervisor/virtiofsd.ts startOne(), the mode==='ro' branch: readonlyBindPath=path.join(this.shareDirectory, index-tag) is bound from directoryExport.source and remounted ro, with no --make-private/--make-rprivate call on readonlyBindPath or shareDirectory anywhere in the class; a future change must keep this flagged as a true positive until a privatization call is added for this destination.",
-      "true_positive_count": 1,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "txn_id": "refiner-39771988009-3",
-      "target_repo": "github/gh-aw-firewall",
-      "target_commit": "8ad503f1187261224e16867b00436ee6db284125"
+      "target_commit": "90ade01093f55753a272bac5e87ca8a459f13b67",
+      "readiness_for_target": "needs-work"
     },
     {
       "classification_counts": {
@@ -104,38 +89,6 @@
       "true_positive_count": 0,
       "txn_id": "refiner-38073519493-2",
       "target_repo": "github/gh-aw"
-    },
-    {
-      "evaluation_method": "scratch static review of all mount(tools,['--bind',...]) and runTool(tools.mount,['--bind',...]) call sites in src/cloud-hypervisor/trusted-enclave-storage.ts and src/cloud-hypervisor/virtiofsd.ts at target HEAD 98959bdbd898c2edfaf5e09f8d2bb1502bbcafa6 (shallow clone, no prior commit object available for diff), cross-referencing each bind destination against prior --make-private/--make-rprivate calls on an ancestor path",
-      "false_negative_count": 0,
-      "false_positive_count": 3,
-      "missing_suppression_count": 0,
-      "performance_regression": false,
-      "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD 98959bdb (#9771, one-workload-sandbox-backend feature unrelated to mount/privatization logic): src/cloud-hypervisor/virtiofsd.ts startOne() ro-export branch (lines ~316-328) still builds readonlyBindPath under this.shareDirectory, binds and remounts it ro,nosuid,nodev, and never calls --make-private/--make-rprivate on readonlyBindPath or shareDirectory anywhere in the class -- unlike StagedHostMountTree.stageWritableOverlays() in mount-tree.ts, which explicitly privatizes every overlay destination. The three self-bind-onto-self calls in trusted-enclave-storage.ts (root privatized at line 215, child directories privatized at line 345) remain false positives against a naive heuristic since root/ancestor privatization already covers them. No drift since refiner-37969204993-1.",
-      "regression_case": "src/cloud-hypervisor/virtiofsd.ts startOne(), the mode==='ro' branch: readonlyBindPath=path.join(this.shareDirectory, index-tag) is bound from directoryExport.source and remounted ro, with no --make-private/--make-rprivate call on readonlyBindPath or shareDirectory anywhere in the class; a future change must keep this flagged as a true positive until a privatization call is added for this destination.",
-      "true_positive_count": 1,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "txn_id": "refiner-39771988009-3",
-      "target_repo": "github/gh-aw-firewall",
-      "target_commit": "98959bdbd898c2edfaf5e09f8d2bb1502bbcafa6"
-    },
-    {
-      "evaluation_method": "Re-grepped '--bind' and 'make-private' in src/cloud-hypervisor/virtiofsd.ts and src/cloud-hypervisor/trusted-enclave-storage.ts at target HEAD b179fef889d1bd335c5cce329aee4a4cb37d20e7 (#9792, ARC/DinD filesystem boundary coverage, unrelated to mount/privatization code paths)",
-      "false_negative_count": 0,
-      "false_positive_count": 3,
-      "missing_suppression_count": 0,
-      "performance_regression": false,
-      "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD b179fef (#9792 adds ARC/DinD boundary coverage, does not touch virtiofsd.ts or trusted-enclave-storage.ts mount logic): virtiofsd.ts startOne() ro-export branch still binds directoryExport.source onto readonlyBindPath and remounts ro without any 'mount --make-private readonlyBindPath' call. The 3 self-bind-onto-self calls in trusted-enclave-storage.ts (artifacts, invocation directory, snapshot.directory) remain false positives: each binds a path onto itself underneath root, already privatized by 'mount --make-private root'. No drift since refiner-38085319995-1.",
-      "regression_case": "src/cloud-hypervisor/virtiofsd.ts startOne(), ro-export branch: 'await this.dependencies.runTool(this.tools.mount, [\"--bind\", directoryExport.source, readonlyBindPath])' followed by a ro remount, with no 'mount --make-private readonlyBindPath' call anywhere in the branch or its cleanup path; a future change must keep flagging this as a true positive until the destination is explicitly privatized.",
-      "true_positive_count": 1,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "txn_id": "refiner-39771988009-3",
-      "target_repo": "github/gh-aw-firewall",
-      "target_commit": "b179fef889d1bd335c5cce329aee4a4cb37d20e7"
     },
     {
       "classification_counts": {
@@ -170,19 +123,6 @@
       "txn_id": "refiner-38313694983-2",
       "target_repo": "github/gh-aw-actions",
       "target_commit": "a0486bb9f7e2d8b990201dc43e34e7d668f191a4"
-    },
-    {
-      "false_negative_count": 0,
-      "false_positive_count": 3,
-      "missing_suppression_count": 1,
-      "true_positive_count": 1,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "reason": "Inspection at HEAD 1b716d1: bind mounts in src/cloud-hypervisor/enclave-mount-capture.integration.test.ts (mount --bind at lines ~62, 93, 96, 241, 263, 283) and virtiofsd.test.ts fixture strings; production src/cloud-hypervisor/mount-tree.ts applies --make-rprivate to its staged root. Test-fixture and already-privatized sites remain false positives; one intentional unprivatized bind in the integration test is a true positive. No suppression convention. Unchanged in substance.",
-      "target_commit": "1b716d142ce850b38944eabab5cacf91b5a96e9f",
-      "readiness_for_target": "needs-work",
-      "target_repo": "github/gh-aw-firewall",
-      "txn_id": "refiner-39771988009-3"
     }
   ],
   "affected_paths": [
@@ -241,7 +181,7 @@
   "existing_plugin_coverage": "None found; this requires tracking prior `mount --make-private` calls against bind destinations across a function, which is repository/domain-specific (Linux mount-namespace shared-subtree semantics) and not modeled by any published generic ESLint rule.",
   "language": "typescript",
   "last_seen_at": "2026-10-12T22:03:43Z",
-  "last_updated": "2026-10-29T21:35:03Z",
+  "last_updated": "2026-11-13T01:40:00Z",
   "last_updated_by_run": "39067866988",
   "last_updated_target_repo": "github/gh-aw-firewall",
   "likely_false_positives": "A bind whose destination is itself located inside a path that was already privatized (e.g. binding two paths both under the same already-private allocation root) is safe and should not be flagged; only binds that cross into a separately-rooted, potentially-shared destination are unsafe.",

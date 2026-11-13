@@ -24,13 +24,13 @@
       "txn_id": "refiner-37835259305-5"
     },
     {
-      "false_negative_count": 1,
-      "false_positive_count": 4,
+      "false_negative_count": 0,
+      "false_positive_count": 2,
       "readiness_for_target": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD f1c3282: same 4 false positives (sessionStateDir recursive branch, squid-logs chmodPreservedDir, both diagnostics-dir chmods), same false negative (artifact-permissions.ts shell-string chmod -R with no cross-file awareness of token-persistence.js's 0o600 audit file), no suppression mechanism.",
-      "target_commit": "f1c32827de7419894a781b765bf82d12b1cdbbc6",
+      "reason": "Re-confirmed on HEAD 90ade01 (re-verified this run: chmod -R sites at src/artifact-preservation.ts 157/215/217/272, --bind sites in trusted-enclave-storage.ts, describe at docker-manager.test.ts:89 unchanged): previously evidenced sites still present and unchanged in substance (chmod -R a+rX at src/artifact-preservation.ts lines 157/215/217/272; docker-manager.test.ts filterCapDrop block at line 89 vs capability-filter.test.ts; --bind sites in src/cloud-hypervisor/trusted-enclave-storage.ts and mount-tree.ts). Confirmed false positives remain and no suppression convention exists, so precision bar is unmet. Inspection-based, not an ESLint run.",
+      "target_commit": "90ade01093f55753a272bac5e87ca8a459f13b67",
       "target_repo": "github/gh-aw-firewall",
-      "true_positive_count": 2,
+      "true_positive_count": 1,
       "txn_id": "refiner-39771988009-1"
     },
     {
@@ -44,36 +44,6 @@
       "txn_id": "refiner-36658147600-1"
     },
     {
-      "false_negative_count": 1,
-      "false_positive_count": 4,
-      "readiness_for_target": "needs-work",
-      "reason": "Re-confirmed unchanged at current HEAD (140c4fa): the auditDir/audit-tmpdir true positives, sessionState/squid-logs/diagnostics-dir false positives, and the artifact-permissions.ts shell-string chmod false negative all persist with no drift.",
-      "target_commit": "140c4fa52cdcdbe8389e1ab912cae975faaa54f2",
-      "target_repo": "github/gh-aw-firewall",
-      "true_positive_count": 2,
-      "txn_id": "refiner-39771988009-1"
-    },
-    {
-      "false_negative_count": 1,
-      "false_positive_count": 4,
-      "readiness_for_target": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD b476c7d5: same 4 false positives (sessionStateDir, squid-logs, both diagnostics-dir chmods), same false negative (artifact-permissions.ts shell-string chmod -R), no suppression mechanism.",
-      "target_commit": "b476c7d5fd47cc3251563b2af39602dc41c0488c",
-      "target_repo": "github/gh-aw-firewall",
-      "true_positive_count": 2,
-      "txn_id": "refiner-39771988009-1"
-    },
-    {
-      "false_negative_count": 1,
-      "false_positive_count": 4,
-      "readiness_for_target": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD b179fef (#9792, ARC/DinD boundary coverage, unrelated to chmod call sites): execa.sync('chmod',['-R','a+rX',auditDir]) at artifact-preservation.ts:167 still widens permissions on the directory that main-action.ts persistConfigAuditArtifact() populates via fs.openSync(configArtifactPath,'wx',0o600); code is byte-for-byte unchanged since refiner-37560505197-1. 4 other chmod -R sites remain false positives; config-writer.ts's 0o600 write has no corresponding widening call found (false negative in grep-only method). No drift since refiner-37977147256-3.",
-      "target_commit": "b179fef889d1bd335c5cce329aee4a4cb37d20e7",
-      "target_repo": "github/gh-aw-firewall",
-      "true_positive_count": 1,
-      "txn_id": "refiner-39771988009-1"
-    },
-    {
       "txn_id": "refiner-38434456740-3",
       "readiness_for_target": "needs-work",
       "true_positive_count": 0,
@@ -82,19 +52,6 @@
       "target_commit": "dda6e4ad3194da3253b9b944f447aa590aa4e377",
       "target_repo": "githubnext/gh-aw-cao",
       "reason": "Re-confirmed on HEAD dda6e4a: sole recursive chmod call remains tests/e2e/cao-mcp-container.mjs:89, widening perms on a scratch mkdtemp directory, not narrowing restricted files; remains a false positive. No new recursive chmod call sites found. Rule stays deprecated centrally."
-    },
-    {
-      "false_negative_count": 0,
-      "false_positive_count": 2,
-      "missing_suppression_count": 1,
-      "true_positive_count": 1,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "reason": "Source inspection at HEAD 1b716d1: src/artifact-preservation.ts chmodRuntimeArtifacts() still runs chmod -R a+rX on the default 'recursive' runtime dir (line ~157, default at ~233); chmodPublicArtifacts() now filters private enclave audit files and cloud-hypervisor dirs before chmod -R (line ~209), so that site and the artifact-permissions.ts /fix chown/chmod helper are false positives without suppression support. Code has been refactored since b179fef; the default recursive path remains the one genuine hit. Grep/inspection-based, not an ESLint run.",
-      "target_commit": "1b716d142ce850b38944eabab5cacf91b5a96e9f",
-      "readiness_for_target": "needs-work",
-      "target_repo": "github/gh-aw-firewall",
-      "txn_id": "refiner-39771988009-1"
     }
   ],
   "affected_paths": [
@@ -164,7 +121,7 @@
   "existing_plugin_coverage": "None found in eslint-plugin-security or typescript-eslint recommended configs; this is a repo-specific security pattern not covered by a published rule.",
   "language": "typescript",
   "last_seen_at": "2026-10-13T16:57:20Z",
-  "last_updated": "2026-10-29T21:35:03Z",
+  "last_updated": "2026-11-13T01:40:00Z",
   "last_updated_by_run": "39067866988",
   "last_updated_target_repo": "github/gh-aw-firewall",
   "likely_false_positives": "Recursive chmod on directories that are guaranteed never to contain restricted-mode files (e.g. purely public build-output directories) is safe; the rule should allow an explicit exclusion/allowlist comment or a narrower non-recursive alternative to suppress.",

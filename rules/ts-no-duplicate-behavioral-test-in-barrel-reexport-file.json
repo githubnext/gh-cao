@@ -41,89 +41,16 @@
       "false_negative_count": 0,
       "false_positive_count": 2,
       "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD f1c3282: src/docker-manager.test.ts's 'filterCapDrop with explicit bounding set' and 'filterCapDrop via barrel' describe blocks (lines 83-116) still duplicate behavioral assertions (bounding-set filtering, AWF_SKIP_CAP_DROP branching, empty-input handling) already covered by capability-filter.test.ts's dedicated suite, violating the barrel file's own header comment that it checks re-export shape 'without duplicating the underlying module tests' (true positives). The shape-only typeof/Array.isArray assertions at lines 66-75 ('basic sanity' and 'via the barrel re-export') remain false positives against a naive heuristic since they assert shape, not logic, matching the file's stated barrel-smoke-test intent. No suppression convention exists to distinguish legitimate shape assertions from duplicated behavioral blocks.",
+      "reason": "Re-confirmed on HEAD 90ade01 (re-verified this run: chmod -R sites at src/artifact-preservation.ts 157/215/217/272, --bind sites in trusted-enclave-storage.ts, describe at docker-manager.test.ts:89 unchanged): previously evidenced sites still present and unchanged in substance (chmod -R a+rX at src/artifact-preservation.ts lines 157/215/217/272; docker-manager.test.ts filterCapDrop block at line 89 vs capability-filter.test.ts; --bind sites in src/cloud-hypervisor/trusted-enclave-storage.ts and mount-tree.ts). Confirmed false positives remain and no suppression convention exists, so precision bar is unmet. Inspection-based, not an ESLint run.",
       "regression_case": {
         "description": "src/docker-manager.test.ts describe('filterCapDrop with explicit bounding set') block asserting exact array-equality results for filterCapDrop, duplicating src/capability-filter.test.ts's dedicated behavioral suite for the same function, despite the file header stating it checks re-export shape only.",
         "permalink": "https://github.com/github/gh-aw-firewall/blob/f1c32827de7419894a781b765bf82d12b1cdbbc6/src/docker-manager.test.ts#L83-L116"
       },
-      "target_commit": "f1c32827de7419894a781b765bf82d12b1cdbbc6",
-      "true_positive_count": 2,
-      "txn_id": "refiner-39771988009-2",
-      "target_repo": "github/gh-aw-firewall"
-    },
-    {
-      "classification_counts": {
-        "false_negative": 0,
-        "false_positive": 2,
-        "missing_suppression": 1,
-        "performance_regression": 0,
-        "unclear_diagnostic": 0,
-        "unsafe_autofix": 0
-      },
-      "evaluation_method": "manual source inspection of src/docker-manager.test.ts against src/capability-filter.test.ts on HEAD b476c7d",
-      "false_negative_count": 0,
-      "false_positive_count": 2,
-      "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD b476c7d5: src/docker-manager.test.ts's 'filterCapDrop with explicit bounding set' and 'filterCapDrop via barrel' describe blocks (lines ~82-117) still duplicate behavioral assertions (bounding-set filtering, AWF_SKIP_CAP_DROP branching, empty-input handling) that capability-filter.test.ts already covers in its own dedicated suites, violating the barrel file's own header comment ('without duplicating the underlying module tests'). A naive non-typeof/non-Array.isArray heuristic still false-positives on the two legitimate shape/pass-through assertions at lines 66-72 ('basic sanity' and 'via the barrel re-export'), whose comments explicitly defer behavior to capability-filter.test.ts. No suppression mechanism exists for a maintainer-intended shape-only assertion inside an otherwise-scoped barrel file. Smallest fix: narrow the heuristic to only flag assertions on values more specific than typeof/Array.isArray (e.g. literal/array/object equality checks against captured return values), and add an opt-out comment convention.",
-      "regression_case": {
-        "description": "src/docker-manager.test.ts describe('filterCapDrop with explicit bounding set') block asserting exact array-equality results for filterCapDrop, duplicating src/capability-filter.test.ts's dedicated behavioral suite for the same function, despite the file header stating it checks re-export shape only.",
-        "permalink": "https://github.com/github/gh-aw-firewall/blob/b476c7d5fd47cc3251563b2af39602dc41c0488c/src/docker-manager.test.ts#L82-L117"
-      },
-      "target_commit": "b476c7d5fd47cc3251563b2af39602dc41c0488c",
-      "true_positive_count": 2,
-      "txn_id": "refiner-39771988009-2",
-      "target_repo": "github/gh-aw-firewall"
-    },
-    {
-      "classification_counts": {
-        "false_negative": 0,
-        "false_positive": 2,
-        "missing_suppression": 1,
-        "performance_regression": 0,
-        "unclear_diagnostic": 0,
-        "unsafe_autofix": 0
-      },
-      "evaluation_method": "manual inspection of src/docker-manager.test.ts against its own file-header contract and against src/capability-filter.test.ts on HEAD 61108a1e; no ESLint plugin implements this rule yet",
-      "false_negative_count": 0,
-      "false_positive_count": 2,
-      "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged: src/docker-manager.test.ts still contains the 'filterCapDrop with explicit bounding set' and 'filterCapDrop via barrel' describe blocks (lines ~137-162) duplicating capability-filter.test.ts's behavioral coverage of filterCapDrop/isCapDropSkipped, violating the file's own header comment that it verifies barrel re-exports only 'without duplicating the underlying module tests' (true positives). The shape-only typeof/Array.isArray assertions at lines 66-72 ('filterCapDrop behaves as a pass-through re-export (basic sanity)', 'isCapDropSkipped returns a boolean') remain false positives against a naive duplicate-behavioral-test heuristic since they assert shape, not logic, matching the file's stated barrel-smoke-test intent. No suppression convention (e.g. an eslint-disable or file-scoped allowlist comment) exists to distinguish the legitimate shape assertions from the duplicated behavioral blocks.",
-      "target_commit": "61108a1eed42b4bbb1030538fcf2dad764e5bfd2",
-      "true_positive_count": 2,
-      "txn_id": "refiner-39771988009-2",
-      "target_repo": "github/gh-aw-firewall"
-    },
-    {
-      "evaluation_method": "scratch static review of src/docker-manager.test.ts against src/capability-filter.test.ts at target HEAD 02b881e12b1f2c3208306bfd85b7d5f2c4b7fc35",
-      "false_negative_count": 0,
-      "false_positive_count": 2,
-      "missing_suppression_count": 0,
-      "performance_regression": false,
-      "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged at HEAD 02b881e12b1f2c3208306bfd85b7d5f2c4b7fc35 (fix: retry unreachable enclave probe gateway backend, #9556; touched only enclave probe-gateway retry logic, no changes to src/docker-manager.test.ts or src/capability-filter.test.ts). src/docker-manager.test.ts still duplicates src/capability-filter.test.ts's behavioral suite for filterCapDrop, filterComposeCapDrop, getHostCapabilityBoundingSet and isCapDropSkipped (2 TP groups), while the shape-only typeof/Array.isArray checks at the top of the file remain correct non-duplicative usage (2 FP against a naive heuristic). No suppression convention exists. No drift since the last evaluation (refiner-37560505197-2).",
-      "regression_case": "src/docker-manager.test.ts describe('filterComposeCapDrop via barrel', ...) and describe('getHostCapabilityBoundingSet via barrel', ...) blocks duplicate behavioral assertions already covered by src/capability-filter.test.ts; a future fix must keep these flagged as true positives for duplication.",
-      "true_positive_count": 2,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "txn_id": "refiner-39771988009-2",
-      "target_repo": "github/gh-aw-firewall",
-      "target_commit": "02b881e12b1f2c3208306bfd85b7d5f2c4b7fc35"
-    },
-    {
-      "evaluation_method": "manual inspection of src/docker-manager.test.ts (barrel re-export smoke test, header comment at lines 1-9) against src/capability-filter.test.ts at target HEAD b179fef889d1bd335c5cce329aee4a4cb37d20e7",
-      "false_negative_count": 0,
-      "false_positive_count": 2,
-      "missing_suppression_count": 1,
-      "performance_regression": false,
-      "readiness": "needs-work",
-      "reason": "Re-confirmed unchanged on HEAD b179fef: docker-manager.test.ts's header comment still documents the file as verifying only barrel re-export shape 'without duplicating the underlying module tests', yet the 'filterCapDrop with explicit bounding set' describe block re-implements real bounding-set filtering assertions duplicating capability-filter.test.ts's own coverage -- a true positive against the file's own stated contract. The other two blocks ('filterCapDrop via barrel', 'getHostCapabilityBoundingSet via barrel') remain false positives: pass-through wiring checks, not duplicated business logic. No suppression convention exists for intentional barrel-level smoke assertions. No drift since refiner-37977147256-2.",
-      "regression_case": "src/docker-manager.test.ts describe('filterCapDrop with explicit bounding set', ...) duplicates bounding-set-filtering assertions already covered by src/capability-filter.test.ts; a future change must keep flagging this block as a true positive until it is either removed or reduced to a pure re-export shape assertion.",
+      "target_commit": "90ade01093f55753a272bac5e87ca8a459f13b67",
       "true_positive_count": 1,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
       "txn_id": "refiner-39771988009-2",
       "target_repo": "github/gh-aw-firewall",
-      "target_commit": "b179fef889d1bd335c5cce329aee4a4cb37d20e7"
+      "readiness_for_target": "needs-work"
     },
     {
       "classifications": [],
@@ -150,19 +77,6 @@
       "target_commit": "dda6e4ad3194da3253b9b944f447aa590aa4e377",
       "target_repo": "githubnext/gh-aw-cao",
       "reason": "Re-confirmed on HEAD dda6e4a: searched every *.test.ts/*.test.js/*.test.mjs file for a barrel index.mjs/index.ts re-export module paired with a shape-only smoke test; none exists. tests/unit/cao-cli.test.mjs and tests/unit/activity-index.test.mjs both assert real behavior, not shape-only re-export identity. Unchanged since refiner-37796381362-3."
-    },
-    {
-      "false_negative_count": 0,
-      "false_positive_count": 2,
-      "missing_suppression_count": 1,
-      "true_positive_count": 1,
-      "unclear_diagnostic_count": 0,
-      "unsafe_autofix_count": 0,
-      "reason": "Inspection at HEAD 1b716d1: src/docker-manager.test.ts header still states it verifies only barrel re-export shape without duplicating underlying tests, yet describe('filterCapDrop with explicit bounding set') asserts real filtering behaviour (ALL kept, absent caps dropped, AWF_SKIP_CAP_DROP handling) that capability-filter.test.ts covers: one true positive. Remaining 'via barrel' blocks are wiring checks (false positives); no suppression convention. Unchanged in substance.",
-      "target_commit": "1b716d142ce850b38944eabab5cacf91b5a96e9f",
-      "readiness_for_target": "needs-work",
-      "target_repo": "github/gh-aw-firewall",
-      "txn_id": "refiner-39771988009-2"
     }
   ],
   "affected_paths": [
@@ -245,7 +159,7 @@
   "existing_plugin_coverage": "None found; this is a repository-specific, automated test-generation workflow pattern not covered by eslint-plugin-jest or other published rules, which generally do not model 'this file's documented testing scope' as a lint target.",
   "language": "typescript",
   "last_seen_at": "2026-10-13T16:57:20Z",
-  "last_updated": "2026-10-22T11:45:00Z",
+  "last_updated": "2026-11-13T01:40:00Z",
   "last_updated_by_run": "39067866988",
   "last_updated_target_repo": "github/gh-aw-firewall",
   "likely_false_positives": "A barrel test file without an explicit 'shape-only, no duplication' scope comment is not a violation; adding the first behavioral test for a function that has no dedicated module test file elsewhere is legitimate and should not be flagged.",
