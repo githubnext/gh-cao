@@ -2,15 +2,10 @@ package topology
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
 
-	"github.com/tliron/exturl"
-	"github.com/tliron/puccini/clout/js"
-	"github.com/tliron/puccini/tosca/parser"
 	"gopkg.in/yaml.v3"
 )
 
@@ -117,83 +112,96 @@ func providerServiceTemplate(features Features, parameters map[string]Parameter,
 	})
 }
 
-type engineMetadata struct {
-	Puccini struct {
-		Kind string `json:"kind"`
-	} `json:"puccini"`
+type toscaDocument struct {
+	DefinitionsVersion string                   `yaml:"tosca_definitions_version"`
+	NodeTypes          map[string]toscaNodeType `yaml:"node_types"`
+	TopologyTemplate   struct {
+		NodeTemplates map[string]toscaNodeTemplate `yaml:"node_templates"`
+	} `yaml:"topology_template"`
 }
 
-type engineVertex struct {
-	Metadata   engineMetadata `json:"metadata"`
+type toscaNodeType struct {
+	DerivedFrom  string                                  `yaml:"derived_from"`
+	Requirements []map[string]toscaRequirementDefinition `yaml:"requirements"`
+}
+
+type toscaRequirementDefinition struct {
+	Capability   string `yaml:"capability"`
+	Node         string `yaml:"node"`
+	Relationship string `yaml:"relationship"`
+	Occurrences  []int  `yaml:"occurrences"`
+}
+
+type toscaNodeTemplate struct {
+	Type       string `yaml:"type"`
 	Properties struct {
-		Name string `json:"name"`
-	} `json:"properties"`
-	EdgesOut []struct {
-		Metadata engineMetadata `json:"metadata"`
-		TargetID string         `json:"targetID"`
-	} `json:"edgesOut"`
+		ConfigurationKind string `yaml:"configuration_kind"`
+	} `yaml:"properties"`
+	Requirements []map[string]toscaRequirementAssignment `yaml:"requirements"`
 }
 
-func resolveTOSCA(ctx context.Context, content []byte, features Features) (result Topology, err error) {
+type toscaRequirementAssignment struct {
+	Node string `yaml:"node"`
+}
+
+func resolveTopology(ctx context.Context, content []byte, features Features) (result Topology, err error) {
 	result = Topology{Version: 1, Backend: "azure", Features: features, Nodes: []Node{}}
 	if err := ctx.Err(); err != nil {
 		return result, err
 	}
-	urlContext := exturl.NewContext()
-	defer func() { err = errors.Join(err, urlContext.Release()) }()
-	// Only generated, import-free templates enter the engine. Built-in profiles
-	// and scriptlets stay inside the Go process; there is no Node.js or user code.
-	source := urlContext.NewInternalURL("/cao/topology.yaml")
-	source.SetContent(content)
-	parserContext := parser.NewParser().NewContext()
-	parserContext.URL = source
-	normalized, err := parserContext.Parse(ctx)
-	if err != nil {
-		return result, fmt.Errorf("TOSCA validation failed: %w; %v", errors.Join(err, ctx.Err()), parserContext.GetProblems())
+	var document toscaDocument
+	if err := yaml.Unmarshal(content, &document); err != nil {
+		return result, fmt.Errorf("parse TOSCA topology: %w", err)
 	}
-	clout, err := normalized.Compile()
-	if err != nil {
-		return result, fmt.Errorf("compile TOSCA: %w", err)
+	if document.DefinitionsVersion != "tosca_simple_yaml_1_3" || len(document.TopologyTemplate.NodeTemplates) == 0 {
+		return result, fmt.Errorf("unsupported or empty TOSCA topology")
 	}
-	execution := js.ExecContext{Clout: clout, Problems: parserContext.GetProblems(), URLContext: urlContext, Strict: true, History: false}
-	execution.Resolve()
-	if !execution.Problems.Empty() {
-		return result, fmt.Errorf("TOSCA requirement resolution failed: %v", execution.Problems)
-	}
-	execution.Coerce()
-	if !execution.Problems.Empty() {
-		return result, fmt.Errorf("TOSCA constraint validation failed: %v", execution.Problems)
-	}
-	if err := ctx.Err(); err != nil {
-		return result, err
-	}
-	content, err = json.Marshal(clout)
-	if err != nil {
-		return result, err
-	}
-	var graph struct {
-		Vertexes map[string]engineVertex `json:"vertexes"`
-	}
-	if err := json.Unmarshal(content, &graph); err != nil {
-		return result, err
-	}
-	for _, vertex := range graph.Vertexes {
-		if vertex.Metadata.Puccini.Kind != "NodeTemplate" {
-			continue
+	for id, template := range document.TopologyTemplate.NodeTemplates {
+		nodeType, exists := document.NodeTypes[template.Type]
+		if !exists {
+			return result, fmt.Errorf("TOSCA node %s has unknown type %s", id, template.Type)
 		}
-		node := Node{ID: vertex.Properties.Name, Kind: "managed", DependsOn: []string{}}
-		if external[node.ID] {
-			node.Kind = "external"
+		if nodeType.DerivedFrom != "tosca.nodes.Root" {
+			return result, fmt.Errorf("TOSCA node type %s has unsupported parent", template.Type)
 		}
-		for _, edge := range vertex.EdgesOut {
-			if edge.Metadata.Puccini.Kind != "Relationship" {
-				continue
+		requirements := map[string]toscaRequirementDefinition{}
+		for _, definitions := range nodeType.Requirements {
+			if len(definitions) != 1 {
+				return result, fmt.Errorf("TOSCA node type %s has malformed requirement definition", template.Type)
 			}
-			target, exists := graph.Vertexes[edge.TargetID]
-			if !exists || target.Properties.Name == "" {
-				return result, fmt.Errorf("TOSCA engine returned an unresolved relationship")
+			for name, definition := range definitions {
+				if _, exists := requirements[name]; exists {
+					return result, fmt.Errorf("TOSCA node type %s has duplicate requirement %s", template.Type, name)
+				}
+				if definition.Relationship != "tosca.relationships.DependsOn" ||
+					definition.Capability != "tosca.capabilities.Node" ||
+					len(definition.Occurrences) != 2 || definition.Occurrences[0] != 1 || definition.Occurrences[1] != 1 {
+					return result, fmt.Errorf("TOSCA node type %s has unsupported requirement %s", template.Type, name)
+				}
+				requirements[name] = definition
 			}
-			node.DependsOn = append(node.DependsOn, target.Properties.Name)
+		}
+		node := Node{ID: id, Kind: template.Properties.ConfigurationKind, DependsOn: []string{}}
+		assigned := map[string]bool{}
+		for _, assignments := range template.Requirements {
+			if len(assignments) != 1 {
+				return result, fmt.Errorf("TOSCA node %s has malformed requirement assignment", id)
+			}
+			for name, assignment := range assignments {
+				definition, exists := requirements[name]
+				if !exists || assigned[name] || assignment.Node == "" {
+					return result, fmt.Errorf("TOSCA node %s has invalid requirement assignment %s", id, name)
+				}
+				target, exists := document.TopologyTemplate.NodeTemplates[assignment.Node]
+				if !exists || target.Type != definition.Node {
+					return result, fmt.Errorf("TOSCA node %s requirement %s has an unresolved or incompatible target", id, name)
+				}
+				assigned[name] = true
+				node.DependsOn = append(node.DependsOn, assignment.Node)
+			}
+		}
+		if len(assigned) != len(requirements) {
+			return result, fmt.Errorf("TOSCA node %s is missing required assignments", id)
 		}
 		slices.Sort(node.DependsOn)
 		result.Nodes = append(result.Nodes, node)
@@ -204,6 +212,9 @@ func resolveTOSCA(ctx context.Context, content []byte, features Features) (resul
 		return result, err
 	}
 	if err := CheckTopology(result); err != nil {
+		return result, err
+	}
+	if err := ctx.Err(); err != nil {
 		return result, err
 	}
 	return result, nil
