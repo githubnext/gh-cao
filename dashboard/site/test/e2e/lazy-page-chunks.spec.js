@@ -265,7 +265,10 @@ test('core dashboard stays small and page chunks load on demand with in-memory c
   });
   // Query definitions stay in page chunks; core keeps each page stub's source index so sources can
   // load before the chunk arrives. Page descriptions and analysis contracts stay in their chunks.
-  expect(core.textLength).toBeLessThan(83500);
+  // Shell prerequisites execute before any page chunk can enable navigation.
+  const shellQueryLength = JSON.stringify(core.value.dashboard.queries).length;
+  expect(shellQueryLength).toBeLessThan(5000);
+  expect(core.textLength - shellQueryLength).toBeLessThan(83500);
   expect(core.value.dashboard.pages.some((/** @type {Record<string, unknown>} */ entry) =>
     ['description', 'intent', 'subject', 'objective', 'acceptance'].some((field) => field in entry))).toBe(false);
   expect(core.value.dashboard.pages.some((/** @type {{ views?: unknown[] }} */ entry) => Array.isArray(entry.views))).toBe(false);
@@ -409,7 +412,7 @@ test('async Factory Overview elements receive their chunked query definitions', 
   await expect(overview.getByText('Weekly rhythm', { exact: true })).toBeVisible();
   await expect(overview.locator('.dashboard-ingestion-status')).toHaveCount(0);
   await expect(page.locator('.report-footer-status')).toHaveCount(0);
-  const status = page.getByRole('button', { name: 'Dashboard data is stale', exact: true });
+  const status = page.locator('.dashboard-current-status').getByRole('button', { name: 'Dashboard data is stale', exact: true });
   await expect(status).toHaveCount(1);
   await expect(status.locator('.octicon-alert')).toBeVisible();
   await expect(overview.locator('.factory-station').first()).toContainText('Factory health');
@@ -433,7 +436,7 @@ test('async Factory Overview elements receive their chunked query definitions', 
 test('fresh upstream evidence shows green on desktop and mobile', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-15T12:00:00Z'));
   await page.goto(`${origin}/#page-overview`);
-  const status = page.getByRole('button', { name: 'Dashboard data is current', exact: true });
+  const status = page.locator('.dashboard-current-status').getByRole('button', { name: 'Dashboard data is current', exact: true });
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     if (viewport.width < 768) await page.getByRole('button', { name: 'Select view', exact: true }).click();

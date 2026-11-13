@@ -162,6 +162,29 @@ test("output replay follows a persistent cursor and emits terminal state", async
   } finally { await server.close(); }
 });
 
+test("output streams deliver queued-to-running transitions before completion", async () => {
+  let status = "queued";
+  let notify;
+  const server = await fixture({
+    detail: () => ({ id: "command-1", status, exitCode: status === "completed" ? 0 : null }),
+    output: () => [],
+    subscribe: listener => { notify = listener; return () => {}; },
+  });
+  try {
+    const response = await fetch(`${server.url}/__cli_commands/command-1/output`);
+    const reader = response.body.getReader();
+    const next = async () => JSON.parse(new TextDecoder().decode((await reader.read()).value).trim());
+    assert.deepEqual(await next(), { type: "status", command: { id: "command-1", status: "queued" } });
+    status = "running";
+    notify();
+    assert.deepEqual(await next(), { type: "status", command: { id: "command-1", status: "running" } });
+    status = "completed";
+    notify();
+    assert.equal((await next()).type, "complete");
+    reader.releaseLock();
+  } finally { await server.close(); }
+});
+
 test("output completion includes the durable enterprise pull request result", async () => {
   const pullRequestUrl = "https://ghe.example.test:8443/github/team/project/pull/42";
   const server = await fixture({

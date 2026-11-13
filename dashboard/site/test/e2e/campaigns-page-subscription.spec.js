@@ -101,7 +101,7 @@ test('Campaigns uses the shared page binding and refreshes its charts, table, an
     const { renderDashboard, dashboardPageSourceNames } = await import(`${location.origin}/src/presenter.js`);
     const { loadCanonicalDashboardSources, subscribeCanonicalDashboardView } = await import(`${location.origin}/src/data-processor.js`);
     const context = { pages: documentModel.dashboard.pages, queries: documentModel.dashboard.queries, views: documentModel.dashboard.views };
-    await loadCanonicalDashboardSources(`${location.origin}/campaign-sources.json`, [], context);
+    const sources = await loadCanonicalDashboardSources(`${location.origin}/campaign-sources.json`, ['campaign-navigation-availability'], context);
     Reflect.set(window, '__campaignPageBindings', 0);
     /** @type {import('../../src/presenter.js').PageSourceLoader} */
     const loader = (pageId, options) => new Promise((resolve, reject) => {
@@ -115,7 +115,7 @@ test('Campaigns uses the shared page binding and refreshes its charts, table, an
     });
     loader.subscribeViewSources = () => { throw new Error('Unexpected independent view subscription.'); };
     history.replaceState({}, '', '#page-campaigns');
-    document.querySelector('#root')?.replaceChildren(renderDashboard({ document: documentModel, sources: {}, loadPageSources: loader }));
+    document.querySelector('#root')?.replaceChildren(renderDashboard({ document: documentModel, sources, loadPageSources: loader }));
   }, model);
   const root = page.locator('[data-page-id="campaigns"]');
   await expect(root.locator('[data-view-id="campaigns-dispatches"]')).toContainText('alpha');

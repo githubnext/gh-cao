@@ -279,7 +279,7 @@ test('a chart with composed semantics offers a prompt preview and returns focus'
   const action = page.locator('[data-view-id="cost-by-repository"] .table-intent-button');
   await expect(action).toBeVisible();
   const titleRow = page.locator('[data-view-id="cost-by-repository"] .chart-prompt-heading');
-  const title = titleRow.getByRole('heading', { name: 'Cost per repository', level: 3, exact: true });
+  const title = titleRow.getByRole('heading', { name: 'Cost per repository', level: 2, exact: true });
   await expect(title).toBeVisible();
   await expect(action.locator('.octicon')).toBeVisible();
   await expect(action).toHaveAttribute('aria-label', /Propose fix: /);

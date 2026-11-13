@@ -37,7 +37,7 @@ for (const { width, height = 900, empty = false, crowded = false } of [
       executeCliAction: async (/** @type {{ command: string, onOutput: (event: { stream: string, data: string }) => void }} */ { command, onOutput }) => {
         executions.push(command);
         onOutput({ stream: 'stdout', data: 'Repository staged in review mode.\n' });
-        return { ok: true };
+        return { ok: true, exitCode: 0 };
       },
       prepareSnapshot: async (/** @type {string} */ destination) => {
         await mkdir(destination, { recursive: true });

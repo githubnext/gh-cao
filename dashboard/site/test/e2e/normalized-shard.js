@@ -1,6 +1,7 @@
 import { adaptCachedGhAwJsonl } from '../../src/data/adapters/gh-aw-logs.js';
 import { CANONICAL_SCHEMA_VERSION } from '../../src/data/model/schema.js';
 import { normalize } from '../../src/data/normalize/index.js';
+import { NORMALIZED_JSONL_INGESTION_VERSION } from '../../src/data/ingest/coordinator.js';
 
 /** @param {string} jsonl @param {import('../../src/data/model/schema.js').CanonicalObservation[]} [observations] */
 export function normalizedActivityShards(jsonl, observations = []) {
@@ -18,7 +19,7 @@ export function normalizedActivityShards(jsonl, observations = []) {
       {
         kind: 'metadata',
         schemaVersion: CANONICAL_SCHEMA_VERSION,
-        ingestionVersion: 4,
+        ingestionVersion: NORMALIZED_JSONL_INGESTION_VERSION,
         sourceRecords,
         phase,
         records: records.length

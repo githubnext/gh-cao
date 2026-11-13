@@ -368,10 +368,11 @@ async function bundleSiteJavascript(destinationPath) {
       .filter((path) => path !== mainOutput)
       .map((path) => basename(path));
     const preloads = [
-      '    <link rel="stylesheet" href="./styles.css">',
       '    <link rel="preload" href="./dashboard.json" as="fetch" crossorigin>',
       '    <link rel="modulepreload" href="./src/main.js" fetchpriority="low">',
       ...startupChunks.map((chunk) => `    <link rel="modulepreload" href="./src/${chunk}" fetchpriority="low">`),
+      // Avoid a render-blocking CSS round trip without delaying module discovery.
+      `    <style data-dashboard-styles>${stylesheet.code}</style>`,
     ];
     const indexPath = join(destinationPath, "index.html");
     const index = await readFile(indexPath, "utf8");
