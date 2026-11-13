@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T12:53:43Z",
-   "worker_run_id": "43428346207",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha; no docs.yml run since the 12:39Z evaluation). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba); schedule 43371878284 kept out of push statistics (docs 14 s, exec 86 s). Comparable n=18 push successes (5-run minimum met). Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s = 16.5% of median build-start-to-deploy-end 85 s (p90 106 s). 15% gate = 12.75 s, so the step would need to lose about 91% of its time; 60 s unreachable. Trend: first 9 push runs median 14 s, last 9 median 14 s. Build-log read HTTP 403 difc_forbidden re-probed 12:53Z on build job 131763446973 (not retried), so the astro build versus validation split and cache effects are unverified; the step builds and validates the published docs root, so no Astro change qualifies on present evidence. Parallel validation or Astro build tuning is unmeasured and bounded by a few seconds. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T13:20:09Z",
    "worker_run_id": "43432130117",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress except stale 37642403569; no docs.yml run since 20:56:37Z; source 7cb5134 = main HEAD = source_sha; window identical to the 22:31Z window). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies failed at 17 s on cache miss for key 7808ecf8; Build and deploy skipped; Pages still reflects f695ad3 from 43505502149 at 20:53:41Z; job log HTTP 403 DIFC re-probed 22:52Z, cause unverified). n=19 push successes; 0 cancelled; 0 schedule in window; 5-run gate met. Jobs API only (logs unreadable). Medians (p90): build start to deploy end exec 84 (93) s; run create to update 88 (146) s incl. concurrency wait median 1 s, p90 51 s; Set up Node.js 4 (7); Install dependencies 16 (24) = 19 percent of median exec; setup plus install median 20 s; Post Set up Node.js 0-1 s in 19/19 (exact-key hits). 15 percent gate 12.6 s; 60 s unreachable. Candidates, none evidenced at gate: node_modules cache (saves at most about 16 s minus restore; restore unmeasured; clears gate only if restore is about 3.5 s or less); root --ignore-scripts (correctness risk; few seconds); dashboard lock outside key (zero current cost, latent). Cache: key 7808ecf8 (263 MB, refs/heads/main) created 20:57:12Z during the failed job (likely its post-step save, unverified) and last accessed 22:43:46Z by a workflow other than docs.yml; key e62f6006 last accessed 20:56:23Z. Open issue 20815 (blobless checkout) unchanged and not repeated. No suggestion; no issue; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T23:18:36Z",
+   "worker_run_id": "43525630597",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529",
+    "43484369040",
+    "43465706802",
+    "43447728981",
+    "43447111490",
+    "43440055797",
+    "43430232636",
+    "43430166810",
+    "43388781287",
+    "43380585034",
+    "43378597209",
+    "43378369544"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; within 14 days; none queued or in progress; source 7cb5134 = HEAD = source_sha; identical to the 22:31Z and 22:55Z windows; no docs.yml run since 20:56:37Z). Excluded and disclosed: 43506161539 failed (Install dependencies 17 s, cache-miss path, cause unverified; build and deploy skipped); no cancelled runs; no schedule run in window. n=19 push successes; 5-run gate met. Jobs API re-fetched for all 20 runs; medians match run_samples. Category step Build documentation (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 12 s, p90 15 s, range 9-15 s = 14.3 percent of median exec 84 s (p90 93 s). 15 percent gate = 12.6 s; the whole step is 12 s, so no Astro-internal change (caching, parallelism, validator split) can reach the gate, and removing it breaks deploy. Log read HTTP 403 difc_forbidden re-probed 23:18Z on build job 132161984137 (not retried); the astro versus validator split stays unmeasured and is not needed for the decision. Issue list call returned repository-disabled-issues while issue 20815 (blobless checkout, OPEN, unchanged) resolves by number; not repeated. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -891,8 +891,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T06:23:31Z..2026-11-13T20:56:37Z",
-  "evaluated_at": "2026-11-13T22:55:05Z",
-  "note": "window = latest 20 completed docs.yml runs (43378369544..43506161539); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC.; re-verified at 2026-11-13T22:55:05Z (same window, same medians)",
+  "evaluated_at": "2026-11-13T23:18:36Z",
+  "note": "window = latest 20 completed docs.yml runs (43506161539..43378369544); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC. Re-verified at 2026-11-13T23:18:36Z (same window, same medians).",
   "median_p90_s": {
    "Checkout": [
     25,
