@@ -40,11 +40,11 @@ Audit retains typed routing identifiers,
 classifier labels, request identities, sub-agent ownership, token classes,
 per-response AIC and collection receipts. It MUST NOT retain prompts, bodies,
 free-form errors/reasons, raw tool payloads or content-derived hashes.
-The canonical model is version 36. IndexedDB version 49 SHALL rebuild older
-browser projections so every retained Run receives the disposable statistical
-range keys and indexes defined in §5.1 and every retained Workflow receives the
-disposable subject key used for cursor paging. The Campaign and Workflow
-source-maintenance fields remain optional enrichment.
+The canonical model is version 36. IndexedDB version 49 SHALL rebuild
+incompatible older browser projections so every retained Run receives the
+disposable statistical range keys and indexes defined in §5.1 and every retained
+Workflow receives the disposable subject key used for cursor paging. The Campaign
+and Workflow source-maintenance fields remain optional enrichment.
 Hosted PostgreSQL deployments require a fresh schema with the generated Audit
 and Run aggregate columns. Inventory (`model.inventory`) and generic proxy
 (`firewall.event`) rows SHALL NOT be retained, including replayed cached
@@ -1240,11 +1240,11 @@ use `id: "daily-run-counts"` for readiness, coverage, backfill checkpoint,
 excluded/conflicted counts, byte accounting, and monotonic retention state.
 All three stores use `id` keys without secondary indexes.
 
-Physical upgrades from version 44 or 45 with an existing `runs` store SHALL
+Physical upgrades from versions 44, 45, and 46 with an existing `runs` store SHALL
 create only missing stores and preserve existing records and projection state.
 A newly created daily state SHALL start `backfilling` with coverage
-`retained-v44` or `retained-v45`. Backfill SHALL process at most 250 retained
-Runs per transaction, atomically checkpointing contributions and progress;
+`retained-v44`, `retained-v45`, or `retained-v46`. Backfill SHALL process at most
+250 retained Runs per transaction, atomically checkpointing contributions and progress;
 completion SHALL set status `ready` without claiming complete historical
 coverage. It SHALL NOT rewrite canonical detail or recover already-evicted
 history. New databases SHALL initialize daily state as `ready` with `admitted`
@@ -4701,8 +4701,8 @@ Because IndexedDB is not authoritative:
 
 > Rebuildability is more important than preserving stale derived rows.
 
-Physical schema upgrades SHALL follow §5.1: upgrades from version 44 or 45 with
-a `runs` store SHALL preserve existing stores and create only missing stores;
+Physical schema upgrades SHALL follow §5.1: upgrades from versions 44, 45, and 46
+with a `runs` store SHALL preserve existing stores and create only missing stores;
 incompatible older projections SHALL be rebuilt. Derived projections that
 use generations SHOULD keep the published generation available until compatible
 replacement metadata is committed.
