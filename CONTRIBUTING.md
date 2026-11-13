@@ -142,6 +142,12 @@ changes omit root integration/load/API checks. Unknown paths or an unavailable
 comparison base widen selection. Fast contract checks run concurrently with units;
 the existing `test` aggregate check requires both to succeed.
 
+Go core tests partition the sorted package list across four jobs, each with its
+own PostgreSQL service. Each job compiles and runs only its assigned packages,
+serially (`-p 1`) to stay within PostgreSQL's lock budget. Storage tests retain
+four test-name shards within their single package. Both retain short mode on
+PRs and uncached full execution after merge.
+
 `Daily full validation` (`.github/workflows/ci-daily.yml`) runs at 06:37 UTC
 and can be dispatched manually on main. It reuses the complete contract,
 dashboard, Go, bootstrap, simulator, Azure, query/MCP parity, mobile, view,
