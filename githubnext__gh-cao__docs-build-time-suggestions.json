@@ -1,35 +1,7 @@
 {
-  "source_sha": "deb5da8c611fe30c512615255b95c918d520677f",
-  "next_category": "Astro documentation generation",
+  "source_sha": "cf80d5c3bfd9f216f6f13a655f2934d1154f7a4e",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T14:36:46Z",
-      "worker_run_id": "43237912044",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43236057780,
-        43228124764,
-        43228046118,
-        43225202834,
-        43206235849,
-        43206161686,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:36:04Z to 2026-11-12T14:19:54Z; all within 14 days; 1 cancelled excluded: 43206161686; 0 failed). Comparable sample n=19 successful full build+deploy publications (18 push, 1 schedule 43161224542; docs.yml job and step structure unchanged since d57c4c82; source a5dfc367). Medians (p90), n=19: created-to-updated wall 89 s (157 s); queue to build start 4 s (30 s); build job 70 s (104 s); build-end to deploy-start 6 s; deploy job 11 s (18 s). Build steps: Checkout 24 s (47 s); Install dependencies 17 s (25 s); Build documentation 14 s (15 s); demo 3 s; Upload 2 s; Deploy Pages step 7 s. No separate dashboard job exists; dashboard work is the build job step Build synthetic enterprise demo. Astro category: the docs step is about 16 percent of median wall, but it cannot be removed (generated docs are required for publication) and its internal astro build versus validate-agent-docs versus node --test split is not visible; job logs return 403 difc_forbidden (re-verified). Checkout lead, not a suggestion: fetch-depth 0 fetches all history for all branches and tags per the actions/checkout README; repo has 1,257 branches, 63 tags, 1.45 GB. Docs provenance (resource.ts resolveBuildProvenance git log -1 <sha> -- file; validate-agent-docs git ls-files and rev-parse; agent-docs-discovery test) needs only history reachable from HEAD, so a HEAD-ancestry fetch could preserve sourceCommittedAt, but the saving is unmeasured and must reach about 13 s of a 24 s median checkout. Cache: node-cache-Linux-x64-npm keys exist on main; hit or miss not log-verified and last_accessed_at is shared across workflows. Open issue 20380 targets a retired input path; no duplicate created. next_category advanced to reusable dashboard generation."
-    },
     {
       "evaluated_at": "2026-11-12T14:55:17Z",
       "worker_run_id": "43241124962",
@@ -842,15 +814,44 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:14:10Z to 2026-11-13T00:45:49Z; within 14 days; source deb5da8 = HEAD; none in progress). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed; fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542); 5-run gate met. Medians (p90), n=18: build-start-to-deploy-end 84.5 s (123 s); queue created-to-build-start 3 s (4 s); build job 67 s (104 s); deploy job 11 s (18 s); Install dependencies 16 s (22 s) = 18.9% of median execution; 15% gate 12.7 s; Set up Node.js 3 s (8 s); Post Set up Node.js 0 s (1 s in 1 run); Checkout 24 s (47 s). Cache mechanics VERIFIED from actions/setup-node source pinned at 820762786026740c76f36085b0efc47a31fe5020 (src/cache-restore.ts): key = node-cache-<RUNNER_OS>-<arch>-npm-<glob.hashFiles(root package-lock.json)>; exact-key restore, no restore-keys; hashFiles = sha256 over per-file sha256 digests, so the plain file sha256 used in earlier notes was the wrong hash (this resolves the prior no-entry conflict). HEAD root-lock key e62f600 has a main-scoped entry (created 2026-11-12T06:18:07Z, 279 MB, last accessed 2026-11-13T00:58Z). Commits API: root lock changed in-window only by 3bd066d (02:27Z; run 43141528595: post 1 s, install 22 s) and 063cbe9 (06:17Z; run 43167070179: install 21 s); deb5da8 did not touch the root lock. Those two lock-change runs installed about 5 s above median (n=2, not repeated). Hit/miss NOT log-verified: job logs re-read HTTP 403 difc_forbidden at 00:58Z; post-save 0-1 s in 18/18 is consistent with exact-key hits or skipped saves. Cache listing: 68 entries, 13.49 GB, above the 10 GB cap; API total_count reported 1 (inconsistent with 68 returned), so the listing is not proven complete. Install scope: root npm ci 765 packages (174 optional, 4 install scripts); dashboard npm ci --omit=dev 36 prod packages; the two installs are not separable from step metadata. Candidates, none meeting gate: --no-audit/--no-fund on both installs (unmeasured, likely small); node_modules caching (unmeasured, restore cost comparable to npm ci, correctness risk); merging installs (architectural). Carry-forward, unmeasured, outside this category: Checkout fetch-depth 0 is the largest step (24 s median vs 3 s shallow calibration in csh.yml); a main-only blobless fetch could clear the gate but residual cost and provenance git-log semantics need maintainer measurement. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-13T01:19:57Z",
+      "worker_run_id": "43343591776",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43341730805,
+        43341713733,
+        43339642321,
+        43301807773,
+        43297524311,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T03:05:21Z to 2026-11-13T01:01:49Z; all within 14 days; none in progress; source HEAD cf80d5c). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed 2026-11-12T20:10Z; fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542); 5-run gate met. Category step 'Build documentation' (npm run docs:build): median 14 s, p90 15 s, range 8-15 s = 16.6% of median build-start-to-deploy-end 84.5 s (p90 123 s). 15% gate 12.7 s (wall gate 13.2 s of median 88 s): only full removal clears it, and generated docs are required for publication, so rejected. Build job median 67.5 s (p90 104); Checkout 24 s (47); Install dependencies 15.5 s (21); demo 4 s; deploy job 11 s (18). Astro-internal split (astro build vs validate-agent-docs vs node --test) not visible: job logs HTTP 403 difc_forbidden re-verified 2026-11-13T01:19Z. Cache: setup-node exact-key npm cache; Post Set up Node.js 0 s in 18/18 (consistent with hits, not log-verified); docs.yml has no actions/cache step; an Astro-cache restore is unmeasured and cannot show >=12.7 s. Queue (not this category): run-created to build-start median 4 s; waits behind in-progress publications 43341730805 81 s, 43228124764 43 s, 43206235849 27 s. Carry-forward (not this category): Checkout fetch-depth 0 remains the largest step (24 s median vs 3 s shallow calibration); blobless or history-scoped alternatives unmeasured. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
-    "verified_at": "2026-11-13T01:03:22Z",
+    "verified_at": "2026-11-13T01:19:57Z",
     "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 src/cache-restore.ts",
     "key": "node-cache-<RUNNER_OS>-<arch>-npm-<glob.hashFiles(root package-lock.json)>",
     "hash_rule": "sha256 over per-file sha256 digests (not plain file sha256)",
     "restore": "exact key only (no restore-keys)",
     "head_root_lock_key_suffix": "e62f60064d02",
-    "logs": "HTTP 403 difc_forbidden; hit/miss inferred only"
+    "logs": "HTTP 403 difc_forbidden re-verified 2026-11-13T01:19Z; hit/miss inferred only"
   }
 }
