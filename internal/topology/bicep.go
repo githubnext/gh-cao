@@ -22,6 +22,9 @@ var compiledContracts sync.Map
 // the official Bicep CLI. Results are memoized per profile because the inputs
 // are embedded and immutable for the process lifetime.
 func compileContract(ctx context.Context, features Features) (template []byte, err error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if cached, exists := compiledContracts.Load(features.Deployment); exists {
 		return cached.([]byte), nil
 	}
@@ -54,6 +57,9 @@ func compileContract(ctx context.Context, features Features) (template []byte, e
 	}
 	if !json.Valid(template) {
 		return nil, fmt.Errorf("bicep compiler returned invalid ARM JSON for %s", features.Deployment)
+	}
+	if _, err := diagnostics.WriteTo(os.Stderr); err != nil {
+		return nil, fmt.Errorf("write Bicep diagnostics: %w", err)
 	}
 	compiledContracts.Store(features.Deployment, template)
 	return template, nil

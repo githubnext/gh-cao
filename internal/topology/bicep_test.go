@@ -178,6 +178,11 @@ func TestContractCompilationFailsClosedAndMemoizesSuccess(t *testing.T) {
 	features := Features{Deployment: "single-vm"}
 	compiledContracts.Delete(features.Deployment)
 	t.Cleanup(func() { compiledContracts.Delete(features.Deployment) })
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := compileContract(ctx, features); !errors.Is(err, context.Canceled) {
+		t.Fatalf("lost cancellation before compilation: %v", err)
+	}
 	t.Setenv("PATH", t.TempDir())
 	if _, err := compileContract(context.Background(), features); err == nil || !strings.Contains(err.Error(), "official Bicep CLI on PATH") {
 		t.Fatalf("expected missing compiler failure, got %v", err)
@@ -197,5 +202,39 @@ func TestContractCompilationFailsClosedAndMemoizesSuccess(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	if template, err := compileContract(context.Background(), features); err != nil || string(template) != `{"parameters":{}}` {
 		t.Fatalf("successful compilation was not memoized: %s, %v", template, err)
+	}
+	if _, err := compileContract(ctx, features); !errors.Is(err, context.Canceled) {
+		t.Fatalf("cached contract ignored cancellation: %v", err)
+	}
+}
+
+func TestContractCompilationReportsWarnings(t *testing.T) {
+	features := Features{Deployment: "single-vm"}
+	compiledContracts.Delete(features.Deployment)
+	t.Cleanup(func() { compiledContracts.Delete(features.Deployment) })
+	installCompilerFixture(t, `printf '{"parameters":{}}'
+printf 'review this linter warning\n' >&2`)
+	filename := filepath.Join(t.TempDir(), "diagnostics")
+	output, err := os.Create(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := os.Stderr
+	os.Stderr = output
+	t.Cleanup(func() {
+		os.Stderr = original
+		if err := output.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	if _, err := compileContract(context.Background(), features); err != nil {
+		t.Fatal(err)
+	}
+	diagnostics, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(diagnostics) != "review this linter warning\n" {
+		t.Fatalf("missing diagnostics or leaked ARM output: %s", diagnostics)
 	}
 }
