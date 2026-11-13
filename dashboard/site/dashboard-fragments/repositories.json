@@ -1242,6 +1242,7 @@
           {
             "id": "repositories-runs",
             "title": "Observed daily runs by repository",
+            "actions": ["add-repository"],
             "subject": "Registered repositories and observed daily logical Run counts.",
             "objective": "Compare repository execution volume and choose repositories for drill-down.",
             "acceptance": "Show top 100 repositories with stable ties and drill links. Count logical Runs, not attempts, in whole UTC start-day buckets selected by midnight. Preserve partial and unavailable coverage; zero is not inactivity. Table retains full inventory.",
@@ -1294,6 +1295,7 @@
           {
             "id": "repositories-activity",
             "title": "Repositories",
+            "actions": ["add-repository"],
             "subject": "Repository execution health, retained outcomes, and AI Credit usage.",
             "objective": "Compare repository-grain totals reduced before enrichment and choose drill-down targets.",
             "acceptance": "Preserve repository identity, counts, links, filters, and evidence quality; unavailable activity is not a healthy or idle repository.",

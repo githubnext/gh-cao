@@ -1,4 +1,5 @@
 import { createDebug } from './debug.js';
+import { REPOSITORY_PATTERN } from './dialog-selector.js';
 
 const TEMPLATE_TOKEN_PATTERN = /\{\{([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\}\}/g;
 const REPOSITORY_SLUG_PATTERN = /^[A-Za-z0-9_.][A-Za-z0-9_.-]*\/[A-Za-z0-9_.][A-Za-z0-9_.-]*$/;
@@ -58,14 +59,14 @@ export function renderCliActionCommand(command, values = {}, context = {}) {
       debugCliActionTemplate({ event: 'render-rejected', field, reason: 'missing-or-invalid' });
       throw new Error(`CLI action template value "${field}" is missing or invalid.`);
     }
-    const pattern = urlField ? SAFE_URL_PATTERN
+    const pattern = field === 'repository-pattern' ? REPOSITORY_PATTERN : urlField ? SAFE_URL_PATTERN
       : field === 'repository' || field === 'cao-repository' ? REPOSITORY_SLUG_PATTERN : SAFE_TOKEN_PATTERN;
     if (!pattern.test(value)) {
       debugCliActionTemplate({ event: 'render-rejected', field, reason: 'unsafe-token' });
       throw new Error(`CLI action template value "${field}" is not a safe command token.`);
     }
     if (urlField) validateCliActionUrl(value);
-    return value;
+    return field === 'repository-pattern' && value.includes('*') ? `'${value}'` : value;
   });
   debugCliActionTemplate({ event: 'render-completed', fieldCount });
   return rendered;

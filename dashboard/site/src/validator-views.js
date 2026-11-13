@@ -67,6 +67,24 @@ function validatePluralLabels(labels, labelsNode, path, errors) {
   }
 }
 
+/** @param {Record<string, unknown>} view @param {string} path @param {ValidationError[]} errors */
+export function validateViewActions(view, path, errors) {
+  if (view.actions === undefined) return;
+  if (typeof view.mark !== 'string' || !['table', 'chart', 'list'].includes(view.mark)
+    || !Array.isArray(view.actions) || view.actions.length === 0
+    || new Set(view.actions).size !== view.actions.length) {
+    errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField,
+      'actions requires a data mark and a non-empty sequence of unique view-placed CLI action references.', `${path}.actions`));
+    return;
+  }
+  for (const [index, id] of view.actions.entries()) {
+    if (typeof id !== 'string' || state.declaredCliActions.get(id)?.placement !== 'view') {
+      errors.push(createError(ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference,
+        'actions must reference a declared view-placed CLI action.', `${path}.actions[${index}]`));
+    }
+  }
+}
+
 /**
  * @param {unknown} view
  * @param {unknown} viewNode
@@ -151,6 +169,7 @@ export function validateView(view, viewNode, path, viewIds, errors) {
   }
 
   validateObjectKeys(viewNode, view.mark === 'chart' ? VIEW_KEYS : [...VIEW_KEYS, 'views'], path, errors);
+  validateViewActions(view, path, errors);
   if (view.requires !== undefined) {
     const requiresPath = `${path}.requires`;
     if (!isPlainObject(view.requires)) {

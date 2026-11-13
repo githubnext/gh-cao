@@ -319,6 +319,7 @@ describe('repository activity query optimization', () => {
     expect(query).toBeDefined();
     expect(view).toMatchObject({
       mark: 'chart', chart: runInventoryContract.chart,
+      actions: runInventoryContract.actions,
       data: { source: runInventoryContract.source, limit: runInventoryContract.limit },
       encoding: {
         x: { field: 'repository', type: 'nominal' },

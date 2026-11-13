@@ -24,8 +24,8 @@ var nativeVersionCollators = sync.Pool{New: func() any {
 }}
 
 func nativeRepositoryAdd(cmd *cobra.Command, repository string, gh ghExecutor) error {
-	if len(repository) > 200 || !repositoryPattern.MatchString(repository) {
-		return errors.New("repos add requires an exact OWNER/REPO")
+	if len(repository) > 200 || !nativeSetupRepositoryPattern.MatchString(repository) {
+		return errors.New("repos add requires OWNER/REPO with optional * wildcards")
 	}
 	policy, err := nativeReadValidatedPolicy()
 	if errors.Is(err, os.ErrNotExist) {
@@ -41,28 +41,53 @@ func nativeRepositoryAdd(cmd *cobra.Command, repository string, gh ghExecutor) e
 	if !repositoriesOK || !ownersOK {
 		return nativeErrorf("Repository enrollment requires explicit allowed-owners and allowed-repositories policy; broad discovery scope is not rewritten.")
 	}
-	stdout, stderr, err := gh(cmd.Context(), "repo", "view", repository, "--json", "nameWithOwner", "--jq", ".nameWithOwner")
-	if err != nil {
-		return commandError("Repository access could not be verified", stderr, err)
+	requested := []string{repository}
+	if strings.Contains(repository, "*") {
+		matches, err := nativeSetupExpand(cmd, gh, nativeSetupRepository{}, repository)
+		if err != nil {
+			return err
+		}
+		if len(matches) > 100 {
+			return errors.New("repository pattern matched more than 100 repositories; use a narrower pattern")
+		}
+		requested = nil
+		for _, match := range matches {
+			requested = append(requested, match.Repository)
+		}
 	}
-	canonical := strings.TrimSpace(stdout)
-	if !repositoryPattern.MatchString(canonical) || !strings.EqualFold(canonical, repository) {
-		return nativeErrorf("Repository lookup did not resolve the exact requested repository.")
+	canonicals := make([]string, 0, len(requested))
+	for _, target := range requested {
+		stdout, stderr, err := gh(cmd.Context(), "repo", "view", target, "--json", "nameWithOwner", "--jq", ".nameWithOwner")
+		if err != nil {
+			return commandError("Repository access could not be verified", stderr, err)
+		}
+		canonical := strings.TrimSpace(stdout)
+		if !repositoryPattern.MatchString(canonical) || !strings.EqualFold(canonical, target) {
+			return nativeErrorf("Repository lookup did not resolve the exact requested repository.")
+		}
+		canonicals = append(canonicals, canonical)
 	}
-	enrolled := false
-	for _, value := range repositories {
-		enrolled = enrolled || strings.EqualFold(value.(string), canonical)
-	}
+	alreadyEnrolled := true
 	message := "Repository is already enrolled; existing policy was preserved."
-	if !enrolled {
-		scope["allowed-repositories"] = append(repositories, canonical)
+	for _, canonical := range canonicals {
+		enrolled := false
+		for _, value := range repositories {
+			enrolled = enrolled || strings.EqualFold(value.(string), canonical)
+		}
+		if enrolled {
+			continue
+		}
+		alreadyEnrolled = false
+		repositories = append(repositories, canonical)
+		scope["allowed-repositories"] = repositories
 		owner := strings.SplitN(canonical, "/", 2)[0]
 		found := false
 		for _, value := range owners {
 			found = found || strings.EqualFold(value.(string), owner)
 		}
 		if !found {
-			scope["allowed-owners"] = append(owners, owner)
+			owners = append(owners, owner)
+			scope["allowed-owners"] = owners
 		}
 		campaigns, _ := control["campaigns"].(map[string]any)
 		for _, value := range campaigns {
@@ -74,15 +99,21 @@ func nativeRepositoryAdd(cmd *cobra.Command, repository string, gh ghExecutor) e
 			}
 			targets[canonical] = map[string]any{"mode": "review"}
 		}
+	}
+	if !alreadyEnrolled {
 		if err := nativeValidatePolicy(policy); err != nil {
 			return err
 		}
 		if err := writePolicy(policy, false); err != nil {
 			return err
 		}
-		message = "Repository staged in review mode. Review, commit, and push the policy change before activation. Configure credential access separately; explicit Activity scope is unchanged."
+		message = "Repositories staged in review mode. Review, commit, and push the policy change before activation. Configure credential access separately; explicit Activity scope is unchanged. Wildcards resolve to exact current matches, not future repositories."
 	}
-	return printJSON(cmd, map[string]any{"command": "add", "repository": canonical, "policy": policyPath, "alreadyEnrolled": enrolled, "message": message})
+	identity := repository
+	if !strings.Contains(repository, "*") {
+		identity = canonicals[0]
+	}
+	return printJSON(cmd, map[string]any{"command": "add", "repository": identity, "repositories": canonicals, "policy": policyPath, "alreadyEnrolled": alreadyEnrolled, "message": message})
 }
 
 func nativeVersion(ctx context.Context, gh ghExecutor) (string, error) {
