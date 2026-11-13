@@ -8,6 +8,7 @@ import test from "node:test";
 import { promisify } from "node:util";
 import {
   buildDashboardSite,
+  collectStaticModules,
   embedDashboardVersion,
   embedDashboardVersions,
   filterExperimentalDashboardViews,
@@ -18,6 +19,27 @@ import { loadDashboardSource } from "../../dashboard/report/bundle-dashboards.mj
 import { agentCatalog } from "../../dashboard/site/src/agent/catalog.js";
 
 const execFileAsync = promisify(execFile);
+
+test("startup dependencies resolve Windows paths without preloading lazy or external imports", () => {
+  const outputs = {
+    ".bundle/main.js": {
+      imports: [
+        { path: ".bundle/shared.js", kind: "import-statement" },
+        { path: ".bundle/lazy.js", kind: "dynamic-import" },
+        { path: "external", kind: "import-statement", external: true },
+      ],
+    },
+    ".bundle/shared.js": {
+      imports: [{ path: ".bundle/main.js", kind: "import-statement" }],
+    },
+  };
+  assert.deepEqual(
+    [...collectStaticModules(outputs, ".bundle\\main.js")],
+    [".bundle/main.js", ".bundle/shared.js"],
+  );
+  assert.throws(() => collectStaticModules(outputs, ".bundle\\missing.js"),
+    /Dashboard startup dependency is missing: \.bundle\/missing\.js/);
+});
 
 async function builtSiteSha(destination) {
   const index = await readFile(new URL("index.html", destination), "utf8");
