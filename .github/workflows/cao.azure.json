@@ -4,7 +4,7 @@
     "web": {
       "host": {
         "target": {
-          "module": "azure-functions"
+          "module": "container"
         },
         "operational-store": {
           "backend": "postgres"

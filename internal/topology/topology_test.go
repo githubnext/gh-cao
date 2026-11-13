@@ -66,7 +66,7 @@ func TestTopologyResolvedFromTOSCARequirements(t *testing.T) {
 	if err := CheckTopology(topology); err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(topology.Order, []string{"monitoring", "network", "job-environment", "postgres", "registry", "runtime-storage", "sign-in-app", "secrets", "database-provisioning", "dashboard", "snapshot-ingestion"}) {
+	if !slices.Equal(topology.Order, []string{"monitoring", "network", "job-environment", "postgres", "registry", "runtime-activation", "sign-in-app", "secrets", "database-provisioning", "snapshot-ingestion", "dashboard"}) {
 		t.Fatalf("unexpected topology order: %v", topology.Order)
 	}
 	var document map[string]any
@@ -227,7 +227,8 @@ func TestRequirementsFailClosed(t *testing.T) {
 		}},
 		{"missing-retention", func(r *Requirements) { delete(r.Azure.Parameters, "postgresRunRetentionDays") }},
 		{"invalid-retention", func(r *Requirements) { r.Azure.Parameters["postgresRunRetentionDays"] = 6 }},
-		{"invalid-name", func(r *Requirements) { r.Azure.Parameters["functionAppName"] = "cao--bad" }},
+		{"invalid-name", func(r *Requirements) { r.Azure.Parameters["deploymentName"] = "cao--bad" }},
+		{"retired-deployment", func(r *Requirements) { r.Features.Deployment = "azure-functions" }},
 		{"missing-allowlist", func(r *Requirements) { r.Azure.Parameters["githubAllowedOrganizations"] = []string{} }},
 		{"feature-conflict", func(r *Requirements) { r.Azure.Parameters["adxEnabled"] = true }},
 		{"missing-collector", func(r *Requirements) { r.Features.Acquisition = "collector" }},
@@ -267,18 +268,11 @@ func TestTOSCABaseline(t *testing.T) {
 }
 
 func TestEmbeddedAzureParity(t *testing.T) {
-	files, err := baselineFiles()
+	files, err := deploymentFiles(Features{Deployment: "azure-container-apps"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	names, err := filepath.Glob("../../server/azure/*.bicep")
-	if err != nil {
-		t.Fatal(err)
-	}
-	names = append(names, "../../server/azure/main.json")
-	if len(files) != len(names) {
-		t.Fatal("embedded Azure file set drift; run go generate ./internal/topology")
-	}
+	names := []string{"../../server/azure/provisioning.bicep", "../../server/azure/ingestion.bicep", "../../server/azure/worker-roles.bicep"}
 	for _, name := range names {
 		canonical, err := os.ReadFile(name)
 		if err != nil {

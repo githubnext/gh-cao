@@ -24,7 +24,7 @@ const TARGET_KEYS = [
   "module", "name", "authentication", "listener", "require-https",
   "trust-platform-proxy", "supports-single-replica", "replicas",
 ];
-const TARGET_MODULES = ["generic", "container", "azure-functions"];
+const TARGET_MODULES = ["generic", "container"];
 const REDIS_KEYS = [
   "module", "url-env", "host-env", "port-env", "username-env", "password-env",
   "namespace-env", "session", "isolate-process-namespace",
@@ -677,7 +677,6 @@ function validateHost(host, path) {
         throw new PolicyError(`${operationalPath} memory requires single-process and allow-volatile acknowledgements`);
       }
       if (!targetSupportsSingleReplica || host.target.replicas !== 1 ||
-          host.target.module === "azure-functions" ||
           (host.target.module === "generic" && host.target.listener !== "process")) {
         throw new PolicyError(`${operationalPath} memory requires a single-process, single-replica process-listener target`);
       }

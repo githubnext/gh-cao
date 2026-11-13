@@ -6,9 +6,10 @@ dependencies; RULES.md records declared tradeoffs, not live acceptance.
 
 This profile uses one Azure Container Apps **Consumption** environment and a
 single Go `serve-hosted` replica behind managed HTTPS ingress. Dashboard assets,
-OAuth and PostgreSQL query execution share that origin. There are **no Azure
-Functions, Functions runtime Storage account, App Service/Premium plan, Redis,
-VMs or Application Insights**. Private PostgreSQL Flexible Server, ACR, a target
+OAuth and PostgreSQL query execution share that origin. The baseline has **no
+App Service plan, runtime Storage account, Redis, VMs or Application Insights**.
+Separately staged optional hosts may add VMs and session-lake storage.
+Private PostgreSQL Flexible Server, ACR, a target
 Key Vault and Log Analytics remain paid resources. Consumption with one minimum
 replica is not scale-to-zero or a claim that the deployment is free.
 
@@ -49,8 +50,8 @@ hosted trust policy. The platform terminates HTTPS; the private hop to port
 4. Run `sh scripts/validate.sh` and
    `sh scripts/what-if.sh SUBSCRIPTION_ID RESOURCE_GROUP`. Review the exact
    parameters and template. Use a separately approved deployment process with
-   `runtimeEnabled: false` (default). `gh cao deploy azure --apply` remains
-   Functions-only and does NOT accept this topology bundle.
+   `runtimeEnabled: false` (default). Generation does not apply the bundle or
+   migrate any existing Azure resource.
 5. Start ONLY the provisioningJobName output. Wait for that exact execution to
    succeed, including schema bootstrap and restricted role grants. Then start
    ingestionJobName and wait for its exact successful execution. ARM dependency
@@ -77,8 +78,10 @@ Managed HTTP ingress has a platform request timeout; verify revision-event
 stream reconnection through that boundary rather than claiming unlimited
 stream lifetime.
 
-Actions snapshots only: collector, private ingress, ADX, OTLP, session lake and
-gateway combinations fail closed. Optional MCP is documented in AGENT-MCP.md,
+Actions snapshots only: collector, private ingress, baseline ADX and OTLP
+combinations fail closed. Session lake and gateway hosts are separately staged
+only when explicitly selected; see OPTIONAL-FEATURES.md when present.
+Optional MCP is documented in AGENT-MCP.md,
 but neither its flag nor caller-repository authority is enabled by this profile.
 Setting runtimeEnabled false does not remove an existing app in an incremental
 ARM deployment. Stopping/removing it needs a separate reviewed operation.

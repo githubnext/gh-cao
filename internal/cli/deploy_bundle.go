@@ -23,7 +23,7 @@ func addDeployBundleCommands(command *cobra.Command) {
 		},
 	}
 	init.Flags().String("out", "requirements.yaml", "New YAML requirements file")
-	init.Flags().String("deployment", "azure-functions", "Example: single-vm, minimal-azure, azure-functions, azure-container-apps, or full-azure")
+	init.Flags().String("deployment", "azure-container-apps", "Example: single-vm, minimal-azure, azure-container-apps, or full-azure")
 	generate := &cobra.Command{
 		Use: "generate", Short: "Resolve requirements and write a new deployment folder", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -32,6 +32,7 @@ func addDeployBundleCommands(command *cobra.Command) {
 			if destination == "" {
 				return fmt.Errorf("deploy generate requires --out")
 			}
+
 			content, err := topology.ReadRequirements(source)
 			if err != nil {
 				return err
@@ -64,6 +65,26 @@ func addDeployBundleCommands(command *cobra.Command) {
 		},
 	}
 	command.AddCommand(init, generate, check)
+}
+
+func deployCommand() *cobra.Command {
+	command := &cobra.Command{
+		Use:   "deploy",
+		Short: "Generate and check review-only CAO deployment bundles",
+		Long: `Resolve deployment dependencies from generated TOSCA requirements.
+
+init, generate and check prepare offline, review-only deployment bundles from
+YAML feature choices and emit a TOSCA 1.3 deployment template. Templates,
+examples and runbooks are embedded in Go; generation requires Microsoft's
+official Bicep CLI on PATH. These commands never deploy resources or change
+GitHub Apps.`,
+		Args: cobra.NoArgs,
+		RunE: func(*cobra.Command, []string) error {
+			return fmt.Errorf("deploy requires init, generate, or check")
+		},
+	}
+	addDeployBundleCommands(command)
+	return command
 }
 
 func deployBundleReport(cmd *cobra.Command, verb, directory string, result topology.Topology) error {

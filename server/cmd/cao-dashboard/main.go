@@ -336,7 +336,6 @@ func newRootCommand() *cobra.Command {
 		newADXCommand(),
 		newAdmissionCommand(),
 		newAppKeyCheckCommand(),
-		newAzureFunctionsCommand(),
 		newServeCommand(),
 		newServePagesCommand(),
 		newServeHostedCommand(),

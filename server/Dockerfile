@@ -95,30 +95,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 ENTRYPOINT ["/app/cao-dashboard"]
 CMD ["serve-hosted", "--listen", "0.0.0.0:8080"]
 
-FROM alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8 AS azure-functions-runtime
-
-# hadolint ignore=DL3018
-RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates \
-    && addgroup -S -g 65532 cao \
-    && adduser -S -D -H -u 65532 -G cao cao \
-    && mkdir -p /app/site /app/.github/workflows \
-    && chown -R cao:cao /app
-
-COPY --from=server-build --chown=cao:cao /out/cao-dashboard /app/cao-dashboard
-COPY --from=dashboard-build --chown=cao:cao /workspace/dashboard/site/dist/ /app/site/
-COPY --from=dashboard-build --chown=cao:cao /workspace/dashboard/site/src/data/queries/database.json /app/queries/database.json
-COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/cao.json /app/.github/workflows/cao.json
-COPY --from=dashboard-build --chown=cao:cao /workspace/.github/workflows/cao.azure.json /app/.github/workflows/cao.azure.json
-
-ENV FUNCTIONS_CUSTOMHANDLER_HOST=0.0.0.0 \
-    FUNCTIONS_CUSTOMHANDLER_PORT=8080 \
-    CAO_DATABASE_QUERIES=/app/queries/database.json
-WORKDIR /app
-USER 65532:65532
-EXPOSE 8080
-ENTRYPOINT ["/app/cao-dashboard"]
-CMD ["azure-functions"]
+FROM dashboard-runtime AS azure-container-apps-runtime
 
 FROM dashboard-runtime AS azure-ingest-runtime
 

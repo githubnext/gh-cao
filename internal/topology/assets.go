@@ -11,39 +11,12 @@ import (
 //go:embed assets
 var assets embed.FS
 
-// AzureTemplate returns the embedded, compiled Functions baseline.
-func AzureTemplate() ([]byte, error) {
-	return assets.ReadFile("assets/azure-baseline.generated/main.json")
-}
-
-func baselineFiles() (map[string][]byte, error) {
-	const directory = "assets/azure-baseline.generated"
-	entries, err := assets.ReadDir(directory)
-	if err != nil {
-		return nil, err
-	}
-	files := map[string][]byte{}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			return nil, fmt.Errorf("unexpected directory in generated Azure baseline: %s", entry.Name())
-		}
-		content, err := assets.ReadFile(directory + "/" + entry.Name())
-		if err != nil {
-			return nil, err
-		}
-		files[entry.Name()] = content
-	}
-	return files, nil
-}
-
 func Example() ([]byte, error) {
-	return ExampleFor("azure-functions")
+	return ExampleFor("azure-container-apps")
 }
 
 func ExampleFor(deployment string) ([]byte, error) {
 	switch deployment {
-	case "azure-functions":
-		return assets.ReadFile("assets/example.yaml")
 	case "single-vm", "minimal-azure", "full-azure", "azure-container-apps":
 		return assets.ReadFile("assets/examples/" + deployment + ".yaml")
 	default:
@@ -68,14 +41,6 @@ func deploymentFiles(features Features) (map[string][]byte, error) {
 			files[name] = content
 		}
 		return files, nil
-	}
-	if features.Deployment == "azure-functions" {
-		baseline, err := baselineFiles()
-		if err != nil {
-			return nil, err
-		}
-		delete(baseline, "main.json")
-		return baseline, nil
 	}
 	files := map[string][]byte{}
 	for name, source := range map[string]string{

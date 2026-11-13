@@ -1,9 +1,8 @@
 # Topology solver
 
 This Go package resolves CAO deployment requirements offline and generates
-review-only Azure deployment bundles. It also supplies the dependency engine
-and embedded provider contract used by native Azure preflight, planning and
-guarded development apply.
+review-only Azure deployment bundles, including Container Apps and compact
+hosted Go deployments.
 
 The solver derives dependencies from generated **TOSCA Simple Profile 1.3**
 node-template requirement assignments and uses a deterministic standard-library
@@ -19,7 +18,7 @@ deployment boundaries.
 ## CLI usage
 
 ```sh
-gh cao deploy init --deployment azure-functions --out /private/operator/requirements.yaml
+gh cao deploy init --deployment azure-container-apps --out /private/operator/requirements.yaml
 # Edit the sample's identities, feature choices and Key Vault references.
 gh cao deploy generate --config /private/operator/requirements.yaml \
   --out /private/operator/azure-plan
@@ -45,11 +44,10 @@ Only the `azure` backend and requirements version `1` are implemented.
 | --- | --- | --- |
 | `single-vm` | Hosted Go and local PostgreSQL on one persistent VM | Public OAuth and Actions snapshots |
 | `minimal-azure` | Hosted Go VM and private Azure PostgreSQL | Public OAuth and Actions snapshots |
-| `azure-functions` | Functions baseline and private Azure PostgreSQL | Actions snapshots or collector; public or private ingress; optional ADX, OTLP, session data lake and webhook gateway |
-| `azure-container-apps` | Container Apps Consumption and private Azure PostgreSQL | Public OAuth and Actions snapshots; staged runtime activation |
+| `azure-container-apps` | Container Apps Consumption and private Azure PostgreSQL | Public OAuth and Actions snapshots; staged runtime activation; optional separately staged session lake and webhook gateway hosts |
 
-`full-azure` is an initialization sample selecting `azure-functions` with
-additional features, not another `features.deployment` value. Unsupported
+`full-azure` is an initialization sample selecting `azure-container-apps` with
+session lake and webhook gateway hosts, not another `features.deployment` value. Unsupported
 combinations fail rather than silently adding services or changing profiles.
 
 ## Resolution pipeline and code map
@@ -58,7 +56,7 @@ combinations fail rather than silently adding services or changing profiles.
    rejects unknown fields, invalid types, nulls, aliases, multiple YAML documents
    and input larger than 1 MiB.
 2. **Validate the provider contract** (`solve.go`, `compact.go`,
-   `container_apps.go`, `azure.go`): `Solve` checks feature compatibility,
+   `container_apps.go`): `Solve` checks feature compatibility,
    parameters, OAuth allowlists, explicit retention and Key Vault references
    against the selected embedded ARM parameter definitions.
 3. **Resolve dependencies** (`tosca.go`, `graph.go`): extract nodes and edges
@@ -81,7 +79,6 @@ The main package entry points are:
 | `Generate` | Generate a checked bundle; requires a non-nil `BicepValidator` |
 | `Check` | Re-resolve requirements and verify bundle contents, hashes and dependency order; reject drift, orphaned outputs and symlinks |
 | `CheckTopology` | Validate a topology projection against its selected feature contract |
-| `ResolveAzure`, `AzureTemplate` | Share dependency resolution and the embedded Functions ARM baseline with native deployment |
 
 Bundles include `requirements.yaml`, `parameters.json`, `topology.yaml`,
 `topology.json`, `manifest.json`, architecture diagrams, rule reports, Bicep
@@ -100,9 +97,9 @@ prerequisites remain explicitly unverified: dependency order does not prove
 vault access, network connectivity, successful provisioning, runtime activation,
 backups or compliance.
 
-YAML bundles are not apply plan files. Native `deploy azure` remains limited to
-public Functions with Actions snapshots and optional OTLP; other generated
-profiles do not widen its apply support or bypass its approval and drift gates.
+YAML bundles are review artifacts, not apply plan files. Use a separately
+approved Azure deployment process; generation never deploys or migrates existing
+resources.
 
 ## Maintenance and validation
 
@@ -113,14 +110,14 @@ go generate ./internal/topology
 go test ./internal/topology
 ```
 
-Regenerate assets after changing the authoritative Azure baseline under
+Regenerate assets after changing the shared job modules under
 `server/azure/` or the compact/Container Apps template contracts. The generator
-copies the baseline into `assets/azure-baseline.generated/` and compiles the
+copies the shared jobs into `assets/azure-baseline.generated/` and compiles the
 compact and Container Apps ARM parameter contracts. Do not hand-edit these
 generated snapshots; regeneration requires the official Bicep CLI on `PATH`.
 
 Tests cover engine constraints, dependency contracts, fail-closed requirements,
 architecture rules, deterministic bundles, drift/symlink rejection, embedded
-baseline parity and compiler behavior. `TestDeploymentSamples` compiles all five
+shared-job parity and compiler behavior. `TestDeploymentSamples` compiles all four
 shipped samples with the actual Bicep compiler; missing Bicep is a failure, not
 passing evidence.

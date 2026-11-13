@@ -36,7 +36,7 @@ type evidenceReleaseReport struct {
 	Package                evidenceRun        `json:"package"`
 	Promotion              evidencePromotion  `json:"promotion"`
 	Provenance             evidenceProvenance `json:"provenance"`
-	Deployment             evidenceDeployment `json:"deployment"`
+	Deployment             evidenceState      `json:"deployment"`
 	ImageSourceBinding     string             `json:"imageSourceBinding"`
 	DeployedImageDigest    evidenceState      `json:"deployedImageDigest"`
 	IndependentRetention   evidenceState      `json:"independentRetention"`
@@ -303,17 +303,7 @@ func collectReleaseEvidence(ctx context.Context, deps evidenceDeps, options evid
 	if options.Verify {
 		provenance = client.provenance(options, build.Reference)
 	}
-	deployment := evidenceDeployment{evidenceState: evidenceUnknown("receipt-not-selected")}
-	if options.AzureReceipt != "" {
-		content, err := evidenceReadReceipt(options.AzureReceipt)
-		if err != nil {
-			return evidenceReleaseReport{}, err
-		}
-		deployment, err = summarizeEvidenceAzure(content, options.Revision)
-		if err != nil {
-			return evidenceReleaseReport{}, err
-		}
-	}
+	deployment := evidenceState{Status: "unknown", Reason: "deployment-evidence-not-collected"}
 	if ctx.Err() != nil {
 		return evidenceReleaseReport{}, ctx.Err()
 	}

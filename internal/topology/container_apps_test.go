@@ -60,8 +60,8 @@ func TestContainerAppsValidation(t *testing.T) {
 		{"private", func(r *Requirements) { r.Features.Ingress = "private" }, "Actions snapshots only"},
 		{"adx", func(r *Requirements) { r.Features.Analytics = "adx" }, "Actions snapshots only"},
 		{"telemetry", func(r *Requirements) { r.Features.Telemetry = "otlp" }, "Actions snapshots only"},
-		{"lake", func(r *Requirements) { r.Features.SessionDataLake = true }, "Actions snapshots only"},
-		{"gateway", func(r *Requirements) { r.Features.WebhookGateway = true }, "Actions snapshots only"},
+		{"lake-without-secrets", func(r *Requirements) { r.Features.SessionDataLake = true }, "SEC-VAULT-001"},
+		{"gateway-without-secrets", func(r *Requirements) { r.Features.WebhookGateway = true }, "SEC-VAULT-001"},
 		{"vm-hosts", func(r *Requirements) { r.Azure.Hosts = &Hosts{} }, "azure.hosts"},
 		{"functions-parameter", func(r *Requirements) { r.Azure.Parameters["functionAppName"] = "unexpected" }, "unknown or secret Azure parameter"},
 	} {

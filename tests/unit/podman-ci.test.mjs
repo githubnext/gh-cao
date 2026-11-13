@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -12,9 +11,9 @@ const root = new URL("../../", import.meta.url);
 const execute = promisify(execFile);
 const workflow = parse(await readFile(new URL(".github/workflows/podman.yml", root), "utf8"));
 
-test("Podman CI runs real rootless boundaries and Azure services on pull requests", () => {
+test("Podman CI runs real rootless boundaries on pull requests without retired Azure services", () => {
   for (const event of ["pull_request", "push"]) {
-    for (const path of [".github/workflows/podman.yml", "server/**", "scripts/container-*.sh", "scripts/azure-local/**"]) {
+    for (const path of [".github/workflows/podman.yml", "server/**", "scripts/container-*.sh"]) {
       assert.ok(workflow.on[event].paths.includes(path), `${event} must cover ${path}`);
     }
   }
@@ -33,23 +32,13 @@ test("Podman CI runs real rootless boundaries and Azure services on pull request
   assert.match(commands, /container_runner\.go/);
   assert.match(commands, /podman-bin\/server\/hostedcli\.test/);
   assert.match(commands, /-test.run '\^TestPodmanRealBoundary\$' -test.count=1/);
-  const services = workflow.jobs["azure-services"];
-  assert.equal(services.needs, undefined, "real services must not contend with hosted-CLI workloads");
-  assert.equal(services.if, undefined);
-  assert.equal(services.env.CAO_CONTAINER_ENGINE, "podman");
-  assert.match(services.steps.map((step) => step.run ?? "").join("\n"), /azure-local\.sh run-services/);
-  assert.equal(services.steps.find((step) => step.id === "binaries").with.key,
-    job.steps.find((step) => step.id === "binaries").with.key);
-  const protocols = workflow.jobs["azure-protocols"];
-  assert.equal(protocols.needs, undefined, "protocol contracts must not wait for service startup");
-  assert.equal(protocols.if, undefined);
-  assert.match(protocols.steps.map((step) => step.run ?? "").join("\n"), /azure-local-protocols\.test\.mjs/);
-  assert.equal(protocols.steps.find((step) => step.id === "binaries").with.key,
-    job.steps.find((step) => step.id === "binaries").with.key);
+  assert.deepEqual(Object.keys(workflow.jobs), ["podman"]);
+  assert.match(commands, /node --test tests\/unit\/container-engine\.test\.mjs/);
+  assert.doesNotMatch(JSON.stringify(workflow), /azure-local|Core Tools|azure-services|azure-protocols/);
   assert.doesNotMatch(commands, /sudo (?:podman|go)|\|\| true/);
 });
 
-test("Podman CI reuses only exact-source executables and verified platform-specific Core Tools", async () => {
+test("Podman CI reuses only exact-source race-instrumented executables", () => {
   const steps = workflow.jobs.podman.steps;
   const go = steps.find((step) => step.uses?.startsWith("actions/setup-go@"));
   assert.equal(go.if, "steps.binaries.outputs.cache-hit != 'true'");
@@ -61,19 +50,14 @@ test("Podman CI reuses only exact-source executables and verified platform-speci
     assert.ok(binaries.with.key.includes(input), `binary cache must bind ${input}`);
   }
   assert.equal(binaries.with["restore-keys"], undefined, "stale-source executables must never be reused");
-  const build = await readFile(new URL("scripts/azure-local/prepare-test-binaries.sh", root), "utf8");
+  const build = steps.find((step) => step.name === "Build current-source executable on cache miss").run;
   assert.match(build, /test -race -c/);
-  const tools = workflow.jobs["azure-services"].steps.find((step) => step.with?.path === ".tmp/azure-local/tools");
-  assert.equal(tools.with.path, ".tmp/azure-local/tools");
-  assert.ok(tools.with.key.includes("runner.os"));
-  assert.ok(tools.with.key.includes("runner.arch"));
-  assert.ok(tools.with.key.includes("hashFiles('scripts/azure-local/azure-local.sh')"));
-  assert.equal(tools.with["restore-keys"], undefined, "do not restore tooling with stale checksum pins");
+  assert.match(build, /\.\/internal\/hostedcli/);
 });
 
 for (const failure of ["", "boundary", "contracts"]) {
   test(`Podman concurrent checks wait for every lane and preserve ${failure || "success"}`, async () => {
-    const directory = await mkdtemp(join(tmpdir(), "cao-podman-ci-"));
+    const directory = await mkdtemp(join(fileURLToPath(root), ".podman-ci-"));
     const trace = join(directory, "trace");
     try {
       for (const [command, lane] of [["podman", "boundary"], ["node", "contracts"]]) {
@@ -93,7 +77,7 @@ exit 99
 `, { mode: 0o700 });
       }
       await writeFile(join(directory, "systemd-run"), '#!/bin/bash\nprintf "boundary-run\\n" >> "$CHECK_TRACE"\n', { mode: 0o700 });
-      const script = workflow.jobs.podman.steps.find((step) => step.name === "Run independent rootless and harness checks concurrently").run;
+      const script = workflow.jobs.podman.steps.find((step) => step.name === "Run independent rootless and container checks concurrently").run;
       const result = await execute("/bin/bash", ["-e", "-c", script], {
         cwd: fileURLToPath(root),
         env: {

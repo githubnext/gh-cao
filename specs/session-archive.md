@@ -351,7 +351,7 @@ acceptance flag without actual evidence MUST NOT be presented as live Azure
 acceptance. Without that evidence, hosted querying remains unavailable.
 
 Setup privileges remain separate from runtime credentials. No runtime
-provisioning or credential changes are implied. Per-request Azure Functions,
+provisioning or credential changes are implied. Per-request hosts,
 ephemeral staging, standalone acquisition roles without an owning publisher,
 and multi-replica archives are unsupported.
 

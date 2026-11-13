@@ -207,62 +207,19 @@ exist on GHE.com; no public GHE.com scenario is claimed. The simulator does not
 issue or validate real PATs, approve Apps, or prove restricted Pages entitlement.
 See [setup combinations and live gaps](../docs/setup-compatibility.md).
 
-## Local Azure setup integration
+## Azure hosting validation
 
-Run `npm run test:integration:setup-azure` with Go 1.27.3 or newer on PATH, Git, GitHub CLI, the
-policy-pinned gh-aw prerequisite, and Docker installed. The Go Extension CI
-setup job runs this command alongside the GitHub-only setup suite on path-matched
-pushes to `main`, not pull requests. It uses the
-same digest-pinned official Azurite image as `scripts/azure-local/azure-local.sh`,
-with a disposable account, loopback-only dynamic port, and automatic cleanup.
-Prerequisites must already be local: run `go mod download`,
-`go -C server mod download`, and pull the exact Azurite image declared in
-`scripts/azure-local/azure-local.sh` before entering the simulation. CI does this
-in a separate prerequisite step. The simulation disables module downloads and
-implicit toolchain/image pulls; missing prerequisites fail instead of accessing a registry.
-Without Docker, set `CAO_SETUP_AZURITE_BINARY` to an installed official
-`azurite-blob` executable; its process and storage are also isolated and removed.
-Set `POSTGRES_URL` to a disposable numeric-loopback PostgreSQL instance. The
-successful deployment builds `cao-dashboard` from the exact simulated ACR
-context, runs real database provisioning and empty-evidence ingestion in an
-isolated schema, and starts `cao-dashboard azure-functions` when the Azure
-simulator restarts the Function App. The deployment's HTTPS health, readiness,
-signed-out API and OAuth checks pass through simulated Azure ingress to that
-real process, followed by a verified graceful SIGTERM shutdown. GitHub setup
-still uses the GitHub simulator; no live GitHub or Azure credentials are used.
+Azure uses the existing hosted Go server on Container Apps. Generate and check
+an offline review bundle with `gh cao deploy init --deployment
+azure-container-apps`, `deploy generate` and `deploy check`; operators execute
+reviewed templates separately. The former native Azure deployment command,
+receipt, Functions runtime, Core Tools local harness and Azure installation
+simulators are retired.
 
-The test builds the current native extension and runs real `gh cao setup`,
-then `gh cao deploy azure --preflight`, `--plan`, and `--apply`. Azure deployment
-is a separate command, not a `setup azure` subcommand. The existing GitHub
-simulator handles setup. A test-only `az` subprocess adapter supplies the
-stateful ARM, ACR, Container Apps jobs, Key Vault reference status, and HTTPS
-ingress behavior that Azurite does not emulate. Azurite receives actual signed
-blob writes and reads for synthetic build manifests and deployment state.
-Unknown commands and destinations fail closed; no Azure CLI installation,
-cloud login, real credentials, GitHub writes, or Azure subscription is used.
-The `az` adapter and an allowlist of local tools are the entire command PATH:
-there is no fallback to a real Azure CLI. Git network protocols are disabled.
-GitHub and Functions HTTPS names terminate at the loopback CONNECT proxy with
-an ephemeral CA; the proxy never forwards to those hosts. Azure command and
-storage clients use exact numeric-loopback transports, rejecting redirects,
-environment proxies, metadata-service addresses, and nonlocal destinations.
-The Azurite container uses a disposable internal-only Docker network and a local
-Unix Docker socket; remote Docker contexts and TCP/SSH daemons are refused.
-Docker does not publish ports on internal-only networks, so a host-loopback
-relay carries blob traffic through `docker exec` to the container's loopback
-listener without adding a network with external access or publishing a port.
-Regression probes verify live GitHub, ARM, Entra, and metadata destinations are
-rejected or handled only by local fixtures, and ambient GitHub/Azure/OIDC
-credentials are not inherited.
-
-Assertions cover read-only preflight/planning, plan-drift rejection before
-writes, locked per-target digest bindings, provisioning-before-ingestion,
-provisioning failure without verification or a receipt, delayed Key Vault
-readiness, six ingress/OAuth checks, secret-free persisted receipts, existing
-instance/repeated-apply rejection, and unchanged GitHub policy and consumer files.
-This is command/protocol coverage: image builds, job execution, PostgreSQL,
-managed identities, and hosted OAuth are simulated, not deployed or attested.
-The separate Azure-local harness exercises the real Functions host.
+Local Go/PostgreSQL and template tests do not establish live Azure,
+managed-identity, private-network or OAuth acceptance. Follow the generated
+runbook and retain independent tenant-specific deployment evidence. See the
+[Azure guide](../docs/deployment-azure.md).
 
 ## Configurable company ingestion stress
 
@@ -1284,11 +1241,11 @@ without disabling stderr logs.
 > [!IMPORTANT]
 > The default `serve` command remains local-only: it uses a local bearer
 > capability and intentionally rejects non-loopback listen addresses. Remote
-> Hosted use requires the explicit `serve-hosted` or Azure Functions profile, which
+> hosted use requires the explicit `serve-hosted` profile, which
 > replaces the local capability with GitHub OAuth, refresh-token-backed
 > server-side sessions, explicit GitHub organization/team authorization, and an
-> Azure trusted-proxy policy. PATs are not supported. The Azure Functions
-> profile is experimental: deploy it only after security review, staging
+> trusted-proxy policy. PATs are not supported. The Azure Container Apps
+> templates are experimental: deploy only after security review, staging
 > validation, and rollback planning for your Azure tenant.
 
 ## Local Actions and OIDC simulator
@@ -1707,7 +1664,6 @@ flowchart LR
 | Redis operations | `internal/redisx/` | Supports caches, queues, and sessions. |
 | HTTP(S)/API server | `internal/server/` | Enforces loopback binding, optionally terminates operator-configured TLS, serves static dashboard assets, handles API requests, and publishes revision events. |
 | Externally hosted service | `hosting/` | Exposes a listener-independent application lifecycle and the complete hosted HTTP handler to other Go HTTP hosts. |
-| Azure Functions profile | `internal/server/azure.go` | Builds the same HTTP handler without starting a listener, validates Azure app settings, requires `rediss://` Redis, and trusts forwarded host/protocol headers only for configured Azure hosts. |
 | GitHub OAuth sessions | `internal/server/oauth.go` | Implements the GitHub OAuth authorization-code flow, active organization/team authorization, refresh-token rotation, server-side encrypted sessions in Redis, logout revocation, and CSRF protection for mutating requests. |
 | Shared API model | `internal/model/` | Defines logical sources, diagnostics, and query metrics. |
 | Telemetry | `internal/telemetry/` | Configures OpenTelemetry trace, metric, and opt-in log providers, exposes the server's tracer, and writes W3C trace/span id response headers. |
@@ -1794,7 +1750,7 @@ The configured `--site` directory must contain a readable, non-empty built
 `index.html`; hosted startup rejects an API-only or unbuilt deployment. The
 container supplies its bundled UI at `/app/site`. Source-built deployments
 must build `dashboard/site/` first and pass that build directory when using a
-different location. This requirement also applies to Azure Functions and the
+different location. This requirement also applies to containers and the
 `server/hosting` external-listener facade.
 
 The Go handler injects `dashboard-data-backend=server-http`,
@@ -2052,7 +2008,7 @@ manager used by the `execute-cli` deployment, then securely remove the local
 copy. At runtime, expose the secret only to the executor, preferably as a
 secret-manager-mounted file configured with `CAO_HOSTED_CLI_PRIVATE_KEY_FILE`.
 Never put the key in checked-in configuration, command arguments, logs, or the
-`serve-hosted` process. The Azure Function App deployment does not host
+`serve-hosted` process. The Container Apps dashboard deployment does not host
 `execute-cli`; do not add this key to its settings.
 
 | Variable | Purpose |
@@ -2497,10 +2453,7 @@ command; merging source does not update an already installed extension.
 Use the existing package workflow run ID and immutable published image digest,
 not a tag. Optional `--promotion-run RUN_ID` collects references from the existing
 prerelease-to-latest workflow; its workflow SHA is **not** the product source
-SHA. Optional `--azure-receipt /secure/evidence/deploy-azure-receipt.json` consumes
-the existing `cao deploy azure` receipt, requiring its source revision to match
-the selected revision. It preserves development-only assurance, dirty-worktree
-state, context/plan hashes, per-target digests and reported verification outcomes.
+SHA.
 Private registry references are hashed; cloud resource identifiers, raw responses,
 actor names, comments, job/step names, secrets and credential-bearing URLs are
 not copied. No Azure API or deployment is invoked.
@@ -2578,7 +2531,7 @@ Use `rediss://` whenever the Redis provider offers TLS. A
 deployment-managed Redis service may use plaintext only on the private service
 network when `control-plane.web.host.redis.allow-private-plaintext` is `true`
 and the endpoint uses a private service hostname or IP. This policy does not
-affect Azure: Azure Functions continues to require `rediss://`.
+relax the requirement for verified TLS on remote Redis connections.
 
 Deployment promotion and rollback belong to the application host. Review
 source changes, isolate source builders, and verify readiness before promotion.
@@ -2790,75 +2743,25 @@ invalid, expired, and unauthenticated requests cannot bypass Redis enforcement.
 
 ### Hosted Azure architecture
 
-> [!WARNING]
-> The hosted Azure architecture is an experimental production-readiness profile,
-> not a turnkey production certification. Treat the Bicep, OAuth policy, Redis
-> topology, and Key Vault access model as a reviewed baseline that must be
-> validated against your organization's Azure, GitHub, compliance, monitoring,
-> incident-response, and data-retention requirements before live use.
+The Container Apps review bundle uses one hosted Go replica with managed HTTPS
+ingress, private PostgreSQL canonical and operational storage, scoped Key Vault
+references, managed-identity ACR pulls, separate provisioning/ingestion jobs and
+Log Analytics. The base profile uses Actions snapshots and public OAuth ingress;
+it does not provision Redis or Application Insights or support collector
+acquisition, OTLP or base ADX analytics.
 
-The Azure Functions profile keeps the dashboard browser isolated from Postgres,
-Redis, GitHub tokens, refresh tokens, database credentials, and Key Vault secret values.
-The Function App is the only public application boundary and the only component
-that talks to GitHub APIs, Key Vault references, Postgres, and Azure Managed Redis.
+Built dashboard assets, OAuth, query APIs and revision events stay on one origin.
+GitHub remains the identity/membership provider; tokens and database credentials
+never reach the browser. Configure independently verified private proxy peers.
+Separate schema-owner and runtime credentials; infrastructure access grants no
+CAO enrollment, dispatch or live authority.
 
-```mermaid
-flowchart LR
-  Browser["Authorized user's browser"]
-  Edge["Azure HTTPS edge / App Service front end<br/>sets forwarded host + proto"]
-  Function["Function App<br/>Go dashboard HTTP handler<br/>GitHub OAuth sessions + CSRF"]
-  GitHubOAuth["GitHub OAuth + API<br/>login, refresh, org/team membership"]
-  KeyVault["Azure Key Vault<br/>OAuth secret, session secret, Redis URL"]
-  Postgres["Postgres<br/>current dashboard entities"]
-  Redis["Azure Managed Redis<br/>TLS<br/>operational state"]
-  Storage["Functions storage account<br/>runtime state only"]
-  Insights["Application Insights<br/>non-secret operational telemetry"]
-  OTel["Operator-managed OTel collector<br/>TLS + authentication"]
-  Operators["Control-plane operators<br/>deploy Bicep + rotate secrets"]
-
-  Browser -->|"HTTPS static assets + API + best-effort SSE"| Edge
-  Edge -->|"trusted forwarded host/proto only when allow-listed"| Function
-  Function -->|"OAuth code, refresh, membership checks"| GitHubOAuth
-  Function -->|"Key Vault references resolved by managed identity"| KeyVault
-  Function -->|"rediss:// operational commands"| Redis
-  Function -->|"entity source reads/writes"| Postgres
-  Function -->|"runtime binding state"| Storage
-  Function -->|"opt-in OTLP/HTTP, bounded metadata only"| OTel
-  OTel -->|"Azure Monitor exporter"| Insights
-  Operators -->|"reviewed Bicep + secret rotation"| KeyVault
-  Operators -->|"deploy package + app settings"| Function
-
-  classDef boundary fill:#eef6ff,stroke:#0969da,stroke-width:2px;
-  class Function,KeyVault,Postgres,Redis boundary;
-```
-
-Primary actors and responsibilities:
-
-- **Dashboard user**: authenticates through GitHub OAuth, must satisfy the
-  configured organization/team authorization policy, and receives only
-  same-origin dashboard HTML/API responses.
-- **Azure platform**: terminates HTTPS, invokes the custom Functions handler,
-  resolves Key Vault references through managed identity, and may cold-start,
-  scale in, or terminate long-lived SSE requests.
-- **GitHub OAuth/API**: issues expiring access/refresh tokens and confirms
-  organization/team membership; GitHub tokens never leave the server.
-- **Postgres**: stores the current dashboard entity sources and diagnostics;
-  replacement is transactional, without generations or snapshots.
-- **Redis**: stores operational queues, caches, and sessions, not
-  dashboard entities.
-- **Control-plane operator**: reviews Bicep/app settings, keeps Key Vault
-  mandatory, rotates credentials, and validates compliance evidence.
-
-Trust boundaries:
-
-- Browser ↔ Function App: authenticated same-origin HTTPS with `Secure`,
-  `HttpOnly`, `SameSite=Lax` session cookies and CSRF headers for mutation.
-- Function App ↔ GitHub: server-side OAuth/token refresh/membership calls; no
-  PATs and no GitHub tokens forwarded to the browser.
-- Function App ↔ Key Vault: managed identity and RBAC only; no secret values in
-  Bicep outputs, logs, checked-in parameters, or browser-readable state.
-- Function App ↔ Redis: TLS-only `rediss://` and a deployment
-  namespace for disposable derived data.
+Web activation is default-off until independently verified database provisioning
+and explicit snapshot/empty ingestion succeed. ARM dependencies do not execute
+or verify jobs. Templates and offline checks are not deployed acceptance or
+production image assurance. Optional lake/gateway infrastructure remains
+separately selected and staged. See the
+[Azure guide](../docs/deployment-azure.md) for operator-run deployment and gates.
 
 ## Data ingestion
 
@@ -2906,7 +2809,7 @@ alternatives, not layers, because a canonical database has one writer.
 | Server configuration | `CAO_SOURCE_DIRECTORY` | `CAO_COLLECT_APP_ID` and the other `CAO_COLLECT_*` settings |
 | GitHub credentials | held by the explicit acquisition process | a GitHub App held by the deployment |
 | Event source | explicit snapshot acquisition | webhook deliveries |
-| Deployment | Function App only | Function App plus Container Apps workers |
+| Deployment | Hosted Go server; supported Container Apps review bundle | Separately configured hosted Go server and collection workers; not supported by the base Container Apps review bundle |
 
 The default profile is unchanged: with only `CAO_SOURCE_DIRECTORY` configured
 the server behaves exactly as before and performs no GitHub collection.
@@ -3661,13 +3564,11 @@ There is no Azure-specific exporter linked into the binary. To ship telemetry to
 Application Insights, point `OTEL_EXPORTER_OTLP_ENDPOINT` at an OpenTelemetry
 Collector configured with the `azuremonitorexporter`; supply that collector's
 Application Insights connection string from its secret manager. The
-`APPLICATIONINSIGHTS_CONNECTION_STRING` on the Function App does not activate
-Go exports or configure an external collector. The Azure template supports an
-explicit `otlpEndpoint`, `otlpLogsEnabled`, and secure `otlpHeaders` overlay for
-the Function App and optional collection/backfill roles. See the
-[Azure telemetry route and deployment receipts](../docs/deployment-azure.md#explicit-go-telemetry-route).
-The Function App itself never imports an Azure Monitor SDK, and telemetry
-delivery is not a request-readiness dependency.
+`APPLICATIONINSIGHTS_CONNECTION_STRING` alone does not activate Go exports or
+configure an external collector. The base Container Apps review bundle supports
+Log Analytics container logs, not OTLP or Application Insights; generic
+operator-managed telemetry is a separate deployment choice, not a feature
+enabled by that bundle. Telemetry delivery is not a request-readiness dependency.
 
 ## Security boundaries
 
@@ -3704,115 +3605,24 @@ The local capability profile is not suitable for remote or multi-user
 deployment. The capability authorizes its holder to read the full active
 dashboard data; it provides no user identity or per-source authorization.
 
-The Azure Functions profile is the experimental remote profile. Run
-`cao-dashboard azure-functions` to start its custom HTTP handler using
-`FUNCTIONS_CUSTOMHANDLER_PORT` and the existing Azure environment settings.
-It calls `NewAzureFunctionsHandlerFromEnv` in the shared server package;
-`serve` does not enable this profile. Azure
-mode fails closed unless all of the following are configured:
+Remote hosting uses the explicit `serve-hosted` profile, not the local
+capability profile. Azure Container Apps uses that same hosted process.
+Keep GitHub OAuth allowlists, same-origin cookies/CSRF, private PostgreSQL,
+verified proxy peers and secret-manager references intact. The browser sign-in
+App is not rollout or collection authority.
 
-- a readable `cao.json` with the `azure-functions` target and a Redis provider;
-- the policy-selected Redis URL environment variable with a `rediss://` URL;
-- the policy-selected Redis namespace environment variable;
-- `CAO_AZURE_ALLOWED_HOSTS` and HTTPS forwarded-protocol enforcement;
-- GitHub OAuth App or GitHub App client ID/secret and redirect URL;
-- at least 32 characters of `CAO_SESSION_SECRET`;
-- at least one explicit `CAO_GITHUB_ALLOWED_ORGS` or
-  `CAO_GITHUB_ALLOWED_TEAMS` value.
+Platform restarts, ingress timeouts and proxies can interrupt revision streams;
+verify reconnection and use `/api/v1/refresh` for revision checks. Do not assume
+ephemeral files provide durable archive staging. Preserve current/previous
+session keys until every active session and retained credential-cleanup debt
+has drained or has provider-confirmed expiry; local session TTL and deployment
+completion do not prove upstream revocation. See
+[OAuth cleanup and rotation](SECURITY.md#github-oauth-and-authorization).
 
-For Linux-only local integration testing, the repository-owned harness starts
-Azure Functions Core Tools, Azurite, and Redis and drives the Functions HTTP
-surface without Azure credentials:
-
-```bash
-./scripts/azure-local/azure-local.sh run
-```
-
-See [`scripts/azure-local/README.md`](../scripts/azure-local/README.md) for
-prerequisites, individual lifecycle commands, logs, process isolation, and the
-local-vs-cloud test boundary. The harness sets the explicit
-`CAO_AZURE_LOCAL_SIMULATION=1` seam, which permits only loopback plaintext Redis
-and local HTTP. Without that setting, Azure mode continues to require
-`rediss://` Redis and HTTPS exactly as production does.
-
-Azure mode does not accept the local bearer capability and does not support
-PATs. Login alone does not grant access: after exchanging the OAuth code, the
-server verifies active organization or team membership. OAuth App clients
-request `read:org read:user` for membership and disclosed 2FA-enabled evidence;
-GitHub App clients (`Iv...`) request `offline_access` for
-expiring user tokens and server-side refresh even if the App's global
-expiration setting is disabled. For a GitHub App, configure organization
-**Members: read** on the registration; scopes do not grant App permissions.
-Install the App in each organization whose membership authorizes dashboard access.
-This scope requires GitHub.com or GHES 3.23 or later. The browser sign-in App
-need not be the collection or workflow App, and its credentials do not grant
-campaign authority. Access and refresh tokens remain server-side,
-encrypted before storage in Redis, and are never written to browser-readable
-storage, URLs, API payloads, or Bicep outputs. Session cookies are `Secure`,
-`HttpOnly`, and `SameSite=Lax`; mutating API requests must include the
-session-bound CSRF token.
-
-`GET /api/v1/events` is available through Azure Functions only while the
-platform keeps the invocation alive. Clients must treat SSE as best-effort and
-fall back to `/api/v1/refresh` because Functions instances may cold-start,
-scale in, or terminate long-running requests. Cold starts rebuild the Go app
-from app settings and check Redis before serving requests.
-Request cancellation propagates through `request.Context()` to Redis queries.
-
-The Bicep deployment in `server/azure/main.bicep` provisions a Function App,
-Key Vault, Application Insights, storage, and module-free Azure Managed Redis.
-Every secret-bearing app setting—including Functions runtime storage—uses a
-versionless Key Vault reference so ordinary credential rotation
-does not require rewriting application configuration. Session-key rotation uses
-the optional secure `previousSessionSecret` deployment parameter: deploy the old
-key as previous and the new key as current, wait for active sessions and queued
-revocations (including expired-session cleanup) to drain, then remove the
-previous key. Unknown-expiry GitHub tokens have no local time-based drain
-deadline: retain their key until successful revocation or independently
-confirmed provider expiry. New session records preserve cleanup ownership
-after session authority expires, so outstanding debt consumes protected
-capacity and can backpressure sign-in. Stop old replicas before rolling out
-the new Redis session-envelope format, preserve the stable revocation prefix,
-and reconcile pre-upgrade sessions/abandoned grants separately. Do not treat
-deployment or the local session TTL as provider revocation. See
-[OAuth cleanup and rotation](SECURITY.md#github-oauth-and-authorization) for
-outage ownership and restart limitations. Encrypted records carry a
-key identifier, and the server can read both keys during that window. The
-template outputs only non-secret host names, redirect URI, Redis database name,
-and Key Vault URI. Redis access keys
-are an unavoidable path for Azure Managed Redis client authentication today;
-store the `rediss://` URL in Key Vault, rotate the Redis key in Azure, publish a
-new Key Vault secret version, and allow the platform to refresh the reference.
-
-### Azure secure-computing baseline
-
-Treat the Bicep file as the minimum secure baseline for remote dashboard
-hosting:
-
-- Do not use PATs. Azure mode supports only the GitHub OAuth
-  authorization-code flow and configured organization/team authorization.
-- Keep Key Vault mandatory for every secret-bearing value, including the GitHub
-  OAuth client secret, `CAO_SESSION_SECRET`, and `CAO_REDIS_URL`. Do not replace
-  Key Vault references with literal app settings, deployment outputs, or
-  checked-in parameter files.
-- Use the Function App's system-assigned managed identity with Key Vault RBAC
-  to read secrets. Do not copy Key Vault secret values into logs, telemetry,
-  tickets, dashboard documents, or browser-readable configuration.
-- Keep HTTPS-only Functions, TLS-only Redis, disabled FTPS, disabled Redis
-  public network access, storage HTTPS enforcement, Key Vault soft delete, and
-  non-secret Bicep outputs enabled for compliance review.
-- Treat the Postgres entity store as rebuildable from authoritative inputs. Compliance evidence
-  comes from the checked-in Bicep, GitHub OAuth authorization policy, Key Vault
-  access controls, Azure activity logs, Application Insights without secrets,
-  and the CAO source artifacts that feed Redis.
-- Rotate OAuth, session, storage, and Redis credentials through Key Vault and
-  Azure platform controls; then restart the Function App so current secret
-  versions are resolved.
-
-Do not remove the experimental designation until the hosted profile has passed
-a deployment-specific security review, compliance review, load/cost validation,
-incident-response exercise, backup/rollback exercise, and Azure network-access
-review for the target tenant.
+The Container Apps templates and offline review bundle do not establish
+production acceptance. Independently validate the target tenant's network,
+OAuth, image assurance, secrets, backup/rollback, cost, incident response and
+logging controls before live use.
 
 See [`SECURITY.md`](SECURITY.md) for the complete protection model, operational
 guidance, limitations, and private vulnerability-reporting process.
@@ -3829,7 +3639,7 @@ npm run dashboard:server:setup:macos
 
 Installs Go, Node.js 24, npm packages and Docker/Compose/Colima.
 `CAO_CONTAINER_ENGINE=podman` selects Podman/Compose (no Colima); default Docker
-never falls back. See [setup](../scripts/azure-local/README.md#local-service-engine-setup).
+never falls back. See [`POSTGRES.md`](POSTGRES.md) for local database setup.
 PostgreSQL is required for local development; Redis remains optional.
 
 From the repository root, with CAO_POSTGRES_URL configured and storage provisioned:

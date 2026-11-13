@@ -152,8 +152,10 @@ func TestOperationalSelectionRejectsAmbiguityAndUnsafeTopology(t *testing.T) {
 		"missing volatile acknowledgement": func(p *hostPolicy) { p.Operational.AllowVolatile = false },
 		"missing replica confirmation":     func(p *hostPolicy) { p.Target.Replicas = 0 },
 		"multiple replicas":                func(p *hostPolicy) { p.Target.Replicas = 2 },
-		"platform scaling":                 func(p *hostPolicy) { p.Target.Module = "azure-functions" },
-		"unknown backend":                  func(p *hostPolicy) { p.Operational.Backend = "sqlite" },
+		"platform scaling": func(p *hostPolicy) {
+			p.Target = targetPolicy{Module: "generic", Authentication: HostAuthenticationOAuth, Listener: HostListenerPlatform}
+		},
+		"unknown backend": func(p *hostPolicy) { p.Operational.Backend = "sqlite" },
 	} {
 		t.Run(name, func(t *testing.T) {
 			policy := memoryHostPolicy()

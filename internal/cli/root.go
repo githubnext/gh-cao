@@ -65,7 +65,7 @@ Help, version, and catalog discovery work offline.`,
 	root.AddCommand(admissionCommands(gh))
 	root.AddCommand(repositoryCommands(gh))
 	addOperatorCommands(root, runtime, gh)
-	root.AddCommand(deployCommand(defaultDeployAzureDeps()))
+	root.AddCommand(deployCommand())
 	root.AddCommand(evidenceCommand(defaultEvidenceDeps(version)))
 	root.AddCommand(dashboardCommand(version, boundedDashboardGH, embeddedDashboardLogs))
 	root.AddCommand(dashboardActionCommand())
