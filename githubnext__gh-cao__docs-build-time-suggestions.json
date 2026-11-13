@@ -1,33 +1,7 @@
 {
- "source_sha": "b999dc47a316473a0816bc91a696e3bfcfb06fc2",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "e71feab47cfa2954c794cc5739333a8c31153a7f",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T20:33:27Z",
-   "worker_run_id": "43300636649",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761,
-    43129836945
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T00:47:12Z to 2026-11-12T20:09:54Z; within 14 days; 0 in progress; HEAD e465d28c). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs); 1 FAILED push 43297524311 on HEAD e465d28 (build failed at Build documentation after 14 s, deploy skipped; job logs HTTP 403 difc_forbidden, annotation only exit code 1; cause unverified; Pages not refreshed for e465d28; flag to maintainers, re-check at next HEAD). Comparable n=18 successes (17 push, 1 schedule 43161224542; identical 11-step build and 3-step deploy shape; 5-run gate met). Medians (p90), job and step metadata only: Configure Pages 0.5 s (1); Upload Pages artifact 2 s (3); Deploy Pages step 7 s (14); build-complete to deploy-start handoff 6 s (7); deploy queue 5 s (6); artifact 7.7-8.3 MB. Execution build-start-to-deploy-end 85 s (p90 123); wall 89 s (p90 157, checkout outliers); 15 percent gate 12.75 s. Controllable ceiling: packaging at most 2.5 s; merging deploy into build removes about 7 s handoff and setup but drops the environment-gated deploy job (deployment safety), so total at most about 10 s, below gate. Deploy Pages is GitHub-managed polling. No suggestion; no issue created. Carry-forward (other category, not evaluated): Checkout fetch-depth 0 median 24 s (p90 47), 28 percent of median execution; load-bearing for per-file git log provenance; partial clone unmeasured. next_category advanced to scheduling, concurrency, and avoidable rebuilds."
-  },
   {
    "evaluated_at": "2026-11-12T20:55:33Z",
    "worker_run_id": "43304199631",
@@ -842,6 +816,35 @@
     43242792853
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43378597209 back to 43242792853; created 2026-11-12T14:58:38Z to 2026-11-13T06:25:25Z; all within 14 days; no in-progress runs; source HEAD b999dc4 = new source_sha, 2 commits ahead of f0bb5f4; compare API shows docs.yml unchanged in that range, 6 docs-trigger paths changed). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba; logs not read). No cancelled run in window. Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). No separate dashboard job; dashboard generation = step Build synthetic enterprise demo inside build. Step median 4 s (p90 5 s; range 2-5 s) = 4.7% of median build-start-to-deploy-end 85 s (p90 98 s); 15% gate 12.75 s; full removal saves at most about 4 s; 60 s unreachable. A separate job would need its own checkout (median 24 s) and an artifact handoff, net negative; caching or reuse would cost a restore of similar size and would weaken daily synthetic-date freshness (carried from prior evaluations; scripts not re-inspected because scope is docs.yml and its runs). Queue created-to-build-start median 3 s (p90 4 s); build-complete to deploy-created median 0 s (p90 1 s); deploy queue 5 s. Wall median 89 s (p90 135 s, concurrency tail). No suggestion; no issue created; no open issue with this worker label checked this run. next_category advanced to artifact transfer and Pages packaging."
+  },
+  {
+   "evaluated_at": "2026-11-13T06:55:00Z",
+   "worker_run_id": 43381404709,
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311,
+    43249903823
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38:00Z to 2026-11-13T06:42:40Z; all within 14 days; source e71feab = HEAD = new source_sha). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped; cause not read, job logs 403). Outside window: non-completed record 37642403569 (queued since 2026-10-07; not a sample). Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Medians (p90) from job and step metadata: Upload Pages artifact 2 s (3); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages step 7 s (8; GitHub-managed polling); artifact chain 15 s (16) = 17.6% of median build-start-to-deploy-end 85 s (p90 98). Controllable transfer overhead excluding Deploy Pages: 8 s (p90 9) = 9.4% of median; even eliminating all of it stays below the 12.75 s gate. Merging deploy into build saves about 6 s (queue plus setup) and would expose id-token: write (deploy job only) to the job running npm ci and Astro builds; rejected. github-pages artifact 8.26-8.38 MB, stable; upload-size lever at most about 1-2 s. Open issues: none with this worker label (label search empty); 20440, 20719, 20720 are gh-aw failure reports, not evaluated here. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -856,10 +859,35 @@
   "logs": "HTTP 403 difc_forbidden in earlier evaluations (not probed this run); hit inferred from Post Set up Node.js 0 s in 19/19 successes (cache post-step saves only on miss)"
  },
  "run_samples": {
-  "window_created": "2026-11-12T14:58:38Z..2026-11-13T06:25:25Z",
-  "evaluated_at": "2026-11-13T06:41:58Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed); queue_s=build job created to started; concwait_s=run created to build job created; exec_s=build start to deploy end; wall_s=run created to deploy end. Job and step timings refetched this run from the jobs API (no ETag header returned, conditional requests not applicable).",
+  "window_created": "2026-11-12T15:38:00Z..2026-11-13T06:42:40Z",
+  "evaluated_at": "2026-11-13T06:55:00Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed). queue_s=build job created to started; concwait_s=run created to build job created; exec_s=build start to deploy end; wall_s=run created to deploy end; handoff_s=build end to deploy created; dqueue_s=deploy created to started; dsetup_s=deploy job Set up job. Job and step timings from the jobs API this run; artifact_bytes from the artifacts API (github-pages).",
   "rows": [
+   {
+    "run": 43380585034,
+    "event": "push",
+    "head": "e71feab",
+    "conc": "succ",
+    "concwait_s": 0,
+    "queue_s": 3,
+    "exec_s": 114,
+    "wall_s": 117,
+    "handoff_s": 1,
+    "dqueue_s": 4,
+    "dsetup_s": 0,
+    "artifact_bytes": 8275299,
+    "steps": {
+     "checkout": 56,
+     "node": 3,
+     "install": 16,
+     "docs": 15,
+     "demo": 4,
+     "pages_cfg": 0,
+     "upload": 3,
+     "post_node": 0,
+     "deploy_pages": 6
+    }
+   },
    {
     "run": 43378597209,
     "event": "push",
@@ -869,6 +897,10 @@
     "queue_s": 3,
     "exec_s": 91,
     "wall_s": 95,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8276366,
     "steps": {
      "checkout": 27,
      "node": 7,
@@ -890,6 +922,10 @@
     "queue_s": 2,
     "exec_s": 75,
     "wall_s": 78,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8272485,
     "steps": {
      "checkout": 20,
      "node": 5,
@@ -911,6 +947,10 @@
     "queue_s": 2,
     "exec_s": 81,
     "wall_s": 84,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8270262,
     "steps": {
      "checkout": 24,
      "node": 2,
@@ -932,6 +972,10 @@
     "queue_s": 3,
     "exec_s": 95,
     "wall_s": 98,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8264630,
     "steps": {
      "checkout": 24,
      "node": 7,
@@ -953,6 +997,10 @@
     "queue_s": 2,
     "exec_s": 86,
     "wall_s": 89,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8266577,
     "steps": {
      "checkout": 29,
      "node": 3,
@@ -974,6 +1022,10 @@
     "queue_s": 2,
     "exec_s": 89,
     "wall_s": 135,
+    "handoff_s": 1,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8268177,
     "steps": {
      "checkout": 23,
      "node": 3,
@@ -995,6 +1047,10 @@
     "queue_s": 3,
     "exec_s": 69,
     "wall_s": 73,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8375128,
     "steps": {
      "checkout": 21,
      "node": 3,
@@ -1016,6 +1072,10 @@
     "queue_s": 2,
     "exec_s": 85,
     "wall_s": 119,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 0,
+    "artifact_bytes": 8370582,
     "steps": {
      "checkout": 24,
      "node": 2,
@@ -1037,6 +1097,10 @@
     "queue_s": 3,
     "exec_s": 98,
     "wall_s": 101,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8370986,
     "steps": {
      "checkout": 26,
      "node": 6,
@@ -1058,6 +1122,10 @@
     "queue_s": 3,
     "exec_s": 106,
     "wall_s": 110,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8368240,
     "steps": {
      "checkout": 41,
      "node": 5,
@@ -1079,6 +1147,10 @@
     "queue_s": 3,
     "exec_s": 79,
     "wall_s": 83,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8314790,
     "steps": {
      "checkout": 25,
      "node": 3,
@@ -1100,6 +1172,10 @@
     "queue_s": 3,
     "exec_s": 82,
     "wall_s": 86,
+    "handoff_s": 1,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8307655,
     "steps": {
      "checkout": 24,
      "node": 5,
@@ -1121,6 +1197,10 @@
     "queue_s": 3,
     "exec_s": 97,
     "wall_s": 101,
+    "handoff_s": 1,
+    "dqueue_s": 4,
+    "dsetup_s": 0,
+    "artifact_bytes": 8306989,
     "steps": {
      "checkout": 31,
      "node": 8,
@@ -1142,6 +1222,10 @@
     "queue_s": 2,
     "exec_s": 92,
     "wall_s": 175,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 0,
+    "artifact_bytes": 8306257,
     "steps": {
      "checkout": 25,
      "node": 5,
@@ -1163,6 +1247,10 @@
     "queue_s": 4,
     "exec_s": 83,
     "wall_s": 88,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8297062,
     "steps": {
      "checkout": 24,
      "node": 7,
@@ -1184,6 +1272,10 @@
     "queue_s": 3,
     "exec_s": 85,
     "wall_s": 88,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8288554,
     "steps": {
      "checkout": 24,
      "node": 3,
@@ -1205,6 +1297,10 @@
     "queue_s": 2,
     "exec_s": 82,
     "wall_s": 85,
+    "handoff_s": 0,
+    "dqueue_s": 5,
+    "dsetup_s": 1,
+    "artifact_bytes": 8363942,
     "steps": {
      "checkout": 24,
      "node": 3,
@@ -1221,7 +1317,7 @@
     "run": 43297524311,
     "head": "e465d28",
     "conc": "failure",
-    "note": "disclosed, excluded from medians"
+    "note": "disclosed, excluded from medians (Build documentation failed at 14 s; deploy skipped)"
    },
    {
     "run": 43249903823,
@@ -1232,6 +1328,10 @@
     "queue_s": 3,
     "exec_s": 83,
     "wall_s": 87,
+    "handoff_s": 0,
+    "dqueue_s": 6,
+    "dsetup_s": 1,
+    "artifact_bytes": 8337678,
     "steps": {
      "checkout": 24,
      "node": 7,
@@ -1242,27 +1342,6 @@
      "upload": 2,
      "post_node": 0,
      "deploy_pages": 8
-    }
-   },
-   {
-    "run": 43242792853,
-    "event": "push",
-    "head": "11644f9",
-    "conc": "succ",
-    "concwait_s": 1,
-    "queue_s": 4,
-    "exec_s": 85,
-    "wall_s": 90,
-    "steps": {
-     "checkout": 24,
-     "node": 2,
-     "install": 16,
-     "docs": 14,
-     "demo": 5,
-     "pages_cfg": 0,
-     "upload": 2,
-     "post_node": 0,
-     "deploy_pages": 9
     }
    }
   ]
@@ -1297,6 +1376,16 @@
    "observed_at": "2026-11-13T06:41:58Z",
    "source": "gh api jobs endpoint",
    "note": "GET actions/runs/{id}/jobs returned no ETag header, so If-None-Match revalidation is not available for this data; fetch per run instead. Caches listing (actions/caches) is a cheap single call for hit/recency evidence."
+  },
+  {
+   "observed_at": "2026-11-13T06:55:00Z",
+   "source": "docs.yml deploy job separation (artifact chain)",
+   "note": "Merging build and deploy saves about 6 s (deploy queue 5 s plus setup 1 s) and would give id-token: write to the job that runs npm ci and the Astro build. Rejected on least-privilege grounds; re-evaluate only if the deploy job is removed by a maintainer design change."
+  },
+  {
+   "observed_at": "2026-11-13T06:55:00Z",
+   "source": "docs.yml non-completed run record",
+   "note": "Run 37642403569 (event workflow_run, queued since 2026-10-07) is outside the 14-day window and not a docs.yml build sample. Scheduling category should check whether it affects the documentation-pages concurrency group."
   }
  ]
 }
