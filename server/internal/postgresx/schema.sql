@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS cao_state (
   schema_version BIGINT NOT NULL,
   capacity_revision BIGINT,
   bundle_epoch TIMESTAMPTZ,
+  verified_snapshot TEXT,
   PRIMARY KEY (namespace)
 );
 

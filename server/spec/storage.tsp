@@ -1054,6 +1054,7 @@ namespace Storage {
     schemaVersion: int64;
     capacityRevision?: int64;
     bundleEpoch?: utcDateTime;
+    verifiedSnapshot?: string;
   }
 
   /** Revision-qualified publication bookkeeping, never a canonical source or authority. */
