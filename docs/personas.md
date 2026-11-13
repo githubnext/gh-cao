@@ -1,6 +1,6 @@
 ---
 title: Who is CAO for?
-description: The target user personas for Central Agentic Ops.
+description: The target user personas and two main usage patterns for Central Agentic Ops.
 ---
 
 Central Agentic Ops (CAO) is built for people who **maintain many, sometimes
@@ -72,6 +72,71 @@ across one or more enterprise organizations.
 - **Typical setup:** dedicated control repository, GitHub Apps per
   organization, optional [hosted deployment](deployment.md); see
   [Set Up Multiple Organizations](setup-multiple-organizations.md).
+
+## Two main usage patterns
+
+Personas describe **who** uses CAO; usage patterns describe **how** they access
+it. Both personas can use either pattern: a maintainer may need a shared
+service, and an organization administrator may investigate locally.
+
+### Local server with a dev token (`gh cao dashboard`)
+
+- **Scenario:** an individual wants to inspect agentic workflow activity, cost,
+  and outcomes for repositories they can already read, without deploying a
+  shared service.
+- **Entry point:** run `gh cao dashboard` in a repository checkout, or select
+  repositories with `--repo OWNER/REPOSITORY`, then open the printed dashboard
+  URL. A locally authenticated GitHub CLI and Docker or Podman are the normal
+  prerequisites; the command manages a private PostgreSQL cache.
+- **Access and credentials:** the loopback Go server uses a local bearer
+  capability (the dev token), not hosted GitHub sign-in. This token protects
+  local dashboard access; the operator's authenticated `gh` identity separately
+  supplies GitHub evidence access. Keep the capability URL and cached private
+  evidence private; this is not a remote or multi-user deployment.
+- **Lifecycle and boundaries:** keep the command running for bounded evidence
+  collection and refresh, then stop it with Ctrl-C. The cache persists for
+  later sessions. No cloud deployment, control-repository setup, or campaign
+  installation is required, and starting the dashboard does not change remote
+  workflows or rollout policy. Acquisition still needs network access and
+  GitHub permissions; partial evidence is not complete history.
+- **Documentation needs:** lead with the
+  [local quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment),
+  opening and stopping the server, credential separation, cache privacy,
+  refresh limits, and troubleshooting. Link to the
+  [command reference](cao-cli.md#on-demand-local-dashboard) for flags rather
+  than making hosted setup a prerequisite.
+
+### Hosted service
+
+- **Scenario:** a team needs a shared dashboard with centrally managed access,
+  evidence collection, and service operations, rather than a server tied to
+  one person's terminal.
+- **Entry point:** an operator deploys and configures the service; users open
+  its shared URL and sign in with GitHub. Start with
+  [deployment options](deployment.md) and the selected hosting guide.
+- **Access and credentials:** GitHub OAuth and explicit user, organization, or
+  team authorization govern dashboard access. Collection credentials are
+  configured separately; signing in does not grant GitHub collection or
+  workflow execution authority. Do not share a local dev token as a hosted
+  authentication mechanism.
+- **Lifecycle and boundaries:** the Go host serves the dashboard, assets,
+  sign-in, query API, and revision events from the same origin, with queries
+  evaluated against PostgreSQL. Operators own deployment, secrets, monitoring,
+  recovery, and evidence freshness. Hosting does not widen reviewed control
+  policy or promote workflows to live mode, and a hosted failure does not
+  fall back to browser storage or a static site. Deployment options remain
+  experimental; see their security and operational review requirements.
+- **Documentation needs:** separate the service operator's deployment,
+  collection, authorization, and recovery tasks from the dashboard user's
+  sign-in and investigation journey. Explain stale or unavailable evidence
+  and access failures, and link to [authentication](authentication.md) and
+  [operations](operations.md) instead of requiring every viewer to run a
+  local server.
+
+Use these two patterns to organize documentation entry points and prerequisites,
+not as persona-specific restrictions. Both use the same dashboard and evidence
+model. The synthetic Pages demo is an illustration, not a third operational
+modality or a host for private evidence.
 
 ## Who CAO is not for
 
