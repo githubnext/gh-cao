@@ -124,7 +124,7 @@ func (s *Service) RecordResponse(
 	quotaLog.Printf("recording response bucket=%s status=%d observation=%t park_reason=%q",
 		bucket.Normalize(), statusCode, quota.HasObservation, quota.ParkReason)
 	if quota.HasObservation {
-		// Record the shared Redis clock rather than this replica's clock.
+		// Record the shared operational storage clock rather than this replica's clock.
 		observation := quota.Observation
 		observation.ObservedAt = time.Time{}
 		if err := s.Observe(ctx, bucket, observation); err != nil {

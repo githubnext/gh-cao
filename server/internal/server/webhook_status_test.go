@@ -18,7 +18,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 )
 
@@ -59,7 +58,7 @@ func TestWebhookStatusQueriesBypassResultCacheTransitively(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cache := &queryCacheClient{}
 			database := &webhookQueryProbe{}
-			app := &App{database: database, services: redisx.NewStore(cache, "webhook-cache").OperationalServices()}
+			app := &App{database: database, services: newTestOperationalStore(t).OperationalServices()}
 			app.config.DashboardQueries = []query.Definition{
 				{Name: "derived", From: webhookStatusSourceName},
 				{Name: "joined", From: "$runs", Joins: []query.Join{{

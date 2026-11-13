@@ -17,10 +17,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
+	"github.com/githubnext/gh-cao/server/internal/dataset"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/server"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
@@ -82,7 +83,7 @@ func TestServeWithExistingPostgresOperationalTables(t *testing.T) {
 	cmd := newServeCommand()
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
-	cmd.SetArgs([]string{"--redis-namespace", namespace, "--dashboard-queries", filepath.Join(t.TempDir(), "missing-dashboard-queries.json")})
+	cmd.SetArgs([]string{"--namespace", namespace, "--dashboard-queries", filepath.Join(t.TempDir(), "missing-dashboard-queries.json")})
 	err = cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "missing-dashboard-queries.json") {
 		t.Fatalf("serve must reach dashboard query loading after both stores initialize: %v", err)
@@ -97,6 +98,24 @@ func TestServeRequiresPostgresConfiguration(t *testing.T) {
 	cmd.SetArgs(nil)
 	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "--postgres-url or CAO_POSTGRES_URL is required") {
 		t.Fatalf("local serving did not require PostgreSQL: %v", err)
+	}
+}
+
+func TestIngestFlagContract(t *testing.T) {
+	cmd := newIngestCommand()
+	var flags []string
+	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
+		flags = append(flags, flag.Name)
+	})
+	if got, want := strings.Join(flags, ","), "database-queries,namespace,postgres-url,source"; got != want {
+		t.Fatalf("ingest flags = %s, want %s", got, want)
+	}
+	if err := cmd.ParseFlags([]string{"--namespace", "ingestion-test", "--postgres-url", "postgres://localhost/cao", "--source", "snapshot"}); err != nil {
+		t.Fatal(err)
+	}
+	namespace, err := cmd.Flags().GetString("namespace")
+	if err != nil || namespace != "ingestion-test" {
+		t.Fatalf("dataset namespace = %q, %v", namespace, err)
 	}
 }
 
@@ -152,7 +171,7 @@ func TestServeHostedRejectsUnsupportedOperationalBackend(t *testing.T) {
 	cmd := newServeHostedCommand()
 	cmd.SetArgs([]string{"--operational-store", "sqlite"})
 	err := cmd.Execute()
-	if err == nil || !strings.Contains(err.Error(), "must be redis, memory, or postgres") {
+	if err == nil || !strings.Contains(err.Error(), "must be memory or postgres") {
 		t.Fatalf("error = %v, want unsupported operational backend", err)
 	}
 }
@@ -190,7 +209,7 @@ func TestOperationalBackendSelectionUsesComposedReviewedPolicy(t *testing.T) {
 		t.Fatalf("selected = %q, want memory", settings.Backend)
 	}
 	cmd := newServeHostedCommand()
-	cmd.SetArgs([]string{"--operational-store", "redis"})
+	cmd.SetArgs([]string{"--operational-store", "postgres"})
 	err = cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "matching reviewed") {
 		t.Fatalf("error = %v, want reviewed-backend mismatch before opening services", err)
@@ -203,66 +222,6 @@ func TestOperationalBackendSelectionUsesComposedReviewedPolicy(t *testing.T) {
 	err = cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "acknowledgements") {
 		t.Fatalf("error = %v, want rejected volatile acknowledgement", err)
-	}
-}
-
-func TestResolveRedisEndpoint(t *testing.T) {
-	const defaultValue = "redis://127.0.0.1:6379/0"
-
-	tests := []struct {
-		name       string
-		flagValue  string
-		envValue   string
-		wantURL    string
-		wantSource redisEndpointSource
-	}{
-		{
-			name:       "flag takes priority over env and default",
-			flagValue:  "redis://flag:6379/1",
-			envValue:   "redis://env:6379/2",
-			wantURL:    "redis://flag:6379/1",
-			wantSource: redisEndpointSourceFlag,
-		},
-		{
-			name:       "env used when flag is empty",
-			flagValue:  "",
-			envValue:   "redis://env:6379/2",
-			wantURL:    "redis://env:6379/2",
-			wantSource: redisEndpointSourceEnv,
-		},
-		{
-			name:       "env used when flag is only whitespace",
-			flagValue:  "   ",
-			envValue:   "redis://env:6379/2",
-			wantURL:    "redis://env:6379/2",
-			wantSource: redisEndpointSourceEnv,
-		},
-		{
-			name:       "default used when flag and env are empty",
-			flagValue:  "",
-			envValue:   "",
-			wantURL:    defaultValue,
-			wantSource: redisEndpointSourceDefault,
-		},
-		{
-			name:       "default used when env is only whitespace",
-			flagValue:  "",
-			envValue:   "  ",
-			wantURL:    defaultValue,
-			wantSource: redisEndpointSourceDefault,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotURL, gotSource := resolveRedisEndpoint(tt.flagValue, tt.envValue, defaultValue)
-			if gotURL != tt.wantURL {
-				t.Errorf("resolveRedisEndpoint() url = %q, want %q", gotURL, tt.wantURL)
-			}
-			if gotSource != tt.wantSource {
-				t.Errorf("resolveRedisEndpoint() source = %q, want %q", gotSource, tt.wantSource)
-			}
-		})
 	}
 }
 
@@ -443,10 +402,10 @@ func TestResolveNamespaceDefault(t *testing.T) {
 	}
 }
 
-func TestCheckoutNamespaceDefaultMatchesRedisxDefaultNamespace(t *testing.T) {
-	want, err := redisx.DefaultNamespace(".")
+func TestCheckoutNamespaceDefaultMatchesDatasetDefaultNamespace(t *testing.T) {
+	want, err := dataset.DefaultNamespace(".")
 	if err != nil {
-		t.Fatalf("redisx.DefaultNamespace() error = %v, want nil", err)
+		t.Fatalf("dataset.DefaultNamespace() error = %v, want nil", err)
 	}
 	got, err := checkoutNamespaceDefault()
 	if err != nil {
@@ -455,63 +414,63 @@ func TestCheckoutNamespaceDefaultMatchesRedisxDefaultNamespace(t *testing.T) {
 	if got != want {
 		t.Errorf("checkoutNamespaceDefault() = %q, want %q", got, want)
 	}
-	if _, normalizeErr := redisx.NormalizeNamespace(got); normalizeErr != nil {
+	if _, normalizeErr := dataset.NormalizeNamespace(got); normalizeErr != nil {
 		t.Errorf("checkoutNamespaceDefault() = %q is not a valid namespace: %v", got, normalizeErr)
 	}
 }
 
-func TestRegisterRedisNamespaceFlagUsesCheckoutDefault(t *testing.T) {
+func TestRegisterNamespaceFlagUsesCheckoutDefault(t *testing.T) {
 	want, err := checkoutNamespaceDefault()
 	if err != nil {
 		t.Fatalf("checkoutNamespaceDefault() error = %v, want nil", err)
 	}
 
 	cmd := &cobra.Command{Use: "test"}
-	namespace, namespaceErr := registerRedisNamespaceFlag(cmd, "usage")
+	namespace, namespaceErr := registerNamespaceFlag(cmd, "usage")
 	if namespaceErr != nil {
-		t.Fatalf("registerRedisNamespaceFlag() error = %v, want nil", namespaceErr)
+		t.Fatalf("registerNamespaceFlag() error = %v, want nil", namespaceErr)
 	}
 	if *namespace != want {
-		t.Errorf("registerRedisNamespaceFlag() default = %q, want %q", *namespace, want)
+		t.Errorf("registerNamespaceFlag() default = %q, want %q", *namespace, want)
 	}
-	if got, err := cmd.Flags().GetString("redis-namespace"); err != nil || got != want {
-		t.Errorf("cmd.Flags().GetString(redis-namespace) = (%q, %v), want (%q, nil)", got, err, want)
+	if got, err := cmd.Flags().GetString("namespace"); err != nil || got != want {
+		t.Errorf("cmd.Flags().GetString(namespace) = (%q, %v), want (%q, nil)", got, err, want)
 	}
 }
 
-func TestRegisterRedisNamespaceFlagWithEnvOverridePrefersEnv(t *testing.T) {
-	t.Setenv("CAO_REDIS_NAMESPACE", "custom-namespace")
+func TestRegisterNamespaceFlagWithEnvOverridePrefersEnv(t *testing.T) {
+	t.Setenv("CAO_DATASET_NAMESPACE", "custom-namespace")
 
 	cmd := &cobra.Command{Use: "test"}
-	namespace, source, namespaceErr := registerRedisNamespaceFlagWithEnvOverride(cmd, "usage")
+	namespace, source, namespaceErr := registerNamespaceFlagWithEnvOverride(cmd, "usage")
 	if namespaceErr != nil {
-		t.Fatalf("registerRedisNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
+		t.Fatalf("registerNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
 	}
 	if *namespace != "custom-namespace" {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, "custom-namespace")
+		t.Errorf("registerNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, "custom-namespace")
 	}
 	if source != namespaceDefaultSourceEnv {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceEnv)
+		t.Errorf("registerNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceEnv)
 	}
 }
 
-func TestRegisterRedisNamespaceFlagWithEnvOverrideFallsBackToCheckout(t *testing.T) {
-	t.Setenv("CAO_REDIS_NAMESPACE", "")
+func TestRegisterNamespaceFlagWithEnvOverrideFallsBackToCheckout(t *testing.T) {
+	t.Setenv("CAO_DATASET_NAMESPACE", "")
 	want, err := checkoutNamespaceDefault()
 	if err != nil {
 		t.Fatalf("checkoutNamespaceDefault() error = %v, want nil", err)
 	}
 
 	cmd := &cobra.Command{Use: "test"}
-	namespace, source, namespaceErr := registerRedisNamespaceFlagWithEnvOverride(cmd, "usage")
+	namespace, source, namespaceErr := registerNamespaceFlagWithEnvOverride(cmd, "usage")
 	if namespaceErr != nil {
-		t.Fatalf("registerRedisNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
+		t.Fatalf("registerNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
 	}
 	if *namespace != want {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, want)
+		t.Errorf("registerNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, want)
 	}
 	if source != namespaceDefaultSourceCheckout {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceCheckout)
+		t.Errorf("registerNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceCheckout)
 	}
 }
 
@@ -587,48 +546,6 @@ func TestIngestRejectsPositionalSource(t *testing.T) {
 	}
 }
 
-func TestNewRedisStoreSucceedsWithValidURLAndNamespace(t *testing.T) {
-	store, err := newRedisStore("redis://127.0.0.1:6379/0", "checkout-abc123")
-	if err != nil {
-		t.Fatalf("newRedisStore() error = %v, want nil", err)
-	}
-	if store == nil {
-		t.Fatal("newRedisStore() store = nil, want non-nil")
-	}
-}
-
-func TestNewRedisStoreFailsOnInvalidURL(t *testing.T) {
-	_, err := newRedisStore("not-a-url", "checkout-abc123")
-	if err == nil {
-		t.Fatal("newRedisStore() error = nil, want non-nil for an invalid URL")
-	}
-}
-
-func TestNewRedisStoreFailsOnInvalidNamespace(t *testing.T) {
-	_, err := newRedisStore("redis://127.0.0.1:6379/0", "")
-	if err == nil {
-		t.Fatal("newRedisStore() error = nil, want non-nil for an invalid namespace")
-	}
-}
-
-func TestDoctorStoreSucceedsWithValidEndpoint(t *testing.T) {
-	store := doctorStore("redis://127.0.0.1:6379/0", "checkout-abc123")
-	if store == nil {
-		t.Fatal("doctorStore() = nil, want non-nil for a valid endpoint")
-	}
-}
-
-func TestDoctorStoreToleratesUnconstructibleClient(t *testing.T) {
-	// An unreachable or malformed endpoint must not prevent the doctor
-	// report from being produced; doctorStore reports the failure via
-	// commandLog and returns nil rather than an error so the report still
-	// runs and explains why the Redis checks could not run.
-	store := doctorStore("not-a-url", "checkout-abc123")
-	if store != nil {
-		t.Fatal("doctorStore() != nil, want nil for an unconstructible client")
-	}
-}
-
 func TestResolveBackfillMode(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -662,8 +579,6 @@ func TestResolveDoctorBackendSource(t *testing.T) {
 		selected    bool
 		policyPath  string
 		marketplace string
-		redisFlag   bool
-		redisEnv    string
 		want        doctorBackendSource
 	}{
 		{name: "nothing configured", want: doctorBackendSourceDefault},
@@ -671,14 +586,10 @@ func TestResolveDoctorBackendSource(t *testing.T) {
 		{name: "policy path", policyPath: "policy.json", want: doctorBackendSourcePolicy},
 		{name: "marketplace policy path", marketplace: "market.json", want: doctorBackendSourcePolicy},
 		{name: "blank policy paths are ignored", policyPath: "  ", marketplace: "\t", want: doctorBackendSourceDefault},
-		{name: "redis flag", redisFlag: true, want: doctorBackendSourceRedis},
-		{name: "redis env", redisEnv: "redis://127.0.0.1:6379/0", want: doctorBackendSourceRedis},
-		{name: "blank redis env is ignored", redisEnv: "  ", want: doctorBackendSourceDefault},
-		{name: "policy outranks redis", policyPath: "policy.json", redisFlag: true, redisEnv: "redis://x", want: doctorBackendSourcePolicy},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveDoctorBackendSource(tt.selected, tt.policyPath, tt.marketplace, tt.redisFlag, tt.redisEnv)
+			got := resolveDoctorBackendSource(tt.selected, tt.policyPath, tt.marketplace)
 			if got != tt.want {
 				t.Errorf("resolveDoctorBackendSource() = %q, want %q", got, tt.want)
 			}

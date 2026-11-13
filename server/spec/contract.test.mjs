@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '2.13.0')
+  assert.equal(openapi.info.version, '3.0.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -86,9 +86,6 @@ test('the generated contract describes the implemented security and wire formats
   assert.equal(openapi.components.securitySchemes.ApiKeyAuth.name, 'cao_session')
   for (const field of ['pushedDown', 'fallbackOperations']) {
     assert.ok(openapi.components.schemas.QueryMetrics.properties[field].anyOf.some(branch => branch.type === 'null'))
-  }
-  for (const field of ['redisCommands', 'redisRows']) {
-    assert.equal(openapi.components.schemas.QueryMetrics.properties[field], undefined)
   }
   assert.equal(openapi.components.schemas.HealthResponse.properties.generation, undefined)
   for (const name of ['HealthResponse', 'ReadinessResponse']) {
@@ -348,7 +345,7 @@ test('structured payload fields stay in sync with Go JSON tags', () => {
     ['../internal/server/webhook_status.go', 'webhookStatus', 'WebhookStatus'],
     ['../internal/server/value.go', 'valuePublicationRequest', 'ValuePublicationRequest'],
     ['../internal/server/logs.go', 'serverLogSnapshot', 'ServerLogSnapshot'],
-    ['../internal/server/logs.go', 'serverLogRedis', 'ServerLogRedis'],
+    ['../internal/server/logs.go', 'serverLogOperational', 'ServerLogOperational'],
     ['../internal/server/github_resources.go', 'githubRepositoryResource', 'GitHubRepository'],
     ['../internal/server/github_resources.go', 'githubReleaseResource', 'GitHubRelease'],
     ['../internal/collect/recovery.go', 'Status', 'CollectionStatus'],
@@ -425,15 +422,15 @@ test('the server-only MCP logs tool matches the HTTP snapshot contract', () => {
   for (const [actual, expected] of [
     [logs.outputSchema, schemas.ServerLogSnapshot],
     [logs.outputSchema.properties.logs.items, schemas.ServerLogRecord],
-    [logs.outputSchema.properties.redis, schemas.ServerLogRedis]
+    [logs.outputSchema.properties.operational, schemas.ServerLogOperational]
   ]) {
     assert.deepEqual(actual.required, expected.required)
     assert.deepEqual(Object.keys(actual.properties).sort(), Object.keys(expected.properties).sort())
   }
   assert.deepEqual(logs.outputSchema.properties.logs.items.properties, schemas.ServerLogRecord.properties)
   assert.deepEqual(
-    logs.outputSchema.properties.redis.properties.status.enum.slice().sort(),
-    schemas.ServerLogRedis.properties.status.enum.slice().sort()
+    logs.outputSchema.properties.operational.properties.status.enum.slice().sort(),
+    schemas.ServerLogOperational.properties.status.enum.slice().sort()
   )
 })
 

@@ -95,7 +95,7 @@ else
   echo "  colima start"
 fi
 cat <<'EOF'
-  npm run dashboard:server:redis-up
+  npm run dashboard:server:postgres-up
   npm run dashboard:server:build
   go -C server run ./cmd/cao-dashboard serve \
     --site ../dashboard/site/dist \

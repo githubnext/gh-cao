@@ -30,7 +30,7 @@ gh cao dashboard --repo OWNER/REPOSITORY
 Or run `gh cao dashboard` in an existing repository checkout. Open the full
 **Dashboard:** URL printed in the terminal. The bundled Go server serves on
 loopback and queries a private PostgreSQL namespace on your machine.
-No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
+No CAO cloud deployment, Azure setup, hosted dashboard, or separate
 Node.js or gh-aw installation is needed. PostgreSQL is required: the command
 manages a local Docker or Podman Linux container unless you supply
 `--postgres-url` (or `CAO_POSTGRES_URL`). On Windows, use an explicitly

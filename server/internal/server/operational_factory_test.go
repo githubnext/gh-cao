@@ -9,7 +9,6 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestOperationalPostgresPolicyAndFactory(t *testing.T) {
@@ -20,13 +19,13 @@ func TestOperationalPostgresPolicyAndFactory(t *testing.T) {
 
 	host, err := policy.resolve(mapLookup(map[string]string{
 		"OPERATIONAL_POSTGRES_URL": "postgres://127.0.0.1/example?sslmode=disable",
-		"REDIS_NAMESPACE":          "canonical", "CAO_OPERATIONAL_NAMESPACE": "operational",
+		"CAO_DATASET_NAMESPACE":    "canonical", "CAO_OPERATIONAL_NAMESPACE": "operational",
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if host.Profile.RequiresRedis || host.Profile.SingleProcess || host.AllowVolatile ||
-		!host.Profile.SupportsCollection || host.RedisNamespace != "canonical" ||
+	if host.Profile.SingleProcess || host.AllowVolatile ||
+		!host.Profile.SupportsCollection || host.DatabaseNamespace != "canonical" ||
 		host.OperationalNamespace != "operational" || host.OperationalBackend != "postgres" {
 		t.Fatal("PostgreSQL resolution changed topology or namespace")
 	}
@@ -34,7 +33,6 @@ func TestOperationalPostgresPolicyAndFactory(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, change := range map[string]func(*operationalPolicy){
-		"redis":                 func(p *operationalPolicy) { p.Redis = &redisPolicy{Module: "generic"} },
 		"process":               func(p *operationalPolicy) { p.SingleProcess = true },
 		"volatile":              func(p *operationalPolicy) { p.AllowVolatile = true },
 		"secret instead of env": func(p *operationalPolicy) { p.Postgres = &postgresPolicy{URLEnv: "postgres://secret"} },
@@ -58,7 +56,7 @@ func TestOperationalPostgresPolicyAndFactory(t *testing.T) {
 	}
 	host.OperationalPostgresURL = dsn
 	host.OperationalNamespace = "operational-factory-" + t.Name()
-	if _, _, err := newOperationalStore(t.Context(), host); err == nil {
+	if _, err := newOperationalStore(t.Context(), host); err == nil {
 		t.Fatal("runtime factory bootstrapped a missing namespace")
 	}
 	provisioned, err := postgres.New(t.Context(), dsn, host.OperationalNamespace, postgres.Config{})
@@ -66,7 +64,7 @@ func TestOperationalPostgresPolicyAndFactory(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = provisioned.Close() }()
-	store, _, err := newOperationalStore(t.Context(), host)
+	store, err := newOperationalStore(t.Context(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,17 +83,42 @@ func TestOperationalPostgresPolicyAndFactory(t *testing.T) {
 	}
 }
 
-func TestOperationalDefaultIsPostgresWithoutRedis(t *testing.T) {
+func TestOperationalDefaultIsPostgres(t *testing.T) {
 	policy := hostPolicy{Target: targetPolicy{Module: "container"}}
 	resolved, err := policy.resolve(mapLookup(map[string]string{"CAO_POSTGRES_URL": "postgres://127.0.0.1/db?sslmode=disable"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolved.OperationalBackend != "postgres" || resolved.RedisURL != "" || resolved.Profile.RequiresRedis {
-		t.Fatal("default hosting still requires Redis")
+	if resolved.OperationalBackend != "postgres" {
+		t.Fatal("default hosting is not PostgreSQL")
 	}
-	if _, err := policy.resolve(mapLookup(map[string]string{"REDIS_URL": "redis://127.0.0.1"})); err == nil {
-		t.Fatal("Redis credentials implicitly selected a backend")
+}
+
+func TestOperationalFactoryRejectsUnsupportedSelection(t *testing.T) {
+	for _, backend := range []string{"unknown-provider", "sqlite"} {
+		host := &resolvedHostPolicy{OperationalBackend: backend}
+		if _, err := newOperationalStore(t.Context(), host); err == nil ||
+			!strings.Contains(err.Error(), "unsupported operational-store backend") {
+			t.Fatalf("unsupported provider silently selected a backend: %q %v", backend, err)
+		}
+	}
+}
+
+func TestOperationalPolicyRejectsUnknownProviderConfiguration(t *testing.T) {
+	for _, host := range []string{
+		`{"target":{"module":"container"},"legacy-provider":{}}`,
+		`{"target":{"module":"container"},"operational-store":{"backend":"postgres","legacy-provider":{}}}`,
+		`{"target":{"module":"container"},"operational-store":{"backend":"unsupported-provider"}}`,
+	} {
+		path := filepath.Join(t.TempDir(), "cao.json")
+		if err := os.WriteFile(path, []byte(`{"control-plane":{"web":{"host":`+host+`}}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("CAO_POLICY_PATH", path)
+		t.Setenv("CAO_POSTGRES_URL", "postgres://127.0.0.1/db?sslmode=disable")
+		if _, err := loadHostPolicyFromEnv(); err == nil {
+			t.Fatalf("unsupported provider configuration silently selected PostgreSQL: %s", host)
+		}
 	}
 }
 
@@ -127,17 +150,17 @@ func memoryHostPolicy() hostPolicy {
 	}
 }
 
-func TestOperationalMemoryPolicyNeedsNoRedisAndPreservesPostgresNamespace(t *testing.T) {
+func TestOperationalMemoryPolicyPreservesPostgresNamespace(t *testing.T) {
 	policy := memoryHostPolicy()
 	resolved, err := policy.resolve(mapLookup(map[string]string{
-		"REDIS_NAMESPACE":           "existing-dataset",
+		"CAO_DATASET_NAMESPACE":     "existing-dataset",
 		"CAO_OPERATIONAL_NAMESPACE": "volatile-state",
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolved.RedisURL != "" || resolved.Profile.RequiresRedis ||
-		resolved.RedisNamespace != "existing-dataset" ||
+	if resolved.OperationalBackend != "memory" ||
+		resolved.DatabaseNamespace != "existing-dataset" ||
 		resolved.OperationalNamespace != "volatile-state" ||
 		!resolved.Profile.SingleProcess || !resolved.AllowVolatile {
 		t.Fatalf("unexpected memory resolution: %+v", resolved)
@@ -146,8 +169,6 @@ func TestOperationalMemoryPolicyNeedsNoRedisAndPreservesPostgresNamespace(t *tes
 
 func TestOperationalSelectionRejectsAmbiguityAndUnsafeTopology(t *testing.T) {
 	for name, change := range map[string]func(*hostPolicy){
-		"legacy Redis conflict":            func(p *hostPolicy) { p.Redis.Module = "local" },
-		"nested Redis conflict":            func(p *hostPolicy) { p.Operational.Redis = &redisPolicy{Module: "local"} },
 		"missing process acknowledgement":  func(p *hostPolicy) { p.Operational.SingleProcess = false },
 		"missing volatile acknowledgement": func(p *hostPolicy) { p.Operational.AllowVolatile = false },
 		"missing replica confirmation":     func(p *hostPolicy) { p.Target.Replicas = 0 },
@@ -187,26 +208,8 @@ func TestOperationalMemoryRejectsExternalAndPlatformListeners(t *testing.T) {
 	}
 }
 
-func TestOperationalRedisSelectorRetainsDefaultAndProviderConfiguration(t *testing.T) {
-	policy := hostPolicy{
-		Target:      targetPolicy{Module: "container"},
-		Operational: &operationalPolicy{Backend: "redis"},
-	}
-	resolved, err := policy.resolve(mapLookup(map[string]string{"REDIS_URL": "rediss://cache.example"}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resolved.OperationalBackend != "redis" || resolved.Profile.RedisSession != HostRedisPooled {
-		t.Fatalf("Redis defaults changed: %+v", resolved)
-	}
-	policy.Operational.Redis = &redisPolicy{Module: "upstash"}
-	if _, err := policy.resolve(mapLookup(map[string]string{"REDIS_URL": "rediss://cache.upstash.io"})); err == nil {
-		t.Fatal("Upstash replica requirement was bypassed")
-	}
-}
-
 func TestOperationalMemoryFactoryAndStandaloneRoles(t *testing.T) {
-	t.Setenv("CAO_REDIS_MAX_BYTES", "not-a-Redis-budget")
+
 	host, err := memoryHostPolicy().resolve(mapLookup(nil))
 	if err != nil {
 		t.Fatal(err)
@@ -214,12 +217,12 @@ func TestOperationalMemoryFactoryAndStandaloneRoles(t *testing.T) {
 	if err := validateStandaloneOperational(host); err == nil {
 		t.Fatal("standalone memory role accepted")
 	}
-	store, prefix, err := newOperationalStore(t.Context(), host)
+	store, err := newOperationalStore(t.Context(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = store.Close() }()
-	if prefix != "" || store.Capabilities().Sessions.Scope != operational.ScopeProcess ||
+	if store.Capabilities().Sessions.Scope != operational.ScopeProcess ||
 		store.Capabilities().Collection.Persistence != operational.PersistenceVolatile {
 		t.Fatal("memory factory changed process-lifetime guarantees")
 	}
@@ -238,7 +241,7 @@ func TestOperationalMemoryHostRequiresOAuthHTTPSAndCoResidentCollection(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, _, err := newOperationalStore(t.Context(), host)
+	store, err := newOperationalStore(t.Context(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,7 +296,7 @@ func TestOperationalMemoryBoundsFromEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, _, err := newOperationalStore(t.Context(), host)
+	store, err := newOperationalStore(t.Context(), host)
 	if err != nil {
 		t.Fatalf("partial cache bounds cannot initialize memory: %v", err)
 	}
@@ -301,49 +304,5 @@ func TestOperationalMemoryBoundsFromEnvironment(t *testing.T) {
 	t.Setenv("CAO_OPERATIONAL_CACHE_MAX_ENTRIES", "-1")
 	if _, err := memoryConfigFromEnv(); err == nil {
 		t.Fatal("invalid bound accepted")
-	}
-}
-
-func TestOperationalFactoryConfiguresLegacyDirectRedisOptions(t *testing.T) {
-	client, err := redisx.New("redis://127.0.0.1:6379")
-	if err != nil {
-		t.Fatal(err)
-	}
-	store := redisx.NewStore(client, "composition-test")
-	t.Setenv("CAO_REDIS_MAX_BYTES", "8192")
-	config := Config{HostProfile: localHostProfile()}
-	if err := configureOperationalStore(t.Context(), store, &config); err != nil {
-		t.Fatal(err)
-	}
-	if config.RedisMaxBytes != 8192 || store.MaxMemoryBytes() != 8192 {
-		t.Fatalf("legacy Redis option not applied: config=%d adapter=%d", config.RedisMaxBytes, store.MaxMemoryBytes())
-	}
-	t.Setenv("CAO_REDIS_MAX_BYTES", "invalid")
-	config.RedisMaxBytes = 4096
-	if err := configureOperationalStore(t.Context(), store, &config); err != nil {
-		t.Fatalf("explicit Redis option did not override environment: %v", err)
-	}
-	if config.RedisMaxBytes != 4096 || store.MaxMemoryBytes() != 4096 {
-		t.Fatal("explicit Redis option changed")
-	}
-}
-
-func TestOperationalFactoryIgnoresLegacyRedisOptionsForMemory(t *testing.T) {
-	t.Setenv("CAO_REDIS_MAX_BYTES", "invalid")
-	host, err := memoryHostPolicy().resolve(mapLookup(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	store, _, err := newOperationalStore(t.Context(), host)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = store.Close() }()
-	config := Config{HostProfile: host.Profile, RedisMaxBytes: -1}
-	if err := configureOperationalStore(t.Context(), store, &config); err != nil {
-		t.Fatalf("memory read a Redis-only option: %v", err)
-	}
-	if config.RedisMaxBytes != 0 {
-		t.Fatal("memory retained an irrelevant Redis byte budget")
 	}
 }

@@ -1,5 +1,5 @@
 // Package memory provides bounded, volatile operational state for one owning
-// process. It does not emulate Redis or persist data across Store instances.
+// process. It does not persist data across Store instances.
 package memory
 
 import (

@@ -44,7 +44,7 @@ func TestClassifyCanonicalErrorReportsNotFoundThroughWrappedError(t *testing.T) 
 }
 
 func TestClassifyCanonicalErrorReportsUnavailableForOtherErrors(t *testing.T) {
-	outcome, status, message := classifyCanonicalError(errors.New("redis is unreachable"))
+	outcome, status, message := classifyCanonicalError(errors.New("operational is unreachable"))
 	if outcome != canonicalOutcomeUnavailable {
 		t.Errorf("outcome = %q, want %q", outcome, canonicalOutcomeUnavailable)
 	}

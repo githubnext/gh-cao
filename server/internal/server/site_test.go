@@ -10,7 +10,6 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/dashboardassets"
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func hostedTestSite(t *testing.T) string {
@@ -114,12 +113,7 @@ func testHostedHandlerServesDashboardAndAssets(t *testing.T, embedded bool) {
 			case "external":
 				profile.Listener = HostListenerExternal
 			}
-			address, closeRedis := fakeRedis(t)
-			t.Cleanup(closeRedis)
-			client, err := redisx.New("redis://" + address)
-			if err != nil {
-				t.Fatal(err)
-			}
+
 			site := hostedTestSite(t)
 			if embedded {
 				site = ""
@@ -134,7 +128,7 @@ func testHostedHandlerServesDashboardAndAssets(t *testing.T, embedded bool) {
 				config.Listen = "127.0.0.1:8443"
 				config.CertFile, config.KeyFile = "certificate.pem", "key.pem"
 			}
-			app, err := New(t.Context(), redisx.NewStore(client, "hosted-site"), config)
+			app, err := New(t.Context(), newTestOperationalStore(t), config)
 			if err != nil {
 				t.Fatal(err)
 			}

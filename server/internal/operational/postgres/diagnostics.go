@@ -75,7 +75,7 @@ func (s *Store) IncrementIngestionCounter(ctx context.Context, name string) erro
 func (s *Store) RecordIngestionHealthEvent(ctx context.Context, event, code string, at time.Time) error {
 	field := map[string]string{"failure": "lastFailureAt", "success": "lastSuccessAt", "webhook": "lastWebhookAt"}[event]
 	if field == "" || at.IsZero() || (event != "failure" && code != "") ||
-		(event == "failure" && code != "admission" && code != "collection" && code != "redis") {
+		(event == "failure" && code != "admission" && code != "collection" && code != "operational") {
 		return invalid("invalid ingestion event, code, or time")
 	}
 	return s.transact(ctx, func(t *transaction) error {

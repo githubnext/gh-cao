@@ -21,8 +21,6 @@ if [[ "$*" == *"pull openobserve"* ]]; then
     rate-limit) echo "toomanyrequests: Data limit exceeded" >&2; exit 1 ;;
     other-error) echo "manifest unknown" >&2; exit 1 ;;
   esac
-elif [[ "$*" == *"port redis"* ]]; then
-  echo 127.0.0.1:16379
 elif [[ "$*" == *"port postgres"* ]]; then
   echo 127.0.0.1:15432
 elif [[ "$*" == *"port openobserve"* ]]; then
@@ -35,7 +33,6 @@ set -eu
 echo "go $*" >> "$HARNESS_TRACE"
 echo "go skip=\${CAO_BACKFILL_SKIP_OPENOBSERVE:-0} endpoint=\${CAO_BACKFILL_OPENOBSERVE_URL:+configured} traces=\${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:+configured} headers=\${OTEL_EXPORTER_OTLP_HEADERS:+configured}" >> "$HARNESS_TRACE"
 test -n "$CAO_POSTGRES_URL"
-test -n "$REDIS_URL"
 `, { mode: 0o700 });
       const result = await execute("bash", [resolve("scripts/test-dashboard-backfill.sh")], {
         env: {
@@ -54,7 +51,7 @@ test -n "$REDIS_URL"
         (error) => ({ stderr: error.stderr, code: error.code }),
       );
       const commands = await readFile(trace, "utf8");
-      assert.match(commands, /up -d --wait --wait-timeout 120 redis postgres/);
+      assert.match(commands, /up -d --wait --wait-timeout 120 postgres/);
       assert.match(commands, /down --volumes --remove-orphans/);
       if (outcome === "other-error") {
         assert.notEqual(result.code, 0);

@@ -12,17 +12,16 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/model"
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/query"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type valueRevisionCacheStore struct {
@@ -83,50 +82,31 @@ func TestValueQueryCacheTracksCommittedRevisionTransitively(t *testing.T) {
 }
 
 type queryCacheClient struct {
+	operational.Cache
 	value    any
 	put      []byte
 	err      error
 	reads    int
 	writes   int
-	stats    redisx.QueryCacheStats
+	stats    operational.QueryCacheStats
 	writeErr error
 }
 
-const cacheTestMemoryInfo = "# Memory\r\nused_memory:1024\r\nmaxmemory:0\r\n"
-
-func cacheTestCapabilityReply() []any {
-	return []any{[]any{int64(1), cacheTestMemoryInfo}, []any{int64(1), nil}}
+func (client *queryCacheClient) CachedQueryResult(_ context.Context, _ string, _, _ int64) ([]byte, operational.QueryCacheStats, error) {
+	client.reads++
+	var value []byte
+	switch v := client.value.(type) {
+	case string:
+		value = []byte(v)
+	case []byte:
+		value = v
+	}
+	return value, client.stats, client.err
 }
-
-func (client *queryCacheClient) Do(_ context.Context, args ...string) (any, error) {
-	if client.err != nil {
-		return nil, client.err
-	}
-	if args[0] == "INFO" {
-		return cacheTestMemoryInfo, nil
-	}
-	if args[0] == "EVAL" && strings.Contains(args[1], `return {probe("INFO"`) {
-		return cacheTestCapabilityReply(), nil
-	}
-	if args[0] == "EVAL" && args[1] != "" && len(args) == 13 {
-		switch args[5] {
-		case "get":
-			client.reads++
-			return []any{client.value, client.stats.MemoryBytes, client.stats.Entries, client.stats.Expired, client.stats.Evicted}, nil
-		case "put":
-			client.writes++
-			if client.writeErr != nil {
-				return nil, client.writeErr
-			}
-			client.put = []byte(args[10])
-			return []any{int64(1), client.stats.MemoryBytes, client.stats.Entries, client.stats.Expired, client.stats.Evicted}, nil
-		}
-	}
-	return nil, errors.New("unexpected query cache command")
-}
-
-func (*queryCacheClient) DoMany(context.Context, [][]string) ([]any, error) {
-	return nil, errors.New("unexpected query cache pipeline")
+func (client *queryCacheClient) CacheQueryResult(_ context.Context, _ string, content []byte, _, _ int64) (bool, operational.QueryCacheStats, error) {
+	client.writes++
+	client.put = append([]byte{}, content...)
+	return true, client.stats, client.writeErr
 }
 
 func TestQueryCacheConfiguration(t *testing.T) {
@@ -239,7 +219,7 @@ func compactQueryResult() queryResponse {
 
 func TestQueryCacheCompactEncodingAndNumericFidelity(t *testing.T) {
 	client := &queryCacheClient{}
-	app := &App{services: redisx.NewStore(client, "query-test").OperationalServices()}
+	app := &App{services: newTestOperationalStore(t, client).OperationalServices()}
 	config, err := (QueryCacheConfig{}).resolve()
 	if err != nil {
 		t.Fatal(err)
@@ -273,7 +253,7 @@ func TestQueryCacheCompactEncodingAndNumericFidelity(t *testing.T) {
 		Rows: []model.Row{{"payload": strings.Repeat("x", int(config.MaxResultBytes)+1)}},
 	}
 	if err := app.storeCachedQuery(t.Context(), key, result, config); err != nil || client.writes != 1 {
-		t.Fatalf("oversized result reached Redis: writes=%d err=%v", client.writes, err)
+		t.Fatalf("oversized result reached Operational: writes=%d err=%v", client.writes, err)
 	}
 	for _, data := range []string{"not json", `{"etag":"wrong","result":{}}`} {
 		client.value = data
@@ -284,8 +264,8 @@ func TestQueryCacheCompactEncodingAndNumericFidelity(t *testing.T) {
 }
 
 func TestQueryCacheErrorsAreExplicitAndRedacted(t *testing.T) {
-	client := &queryCacheClient{err: errors.New("secret redis endpoint")}
-	app := &App{database: constructorDatabase(), services: redisx.NewStore(client, "query-errors").OperationalServices()}
+	client := &queryCacheClient{err: errors.New("secret operational endpoint")}
+	app := &App{database: constructorDatabase(), services: newTestOperationalStore(t, client).OperationalServices()}
 	_, status, err := app.executeQuery(t.Context(), queryRequest{SourceNames: []string{"runs"}}, false)
 	if status != http.StatusServiceUnavailable || err == nil ||
 		err.Error() != "query result cache is unavailable" || strings.Contains(err.Error(), "secret") {
@@ -295,7 +275,7 @@ func TestQueryCacheErrorsAreExplicitAndRedacted(t *testing.T) {
 
 func TestQueryCacheRejectsTrailingAndIncompleteDocuments(t *testing.T) {
 	client := &queryCacheClient{}
-	app := &App{services: redisx.NewStore(client, "corruption-test").OperationalServices()}
+	app := &App{services: newTestOperationalStore(t, client).OperationalServices()}
 	config, err := (QueryCacheConfig{}).resolve()
 	if err != nil {
 		t.Fatal(err)
@@ -323,33 +303,30 @@ func TestQueryCacheRejectsTrailingAndIncompleteDocuments(t *testing.T) {
 	if _, hit, err := app.loadCachedQuery(t.Context(), key, config); err != nil || !hit {
 		t.Fatalf("valid trailing whitespace was rejected: hit=%t err=%v", hit, err)
 	}
-	client.writeErr = errors.New("private Redis transport failure")
+	client.writeErr = errors.New("private Operational transport failure")
 	if err := app.storeCachedQuery(t.Context(), key, compactQueryResult(), config); err == nil {
 		t.Fatal("cache-write failure was hidden")
 	}
 }
 
 type blockedQueryCacheClient struct {
+	operational.Cache
 	deadline chan time.Duration
 }
 
-func (client blockedQueryCacheClient) Do(ctx context.Context, _ ...string) (any, error) {
+func (client blockedQueryCacheClient) CachedQueryResult(ctx context.Context, _ string, _, _ int64) ([]byte, operational.QueryCacheStats, error) {
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		return nil, errors.New("cache operation had no deadline")
+		return nil, operational.QueryCacheStats{}, errors.New("cache operation had no deadline")
 	}
 	client.deadline <- time.Until(deadline)
 	<-ctx.Done()
-	return nil, ctx.Err()
-}
-
-func (blockedQueryCacheClient) DoMany(context.Context, [][]string) ([]any, error) {
-	return nil, errors.New("unexpected cache pipeline")
+	return nil, operational.QueryCacheStats{}, ctx.Err()
 }
 
 func TestQueryCacheCancellationAndOperationDeadline(t *testing.T) {
 	client := blockedQueryCacheClient{deadline: make(chan time.Duration, 1)}
-	app := &App{database: constructorDatabase(), services: redisx.NewStore(client, "deadline-test").OperationalServices()}
+	app := &App{database: constructorDatabase(), services: newTestOperationalStore(t, client).OperationalServices()}
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	type execution struct {
@@ -398,8 +375,7 @@ func TestResolveQueryContextDoesNotMutateSharedDefinitions(t *testing.T) {
 
 func TestQueryCacheSurvivesIngestionAndSeparatesAuthorization(t *testing.T) {
 	database := integrationDatabase(t)
-	store, keys := serverQueryCacheIntegrationStore(t)
-	client := store.Client
+	store, expire := serverQueryCacheIntegrationStore(t)
 	seed := func(id string) {
 		t.Helper()
 		seedDatabase(t, database, map[string]model.Source{
@@ -432,13 +408,7 @@ func TestQueryCacheSurvivesIngestionAndSeparatesAuthorization(t *testing.T) {
 	if err != nil || status != http.StatusOK || admin.Sources["runs"].Rows[0]["id"] != "new" {
 		t.Fatalf("authorization classes shared a cached result: result=%+v status=%d err=%v", admin, status, err)
 	}
-	key, err := app.queryCacheIdentity(input, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := client.Do(t.Context(), "ZADD", keys[1], "0", key); err != nil {
-		t.Fatal(err)
-	}
+	expire()
 	fresh, status, err := app.executeQuery(t.Context(), input, false)
 	if err != nil || status != http.StatusOK || fresh.Revision == first.Revision ||
 		fresh.Sources["runs"].Rows[0]["id"] != "new" {
@@ -452,31 +422,20 @@ func TestQueryCacheSurvivesIngestionAndSeparatesAuthorization(t *testing.T) {
 	}
 }
 
-func serverQueryCacheIntegrationStore(t *testing.T) (*redisx.Store, []string) {
+func serverQueryCacheIntegrationStore(t *testing.T) (*testOperationalStore, func()) {
 	t.Helper()
-	url := os.Getenv("REDIS_URL")
-	if url == "" {
-		t.Skip("REDIS_URL is not set")
-	}
-	client, err := redisx.New(url)
+	now := time.Now()
+	store, err := memory.New(memory.Config{Clock: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := redisx.NewStore(client, "query-server-"+strconv.FormatInt(time.Now().UnixNano(), 36))
-	keys := []string{store.Key("{query-cache:v1}:entries"), store.Key("{query-cache:v1}:expiry")}
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if _, err := client.Do(ctx, append([]string{"DEL"}, keys...)...); err != nil {
-			t.Errorf("clean up query cache: %v", err)
-		}
-	})
-	return store, keys
+	t.Cleanup(func() { _ = store.Close() })
+	return &testOperationalStore{Store: store}, func() { now = now.Add(25 * time.Hour) }
 }
 
 func TestQueryCacheSharedByAuthenticatedHTTPAndMCP(t *testing.T) {
 	database := integrationDatabase(t)
-	store, keys := serverQueryCacheIntegrationStore(t)
+	store, _ := serverQueryCacheIntegrationStore(t)
 	seed := func(id string) {
 		t.Helper()
 		seedDatabase(t, database, map[string]model.Source{
@@ -522,7 +481,7 @@ func TestQueryCacheSharedByAuthenticatedHTTPAndMCP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The local bearer profile bypasses Redis; exercise the hosted cache path.
+	// The local bearer profile bypasses Operational; exercise the hosted cache path.
 	app.config.QueryCache.Disabled = false
 	alias := "agent:campaign-runs"
 	definition.Name = alias + ":source"
@@ -578,7 +537,8 @@ func TestQueryCacheSharedByAuthenticatedHTTPAndMCP(t *testing.T) {
 		rows[0].(map[string]any)["workflow-name"] != "Cache fixture" {
 		t.Fatalf("MCP did not reuse HTTP query snapshot: %+v", payload)
 	}
-	count, err := store.Client.Do(t.Context(), "HLEN", keys[0])
+	_, stats, err := store.CachedQueryResult(t.Context(), strings.Repeat("0", 64), 1<<20, 64<<20)
+	count := stats.Entries
 	if err != nil || count != int64(1) {
 		t.Fatalf("HTTP and MCP did not share one cache entry: count=%v err=%v", count, err)
 	}

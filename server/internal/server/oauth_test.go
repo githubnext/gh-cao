@@ -16,22 +16,14 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestAzureModeRequiresCompleteGitHubOAuthPolicy(t *testing.T) {
-	address, closeServer := fakeRedis(t)
-	defer closeServer()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 	site := t.TempDir()
 	if err := os.WriteFile(site+"/index.html", []byte("<html><head></head></html>"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	_, err = New(context.Background(), redisx.NewStore(client, "test"), Config{
+	_, err := New(context.Background(), newTestOperationalStore(t), Config{
 		Database:      constructorDatabase(),
 		HostProfile:   platformHostProfile(),
 		SiteDirectory: site,
@@ -43,7 +35,7 @@ func TestAzureModeRequiresCompleteGitHubOAuthPolicy(t *testing.T) {
 		t.Fatalf("expected bearer rejection in Azure mode, got %v", err)
 	}
 
-	_, err = New(context.Background(), redisx.NewStore(client, "test"), Config{
+	_, err = New(context.Background(), newTestOperationalStore(t), Config{
 		Database:      constructorDatabase(),
 		HostProfile:   platformHostProfile(),
 		SiteDirectory: site,
@@ -585,31 +577,6 @@ func TestLogoutStagesCredentialsWithoutRefreshing(t *testing.T) {
 	}
 }
 
-func TestOAuthRevocationKeysCanUseDurablePrefix(t *testing.T) {
-	address, closeServer := fakeRedis(t)
-	t.Cleanup(closeServer)
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	first := redisx.NewStore(client, "ephemeral-first")
-	second := redisx.NewStore(client, "ephemeral-second")
-	if err := first.QueueRevocation(t.Context(), "session", "sealed", "durable:"); err != nil {
-		t.Fatal(err)
-	}
-	record, err := second.PendingRevocation(t.Context(), "durable:")
-	if err != nil || record.Value != "sealed" {
-		t.Fatalf("revocations did not survive namespace replacement: %#v, %v", record, err)
-	}
-	if err := second.CompleteRevocation(t.Context(), "session", "sealed", "durable:"); err != nil {
-		t.Fatal(err)
-	}
-	record, err = first.PendingRevocation(t.Context(), "durable:")
-	if err != nil || record.Value != "" {
-		t.Fatalf("completion did not remove the stable revocation: %#v, %v", record, err)
-	}
-}
-
 func TestSessionEncryptionSupportsControlledKeyRotation(t *testing.T) {
 	oldSecret := "old-session-secret-0123456789abcdef"
 	newSecret := "new-session-secret-0123456789abcdef"
@@ -640,15 +607,10 @@ func TestSessionEncryptionSupportsControlledKeyRotation(t *testing.T) {
 }
 
 func TestRefreshedSessionCannotResurrectAfterRevocationStaging(t *testing.T) {
-	address, closeServer := fakeRedis(t)
-	t.Cleanup(closeServer)
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
+	store := newTestOperationalStore(t)
 	oauth := newGitHubOAuth(GitHubOAuthConfig{
 		SessionSecret: "session-secret-0123456789abcdef",
-	}, redisx.NewStore(client, "oauth-cas-test"), redisx.NewStore(client, "oauth-cas-test"), redisx.NewStore(client, "oauth-cas-test"))
+	}, store, store, store)
 	session := oauthSession{
 		ID: "session-id", Login: "octocat", AccessToken: "old",
 		AccessExpires: time.Now().Add(time.Hour), RefreshExpires: time.Now().Add(24 * time.Hour),
@@ -1136,12 +1098,6 @@ func (server *fakeGitHubServer) sawRevocation(token string) bool {
 
 func newAzureTestApp(t *testing.T, githubURL string) *App {
 	t.Helper()
-	address, closeServer := fakeRedis(t)
-	t.Cleanup(closeServer)
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 	site := t.TempDir()
 	if err := os.WriteFile(site+"/index.html", []byte("<html><head></head></html>"), 0o600); err != nil {
 		t.Fatal(err)
@@ -1153,7 +1109,7 @@ func newAzureTestApp(t *testing.T, githubURL string) *App {
 		Proxy:         ProxyPolicy{AllowedHosts: []string{"dashboard.example.com"}, RequireHTTPS: true},
 		GitHubOAuth:   validOAuthConfig(githubURL),
 	}
-	app, err := New(context.Background(), redisx.NewStore(client, "test"), config)
+	app, err := New(context.Background(), newTestOperationalStore(t), config)
 	if err != nil {
 		t.Fatal(err)
 	}

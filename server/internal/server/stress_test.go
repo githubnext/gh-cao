@@ -4,16 +4,15 @@ package server
 //
 // The harness drives the production HTTP handler (security headers, access
 // control, inbound rate limiting, and the lazy repository-memory resolver)
-// against real Redis and Postgres and the scenario-controlled GitHub API simulator. It
+// against real Operational and Postgres and the scenario-controlled GitHub API simulator. It
 // deliberately configures very low inbound and upstream limits so every run
 // exhausts them, then asserts that the server throttles cleanly: only 200 or
 // 429 responses, standard Retry-After and RateLimit-* headers, no GitHub
 // requests past the governed budget, and recovery once the budget resets.
 //
-// It runs only when CAO_STRESS_REDIS_URL names a disposable Redis instance and
-// POSTGRES_URL names a disposable Postgres instance:
+// It runs only when POSTGRES_URL names a disposable PostgreSQL instance:
 //
-//	CAO_STRESS_REDIS_URL=redis://127.0.0.1:6379/0 POSTGRES_URL=postgres://postgres@127.0.0.1:5432/cao?sslmode=disable \
+//	POSTGRES_URL=postgres://postgres@127.0.0.1:5432/cao?sslmode=disable \
 //	  go test ./internal/server -run '^TestStress' -bench '^BenchmarkStress' -benchmem
 //
 // Optional environment:
@@ -45,7 +44,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/repositorymemory"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 )
@@ -69,7 +68,7 @@ type stressHarness struct {
 	server    *httptest.Server
 	simulator *simulator.API
 	github    *githubapp.Client
-	store     *redisx.Store
+	store     *operationalpostgres.Store
 	governor  *githubapp.Budget
 }
 
@@ -89,28 +88,17 @@ func (f fixedInstallation) InstallationFor(context.Context, string) (int64, erro
 	return int64(f), nil
 }
 
-func stressRedisURL(tb testing.TB) string {
-	tb.Helper()
-	endpoint := os.Getenv("CAO_STRESS_REDIS_URL")
-	if endpoint == "" {
-		tb.Skip("set CAO_STRESS_REDIS_URL to run the Go server rate-limit stress harness")
-	}
-	return endpoint
-}
-
 func newStressHarness(tb testing.TB, options stressOptions) *stressHarness {
 	tb.Helper()
-	client, err := redisx.New(stressRedisURL(tb))
+
+	if os.Getenv("POSTGRES_URL") == "" {
+		tb.Skip("POSTGRES_URL is required for stress tests")
+	}
+	store, err := operationalpostgres.New(context.Background(), os.Getenv("POSTGRES_URL"), "stress-"+strconv.FormatInt(time.Now().UnixNano(), 36), operationalpostgres.Config{})
 	if err != nil {
 		tb.Fatal(err)
 	}
-	if _, err := client.Do(context.Background(), "PING"); err != nil {
-		tb.Fatalf("connect to CAO_STRESS_REDIS_URL: %v", err)
-	}
-	store := redisx.NewStore(client, "stress-"+strconv.FormatInt(time.Now().UnixNano(), 36))
-	if os.Getenv("POSTGRES_URL") == "" {
-		tb.Fatal("POSTGRES_URL is required when CAO_STRESS_REDIS_URL is set")
-	}
+	tb.Cleanup(func() { _ = store.DeleteNamespace(context.Background()); _ = store.Close() })
 	database := integrationDatabase(tb)
 
 	api, err := simulator.NewAPIHandler(options.scenario, 1)
@@ -382,7 +370,7 @@ func TestStressInboundRateLimit(t *testing.T) {
 		}
 	}
 	// A token bucket admits its capacity plus whatever refilled while the
-	// burst ran; one extra token absorbs Redis/test clock rounding.
+	// burst ran; one extra token absorbs Operational/test clock rounding.
 	ceiling := capacity + int(math.Ceil(float64(capacity)*elapsed.Seconds()/window.Seconds())) + 1
 	if allowed < 1 || allowed > ceiling {
 		t.Fatalf("admitted %d requests in %s, want 1..%d", allowed, elapsed, ceiling)
@@ -579,7 +567,7 @@ func BenchmarkStressInboundThrottled(b *testing.B) {
 }
 
 // BenchmarkStressMemoryCached measures an admitted repository-memory read
-// served from the Redis cache without calling GitHub.
+// served from the Operational cache without calling GitHub.
 func BenchmarkStressMemoryCached(b *testing.B) {
 	harness := newStressHarness(b, stressOptions{
 		scenario:   simulator.Scenario{Name: "bench-cached", Repositories: 1},

@@ -261,12 +261,10 @@ Local and hosted serving SHALL use the same Go
 handler and declarative views. Pages SHALL NOT publish real operational data.
 The demo SHALL maintain the canonical model in IndexedDB. The Go server
 profile SHALL transactionally replace current dashboard sources in Postgres
-and SHALL execute Dashboard Language queries server-side. Redis SHALL hold
-only operational caches, queues, and sessions, not dashboard entities or
-execute dashboard queries.
+and SHALL execute Dashboard Language queries server-side. Operational caches,
+queues, and sessions MUST remain separate from dashboard entities and queries.
 
 PostgreSQL is the default operational adapter in a PostgreSQL-only deployment.
-Redis remains an explicit alternative, not a mandatory dashboard data store.
 The typed operational interface MAY use bounded volatile memory under the
 explicit single-process exception,
 as defined in [`server-operational-storage.md`](server-operational-storage.md).
@@ -290,26 +288,12 @@ be enforced before cache lookup. Canonical entity APIs and readiness probes
 MUST NOT use this result cache. Query ETags identify internal cache entries;
 they do not change the HTTP query response contract.
 
-The Go server SHALL apply a configurable whole-node Redis memory-pressure budget
-to query-result, marketplace, and repository-memory caches. The default SHALL be
-200,000,000 bytes; the effective budget MUST NOT exceed 80% of provider-reported
-`maxmemory` when it is nonzero. Cache admission MUST atomically check actual
-Redis usage and decline or reclaim disposable cache allocation under pressure
-on providers supporting scripted memory introspection. Cached reads MUST reserve
-conservative outgoing allocation before copying or returning a payload, separate
-from the stored-cache limit. Providers prohibiting atomic memory introspection
-MUST explicitly disable disposable-cache admission and serving rather than
-permit concurrent callers to spend independently sampled headroom. Protected
-operations SHALL remain enabled when only optional cache capabilities are
-unsupported.
-Startup and cancellation-scoped periodic maintenance SHALL reclaim disposable
-caches without requiring cache traffic. Maintenance MUST NOT evict sessions,
-queues, quota state, revocation retries, non-cache keys, or other namespaces,
-and MUST NOT modify Redis configuration. Pressure scans SHALL traverse the
-namespace once and refresh final memory evidence before reporting unreclaimable
-pressure. If protected state prevents attainment,
-the server MUST report pressure rather than imply the budget was enforced.
-This budget is not a cluster-wide, process-RSS or persistence-disk limit.
+The selected operational adapter MUST bound disposable query-result,
+marketplace, and repository-memory caches independently of protected sessions,
+accepted queues, quota state, and revocation retries. Cancellation-scoped
+maintenance MUST reclaim expired disposable entries without requiring cache
+traffic, and MUST NOT evict protected work or state in other namespaces.
+Cache capacity is not a process-RSS or persistence-disk limit.
 
 IndexedDB and Postgres dashboard sources SHALL be reconstructable from
 authoritative inputs and MUST NOT become authoritative evidence storage.
@@ -331,7 +315,7 @@ atomic activation, but the canonical entity stores use bounded incremental
 reconciliation and MUST NOT be described as generation-atomic.
 
 Dashboard views SHALL consume only bounded results from the canonical query
-layer and SHALL NOT parse upstream source formats directly. Redis endpoints and
+layer and SHALL NOT parse upstream source formats directly. Database endpoints and
 credentials MUST NOT be exposed to browser code.
 
 Row-local canonical table-to-source mappings MAY execute in bounded batches
@@ -604,7 +588,7 @@ flowchart LR
   postgres --> agents["Agents"]
   postgres --> cli["CLI"]
   postgres --> go["Go HTTP(S) query server"]
-  redis["Redis<br/>operational state"] --> go
+  operational["PostgreSQL operational adapter"] --> go
   go --> views
 ```
 
@@ -858,7 +842,7 @@ Go server data profile SHALL:
   require fresh canonical storage without removing operational audit history;
 * serve the built dashboard and its query API over HTTP on loopback by default,
   or HTTPS only when the operator provides a certificate and key;
-* keep Postgres and Redis credentials exclusively in the Go process; use Redis
+* keep database credentials exclusively in the Go process; use operational storage
   for operational state only;
 * validate Dashboard Language before executing proven equivalent, bounded,
   parameterized SQL plans in a repeatable-read Postgres transaction; reject

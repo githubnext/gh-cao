@@ -10,9 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
@@ -20,6 +17,8 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/query"
 	gateway "github.com/githubnext/gh-cao/server/internal/webhookgateway"
 	"github.com/githubnext/gh-cao/server/internal/webhookgatewaylocal"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestPostgresWebhookRuntimePrivilegeBoundary(t *testing.T) {
@@ -85,7 +84,7 @@ func TestPostgresRuntimePrivilegeBoundary(t *testing.T) {
 	f := newPostgresRoles(t)
 	ctx := t.Context()
 	host := &resolvedHostPolicy{OperationalBackend: "postgres", OperationalPostgresURL: f.runtimeDSN, OperationalNamespace: f.namespace}
-	store, _, err := newOperationalStore(ctx, host)
+	store, err := newOperationalStore(ctx, host)
 	if err != nil {
 		t.Fatal(err)
 	}

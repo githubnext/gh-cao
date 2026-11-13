@@ -535,7 +535,7 @@ type sourceReadProbeClassification struct {
 // classifySourceReadProbe decides the query.reads check's outcome from the
 // read failures and near-row-limit sources checkSourceReads collected, plus
 // the total source and row counts. It is a pure function so the
-// failures-outrank-warnings precedence is testable without a real Redis
+// failures-outrank-warnings precedence is testable without a real operational storage
 // store.
 func classifySourceReadProbe(failures, near []string, sourceCount, totalRows, maxInputRows int) sourceReadProbeClassification {
 	if len(failures) > 0 {

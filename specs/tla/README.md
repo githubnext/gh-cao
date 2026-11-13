@@ -12,19 +12,19 @@ application-process restart. Initial states enumerate all three requested modes
 and nine topology records: a valid hosted topology and independent violations
 of OAuth, HTTPS, process-owned listener, one process, one replica, volatile
 acknowledgement, co-location, or positive collection worker count. Collection
-is enabled in this model. Redis may use separately owned workers and does not
+is enabled in this model. PostgreSQL may use separately owned workers and does not
 require memory's one-process acknowledgements.
 
-The Redis configuration assumes a restart-persistent operational namespace
-survives an **application** restart. It does not prove Redis-server crash
-durability or apply that assumption to a process-isolated provider profile.
+The PostgreSQL configuration assumes a restart-persistent operational namespace
+survives an **application** restart. It does not prove database-server crash
+durability.
 The memory configuration intentionally clears operational state on close.
 Evidence remains durable in both configurations, outside operational storage.
 Session identities are abstracted to their issuing process epoch; GitHub-issued
 credentials are outside the model and are not claimed to expire on restart.
 
 Jobs represent currently authorized work under the immutable resolved policy.
-Redis startup assumes usable authorized enrollment has been restored from its
+PostgreSQL startup assumes usable authorized enrollment has been restored from its
 restart-persistent namespace; it does not impose memory's new bootstrap gate.
 `Bootstrap` abstracts memory's complete fresh authorized enumeration. Partial enumeration
 cannot take that action. Bootstrap progress assumes such enumeration eventually
@@ -49,13 +49,13 @@ and shutdown temporal properties check the required progress instead.
 | Owner-checked work | Lease ownership and completion transitions |
 | Memory session epochs and explicit loss | Fresh login/session state and bounded volatile adapter |
 | Join before close; eventual shutdown | Go application/worker lifecycle and launcher child-close handling |
-| Retained evidence; Redis restart state | Evidence lake outside adapters; restart-persistent Redis namespace |
+| Retained evidence; durable restart state | Evidence lake outside adapters; restart-persistent PostgreSQL namespace |
 
 The model abstracts away clock-driven TTLs, encryption, refresh CAS, remote
 revocation, signature verification, GitHub scope identities and shard collisions,
 database ingestion/query correctness, allocator memory, and network failures.
 It is a checked specification of these transitions, not a proof that the Go,
-JavaScript, Redis scripts, or external systems implement them. Adapter, HTTP,
+JavaScript, SQL transactions, or external systems implement them. Adapter, HTTP,
 startup/recovery, policy-parity, and launcher tests remain required.
 
 ## Running TLC
@@ -67,8 +67,8 @@ repository root, set `TLA2TOOLS_JAR` to that local jar and run:
 
 ```bash
 java -Xmx512m -cp "$TLA2TOOLS_JAR" tlc2.TLC -workers 1 \
-  -metadir test-results/tla/redis \
-  -config specs/tla/ServerOperationalStorage.redis.cfg \
+  -metadir test-results/tla/postgres \
+  -config specs/tla/ServerOperationalStorage.postgres.cfg \
   specs/tla/ServerOperationalStorage.tla
 java -Xmx512m -cp "$TLA2TOOLS_JAR" tlc2.TLC -workers 1 \
   -metadir test-results/tla/memory \

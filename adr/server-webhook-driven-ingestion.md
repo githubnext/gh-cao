@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted
+Historical. The original key-value generation/stream design below has been
+retired; it is not PostgreSQL implementation guidance. Current native acquisition,
+publication and operational contracts are defined in
+[`specs/server-ingestion.md`](../specs/server-ingestion.md) and
+[`specs/server-operational-storage.md`](../specs/server-operational-storage.md).
 
 ## Context
 
@@ -29,7 +33,7 @@ snapshot. They are not comfortable for a hosted operator who wants to observe
 per-run freshness. Sweeping 100 000 repositories to find 10 000 runs spends far
 more GitHub API budget on discovery than on evidence.
 
-Such an operator already runs the Go server, Redis, and a GitHub App for
+Such an operator already runs the Go server, an operational store, and a GitHub App for
 sign-in. The question this ADR answers is whether that server can acquire
 evidence directly, and on what terms.
 
@@ -70,7 +74,7 @@ enrollment set.
 | JSONL compaction, payload hashing, shard layout | `gh cao` (`compact-jsonl`, `hash-payloads`), invoked as a subprocess |
 | Canonical mapping, twelve collections, diagnostics | `internal/ingest` |
 | Generation staging and atomic activation | `internal/ingest` and the existing generation keys |
-| Redis access, pooling, deadlines, retries | `internal/redisx` `Do` / `DoMany` |
+| Original backend access, pooling, deadlines, retries | Retired key-value adapter |
 | Mutual exclusion and leader election | the existing `TryLock` / `Unlock` / `LockHeld` helpers |
 | Operational state and rebuild status | `SetOperationalState`, `POST /api/admin/rebuild`, `GET /api/admin/rebuild/status` |
 | Webhook receipt, HMAC, dedupe, body cap, `202` | the existing `POST /api/github/webhook` handler |
@@ -97,7 +101,7 @@ the lake is byte-compatible with what `internal/ingest` already consumes,
 projection is `ingest.Run` over the lake, unchanged. There is no second
 projector, no second canonical record store, and no incremental upsert path that
 could observe a dangling relationship and fail `validateDiagnostics`. It also
-makes cold start free: replaying the lake repopulates an empty Redis with zero
+makes cold start free: replaying the lake repopulates the original empty store with zero
 GitHub requests.
 
 Incrementality therefore lives at the **collection** grain — one repository's
@@ -121,7 +125,7 @@ The existing webhook handler takes a single global `projection` lease and runs a
 full rebuild inline. At ~7 events per minute against minutes-long collection,
 that lease would reject most deliveries. When the collector profile is selected,
 the handler instead admits the installation and repository against the
-enrollment set, appends a task to a Redis Stream, and returns `202`. Tasks are
+enrollment set, appends a task to the original stream queue, and returns `202`. Tasks are
 keyed by repository and debounced, so a burst of runs in one repository becomes
 one `gh aw logs` invocation and unrelated repositories proceed in parallel. When
 the collector is not selected, the handler's behavior is unchanged.
@@ -131,7 +135,7 @@ the collector is not selected, the handler's behavior is unchanged.
 In the collector profile, every repository the App is installed on is enrolled.
 `cao.json` remains rollout policy in either profile and never becomes ingestion
 scope. Rate limits are metered per installation, so budget is reserved per
-installation from a Redis token bucket seeded and corrected by
+installation from an operational token bucket seeded and corrected by
 `x-ratelimit-remaining` and `x-ratelimit-reset`, and the derived reserve is
 passed to `gh aw logs --max-github-api-rate-limit` so the subprocess fails
 closed rather than exhausting the installation.
@@ -150,7 +154,7 @@ flips a pointer. Reuse of the Actions projector therefore inherited an
 assumption that no longer holds: under Actions a projection happens once per
 published snapshot, so leaked generations were slow enough to be invisible.
 Collection projects continuously, which turns that leak into memory exhaustion
-of a `NoEviction` Redis, and every subsequent write — collection included —
+of the original no-eviction key-value backend, and every subsequent write — collection included —
 fails.
 
 Reclamation is therefore part of activation rather than a scheduled sweep or an
@@ -164,7 +168,7 @@ The complementary decision is that a projection which would change nothing does
 not run at all: the lake's data revision is content-addressed, a collection
 usually adds nothing to the lake, so the common case short-circuits. Only an
 explicit operator rebuild forces a rewrite, because an operator rebuilding is
-repairing Redis rather than publishing new evidence.
+repairing the original projection store rather than publishing new evidence.
 
 ## Alternatives considered
 
@@ -177,7 +181,7 @@ generation races, and meaningless completeness metadata. Profile selection is
 exclusive and validated at startup.
 
 **Build a standalone collector service.** Rejected. It would duplicate
-configuration, secret resolution, Redis access, telemetry, canonical mapping,
+configuration, secret resolution, backend access, telemetry, canonical mapping,
 and deployment plumbing the server already owns.
 
 **Reimplement `gh aw logs --audit` fidelity in Go.** Rejected. A large,
@@ -194,9 +198,10 @@ from the lake is always internally consistent.
 routine path. Webhook delivery replay recovers gaps at a fraction of the request
 cost. Enumeration remains available for explicit repair.
 
-**Azure Storage Queues instead of Redis Streams.** Rejected. Redis is already
-required, consumer groups provide the lease and claim semantics needed, and
-stream depth is a direct KEDA scaling signal.
+**Azure Storage Queues instead of the original stream queue.** Originally
+rejected because the existing backend supplied consumer-group lease/claim
+semantics and stream-depth scaling. This historical choice does not specify the
+current PostgreSQL queue contract.
 
 ## Consequences
 

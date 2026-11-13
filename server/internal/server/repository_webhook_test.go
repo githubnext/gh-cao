@@ -8,26 +8,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
 func TestSignedRepositoryLifecycleQueuesEveryTransition(t *testing.T) {
-	endpoint := os.Getenv("REDIS_URL")
-	if endpoint == "" {
-		t.Skip("REDIS_URL is not set")
-	}
-	client, err := redisx.New(endpoint)
-	if err != nil {
-		t.Fatal(err)
-	}
-	store := redisx.NewStore(client, "repository-webhook-"+strconv.FormatInt(time.Now().UnixNano(), 36))
+
+	store := newTestOperationalStore(t)
 	enrollment := collect.Enrollment{Metadata: store, Leases: store}
 	if err := enrollment.AddRepositories(t.Context(), 42, []string{"octo/api"}); err != nil {
 		t.Fatal(err)
@@ -60,13 +50,13 @@ func TestSignedRepositoryLifecycleQueuesEveryTransition(t *testing.T) {
 	if err := queue.Ensure(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	messages, err := store.StreamRead(t.Context(), "collect:tasks", "collectors", "lifecycle-test", len(actions), 0)
+	messages, err := store.ReadTasks(t.Context(), operational.QueueRead{Queue: "collect:tasks", Group: "collectors", Consumer: "lifecycle-test", Count: len(actions), Block: 0})
 	if err != nil || len(messages) != len(actions) {
 		t.Fatalf("expected %d independent lifecycle tasks: %d, %v", len(actions), len(messages), err)
 	}
 	for i, message := range messages {
 		var task collect.Task
-		if err := json.Unmarshal([]byte(message.Fields["task"]), &task); err != nil {
+		if err := json.Unmarshal([]byte(message.Fields.Task), &task); err != nil {
 			t.Fatal(err)
 		}
 		if task.RepositoryID != 123 || task.InstallationID != 42 || task.Repository != "octo/api" ||

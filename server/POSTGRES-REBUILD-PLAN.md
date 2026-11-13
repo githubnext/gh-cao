@@ -21,8 +21,8 @@ entity tables, uses compact missing/null presence bits, and stores canonical
 data without generic row/value tables or serialized documents. Ingestion streams
 manifested shards through a bounded batched writer and publishes entities,
 quality metadata, and revision atomically. The hosted SQL compiler executes
-Dashboard Language plans in PostgreSQL; Redis remains operational state and
-bounded response cache.
+Dashboard Language plans in PostgreSQL; the separate operational adapter owns
+operational state and a bounded response cache.
 
 The work still to replace is concrete:
 
@@ -55,7 +55,7 @@ The work still to replace is concrete:
 - Preserve explicit empty, unavailable, partial, stale, zero, absent, and null
   states. Do not infer outcomes, graders, or value from successful execution.
 - Preserve namespace isolation, server-side credentials, authentication,
-  read-only GitHub authority, and atomic publication. Redis remains operational
+  read-only GitHub authority, and atomic publication. The operational adapter owns operational
   state, not a second canonical entity store.
 
 ## Completed cutover
@@ -71,7 +71,7 @@ and query-cost path use PostgreSQL. The query package retains request
 vocabulary, validation, dependency planning, limits, and byte estimation; the
 Go row evaluator has been removed, and unsupported query shapes fail closed.
 The response contract still includes the legacy `fallbackOperations` metric as
-an empty compatibility field. Redis remains operational state and a bounded
+an empty compatibility field. Operational storage owns operational state and a bounded
 completed-response cache; it does not store canonical entities or execute
 dashboard queries.
 

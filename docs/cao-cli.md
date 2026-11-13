@@ -34,7 +34,7 @@ gh cao dashboard --repo octo/api --repo octo/web
 
 Release binaries embed the pinned gh-aw log collector, the existing Go server,
 and the built dashboard. Use an authenticated GitHub CLI and Docker or Podman;
-there is no separate gh-aw, Node.js, npm, or Redis setup. Without an explicit
+there is no separate gh-aw, Node.js, or npm setup. Without an explicit
 `--postgres-url` or `CAO_POSTGRES_URL`, the command pulls and starts an owned
 PostgreSQL container and provisions separate owner/runtime roles. Its data is
 bind-mounted under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.

@@ -79,7 +79,7 @@ resource job 'Microsoft.App/jobs@2024-03-01' = {
             '/data'
             '--database-queries'
             '/app/queries/database.json'
-            '--redis-namespace'
+            '--namespace'
             canonicalNamespace
           ]
           env: [

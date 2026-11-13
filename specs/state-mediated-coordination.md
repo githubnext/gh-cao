@@ -21,7 +21,7 @@ Central Agentic Ops (CAO). It replaces repeated portfolio discovery, direct
 agent-to-agent communication, and non-transactional competing claims with
 incremental intelligence, deterministic decision coalescing, transactional
 work admission, bounded execution envelopes, and durable result references.
-PostgreSQL is the coordination authority. Redis and notifications may
+PostgreSQL is the coordination authority. Notifications may
 accelerate delivery but do not own durable state. The architecture makes agent
 work proportional to changed actionable evidence and admitted work rather than
 to repository count, campaign count, ledger length, or agent count.
@@ -205,7 +205,7 @@ state.
 **CAO-SMC-002:** Implementations MUST NOT create full canonical-data copies to
 represent generations, snapshots, publication cycles, or coordination epochs.
 
-**CAO-SMC-003:** Redis, `LISTEN`/`NOTIFY`, and equivalent mechanisms MAY be
+**CAO-SMC-003:** `LISTEN`/`NOTIFY` and equivalent mechanisms MAY be
 used for wake-up hints, caches, rate limits, or disposable acceleration. Their
 loss MUST NOT lose accepted Work, Attempts, results, or consumer progress.
 
@@ -519,7 +519,7 @@ When retries are exhausted, Work MUST transition to `exhausted` or
 | External dispatch succeeds; acknowledgement is lost | Correlation and idempotency reconcile the existing Run |
 | Worker result is delivered twice | Result identity makes the second delivery a no-op |
 | Policy narrows before worker start | Worker revalidation narrows or rejects execution |
-| Redis or notification service is lost | Durable PostgreSQL state continues processing |
+| Notification service is lost | Durable PostgreSQL state continues processing |
 
 ## 11. Security, Authority, and Privacy
 
@@ -662,7 +662,7 @@ failed.
 | T-SMC-001 | Reprocess an unchanged evidence partition | Fingerprint is reused; no agent is invoked | 1 |
 | T-SMC-002 | Admit the same Decision concurrently | One Work item exists; all callers receive its identity | 1 |
 | T-SMC-003 | Change one repository's evidence | Only declared dependent partitions are invalidated | 1 |
-| T-SMC-004 | Remove Redis and drop notifications | Accepted Work remains durable and processable | 1 |
+| T-SMC-004 | Drop notifications | Accepted Work remains durable and processable | 1 |
 | T-SMC-005 | Run two dispatchers against ready Work | Each Work item receives at most one current lease | 2 |
 | T-SMC-006 | Commit using an expired fencing token | Transition is rejected | 2 |
 | T-SMC-007 | Lose dispatch acknowledgement after Run creation | Existing Run is correlated; no duplicate effect occurs | 2 |
@@ -690,7 +690,7 @@ A conforming deployment:
 - [ ] uses Attempts, Leases, and fencing rather than competing Claims;
 - [ ] communicates large results by immutable reference;
 - [ ] publishes changes through a transactional outbox;
-- [ ] treats notifications and Redis as disposable acceleration;
+- [ ] treats notifications as disposable acceleration;
 - [ ] retries only under deterministic bounded policy;
 - [ ] preserves CAO and gh-aw authority boundaries; and
 - [ ] measures communication cost and avoided duplicate work.

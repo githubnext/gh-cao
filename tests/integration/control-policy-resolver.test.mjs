@@ -99,14 +99,9 @@ test("control.mjs resolves deployment profiles for control settings", () => {
             module: "container",
             name: "container",
           },
-          redis: {
-            module: "local",
-            "url-env": "REDIS_URL",
-            "namespace-env": "REDIS_NAMESPACE",
-            "allow-private-plaintext": true,
-            tls: {
-              mode: "disabled",
-            },
+          "operational-store": {
+            backend: "postgres",
+            "namespace-env": "CAO_OPERATIONAL_NAMESPACE",
           },
         },
       },

@@ -5884,7 +5884,7 @@
     },
     {
       "id": "ingestion-health",
-      "subject": "Show the current Redis-backed webhook and collection health snapshot.",
+      "subject": "Show the current operational webhook and collection health snapshot.",
       "objective": "Determine whether the reported collection, webhook, queue, and backfill state warrants inspecting ingestion diagnostics.",
       "acceptance": "Report the observed health, queue, failure, success, and projection timestamps together; verify freshness and configuration before calling collection healthy, and treat missing state as unknown rather than zero.",
       "description": "",

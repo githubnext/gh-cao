@@ -13,8 +13,6 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 const (
@@ -370,7 +368,7 @@ func TestHostedMCPConfigurationRequiresRepository(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(site, "index.html"), []byte("<html></html>"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	_, err := New(context.Background(), &redisx.Store{}, Config{
+	_, err := New(context.Background(), newTestOperationalStore(t), Config{
 		Database:    constructorDatabase(),
 		HostProfile: hostedHostProfile(), Listen: "127.0.0.1:8080",
 		SiteDirectory: site, MCPEnabled: true,
@@ -447,12 +445,6 @@ func newMCPTestAppConfig(
 	httpClient *http.Client,
 ) *App {
 	t.Helper()
-	address, closeRedis := fakeRedis(t)
-	t.Cleanup(closeRedis)
-	client, err := redisx.New("redis://" + address + "/0")
-	if err != nil {
-		t.Fatal(err)
-	}
 	site := t.TempDir()
 	if err := os.WriteFile(filepath.Join(site, "index.html"), []byte("<html></html>"), 0o600); err != nil {
 		t.Fatal(err)
@@ -461,7 +453,7 @@ func newMCPTestAppConfig(
 	if err != nil {
 		t.Fatal(err)
 	}
-	app, err := New(context.Background(), redisx.NewStore(client, "test"), Config{
+	app, err := New(context.Background(), newTestOperationalStore(t), Config{
 		Database: constructorDatabase(), DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json",
 		Listen: "127.0.0.1:8443", SiteDirectory: site, AccessToken: testAccessToken,
 		DashboardQueries: definitions, AgentCatalogPath: testAgentCatalog,

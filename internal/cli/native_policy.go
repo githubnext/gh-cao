@@ -514,13 +514,6 @@ func nativeValidateMarketplace(value any, at string) error {
 
 func nativeValidateHost(value any, at string) error {
 	env := nativePolicyString(nativeSecret)
-	redis := nativePolicyObject(map[string]nativePolicyRule{
-		"module":  nativeEnum("generic", "local", "upstash", "aws-elasticache", "redis-cloud", "gcp-memorystore", "railway", "render", "digitalocean"),
-		"url-env": env, "host-env": env, "port-env": env, "username-env": env, "password-env": env, "namespace-env": env,
-		"session": nativeEnum("pooled", "serialized"), "isolate-process-namespace": nativePolicyBool,
-		"single-replica": nativePolicyBool, "supports-collection": nativePolicyBool, "allow-private-plaintext": nativePolicyBool,
-		"tls": nativePolicyObject(map[string]nativePolicyRule{"mode": nativeEnum("auto", "required", "disabled"), "server-name-env": env, "ca-certificate-env": env}),
-	}, "module")
 	target := nativePolicyObject(map[string]nativePolicyRule{
 		"module": nativeEnum("generic", "container"), "name": nativePolicyString(slugPattern),
 		"authentication": nativeEnum("github-oauth"), "listener": nativeEnum("process", "platform", "external"),
@@ -533,10 +526,10 @@ func nativeValidateHost(value any, at string) error {
 		"trust-platform-proxy": nativePolicyBool, "supports-single-replica": nativePolicyBool, "replicas": nativeInteger(1, math.MaxFloat64),
 	}, "module")
 	rule := nativePolicyObject(map[string]nativePolicyRule{
-		"target": target, "redis": redis,
+		"target": target,
 		"operational-store": nativePolicyObject(map[string]nativePolicyRule{
-			"backend": nativeEnum("redis", "memory", "postgres"), "single-process": nativePolicyBool, "allow-volatile": nativePolicyBool,
-			"namespace-env": env, "redis": redis, "postgres": nativePolicyObject(map[string]nativePolicyRule{"url-env": env}),
+			"backend": nativeEnum("memory", "postgres"), "single-process": nativePolicyBool, "allow-volatile": nativePolicyBool,
+			"namespace-env": env, "postgres": nativePolicyObject(map[string]nativePolicyRule{"url-env": env}),
 		}, "backend"),
 		"cors": nativePolicyObject(map[string]nativePolicyRule{
 			"max-age": nativeInteger(1, 86400), "allowed-origins": func(value any, at string) error {
@@ -585,17 +578,13 @@ func nativeValidateHost(value any, at string) error {
 		}
 	}
 	single := t["module"] == "container" || (t["module"] == "generic" && t["supports-single-replica"] == true)
-	r, _ := host["redis"].(map[string]any)
 	if operational, ok := host["operational-store"].(map[string]any); ok {
-		if _, exists := host["redis"]; exists {
-			return fmt.Errorf("%s.redis and operational-store cannot both select an operational backend", at)
-		}
 		backend := operational["backend"]
 		if _, exists := operational["postgres"]; exists && backend != "postgres" {
 			return fmt.Errorf("%s.operational-store.postgres requires the postgres backend", at)
 		}
 		if backend == "memory" {
-			if operational["redis"] != nil || operational["single-process"] != true || operational["allow-volatile"] != true || !single || nativeNumber(t["replicas"]) != 1 || (t["module"] == "generic" && t["listener"] != "process") {
+			if operational["single-process"] != true || operational["allow-volatile"] != true || !single || nativeNumber(t["replicas"]) != 1 || (t["module"] == "generic" && t["listener"] != "process") {
 				return fmt.Errorf("%s memory requires acknowledged single-process, single-replica process-listener topology", at)
 			}
 			return nil
@@ -603,28 +592,6 @@ func nativeValidateHost(value any, at string) error {
 		if operational["single-process"] == true || operational["allow-volatile"] == true {
 			return fmt.Errorf("%s durable backends reject memory topology options", at)
 		}
-		if backend == "postgres" {
-			if operational["redis"] != nil {
-				return fmt.Errorf("%s postgres cannot configure Redis", at)
-			}
-			return nil
-		}
-		r, _ = operational["redis"].(map[string]any)
-	}
-	if r == nil {
-		return nil
-	}
-	if r["module"] != "generic" {
-		for _, key := range []string{"session", "isolate-process-namespace", "single-replica", "supports-collection"} {
-			if _, exists := r[key]; exists {
-				return fmt.Errorf("%s.redis.%s is fixed by module %s", at, key, r["module"])
-			}
-		}
-	} else if (r["single-replica"] == true || r["isolate-process-namespace"] == true) && r["session"] != "serialized" {
-		return fmt.Errorf("%s Redis single-replica and process isolation require a serialized session", at)
-	}
-	if (r["module"] == "upstash" || (r["module"] == "generic" && r["single-replica"] == true)) && (!single || nativeNumber(t["replicas"]) != 1) {
-		return fmt.Errorf("%s target cannot guarantee the Redis module's single-replica requirement", at)
 	}
 	return nil
 }

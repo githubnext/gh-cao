@@ -22,7 +22,7 @@ committed output, not hand-edited source. Do not specify MCP internals.
    method, path, headers, body, statuses, and examples. Describe deployment
    differences: local bearer capability; hosted GitHub OAuth session and
    `X-CSRF-Token` on protected mutations; public health/readiness; and signed
-   GitHub webhooks. Never expose OAuth tokens, Redis details, or secrets.
+   GitHub webhooks. Never expose OAuth tokens, storage internals, or secrets.
 3. Bring the Go handler and any client into conformance with the edited spec.
    When changing routes or structured payloads, extend the relevant checks in
    `server/spec/contract.test.mjs`. Preserve the existing API unless the change

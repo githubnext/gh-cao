@@ -107,7 +107,7 @@ describe("remote dashboard data backend", () => {
     expect(deleteCache).not.toHaveBeenCalledWith("unrelated-cache");
   });
 
-  it("posts compiled query context without Redis connection details", async () => {
+  it("posts compiled query context without storage credentials", async () => {
     localStorage.setItem("cao-dashboard-access-token", "test-access-token");
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({
@@ -149,7 +149,7 @@ describe("remote dashboard data backend", () => {
     expect(request.sourceNames).toEqual(["simulated-usage"]);
     expect(request.queries[0].compute[0].args[1]).toEqual({ value: 3 });
     expect(request.compiledQueries.at(-1).compute[0].args[1]).toEqual({ value: 3 });
-    expect(JSON.stringify(request)).not.toMatch(/redis|credential|password/i);
+    expect(JSON.stringify(request)).not.toMatch(/credential|password/i);
     expect(init?.headers).toMatchObject({ Authorization: "Bearer test-access-token" });
   });
 
@@ -569,7 +569,7 @@ describe("remote dashboard data backend", () => {
       const metadata = call[1];
       expect(Object.values(metadata).every((value) => typeof value !== "object")).toBe(true);
     }
-    expect(JSON.stringify(output.debug.mock.calls)).not.toMatch(/authorization|token|redis|Load failed/i);
+    expect(JSON.stringify(output.debug.mock.calls)).not.toMatch(/authorization|token|Load failed/i);
 
     vi.doUnmock("../../src/debug.js");
     vi.resetModules();

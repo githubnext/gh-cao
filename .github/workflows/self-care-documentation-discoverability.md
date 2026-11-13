@@ -250,7 +250,7 @@ Evaluate exactly these ten tasks:
 5. Understand Activity workflow-metadata collection.
 6. Locate worker authority constraints.
 7. Debug a failed CAO deployment.
-8. Configure hosted Redis.
+8. Configure hosted operational storage.
 9. Add a CAO CLI command.
 10. Set up CAO through the `setup-cao` skill.
 

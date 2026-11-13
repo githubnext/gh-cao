@@ -27,13 +27,6 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/githubnext/gh-cao/server/internal/admission"
 	"github.com/githubnext/gh-cao/server/internal/adxingest"
 	"github.com/githubnext/gh-cao/server/internal/adxtrace"
@@ -54,6 +47,12 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"github.com/githubnext/gh-cao/server/internal/tokenbroker"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var serverLog = logger.New("cao:server")
@@ -115,9 +114,6 @@ type Config struct {
 	// the production defaults.
 	RateLimits RateLimitConfig
 	QueryCache QueryCacheConfig
-	// RedisMaxBytes bounds cache pressure against whole-node memory usage.
-	// Zero selects CAO_REDIS_MAX_BYTES or the 200 MB default.
-	RedisMaxBytes int64
 
 	// TokenBrokerSingleProcessConfirmed acknowledges volatile credential cleanup
 	// and prohibits multiple or overlapping broker process replicas.
@@ -241,8 +237,8 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 	services := store.OperationalServices()
 	capabilities := store.Capabilities()
 	requirements := operational.Requirements{
-		SingleProcess: (config.HostProfile.SingleProcess && config.SingleReplicaConfirmed) || config.HostProfile.IsolateProcessNamespace,
-		AllowVolatile: config.AllowVolatile || config.HostProfile.IsolateProcessNamespace,
+		SingleProcess: config.HostProfile.SingleProcess && config.SingleReplicaConfirmed,
+		AllowVolatile: config.AllowVolatile,
 		OAuth:         config.HostProfile.Authentication == HostAuthenticationOAuth,
 		Collection:    config.Collector != nil,
 	}
@@ -271,11 +267,7 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		return nil, err
 	}
 	config.QueryCache = cache
-	if err := configureOperationalStore(ctx, store, &config); err != nil {
-		return nil, err
-	}
-	serverLog.PrintfContext(ctx, "configured redis_max_bytes=%d maintenance_interval_ms=%d",
-		config.RedisMaxBytes, redisMaintenanceInterval.Milliseconds())
+
 	queryCacheLog.PrintfContext(ctx, "configured enabled=%t ttl_ms=%d min_duration_ms=%d max_result_bytes=%d max_bytes=%d max_entries=%d",
 		!cache.Disabled, operational.QueryCacheTTL.Milliseconds(), cache.MinDuration.Milliseconds(),
 		cache.MaxResultBytes, cache.MaxBytes, operational.QueryCacheMaxEntries)
@@ -471,7 +463,7 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 		return err
 	}
 	runCtx, cancel := context.WithCancel(runtimeCtx)
-	if err := a.initializeRedisMaintenance(startupCtx); err != nil {
+	if err := a.initializeOperationalMaintenance(startupCtx); err != nil {
 		cancel()
 		return err
 	}
@@ -517,7 +509,7 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 		a.startTask(func() { a.sessionArchive.run(runCtx) })
 	}
 	if a.services.Backend != nil {
-		a.startTask(func() { a.runRedisMaintenance(runCtx, redisMaintenanceInterval) })
+		a.startTask(func() { a.runOperationalMaintenance(runCtx, operationalMaintenanceInterval) })
 	}
 	if a.hostedCLI != nil && a.hostedCLI.local != nil {
 		a.startTask(func() { a.runOperatorCommands(runCtx) })
@@ -1298,20 +1290,19 @@ func (a *App) health(response http.ResponseWriter, request *http.Request) {
 	ctx, cancel := context.WithTimeout(request.Context(), 3*time.Second)
 	defer cancel()
 	active, activeErr := a.database.State(ctx)
-	redisHealthy := a.services.Health.Ping(ctx) == nil
+	operationalHealthy := a.services.Health.Ping(ctx) == nil
 	status := http.StatusOK
-	if !redisHealthy || activeErr != nil {
+	if !operationalHealthy || activeErr != nil {
 		status = http.StatusServiceUnavailable
 	}
-	serverLog.PrintfContext(request.Context(), "health status=%d redis=%t data=%t", status, redisHealthy, active.Ready)
+	serverLog.PrintfContext(request.Context(), "health status=%d operational=%t data=%t", status, operationalHealthy, active.Ready)
 	data := map[string]any{"available": active.Ready, "rebuildRequired": !active.Ready}
 	if active.Ready && !active.EvaluatedAt.IsZero() {
 		data["evaluatedAt"] = active.EvaluatedAt.UTC().Format(time.RFC3339Nano)
 	}
 	payload := map[string]any{
 		"status":      "healthy",
-		"redis":       map[string]any{"connected": redisHealthy},
-		"operational": a.operationalHealth(redisHealthy),
+		"operational": a.operationalHealth(operationalHealthy),
 		"data":        data,
 	}
 	if status != http.StatusOK {
@@ -1340,8 +1331,8 @@ func (a *App) readiness(response http.ResponseWriter, request *http.Request) {
 	ctx, cancel := context.WithTimeout(request.Context(), 3*time.Second)
 	defer cancel()
 	active, activeErr := a.database.State(ctx)
-	redisHealthy := a.services.Health.Ping(ctx) == nil
-	ready := redisHealthy && activeErr == nil && active.Ready
+	operationalHealthy := a.services.Health.Ping(ctx) == nil
+	ready := operationalHealthy && activeErr == nil && active.Ready
 	if collector := a.Collector(); collector != nil {
 		ready = ready && collector.RecoveryReady()
 	}
@@ -1358,8 +1349,7 @@ func (a *App) readiness(response http.ResponseWriter, request *http.Request) {
 	}
 	writeJSON(response, status, map[string]any{
 		"ready":       ready,
-		"redis":       map[string]any{"connected": redisHealthy},
-		"operational": a.operationalHealth(redisHealthy),
+		"operational": a.operationalHealth(operationalHealthy),
 		"data":        data,
 	})
 }
@@ -1643,7 +1633,7 @@ func (a *App) executeQuery(ctx context.Context, input queryRequest, allowCollect
 		case cache.Disabled:
 			reason = "disabled"
 		case a.services.Cache == nil:
-			reason = "no-redis"
+			reason = "no-operational-store"
 		}
 		if err := a.recordQueryCacheBypass(ctx, reason); err != nil {
 			return queryResponse{}, http.StatusInternalServerError, err

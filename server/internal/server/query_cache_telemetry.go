@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
 var queryCacheLog = logger.New("cao:server:query-cache")
@@ -55,12 +54,12 @@ func newQueryCacheTelemetry() (*queryCacheTelemetry, error) {
 		return nil, err
 	}
 	instruments.memory, err = meter.Int64Gauge(queryCacheMetricPrefix+"memory.bytes",
-		metric.WithUnit("By"), metric.WithDescription("Last allocator-reported Redis result and index memory"))
+		metric.WithUnit("By"), metric.WithDescription("Last allocator-reported operational storage result and index memory"))
 	if err != nil {
 		return nil, err
 	}
 	instruments.entries, err = meter.Int64Gauge(queryCacheMetricPrefix+"entries",
-		metric.WithUnit("{entry}"), metric.WithDescription("Last Redis query cache entry count"))
+		metric.WithUnit("{entry}"), metric.WithDescription("Last operational storage query cache entry count"))
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +72,7 @@ func newQueryCacheTelemetry() (*queryCacheTelemetry, error) {
 }
 
 // Only fixed decisions and numeric resource measurements cross this boundary.
-// Never add query identities, fields, parameters, result values, or Redis errors.
+// Never add query identities, fields, parameters, result values, or operational storage errors.
 func (instruments *queryCacheTelemetry) observe(
 	ctx context.Context, span trace.Span, operation, outcome string,
 	started time.Time, payloadBytes int, stats *operational.QueryCacheStats,

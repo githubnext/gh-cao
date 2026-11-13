@@ -3,79 +3,51 @@ package collect
 import (
 	"context"
 	"errors"
-	"os"
-	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 )
 
-type failingCommandClient struct {
-	delegate redisx.CommandClient
-	mu       sync.Mutex
-	failEval bool
+type collectionTestStore struct {
+	*memory.Store
+	fail      atomic.Bool
+	ambiguous atomic.Bool
 }
 
-func (c *failingCommandClient) Do(ctx context.Context, command ...string) (any, error) {
-	c.mu.Lock()
-	if c.failEval && len(command) > 0 && command[0] == "EVAL" {
-		c.failEval = false
-		c.mu.Unlock()
-		return nil, errors.New("injected Redis failure")
+func (s *collectionTestStore) ReplaceTask(ctx context.Context, request operational.Replacement) error {
+	if s.fail.Load() {
+		return errors.New("injected replacement failure")
 	}
-	c.mu.Unlock()
-	return c.delegate.Do(ctx, command...)
-}
-
-func (c *failingCommandClient) DoMany(ctx context.Context, commands [][]string) ([]any, error) {
-	return c.delegate.DoMany(ctx, commands)
-}
-
-type ambiguousCommandClient struct {
-	delegate redisx.CommandClient
-	once     sync.Once
-}
-
-func (c *ambiguousCommandClient) Do(ctx context.Context, command ...string) (any, error) {
-	value, err := c.delegate.Do(ctx, command...)
-	ambiguous := false
-	if len(command) > 0 && command[0] == "EVAL" {
-		c.once.Do(func() { ambiguous = true })
+	err := s.Store.ReplaceTask(ctx, request)
+	if err == nil && s.ambiguous.Swap(false) {
+		return errors.New("injected connection loss after commit")
 	}
-	if ambiguous && err == nil {
-		return nil, errors.New("injected connection loss after Redis commit")
+	return err
+}
+func (s *collectionTestStore) CompleteTask(ctx context.Context, queue, group, id string) error {
+	if s.fail.Load() {
+		return errors.New("injected completion failure")
 	}
-	return value, err
+	return s.Store.CompleteTask(ctx, queue, group, id)
 }
-
-func (c *ambiguousCommandClient) DoMany(ctx context.Context, commands [][]string) ([]any, error) {
-	return c.delegate.DoMany(ctx, commands)
+func (s *collectionTestStore) AdmitDelivery(ctx context.Context, request operational.DeliveryRequest) (operational.DeliveryAdmission, error) {
+	if s.fail.Load() {
+		return operational.DeliveryDuplicate, errors.New("injected admission failure")
+	}
+	return s.Store.AdmitDelivery(ctx, request)
 }
-
-func integrationStore(t *testing.T) (*redisx.Store, context.Context) {
+func integrationStore(t *testing.T) (*collectionTestStore, context.Context) {
 	t.Helper()
-	rawURL := os.Getenv("REDIS_URL")
-	if rawURL == "" {
-		t.Skip("REDIS_URL is not set")
-	}
-	client, err := redisx.New(rawURL)
+	store, err := memory.New(memory.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	namespace, err := redisx.NormalizeNamespace("collect-" + strconv.FormatInt(time.Now().UnixNano(), 36))
-	if err != nil {
-		t.Fatal(err)
-	}
-	store := redisx.NewStore(client, namespace)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	t.Cleanup(cancel)
-	if err := store.Ping(ctx); err != nil {
-		t.Fatal(err)
-	}
-	// Each test uses a unique namespace, so leftover keys never cross tests.
-	return store, ctx
+	t.Cleanup(func() { _ = store.Close() })
+	return &collectionTestStore{Store: store}, t.Context()
 }
 
 func TestEnrollmentTracksInstallationCoverage(t *testing.T) {
@@ -205,7 +177,7 @@ func TestQueueDurablyDeduplicatesRunTasksByRepositoryRunAndAttempt(t *testing.T)
 		t.Fatalf("enqueue outcomes first=%t duplicate=%t secondAttempt=%t, want true/false/true",
 			first, duplicate, distinctAttempt)
 	}
-	length, err := store.StreamLength(ctx, runTaskStream)
+	length, err := testQueueLength(ctx, store, runTaskStream)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,12 +229,11 @@ func TestRetryTransitionFailureLeavesOriginalPending(t *testing.T) {
 	if err != nil || len(leases) != 1 {
 		t.Fatalf("lease = %+v, err = %v", leases, err)
 	}
-	original := store.Client
-	store.Client = &failingCommandClient{delegate: original, failEval: true}
+	store.fail.Store(true)
 	if err := queue.Retry(ctx, leases[0], errors.New("collect failed")); err == nil {
 		t.Fatal("expected injected transition failure")
 	}
-	store.Client = original
+	store.fail.Store(false)
 	pending, err := queue.Pending(ctx)
 	if err != nil || pending != 1 {
 		t.Fatalf("pending = %d, err = %v; want original pending", pending, err)
@@ -286,12 +257,11 @@ func TestDeadLetterFailureLeavesOriginalPending(t *testing.T) {
 	if err != nil || len(leases) != 1 {
 		t.Fatalf("lease = %+v, err = %v", leases, err)
 	}
-	original := store.Client
-	store.Client = &failingCommandClient{delegate: original, failEval: true}
+	store.fail.Store(true)
 	if err := queue.Retry(ctx, leases[0], errors.New("permanent")); err == nil {
 		t.Fatal("expected injected dead-letter failure")
 	}
-	store.Client = original
+	store.fail.Store(false)
 	pending, err := queue.Pending(ctx)
 	if err != nil || pending != 1 {
 		t.Fatalf("pending = %d, err = %v; want original pending", pending, err)
@@ -308,9 +278,7 @@ func TestMalformedTaskMovesToDeadLetterBeforeAck(t *testing.T) {
 	if err := queue.Ensure(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.StreamAdd(ctx, taskStream, 0, map[string]string{
-		"repository": "octo/api", "task": "{",
-	}); err != nil {
+	if _, err := store.EnqueueTask(ctx, operational.EnqueueRequest{Queue: taskStream, Capacity: 100, Fields: operational.TaskFields{Repository: "octo/api", Task: "{"}}); err != nil {
 		t.Fatal(err)
 	}
 	leases, err := queue.Lease(ctx, "worker", 1, 0)
@@ -384,7 +352,7 @@ func TestQueueCapacityBackpressuresWithoutTrimmingPendingWork(t *testing.T) {
 	if err != nil || len(leases) != 1 {
 		t.Fatalf("lease = %+v, err = %v", leases, err)
 	}
-	if _, err := queue.Enqueue(ctx, Task{Repository: "octo/second"}); !errors.Is(err, redisx.ErrStreamCapacity) {
+	if _, err := queue.Enqueue(ctx, Task{Repository: "octo/second"}); !errors.Is(err, operational.ErrCapacity) {
 		t.Fatalf("enqueue error = %v, want capacity backpressure", err)
 	}
 	reclaimed, err := queue.Reclaim(ctx, "healthy", 0, 1)
@@ -410,7 +378,7 @@ func TestQueueCapacityCountsScheduledRetries(t *testing.T) {
 	if err := queue.Defer(ctx, leases[0]); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := queue.Enqueue(ctx, Task{Repository: "octo/overflow"}); !errors.Is(err, redisx.ErrStreamCapacity) {
+	if _, err := queue.Enqueue(ctx, Task{Repository: "octo/overflow"}); !errors.Is(err, operational.ErrCapacity) {
 		t.Fatalf("enqueue error = %v, want capacity backpressure for scheduled task", err)
 	}
 	if depth, err := queue.Depth(ctx); err != nil || depth != 1 {
@@ -455,7 +423,7 @@ func TestQueueDeadLettersAfterRepeatedFailures(t *testing.T) {
 	}
 }
 
-func TestDeadLetterRetentionIsBounded(t *testing.T) {
+func TestDeadLetterCapacityPreservesProtectedWork(t *testing.T) {
 	store, ctx := integrationStore(t)
 	queue := Queue{Tasks: store, Admission: store, Metadata: store, Leases: store, Deliveries: store, Metrics: store, MaxAttempts: 1, MaxLength: 1}
 	if err := queue.Ensure(ctx); err != nil {
@@ -469,8 +437,12 @@ func TestDeadLetterRetentionIsBounded(t *testing.T) {
 		if err != nil || len(leases) != 1 {
 			t.Fatalf("lease = %+v, err = %v", leases, err)
 		}
-		if err := queue.Retry(ctx, leases[0], errors.New("permanent")); err != nil {
+		err = queue.Retry(ctx, leases[0], errors.New("permanent"))
+		if repository == "octo/first" && err != nil {
 			t.Fatal(err)
+		}
+		if repository == "octo/second" && !errors.Is(err, operational.ErrCapacity) {
+			t.Fatalf("full dead-letter queue discarded protected work: %v", err)
 		}
 	}
 	dead, err := queue.DeadLetters(ctx)
@@ -479,6 +451,10 @@ func TestDeadLetterRetentionIsBounded(t *testing.T) {
 	}
 	if dead != 1 {
 		t.Fatalf("dead letters = %d, want configured retention limit 1", dead)
+	}
+	pending, err := queue.Pending(ctx)
+	if err != nil || pending != 1 {
+		t.Fatalf("full dead-letter queue lost the pending source: %d %v", pending, err)
 	}
 }
 func TestQueueSerializesOneRepository(t *testing.T) {
@@ -626,13 +602,12 @@ func TestReplacementPersistsWhenAckCannotComplete(t *testing.T) {
 	if err != nil || len(leases) != 1 {
 		t.Fatalf("lease = %+v, err = %v", leases, err)
 	}
-	original := store.Client
-	store.Client = &ambiguousCommandClient{delegate: original}
+	store.ambiguous.Store(true)
 	err = queue.Retry(ctx, leases[0], errors.New("collect failed"))
 	if err == nil {
 		t.Fatal("expected ambiguous connection failure")
 	}
-	store.Client = original
+	store.fail.Store(false)
 	pending, err := queue.Pending(ctx)
 	if err != nil || pending != 0 {
 		t.Fatalf("pending = %d, err = %v; want original acknowledged", pending, err)
@@ -658,12 +633,11 @@ func TestDeliveryAdmissionFailureDoesNotConsumeDelivery(t *testing.T) {
 	}
 	admitter := Admitter{Enrollment: enrollment, Queue: queue}
 	payload := []byte(`{"action":"completed","installation":{"id":7},"repository":{"full_name":"octo/api"}}`)
-	original := store.Client
-	store.Client = &failingCommandClient{delegate: original, failEval: true}
+	store.fail.Store(true)
 	if _, err := admitter.AdmitDelivery(ctx, "workflow_run", payload, "delivery-1", time.Hour); err == nil {
 		t.Fatal("expected injected admission failure")
 	}
-	store.Client = original
+	store.fail.Store(false)
 	admission, err := admitter.AdmitDelivery(ctx, "workflow_run", payload, "delivery-1", time.Hour)
 	if err != nil {
 		t.Fatal(err)
@@ -686,12 +660,11 @@ func TestFinalAckFailureLeavesCompletedTaskReclaimable(t *testing.T) {
 	if err != nil || len(leases) != 1 {
 		t.Fatalf("lease = %+v, err = %v", leases, err)
 	}
-	original := store.Client
-	store.Client = &failingCommandClient{delegate: original, failEval: true}
+	store.fail.Store(true)
 	if err := queue.Complete(ctx, leases[0]); err == nil {
 		t.Fatal("expected injected final ACK failure")
 	}
-	store.Client = original
+	store.fail.Store(false)
 	reclaimed, err := queue.Reclaim(ctx, "worker-b", 0, 1)
 	if err != nil || len(reclaimed) != 1 {
 		t.Fatalf("reclaimed = %+v, err = %v", reclaimed, err)

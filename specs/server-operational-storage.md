@@ -2,8 +2,8 @@
 
 `server/internal/operational/` owns the provider-neutral operational contracts.
 PostgreSQL is the default implementation, providing deployment-scoped
-restart-persistent operational services without requiring Redis.
-Redis and bounded volatile single-process memory remain explicit alternatives.
+restart-persistent operational services. Bounded volatile single-process memory
+is the only explicit alternative.
 Its operational adapter MUST remain separate from the canonical dashboard
 entity/query adapter, tables, namespace, schema generation, and lifecycle.
 
@@ -39,8 +39,8 @@ bundle and aggregate OAuth, collection, quota, coordination, and diagnostic
 interfaces MUST NOT be reintroduced as compatibility paths.
 Shared adapter conformance MUST execute through these same focused services,
 including transitions that span sessions and revocations or queues and delivery
-admission. Raw Redis commands, physical keys,
-streams, scripts, adapter assertions, and backend-name decisions MUST remain
+admission. Raw database commands, physical tables,
+SQL, adapter assertions, and backend-name decisions MUST remain
 inside adapters and construction/configuration code.
 
 Each capability identifies unsupported, process-scoped, or deployment-scoped
@@ -56,11 +56,10 @@ it MUST NOT add backend branches to request, OAuth, quota, or collection logic.
 `server/internal/operational/postgres/` implements every typed service. It owns
 only `cao_operational_*` tables, not canonical entities or query execution.
 Reviewed `operational-store.backend: "postgres"` selects it explicitly, and a
-reviewed host with neither a selector nor legacy Redis configuration defaults
-to PostgreSQL. An existing explicit Redis configuration MUST remain Redis;
-credentials alone MUST NOT change selection.
+reviewed host without a selector defaults to PostgreSQL. Unknown backend or
+provider configuration MUST fail closed; credentials alone MUST NOT change selection.
 `postgres.url-env` MAY reference a server-side connection secret; omission uses
-`CAO_POSTGRES_URL`. Redis configuration and volatile-memory options MUST NOT
+`CAO_POSTGRES_URL`. Provider configuration and volatile-memory options MUST NOT
 be combined with this backend. Non-loopback PostgreSQL TCP transport and all
 fallbacks MUST use verified TLS: certificate-chain and hostname verification
 MUST be enabled (`sslmode=verify-full`), and a configuration that skips
@@ -120,8 +119,7 @@ cover atomicity, isolation, capacity rollback, restart, and cancellation.
 OAuth logout MUST remove active authority and stage encrypted credentials
 atomically. Refresh MUST compare the encrypted session version and MUST NOT
 resurrect a session superseded by logout. Conditional revocation completion MUST
-not remove a newer record. Redis preserves its existing namespace, TTL, and
-stable pending-revocation prefix contracts, including the Upstash restrictions.
+not remove a newer record.
 
 Collection admission MUST atomically reserve capacity, consume delivery
 identity, and enqueue or coalesce work. Full capacity MUST NOT consume the
@@ -145,8 +143,8 @@ qualify its tables, revoke PUBLIC execution, reject nonexistent namespaces,
 and accept no caller-supplied cutoff or object name.
 Audit rows are not charged to protected-record capacity;
 retention maintenance MUST keep at least 400 days, delete at most 512 rows per
-pass as a contiguous oldest prefix, and always keep the newest row. Redis and
-volatile memory do not provide this service, so hosted CLI actions require
+pass as a contiguous oldest prefix, and always keep the newest row.
+Volatile memory does not provide this service, so hosted CLI actions require
 PostgreSQL. `server/POSTGRES.md` defines operator provisioning and rollout.
 `specs/server-hosted-cli.md` §7 defines the events.
 
@@ -159,8 +157,8 @@ is supported.
 ## Administrative rebuild evidence
 
 Hosted administrative rebuilds MUST require a durable `AuditLog`, in addition
-to existing access, administrator step-up and CSRF checks. Redis and memory
-alone do not supply this service: their hosted rebuild endpoint MUST return
+to existing access, administrator step-up and CSRF checks. Memory
+alone does not supply this service: its hosted rebuild endpoint MUST return
 unavailable, not substitute a JSON log for durable admission. This restriction
 does not change automatic collection, webhook reconciliation, startup ingestion,
 or their existing coordination/publication rules. Loopback bearer rebuilds MAY
@@ -273,7 +271,7 @@ by this command. The response procedure is documented in
 `OperationalServices.CLICommands` exposes `CLICommandQueues`, whose
 `OpenCLICommandQueue` returns a focused `CLICommandQueue`. It is separate from
 the collection `TaskQueue`. PostgreSQL advertises deployment-scoped restart
-persistence; Redis and memory leave this capability unsupported. A composition
+persistence; memory leaves this capability unsupported. A composition
 requiring CLI commands MUST set `Requirements.CLICommands` and reject an absent,
 typed-nil, unsupported, or volatile service. Storage support MUST NOT enable
 hosted execution, expose new HTTP actions, bypass declared-action validation or
@@ -370,7 +368,6 @@ local-dashboard CLI or JavaScript Go launcher.
 | --- | --- | --- |
 | `serve` | Go local PostgreSQL storage and same-origin HTTP query API | Loopback bearer profile; no implicit collection or OAuth |
 | `serve-pages` | Go static serving of an explicitly prepared Pages artifact | No API or operational services; browser IndexedDB |
-| `serve-hosted --operational-store redis` | Go hosted service | Resolved reviewed host policy selecting Redis |
 | `serve-hosted --operational-store memory` | Go hosted service | Resolved reviewed host policy selecting memory with every volatile-memory guard above |
 | `serve-hosted --operational-store postgres` | Go hosted service | Resolved reviewed host policy selecting the durable PostgreSQL operational adapter |
 
@@ -378,8 +375,7 @@ The selector MUST NOT rewrite, synthesize, or override rollout policy. The
 requested backend MUST match the backend resolved by the production Go policy
 loader, including deployment-profile imports. A mismatch, invalid backend,
 missing policy, invalid topology, or missing required credentials MUST fail
-closed. Legacy `host.redis` remains an explicit Redis selection;
-neither Redis nor memory may become an
+closed. Memory MUST NOT become an
 automatic fallback. PostgreSQL is the default for selector-free reviewed hosts.
 
 Hosted policy is selected through `CAO_POLICY_PATH` or the supported
@@ -441,17 +437,16 @@ MUST accept these limitations. Memory has no disk journal, Azure orchestration,
 automatic fallback, dual writing, or hidden PostgreSQL persistence.
 
 Public health/readiness MAY expose provider-neutral capabilities and bootstrap
-readiness, never keys, record values, credentials, or endpoints. The legacy
-`redis.connected` response is retained as a deprecated compatibility alias for
-the selected operational dependency; `operational` is the neutral health field.
+readiness, never keys, record values, credentials, or endpoints.
+`operational` is the health field; obsolete provider-specific aliases are not exposed.
 
 ## Formal model
 
 [`tla/ServerOperationalStorage.tla`](tla/ServerOperationalStorage.tla) models
-browser/Redis/memory selection, immutable policy matching, memory topology
+browser/PostgreSQL/memory selection, immutable policy matching, memory topology
 guards, bootstrap-gated admission, bounded atomic delivery/task admission,
 owner-checked work, admitted backfill checkpoints, session epochs, drain/close,
-and restart. The Redis and memory configurations check safety and conditional
+and restart. The PostgreSQL and memory configurations check safety and conditional
 bootstrap/shutdown progress separately. The model preserves evidence across
 both modes but deliberately permits loss of acknowledged unfinished work and
 session authority when memory closes or restarts.
@@ -459,7 +454,7 @@ session authority when memory closes or restarts.
 The bounded model is an abstraction, not a proof of the implementation or of
 external GitHub availability, signature verification, encryption, TLS, storage
 durability, complete historical replay, or retained-shard identity validation.
-The PostgreSQL adapter is covered by implementation/conformance tests, not by
-the Redis/memory selection model.
+The model assumes durable application-restart semantics; PostgreSQL transactions,
+database recovery and adapter behavior require implementation/conformance tests.
 See [`tla/README.md`](tla/README.md) for bounds, assumptions, commands, and the
 implementation/test correspondence.

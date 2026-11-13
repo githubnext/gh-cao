@@ -98,7 +98,7 @@ func (b Budget) Reserve(ctx context.Context, installationID int64) (int, error) 
 
 // interpretReservationResult maps one of RateLimitStateStore.ReserveRateLimit's
 // integer result codes to the governor's sentinel errors. It is a pure
-// function so the code-to-error mapping is testable without a Redis-backed
+// function so the code-to-error mapping is testable without an operational
 // store, and so Reserve's own logic stays limited to orchestrating the call.
 func interpretReservationResult(result int) error {
 	switch result {
@@ -150,7 +150,7 @@ func formatBudgetState(state budgetState) string {
 
 // parseBudgetState decodes formatBudgetState's "remaining|reset|parkedTo"
 // encoding. It is a pure function so a malformed stored value is testable
-// without a fake Redis reply, and it reports whether decoding succeeded so
+// without a fake operational storage reply, and it reports whether decoding succeeded so
 // callers can distinguish a genuinely absent observation from stored data
 // that no longer matches the expected encoding.
 func parseBudgetState(value string) (budgetState, bool) {

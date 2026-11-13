@@ -234,6 +234,10 @@ func TestNativeManagementPolicyValidation(t *testing.T) {
 		{"worker requires workflow", strings.Replace(nativeManagementPolicy, `"workflow": "one-worker",`, "", 1), false},
 		{"volatile topology", strings.Replace(nativeManagementPolicy, `"defaults":`, `"web":{"host":{"target":{"module":"container","replicas":2},"operational-store":{"backend":"memory","single-process":true,"allow-volatile":true}}},"defaults":`, 1), false},
 		{"memory acknowledged", strings.Replace(nativeManagementPolicy, `"defaults":`, `"web":{"host":{"target":{"module":"container","replicas":1},"operational-store":{"backend":"memory","single-process":true,"allow-volatile":true}}},"defaults":`, 1), true},
+		{"default durable backend", strings.Replace(nativeManagementPolicy, `"defaults":`, `"web":{"host":{"target":{"module":"container"}}},"defaults":`, 1), true},
+		{"explicit durable backend", strings.Replace(nativeManagementPolicy, `"defaults":`, `"web":{"host":{"target":{"module":"container"},"operational-store":{"backend":"postgres","namespace-env":"CAO_OPERATIONAL_NAMESPACE","postgres":{"url-env":"CAO_POSTGRES_URL"}}}},"defaults":`, 1), true},
+		{"unsupported backend", strings.Replace(nativeManagementPolicy, `"defaults":`, `"web":{"host":{"target":{"module":"container"},"operational-store":{"backend":"unsupported"}}},"defaults":`, 1), false},
+		{"unsupported provider", strings.Replace(nativeManagementPolicy, `"defaults":`, `"web":{"host":{"target":{"module":"container"},"obsolete-provider":{"module":"local"}}},"defaults":`, 1), false},
 		{"registry credentials", strings.Replace(nativeManagementPolicy, `"defaults":`, `"marketplace":{"registries":[{"id":"x","repository":"owner/repo","ref":"main","api-url":"https://user:pass@example.com"}]},"defaults":`, 1), false},
 		{"registry optional anonymous auth", strings.Replace(nativeManagementPolicy, `"defaults":`, `"marketplace":{"registries":[{"id":"x","repository":"owner/repo","ref":"main"}]},"defaults":`, 1), true},
 	}

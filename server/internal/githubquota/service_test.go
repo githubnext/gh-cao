@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
 )
 
 var testNow = time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
@@ -383,19 +383,20 @@ func TestSanitizeReasonKeepsShortPrintableText(t *testing.T) {
 	}
 }
 
-func TestServiceCoordinatesReplicasThroughRedis(t *testing.T) {
-	rawURL := os.Getenv("REDIS_URL")
+func TestServiceCoordinatesReplicasThroughOperational(t *testing.T) {
+	rawURL := os.Getenv("POSTGRES_URL")
 	if rawURL == "" {
-		t.Skip("REDIS_URL is not set")
+		t.Skip("POSTGRES_URL is not set")
 	}
 	namespace := "quota-service-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	replicas := make([]*Service, 2)
 	for index := range replicas {
-		client, err := redisx.New(rawURL)
+		store, err := operationalpostgres.New(t.Context(), rawURL, namespace, operationalpostgres.Config{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		service, err := New(redisx.NewStore(client, namespace), Options{SafetyReserve: 100})
+		t.Cleanup(func() { _ = store.DeleteNamespace(context.Background()); _ = store.Close() })
+		service, err := New(store, Options{SafetyReserve: 100})
 		if err != nil {
 			t.Fatal(err)
 		}

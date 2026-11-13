@@ -244,7 +244,7 @@ func TestLegacyBudgetSerializationAndSameWindowFloor(t *testing.T) {
 	result, err = s.ReserveRateLimit(ctx, "collect:rate-limit", "1", 10, 15, now)
 	must(t, err)
 	if result != 0 {
-		t.Fatal("legacy Redis floor-before-cost semantics changed")
+		t.Fatal("legacy Operational floor-before-cost semantics changed")
 	}
 	must(t, s.ObserveRateLimit(ctx, "collect:rate-limit", "1", 20, now+3600))
 	value, err := s.ReadAttribute(ctx, "collect:rate-limit", "1")

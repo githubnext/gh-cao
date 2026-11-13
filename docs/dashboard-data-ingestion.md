@@ -65,10 +65,10 @@ fail explicitly; the hosted path has no Go row-evaluator fallback.
 
 Operational storage is a separate contract for sessions, queues, rate limits,
 deduplication, coordination, revocation retries, audit records, and caches.
-PostgreSQL is the default; Redis is an explicitly selected alternative for
-supported capabilities, not a dashboard entity database. Protected operational
+PostgreSQL is the default; explicitly acknowledged single-process memory is a
+bounded volatile alternative, not a dashboard entity database. Protected operational
 state is not disposable evidence-cache data. If canonical PostgreSQL storage is
-unavailable, dashboard data remains unavailable even when Redis is healthy.
+unavailable, dashboard data remains unavailable even when operational storage is healthy.
 See the [server operational-storage contract](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 
 ## Completeness and duplicates
@@ -355,7 +355,7 @@ backend, import conversion, writable overlay, or browser fallback.
 3. Acquire an operational cao-activity-index Actions artifact or a trusted direct
    payload-hashes.json manifest. Acquisition does not select a public Pages source.
 4. Ingest its verified normalized JSONL with cao-dashboard ingest --source DIRECTORY.
-5. Run npm run dashboard:local against that namespace. Set --redis-namespace to the
+5. Run npm run dashboard:local against that namespace. Set --namespace to the
    exact provisioned namespace when using a non-default dataset.
 
 See [PostgreSQL provisioning](../server/POSTGRES.md#local-postgresql-development).

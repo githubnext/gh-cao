@@ -69,7 +69,6 @@ public final class ApiServer {
         ObjectNode body = JSON.createObjectNode();
         boolean healthy = op.connected() && data.available() && !data.rebuildRequired();
         body.put("status", healthy ? "healthy" : "unhealthy");
-        body.putObject("redis").put("connected", op.connected());
         operational(body, op);
         data(body, data);
         send(exchange, healthy ? 200 : 503, body);
@@ -81,7 +80,6 @@ public final class ApiServer {
         ObjectNode body = JSON.createObjectNode();
         boolean ready = op.connected() && op.recoveryReady() && data.available();
         body.put("ready", ready);
-        body.putObject("redis").put("connected", op.connected());
         operational(body, op);
         data(body, data);
         send(exchange, ready ? 200 : 503, body);

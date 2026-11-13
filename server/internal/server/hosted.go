@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/netip"
-	"net/url"
 	"os"
 	"strings"
 
@@ -41,8 +39,8 @@ func NewHostedAppFromEnv(
 	if len(requiredBackend) == 1 {
 		requested = requiredBackend[0]
 	}
-	if requested != "" && requested != "redis" && requested != "memory" && requested != "postgres" {
-		return nil, errors.New("--operational-store must be redis, memory, or postgres")
+	if requested != "" && requested != "memory" && requested != "postgres" {
+		return nil, errors.New("--operational-store must be memory or postgres")
 	}
 	host, err := loadHostPolicyFromEnv()
 	if err != nil {
@@ -104,7 +102,7 @@ func newHostedAppWithPolicy(
 	if host.Profile.SingleProcess && collector != nil && collector.AdmitOnly {
 		return nil, errors.New("memory operational-store requires co-resident collection, not admission-only mode")
 	}
-	store, revocationKeyPrefix, err := newOperationalStore(ctx, host)
+	store, err := newOperationalStore(ctx, host)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +129,7 @@ func newHostedAppWithPolicy(
 	if postgresURL == "" {
 		return nil, errors.New("CAO_POSTGRES_URL is required")
 	}
-	databaseNamespace := strings.TrimSpace(host.RedisNamespace)
+	databaseNamespace := strings.TrimSpace(host.DatabaseNamespace)
 	if databaseNamespace == "" {
 		databaseNamespace = "hosted-dashboard"
 	}
@@ -195,7 +193,6 @@ func newHostedAppWithPolicy(
 			LocalDevelopmentUser:        os.Getenv("CAO_GITHUB_LOCAL_USER"),
 			AdminReauthenticationMaxAge: envStrictDuration("CAO_ADMIN_REAUTH_MAX_AGE"),
 			SSOOrganizations:            splitCSV(os.Getenv("CAO_GITHUB_SSO_ORGANIZATIONS")),
-			RevocationKeyPrefix:         revocationKeyPrefix,
 		},
 		Logger: logger,
 	}
@@ -235,78 +232,6 @@ func hostedProxyTrust(listen, certFile string, configured []netip.Prefix) (bool,
 		prefixes = append(prefixes, loopbackProxyPrefixes()...)
 	}
 	return trustForwarded, prefixes
-}
-
-// hostedRedisURLRejection classifies why validateHostedRedisURL rejected a
-// hosted Redis URL. It is useful for diagnosing a misconfigured deployment
-// without logging the URL itself, which can carry embedded credentials.
-type hostedRedisURLRejection string
-
-const (
-	hostedRedisURLRejectionNone           hostedRedisURLRejection = "none"
-	hostedRedisURLRejectionUnparsable     hostedRedisURLRejection = "unparsable"
-	hostedRedisURLRejectionPlaintextOptIn hostedRedisURLRejection = "plaintext-not-opted-in"
-	hostedRedisURLRejectionPublicHostname hostedRedisURLRejection = "public-hostname"
-)
-
-// classifyHostedRedisURL decides whether a hosted Redis URL is acceptable,
-// given already-parsed scheme and hostname, without performing the URL
-// parsing itself. It is a pure function extracted from validateHostedRedisURL
-// so the TLS-required, opt-in, and private-hostname decisions are testable
-// directly against scheme and hostname values, without constructing a
-// *url.URL for every case.
-func classifyHostedRedisURL(scheme, hostname string, allowPrivatePlaintext, forceTLS bool) hostedRedisURLRejection {
-	if strings.EqualFold(scheme, "rediss") || forceTLS {
-		return hostedRedisURLRejectionNone
-	}
-	if !strings.EqualFold(scheme, "redis") || !allowPrivatePlaintext {
-		return hostedRedisURLRejectionPlaintextOptIn
-	}
-	if !privateRedisHostname(hostname) {
-		return hostedRedisURLRejectionPublicHostname
-	}
-	return hostedRedisURLRejectionNone
-}
-
-func validateHostedRedisURL(redisURL string, allowPrivatePlaintext, forceTLS bool) error {
-	parsed, err := url.Parse(strings.TrimSpace(redisURL))
-	if err != nil {
-		hostedLog.Printf("hosted redis url rejected reason=%s", hostedRedisURLRejectionUnparsable)
-		return errors.New("invalid hosted Redis URL")
-	}
-	switch classifyHostedRedisURL(parsed.Scheme, parsed.Hostname(), allowPrivatePlaintext, forceTLS) {
-	case hostedRedisURLRejectionPlaintextOptIn:
-		hostedLog.Printf("hosted redis url rejected reason=%s", hostedRedisURLRejectionPlaintextOptIn)
-		return errors.New("hosted mode requires rediss:// Redis transport unless private plaintext Redis is explicitly enabled")
-	case hostedRedisURLRejectionPublicHostname:
-		hostedLog.Printf("hosted redis url rejected reason=%s", hostedRedisURLRejectionPublicHostname)
-		return errors.New("hosted plaintext Redis requires a private IP or single-label service hostname")
-	default:
-		return nil
-	}
-}
-
-func isUpstashRedisURL(redisURL string) bool {
-	parsed, err := url.Parse(strings.TrimSpace(redisURL))
-	if err != nil {
-		return false
-	}
-	hostname := strings.ToLower(parsed.Hostname())
-	return hostname == "upstash.io" || strings.HasSuffix(hostname, ".upstash.io")
-}
-
-func privateRedisHostname(hostname string) bool {
-	hostname = strings.ToLower(strings.TrimSuffix(hostname, "."))
-	if hostname == "" {
-		return false
-	}
-	if strings.HasSuffix(hostname, ".railway.internal") {
-		return true
-	}
-	if ip := net.ParseIP(hostname); ip != nil {
-		return ip.IsPrivate() || ip.IsLoopback()
-	}
-	return !strings.Contains(hostname, ".")
 }
 
 func parseTrustedProxyPrefixes(value string) ([]netip.Prefix, error) {
@@ -354,6 +279,6 @@ func StoreFromEnv(ctx context.Context) (operational.Store, error) {
 	if err := validateStandaloneOperational(host); err != nil {
 		return nil, err
 	}
-	store, _, err := newOperationalStore(ctx, host)
+	store, err := newOperationalStore(ctx, host)
 	return store, err
 }

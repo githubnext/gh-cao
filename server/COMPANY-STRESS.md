@@ -11,7 +11,7 @@ The test creates and removes its own schema, including operational tables; it
 does not rebuild another namespace. Enterprise cases need adequate PostgreSQL
 lock-table headroom: the manual workflow starts its disposable instance with
 `postgres -c max_locks_per_transaction=1024`. This changes test infrastructure,
-not CAO storage/query limits. No Redis or model credentials are needed.
+not CAO storage/query limits. No database or model credentials are needed.
 
 ```sh
 POSTGRES_URL='postgres://postgres@127.0.0.1:5432/cao_test?sslmode=disable' \

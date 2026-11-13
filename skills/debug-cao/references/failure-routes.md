@@ -30,7 +30,7 @@ Source map:
 - architecture: `ARCHITECTURE.md` and `specs/`.
 
 For browser-only failures, use the narrowest `?debug=` category from
-`dashboard/site/src/debug.js`. For Go/Redis server failures, use the narrowest
+`dashboard/site/src/debug.js`. For Go/database server failures, use the narrowest
 `DEBUG` namespace described in `server/README.md`. Logging stays off by default;
 never log credentials, query payloads, prompts, or source records.
 

@@ -32,7 +32,7 @@ func marketplacePolicyPath() string {
 }
 
 // storeMarketplaceCache adapts operational.Cache to marketplace.Cache so resolved
-// registries are cached in Redis, isolated by registry id and by the active
+// registries are cached in operational storage, isolated by registry id and by the active
 // dashboard data revision (generation).
 type storeMarketplaceCache struct {
 	store operational.Cache

@@ -69,7 +69,6 @@ func applyIntSettings(settings []positiveIntSetting) error {
 // existing canonical Postgres dataset identity.
 type OperationalEnvironment struct {
 	Backend, Namespace, DatabaseNamespace string
-	RedisURL                              string
 	SingleProcess, AllowVolatile          bool
 }
 
@@ -82,7 +81,7 @@ func OperationalEnvironmentFromEnv() (OperationalEnvironment, error) {
 }
 
 // OperationalPolicySelectedFromEnv identifies an explicit reviewed selector
-// without requiring Redis credentials for legacy local CLI commands.
+// for local CLI commands.
 func OperationalPolicySelectedFromEnv() (bool, error) {
 	path := configuredHostPolicyPath()
 	if _, err := os.Stat(path); os.IsNotExist(err) &&
@@ -135,8 +134,7 @@ func memoryConfigFromEnv() (memory.Config, error) {
 func operationalEnvironment(host *resolvedHostPolicy) OperationalEnvironment {
 	return OperationalEnvironment{
 		Backend: host.OperationalBackend, Namespace: host.OperationalNamespace,
-		RedisURL:          host.RedisURL,
-		DatabaseNamespace: host.RedisNamespace, SingleProcess: host.Profile.SingleProcess,
+		DatabaseNamespace: host.DatabaseNamespace, SingleProcess: host.Profile.SingleProcess,
 		AllowVolatile: host.AllowVolatile,
 	}
 }

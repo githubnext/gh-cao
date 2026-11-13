@@ -3,7 +3,7 @@
 //
 // The doctor is read-only. It inspects the selected operational backend and canonical Postgres data, the
 // query definitions, the optional collection profile, and the process
-// environment, and reports what it found. It never writes to Redis or Postgres, never
+// environment, and reports what it found. It never writes to operational state or Postgres, never
 // contacts GitHub, and never reads or reports secret material: a credential is
 // reported as configured or absent, never by value.
 //
@@ -109,10 +109,8 @@ type Report struct {
 	GeneratedAt string `json:"generatedAt"`
 	// Profile is the acquisition profile the environment selects.
 	Profile string `json:"profile"`
-	// Namespace is the Redis key namespace inspected.
+	// Namespace is the operational namespace inspected.
 	Namespace string `json:"namespace"`
-	// Redis is the redacted Redis endpoint, never including credentials.
-	Redis string `json:"redis"`
 	// Deep reports whether expensive probes ran.
 	Deep bool `json:"deep"`
 	// Checks are ordered by area and then by identifier.
@@ -122,13 +120,13 @@ type Report struct {
 }
 
 // ReportSchemaVersion versions the JSON rendering.
-const ReportSchemaVersion = 1
+const ReportSchemaVersion = 2
 
 // areaOrder renders areas from the outside in: the process, then its data
 // store, then the data, then what reads the data, then what writes it. A check
 // in an unknown area sorts last, so adding an area cannot silently reorder the
 // report.
-var areaOrder = []string{"runtime", "redis", "data", "query", "collect"}
+var areaOrder = []string{"runtime", "operational", "data", "query", "collect"}
 
 func areaRank(area string) int {
 	for index, name := range areaOrder {

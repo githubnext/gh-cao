@@ -132,7 +132,7 @@ The runtime and provider integration used to execute an AI agent. The engine is 
 
 ## External hosting
 
-The explicit `generic` HTTP target with `listener: external` that lets a separately owned Go host embed CAO without duplicating its authentication, policy, or ingestion logic. The public `server/hosting/` facade exposes only `New`, `Start`, the complete `http.Handler`, and `Stop`; CAO keeps OAuth, session/CSRF authorization, webhook verification, proxy trust, rate limits, Redis, and background-task cancellation, while the host owns the HTTP listener and must drain it before CAO stops. External hosting introduces no runtime-loaded modules or rollout authority.
+The explicit `generic` HTTP target with `listener: external` that lets a separately owned Go host embed CAO without duplicating its authentication, policy, or ingestion logic. The public `server/hosting/` facade exposes only `New`, `Start`, the complete `http.Handler`, and `Stop`; CAO keeps OAuth, session/CSRF authorization, webhook verification, proxy trust, rate limits, operational storage, and background-task cancellation, while the host owns the HTTP listener and must drain it before CAO stops. External hosting introduces no runtime-loaded modules or rollout authority.
 
 ## gh cao
 
@@ -196,7 +196,7 @@ The run-scoped result produced by gh-aw's upstream `operational-value` grader pr
 
 ## Operational store
 
-The provider-neutral storage contract in `server/internal/operational/` that exposes immutable per-feature cache, request-limit, OAuth, quota, collection, coordination, and diagnostic capabilities. PostgreSQL is the default adapter for a selector-free reviewed host, using only its own `cao_operational_*` tables and never the canonical dashboard entity/query schema; explicit Redis configuration remains supported, and an explicit, acknowledged single-process in-memory adapter is a bounded, volatile alternative that loses all operational state on restart. See [Server operational storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+The provider-neutral storage contract in `server/internal/operational/` that exposes immutable per-feature cache, request-limit, OAuth, quota, collection, coordination, and diagnostic capabilities. PostgreSQL is the default adapter for a selector-free reviewed host, using only its own `cao_operational_*` tables and never the canonical dashboard entity/query schema; an explicit, acknowledged single-process in-memory adapter is the bounded, volatile alternative that loses all operational state on restart. Unknown backends and provider fields fail closed. See [Server operational storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 
 ## Private-preview acceptance contract
 

@@ -322,26 +322,23 @@ Inventory partitioning MUST be deterministic for the same inventory and effectiv
 The optional `web.favicon` value MUST be an absolute HTTPS URL without credentials, query, or fragment, or a non-traversing `./` relative path. Web presentation settings MUST NOT grant or widen rollout authority.
 
 The optional `web.host` object declares non-secret dashboard hosting
-modules and Redis connection indirection. It MUST NOT contain a Redis URL,
+modules and operational-store connection indirection. It MUST NOT contain a database URL,
 password, certificate, token, or other credential value. Environment references
 MUST be uppercase environment-variable names. A host declaration MUST compose
-exactly one target module with exactly one Redis provider module. Target modules
+exactly one target module with an optional operational-store selector. PostgreSQL
+is the default; explicit single-process memory requires bounded volatile-state
+acknowledgements and a single process-listener replica. Unknown backends and
+provider fields MUST fail closed. Target modules
 define authentication, listener ownership, HTTPS, and platform-proxy trust.
-Redis modules define environment mappings, replica and collection constraints,
-session semantics, process namespace isolation, and verified TLS inputs.
-
-Provider modules under `web.host.redis.module` only select environment-variable
-defaults and consistency capabilities. They MUST resolve into the same generic
-Redis connection model and
-MUST NOT grant authority, embed credentials, disable certificate verification,
-or introduce provider-specific request handling. An invalid or internally
+Operational-store configuration MUST NOT grant authority, embed credentials,
+disable certificate verification, or introduce provider-specific request handling. An invalid or internally
 inconsistent host declaration MUST fail policy validation or server startup.
-Target and Redis modules MUST be reviewed, compiled registry entries rather than
+Target modules MUST be reviewed, compiled registry entries rather than
 code loaded from policy or another runtime path. Fixed module capabilities MUST
 NOT be overridden by policy. Module composition MUST complete and be validated
 before the server accepts traffic.
 Hosted server implementations MUST require the modular `web.host` declaration
-and MUST reject the earlier flat host-capability shape, `redis.preset`, and
+and MUST reject the earlier flat host-capability shape, obsolete provider fields, and
 environment-only host selection.
 
 #### 5.3.1 Deployment-specific host extensions

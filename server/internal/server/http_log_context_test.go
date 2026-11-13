@@ -11,15 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/log/global"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
-	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
 const httpLogHelperEnv = "CAO_TEST_HTTP_LOG_CONTEXT"
@@ -76,13 +74,7 @@ func TestHTTPLogContextHelper(t *testing.T) {
 		otel.SetTracerProvider(previousTracer)
 		global.SetLoggerProvider(previousLogger)
 	})
-	address, closeServer := fakeRedis(t)
-	t.Cleanup(closeServer)
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app, err := New(t.Context(), redisx.NewStore(client, "http-log-context"), Config{
+	app, err := New(t.Context(), newTestOperationalStore(t), Config{
 		Database: constructorDatabase(), SiteDirectory: t.TempDir(), AccessToken: testAccessToken,
 		Listen: "127.0.0.1:8443",
 	})

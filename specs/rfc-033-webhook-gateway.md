@@ -1160,7 +1160,7 @@ Extend `server/internal/operational/` with a focused optional gateway queue/
 subscription contract and capability, rather than reusing collection jobs or
 CLI commands with incompatible state semantics. PostgreSQL is the initial
 durable provider. Construction MUST reject missing, volatile, or process-scoped
-capabilities for the isolated gateway topology. Redis/memory MUST report
+capabilities for the isolated gateway topology. Memory MUST report
 unsupported until they implement the complete contract and conformance suite;
 there is no automatic fallback or dual write.
 

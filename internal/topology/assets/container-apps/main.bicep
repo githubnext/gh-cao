@@ -302,7 +302,7 @@ resource dashboard 'Microsoft.App/containerApps@2024-03-01' = if (runtimeEnabled
             { name: 'CAO_GITHUB_ALLOWED_USERS', value: join(githubAllowedUsers, ',') }
             { name: 'CAO_GITHUB_ADMIN_USERS', value: join(githubAdminUsers, ',') }
             { name: 'CAO_EXTERNAL_INGESTION', value: 'true' }
-            { name: 'REDIS_NAMESPACE', value: 'azure-dashboard' }
+            { name: 'CAO_DATASET_NAMESPACE', value: 'azure-dashboard' }
             { name: 'CAO_OPERATIONAL_NAMESPACE', value: 'azure-dashboard-operational' }
             { name: 'CAO_POSTGRES_RUN_RETENTION_DAYS', value: string(postgresRunRetentionDays) }
             { name: 'CAO_POSTGRES_LINKED_RETENTION_DAYS', value: string(postgresRunRetentionDays) }

@@ -42,7 +42,7 @@ func TestDoctorRejectsIncompleteFocusedServices(t *testing.T) {
 	}
 }
 
-func TestOperationalMemoryDoctorUsesOwningStateAndSkipsRedisProviderChecks(t *testing.T) {
+func TestOperationalMemoryDoctorUsesOwningState(t *testing.T) {
 	store, err := memory.New(memory.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -50,14 +50,10 @@ func TestOperationalMemoryDoctorUsesOwningStateAndSkipsRedisProviderChecks(t *te
 	defer func() { _ = store.Close() }()
 	d := Doctor{Backend: "memory", Store: store, Namespace: "memory", Getenv: func(string) string { return "" }}
 	report := d.Run(t.Context())
-	if report.Redis != "(not selected)" {
-		t.Fatalf("memory reported a Redis connection: %q", report.Redis)
-	}
+
 	foundHealth, foundGuarantees := false, false
 	for _, check := range report.Checks {
-		if strings.HasPrefix(check.ID, "redis.") {
-			t.Fatalf("memory performed a Redis provider check: %+v", check)
-		}
+
 		if check.ID == "operational.health" {
 			foundHealth = true
 			if check.Status != StatusPass {

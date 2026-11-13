@@ -91,7 +91,7 @@ test("slow integration workflows run on relevant main pushes, not pull requests"
 
 
 test("Go dashboard integration bootstraps both stores in the runtime namespace", () => {
-  const job = parse(workflow("cgo.yml")).jobs["redis-dashboard-integration"];
+  const job = parse(workflow("cgo.yml")).jobs["postgres-dashboard-integration"];
   const steps = job.steps;
   const bootstrap = steps.find((step) => step.name === "Bootstrap dashboard integration storage");
   const runtime = steps.find((step) => step.name === "Verify deployed shards populate dashboard views");
@@ -104,18 +104,18 @@ test("Go dashboard integration bootstraps both stores in the runtime namespace",
   }
   assert.ok(steps.indexOf(bootstrap) > steps.findIndex((step) => step.name === "Build dashboard and server"));
   assert.ok(steps.indexOf(bootstrap) < steps.indexOf(runtime));
-  assert.match(runtime.env.DASHBOARD_SERVER_COMMAND, /--redis-namespace "\$CAO_OPERATIONAL_NAMESPACE"/);
+  assert.match(runtime.env.DASHBOARD_SERVER_COMMAND, /--namespace "\$CAO_OPERATIONAL_NAMESPACE"/);
   assert.equal(job.env.CAO_DATABASE_ADMIN_URL, undefined);
   assert.equal(runtime.env.CAO_DATABASE_ADMIN_URL, undefined);
 });
 
 test("Go dashboard integration shards complete test coverage across isolated services", () => {
-  const job = parse(workflow("cgo.yml")).jobs["redis-dashboard-integration"];
+  const job = parse(workflow("cgo.yml")).jobs["postgres-dashboard-integration"];
   assert.deepEqual(job.strategy.matrix, { shard: [0, 1, 2, 3, 4, 5, 6, 7] });
   assert.equal(job.strategy["fail-fast"], false);
   assert.ok(job.services.postgres);
-  assert.ok(job.services.redis);
-  const tests = job.steps.find((step) => step.name === "Go tests with Redis and Postgres");
+  assert.equal(Object.keys(job.services).length, 1);
+  const tests = job.steps.find((step) => step.name === "Go tests with Postgres");
   assert.deepEqual(tests.env, {
     TEST_SHARD: "${{ matrix.shard }}",
     TEST_SHARD_COUNT: "${{ strategy.job-total }}",
@@ -482,7 +482,7 @@ test("mixed workflows keep fast checks on PRs and gate expensive jobs off PRs", 
     ]],
     ["cgo.yml", ["server-quality", "server-spec"], [
       "windows-local-server", "actions-simulator-postgres",
-      "server-backfill", "server-stress", "redis-dashboard-integration",
+      "server-backfill", "server-stress", "postgres-dashboard-integration",
     ]],
     ["cid.yml", ["lint-unit", "dead-views"], [
       "pages", "playwright-integration", "query-complexity", "lighthouse-performance",
@@ -512,7 +512,7 @@ test("PR reporters do not start for skipped main-only producers", () => {
       "query-complexity-comment": "query-complexity",
       "lighthouse-comment": "lighthouse-performance",
     }],
-    ["cgo.yml", { "redis-dashboard-comment": "redis-dashboard-integration" }],
+    ["cgo.yml", { "postgres-dashboard-comment": "postgres-dashboard-integration" }],
   ]) {
     const { jobs } = parse(workflow(name));
     for (const [report, producer] of Object.entries(reports)) {

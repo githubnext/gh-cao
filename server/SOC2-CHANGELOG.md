@@ -61,7 +61,7 @@ Dates are UTC. Corrections are new events; original observations remain.
 - Findings: OPS-01 through OPS-04 are four medium-severity, high-confidence
   scoped design gaps (successful rebuild attribution, Azure template-only
   OTLP route, production use of development source-built images without an
-  equivalent assurance gate, and Redis doctor false assurance).
+  equivalent assurance gate, and retired-backend doctor false assurance).
 - Evidence requests: OPS-05 through OPS-08 concern independent audit
   operation, recovery commitments/exercises, effective cloud/key boundaries,
   and release/change/scan-exception period evidence. High severity for
@@ -166,7 +166,7 @@ Dates are UTC. Corrections are new events; original observations remain.
   the assessment branch. Coordinator checked GitHub open/draft/head/base
   identity and commit scope; it did not rerun the session's test suite.
 - Specification version: 1. Related finding: OPS-04.
-- Proposed change: missing/malformed Redis persistence evidence warns;
+- Proposed change: missing/malformed retired-backend persistence evidence warns;
   unknown AOF status remains unknown; historical RDB success does not assert
   active snapshot policy; enabled-AOF write success is narrowly described.
   Added classification/INFO boundary tests and operator documentation.
@@ -304,7 +304,7 @@ Dates are UTC. Corrections are new events; original observations remain.
 - Proposal: one erasure helper persists follow-up before ACK; separate
   requested/completed generations consume only captured intent after
   canonical commit, retaining concurrent and interrupted work.
-- Session-reported validation: full collector race suite with isolated Redis
+- Session-reported validation: full collector race suite with isolated then-supported operational backends
   and PostgreSQL, 260 passing test/subtest events and zero failures/skips;
   failure/cancel/reclaim/rollback/crash-equivalent/concurrent-publication
   cases covered. Loaded-host timeout in initial existing parity test was
@@ -347,7 +347,7 @@ Dates are UTC. Corrections are new events; original observations remain.
 - Specification version: 1.
 - DATA-01: prefix-free versioned repository encoding, identity-verified
   legacy migration/preflight erasure and mixed-identity rejection; ambiguous
-  data left intact. Reported Activity and Redis/PostgreSQL collector/ingest/
+  data left intact. Reported Activity and then-supported backend collector/ingest/
   simulator race suites pass without skips; rollout inventory still required.
 - DATA-02: shared/derived collector-value erasure, cross-process lake lock,
   zero-enrollment pruning and revision-keyed caches. Reported end-to-end
@@ -396,11 +396,11 @@ Dates are UTC. Corrections are new events; original observations remain.
   ownership retention/atomic expiry staging across adapters, protected
   transition capacity and bounded temporary cleanup ownership.
   Expired records still cannot authenticate or CAS back into authority.
-- Session-reported evidence: affected server/operational/Redis suites with
-  isolated real Redis/PostgreSQL and roles, serialized/race lifecycle checks,
+- Session-reported evidence: affected server/operational/backend suites with
+  isolated real then-supported backends and roles, serialized/race lifecycle checks,
   focused 48 pass/zero fail/zero skip, build/lint/format/file-size/compile.
   Earlier environment concurrency/address failures are preserved and resolved.
-- Rollout limits: stop old Redis-envelope replicas, retain prefixes/data/keys,
+- Rollout limits: stop old retired-backend-envelope replicas, retain prefixes/data/keys,
   preserve unknown-expiry legacy debt. Pre-existing abandoned grants need
   separate reconciliation. Provider issuance-to-durable-write kill window
   and volatile-memory restart loss remain explicit, not universal cleanup.
@@ -467,7 +467,7 @@ Dates are UTC. Corrections are new events; original observations remain.
 - Specification: RFC-035, record schema version 1.
 - DATA-01 preserves DATA-03's single helper/durable generations, uses
   ForgetContext and validates normalized repository identity before erasure.
-  Session reports 271 real Redis/PostgreSQL collector race tests with zero
+  Session reports 271 real then-supported backend collector race tests with zero
   skips/failures, lint/type/build and 73-workflow compilation; CI still pending.
 - Remote integration: OPS-02 [#19324](https://github.com/githubnext/gh-cao/pull/19324)
   merged at 15:59:15 UTC as `a643b5f17`; IAM-001
@@ -509,7 +509,7 @@ Dates are UTC. Corrections are new events; original observations remain.
 - Decisions/lifecycle: existing remediate/in-progress records retained;
   evidence-only and applicability decisions remain pending. No risk
   acceptance, exclusion, finding closure or operating-effectiveness claim.
-- Limitations: real PostgreSQL/Redis, intended executor platforms, external
+- Limitations: real durable backends, intended executor platforms, external
   audit receiver/upstream runtimes, production configuration, scanning and
   organizational/period evidence remain unverified. No new demonstrated
   runtime design gap established; readiness remains undetermined.

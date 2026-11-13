@@ -5,7 +5,7 @@
 // caching, and transport belong to those libraries. What this package adds is
 // the CAO-specific policy around them — enrollment enumeration, webhook
 // delivery replay, and per-installation rate-limit governance that is shared
-// across workers through Redis.
+// across workers through operational storage.
 package githubapp
 
 import (
@@ -20,10 +20,9 @@ import (
 	"time"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/google/go-github/v66/github"
-
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/google/go-github/v66/github"
 )
 
 var appLog = logger.New("cao:githubapp")

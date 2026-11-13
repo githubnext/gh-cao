@@ -185,7 +185,7 @@ flowchart LR
     Worker["Browser data Web Worker"]
     IndexedDB["IndexedDB projection"]
     Postgres["Postgres dashboard entities<br/>production hosted profile"]
-    Redis["Operational caches, queues, sessions<br/>Postgres default, Redis opt-in, or process memory"]
+    Operational["Operational caches, queues, sessions<br/>Postgres default or process memory"]
     Query["Dashboard Language queries"]
     GoServer["Go HTTP(S) query server"]
     GitHub["GitHub / gh-aw<br/>authoritative state"]
@@ -205,7 +205,7 @@ flowchart LR
     IndexedDB --> Query
     Publisher --> GoServer --> Postgres
     GitHub -->|"webhooks + rebuild input"| GoServer
-    GoServer --> Redis
+    GoServer --> Operational
     Postgres --> GoServer --> Query
     IndexedDB --> Compute --> Results --> Query
     Postgres -->|"bounded repository-scoped<br/>Dashboard Language queries"| HostedValue
@@ -360,7 +360,7 @@ and monotonic ownership fences reject stale writers; lease loss retains
 uncertain execution claims and blocks new starts until explicit operator
 reconciliation. Cancellation and deadlines do not release an execution slot
 before subprocess settlement. Bounded maintenance removes only fully expired
-terminal UTC weeks and their output. Memory and Redis do not advertise this
+terminal UTC weeks and their output. Memory does not advertise this
 restart-durable capability.
 The HTTP and MCP query boundary uses a disposable cache-aside layer for
 expensive queries with compact output. SHA-256 query identities include the
@@ -368,26 +368,17 @@ definitions, parameters, pagination, schema, and current authorization class,
 not ingestion revisions for ordinary queries. Value-evidence-dependent queries
 also key by the current canonical revision so publication is visible when
 subscriptions refresh. Each entry has a fixed five-minute lifetime; ingestion
-and data egress do not renew it. Redis-side atomic expiry and
-oldest-first eviction bound both allocator-reported result/index memory and
-entry count without changing global Redis eviction policy or touching sessions
+and data egress do not renew it. Adapter-owned atomic expiry and
+oldest-first eviction bound both result/index accounting bytes and
+entry count without touching sessions
 and queues. Cached payloads retain their original evidence revision and
 evaluation time; cache hits report no fresh query-plan work.
-All Redis server profiles also have a configurable whole-node Redis memory-pressure
-budget, defaulting to 200,000,000 bytes and capped at 80% of provider-reported
-`maxmemory`. Providers supporting scripted memory introspection use atomic
-query-result, marketplace, and repository-memory admission and reserve outgoing
-allocation before serving cache hits. Providers prohibiting that introspection
-explicitly disable disposable-cache admission and serving rather than spend
-independently sampled headroom; protected storage stays enabled. Startup and
-cancellation-scoped 30-second maintenance use provider-compatible pressure
-measurement and one namespace-scoped cursor pass to reclaim only disposable
-caches. Final pressure reporting always refreshes the memory evidence.
-Sessions, queues, quota state, revocation retries, and other namespaces remain
-protected. Unreclaimable operational pressure fails startup or is reported by
-running maintenance; cache writes decline admission rather than widening the
-budget or changing Redis configuration. The budget is not a process-RSS or
-persistence-disk cap and cannot bound protected-state growth by cache eviction.
+Disposable caches and protected operational records have independent
+namespace-scoped byte and entry budgets. Capacity failures decline admission,
+not accepted work. Bounded cancellation-scoped maintenance reclaims expired
+entries while preserving sessions, accepted queues, quota state, pending
+revocations, and other namespaces. These are accounting limits, not process-RSS
+or persistence-disk caps.
 Its local mode remains loopback-only. Its ordinary host-neutral mode uses
 GitHub OAuth and explicit organization or team authorization, verifies and
 deduplicates GitHub webhooks, and atomically replaces the current Postgres
@@ -623,22 +614,21 @@ backward-compatible import. There are no persistent Postgres generations.
 The additive daily run-count projection, compact contribution receipts, and
 state in `specs/dashboard-data.md` §72.2 are the only persisted derived-projection
 exception; other daily metrics and computation results remain request-scoped.
-Redis remains reconstructable
-operational state, not an entity
+Operational storage remains separate from the canonical entity
 authority. The same server binary provides a read-only diagnostic check-up
-that inspects the runtime, Redis operations, Postgres canonical state and
+that inspects the runtime, operational services, Postgres canonical state and
 integrity, query definitions, and the optional collection profile. It
 produces stable check identifiers as text or versioned JSON, never contacts
 GitHub or mutates either store, and requires deep mode to read every source.
 
 Server construction independently resolves an app server target module and an
-operational backend (and, for Redis, a declarative provider module), then composes their provider-agnostic
+operational backend, then composes their provider-agnostic
 capabilities before configuring authentication or ingestion. Target modules own
 authentication, listener ownership, HTTPS, and trusted-proxy requirements.
-Redis modules own environment mappings, session semantics, process namespace
-isolation, replica constraints, and collection support. Local, host-neutral
-container and Upstash are compositions rather than provider
-checks in shared request handling.
+The operational adapter owns namespace isolation and focused service semantics.
+Explicit memory additionally requires a single-process replica and volatile-state
+acknowledgements. Local and host-neutral container targets are compositions,
+not provider checks in shared request handling.
 Startup rejects configurations or services that do not satisfy the selected
 per-feature coordination scope and restart-persistence capabilities. Business
 services receive narrow cache, OAuth, limiter, quota, collection, and coordination
@@ -697,7 +687,7 @@ a non-sliding five-minute authorization window and permanent expiry/revocation
 tombstones within protected capacity. Every retry revalidates policy and usage;
 transient failures preserve retained decisions. No cache eviction, financial
 mutation, dashboard-session authentication, trace-response identifier or CAO
-scope widening is permitted. Redis, memory and local modes cannot enable it.
+scope widening is permitted. Memory and local modes cannot enable it.
 `server/ADMISSION.md` documents the trust profile, publisher requirements,
 capacity/retention lifecycle and cooperative fail-open limitations.
 The HTTP contract is pinned to published gh-aw `b2707604dd52732afa66ff7ae270bda96cf6c9fd`;
@@ -883,7 +873,7 @@ between cancellation-aware polling attempts. Application-owned maintenance
 reclaims only bounded expired state. Sessions, accepted work, enrollment,
 checkpoints, and pending revocations survive process restart under the database's
 configured durability. Backend selection comes from reviewed host policy, with PostgreSQL as the
-selector-free default and explicit legacy Redis configuration preserved.
+selector-free default; unsupported backend and provider configuration fails closed.
 This is not an operational-state migration, fallback, or campaign rollout change.
 The read-only doctor opens existing
 operational state without initializing it.
@@ -1052,8 +1042,7 @@ The hosted dashboard has one strict storage split:
 | --- | --- | --- |
 | PostgreSQL canonical adapter (`postgresx`) | Current dashboard entities, quality metadata, diagnostics, revision state, and Dashboard Language query execution | Operational records, sessions, queues, and transient resolver caches |
 | PostgreSQL operational adapter (default) | Deployment-scoped durable operational services in separate `cao_operational_*` tables and namespace | Canonical entities, canonical schema changes, Dashboard Language execution, automatic migration, or fallback |
-| Redis | Sessions, rate limits, webhook and collection queues, delivery deduplication, distributed coordination, GitHub quota state, pending token revocations, and bounded runtime caches | Dashboard entity rows, canonical source documents, query indexes, persistent query projections, or dashboard query execution |
-| In-process memory (explicit opt-in) | The same operational contracts within one owning process, with bounded volatile state and restart recovery limitations | Dashboard entity storage, query execution, cross-process coordination, restart durability, or fallback for a failed Redis deployment |
+| In-process memory (explicit opt-in) | The same operational contracts within one owning process, with bounded volatile state and restart recovery limitations | Dashboard entity storage, query execution, cross-process coordination, restart durability, or fallback for a failed PostgreSQL deployment |
 
 The Go HTTP(S) server serves the hosted dashboard itself, including its built
 HTML, JavaScript and other assets, OAuth routes, query API, and revision events
@@ -1067,9 +1056,9 @@ to the separate Pages deployment.
 
 The browser communicates only with the Go HTTP(S) server. It never connects to
 either store. Artifact ingestion and rebuilds transactionally replace the
-current PostgreSQL data; Redis failure may make protected operations
-unavailable, but Redis is never a fallback dashboard database. PostgreSQL
-failure makes dashboard data unavailable even when Redis is healthy.
+current PostgreSQL data. Operational-store failure makes protected operations
+unavailable; canonical-store failure makes dashboard data unavailable.
+Neither adapter is a fallback for the other.
 
 An externally owned HTTP host is a separate, explicit `generic` target with
 `listener: external`, not an alias for Azure's platform listener. The public
@@ -1077,37 +1066,24 @@ An externally owned HTTP host is a separate, explicit `generic` target with
 reviewed host policy, starts its artifact projection and optional collection,
 and exposes only the complete `http.Handler`. The host owns transport and
 graceful HTTP draining; CAO owns OAuth, session/CSRF authorization, webhook
-verification, proxy trust, rate limits, Redis, and background-task cancellation.
+verification, proxy trust, rate limits, operational storage, and background-task cancellation.
 Requests fail closed before startup and after shutdown. The host must preserve
 streaming and response deadline control for revision events, and must not apply
 a finite whole-request timeout to that route. External hosting introduces no
 runtime-loaded modules, rollout authority, or dependency on a particular
 HTTP framework.
 
-Hosted startup may compile that profile and its generic Redis connection from
+Hosted startup compiles that profile and its operational configuration from
 the non-secret `control-plane.web.host` section of
 `.github/workflows/cao.json`. The policy names environment variables rather
 than storing connection URLs, credentials, server-name overrides, or CA
-certificates. Managed-provider modules map provider conventions into the same
-generic URL and verified-TLS configuration; they do not create provider-specific
-runtime paths. When no host section exists, legacy environment configuration is
-retained for existing deployments.
+certificates. Hosted startup requires a reviewed host section and rejects
+environment-only host selection.
 
 Modules are compiled registry entries, not dynamically loaded code. Policy
-selects one target and one operational backend; Redis selection also resolves one provider module. Unknown names, attempts to
+selects one target and one operational backend. Unknown names, attempts to
 override fixed module capabilities, incompatible compositions, and runtime
 clients that do not satisfy the composed profile fail before serving traffic.
-
-The host-neutral server also has a constrained Upstash profile for a provider
-that guarantees causal ordering only within one TCP session. That profile runs
-exactly one application replica, serializes all Redis operations through one
-non-reconnecting connection, and uses a fresh internal namespace on every
-process start. A lost connection fails closed until restart. Restart rebuilds
-from the verified artifact and invalidates prior sessions. Its encrypted
-pending-revocation queue alone retains a stable deployment prefix so token
-revocation retries survive restart; server-side collection is not available in
-this profile. The default hosted and Azure
-profiles retain their ordinary pooled Redis behavior.
 
 The Go server profile acquires evidence through exactly one of two mutually
 exclusive ingestion profiles. By default the server ingests an explicitly
@@ -1121,7 +1097,7 @@ published snapshots. The separately selected `NativeValueService` owns reviewed
 Value execution without a snapshot Projector or its dirty-generation lifecycle.
 Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
-Redis-backed operational counters and exposes a read-only health status API.
+operational counters and exposes a read-only health status API.
 Verified GitHub issue lifecycle deliveries for enrolled repositories enqueue
 repository collection through the durable operational queue. Webhook payloads
 remain invalidation signals, not authority for direct entity-row mutations.
@@ -1226,7 +1202,7 @@ ordered registry list in `cao.json` identifies gh-aw package repositories and
 references secret names, never secret values. Activity resolves registries
 during static precomputation and publishes safe normalized package metadata into
 the canonical IndexedDB path. The hosted Go server resolves the same contract
-on demand and caches safe results in Redis. Registry credentials remain in the
+on demand and caches safe results in PostgreSQL. Registry credentials remain in the
 trusted resolver in both profiles. Marketplace views consume only the existing
 data-worker query boundary and render declarative package cards and copy-only
 CAO add commands; browsers never fetch registries or install packages.
@@ -1505,7 +1481,7 @@ and removal remain authenticated and never hydrate notification payloads.
 | `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Entirely Go operator-facing `gh cao` executable, including onboarding, policy management, PostgreSQL-backed queries, computations and MCP; embeds the authoritative JSON contracts and uses the bundled server's canonical read boundary. Actions packaging remains Node-owned. |
 | `internal/dashboardquery/` | Independent Go module owning bounded native Dashboard Language evaluation and the canonical read-session contract; PostgreSQL reads stay behind the server-owned adapter. |
 | `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
-| `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Container Apps deployment templates. |
+| `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit single-process memory alternative, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Container Apps deployment templates. |
 | `server/cmd/cao-webhook-gateway/`, `server/internal/webhookgateway/`, `server/internal/webhookgatewayhost/` | Optional isolated gateway entry point, consumer contracts and pure decisions, and host adapters; durable state extends the existing PostgreSQL operational adapter. |
 | `server/spec/` | Editable TypeSpec HTTP/SSE, fresh Postgres storage and optional ADX export contracts; generates OpenAPI 3.1, wire JSON Schemas, standalone SQL DDL, Go bindings and ADX setup KQL; checks routes, payloads and canonical field coverage. |
 | `dashboard/site/src/data/` | Canonical browser data model, adapters, normalization, storage, and declarative query engine. |
@@ -1912,29 +1888,28 @@ not authorize cross-repository evidence access.
 - Dashboard selection, filtering, joins, grouping, aggregation, ordering, and
   pagination are declared in Dashboard Language. They execute in the data Web
   Worker for static deployment and as SQL over PostgreSQL for server deployment.
-  Redis may cache bounded server query results but never executes dashboard
+  Operational storage may cache bounded server query results but never executes dashboard
   queries or stores canonical dashboard entities.
 - UI effects and components render query results; they do not reconstruct
   business relationships or query source data.
-- The local Redis profile binds to loopback and serves HTTP for local debugging
+- The local profile binds to loopback and serves HTTP for local debugging
   or HTTPS only with operator-supplied certificate files.
-- The hosted Redis profile runs behind an explicitly trusted HTTPS proxy,
+- The hosted profile runs behind an explicitly trusted HTTPS proxy,
   authenticates users through GitHub OAuth plus explicit user, organization, or team
   authorization, limits rebuild control to explicit administrators, verifies
   webhook signatures, deduplicates deliveries, and coordinates bounded
-  request-independent rebuilds through Redis so multiple stateless replicas
+  request-independent rebuilds through operational leases so multiple stateless replicas
   cannot replace the projection concurrently. Its client exposes the active
   GitHub login and supports explicit account switching through a fresh OAuth
   account-selection flow without combining account authority. Hosted transport
-  is fail-closed: Redis uses TLS by default when selected and always in Azure; a deployment-managed
-  Redis service may use private plaintext only through an explicit opt-in and a
-  private address. A public listener terminates TLS directly, while a private
+  is fail-closed: non-loopback PostgreSQL requires verified TLS.
+  A public listener terminates TLS directly, while a private
   container listener may rely on proxy TLS only when the direct proxy peer belongs
   to an explicit private CIDR allow-list. Forwarded hosts must still match the
   public host allow-list and forwarded protocol must be HTTPS. Logout atomically removes active session
   authority before remote token revocation; transient GitHub failures retain
   encrypted credentials only in the selected operational revocation queue
-  (restart-persistent with Redis or PostgreSQL, process-lifetime with opted-in memory), drained by a
+  (restart-persistent with PostgreSQL, process-lifetime with opted-in memory), drained by a
   bounded maintenance worker. Encrypted records identify their key so controlled
   rotation can retain the previous key until sessions and revocations drain.
   Refreshed sessions use an atomic compare-and-swap so logout cannot be undone
@@ -1943,7 +1918,7 @@ not authorize cross-repository evidence access.
   existing process-owned container host with PostgreSQL operational state,
   managed HTTPS ingress and explicitly verified private proxy peers. It reuses
   private PostgreSQL and the separate provisioning/ingestion job modules, but
-  uses Log Analytics without Application Insights or Redis.
+  uses Log Analytics without Application Insights.
   A private manual ingestion job publishes explicitly selected adopter snapshots
   or an explicit empty dataset; builds never download a catalog-owned dataset
   implicitly. Instance policy, credentials, and target enrollment remain
@@ -1965,7 +1940,7 @@ not authorize cross-repository evidence access.
   allowlisting, recent OAuth assurance, CSRF, explicit classic `repo` consent,
   and live target writer checks are unchanged. Operators must not expose this
   development listener through tunnels or proxies.
-- In the durable PostgreSQL or Redis server-collection profiles, delivery deduplication, repository debounce,
+- In the durable PostgreSQL server-collection profile, delivery deduplication, repository debounce,
   and task append are one atomic admission. Memory provides the same
   atomic admission within one process lifetime, not restart durability. Queue transitions append
   replacements or dead letters before ACK in one operational operation; completed
@@ -1983,14 +1958,14 @@ not authorize cross-repository evidence access.
   repository-lock contention backs off without consuming collection attempts.
 - `server/internal/githubquota` is the CAO-side authority for GitHub API quota.
   A bucket is one independently metered quota identified by GitHub App
-  identity, installation, and rate-limit resource, never by a token. Redis
+  identity, installation, and rate-limit resource, never by a token. The operational adapter
   keeps GitHub's last authoritative observation separate from expiring
   reservations. Admission requires remaining minus reserved minus cost to stay at
   or above the requested floor. Same-window observations never raise remaining
   quota, and parking never discards the primary quota state. A non-secret
   provider registry lists the candidate buckets for a workload, and selection
   prefers the unparked, known bucket with the most headroom. Each accepted
-  observation also merges the bucket's peak usage into a 15-minute Redis slot
+  observation also merges the bucket's peak usage into a 15-minute operational slot
   retained for 24 hours; administrators read it through
   `GET /api/v1/github-quota/usage` and the `github-quota-usage` runtime source
   that the Ingestion page charts. Existing collection budgets do not use this
@@ -2123,7 +2098,7 @@ not authorize cross-repository evidence access.
   default. Unsupported Value collector registrations fail closed rather than
   launching the former JavaScript runtime.
   See `specs/server-ingestion.md` section 2.4.
-- Browsers and external clients never receive Redis or Postgres endpoints or
+- Browsers and external clients never receive database endpoints or
   credentials. Dashboard source replacement is transactional in Postgres; a
   failed replacement leaves the previous committed data available. An empty
   Postgres store is not ready until loaded from authoritative inputs.
@@ -2153,9 +2128,9 @@ not authorize cross-repository evidence access.
   collection, data, and local tooling.
 - **JSONL** is the bounded evidence interchange; **IndexedDB** supports the
   synthetic Pages demo; **Postgres** stores and queries local and hosted data through the canonical
-  adapter and implements default durable operational services; **Redis** is
-  an explicit alternative operational adapter for caches, queues, coordination, rate limits,
-  and sessions, with bounded volatile memory available only for an explicitly
+  adapter and implements default durable operational services; bounded **memory** is
+  an explicit volatile operational adapter for caches, queues, coordination, rate limits,
+  and sessions, available only for an explicitly
   acknowledged single-process hosted deployment.
 - **Go** serves the hosted dashboard HTML and assets with its same-origin
   authentication, ingestion, reconciliation, rebuild, query, and revision-event

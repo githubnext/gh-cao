@@ -7,8 +7,8 @@ import (
 )
 
 // memoryCache is a minimal in-memory Cache double, keyed by (registryID,
-// generation) exactly like the Redis-backed implementation, so tests can
-// assert isolation and TTL propagation without a real Redis server.
+// generation) exactly like the Operational-backed implementation, so tests can
+// assert isolation and TTL propagation without a real Operational server.
 type memoryCache struct {
 	entries map[[2]string][]byte
 	ttls    map[[2]string]time.Duration

@@ -20,14 +20,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
 //go:embed oauth_failure.html
@@ -1384,7 +1383,7 @@ func (oauth *githubOAuth) loadSessionRecord(ctx context.Context, sessionID strin
 }
 
 func (oauth *githubOAuth) saveSession(ctx context.Context, session oauthSession) error {
-	data, err := json.Marshal(session) // #nosec G117 -- marshaled token fields are encrypted with AES-GCM before Redis storage.
+	data, err := json.Marshal(session) // #nosec G117 -- marshaled token fields are encrypted with AES-GCM before storage.
 	if err != nil {
 		return err
 	}
@@ -1396,7 +1395,7 @@ func (oauth *githubOAuth) saveSession(ctx context.Context, session oauthSession)
 }
 
 func (oauth *githubOAuth) saveSessionIfUnchanged(ctx context.Context, session oauthSession, expected string) (bool, error) {
-	data, err := json.Marshal(session) // #nosec G117 -- token fields are sealed with AES-GCM before Redis persistence.
+	data, err := json.Marshal(session) // #nosec G117 -- token fields are sealed with AES-GCM before operational storage persistence.
 	if err != nil {
 		return false, err
 	}

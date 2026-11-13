@@ -9,7 +9,6 @@ model DataState {
   /** Authoritative source time of the active canonical dataset, when available. */
   evaluatedAt?: utcDateTime;
 }
-model RedisState { connected: boolean; }
 model OperationalCapability {
   scope: "unsupported" | "process" | "deployment";
   persistence: "volatile" | "restart";
@@ -32,7 +31,6 @@ model OperationalState {
 }
 @example(#{
   status: "healthy",
-  redis: #{connected: true},
   data: #{
     available: true,
     rebuildRequired: false,
@@ -41,8 +39,6 @@ model OperationalState {
 })
 model HealthResponse {
   status: "healthy" | "unhealthy";
-  /** Deprecated compatibility alias for the selected operational dependency, not a claim that Redis is installed. */
-  redis: RedisState;
   operational?: OperationalState;
   data: DataState;
   /** Details are present only for an authorized caller. */
@@ -53,7 +49,6 @@ model HealthResponse {
 }
 model ReadinessResponse {
   ready: boolean;
-  redis: RedisState;
   operational?: OperationalState;
   data: DataState;
 }

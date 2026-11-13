@@ -12,7 +12,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/query"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestCollectionHealthSourceIsAvailableOnlyToAuthorizedReaders(t *testing.T) {
@@ -59,20 +58,14 @@ func TestCollectionHealthSourceReportsBackfillProgress(t *testing.T) {
 		t.Fatalf("webhook load = %v, want 2.5", got)
 	}
 	if source.Rows[0]["webhook-received"] != int64(23) || source.Rows[0]["collection-succeeded"] != int64(11) {
-		t.Fatalf("Redis counters were not exposed to the admin dashboard: %+v", source.Rows[0])
+		t.Fatalf("Operational counters were not exposed to the admin dashboard: %+v", source.Rows[0])
 	}
 }
 
 func TestCollectionHealthQueryRunsThroughServerQueryEngine(t *testing.T) {
 	database := integrationDatabase(t)
 	seedDatabase(t, database, nil)
-	address, closeServer := fakeRedis(t)
-	defer closeServer()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &App{services: redisx.NewStore(client, "health-query-test").OperationalServices(), database: database}
+	app := &App{services: newTestOperationalStore(t).OperationalServices(), database: database}
 	input := queryRequest{
 		Queries:     []query.Definition{{Name: "ingestion-health", From: collectionHealthSourceName}},
 		SourceNames: []string{"ingestion-health"},

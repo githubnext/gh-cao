@@ -370,7 +370,7 @@ steps:
             'tests/e2e/dashboard-query-parity.mjs',
           ] },
           { id: 'operational', claims: ['operational.durability', 'operational.isolation'], paths: [
-            'server/internal/operational', 'server/internal/redisx',
+            'server/internal/operational',
           ] },
           { id: 'hosting', claims: ['hosting.origin-auth', 'hosting.recovery'], paths: [
             'server/cmd', 'server/internal/server', 'server/internal/hostedcli',

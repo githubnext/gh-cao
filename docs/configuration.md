@@ -99,7 +99,7 @@ The optional `control-plane.web` section configures deterministic web surfaces w
 
 ### Deployment-specific host extensions
 
-When a hosted dashboard needs different server and Redis capabilities from the
+When a hosted dashboard needs different server and operational-store capabilities from the
 default deployment, keep `.github/workflows/cao.json` as the sole rollout
 policy and create an optional, reviewed host extension in the same directory,
 such as `.github/workflows/cao.host.json`:
@@ -111,7 +111,7 @@ such as `.github/workflows/cao.host.json`:
     "web": {
       "host": {
         "target": { "module": "container", "name": "hosted-dashboard" },
-        "redis": { "module": "generic", "tls": { "mode": "required" } }
+        "operational-store": { "backend": "postgres" }
       }
     }
   }
@@ -121,10 +121,10 @@ such as `.github/workflows/cao.host.json`:
 This is an overlay, **not** a standalone control policy: only
 `control-plane.web.host` may be supplied. Do not copy `scope`, `campaigns`,
 `defaults`, `target-authority`, or any other rollout or credential fields into
-it. Keep Redis URLs, passwords, and TLS certificates in the deployment's
+it. Keep database URLs, passwords, and TLS certificates in the deployment's
 secret environment, not in either JSON document.
 
-The host extension may also declare `cors` next to `target` and `redis`. Omit
+The host extension may also declare `cors` next to `target` and `operational-store`. Omit
 it to keep the dashboard same-origin. When another reviewed origin must call
 the server, list exact origins, for example
 `"cors": { "allowed-origins": ["https://tools.example.com"] }`.

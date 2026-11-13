@@ -20,9 +20,9 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/model"
+	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
@@ -32,11 +32,10 @@ const backfillDatabaseQueries = "../../../dashboard/site/src/data/queries/databa
 
 func TestPostgresBackfillIntegration(t *testing.T) {
 	export := os.Getenv("CAO_BACKFILL_INTEGRATION") == "1"
-	if !export && (os.Getenv("REDIS_URL") == "" ||
-		(os.Getenv("CAO_POSTGRES_URL") == "" && os.Getenv("POSTGRES_URL") == "")) {
-		t.Skip("set Postgres/Redis endpoints or run npm run test:integration:dashboard-backfill")
+	if !export && (os.Getenv("CAO_POSTGRES_URL") == "" && os.Getenv("POSTGRES_URL") == "") {
+		t.Skip("set Postgres/Operational endpoints or run npm run test:integration:dashboard-backfill")
 	}
-	required := []string{"CAO_POSTGRES_URL", "REDIS_URL"}
+	required := []string{"CAO_POSTGRES_URL"}
 	if os.Getenv("CAO_BACKFILL_SKIP_OPENOBSERVE") != "1" {
 		required = append(required, "CAO_BACKFILL_OPENOBSERVE_URL", "CAO_LOCAL_OTEL_EMAIL", "CAO_LOCAL_OTEL_PASSWORD",
 			"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", "OTEL_EXPORTER_OTLP_HEADERS")
@@ -55,13 +54,13 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 		flush = backfillTelemetry(t, ctx, service)
 	}
 	data := integrationDatabase(t)
-	client, err := redisx.New(os.Getenv("REDIS_URL"))
+	store, err := operationalpostgres.New(ctx, firstNonempty(os.Getenv("CAO_POSTGRES_URL"), os.Getenv("POSTGRES_URL")), fmt.Sprintf("backfill-%d", time.Now().UnixNano()), operationalpostgres.Config{})
 	if err != nil {
-		t.Fatal("configure local Redis")
+		t.Fatal(err)
 	}
-	store := redisx.NewStore(client, service)
+	t.Cleanup(func() { _ = store.DeleteNamespace(context.Background()); _ = store.Close() })
 	if err := store.Ping(ctx); err != nil {
-		t.Fatal("local Redis is unavailable")
+		t.Fatal("local Operational is unavailable")
 	}
 	directory, _ := testutil.RecentSnapshot(t, "../../testdata/deployed-subset")
 	lake := collect.Lake{Directory: directory}

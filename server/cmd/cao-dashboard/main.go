@@ -15,13 +15,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/githubnext/gh-cao/server/internal/dataset"
 	"github.com/githubnext/gh-cao/server/internal/doctor"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	debuglogger "github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/server"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
@@ -32,23 +31,10 @@ import (
 var version = "dev"
 var revision = "unknown"
 
-const defaultRedisURL = "redis://127.0.0.1:6379/0"
-
 var commandLog = debuglogger.New("cao:cli")
 
 var errDoctorFoundProblems = errors.New("doctor found problems")
 var errTelemetrySmokeFailed = errors.New("OpenTelemetry smoke test failed")
-
-// redisEndpointSource identifies which input determined a resolved Redis
-// endpoint. It is useful for diagnosing misconfiguration without logging the
-// endpoint URL itself.
-type redisEndpointSource string
-
-const (
-	redisEndpointSourceFlag    redisEndpointSource = "flag"
-	redisEndpointSourceEnv     redisEndpointSource = "env"
-	redisEndpointSourceDefault redisEndpointSource = "default"
-)
 
 // consumerNameSource identifies which input determined the resolved
 // collection worker consumer name. It is useful for diagnosing
@@ -74,20 +60,6 @@ func resolveConsumerName(flagValue string, hostnameFunc func() (string, error)) 
 		return "", "", fmt.Errorf("resolve consumer name: %w", err)
 	}
 	return hostname, consumerNameSourceHostname, nil
-}
-
-// resolveRedisEndpoint applies the standard priority for a server-side Redis
-// URL: an explicit flag value, then an environment override, then
-// defaultValue. It returns both the resolved endpoint and which input
-// supplied it, so callers can log the source without exposing the URL.
-func resolveRedisEndpoint(flagValue, envValue, defaultValue string) (string, redisEndpointSource) {
-	if endpoint := strings.TrimSpace(flagValue); endpoint != "" {
-		return endpoint, redisEndpointSourceFlag
-	}
-	if endpoint := strings.TrimSpace(envValue); endpoint != "" {
-		return endpoint, redisEndpointSourceEnv
-	}
-	return defaultValue, redisEndpointSourceDefault
 }
 
 // postgresEndpointSource identifies which input determined a resolved
@@ -128,7 +100,7 @@ func newPostgresStore(ctx context.Context, flagValue, namespace string) (*postgr
 }
 
 // namespaceDefaultSource identifies which input determined the default value
-// offered to the doctor command's --redis-namespace flag before any explicit
+// offered to the doctor command's --namespace flag before any explicit
 // flag override. It is useful for diagnosing misconfiguration without
 // logging the namespace itself.
 type namespaceDefaultSource string
@@ -156,14 +128,14 @@ func resolveIngestSource(flagValue string) (string, error) {
 	return "", errors.New("ingest requires --source DIRECTORY")
 }
 
-// checkoutNamespaceDefault resolves this checkout's default Redis namespace
-// once, so both --redis-namespace registration paths below share the same
-// lookup instead of each calling redisx.DefaultNamespace independently. A
+// checkoutNamespaceDefault resolves this checkout's default dataset namespace
+// once, so both --namespace registration paths below share the same
+// lookup instead of each calling dataset.DefaultNamespace independently. A
 // resolution failure is logged at this shared boundary, without exposing
 // the namespace value itself, so it is diagnosed the same way regardless of
 // which subcommand registered the flag.
 func checkoutNamespaceDefault() (string, error) {
-	namespace, err := redisx.DefaultNamespace(".")
+	namespace, err := dataset.DefaultNamespace(".")
 	if err != nil {
 		commandLog.Printf("checkout namespace default resolution failed")
 		return "", err
@@ -171,60 +143,28 @@ func checkoutNamespaceDefault() (string, error) {
 	return namespace, nil
 }
 
-// registerRedisNamespaceFlag registers a --redis-namespace flag whose default
+// registerNamespaceFlag registers a --namespace flag whose default
 // is the current checkout's namespace. A namespace-detection failure is
 // returned rather than applied immediately, so every other flag on cmd is
 // still registered; callers must check the returned error inside RunE, so a
 // user-supplied flag value never masks the original error behind an
 // "unknown flag" one.
-func registerRedisNamespaceFlag(cmd *cobra.Command, usage string) (namespace *string, namespaceErr error) {
+func registerNamespaceFlag(cmd *cobra.Command, usage string) (namespace *string, namespaceErr error) {
 	checkoutNamespace, err := checkoutNamespaceDefault()
-	namespace = cmd.Flags().String("redis-namespace", checkoutNamespace, usage)
+	namespace = cmd.Flags().String("namespace", checkoutNamespace, usage)
 	return namespace, err
 }
 
-// registerRedisNamespaceFlagWithEnvOverride behaves like
-// registerRedisNamespaceFlag, but the default is additionally overridable by
-// the CAO_REDIS_NAMESPACE environment variable. It also returns which input
+// registerNamespaceFlagWithEnvOverride behaves like
+// registerNamespaceFlag, but the default is additionally overridable by
+// the CAO_DATASET_NAMESPACE environment variable. It also returns which input
 // supplied that default, so callers can log the source without exposing the
 // namespace value.
-func registerRedisNamespaceFlagWithEnvOverride(cmd *cobra.Command, usage string) (namespace *string, source namespaceDefaultSource, namespaceErr error) {
+func registerNamespaceFlagWithEnvOverride(cmd *cobra.Command, usage string) (namespace *string, source namespaceDefaultSource, namespaceErr error) {
 	checkoutNamespace, err := checkoutNamespaceDefault()
-	defaultNamespace, defaultSource := resolveNamespaceDefault(os.Getenv("CAO_REDIS_NAMESPACE"), checkoutNamespace)
-	namespace = cmd.Flags().String("redis-namespace", defaultNamespace, usage)
+	defaultNamespace, defaultSource := resolveNamespaceDefault(os.Getenv("CAO_DATASET_NAMESPACE"), checkoutNamespace)
+	namespace = cmd.Flags().String("namespace", defaultNamespace, usage)
 	return namespace, defaultSource, err
-}
-
-// newRedisStore builds a redisx.Store from a raw Redis URL and namespace,
-// consolidating the client-then-namespace-then-store construction repeated
-// by every subcommand that talks to Redis directly. It logs only which
-// construction stage failed, so no URL or namespace value reaches the log.
-func newRedisStore(rawURL, rawNamespace string) (*redisx.Store, error) {
-	client, err := redisx.New(rawURL)
-	if err != nil {
-		commandLog.Printf("redis store construction failed stage=client")
-		return nil, err
-	}
-	namespace, err := redisx.NormalizeNamespace(rawNamespace)
-	if err != nil {
-		commandLog.Printf("redis store construction failed stage=namespace")
-		return nil, err
-	}
-	return redisx.NewStore(client, namespace), nil
-}
-
-// doctorStore builds the namespaced Redis store the doctor command inspects,
-// tolerating a client that cannot be constructed: an unreachable or
-// misconfigured endpoint is itself a finding, so the check-up still runs and
-// reports why the Redis checks could not run, rather than exiting before
-// producing a report. namespace is assumed already normalized by the caller.
-func doctorStore(endpoint, namespace string) *redisx.Store {
-	client, err := redisx.New(endpoint)
-	if err != nil {
-		commandLog.Printf("doctor could not construct a Redis client")
-		return nil
-	}
-	return redisx.NewStore(client, namespace)
 }
 
 // telemetrySetupFunc matches telemetry.Setup's signature so tests can
@@ -374,20 +314,16 @@ type doctorBackendSource string
 
 const (
 	doctorBackendSourcePolicy  doctorBackendSource = "policy"
-	doctorBackendSourceRedis   doctorBackendSource = "redis"
 	doctorBackendSourceDefault doctorBackendSource = "default"
 )
 
 // resolveDoctorBackendSource applies the doctor's backend precedence: a
 // reviewed operational policy (selected explicitly or through a policy path
-// variable) wins, then an explicit Redis URL flag or CAO_REDIS_URL, then the
-// default Postgres-backed diagnosis.
-func resolveDoctorBackendSource(policySelected bool, policyPath, marketplacePolicyPath string, redisFlagChanged bool, redisEnv string) doctorBackendSource {
+// variable) wins, otherwise use the default Postgres-backed diagnosis.
+func resolveDoctorBackendSource(policySelected bool, policyPath, marketplacePolicyPath string) doctorBackendSource {
 	switch {
 	case policySelected || strings.TrimSpace(policyPath) != "" || strings.TrimSpace(marketplacePolicyPath) != "":
 		return doctorBackendSourcePolicy
-	case redisFlagChanged || strings.TrimSpace(redisEnv) != "":
-		return doctorBackendSourceRedis
 	default:
 		return doctorBackendSourceDefault
 	}
@@ -403,8 +339,7 @@ func newDoctorCommand() *cobra.Command {
 		Use:   "doctor",
 		Short: "run a read-only check-up of operational state, canonical data, queries, and collection",
 	}
-	redisURL := cmd.Flags().String("redis-url", "", "server-side Redis URL; defaults to CAO_REDIS_URL then "+defaultRedisURL)
-	redisNamespace, namespaceDefaultSource, namespaceErr := registerRedisNamespaceFlagWithEnvOverride(cmd, "Redis key namespace")
+	datasetNamespace, namespaceDefaultSource, namespaceErr := registerNamespaceFlagWithEnvOverride(cmd, "canonical dataset namespace")
 	databaseQueries := cmd.Flags().String("database-queries",
 		"../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
 	format := cmd.Flags().String("format", "text", "report format: text or json")
@@ -417,16 +352,13 @@ func newDoctorCommand() *cobra.Command {
 			return namespaceErr
 		}
 		commandLog.Printf("doctor resolved namespace default source=%s", namespaceDefaultSource)
-		endpoint, endpointSource := resolveRedisEndpoint(*redisURL, os.Getenv("CAO_REDIS_URL"), defaultRedisURL)
-		commandLog.Printf("doctor resolved redis endpoint source=%s", endpointSource)
-		namespace, err := redisx.NormalizeNamespace(*redisNamespace)
+		namespace, err := dataset.NormalizeNamespace(*datasetNamespace)
 		if err != nil {
 			return err
 		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		check := doctor.Doctor{
-			RedisURL:            endpoint,
 			Namespace:           namespace,
 			DatabaseQueriesPath: *databaseQueries,
 			Version:             version,
@@ -440,8 +372,7 @@ func newDoctorCommand() *cobra.Command {
 			return selectionErr
 		}
 		backendSource := resolveDoctorBackendSource(
-			selected, os.Getenv("CAO_POLICY_PATH"), os.Getenv("CAO_MARKETPLACE_POLICY_PATH"),
-			cmd.Flags().Changed("redis-url"), os.Getenv("CAO_REDIS_URL"))
+			selected, os.Getenv("CAO_POLICY_PATH"), os.Getenv("CAO_MARKETPLACE_POLICY_PATH"))
 		commandLog.Printf("doctor resolved backend source=%s", backendSource)
 		switch backendSource {
 		case doctorBackendSourcePolicy:
@@ -451,35 +382,11 @@ func newDoctorCommand() *cobra.Command {
 			}
 			check.Backend = settings.Backend
 			check.Namespace = settings.Namespace
-			check.RedisURL = settings.RedisURL
 			databaseNamespace = settings.DatabaseNamespace
-			if check.Backend != "redis" && (cmd.Flags().Changed("redis-url") || cmd.Flags().Changed("redis-namespace")) {
-				if provider != nil {
-					_ = provider.Close()
-				}
-				return errors.New("non-Redis operational-store cannot use Redis flags; diagnose live memory state in its owning process")
-			}
 			if provider != nil {
 				check.Store = provider
-				if redisStore, ok := provider.(*redisx.Store); ok {
-					check.RedisStore = server.NewRedisProviderDiagnostics(redisStore)
-				}
-			}
-		case doctorBackendSourceRedis:
-			check.Backend = "redis"
-			maxRedisBytes, err := server.RedisMaxBytesFromEnv(0)
-			if err != nil {
-				return err
-			}
-			provider := doctorStore(endpoint, namespace)
-			if provider != nil {
-				if err := provider.SetMaxMemoryBytes(maxRedisBytes); err != nil {
-					return err
-				}
-				check.Store, check.RedisStore = provider, server.NewRedisProviderDiagnostics(provider)
 			}
 		default:
-			check.RedisURL = ""
 			check.Namespace, _ = resolveNamespaceDefault(os.Getenv("CAO_OPERATIONAL_NAMESPACE"), namespace)
 			if dsn, _, err := resolvePostgresEndpoint(*postgresURL, os.Getenv("CAO_POSTGRES_URL")); err == nil {
 				config, err := server.PostgresOperationalConfigFromEnv()
@@ -573,7 +480,7 @@ func newServeHostedCommand() *cobra.Command {
 		Short: "serve the dashboard and admit webhook deliveries",
 	}
 	listen := cmd.Flags().String("listen", "127.0.0.1:8080", "listen address; non-loopback listeners require TLS")
-	operationalStore := cmd.Flags().String("operational-store", "", "require redis, memory, or postgres to match the reviewed host policy; does not override policy")
+	operationalStore := cmd.Flags().String("operational-store", "", "require memory or postgres to match the reviewed host policy; does not override policy")
 	cert := cmd.Flags().String("cert", "", "TLS certificate PEM file required for a non-loopback listener")
 	key := cmd.Flags().String("key", "", "TLS private key PEM file required for a non-loopback listener")
 	siteDirectory := cmd.Flags().String("site", "", "serve a built dashboard directory from disk instead of embedded resources")
@@ -667,9 +574,8 @@ func newServeCommand() *cobra.Command {
 		Short: "serve dashboard data locally from Postgres",
 		Args:  cobra.NoArgs,
 	}
-	redisURL := cmd.Flags().String("redis-url", defaultRedisURL, "explicitly opt in to Redis operational state instead of Postgres")
 	postgresURL := cmd.Flags().String("postgres-url", "", "Postgres dashboard storage URL; defaults to CAO_POSTGRES_URL")
-	redisNamespace, namespaceErr := registerRedisNamespaceFlag(cmd, "Redis key and index namespace")
+	datasetNamespace, namespaceErr := registerNamespaceFlag(cmd, "canonical dataset namespace")
 	siteDirectory := cmd.Flags().String("site", "", "serve a built dashboard directory from disk instead of embedded resources")
 	listen := cmd.Flags().String("listen", "127.0.0.1:8443", "loopback HTTP listen address; HTTPS when --cert and --key are set")
 	cert := cmd.Flags().String("cert", "", "optional TLS certificate PEM file")
@@ -768,26 +674,21 @@ func newServeCommand() *cobra.Command {
 			}
 			return config, nil
 		}
-		var store operational.Store
-		if cmd.Flags().Changed("redis-url") {
-			store, err = newRedisStore(*redisURL, *redisNamespace)
-		} else {
-			dsn, _, resolveErr := resolvePostgresEndpoint(*postgresURL, os.Getenv("CAO_POSTGRES_URL"))
-			if resolveErr != nil {
-				return resolveErr
-			}
-			config, configErr := server.PostgresOperationalConfigFromEnv()
-			if configErr != nil {
-				return configErr
-			}
-			namespace, _ := resolveNamespaceDefault(os.Getenv("CAO_OPERATIONAL_NAMESPACE"), *redisNamespace)
-			store, err = postgres.Open(ctx, dsn, namespace, config)
+		dsn, _, resolveErr := resolvePostgresEndpoint(*postgresURL, os.Getenv("CAO_POSTGRES_URL"))
+		if resolveErr != nil {
+			return resolveErr
 		}
+		operationalConfig, configErr := server.PostgresOperationalConfigFromEnv()
+		if configErr != nil {
+			return configErr
+		}
+		namespace, _ := resolveNamespaceDefault(os.Getenv("CAO_OPERATIONAL_NAMESPACE"), *datasetNamespace)
+		store, err := postgres.Open(ctx, dsn, namespace, operationalConfig)
 		if err != nil {
 			return err
 		}
 		defer func() { _ = store.Close() }()
-		database, err := newPostgresStore(ctx, *postgresURL, *redisNamespace)
+		database, err := newPostgresStore(ctx, *postgresURL, *datasetNamespace)
 		if err != nil {
 			return err
 		}
@@ -812,9 +713,8 @@ func newIngestCommand() *cobra.Command {
 		Short: "ingest a deployed dashboard directory into Postgres",
 		Args:  cobra.NoArgs,
 	}
-	cmd.Flags().String("redis-url", defaultRedisURL, "legacy Redis URL (not used for canonical Postgres ingestion)")
 	postgresURL := cmd.Flags().String("postgres-url", "", "Postgres dashboard entity store URL; defaults to CAO_POSTGRES_URL")
-	redisNamespace, namespaceErr := registerRedisNamespaceFlag(cmd, "canonical Postgres dataset namespace (legacy flag name)")
+	datasetNamespace, namespaceErr := registerNamespaceFlag(cmd, "canonical Postgres dataset namespace")
 	source := cmd.Flags().String("source", "", "deployed dashboard directory")
 	databaseQueries := cmd.Flags().String("database-queries", "../dashboard/site/src/data/queries/database.json", "canonical database projection queries")
 	cmd.RunE = func(_ *cobra.Command, _ []string) error {
@@ -835,7 +735,7 @@ func newIngestCommand() *cobra.Command {
 			return err
 		}
 		defer closeTelemetry()
-		database, err := newPostgresStore(ctx, *postgresURL, *redisNamespace)
+		database, err := newPostgresStore(ctx, *postgresURL, *datasetNamespace)
 		if err != nil {
 			return err
 		}

@@ -946,7 +946,7 @@ NOT be treated as proof of correctness against every GitHub API response.
 
 The API URL MUST be routed through the normal collection runner into collection
 subprocesses. A simulator run MUST use synthetic repositories, isolated test
-credentials, and a test Redis instance; operators MUST NOT point it at live
+credentials, and a test PostgreSQL instance; operators MUST NOT point it at live
 repositories or expose the fake API listener to an untrusted network. The
 simulator MUST NOT log webhook secrets, App credentials, or payload contents.
 
@@ -960,7 +960,7 @@ during and after each run.
 The Go server integration test MUST deliver signed scenario traffic through the
 production webhook handler with durable deployment-scoped PostgreSQL
 operational storage, then verify the health API reports persisted webhook
-counters and queued recovery work. A Redis-only admission test cannot establish
+counters and queued recovery work. An admission-only test cannot establish
 native publication or source-epoch ownership.
 
 ## 14. Conformance checklist

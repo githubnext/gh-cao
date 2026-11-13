@@ -129,7 +129,7 @@ func TestHostPolicyReadsCORSFromCaoJSON(t *testing.T) {
 			"web": {
 				"host": {
 					"target": {"module": "container", "name": "render"},
-					"redis": {"module": "render", "tls": {"mode": "required"}},
+					"operational-store": {"backend": "postgres"},
 					"cors": {
 						"allowed-origins": ["https://Tools.Example.com"],
 						"max-age": 120
@@ -142,7 +142,7 @@ func TestHostPolicyReadsCORSFromCaoJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("CAO_POLICY_PATH", path)
-	t.Setenv("REDIS_URL", "rediss://cache.example.com:6379")
+	t.Setenv("CAO_POSTGRES_URL", "postgres://127.0.0.1/db?sslmode=disable")
 	resolved, err := loadHostPolicyFromEnv()
 	if err != nil {
 		t.Fatal(err)

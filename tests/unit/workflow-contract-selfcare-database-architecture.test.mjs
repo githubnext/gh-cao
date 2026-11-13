@@ -158,7 +158,7 @@ test("Azure mapping is the final guide section and distinguishes resources from 
     assert.ok(azure.includes(service), `missing Azure mapping: ${service}`);
   }
   assert.match(azure, /ephemeral container storage is not the session lake/);
-  assert.match(azure, /requires neither Redis nor Azure Service Bus/);
+  assert.match(azure, /Azure Service Bus is not an implied adapter substitution/);
   assert.match(azure, /GitHub remains the OAuth and membership provider, not Entra/);
   assert.match(azure, /no external table, exporter or archive activation/);
   assert.match(azure, /No Application Insights or OTLP in the base profile/);

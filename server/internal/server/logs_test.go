@@ -4,50 +4,44 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
 type logCounterClient struct {
+	operational.IngestionMetrics
+	operational.TaskQueue
 	fields   []any
 	err      error
 	queueErr error
 }
 
-func (client logCounterClient) Do(_ context.Context, command ...string) (any, error) {
+func (client logCounterClient) IngestionHealth(context.Context) (map[string]int64, map[string]string, error) {
 	if client.err != nil {
-		return nil, client.err
+		return nil, nil, client.err
 	}
-	switch command[0] {
-	case "HGETALL":
-		return client.fields, nil
-	case "XINFO":
-		if client.queueErr != nil {
-			return nil, client.queueErr
+	counters := map[string]int64{}
+	for i := 0; i+1 < len(client.fields); i += 2 {
+		if client.fields[i] == "taskQueued" {
+			n, _ := strconv.ParseInt(fmt.Sprint(client.fields[i+1]), 10, 64)
+			counters["taskQueued"] = n
 		}
-		return []any{[]any{"name", "collectors", "lag", int64(2)}}, nil
-	case "ZCARD":
-		return int64(1), nil
-	case "XPENDING":
-		if len(command) > 3 {
-			return []any{[]any{"1-0", "collector", int64(0), int64(1)}}, nil
-		}
-		return []any{int64(4)}, nil
-	case "XLEN":
-		return int64(5), nil
-	default:
-		return nil, errors.New("unexpected Redis command")
 	}
+	return counters, nil, nil
 }
-
-func (logCounterClient) DoMany(context.Context, [][]string) ([]any, error) {
-	return nil, errors.New("unexpected Redis commands")
+func (client logCounterClient) QueueStats(context.Context, string, string) (operational.QueueStats, error) {
+	return operational.QueueStats{Length: 5, Backlog: 2, Pending: 4}, client.queueErr
+}
+func (client logCounterClient) DelayedDepth(context.Context, string) (int64, error) {
+	return 1, client.queueErr
 }
 
 func TestServerLogsAuthorization(t *testing.T) {
@@ -80,13 +74,13 @@ func TestServerLogsAuthorization(t *testing.T) {
 					t.Fatalf("Cache-Control = %q", got)
 				}
 				var snapshot struct {
-					Logs  []json.RawMessage `json:"logs"`
-					Redis struct {
+					Logs        []json.RawMessage `json:"logs"`
+					Operational struct {
 						Status string `json:"status"`
-					} `json:"redis"`
+					} `json:"operational"`
 				}
 				if err := json.Unmarshal(response.Body.Bytes(), &snapshot); err != nil ||
-					snapshot.Logs == nil || snapshot.Redis.Status != "not-configured" {
+					snapshot.Logs == nil || snapshot.Operational.Status != "not-configured" {
 					t.Fatalf("invalid log snapshot: %s (%v)", response.Body.String(), err)
 				}
 			}
@@ -94,7 +88,7 @@ func TestServerLogsAuthorization(t *testing.T) {
 	}
 }
 
-func TestServerLogsOnlyExportsSafeRedisCounters(t *testing.T) {
+func TestServerLogsOnlyExportsSafeOperationalCounters(t *testing.T) {
 	for _, test := range []struct {
 		name       string
 		client     logCounterClient
@@ -102,16 +96,16 @@ func TestServerLogsOnlyExportsSafeRedisCounters(t *testing.T) {
 		status     string
 	}{
 		{"available", logCounterClient{fields: []any{
-			"taskQueued", "3", "lastFailureCode", "redis", "unexpected", "private-value",
+			"taskQueued", "3", "lastFailureCode", "operational", "unexpected", "private-value",
 		}}, false, "ok"},
 		{"collection queue", logCounterClient{fields: []any{"taskQueued", "3"}}, true, "ok"},
 		{"collection queue unavailable", logCounterClient{
 			fields: []any{"taskQueued", "3"}, queueErr: errors.New("private queue detail"),
 		}, true, "unavailable"},
-		{"unavailable", logCounterClient{err: errors.New("private Redis connection detail")}, false, "unavailable"},
+		{"unavailable", logCounterClient{err: errors.New("private Operational connection detail")}, false, "unavailable"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := redisx.NewStore(test.client, "log-test")
+			store := newTestOperationalStore(t, test.client)
 			app := &App{
 				logs: logger.EnableBuffer(), services: store.OperationalServices(),
 			}
@@ -128,27 +122,27 @@ func TestServerLogsOnlyExportsSafeRedisCounters(t *testing.T) {
 			if err := json.Unmarshal(response.Body.Bytes(), &snapshot); err != nil {
 				t.Fatal(err)
 			}
-			if snapshot.Logs == nil || snapshot.Redis.Status != test.status {
+			if snapshot.Logs == nil || snapshot.Operational.Status != test.status {
 				t.Fatalf("unexpected snapshot: %s", response.Body.String())
 			}
 			if strings.Contains(response.Body.String(), "private") ||
 				strings.Contains(response.Body.String(), "lastFailureCode") {
-				t.Fatalf("internal Redis data leaked: %s", response.Body.String())
+				t.Fatalf("internal Operational data leaked: %s", response.Body.String())
 			}
-			if test.status == "ok" && (len(snapshot.Redis.Counters) != 1 ||
-				snapshot.Redis.Counters["taskQueued"] != 3) {
+			if test.status == "ok" && (len(snapshot.Operational.Counters) != 1 ||
+				snapshot.Operational.Counters["taskQueued"] != 3) {
 				t.Fatalf("unexpected counters: %s", response.Body.String())
 			}
-			if test.status == "unavailable" && snapshot.Redis.Counters != nil {
+			if test.status == "unavailable" && snapshot.Operational.Counters != nil {
 				t.Fatalf("exposed counters on failure: %s", response.Body.String())
 			}
-			if test.collection && test.status == "ok" && (snapshot.Redis.QueueDepth == nil || *snapshot.Redis.QueueDepth != 3 ||
-				snapshot.Redis.PendingTasks == nil || *snapshot.Redis.PendingTasks != 4 ||
-				snapshot.Redis.DeadLetters == nil || *snapshot.Redis.DeadLetters != 5) {
+			if test.collection && test.status == "ok" && (snapshot.Operational.QueueDepth == nil || *snapshot.Operational.QueueDepth != 3 ||
+				snapshot.Operational.PendingTasks == nil || *snapshot.Operational.PendingTasks != 4 ||
+				snapshot.Operational.DeadLetters == nil || *snapshot.Operational.DeadLetters != 5) {
 				t.Fatalf("unexpected collection queue counts: %s", response.Body.String())
 			}
-			if !test.collection && (snapshot.Redis.QueueDepth != nil ||
-				snapshot.Redis.PendingTasks != nil || snapshot.Redis.DeadLetters != nil) {
+			if !test.collection && (snapshot.Operational.QueueDepth != nil ||
+				snapshot.Operational.PendingTasks != nil || snapshot.Operational.DeadLetters != nil) {
 				t.Fatalf("collection queue counts should be absent: %s", response.Body.String())
 			}
 		})
@@ -210,7 +204,7 @@ func TestCollectionQueueCounts(t *testing.T) {
 		{"unavailable", logCounterClient{queueErr: errors.New("private queue detail")}, 0, 0, 0, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := redisx.NewStore(test.client, "queue-test")
+			store := newTestOperationalStore(t, test.client)
 			queue := collect.Queue{Tasks: store, Admission: store, Metadata: store, Leases: store, Deliveries: store, Metrics: store}
 			depth, pending, dead, err := collectionQueueCounts(t.Context(), queue)
 			if test.wantErr {

@@ -418,7 +418,7 @@ type queueBacklogClassification struct {
 // classifyQueueBacklog decides the collect.queue check's outcome from the
 // queue's reported counts alone. It is a pure function so every threshold —
 // a non-zero dead-letter count and a backlog approaching the configured
-// maximum length — is testable without a fake Redis-backed queue.
+// maximum length — is testable without a fake operational queue.
 func classifyQueueBacklog(depth, pending, deadLetters int64, maximum int) queueBacklogClassification {
 	if deadLetters > 0 {
 		return queueBacklogClassification{
@@ -469,7 +469,7 @@ type backfillClassification struct {
 // classifyBackfillState decides the collect.backfill check's outcome from a
 // collect.BackfillState alone. It is a pure function so each outcome -- an
 // errored run, a namespace that has never seeded, an incomplete phase, and a
-// completed run -- is testable without a fake Redis-backed store. A reported
+// completed run -- is testable without a fake operational store. A reported
 // error is checked first, matching the prior inline behavior.
 func classifyBackfillState(state collect.BackfillState) backfillClassification {
 	if state.Error != "" {
@@ -534,7 +534,7 @@ func (d Doctor) checkBackfill(ctx context.Context) Check {
 	}
 }
 
-// checkBudget reads the recorded GitHub rate-limit headroom. It reads Redis
+// checkBudget reads the recorded GitHub rate-limit headroom. It reads operational storage
 // only: the doctor never spends a GitHub request to report on rate limits.
 func (d Doctor) checkBudget(ctx context.Context) Check {
 	const id, title = "collect.budget", "GitHub rate-limit headroom"
@@ -613,7 +613,7 @@ type budgetHeadroomClassification struct {
 // recorded per-installation rate-limit headroom and the configured floor
 // alone. It is a pure function extracted from checkBudget's inline loop so
 // the parked, low, and healthy outcomes are each testable without a real
-// Redis-backed budget store. A parked installation is reported first,
+// operational budget store. A parked installation is reported first,
 // matching the prior inline priority.
 func classifyBudgetHeadroom(rateLimits []collect.Headroom, floor int) budgetHeadroomClassification {
 	var parked, low []string

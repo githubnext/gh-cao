@@ -18,7 +18,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
@@ -27,23 +26,6 @@ type testReconciler struct {
 	calls  int
 	event  GitHubWebhook
 	called chan struct{}
-}
-
-type emptyRedisClient struct{}
-
-func (emptyRedisClient) Do(_ context.Context, command ...string) (any, error) {
-	switch command[0] {
-	case "PING":
-		return "PONG", nil
-	case "HGETALL":
-		return []any{}, nil
-	default:
-		return nil, nil
-	}
-}
-
-func (emptyRedisClient) DoMany(context.Context, [][]string) ([]any, error) {
-	return nil, nil
 }
 
 func (reconciler *testReconciler) Rebuild(context.Context) (ingest.Result, error) {
@@ -122,16 +104,10 @@ func TestReconcileInterruptedRebuildClearsRequiredWhenDatabaseReady(t *testing.T
 }
 
 func TestWebhookReconcilesThroughInjectedCanonicalUpdater(t *testing.T) {
-	address, closeServer := fakeRedis(t)
-	defer closeServer()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	reconciler := &testReconciler{called: make(chan struct{})}
 	var authBranches []string
-	app := &App{services: redisx.NewStore(client, "webhook-test").OperationalServices(), reconciler: reconciler,
+	app := &App{services: newTestOperationalStore(t).OperationalServices(), reconciler: reconciler,
 		webhookSecret: []byte("webhook-secret"),
 		hub:           newEventHub(),
 		oauth: &githubOAuth{log: func(_ context.Context, branch string) {
@@ -186,8 +162,8 @@ func TestWebhookReconcilesThroughInjectedCanonicalUpdater(t *testing.T) {
 	}
 }
 
-func TestEmptyRedisIsHealthyButNotReady(t *testing.T) {
-	app := &App{services: redisx.NewStore(emptyRedisClient{}, "empty-test").OperationalServices(), database: integrationDatabase(t)}
+func TestEmptyOperationalIsHealthyButNotReady(t *testing.T) {
+	app := &App{services: newTestOperationalStore(t).OperationalServices(), database: integrationDatabase(t)}
 
 	healthResponse := httptest.NewRecorder()
 	app.health(
@@ -195,7 +171,7 @@ func TestEmptyRedisIsHealthyButNotReady(t *testing.T) {
 		httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/health", nil),
 	)
 	if healthResponse.Code != http.StatusOK {
-		t.Fatalf("empty Redis health returned %d: %s", healthResponse.Code, healthResponse.Body.String())
+		t.Fatalf("empty Operational health returned %d: %s", healthResponse.Code, healthResponse.Body.String())
 	}
 	var health map[string]any
 	if err := json.Unmarshal(healthResponse.Body.Bytes(), &health); err != nil {
@@ -203,7 +179,7 @@ func TestEmptyRedisIsHealthyButNotReady(t *testing.T) {
 	}
 	data := health["data"].(map[string]any)
 	if data["available"] != false || data["rebuildRequired"] != true {
-		t.Fatalf("empty Redis health did not require rebuild: %#v", health)
+		t.Fatalf("empty Operational health did not require rebuild: %#v", health)
 	}
 
 	readinessResponse := httptest.NewRecorder()
@@ -212,7 +188,7 @@ func TestEmptyRedisIsHealthyButNotReady(t *testing.T) {
 		httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/readiness", nil),
 	)
 	if readinessResponse.Code != http.StatusServiceUnavailable {
-		t.Fatalf("empty Redis readiness returned %d: %s", readinessResponse.Code, readinessResponse.Body.String())
+		t.Fatalf("empty Operational readiness returned %d: %s", readinessResponse.Code, readinessResponse.Body.String())
 	}
 }
 
@@ -221,7 +197,7 @@ func TestHealthReportsPostgresFailureAsUnhealthy(t *testing.T) {
 	if err := database.Close(); err != nil {
 		t.Fatal(err)
 	}
-	app := &App{services: redisx.NewStore(emptyRedisClient{}, "empty-test").OperationalServices(), database: database}
+	app := &App{services: newTestOperationalStore(t).OperationalServices(), database: database}
 	response := httptest.NewRecorder()
 	app.health(response, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/health", nil))
 	var health map[string]any
@@ -417,14 +393,8 @@ func nativeSimulatorRunPayload(payload []byte) ([]byte, error) {
 	return json.Marshal(event)
 }
 
-func TestNativeCollectorRejectsRedisWithoutFencedQueue(t *testing.T) {
-	address, closeServer := fakeRedis(t)
-	t.Cleanup(closeServer)
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = NewCollector(t.Context(), redisx.NewStore(client, "native-redis-rejected"),
+func TestNativeCollectorRejectsOperationalWithoutFencedQueue(t *testing.T) {
+	_, err := NewCollector(t.Context(), focusedTestStore(newTestOperationalStore(t)),
 		integrationDatabase(t), CollectorConfig{NativeAcquisition: true, AppID: 1, AdmitOnly: true}, "")
 	if err == nil || !strings.Contains(err.Error(), "fenced task receipts") {
 		t.Fatalf("native admission accepted a queue without fenced receipts: %v", err)

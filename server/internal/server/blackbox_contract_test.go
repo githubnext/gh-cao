@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 type blackboxFixtures struct {
@@ -211,14 +209,9 @@ func TestServerAgentGuide(t *testing.T) {
 
 func TestBlackboxSSEFramingAndDisconnect(t *testing.T) {
 	fixture := loadBlackboxFixtures(t).SSE
-	address, closeRedis := fakeRedis(t)
-	defer closeRedis()
-	redisClient, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	app := &App{
-		database: integrationDatabase(t), hub: newEventHub(), services: redisx.NewStore(redisClient, "blackbox-stream").OperationalServices(), config: Config{HostProfile: localHostProfile()}, accessToken: testAccessToken,
+		database: integrationDatabase(t), hub: newEventHub(), services: newTestOperationalStore(t).OperationalServices(), config: Config{HostProfile: localHostProfile()}, accessToken: testAccessToken,
 	}
 	server := httptest.NewServer(app.Handler())
 	defer server.Close()

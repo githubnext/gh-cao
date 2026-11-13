@@ -4,157 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
-	"github.com/githubnext/gh-cao/server/internal/server"
 )
 
-type fakeClient struct {
-	do func(...string) (any, error)
-}
-
-func (f fakeClient) Do(_ context.Context, arguments ...string) (any, error) {
-	return f.do(arguments...)
-}
-
-func (f fakeClient) DoMany(_ context.Context, commands [][]string) ([]any, error) {
-	results := make([]any, 0, len(commands))
-	for _, command := range commands {
-		result, err := f.do(command...)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, result)
-	}
-	return results, nil
-}
-
-// credentialedRedisURL is a fabricated Redis URL whose password must never
-// reach any doctor output. It is assembled from parts so static analysis does
-// not read the test fixture as a real embedded credential.
-var credentialedRedisURL = "rediss://operator:" + "super-secret" + "@redis.example:6380/0"
-
-// expectedRedactedRedisURL is what redaction must produce for it.
-var expectedRedactedRedisURL = "rediss://operator:" + "***" + "@redis.example:6380/0"
-
-func testDoctor(client fakeClient) Doctor {
-	store := redisx.NewStore(client, "cao:test")
-	return Doctor{
-		Store:      store,
-		RedisStore: server.NewRedisProviderDiagnostics(store),
-		RedisURL:   credentialedRedisURL,
-		Namespace:  "cao:test",
-		Version:    "test",
-		Now: func() time.Time {
-			return time.Date(2026, time.September, 25, 16, 0, 0, 0, time.UTC)
-		},
-	}
-}
-
-func TestParseInfoReplyExtractsFieldsAndSkipsSectionHeadersAndBlankLines(t *testing.T) {
-	fields := parseInfoReply("# Memory\r\nused_memory:734003200\r\n\r\nmaxmemory_policy:allkeys-lru\r\n# Comment\r\n")
-	if got, want := fields["used_memory"], "734003200"; got != want {
-		t.Fatalf("used_memory = %q, want %q", got, want)
-	}
-	if got, want := fields["maxmemory_policy"], "allkeys-lru"; got != want {
-		t.Fatalf("maxmemory_policy = %q, want %q", got, want)
-	}
-	if len(fields) != 2 {
-		t.Fatalf("fields = %v, want exactly 2 entries", fields)
-	}
-}
-
-func TestParseInfoReplyIgnoresLinesWithoutAColon(t *testing.T) {
-	fields := parseInfoReply("not-a-field-value-line\r\nrole:master\r\n")
-	if got, want := fields["role"], "master"; got != want {
-		t.Fatalf("role = %q, want %q", got, want)
-	}
-	if len(fields) != 1 {
-		t.Fatalf("fields = %v, want exactly 1 entry", fields)
-	}
-}
-
-func TestParseInfoReplyHandlesEmptyInput(t *testing.T) {
-	fields := parseInfoReply("")
-	if len(fields) != 0 {
-		t.Fatalf("fields = %v, want empty map", fields)
-	}
-}
-
-func TestRedactRedisURLNeverReportsPassword(t *testing.T) {
-	redacted := redactRedisURL(credentialedRedisURL)
-	if strings.Contains(redacted, "super-secret") {
-		t.Fatalf("redacted URL leaked its password: %s", redacted)
-	}
-	if redacted != expectedRedactedRedisURL {
-		t.Fatalf("redacted URL = %q", redacted)
-	}
-}
-
-func TestRedisMemoryWarnsWhenEvictionCanDiscardOperationalState(t *testing.T) {
-	doctor := testDoctor(fakeClient{do: func(arguments ...string) (any, error) {
-		if len(arguments) == 2 && arguments[0] == "INFO" && arguments[1] == "memory" {
-			return "# Memory\r\nused_memory:73400320\r\nmaxmemory:1073741824\r\nmaxmemory_policy:allkeys-lru\r\nmem_fragmentation_ratio:1.10\r\n", nil
-		}
-		return nil, fmt.Errorf("unexpected command %v", arguments)
-	}})
-	check := doctor.checkRedisMemory(context.Background())
-	if check.Status != StatusWarn {
-		t.Fatalf("status = %s, want warn: %+v", check.Status, check)
-	}
-	if !strings.Contains(check.Summary, "discarded") {
-		t.Fatalf("summary does not explain the data-loss risk: %s", check.Summary)
-	}
-}
-
-func TestRedisProviderDiagnosticsRejectUnsupportedProbes(t *testing.T) {
-	d := testDoctor(fakeClient{do: func(arguments ...string) (any, error) {
-		t.Fatalf("unsupported diagnostic issued raw commands: %v", arguments)
-		return nil, nil
-	}})
-	if _, err := d.RedisStore.Info(t.Context(), "all"); err == nil {
-		t.Fatal("unbounded provider info section accepted")
-	}
-	if _, _, _, err := d.RedisStore.NamespaceStats(t.Context(), "cao:test", 0); err == nil {
-		t.Fatal("unbounded provider namespace scan accepted")
-	}
-}
-
-func TestRedisStatsFailsAfterAnyEviction(t *testing.T) {
-	doctor := testDoctor(fakeClient{do: func(arguments ...string) (any, error) {
-		if len(arguments) == 2 && arguments[0] == "INFO" && arguments[1] == "stats" {
-			return "evicted_keys:4\r\nrejected_connections:0\r\ntotal_error_replies:1\r\n", nil
-		}
-		return nil, fmt.Errorf("unexpected command %v", arguments)
-	}})
-	check := doctor.checkRedisStats(context.Background())
-	if check.Status != StatusFail {
-		t.Fatalf("status = %s, want fail: %+v", check.Status, check)
-	}
-	if !strings.Contains(check.Remedy, "operational state") {
-		t.Fatalf("remedy does not explain operational data risk: %s", check.Remedy)
-	}
-}
-
-func TestRedisTransportRejectsPlaintextRemoteEndpoint(t *testing.T) {
-	doctor := Doctor{RedisURL: "redis://redis.example:6379/0"}
-	check := doctor.checkRedisTransport(context.Background())
-	if check.Status != StatusFail {
-		t.Fatalf("status = %s, want fail: %+v", check.Status, check)
-	}
-	if !strings.Contains(check.Remedy, "rediss://") {
-		t.Fatalf("remedy does not explain the secure transport: %s", check.Remedy)
-	}
-}
-
-func TestCanonicalChecksRequirePostgresRatherThanRedis(t *testing.T) {
-	doctor := testDoctor(fakeClient{do: func(arguments ...string) (any, error) {
-		return nil, fmt.Errorf("unexpected Redis command %v", arguments)
-	}})
+func TestCanonicalChecksRequirePostgres(t *testing.T) {
+	doctor := Doctor{}
 	for _, check := range []Check{
 		doctor.checkActiveData(context.Background()),
 		doctor.checkSchemaVersion(context.Background()),
@@ -187,10 +43,9 @@ func TestRenderingsCarryStableCheckIdentifiersAndNoSecret(t *testing.T) {
 		GeneratedAt:   "2026-09-25T16:00:00Z",
 		Profile:       "actions",
 		Namespace:     "cao:test",
-		Redis:         redactRedisURL(credentialedRedisURL),
 		Checks: []Check{{
-			ID: "redis.connectivity", Area: areaRedis, Title: "Redis reachable",
-			Status: StatusPass, Summary: "Redis answered PING",
+			ID: "operational.health", Area: "operational", Title: "Operational storage reachable",
+			Status: StatusPass, Summary: "Operational health is ready",
 		}},
 	}
 	report.Summary = summarize(report.Checks, 5*time.Millisecond)
@@ -199,11 +54,11 @@ func TestRenderingsCarryStableCheckIdentifiersAndNoSecret(t *testing.T) {
 	if err := Render(&text, report, "text"); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(text.String(), "[ PASS ] redis.connectivity") {
+	if !strings.Contains(text.String(), "[ PASS ] operational.health") {
 		t.Fatalf("text report lacks stable identifier:\n%s", text.String())
 	}
 	if strings.Contains(text.String(), "super-secret") {
-		t.Fatal("text report leaked a Redis password")
+		t.Fatal("text report leaked a credential")
 	}
 
 	var structured bytes.Buffer
@@ -214,11 +69,11 @@ func TestRenderingsCarryStableCheckIdentifiersAndNoSecret(t *testing.T) {
 	if err := json.Unmarshal(structured.Bytes(), &decoded); err != nil {
 		t.Fatal(err)
 	}
-	if decoded.SchemaVersion != ReportSchemaVersion || decoded.Checks[0].ID != "redis.connectivity" {
+	if decoded.SchemaVersion != ReportSchemaVersion || decoded.Checks[0].ID != "operational.health" {
 		t.Fatalf("JSON report lost its structured contract: %+v", decoded)
 	}
 	if strings.Contains(structured.String(), "super-secret") {
-		t.Fatal("JSON report leaked a Redis password")
+		t.Fatal("JSON report leaked a credential")
 	}
 }
 

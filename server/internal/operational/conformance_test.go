@@ -14,7 +14,6 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestAdapters(t *testing.T) {
@@ -50,27 +49,6 @@ func TestAdapters(t *testing.T) {
 				}
 				_ = store.Close()
 			})
-			return store
-		},
-		"redis": func(t *testing.T) operational.Store {
-			t.Helper()
-			url := os.Getenv("REDIS_URL")
-			if url == "" {
-				t.Skip("REDIS_URL is required for real Redis conformance")
-			}
-			client, err := redisx.New(url)
-			if err != nil {
-				t.Fatal(err)
-			}
-			var nonce [16]byte
-			if _, err := rand.Read(nonce[:]); err != nil {
-				t.Fatal(err)
-			}
-			store := redisx.NewStore(client, "operational-conformance-"+hex.EncodeToString(nonce[:]))
-			if err := store.InitializeDisposableCaches(t.Context()); err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() { _ = store.Close() })
 			return store
 		},
 	}

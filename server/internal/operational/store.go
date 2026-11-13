@@ -345,7 +345,7 @@ const (
 	DeliveryEnqueued
 )
 
-// TaskFields is the bounded collection envelope, not a Redis field map.
+// TaskFields is the bounded collection envelope, not a provider field map.
 type TaskFields struct {
 	Repository string
 	Task       string

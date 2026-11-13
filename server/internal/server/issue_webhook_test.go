@@ -7,27 +7,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 )
 
 func TestSignedIssueWebhookQueuesDeduplicatedRepositoryRefresh(t *testing.T) {
-	endpoint := os.Getenv("REDIS_URL")
-	if endpoint == "" {
-		t.Skip("REDIS_URL is not set")
-	}
-	client, err := redisx.New(endpoint)
-	if err != nil {
-		t.Fatal(err)
-	}
-	store := redisx.NewStore(client, "issue-server-"+strconv.FormatInt(time.Now().UnixNano(), 36))
+
+	store := newTestOperationalStore(t)
 	enrollment := collect.Enrollment{Metadata: store, Leases: store}
 	if err := enrollment.AddRepositories(t.Context(), 42, []string{"octo/api"}); err != nil {
 		t.Fatal(err)
@@ -71,7 +61,7 @@ func TestSignedIssueWebhookQueuesDeduplicatedRepositoryRefresh(t *testing.T) {
 	}
 	depth := func() int64 {
 		t.Helper()
-		length, err := store.StreamLength(t.Context(), "collect:tasks")
+		length, err := testQueueLength(t.Context(), store, "collect:tasks")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -144,14 +134,14 @@ func TestSignedIssueWebhookQueuesDeduplicatedRepositoryRefresh(t *testing.T) {
 	if err := queue.Ensure(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	messages, err := store.StreamRead(t.Context(), "collect:tasks", "collectors", "issue-webhook-test", 2, 0)
+	messages, err := store.ReadTasks(t.Context(), operational.QueueRead{Queue: "collect:tasks", Group: "collectors", Consumer: "issue-webhook-test", Count: 2, Block: 0})
 	if err != nil || len(messages) != 2 {
 		t.Fatalf("expected two durable repository refreshes: %+v, %v", messages, err)
 	}
 	wantInstallations := map[string]int64{"octo/api": 42, repository: 1}
 	for _, message := range messages {
 		var task collect.Task
-		if err := json.Unmarshal([]byte(message.Fields["task"]), &task); err != nil {
+		if err := json.Unmarshal([]byte(message.Fields.Task), &task); err != nil {
 			t.Fatal(err)
 		}
 		if task.InstallationID != wantInstallations[task.Repository] || task.InstallationID == 0 ||

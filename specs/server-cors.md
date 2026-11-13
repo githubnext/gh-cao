@@ -60,10 +60,10 @@ caller.
 ### 3.1 Location
 
 The cross-origin policy is the optional `cors` member of
-`control-plane.web.host`, beside `target` and `redis`. It MAY be supplied in
+`control-plane.web.host`, beside `target` and `operational-store`. It MAY be supplied in
 `cao.json` or a reviewed host overlay that `extends` it. It is non-secret,
 reviewed configuration and MUST be resolved at process start from the same
-host policy document as the target and Redis modules. It MUST NOT be read from
+host policy document as the target and operational store. It MUST NOT be read from
 environment variables, request data, steering files, or target repositories.
 
 ### 3.2 Members

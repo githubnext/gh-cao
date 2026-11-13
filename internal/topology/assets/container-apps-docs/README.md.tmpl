@@ -7,7 +7,7 @@ dependencies; RULES.md records declared tradeoffs, not live acceptance.
 This profile uses one Azure Container Apps **Consumption** environment and a
 single Go `serve-hosted` replica behind managed HTTPS ingress. Dashboard assets,
 OAuth and PostgreSQL query execution share that origin. The baseline has **no
-App Service plan, runtime Storage account, Redis, VMs or Application Insights**.
+App Service plan, runtime Storage account, VMs or Application Insights**.
 Separately staged optional hosts may add VMs and session-lake storage.
 Private PostgreSQL Flexible Server, ACR, a target
 Key Vault and Log Analytics remain paid resources. Consumption with one minimum

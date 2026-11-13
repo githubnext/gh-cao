@@ -10,7 +10,7 @@ import (
 func (d Doctor) checkOperational(ctx context.Context) Check {
 	const id, area, title = "operational.health", "operational", "Selected operational backend"
 	if unavailable, ok := d.storeUnavailable(id, area, title); ok {
-		unavailable.Details = []Detail{detail("backend", orDefault(d.Backend, "redis"))}
+		unavailable.Details = []Detail{detail("backend", orDefault(d.Backend, "postgres"))}
 		return unavailable
 	}
 	health, err := d.Store.OperationalServices().Health.Health(ctx)
@@ -21,7 +21,7 @@ func (d Doctor) checkOperational(ctx context.Context) Check {
 	doctorLog.Printf("operational health classified status=%s", status)
 	return Check{
 		ID: id, Area: area, Title: title, Status: status,
-		Summary: "selected operational backend " + orDefault(d.Backend, "redis"),
+		Summary: "selected operational backend " + orDefault(d.Backend, "postgres"),
 		Details: []Detail{
 			detail("ready", fmt.Sprint(health.Ready)),
 			detail("cacheAccountingBytes", fmt.Sprint(health.CacheBytes)),

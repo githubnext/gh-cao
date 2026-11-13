@@ -161,7 +161,7 @@ compact-session population; this uses existing typed Run/Audit/grader columns,
 not a raw-session canonical table or complete-usage/billing assertion.
 Canonical entity rows and GitHub webhook event bodies are deliberately open
 objects because their fields are owned by the canonical data schema and GitHub
-event types, respectively; do not infer Redis storage or MCP internals from them.
+event types, respectively; do not infer operational storage or MCP internals from them.
 
 `blackbox-fixtures.json` records observable behavior outside the covered
 TypeSpec operations: OAuth redirects and cookie attributes, trusted-proxy and

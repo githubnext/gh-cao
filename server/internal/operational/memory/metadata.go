@@ -90,7 +90,7 @@ func (s *Store) MemberCount(ctx context.Context, name string) (int64, error) {
 	return int64(len(s.members[name])), nil
 }
 
-// ScanMembers offers deterministic, bounded pages. Like Redis SSCAN, callers
+// ScanMembers offers deterministic, bounded pages. Like operational storage SSCAN, callers
 // must tolerate repeats or omissions if membership changes during a scan.
 func (s *Store) ScanMembers(ctx context.Context, name, cursor string, count int) ([]string, string, error) {
 	if err := s.enter(ctx); err != nil {

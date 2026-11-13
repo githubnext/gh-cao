@@ -48,7 +48,7 @@ for the complete parameter and activation contract.
 | Log Analytics | Container logs, not canonical data or evidence of application telemetry delivery |
 
 The base profile uses public OAuth ingress and explicitly selected Actions
-snapshots. It provisions neither Redis nor Application Insights. Optional
+snapshots. It does not provision Application Insights. Optional
 session-lake and webhook-gateway infrastructure remains separately selected
 and staged; it grants no runtime activation or broader authority. The base
 profile does not support collector acquisition, OTLP or base ADX analytics.

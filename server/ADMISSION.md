@@ -164,7 +164,7 @@ workflow results.
 ## Enable the service
 
 Use an existing HTTPS hosted deployment with the **PostgreSQL operational
-backend**. Redis and volatile operational backends cannot enable
+backend**. Volatile operational backends cannot enable
 this service. The same handler is used by the process and external-listener
 profiles; the existing trusted-host/proxy policy still applies.
 The endpoint authenticates OIDC independently of dashboard OAuth and CSRF.

@@ -1,5 +1,5 @@
 // Package hosting exposes CAO's hosted HTTP service to an externally owned
-// listener without exposing its Redis, authentication, or projection internals.
+// listener without exposing its operational storage, authentication, or projection internals.
 package hosting
 
 import (

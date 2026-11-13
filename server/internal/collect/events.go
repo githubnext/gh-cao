@@ -396,7 +396,7 @@ func (a Admitter) Admit(ctx context.Context, event string, payload []byte) (Admi
 }
 
 // AdmitDelivery commits delivery deduplication with durable admission. Queue
-// append, repository debounce, and delivery identity are one Redis operation.
+// append, repository debounce, and delivery identity are one operational storage operation.
 func (a Admitter) AdmitDelivery(
 	ctx context.Context,
 	event string,
@@ -583,7 +583,7 @@ func (a Admitter) resolveCollectInstallation(ctx context.Context, intent Intent)
 
 // decideCollectInstallation applies the admission rule for a collect intent:
 // the repository must be enrolled, and an installation must be known for it.
-// It is a pure function so this rule is testable without a Redis-backed
+// It is a pure function so this rule is testable without an operational
 // Enrollment store.
 func decideCollectInstallation(enrolled bool, installationID int64) (int64, bool) {
 	if !enrolled || installationID == 0 {

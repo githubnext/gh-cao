@@ -262,7 +262,7 @@ flowchart TB
   Go --> Archive["Separately approved session archive"]
   Archive --> Parquet[("Private filesystem or Azure Blob Parquet")]
   Services --> Durable[("cao_operational_* PostgreSQL tables")]
-  Services --> Alternative["Explicit Redis or acknowledged memory"]
+  Services --> Alternative["Explicit acknowledged process memory"]
   Entities --> Rebuild["Rebuild from authorized evidence"]
   Durable --> Protected["Protected state: queues, sessions, claims, audit"]
   Alternative --> Capability["Reject unsupported durability or atomicity"]
@@ -273,7 +273,6 @@ flowchart TB
 | Canonical PostgreSQL | Rebuildable read model with transactional publication | Fresh incompatible schema must be provisioned and reconstructed; not an authoritative delivery log |
 | Operational PostgreSQL | Deployment-scoped, restart-persistent services | Durability depends on database configuration; accepted work and revocation debt cannot be evicted as cache |
 | Private session lake | Immutable Parquet and fenced generation membership, with independent retention and recovery | Full approved trace evidence is not an OAuth session store, canonical read model, or PostgreSQL archive catalog |
-| Redis alternative | Explicit operational adapter with provider-specific capabilities | Never stores dashboard entities or executes their queries; lacks the PostgreSQL durable audit service |
 | Volatile memory exception | Explicitly acknowledged bounded single-process services | Process-local coordination and restart loss; not native distributed collector ownership |
 
 Hosted PostgreSQL stores query-required native columns, presence information,
@@ -459,9 +458,8 @@ revision and evaluation time; they are not newly evaluated evidence.
 Canonical entity APIs and readiness probes do not use this result cache.
 
 Capacity guards bound output bytes, entries, and adapter-specific accounting.
-Redis has an additional whole-node memory-pressure contract; providers without
-required atomic introspection disable disposable-cache admission and serving,
-not protected operations. Cache pressure must not evict sessions, accepted
+Disposable-cache admission and serving remain separate from protected
+operations. Cache pressure must not evict sessions, accepted
 queue work, quota state, or pending revocations.
 
 **Source:** dashboard-data Abstract; server operational storage contracts.
@@ -669,7 +667,7 @@ flowchart TB
 | --- | --- | --- |
 | Same-origin UI, OAuth, query APIs and revision events | Azure Container Apps Consumption, one hosted Go replica | Baseline hosts the complete Go handler; GitHub remains the OAuth and membership provider, not Entra. No separate frontend or browser database credentials; independently verify trusted private proxy peers |
 | Canonical entity/query adapter | Azure Database for PostgreSQL Flexible Server | Private delegated subnet and verified TLS; typed canonical tables are a rebuildable read model, not raw-session storage |
-| Focused operational services: OAuth sessions, revocations, queues, leases, quotas, deduplication and durable audit | The same PostgreSQL Flexible Server through the separate operational adapter | `cao_operational_*` tables retain separate lifecycle, atomicity and protected-state bounds. Baseline requires neither Redis nor Azure Service Bus; they are not implied adapter substitutions |
+| Focused operational services: OAuth sessions, revocations, queues, leases, quotas, deduplication and durable audit | The same PostgreSQL Flexible Server through the separate operational adapter | `cao_operational_*` tables retain separate lifecycle, atomicity and protected-state bounds. Azure Service Bus is not an implied adapter substitution |
 | Schema ownership and selected snapshot ingestion | Separate manual Azure Container Apps provisioning and ingestion jobs | Distinct identities and owner/runtime credentials; explicit verified snapshot or empty evidence. Jobs do not become archive publishers |
 | Acquisition | Explicitly selected Actions snapshots | Base profile does not support collector acquisition; optional host infrastructure does not activate collection or authorize more repositories |
 | Image distribution | Azure Container Registry, managed-identity pulls | Operators prepare/select dashboard, provisioning and ingestion images; digest pinning alone is not production scan, SBOM or provenance assurance |

@@ -311,7 +311,7 @@ test("deployment profile extends cao.json without replacing rollout policy", () 
     extends: "cao.json",
     "control-plane": { web: { host: {
       target: { module: "container", name: "test" },
-      redis: { module: "generic" },
+      "operational-store": { backend: "postgres" },
     } } },
   }));
   const profile = loadPolicyFile(join(directory, "cao.test.json"));
@@ -319,7 +319,7 @@ test("deployment profile extends cao.json without replacing rollout policy", () 
   assert.deepEqual(profile["control-plane"].campaigns, base["control-plane"].campaigns);
   assert.equal(profile["control-plane"].web.experimental, true);
   assert.equal(profile["control-plane"].web.host.target.name, "test");
-  assert.equal(profile["control-plane"].web.host.redis.module, "generic");
+  assert.equal(profile["control-plane"].web.host["operational-store"].backend, "postgres");
 });
 
 test("deployment profiles reject rollout overrides, cycles, and directory traversal", () => {
@@ -332,7 +332,7 @@ test("deployment profiles reject rollout overrides, cycles, and directory traver
     extends: "cao.json",
     "control-plane": {
       campaigns: { dependabot: { mode: "live" } },
-      web: { host: { target: { module: "container" }, redis: { module: "generic" } } },
+      web: { host: { target: { module: "container" } } },
     },
   }));
   assert.throws(() => loadPolicyFile(widening), /unknown key deployment profile\.control-plane\.campaigns/);
@@ -356,26 +356,18 @@ test("deployment profiles reject rollout overrides, cycles, and directory traver
   assert.throws(() => loadPolicyFile(join(directory, "cao.escape.json")), /within the policy directory/);
 });
 
-test("control policy validates provider-neutral host and Redis configuration", () => {
+test("control policy validates provider-neutral host configuration", () => {
   const policy = JSON.parse(minimalPolicy);
   policy["control-plane"].web = {
     host: {
       target: {
         module: "generic",
-        name: "managed-redis",
+        name: "managed-server",
         authentication: "github-oauth",
         listener: "process",
         "require-https": true,
       },
-      redis: {
-        module: "redis-cloud",
-        "url-env": "REDIS_URL",
-        tls: {
-          mode: "required",
-          "server-name-env": "REDIS_TLS_SERVER_NAME",
-          "ca-certificate-env": "REDIS_TLS_CA_CERT",
-        },
-      },
+      "operational-store": { backend: "postgres" },
     },
   };
 
@@ -412,7 +404,7 @@ test("control policy selects a volatile OAuth single-process operational backend
     { ...memory, backend: "postgres" },
     { ...memory, "single-process": false },
     { ...memory, "allow-volatile": false },
-    { ...memory, redis: { module: "generic" } },
+    { ...memory, provider: { module: "unsupported" } },
     { ...memory, unknown: true },
   ]) {
     policy["control-plane"].web.host["operational-store"] = operational;
@@ -434,27 +426,22 @@ test("control policy selects a volatile OAuth single-process operational backend
   assert.notEqual(validate(JSON.stringify(policy)).status, 0);
   policy["control-plane"].web.host.target.listener = "process";
   assert.equal(validate(JSON.stringify(policy)).status, 0);
-  policy["control-plane"].web.host.redis = { module: "generic" };
+  policy["control-plane"].web.host.provider = { module: "unsupported" };
   assert.notEqual(validate(JSON.stringify(policy)).status, 0);
 });
 
-test("control policy preserves Redis selection and provider restrictions", () => {
+test("control policy rejects obsolete backend and provider selections", () => {
   const policy = JSON.parse(minimalPolicy);
   policy["control-plane"].web = {
-    host: { target: { module: "container" }, "operational-store": { backend: "redis" } },
+    host: { target: { module: "container" }, "operational-store": { backend: "unsupported" } },
   };
-  assert.equal(validate(JSON.stringify(policy)).status, 0);
-  policy["control-plane"].web.host["operational-store"].redis = null;
-  assert.notEqual(validate(JSON.stringify(policy)).status, 0);
-  policy["control-plane"].web.host["operational-store"].redis = { module: "upstash" };
-  assert.notEqual(validate(JSON.stringify(policy)).status, 0);
-  policy["control-plane"].web.host.target.replicas = 1;
-  assert.equal(validate(JSON.stringify(policy)).status, 0);
-  policy["control-plane"].web.host.redis = { module: "generic" };
-  assert.notEqual(validate(JSON.stringify(policy)).status, 0);
+  assert.match(validate(JSON.stringify(policy)).stderr, /backend has an invalid value/);
+  delete policy["control-plane"].web.host["operational-store"];
+  policy["control-plane"].web.host.provider = { module: "unsupported" };
+  assert.match(validate(JSON.stringify(policy)).stderr, /unknown key control-plane\.web\.host\.provider/);
 });
 
-test("control policy accepts explicit PostgreSQL operational storage without Redis or volatile topology", () => {
+test("control policy accepts explicit PostgreSQL operational storage without volatile topology", () => {
   const policy = JSON.parse(minimalPolicy);
   const operational = {
     backend: "postgres",
@@ -470,7 +457,7 @@ test("control policy accepts explicit PostgreSQL operational storage without Red
   delete defaultPolicy["control-plane"].web.host["operational-store"];
   assert.equal(validate(JSON.stringify(defaultPolicy)).status, 0);
   for (const invalid of [
-    { ...operational, redis: { module: "generic" } },
+    { ...operational, provider: { module: "unsupported" } },
     { ...operational, "single-process": true },
     { ...operational, "allow-volatile": true },
     { ...operational, postgres: null },
@@ -479,7 +466,7 @@ test("control policy accepts explicit PostgreSQL operational storage without Red
     { ...operational, postgres: { "url-env": "" } },
     { ...operational, postgres: { "url-env": null } },
     { ...operational, postgres: { "url-env": "A".repeat(129) } },
-    { ...operational, backend: "redis" },
+    { ...operational, backend: "unsupported" },
     { ...operational, backend: "memory", "single-process": true, "allow-volatile": true },
   ]) {
     policy["control-plane"].web.host["operational-store"] = invalid;
@@ -492,7 +479,6 @@ test("control policy validates host CORS configuration", () => {
   policy["control-plane"].web = {
     host: {
       target: { module: "container" },
-      redis: { module: "render" },
       cors: {
         "allowed-origins": ["https://tools.example.com", "http://localhost:5173"],
         "max-age": 600,
@@ -525,68 +511,17 @@ test("control policy validates host CORS configuration", () => {
   }
 });
 
-test("control policy rejects inconsistent host capabilities", () => {
-  const policy = JSON.parse(minimalPolicy);
-  policy["control-plane"].web = {
-    host: {
-      target: {
-        module: "generic",
-        authentication: "github-oauth",
-        listener: "process",
-      },
-      redis: { module: "generic", session: "pooled", "single-replica": true },
-    },
-  };
-
-  const result = validate(JSON.stringify(policy));
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /single-replica requires/);
-});
-
-test("control policy validates every deployment module and rejects incompatible composition", () => {
+test("control policy validates every deployment target", () => {
   const targetModules = ["container"];
-  const redisModules = [
-    "generic", "local", "upstash", "aws-elasticache", "redis-cloud",
-    "gcp-memorystore", "railway", "render", "digitalocean",
-  ];
   assert.deepEqual(schema.$defs.hostTarget.properties.module.enum, ["generic", ...targetModules]);
-  assert.deepEqual(schema.$defs.redisModule.properties.module.enum, redisModules);
 
   for (const module of targetModules) {
     const policy = JSON.parse(minimalPolicy);
     policy["control-plane"].web = {
-      host: { target: { module }, redis: { module: "generic" } },
+      host: { target: { module } },
     };
     assert.equal(validate(JSON.stringify(policy)).status, 0, module);
   }
-  for (const module of redisModules) {
-    const policy = JSON.parse(minimalPolicy);
-    policy["control-plane"].web = {
-      host: {
-        target: { module: "container", ...(module === "upstash" ? { replicas: 1 } : {}) },
-        redis: { module },
-      },
-    };
-    assert.equal(validate(JSON.stringify(policy)).status, 0, module);
-  }
-
-  const incompatible = JSON.parse(minimalPolicy);
-  incompatible["control-plane"].web = {
-    host: {
-      target: { module: "generic", authentication: "github-oauth", listener: "external" },
-      redis: { module: "upstash" },
-    },
-  };
-  assert.match(validate(JSON.stringify(incompatible)).stderr, /single-replica requirement/);
-
-  const missingReplicaCount = JSON.parse(minimalPolicy);
-  missingReplicaCount["control-plane"].web = {
-    host: {
-      target: { module: "container" },
-      redis: { module: "upstash" },
-    },
-  };
-  assert.match(validate(JSON.stringify(missingReplicaCount)).stderr, /target\.replicas must be 1/);
 });
 
 test("control policy rejects the previous flat host shape", () => {
@@ -598,12 +533,6 @@ test("control policy rejects the previous flat host shape", () => {
       listener: "process",
       "require-https": true,
       "supports-collection": true,
-      redis: {
-        preset: "redis-cloud",
-        "url-env": "REDIS_URL",
-        session: "pooled",
-        tls: { mode: "required" },
-      },
     },
   };
   const result = validate(JSON.stringify(policy));

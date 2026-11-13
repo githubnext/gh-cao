@@ -126,7 +126,7 @@ Both dashboard backends expose the same package fields through the data worker:
 - The Activity backend resolves registries during data collection and retains
   normalized rows in the dashboard's IndexedDB database.
 - The hosted Go backend resolves registries at runtime and caches safe,
-  normalized results in Redis. Cache entries are isolated by registry and
+  normalized results in PostgreSQL. Cache entries are isolated by registry and
   source generation.
 
 Resolvers turn mutable refs into commit identities when possible. The copied

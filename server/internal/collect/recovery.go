@@ -59,7 +59,7 @@ type redeliveryPlan struct {
 // planRedeliveries walks one page of deliveries, newest first, stopping once
 // it reaches the delivery GUID recorded by a prior pass (boundary). It is a
 // pure function, so the boundary stop condition and the non-2xx redelivery
-// selection are testable without a fake GitHub API or Redis store.
+// selection are testable without a fake GitHub API or operational store.
 func planRedeliveries(deliveries []githubapp.Delivery, boundary string) redeliveryPlan {
 	plan := redeliveryPlan{}
 	for _, delivery := range deliveries {
@@ -145,7 +145,7 @@ func (r DeliveryReplayer) Recover(ctx context.Context) (ReplayResult, error) {
 			return result, err
 		}
 	}
-	if err := r.Metadata.Clear(ctx, "state:"+deliveryProgressKey); err != nil {
+	if err := r.State.SetOperationalState(ctx, deliveryProgressKey, nil); err != nil {
 		return result, err
 	}
 	recoveryLog.Printf("delivery recovery inspected=%d redelivered=%d", result.Inspected, result.Redelivered)

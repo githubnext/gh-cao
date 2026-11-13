@@ -9,29 +9,13 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func durableErasureServices(t *testing.T, backend string) (operational.OperationalServices, func() operational.OperationalServices) {
 	t.Helper()
 	ctx := t.Context()
 	namespace := fmt.Sprintf("erasure-%d", time.Now().UnixNano())
-	if backend == "redis" {
-		endpoint := os.Getenv("REDIS_URL")
-		if endpoint == "" {
-			t.Skip("REDIS_URL is required for durable erasure recovery tests")
-		}
-		reopen := func() operational.OperationalServices {
-			client, err := redisx.New(endpoint)
-			if err != nil {
-				t.Fatal(err)
-			}
-			reopened := redisx.NewStore(client, namespace)
-			t.Cleanup(func() { _ = reopened.Close() })
-			return reopened.OperationalServices()
-		}
-		return reopen(), reopen
-	}
+
 	dsn := os.Getenv("POSTGRES_URL")
 	if dsn == "" {
 		t.Skip("POSTGRES_URL is required for durable erasure recovery tests")

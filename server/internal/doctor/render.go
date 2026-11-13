@@ -82,7 +82,6 @@ func renderText(writer io.Writer, report Report) error {
 	fmt.Fprintf(buffer, "  generated   %s\n", report.GeneratedAt)
 	fmt.Fprintf(buffer, "  version     %s\n", report.Version)
 	fmt.Fprintf(buffer, "  profile     %s\n", report.Profile)
-	fmt.Fprintf(buffer, "  redis       %s\n", report.Redis)
 	fmt.Fprintf(buffer, "  namespace   %s\n", report.Namespace)
 	fmt.Fprintf(buffer, "  depth       %s\n", depthLabel(report.Deep))
 

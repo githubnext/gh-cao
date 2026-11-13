@@ -12,20 +12,12 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"github.com/githubnext/gh-cao/server/internal/model"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func TestSSEFanoutAcrossReplicasAndDrain(t *testing.T) {
 	database := integrationDatabase(t)
-	address, closeRedis := fakeRedis(t)
-	defer closeRedis()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 	type stream struct {
 		response *http.Response
 		reader   *bufio.Reader
@@ -33,7 +25,7 @@ func TestSSEFanoutAcrossReplicasAndDrain(t *testing.T) {
 	apps := make([]*App, 0, 2)
 	streams := make([]stream, 0, 6)
 	for range 2 {
-		app := &App{services: redisx.NewStore(client, "sse-replica").OperationalServices(), hub: newEventHub(),
+		app := &App{services: newTestOperationalStore(t).OperationalServices(), hub: newEventHub(),
 			database: database, drain: make(chan struct{}),
 			config: Config{HostProfile: localHostProfile()}, accessToken: testAccessToken,
 		}
@@ -96,17 +88,11 @@ func TestSSEFanoutMeasurements(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = admin.Close() }()
-	address, closeRedis := fakeRedis(t)
-	defer closeRedis()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, replicas := range []int{1, 2} {
 		servers := make([]*httptest.Server, replicas)
 		apps := make([]*App, replicas)
 		for i := range servers {
-			apps[i] = &App{services: redisx.NewStore(client, "sse-measure").OperationalServices(), hub: newEventHub(),
+			apps[i] = &App{services: newTestOperationalStore(t).OperationalServices(), hub: newEventHub(),
 				database: database, drain: make(chan struct{}),
 				config: Config{HostProfile: localHostProfile()}, accessToken: testAccessToken,
 			}

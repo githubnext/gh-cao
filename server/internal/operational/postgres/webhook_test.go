@@ -246,7 +246,7 @@ func TestWebhookFencingRecoveryAndAmbiguousTerminal(t *testing.T) {
 		t.Fatalf("late completion: %v", err)
 	}
 	if job, err := q.Claim(t.Context(), wg.ClaimRequest{Owner: "replacement", LeaseDuration: time.Minute}); err != nil || job != nil {
-		t.Fatalf("ambiguous redispatched: %v %v", job, err)
+		t.Fatalf("ambiguous operationalpatched: %v %v", job, err)
 	}
 }
 

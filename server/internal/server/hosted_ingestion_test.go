@@ -79,7 +79,7 @@ func TestHostedExternalIngestionPreservesPublishedDatabase(t *testing.T) {
 	for name, value := range map[string]string{
 		"CAO_POLICY_PATH":           policy,
 		"CAO_POSTGRES_URL":          dsn,
-		"REDIS_NAMESPACE":           "default",
+		"CAO_DATASET_NAMESPACE":     "default",
 		"CAO_OPERATIONAL_NAMESPACE": "external-ingestion-operational",
 		"CAO_SOURCE_DIRECTORY":      "",
 		"CAO_EXTERNAL_INGESTION":    "true",

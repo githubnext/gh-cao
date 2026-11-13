@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/operational"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 )
 
 type focusedOperationalStore struct {
@@ -52,7 +52,7 @@ func focusedTestStore(store operational.Store) focusedOperationalStore {
 }
 
 func TestFocusedServicesComposeApplicationAndValidateCollection(t *testing.T) {
-	store := focusedTestStore(redisx.NewStore(emptyRedisClient{}, "focused-services"))
+	store := focusedTestStore(newTestOperationalStore(t))
 	app, err := New(t.Context(), store, Config{
 		Database: constructorDatabase(), SiteDirectory: t.TempDir(),
 		Listen: "127.0.0.1:8080", AccessToken: strings.Repeat("x", 32),
@@ -70,7 +70,7 @@ func TestFocusedServicesComposeApplicationAndValidateCollection(t *testing.T) {
 }
 
 func TestCollectorRejectsMissingFocusedServices(t *testing.T) {
-	var absent *redisx.Store
+	var absent *memory.Store
 	for name, remove := range map[string]func(*operational.OperationalServices){
 		"queue":       func(s *operational.OperationalServices) { s.Queue = absent },
 		"admission":   func(s *operational.OperationalServices) { s.Admission = nil },
@@ -81,7 +81,7 @@ func TestCollectorRejectsMissingFocusedServices(t *testing.T) {
 		"metrics":     func(s *operational.OperationalServices) { s.IngestionMetrics = absent },
 	} {
 		t.Run(name, func(t *testing.T) {
-			store := focusedTestStore(redisx.NewStore(emptyRedisClient{}, "missing-focused-services"))
+			store := focusedTestStore(newTestOperationalStore(t))
 			remove(&store.services)
 			err := operational.ValidateOperationalServices(store.Capabilities(), store.services,
 				operational.Requirements{SingleProcess: true, AllowVolatile: true, Collection: true})

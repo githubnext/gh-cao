@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/model"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 // newFakeMarketplaceGitHubServer serves the minimal GitHub REST surface
@@ -80,12 +79,6 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSecretLeakage(t *tes
 	}
 	t.Setenv(marketplacePolicyPathEnv, policyPath)
 
-	address, closeServer := fakeRedis(t)
-	defer closeServer()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 	site, err := os.MkdirTemp(".", ".test-site-")
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +91,7 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSecretLeakage(t *tes
 	if err := os.WriteFile(site+"/index.html", []byte("<html><head></head></html>"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	app, err := New(context.Background(), redisx.NewStore(client, "test"), Config{
+	app, err := New(context.Background(), newTestOperationalStore(t), Config{
 		Database: database, DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json",
 		Listen: "127.0.0.1:8443", SiteDirectory: site, AccessToken: testAccessToken,
 	})
@@ -150,12 +143,6 @@ func TestQueryDegradesMarketplacePackagesToUnavailableWhenThePolicyFileIsMissing
 	seedDatabase(t, database, nil)
 	t.Setenv(marketplacePolicyPathEnv, filepath.Join(t.TempDir(), "does-not-exist.json"))
 
-	address, closeServer := fakeRedis(t)
-	defer closeServer()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 	site, err := os.MkdirTemp(".", ".test-site-")
 	if err != nil {
 		t.Fatal(err)
@@ -168,7 +155,7 @@ func TestQueryDegradesMarketplacePackagesToUnavailableWhenThePolicyFileIsMissing
 	if err := os.WriteFile(site+"/index.html", []byte("<html><head></head></html>"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	app, err := New(context.Background(), redisx.NewStore(client, "test"), Config{
+	app, err := New(context.Background(), newTestOperationalStore(t), Config{
 		Database: database, DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json",
 		Listen: "127.0.0.1:8443", SiteDirectory: site, AccessToken: testAccessToken,
 	})

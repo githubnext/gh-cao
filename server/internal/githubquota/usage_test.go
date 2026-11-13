@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
 func TestObservationsRecordPeakUsageHistory(t *testing.T) {
@@ -119,7 +119,7 @@ func TestBuildUsagePointsSortsBySlotThenBucketAndCountsSkipped(t *testing.T) {
 	second := BucketID{App: "backfill", Installation: 1, Resource: ResourceCore}
 	early := time.Unix(1000, 0)
 	late := time.Unix(2000, 0)
-	samples := []redisx.GitHubQuotaUsageSample{
+	samples := []operational.GitHubQuotaUsageSample{
 		{Bucket: first.storageKey(), Slot: late, Limit: 5000, Used: 1000},
 		{Bucket: "not-a-valid-key", Slot: early, Limit: 1, Used: 1},
 		{Bucket: second.storageKey(), Slot: early, Limit: 4000, Used: 2000},
@@ -151,7 +151,7 @@ func TestBuildUsagePointsSortsBySlotThenBucketAndCountsSkipped(t *testing.T) {
 
 func TestBuildUsagePointsBoundsOversizedCounters(t *testing.T) {
 	bucket := BucketID{App: "collector", Installation: 1, Resource: ResourceCore}
-	samples := []redisx.GitHubQuotaUsageSample{
+	samples := []operational.GitHubQuotaUsageSample{
 		{Bucket: bucket.storageKey(), Slot: time.Unix(1, 0), Limit: math.MaxInt64, Used: -5, Reserved: math.MaxInt64},
 	}
 

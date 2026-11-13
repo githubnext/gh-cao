@@ -130,8 +130,8 @@ cost remain despite removing live publication and implicit acquisition paths.
 
 Hosted deployments invoke `go -C server run ./cmd/cao-dashboard serve-hosted`.
 PostgreSQL owns canonical entities and query execution; reviewed policy selects
-the operational adapter, with PostgreSQL the default and Redis or acknowledged
-volatile memory explicit alternatives. OAuth, authorization and HTTPS/proxy
+the operational adapter, with PostgreSQL the default and acknowledged
+volatile memory an explicit alternative. OAuth, authorization and HTTPS/proxy
 protections remain required. See [`../server/README.md`](../server/README.md).
 
 The Copilot canvas launches the same Go server against a prepared,

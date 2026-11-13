@@ -228,7 +228,7 @@ is not the session lake; `adxEnabled` provisions a destination, not exporter or
 archive activation, external tables or runtime data roles. Preserve the persistent
 single-owner archive/exporter restriction and rejection of
 ephemeral/per-request hosts and standalone collection jobs as archive
-hosts. Do not invent Redis/Service Bus substitutions, Entra dashboard sign-in,
+hosts. Do not invent Service Bus substitutions, Entra dashboard sign-in,
 managed-identity archive authentication, automatic Go telemetry export or
 production assurance. Changes to mappings must update affected diagrams and
 qualifications without provisioning resources or widening authority.

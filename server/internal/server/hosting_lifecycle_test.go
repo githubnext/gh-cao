@@ -11,22 +11,14 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestExternalHTTPServerDrainLifecycle(t *testing.T) {
 	fixture := loadBlackboxFixtures(t).Hosting
-	address, closeRedis := fakeRedis(t)
-	defer closeRedis()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	profile := hostedHostProfile()
 	profile.Listener = HostListenerExternal
-	app, err := New(t.Context(), redisx.NewStore(client, "external-lifecycle"), Config{
+	app, err := New(t.Context(), newTestOperationalStore(t), Config{
 		Database:      integrationDatabase(t),
 		HostProfile:   profile,
 		SiteDirectory: hostedTestSite(t),

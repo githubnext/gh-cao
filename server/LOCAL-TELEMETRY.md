@@ -62,7 +62,7 @@ The existing `otel-smoke` command is OpenObserve-specific, not an Aspire check.
 Stop and remove only this stack with `npm run dashboard:server:aspire-down`.
 Telemetry is held in memory and lost when the container is removed. Aspire is
 for development diagnostics, not production retention. OpenObserve and the
-PostgreSQL/Redis stack are unchanged and are not started by these commands.
+PostgreSQL stack are unchanged and are not started by these commands.
 Close the dedicated shell when finished to discard its exporter configuration.
 
 ## Local Grafana LGTM telemetry
@@ -108,14 +108,14 @@ remains OpenObserve-specific.
 Stop and remove this stack with `npm run dashboard:server:lgtm-down` before
 switching back to Aspire. No persistent data volume is configured, so telemetry
 is discarded when the container is removed. Neither option changes the
-OpenObserve or PostgreSQL/Redis stacks, canonical data, policy, or rollout mode.
+OpenObserve or PostgreSQL stacks, canonical data, policy, or rollout mode.
 
 ## Local OpenObserve telemetry
 
 To inspect local traces and metrics with an alternative backend, start the optional
 [OpenObserve self-hosted instance](https://openobserve.ai/docs/getting-started/)
 on `http://127.0.0.1:5080` via the separate `server/otel-compose.yml`.
-It is not started by the Redis/Postgres Compose stack.
+It is not started by the Postgres Compose stack.
 Set an email and a locally held password (8–128 characters with uppercase,
 lowercase, digit, and special characters) before its first startup
 (do not commit them or put them in command-line arguments):

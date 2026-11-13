@@ -12,17 +12,16 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/query"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 type usageQuotaStore struct {
 	operational.GitHubQuotaStore
-	samples []redisx.GitHubQuotaUsageSample
+	samples []operational.GitHubQuotaUsageSample
 	now     time.Time
 	err     error
 }
 
-func (store usageQuotaStore) GitHubQuotaUsage(context.Context) ([]redisx.GitHubQuotaUsageSample, time.Time, error) {
+func (store usageQuotaStore) GitHubQuotaUsage(context.Context) ([]operational.GitHubQuotaUsageSample, time.Time, error) {
 	return store.samples, store.now, store.err
 }
 
@@ -37,9 +36,9 @@ func newUsageQuota(t *testing.T, store usageQuotaStore) *githubquota.Service {
 
 var usageNow = time.Date(2026, 9, 30, 15, 5, 0, 0, time.UTC)
 
-func usageSamples() []redisx.GitHubQuotaUsageSample {
+func usageSamples() []operational.GitHubQuotaUsageSample {
 	slot := time.Date(2026, 9, 30, 15, 0, 0, 0, time.UTC)
-	return []redisx.GitHubQuotaUsageSample{
+	return []operational.GitHubQuotaUsageSample{
 		{Bucket: "collector:123:core", Slot: slot, Limit: 5000, Used: 1000, Reserved: 20},
 		{Bucket: "backfill:123:core", Slot: slot, Limit: 15000, Used: 9000},
 	}
@@ -84,7 +83,7 @@ func TestGitHubQuotaUsageRequiresHostedAdministrator(t *testing.T) {
 func TestGitHubQuotaUsageReportsUnavailableStore(t *testing.T) {
 	for name, app := range map[string]*App{
 		"unconfigured": {},
-		"failing":      {quota: newUsageQuota(t, usageQuotaStore{err: errors.New("redis down")})},
+		"failing":      {quota: newUsageQuota(t, usageQuotaStore{err: errors.New("operational down")})},
 	} {
 		t.Run(name, func(t *testing.T) {
 			response := httptest.NewRecorder()
@@ -99,13 +98,7 @@ func TestGitHubQuotaUsageReportsUnavailableStore(t *testing.T) {
 func TestGitHubQuotaUsageQueryRunsThroughServerQueryEngine(t *testing.T) {
 	database := integrationDatabase(t)
 	seedDatabase(t, database, nil)
-	address, closeServer := fakeRedis(t)
-	defer closeServer()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &App{services: redisx.NewStore(client, "quota-query-test").OperationalServices(), database: database,
+	app := &App{services: newTestOperationalStore(t).OperationalServices(), database: database,
 		quota: newUsageQuota(t, usageQuotaStore{samples: usageSamples(), now: usageNow}),
 	}
 	input := queryRequest{

@@ -58,7 +58,7 @@ func TestEmbeddedDashboardExecutable(t *testing.T) {
 	defer cancel()
 	const token = "0123456789abcdef0123456789abcdef"
 	command := exec.CommandContext(ctx, binary, "serve", "--listen="+address, // #nosec G204 -- Execute only the binary built above with test-owned configuration.
-		"--access-token="+token, "--mcp-enabled", "--exit-on-stdin-close", "--redis-namespace=default")
+		"--access-token="+token, "--mcp-enabled", "--exit-on-stdin-close", "--namespace=default")
 	command.Env = append(os.Environ(), "CAO_POSTGRES_URL="+endpoint, "CAO_OPERATIONAL_NAMESPACE=embedded-test")
 	command.Dir = directory
 	input, err := command.StdinPipe()

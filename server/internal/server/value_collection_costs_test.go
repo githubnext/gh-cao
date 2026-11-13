@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/query"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestValueCollectionCostsRequiresAdministratorAndIsRegistered(t *testing.T) {
@@ -26,7 +25,7 @@ func TestValueCollectionCostQueriesBypassResultCacheTransitively(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cache := &queryCacheClient{}
 			database := &webhookQueryProbe{}
-			app := &App{database: database, services: redisx.NewStore(cache, "value-cost-cache").OperationalServices()}
+			app := &App{database: database, services: newTestOperationalStore(t).OperationalServices()}
 			app.config.DashboardQueries = []query.Definition{
 				{Name: "derived", From: valueCollectionCostsSourceName},
 				{Name: "joined", From: "$runs", Joins: []query.Join{{

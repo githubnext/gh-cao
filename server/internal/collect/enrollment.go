@@ -239,7 +239,7 @@ func (e Enrollment) addRepositories(ctx context.Context, installationID int64, r
 	return nil
 }
 
-// repositoryTransfer decides whether a repository's recorded owner in Redis
+// repositoryTransfer decides whether a repository's recorded owner in operational storage
 // differs from the installation now claiming it. It returns the previous
 // installation id and whether the caller must move the repository out of
 // that installation's set; an empty or unparsable previous owner, or one that
@@ -512,7 +512,7 @@ func (e Enrollment) KnownInstallation(ctx context.Context, installation int64) (
 }
 
 // ScanRepositories walks enrolled repositories by cursor so cold start over a
-// very large enrollment set is resumable and never blocks Redis.
+// very large enrollment set is resumable and never blocks operational storage.
 func (e Enrollment) ScanRepositories(ctx context.Context, cursor string, count int) ([]string, string, error) {
 	if e.Authority != nil {
 		if cursor == "0" {

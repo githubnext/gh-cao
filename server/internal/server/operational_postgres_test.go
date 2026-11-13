@@ -11,13 +11,12 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 )
 
-func TestPostgresHostedOAuthSurvivesRestartWithoutRedis(t *testing.T) {
+func TestPostgresHostedOAuthSurvivesRestartWithoutOperational(t *testing.T) {
 	dsn := os.Getenv("POSTGRES_URL")
 	if dsn == "" {
 		t.Skip("POSTGRES_URL is required for PostgreSQL hosted integration")
 	}
-	t.Setenv("CAO_REDIS_MAX_BYTES", "invalid-Redis-only-option")
-	t.Setenv("REDIS_URL", "")
+
 	namespace := "hosted-postgres-" + time.Now().Format("20060102150405.000000000")
 	store, err := postgres.New(t.Context(), dsn, namespace, postgres.Config{})
 	if err != nil {

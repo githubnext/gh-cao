@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/githubapp"
+	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 	"go.opentelemetry.io/otel"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-
-	"github.com/githubnext/gh-cao/server/internal/githubapp"
-	"github.com/githubnext/gh-cao/server/internal/githubquota"
 )
 
 type workflowRunPageKey struct {
@@ -292,12 +292,12 @@ func TestEnqueueHistoricalRunsPaginatesResumesAndPrioritizesNewRuns(t *testing.T
 	if queued != 5 || failures != 1 {
 		t.Fatalf("queued=%d failures=%d, want queued=5 failures=1", queued, failures)
 	}
-	if got, err := store.HashGet(ctx, runBackfillCursorKey, "1:octo/one"); err != nil {
+	if got, err := store.ReadAttribute(ctx, runBackfillCursorKey, "1:octo/one"); err != nil {
 		t.Fatalf("read one cursor: %v", err)
 	} else if cursor, err := parseRunBackfillCursor(got); err != nil || !cursor.Complete {
 		t.Fatalf("one cursor=%q decoded=%+v err=%v, want complete", got, cursor, err)
 	}
-	if got, err := store.HashGet(ctx, runBackfillCursorKey, "3:octo/three"); err != nil || got != "" {
+	if got, err := store.ReadAttribute(ctx, runBackfillCursorKey, "3:octo/three"); err != nil || got != "" {
 		t.Fatalf("failed repository cursor=%q err=%v, want unchanged", got, err)
 	}
 
@@ -314,17 +314,17 @@ func TestEnqueueHistoricalRunsPaginatesResumesAndPrioritizesNewRuns(t *testing.T
 		t.Fatalf("enumerator calls=%v, want 9 calls with completed repositories skipped", enumerator.calls)
 	}
 
-	if err := store.StreamEnsureGroup(ctx, runTaskStream, "run-backfill-test"); err != nil {
+	if err := store.EnsureQueue(ctx, runTaskStream, "run-backfill-test"); err != nil {
 		t.Fatal(err)
 	}
-	messages, err := store.StreamRead(ctx, runTaskStream, "run-backfill-test", "test", 10, 0)
+	messages, err := store.ReadTasks(ctx, operational.QueueRead{Queue: runTaskStream, Group: "run-backfill-test", Consumer: "test", Count: 10, Block: 0})
 	if err != nil {
 		t.Fatal(err)
 	}
 	gotRunIDs := make([]int64, 0, len(messages))
 	for _, message := range messages {
 		var task RunTask
-		if err := json.Unmarshal([]byte(message.Fields["task"]), &task); err != nil {
+		if err := json.Unmarshal([]byte(message.Fields.Task), &task); err != nil {
 			t.Fatal(err)
 		}
 		gotRunIDs = append(gotRunIDs, task.RunID)
@@ -400,7 +400,7 @@ func TestRunEnumerationQuotaExhaustionLeavesCursorUnchanged(t *testing.T) {
 		t.Fatalf("queued=%d failures=%d API calls=%d, want no API calls and one deferred failure",
 			queued, failures, len(enumerator.calls))
 	}
-	if cursor, err := store.HashGet(ctx, runBackfillCursorKey, "7:octo/api"); err != nil || cursor != "" {
+	if cursor, err := store.ReadAttribute(ctx, runBackfillCursorKey, "7:octo/api"); err != nil || cursor != "" {
 		t.Fatalf("cursor=%q err=%v, want unchanged", cursor, err)
 	}
 }

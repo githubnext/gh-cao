@@ -119,7 +119,7 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
   const health = await context.request.get("/api/v1/health", { headers });
   expect(health.ok()).toBe(true);
   const healthPayload = await health.json();
-  expect(healthPayload.redis).toEqual({ connected: true });
+  expect(healthPayload.operational.connected).toBe(true);
   expect(healthPayload.revision).toBeGreaterThan(0);
   expect(healthPayload.counts).toMatchObject({
     $repositories: 1,
@@ -130,7 +130,7 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
     $audits: 1,
     $issues: 1,
   });
-  expect(JSON.stringify(healthPayload)).not.toMatch(/redis:\/\/|password|credential/i);
+  expect(JSON.stringify(healthPayload)).not.toMatch(/postgres(?:ql)?:\/\/|password|credential/i);
 
   const query = await queryBudget.run(() => context.request.post("/api/v1/query", {
     headers,

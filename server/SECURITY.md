@@ -9,7 +9,7 @@ The Go dashboard server has three security profiles:
 - the default local profile used by `cao-dashboard serve`, for one trusted
   operator on loopback; and
 - the host-neutral `serve-hosted` profile, with the same GitHub identity boundary
-  behind an explicitly trusted HTTPS proxy and any compatible managed Redis.
+  behind an explicitly trusted HTTPS proxy and verified PostgreSQL.
 
 The hosted single-process memory alternative retains every OAuth, HTTPS,
 organization/team, administrator, CSRF, proxy, signature, and quota boundary.
@@ -259,7 +259,7 @@ capability streams do not acquire an OAuth lifetime or session-store dependency.
 These are application authorization bounds, not an attestation of deployed
 proxy buffering, connection lifetimes or delivery of previously written bytes.
 
-API and OAuth abuse is bounded with atomic Redis token buckets shared by all
+API and OAuth abuse is bounded with atomic operational token buckets shared by all
 server replicas. Authenticated buckets use a digest of the GitHub login, while
 OAuth login uses a digest of the client IP and valid OAuth callbacks use a digest
 of the signed state. Trusted enterprise proxy headers are used only at the
@@ -267,8 +267,8 @@ configured boundary: the final `X-Forwarded-For` value takes precedence, RFC
 7239 `Forwarded` is supported as a fallback, and malformed final values fall
 back to the direct peer rather than an attacker-controlled earlier hop. Query
 requests receive the tightest limit because they consume the most server and
-Redis work. The limiter fails
-closed when Redis is unavailable, and `429` responses communicate the cooldown
+operational work. The limiter fails
+closed when operational storage is unavailable, and `429` responses communicate the cooldown
 with `Retry-After` plus the standard `RateLimit-*` headers. Hosted public
 health/readiness probes share a separate per-client-address bucket; local
 probes remain exempt. GitHub webhooks are exempt from user quotas but cross the
@@ -280,8 +280,8 @@ invalid or expired sessions cannot bypass abuse controls by failing
 authentication early. At trusted proxy boundaries the server reads forwarded
 addresses from the final header value, including address-and-port forms, and
 ignores caller-supplied earlier entries. Authenticated and valid OAuth callback
-quotas do not coalesce users behind one enterprise egress address. Limiter Redis
-operations have a dedicated two-second deadline to prevent a degraded Redis
+quotas do not coalesce users behind one enterprise egress address. Limiter
+operations have a dedicated two-second deadline to prevent a degraded operational
 service from holding request workers for the full server I/O timeout. The
 complete normative contract is `specs/server-rate-limiting.md`.
 
@@ -294,18 +294,17 @@ authentication, CSRF, host validation, or rate limiting. Unauthenticated
 subresource requests receive `401` instead of a redirect to GitHub OAuth. The
 complete normative contract is `specs/server-cors.md`.
 
-Webhook delivery IDs and projection leases are stored in the deployment Redis
+Webhook delivery IDs and projection leases are stored in the deployment operational
 namespace. Failed reconciliation removes its delivery marker so GitHub can
 retry. Full rebuilds and webhook reconciliation share a distributed lease;
-each Postgres replacement is committed atomically. Redis remains disposable,
-and health distinguishes an available service from ready data.
+each Postgres replacement is committed atomically. Protected operational state
+is not disposable; health distinguishes available services from ready data.
 
-`CAO_REDIS_URL`, OAuth secrets, the webhook secret, and session secrets are
+Database URLs, OAuth secrets, the webhook secret, and session secrets are
 process-only configuration resolved by the deployment's secret manager. They
 are never accepted as hosted command-line flags, returned by APIs, or written
-to logs. Hosted Redis uses `rediss://` with certificate and hostname
-verification by default; only the explicit private-network opt-in
-permits plaintext. The core service imports no cloud identity or
+to logs. Non-loopback PostgreSQL requires certificate and hostname
+verification. The core service imports no cloud identity or
 secret-management SDK.
 
 ## Dashboard access capability
@@ -452,10 +451,7 @@ See the [local setup instructions](README.md#local-oauth-without-organization-ac
 
 Hosted mode has no developer override for public transport protections:
 
-- Redis-backed profiles require `rediss://` by default;
-- plaintext Redis requires `allow-private-plaintext: true` in the `cao.json`
-  Redis module and is then restricted to a private IP or single-label service
-  name;
+- non-loopback PostgreSQL requires verified TLS;
 - it requires HTTPS and rejects attempts to disable that policy;
 - it binds to loopback by default; without direct TLS, forwarded host/protocol
   headers are allowed only across that local process or pod boundary;
@@ -467,9 +463,7 @@ Hosted mode has no developer override for public transport protections:
   over HTTPS.
 
 Generated bearer capabilities and optional local TLS belong only to the
-separate `serve` developer profile. The private plaintext Redis opt-in is for a
-deployment-managed private service network, never public or cross-network
-Redis.
+separate `serve` developer profile.
 
 ## Container deployments
 
@@ -497,29 +491,6 @@ After rollback, verify readiness, OAuth authorization, queries, webhook
 signatures, and rate limits; never treat operational caches as rollback
 authority.
 
-## Upstash profile
-
-Upstash provides causal consistency within one TCP session rather than across
-independent connections. Its Redis module therefore uses a serialized session
-for projection data and hosted security state. It does not recycle or retry that
-connection. Any transport loss permanently fails that client, so health and
-readiness fail until the process restarts.
-
-Restart recovery uses a fresh random internal namespace and rebuilds from the
-verified artifact. This isolates the process from stale state written through an
-earlier TCP session and invalidates all existing CAO sessions. Old namespaces
-remain disposable storage until an operator removes them while the application
-is stopped. The encrypted pending-revocation queue is the exception: it uses a
-stable deployment-scoped prefix so GitHub credentials queued for revocation
-remain available to the bounded retry worker after restart.
-
-The mode fails startup unless the endpoint uses `rediss://` on an Upstash host
-and the target declares `replicas: 1`. The deployment must independently enforce
-that replica count and use a dedicated Upstash database. Server-side collection
-and standalone collection roles are unsupported. Declaring one replica does not
-turn Upstash into a cross-process coordination service and must not be used to
-justify additional replicas.
-
 ## Hosted identity and Azure deployment
 
 > [!WARNING]
@@ -538,7 +509,7 @@ local harness support are retired.
 Generate and check an offline `azure-container-apps` review bundle; operators
 execute reviewed templates separately. The base profile uses one replica,
 public OAuth ingress, Actions snapshots, Key Vault, ACR and Log Analytics.
-It does not provision Redis or Application Insights or support collector
+It does not provision Application Insights or support collector
 acquisition, OTLP or base ADX analytics. Optional archive/gateway infrastructure
 remains independently selected and staged.
 
@@ -607,7 +578,7 @@ account chooser; CAO never combines authority or tokens from multiple accounts
 in one browser session. If GitHub revocation is unavailable, logout and account
 switching atomically remove the active session, clear its cookies, and retain
 the encrypted credentials only in the selected operational pending-revocation
-queue. Redis retries survive restart; opted-in memory retries do not.
+queue. PostgreSQL retries survive restart; opted-in memory retries do not.
 Subsequent OAuth entry retries queued revocation without restoring session
 authority.
 
@@ -627,8 +598,7 @@ a record only when every credential actually present has expired.
 
 Inactive sessions retain their final encrypted cleanup owner after their
 local authority expires. PostgreSQL and memory stage expired sessions from
-protected records; Redis retains persistent encrypted session envelopes behind
-a stable deployment-scoped due index. Reads and CAS reject expired sessions
+protected records. Reads and CAS reject expired sessions
 before the worker runs, and maintenance cannot delete their cleanup debt.
 Session admission reserves the configured cleanup destination's capacity;
 pending debt backpressures new admission rather than evicting credentials.
@@ -647,9 +617,8 @@ kill between provider issuance and durable persistence can still lose that
 in-memory owner; graceful shutdown must allow cleanup to finish. The opted-in
 memory backend additionally loses all retained debt on restart.
 
-Roll out the new session-envelope format with old replicas stopped: older
-executables cannot read the new Redis records and can still TTL-delete older
-ones. Preserve the stable revocation prefix, storage, and current/previous keys.
+Roll out session-envelope changes with old replicas stopped. Preserve protected
+revocation storage and current/previous keys.
 Existing queued records without provider-expiry fields are conservatively
 unknown; do not delete them on their old local deadlines. Existing pre-upgrade
 sessions need interactive reauthentication/reconciliation: already deleted
@@ -658,7 +627,7 @@ must reconcile outstanding GitHub grants through a separately authorized
 procedure; deployment alone does not revoke them.
 
 Access tokens and refresh tokens remain server-side. They are encrypted with an
-AES-GCM key derived from `CAO_SESSION_SECRET` before being stored in Redis under
+AES-GCM key derived from `CAO_SESSION_SECRET` before being stored operationally under
 the deployment namespace. Browser cookies contain only an opaque session ID and
 a CSRF token; GitHub tokens are never placed in browser-readable storage,
 URLs, API responses, logs, telemetry, or Bicep outputs.
@@ -726,7 +695,7 @@ a mutation. If refresh fails or the
 refresh token has expired, session authority is removed, cleanup is staged,
 cookies are cleared, and the
 client must reauthenticate. Logout revokes both the current access token and
-the current refresh token when GitHub accepts revocation, deletes the Redis
+the current refresh token when GitHub accepts revocation, deletes the operational
 session, and clears cookies.
 
 ### Hosted lifecycle and transport limits
@@ -750,13 +719,13 @@ Hosted deployments assume the following actors:
 
 | Actor | Capabilities | Security expectation |
 | --- | --- | --- |
-| Authorized dashboard user | Opens the hosted dashboard and makes browser API requests. | Must authenticate through GitHub OAuth, satisfy explicit org/team authorization, send CSRF headers for mutation, and receive no Redis credentials or GitHub tokens. |
+| Authorized dashboard user | Opens the hosted dashboard and makes browser API requests. | Must authenticate through GitHub OAuth, satisfy explicit org/team authorization, send CSRF headers for mutation, and receive no database credentials or GitHub tokens. |
 | Unauthenticated or unauthorized user | Can reach the public application URL. | Can read only minimal health status; all static dashboard access redirects to login and all data APIs fail closed. |
-| Browser attacker | Can attempt CSRF, stale session reuse, URL injection, or token exfiltration through browser storage. | Session authority is in `Secure`, `HttpOnly`, `SameSite=Lax` cookies; CSRF tokens are session-bound; GitHub tokens and Redis URLs are never browser-readable. |
+| Browser attacker | Can attempt CSRF, stale session reuse, URL injection, or token exfiltration through browser storage. | Session authority is in `Secure`, `HttpOnly`, `SameSite=Lax` cookies; CSRF tokens are session-bound; GitHub tokens and database URLs are never browser-readable. |
 | Network attacker | Can observe or interfere with traffic outside Azure/GitHub TLS channels. | HTTPS ingress, trusted private proxy peers and verified backend TLS are required. |
 | Azure platform/operator | Can deploy Bicep, configure app settings, rotate keys, and view platform metadata. | Uses reviewed Bicep, managed identity, Key Vault RBAC, non-secret outputs, and secret rotation procedures; does not copy secret values into logs, tickets, or checked-in files. |
 | GitHub OAuth/API | Issues tokens and reports membership. | OAuth client secret remains in Key Vault, tokens remain server-side, refresh failures clear sessions, and membership is rechecked before session creation. |
-| Redis | Stores operational state, bounded caches, and encrypted OAuth session records. | Does not store dashboard entities or control dashboard-data readiness; access is TLS-only and namespace-scoped. |
+| PostgreSQL operational adapter | Stores operational state, bounded caches, and encrypted OAuth session records. | Separate from canonical entities; non-loopback transport requires verified TLS and access is namespace-scoped. |
 | Telemetry/diagnostics reader | Can view configured operational logs. | Sees only structured, non-secret operational metadata; no tokens, cookies, database URLs, prompt contents, source records, or secret values are logged. |
 
 Protected assets:
@@ -765,7 +734,7 @@ Protected assets:
   authorization decisions;
 - `CAO_SESSION_SECRET`, encrypted session records, session cookies, and CSRF
   tokens;
-- Redis URL/access key and the PostgreSQL dashboard projection;
+- database URLs/credentials and the PostgreSQL dashboard projection;
 - compacted dashboard source artifacts, logical source rows, diagnostics, and
   query results;
 - Bicep, app settings, Key Vault RBAC assignments, deployment history, and
@@ -786,15 +755,15 @@ Primary threats and mitigations:
 - **Untrusted proxy headers**: mitigated by independently verified private
   proxy CIDRs, an allowed public host and required HTTPS forwarded protocol.
   The local profile keeps separate loopback `Host` protections.
-- **Redis compromise or data confusion**: mitigated by treating Redis as
-  disposable derived state, using TLS-only Redis, namespacing every key,
-  disabling Redis public network access in Bicep, and rebuilding from trusted
-  artifacts when needed.
+- **Database compromise or data confusion**: mitigated by verified backend TLS,
+  separate namespace-scoped operational and canonical contracts, narrow
+  runtime grants and private networking. Protected queues and audit records
+  must not be discarded during canonical rebuild.
 - **Long-lived connection assumptions**: mitigated by verifying SSE
   reconnection and retaining `/api/v1/refresh` polling as the
   reliable revision check.
 - **Over-broad observability**: mitigated by logging only structured
-  operational metadata and excluding tokens, cookies, Redis URLs, source
+  operational metadata and excluding tokens, cookies, database URLs, source
   records, and prompt contents from logs and diagnostics.
 - **Stale or stolen administrator session**: mitigated by administrator
   step-up. Administrator authority expires within `CAO_ADMIN_REAUTH_MAX_AGE`
@@ -818,7 +787,7 @@ use:
   network isolation, private endpoint reachability, cost limits, backup
   posture, data residency, or regulatory compliance.
 - PostgreSQL stores the rebuildable dashboard projection and separately owned
-  operational state; explicit Redis alternatives store only operational state,
+  operational state; explicit bounded memory stores only operational state,
   bounded caches and encrypted sessions. An organization
   must validate whether its data classification permits those stores and
   retention models.
@@ -853,34 +822,16 @@ exact-image evidence, OAuth allow/deny tests, readiness, private-network checks,
 secret rotation, backup/rollback and incident-response outcomes separately.
 See the [Container Apps guide](../docs/deployment-azure.md).
 
-## Redis transport and isolation
+## Database transport and isolation
 
-- Plaintext `redis://` connections are accepted by default only for `localhost`
-  or a literal loopback IP address. `serve-hosted` additionally accepts a
-  private IP or single-label service hostname only when
-  `allow-private-plaintext: true` is set in the `cao.json` Redis module.
-- All other Redis connections require `rediss://` with normal certificate-chain
-  and hostname verification. There is no
-  insecure TLS mode.
-- Redis usernames and passwords remain in the Go process and are never returned
-  in HTML, browser configuration, API payloads, or query URLs.
-- Every deployment uses a validated Redis namespace. The default is derived
-  deterministically from the absolute checkout/worktree path, and
-  `--redis-namespace` may supply an explicit deployment identifier.
-- The namespace applies to operational keys, including sessions, queues,
-  coordination, rate limits, and bounded caches.
-
-Namespace isolation prevents accidental collisions between local deployments.
-It does not replace Redis ACLs. Use a dedicated Redis instance or database and
-credentials restricted to the deployment namespace for separate trust
-boundaries.
-
-The base Azure Container Apps review bundle uses PostgreSQL operational state,
-not Redis. For independently configured Redis deployments, review private
-connectivity, verified TLS, narrow credentials and secret-manager delivery
-separately. Rotate credentials through the provider and secret manager, then
-verify that running processes use the intended secret version; never log keys
-or connection URLs.
+Non-loopback PostgreSQL TCP requires verified TLS. Credentials remain in the
+Go process and must never appear in browser configuration, API responses, logs
+or query URLs. `CAO_DATASET_NAMESPACE` (`--namespace`) identifies canonical data;
+`CAO_OPERATIONAL_NAMESPACE` independently identifies protected operational state.
+Namespace isolation prevents accidental collisions, not access across trust
+boundaries. Use separate credentials and narrow database grants as documented
+in [PostgreSQL provisioning](POSTGRES.md). Rotate credentials through the secret
+manager and verify running processes use the intended version without logging it.
 
 ## Artifact ingestion protections
 
@@ -924,7 +875,7 @@ capability check.
 - Invalid, cyclic, over-budget, stale-pagination, and unavailable-source
   requests return explicit errors rather than partial results.
 - Filtering, aggregation, sorting, limiting, joins, unions, and computed fields
-  execute as bounded SQL over PostgreSQL. Redis may cache completed query
+  execute as bounded SQL over PostgreSQL. Operational storage may cache completed query
   responses but does not evaluate queries or store dashboard entities.
 
 The access capability authorizes the holder to query all data in the current
@@ -1294,7 +1245,7 @@ report, certification, or independent assessment.
 
 ## Secrets and logging
 
-- Never place Redis credentials, GitHub OAuth secrets, GitHub access/refresh
+- Never place database credentials, GitHub OAuth secrets, GitHub access/refresh
   tokens, session secrets, or the local dashboard access token in committed
   files, dashboard documents, test fixtures intended for production, query
   payloads, or browser-readable metadata.
@@ -1305,13 +1256,13 @@ report, certification, or independent assessment.
   expose it only to the isolated `execute-cli` service. The setup command's
   owner-only local output is temporary bootstrap material, not a vault.
 - Prefer environment variables or local command arguments supplied by a secret
-  manager for Redis credentials.
+  manager for database credentials.
 - In Azure, prefer Key Vault references in app settings. Bicep outputs must not
   include secret values or secret-bearing connection strings.
 - The server intentionally prints the local capability URL for the operator.
   Protect terminal logs accordingly.
-- Error responses should describe request failures without including Redis
-  credentials, GitHub tokens, raw RESP traffic, private keys, or complete
+- Error responses should describe request failures without including database
+  credentials, GitHub tokens, raw database traffic, private keys, or complete
   source records.
 
 ## Validation
@@ -1319,7 +1270,7 @@ report, certification, or independent assessment.
 Security-relevant validation is included in:
 
 - Go unit tests for listen and Host restrictions, capability bootstrap and
-  authorization headers, unauthenticated API rejection, TLS certificates, Redis URL policy,
+  authorization headers, unauthenticated API rejection, TLS certificates, database URL policy,
   namespace isolation, request bounds, ingestion integrity, and query budgets;
 - Go tests for administrator step-up (`admin_step_up_test.go`) and hosted CLI
   admission, broker, and executor (`hosted_cli_test.go`, `internal/hostedcli`);
@@ -1327,7 +1278,7 @@ Security-relevant validation is included in:
   disabled configurations;
 - golangci-lint with `gosec`, `bodyclose`, `contextcheck`, `errorlint`,
   `noctx`, and the standard correctness analyzers;
-- the Redis-backed Playwright test in `.github/workflows/cgo.yml`.
+- the PostgreSQL-backed Playwright test in `.github/workflows/cgo.yml`.
 
 Run:
 

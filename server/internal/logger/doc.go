@@ -6,7 +6,7 @@
 //
 //	DEBUG=cao:server,cao:query
 //	DEBUG=cao:*
-//	DEBUG=*,-cao:redis
+//	DEBUG=*,-cao:operational
 //
 // ACTIONS_RUNNER_DEBUG=true enables all namespaces when DEBUG is unset.
 // OTLP export additionally requires telemetry.Setup, CAO_OTEL_LOGS_ENABLED=true,

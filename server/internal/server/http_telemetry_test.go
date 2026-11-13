@@ -13,8 +13,6 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestHTTPServerTelemetryUsesRouteTemplatesAndHeadMethods(t *testing.T) {
@@ -31,13 +29,7 @@ func TestHTTPServerTelemetryUsesRouteTemplatesAndHeadMethods(t *testing.T) {
 		otel.SetTracerProvider(previousTracer)
 		otel.SetMeterProvider(previousMeter)
 	})
-	address, closeServer := fakeRedis(t)
-	t.Cleanup(closeServer)
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app, err := New(t.Context(), redisx.NewStore(client, "route-telemetry"), Config{
+	app, err := New(t.Context(), newTestOperationalStore(t), Config{
 		Database: constructorDatabase(), SiteDirectory: t.TempDir(), AccessToken: testAccessToken,
 		Listen: "127.0.0.1:8443",
 	})

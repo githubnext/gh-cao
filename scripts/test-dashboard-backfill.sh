@@ -55,7 +55,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
-"${compose[@]}" up -d --wait --wait-timeout 120 redis postgres
+"${compose[@]}" up -d --wait --wait-timeout 120 postgres
 
 unset CAO_BACKFILL_SKIP_OPENOBSERVE
 if "${compose[@]}" pull openobserve > "$report_dir/openobserve-pull.log" 2>&1; then
@@ -68,9 +68,7 @@ else
   exit 1
 fi
 
-redis_address=$("${compose[@]}" port redis 6379)
 postgres_address=$("${compose[@]}" port postgres 5432)
-export REDIS_URL="redis://$redis_address/0"
 export CAO_POSTGRES_URL="postgres://cao_backfill:$CAO_LOCAL_POSTGRES_PASSWORD@$postgres_address/cao_backfill?sslmode=disable"
 export CAO_BACKFILL_INTEGRATION=1
 export DEBUG=cao:collect:backfill:summary,cao:collect:projector,cao:ingest

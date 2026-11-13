@@ -114,7 +114,7 @@ func TestReportFailedRespectsStrictFlag(t *testing.T) {
 
 func TestReportCheckFindsByID(t *testing.T) {
 	report := Report{Checks: []Check{
-		{ID: "redis.ping", Summary: "ok"},
+		{ID: "operational.ping", Summary: "ok"},
 		{ID: "data.generation", Summary: "current"},
 	}}
 	found, ok := report.Check("data.generation")

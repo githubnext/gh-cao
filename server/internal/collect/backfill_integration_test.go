@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
 func TestBackfillRunsEnumerationAndQueuesWork(t *testing.T) {
@@ -68,10 +69,10 @@ func TestBackfillRunsEnumerationAndQueuesWork(t *testing.T) {
 		t.Fatalf("repository task = %+v, want backfill task for octo/api", task)
 	}
 
-	if err := store.StreamEnsureGroup(ctx, runTaskStream, "backfill-integration"); err != nil {
+	if err := store.EnsureQueue(ctx, runTaskStream, "backfill-integration"); err != nil {
 		t.Fatal(err)
 	}
-	messages, err := store.StreamRead(ctx, runTaskStream, "backfill-integration", "test", 10, 0)
+	messages, err := store.ReadTasks(ctx, operational.QueueRead{Queue: runTaskStream, Group: "backfill-integration", Consumer: "test", Count: 10, Block: 0})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +80,7 @@ func TestBackfillRunsEnumerationAndQueuesWork(t *testing.T) {
 		t.Fatalf("historical run task messages = %d, want 1", len(messages))
 	}
 	var runTask RunTask
-	if err := json.Unmarshal([]byte(messages[0].Fields["task"]), &runTask); err != nil {
+	if err := json.Unmarshal([]byte(messages[0].Fields.Task), &runTask); err != nil {
 		t.Fatal(err)
 	}
 	if runTask.Key != "octo/api:42:2" || runTask.Repository != "octo/api" ||
@@ -88,7 +89,7 @@ func TestBackfillRunsEnumerationAndQueuesWork(t *testing.T) {
 		t.Fatalf("historical run task = %+v, want run 42 attempt 2 for octo/api", runTask)
 	}
 
-	cursor, err := store.HashGet(ctx, runBackfillCursorKey, "7:octo/api")
+	cursor, err := store.ReadAttribute(ctx, runBackfillCursorKey, "7:octo/api")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -67,7 +67,7 @@ func openNativeSnapshot(dsn string) (*nativeCanonicalSession, error) {
 	child := exec.Command(server, "read")
 	child.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+dsn)
 	if namespace := os.Getenv("CAO_DATABASE_NAMESPACE"); namespace != "" {
-		child.Args = append(child.Args, "--redis-namespace", namespace)
+		child.Args = append(child.Args, "--namespace", namespace)
 	}
 	input, err := child.StdinPipe()
 	if err != nil {

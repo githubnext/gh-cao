@@ -46,7 +46,7 @@ func loadCounterIndex(name string) (int, bool) {
 func healthEventIndex(event, code string) (int, bool) {
 	switch event {
 	case "failure":
-		if code == "admission" || code == "collection" || code == "redis" {
+		if code == "admission" || code == "collection" || code == "operational" {
 			return 0, true
 		}
 	case "success":

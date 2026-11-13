@@ -20,7 +20,7 @@ For your own investigation, install the release extension and run
 `gh cao dashboard --repo OWNER/REPOSITORY` with your locally authenticated
 GitHub CLI. It bundles the server, dashboard, and collector, serves on loopback,
 and automatically refreshes a private canonical PostgreSQL cache on your machine.
-No CAO cloud deployment, Azure setup, hosted dashboard, Redis,
+No CAO cloud deployment, Azure setup, hosted dashboard,
 separate Node.js or gh-aw installation, or control-repository setup
 is required. GitHub remains the online, authenticated evidence source.
 

@@ -5,16 +5,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
-// memoryStore is an in-memory Store mirroring the redisx quota scripts so the
-// service's semantics are testable without Redis.
+// memoryStore is a deterministic clock-controlled quota service fixture.
 type memoryStore struct {
 	mu      sync.Mutex
 	now     time.Time
 	buckets map[string]*memoryBucket
-	usage   map[time.Time]map[string]redisx.GitHubQuotaUsageSample
+	usage   map[time.Time]map[string]operational.GitHubQuotaUsageSample
 	// usageErr makes usage history operations fail.
 	usageErr error
 }
@@ -38,7 +37,7 @@ type memoryReservation struct {
 func newMemoryStore(now time.Time) *memoryStore {
 	return &memoryStore{
 		now: now, buckets: map[string]*memoryBucket{},
-		usage: map[time.Time]map[string]redisx.GitHubQuotaUsageSample{},
+		usage: map[time.Time]map[string]operational.GitHubQuotaUsageSample{},
 	}
 }
 
@@ -62,27 +61,27 @@ func (m *memoryStore) bucket(key string) *memoryBucket {
 	return bucket
 }
 
-func (m *memoryStore) state(bucket *memoryBucket) redisx.GitHubQuotaState {
+func (m *memoryStore) state(bucket *memoryBucket) operational.GitHubQuotaState {
 	var reserved int64
 	for _, reservation := range bucket.reservations {
 		reserved += reservation.amount
 	}
-	return redisx.GitHubQuotaState{
+	return operational.GitHubQuotaState{
 		Known: bucket.known, Limit: bucket.limit, Remaining: bucket.remaining, Reserved: reserved,
 		ResetAt: bucket.reset, ObservedAt: bucket.observed, ParkedUntil: bucket.parked,
 		ParkReason: bucket.parkReason, Now: m.now,
 	}
 }
 
-func (m *memoryStore) GitHubQuotaSnapshot(_ context.Context, key string) (redisx.GitHubQuotaState, error) {
+func (m *memoryStore) GitHubQuotaSnapshot(_ context.Context, key string) (operational.GitHubQuotaState, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.state(m.bucket(key)), nil
 }
 
 func (m *memoryStore) ObserveGitHubQuota(
-	_ context.Context, key string, observation redisx.GitHubQuotaObservation, releaseID string,
-) (redisx.GitHubQuotaObserveOutcome, bool, redisx.GitHubQuotaState, error) {
+	_ context.Context, key string, observation operational.GitHubQuotaObservation, releaseID string,
+) (operational.GitHubQuotaObserveOutcome, bool, operational.GitHubQuotaState, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	bucket := m.bucket(key)
@@ -94,47 +93,47 @@ func (m *memoryStore) ObserveGitHubQuota(
 	if observation.ObservedAt.IsZero() {
 		observation.ObservedAt = m.now
 	}
-	outcome := redisx.GitHubQuotaObservationStale
+	outcome := operational.GitHubQuotaObservationStale
 	reset := time.UnixMilli(observation.ResetAt.UnixMilli()).UTC()
 	switch {
 	case !bucket.known || reset.After(bucket.reset):
 		bucket.known, bucket.limit, bucket.remaining = true, observation.Limit, observation.Remaining
 		bucket.reset, bucket.observed = reset, observation.ObservedAt
-		outcome = redisx.GitHubQuotaObservationReplaced
+		outcome = operational.GitHubQuotaObservationReplaced
 	case reset.Equal(bucket.reset):
 		bucket.limit = observation.Limit
 		bucket.remaining = min(bucket.remaining, observation.Remaining)
 		if observation.ObservedAt.After(bucket.observed) {
 			bucket.observed = observation.ObservedAt
 		}
-		outcome = redisx.GitHubQuotaObservationReconciled
+		outcome = operational.GitHubQuotaObservationReconciled
 	}
 	return outcome, released, m.state(bucket), nil
 }
 
 func (m *memoryStore) ReserveGitHubQuota(
 	_ context.Context, key, id string, cost, minimumRemain int64, ttl time.Duration,
-) (redisx.GitHubQuotaAdmission, time.Time, redisx.GitHubQuotaState, error) {
+) (operational.GitHubQuotaAdmission, time.Time, operational.GitHubQuotaState, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	bucket := m.bucket(key)
 	state := m.state(bucket)
 	switch {
 	case bucket.parked.After(m.now):
-		return redisx.GitHubQuotaParked, time.Time{}, state, nil
+		return operational.GitHubQuotaParked, time.Time{}, state, nil
 	case !bucket.known || !bucket.reset.After(m.now):
-		return redisx.GitHubQuotaUnknown, time.Time{}, state, nil
+		return operational.GitHubQuotaUnknown, time.Time{}, state, nil
 	case bucket.reservations[id] != (memoryReservation{}):
-		return redisx.GitHubQuotaDuplicateReservation, time.Time{}, state, nil
+		return operational.GitHubQuotaDuplicateReservation, time.Time{}, state, nil
 	case bucket.remaining-state.Reserved-cost < minimumRemain:
-		return redisx.GitHubQuotaExhausted, time.Time{}, state, nil
+		return operational.GitHubQuotaExhausted, time.Time{}, state, nil
 	}
 	expires := m.now.Add(ttl)
 	bucket.reservations[id] = memoryReservation{amount: cost, expires: expires}
-	return redisx.GitHubQuotaAdmitted, expires, m.state(bucket), nil
+	return operational.GitHubQuotaAdmitted, expires, m.state(bucket), nil
 }
 
-func (m *memoryStore) ReleaseGitHubQuota(_ context.Context, key, id string) (bool, redisx.GitHubQuotaState, error) {
+func (m *memoryStore) ReleaseGitHubQuota(_ context.Context, key, id string) (bool, operational.GitHubQuotaState, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	bucket := m.bucket(key)
@@ -145,7 +144,7 @@ func (m *memoryStore) ReleaseGitHubQuota(_ context.Context, key, id string) (boo
 
 func (m *memoryStore) ParkGitHubQuota(
 	_ context.Context, key string, until time.Time, reason string,
-) (bool, redisx.GitHubQuotaState, error) {
+) (bool, operational.GitHubQuotaState, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	bucket := m.bucket(key)
@@ -156,7 +155,7 @@ func (m *memoryStore) ParkGitHubQuota(
 	return true, m.state(bucket), nil
 }
 
-func (m *memoryStore) UnparkGitHubQuota(_ context.Context, key string) (redisx.GitHubQuotaState, error) {
+func (m *memoryStore) UnparkGitHubQuota(_ context.Context, key string) (operational.GitHubQuotaState, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	bucket := m.bucket(key)
@@ -172,17 +171,17 @@ func (m *memoryStore) RecordGitHubQuotaUsage(
 	if m.usageErr != nil {
 		return false, m.usageErr
 	}
-	slot := redisx.GitHubQuotaUsageSlot(at)
-	if !slot.Add(redisx.GitHubQuotaUsageInterval).After(m.now.Add(-redisx.GitHubQuotaUsageRetention)) ||
-		slot.After(m.now.Add(redisx.GitHubQuotaUsageInterval)) {
+	slot := at.UTC().Truncate(operational.GitHubQuotaUsageInterval)
+	if !slot.Add(operational.GitHubQuotaUsageInterval).After(m.now.Add(-operational.GitHubQuotaUsageRetention)) ||
+		slot.After(m.now.Add(operational.GitHubQuotaUsageInterval)) {
 		return false, nil
 	}
 	samples, ok := m.usage[slot]
 	if !ok {
-		samples = map[string]redisx.GitHubQuotaUsageSample{}
+		samples = map[string]operational.GitHubQuotaUsageSample{}
 		m.usage[slot] = samples
 	}
-	sample := redisx.GitHubQuotaUsageSample{Bucket: key, Slot: slot, Limit: limit, Used: used, Reserved: reserved}
+	sample := operational.GitHubQuotaUsageSample{Bucket: key, Slot: slot, Limit: limit, Used: used, Reserved: reserved}
 	if current, ok := samples[key]; ok {
 		if current.Used*limit > used*current.Limit || (current.Used*limit == used*current.Limit && current.Used > used) {
 			sample.Limit, sample.Used = current.Limit, current.Used
@@ -193,15 +192,15 @@ func (m *memoryStore) RecordGitHubQuotaUsage(
 	return true, nil
 }
 
-func (m *memoryStore) GitHubQuotaUsage(context.Context) ([]redisx.GitHubQuotaUsageSample, time.Time, error) {
+func (m *memoryStore) GitHubQuotaUsage(context.Context) ([]operational.GitHubQuotaUsageSample, time.Time, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.usageErr != nil {
 		return nil, time.Time{}, m.usageErr
 	}
-	samples := []redisx.GitHubQuotaUsageSample{}
+	samples := []operational.GitHubQuotaUsageSample{}
 	for slot, bucketSamples := range m.usage {
-		if !slot.Add(redisx.GitHubQuotaUsageInterval).After(m.now.Add(-redisx.GitHubQuotaUsageRetention)) {
+		if !slot.Add(operational.GitHubQuotaUsageInterval).After(m.now.Add(-operational.GitHubQuotaUsageRetention)) {
 			continue
 		}
 		for _, sample := range bucketSamples {

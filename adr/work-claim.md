@@ -315,7 +315,7 @@ CAO does not implement:
 - its own Git synchronization;
 - its own durable SQLite database;
 - distributed locks;
-- Redis coordination;
+- non-durable cache coordination;
 - a separate ledger query language.
 
 The existing repo-memory lifecycle remains responsible for Git-backed persistence.

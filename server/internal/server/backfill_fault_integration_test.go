@@ -98,7 +98,7 @@ func TestPostgresBackfillGitHubFaults(t *testing.T) {
 				}
 			}
 			// A new authenticated client simulates a process restart; only
-			// Redis cursors, reservations, and durable admissions survive.
+			// Operational cursors, reservations, and durable admissions survive.
 			resumed := h.backfill
 			client := h.restart()
 			resumed.Enumerator = client

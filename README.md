@@ -26,7 +26,7 @@ gh extension install githubnext/gh-cao
 gh cao dashboard --repo OWNER/REPOSITORY
 ```
 
-No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
+No CAO cloud deployment, Azure setup, hosted dashboard, or separate
 Node.js or gh-aw installation is required. A running Docker or Podman engine
 provides PostgreSQL automatically unless a connection is specified. From an
 existing repository checkout, use `gh cao dashboard` without `--repo`.

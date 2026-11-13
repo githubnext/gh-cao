@@ -20,7 +20,8 @@ on:
       - server/internal/ingest/**
       - server/internal/postgresx/**
       - server/internal/server/**
-      - server/internal/redisx/**
+      - server/internal/operational/**
+      - server/internal/dataset/**
       - server/go.mod
       - server/go.sum
       - dashboard/site/package.json

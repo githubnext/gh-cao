@@ -47,7 +47,6 @@ func sampleReport() Report {
 		Version:       "test",
 		Profile:       "actions",
 		Namespace:     "cao",
-		Redis:         "redis://redacted",
 		Checks: []Check{
 			{ID: "runtime.example", Area: "runtime", Title: "Example", Status: StatusPass, Summary: "ok"},
 		},

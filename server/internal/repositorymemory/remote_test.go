@@ -155,7 +155,7 @@ func TestRemoteResolverReturnsThrottleWithoutCallingGitHub(t *testing.T) {
 func TestRemoteResolverPreservesInfrastructureErrors(t *testing.T) {
 	cache := newRemoteCache()
 	source := &remoteSource{}
-	infrastructureErr := errors.New("redis unavailable")
+	infrastructureErr := errors.New("operational unavailable")
 	resolver := newRemoteResolver(cache, source, &remoteGovernor{reserveErr: infrastructureErr})
 
 	_, err := resolver.Campaign(context.Background(), "example")

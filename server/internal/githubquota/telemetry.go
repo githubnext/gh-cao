@@ -6,14 +6,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
 // instrumentationName is the OpenTelemetry scope shared with the rest of the
@@ -176,7 +175,7 @@ func (op *operation) finish(ctx context.Context, err error) {
 	}
 	if histogram, histogramErr := meter.Float64Histogram(metricOperationTime,
 		metric.WithUnit("s"),
-		metric.WithDescription("GitHub quota service operation latency including the atomic Redis script"),
+		metric.WithDescription("GitHub quota service operation latency including the atomic storage operation"),
 	); histogramErr == nil {
 		histogram.Record(ctx, time.Since(op.started).Seconds(), attrs)
 	}

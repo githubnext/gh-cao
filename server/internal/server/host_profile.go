@@ -23,27 +23,17 @@ const (
 	HostListenerExternal HostListener = "external"
 )
 
-type HostRedisSession string
-
-const (
-	HostRedisPooled     HostRedisSession = "pooled"
-	HostRedisSerialized HostRedisSession = "serialized"
-)
-
 // HostProfile describes runtime capabilities independently of a deployment
 // provider. Platform integrations select a profile and supply its configuration.
 type HostProfile struct {
-	Name                    string
-	Authentication          HostAuthentication
-	Listener                HostListener
-	RequiresHTTPS           bool
-	TrustsPlatformProxy     bool
-	RequiresRedis           bool
-	RedisSession            HostRedisSession
-	IsolateProcessNamespace bool
-	SingleReplica           bool
-	SingleProcess           bool
-	SupportsCollection      bool
+	Name                string
+	Authentication      HostAuthentication
+	Listener            HostListener
+	RequiresHTTPS       bool
+	TrustsPlatformProxy bool
+	SingleReplica       bool
+	SingleProcess       bool
+	SupportsCollection  bool
 }
 
 func localHostProfile() HostProfile {
@@ -51,8 +41,6 @@ func localHostProfile() HostProfile {
 		Name:               "local",
 		Authentication:     HostAuthenticationBearer,
 		Listener:           HostListenerProcess,
-		RequiresRedis:      false,
-		RedisSession:       HostRedisPooled,
 		SupportsCollection: true,
 	}
 }
@@ -63,8 +51,6 @@ func hostedHostProfile() HostProfile {
 		Authentication:     HostAuthenticationOAuth,
 		Listener:           HostListenerProcess,
 		RequiresHTTPS:      true,
-		RequiresRedis:      false,
-		RedisSession:       HostRedisPooled,
 		SupportsCollection: true,
 	}
 }
@@ -102,7 +88,7 @@ func (profile HostProfile) validate() error {
 
 // hostProfileRejectionReason classifies which deployment precondition
 // validateHostProfile rejected. It is useful for diagnosing a misconfigured
-// deployment without logging the host profile's name or the Redis, listener,
+// deployment without logging the host profile's name or the listener,
 // or OAuth configuration values that produced the rejection.
 type hostProfileRejectionReason string
 

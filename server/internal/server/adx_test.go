@@ -7,13 +7,12 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/adxingest"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestADXDisabledApplicationDoesNotConstructWorker(t *testing.T) {
 	t.Setenv("CAO_ADX_ENABLED", "false")
 	t.Setenv("CAO_ADX_ENDPOINT", "invalid")
-	store := redisx.NewStore(emptyRedisClient{}, "adx-disabled")
+	store := newTestOperationalStore(t)
 	app, err := New(t.Context(), store, Config{
 		Database: constructorDatabase(), SiteDirectory: t.TempDir(),
 		Listen: "127.0.0.1:8080", AccessToken: strings.Repeat("x", 32),

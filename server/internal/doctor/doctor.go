@@ -3,10 +3,8 @@ package doctor
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -23,15 +21,10 @@ var doctorLog = logger.New("cao:doctor")
 // global, so a test can drive the whole report deterministically.
 type Doctor struct {
 	// Store is the owning process's operational state, not a new memory instance.
-	Store operational.Store
-	// RedisStore enables optional provider diagnostics only when Redis is selected.
-	RedisStore RedisDiagnostics
-	Backend    string
+	Store   operational.Store
+	Backend string
 	// Postgres is the dashboard entity store used for data and query checks.
 	Postgres *postgresx.Store
-	// RedisURL is the configured endpoint. It is redacted before it reaches
-	// the report, so a URL carrying a password never appears in output.
-	RedisURL string
 	// Namespace identifies the selected operational state.
 	Namespace string
 	// DatabaseQueriesPath is the canonical entity query document.
@@ -46,14 +39,6 @@ type Doctor struct {
 	// Now and Getenv are injected so a test controls time and environment.
 	Now    func() time.Time
 	Getenv func(string) string
-}
-
-type RedisDiagnostics interface {
-	Ping(context.Context) error
-	Info(context.Context, string) (string, error)
-	NamespaceStats(context.Context, string, int) (int, bool, []string, error)
-	MaxMemoryBytes() int64
-	EffectiveMaxMemoryBytes(int64) (int64, error)
 }
 
 func (d Doctor) now() time.Time {
@@ -98,27 +83,12 @@ func (d Doctor) Run(ctx context.Context) Report {
 		GeneratedAt:   started.UTC().Format(time.RFC3339),
 		Profile:       profile.label,
 		Namespace:     d.Namespace,
-		Redis:         redactRedisURL(d.RedisURL),
 		Deep:          d.Deep,
 	}
 	checks := []check{
 		d.checkBuild,
 		d.checkOperational,
 		d.checkOperationalCapabilities,
-	}
-	if d.Backend == "" || d.Backend == "redis" {
-		checks = append(checks,
-			d.checkRedisConnectivity,
-			d.checkRedisServer,
-			d.checkRedisMemory,
-			d.checkRedisStats,
-			d.checkRedisPersistence,
-			d.checkRedisClients,
-			d.checkRedisTransport,
-			d.checkRedisNamespace,
-		)
-	} else {
-		report.Redis = "(not selected)"
 	}
 	checks = append(checks,
 		d.checkActiveData,
@@ -199,32 +169,7 @@ func envTruthy(value string) bool {
 	}
 }
 
-// redactRedisURL removes credentials from a Redis URL so the endpoint can be
-// reported without leaking a password into logs, files, or an agent transcript.
-func redactRedisURL(rawURL string) string {
-	trimmed := strings.TrimSpace(rawURL)
-	if trimmed == "" {
-		return "(not configured)"
-	}
-	parsed, err := url.Parse(trimmed)
-	if err != nil {
-		return "(unparsable)"
-	}
-	scheme := parsed.Scheme
-	host := parsed.Host
-	if parsed.User != nil {
-		if username := parsed.User.Username(); username != "" {
-			host = username + ":***@" + host
-		} else {
-			host = "***@" + host
-		}
-	}
-	path := parsed.Path
-	return scheme + "://" + host + path
-}
-
-// storeUnavailable is the shared skip used by every check that needs Redis
-// when no store was configured.
+// storeUnavailable rejects unavailable or incomplete operational services.
 func (d Doctor) storeUnavailable(id, area, title string) (Check, bool) {
 	if operational.CheckStore(d.Store) == nil {
 		caps := d.Store.Capabilities()
@@ -246,67 +191,11 @@ func (d Doctor) storeUnavailable(id, area, title string) (Check, bool) {
 	}, true
 }
 
-func (d Doctor) redisUnavailable(id, title string) (Check, bool) {
-	if d.RedisStore != nil {
-		return Check{}, false
-	}
-	return Check{
-		ID: id, Area: areaRedis, Title: title, Status: StatusFail,
-		Summary: "Redis is not configured, so this provider check could not run",
-		Remedy:  "pass --redis-url or set CAO_REDIS_URL",
-	}, true
-}
-
 func failed(id, area, title string, err error) Check {
 	return Check{
 		ID: id, Area: area, Title: title, Status: StatusFail,
 		Summary: "check could not complete: " + err.Error(),
 	}
-}
-
-// redisInfo runs INFO for one section and parses the field:value lines.
-//
-// INFO is the only way to observe the server's own configuration without
-// CONFIG GET, which a managed Redis commonly disables.
-func (d Doctor) redisInfo(ctx context.Context, section string) (map[string]string, error) {
-	value, err := d.RedisStore.Info(ctx, section)
-	if err != nil {
-		return nil, err
-	}
-	fields := parseInfoReply(value)
-	if len(fields) == 0 {
-		doctorLog.Printf("redis info parsed no fields section=%s", section)
-		return nil, fmt.Errorf("INFO %s returned no fields", section)
-	}
-	return fields, nil
-}
-
-// parseInfoReply parses a Redis INFO reply's "field:value" lines into a map,
-// skipping blank lines and section headers ("# Section"). It is a pure
-// function so the line-oriented parsing is testable without a fake Redis
-// client.
-func parseInfoReply(raw string) map[string]string {
-	fields := map[string]string{}
-	for _, line := range strings.Split(raw, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		name, content, found := strings.Cut(line, ":")
-		if !found {
-			continue
-		}
-		fields[strings.TrimSpace(name)] = strings.TrimSpace(content)
-	}
-	return fields
-}
-
-func infoInt(fields map[string]string, name string) int64 {
-	value, err := strconv.ParseInt(strings.TrimSpace(fields[name]), 10, 64)
-	if err != nil {
-		return 0
-	}
-	return value
 }
 
 func sortedKeys[V any](values map[string]V) []string {
@@ -316,21 +205,6 @@ func sortedKeys[V any](values map[string]V) []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-// humanBytes formats a byte count for a person without losing the exact value,
-// which the caller reports separately when it matters.
-func humanBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	divisor, exponent := int64(unit), 0
-	for size := bytes / unit; size >= unit; size /= unit {
-		divisor *= unit
-		exponent++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(bytes)/float64(divisor), "KMGTPE"[exponent])
 }
 
 // humanDuration formats an age so staleness reads at a glance.

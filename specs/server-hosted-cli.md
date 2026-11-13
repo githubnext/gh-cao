@@ -50,7 +50,7 @@ on the operator's workstation with the operator's own credentials.
    mode is subject to the same experimental gate.
 3. Enablement MUST fail at startup unless GitHub OAuth and the PostgreSQL
    operational store are configured. The mode MUST NOT fall back to the
-   memory or Redis operational backends.
+   memory operational backends.
 4. The accepted actions MUST come from the dashboard document named by
    `--cli-actions-catalog`. A request MUST NOT name an arbitrary command.
 5. A separate `execute-cli` process MUST drain the queue. The web server

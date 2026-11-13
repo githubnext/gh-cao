@@ -15,8 +15,8 @@ const SCOPE_KEYS = ["allowed-owners", "allowed-repositories"];
 const ACTIVITY_KEYS = ["repositories", "public-only"];
 const INVENTORY_KEYS = ["max-scan-repositories", "cell-count", "cell-index", "batch-size", "batch-index"];
 const WEB_KEYS = ["experimental", "favicon", "host"];
-const HOST_KEYS = ["target", "redis", "operational-store", "cors"];
-const OPERATIONAL_STORE_KEYS = ["backend", "single-process", "allow-volatile", "namespace-env", "redis", "postgres"];
+const HOST_KEYS = ["target", "operational-store", "cors"];
+const OPERATIONAL_STORE_KEYS = ["backend", "single-process", "allow-volatile", "namespace-env", "postgres"];
 const CORS_KEYS = ["allowed-origins", "max-age"];
 const CORS_ORIGIN_PATTERN =
   /^(?:https:\/\/(?:[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*|\[[0-9A-Fa-f:.]+\])|http:\/\/(?:localhost|127(?:\.[0-9]{1,3}){3}|\[::1\]))(?::[0-9]{1,5})?\/?$/;
@@ -25,16 +25,6 @@ const TARGET_KEYS = [
   "trust-platform-proxy", "supports-single-replica", "replicas",
 ];
 const TARGET_MODULES = ["generic", "container"];
-const REDIS_KEYS = [
-  "module", "url-env", "host-env", "port-env", "username-env", "password-env",
-  "namespace-env", "session", "isolate-process-namespace",
-  "single-replica", "supports-collection", "allow-private-plaintext", "tls",
-];
-const REDIS_TLS_KEYS = ["mode", "server-name-env", "ca-certificate-env"];
-const REDIS_MODULES = [
-  "generic", "local", "upstash", "aws-elasticache", "redis-cloud", "gcp-memorystore",
-  "railway", "render", "digitalocean",
-];
 const DEFAULT_KEYS = ["mode", "max-repositories", "rollout-percent", "monthly-ai-credit-budget"];
 const OCTICONS = [
   "mark-github", "code", "repo", "server", "issue", "pull-request", "play", "eye",
@@ -645,16 +635,12 @@ function validateHost(host, path) {
   const targetSupportsSingleReplica =
     host.target.module === "container" ||
     (host.target.module === "generic" && host.target["supports-single-replica"] === true);
-  let redis = host.redis;
   if ("operational-store" in host) {
     const operational = host["operational-store"];
     const operationalPath = `${path}.operational-store`;
     assertMapping(operational, operationalPath);
     assertKeys(operational, OPERATIONAL_STORE_KEYS, operationalPath);
-    assertOneOf(operational.backend, `${operationalPath}.backend`, ["redis", "memory", "postgres"]);
-    if ("redis" in host) {
-      throw new PolicyError(`${path}.redis and operational-store cannot both select an operational backend`);
-    }
+    assertOneOf(operational.backend, `${operationalPath}.backend`, ["memory", "postgres"]);
     for (const key of ["single-process", "allow-volatile"]) {
       if (key in operational) assertBoolean(operational[key], `${operationalPath}.${key}`);
     }
@@ -672,7 +658,6 @@ function validateHost(host, path) {
       }
     }
     if (operational.backend === "memory") {
-      if ("redis" in operational) throw new PolicyError(`${operationalPath} memory cannot configure Redis`);
       if (operational["single-process"] !== true || operational["allow-volatile"] !== true) {
         throw new PolicyError(`${operationalPath} memory requires single-process and allow-volatile acknowledgements`);
       }
@@ -685,30 +670,6 @@ function validateHost(host, path) {
     if (operational["single-process"] === true || operational["allow-volatile"] === true) {
       throw new PolicyError(`${operationalPath} ${operational.backend} does not accept memory topology or volatile-state options`);
     }
-    if (operational.backend === "postgres") {
-      if ("redis" in operational) throw new PolicyError(`${operationalPath} postgres cannot configure Redis`);
-      return;
-    }
-    redis = "redis" in operational ? operational.redis : { module: "generic" };
-  }
-  if (!redis && !("redis" in host) && !("operational-store" in host)) return;
-  validateRedis(redis, `${path}.redis`);
-  if (redis.module === "generic" &&
-      redis["single-replica"] === true && redis.session !== "serialized") {
-    throw new PolicyError(`${path}.redis.single-replica requires a serialized Redis session`);
-  }
-  if (redis.module === "generic" &&
-      redis["isolate-process-namespace"] === true && redis.session !== "serialized") {
-    throw new PolicyError(`${path}.redis.isolate-process-namespace requires a serialized session`);
-  }
-  const redisRequiresSingleReplica =
-    redis.module === "upstash" ||
-    (redis.module === "generic" && redis["single-replica"] === true);
-  if (redisRequiresSingleReplica && !targetSupportsSingleReplica) {
-    throw new PolicyError(`${path} target cannot guarantee the Redis module's single-replica requirement`);
-  }
-  if (redisRequiresSingleReplica && host.target.replicas !== 1) {
-    throw new PolicyError(`${path}.target.replicas must be 1 for the Redis module`);
   }
 }
 
@@ -764,33 +725,6 @@ function validateTarget(target, path) {
       "supports-single-replica",
     ]) {
       if (key in target) throw new PolicyError(`${path}.${key} is fixed by module ${target.module}`);
-    }
-  }
-}
-
-function validateRedis(redis, path) {
-  assertMapping(redis, path);
-  assertKeys(redis, REDIS_KEYS, path);
-  if (!("module" in redis)) throw new PolicyError(`${path}.module is required`);
-  assertOneOf(redis.module, `${path}.module`, REDIS_MODULES);
-  for (const key of ["url-env", "host-env", "port-env", "username-env", "password-env", "namespace-env"]) {
-    if (key in redis) assertString(redis[key], `${path}.${key}`, SECRET_REFERENCE_PATTERN);
-  }
-  if ("session" in redis) assertOneOf(redis.session, `${path}.session`, ["pooled", "serialized"]);
-  for (const key of ["isolate-process-namespace", "single-replica", "supports-collection", "allow-private-plaintext"]) {
-    if (key in redis) assertBoolean(redis[key], `${path}.${key}`);
-  }
-  if (redis.module !== "generic") {
-    for (const key of ["session", "isolate-process-namespace", "single-replica", "supports-collection"]) {
-      if (key in redis) throw new PolicyError(`${path}.${key} is fixed by module ${redis.module}`);
-    }
-  }
-  if ("tls" in redis) {
-    assertMapping(redis.tls, `${path}.tls`);
-    assertKeys(redis.tls, REDIS_TLS_KEYS, `${path}.tls`);
-    if ("mode" in redis.tls) assertOneOf(redis.tls.mode, `${path}.tls.mode`, ["auto", "required", "disabled"]);
-    for (const key of ["server-name-env", "ca-certificate-env"]) {
-      if (key in redis.tls) assertString(redis.tls[key], `${path}.tls.${key}`, SECRET_REFERENCE_PATTERN);
     }
   }
 }

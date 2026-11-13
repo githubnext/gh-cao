@@ -31,7 +31,7 @@ func TestHealthEventIndex(t *testing.T) {
 	}{
 		{"failure", "admission", 0, true},
 		{"failure", "collection", 0, true},
-		{"failure", "redis", 0, true},
+		{"failure", "operational", 0, true},
 		{"failure", "", -1, false},
 		{"failure", "unknown", -1, false},
 		{"success", "", 2, true},

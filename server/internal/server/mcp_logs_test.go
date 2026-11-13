@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func mcpLogsRequest(t *testing.T, method string, params map[string]any) *http.Request {
@@ -159,7 +158,7 @@ func assertMCPLogsSnapshot(t *testing.T, response *httptest.ResponseRecorder) {
 		t.Fatal(err)
 	}
 	snapshot := message.Result.StructuredContent
-	if message.Result.IsError || snapshot.Logs == nil || snapshot.Redis.Status == "" || len(message.Result.Content) != 1 {
+	if message.Result.IsError || snapshot.Logs == nil || snapshot.Operational.Status == "" || len(message.Result.Content) != 1 {
 		t.Fatalf("invalid log snapshot: %s", response.Body.String())
 	}
 	var textSnapshot serverLogSnapshot
@@ -257,11 +256,11 @@ func TestMCPLogsSharesHTTPAuthorizationAndSafeSnapshot(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			for _, client := range []logCounterClient{
 				{fields: []any{"taskQueued", "3", "unexpected", "private-value"}},
-				{err: errors.New("private Redis failure")},
+				{err: errors.New("private Operational failure")},
 			} {
 				app := &App{
 					logs: logger.EnableBuffer(), config: Config{AdminUsers: []string{"operator"}},
-					oauth: &githubOAuth{}, services: redisx.NewStore(client, "test").OperationalServices(),
+					oauth: &githubOAuth{}, services: newTestOperationalStore(t, client).OperationalServices(),
 				}
 				runtime := &mcpRuntime{app: app}
 				payload, err := runtime.callLogs(test.ctx, map[string]any{})
@@ -278,15 +277,15 @@ func TestMCPLogsSharesHTTPAuthorizationAndSafeSnapshot(t *testing.T) {
 					t.Fatal(err)
 				}
 				snapshot := payload.(serverLogSnapshot)
-				if !reflect.DeepEqual(snapshot.Redis, httpSnapshot.Redis) || snapshot.Logs == nil {
-					t.Fatalf("MCP and HTTP snapshots differ: %+v / %+v", snapshot.Redis, httpSnapshot.Redis)
+				if !reflect.DeepEqual(snapshot.Operational, httpSnapshot.Operational) || snapshot.Logs == nil {
+					t.Fatalf("MCP and HTTP snapshots differ: %+v / %+v", snapshot.Operational, httpSnapshot.Operational)
 				}
 				data, err := json.Marshal(snapshot)
 				if err != nil {
 					t.Fatal(err)
 				}
 				if strings.Contains(string(data), "private") || strings.Contains(string(data), "unexpected") {
-					t.Fatalf("private Redis data leaked: %s", data)
+					t.Fatalf("private Operational data leaked: %s", data)
 				}
 			}
 		})

@@ -4,7 +4,7 @@
 // A bucket is one GitHub rate-limit meter, identified by the GitHub App
 // identity, the installation, and the rate-limit resource. The package owns
 // quota semantics (observation reconciliation, reservation admission,
-// parking, and bucket selection); raw Redis persistence stays in operational.
+// parking, and bucket selection); raw operational storage persistence stays in operational.
 //
 // The service never receives, stores, or logs GitHub access tokens.
 package githubquota

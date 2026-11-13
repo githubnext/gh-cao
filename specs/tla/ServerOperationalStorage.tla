@@ -3,7 +3,7 @@ EXTENDS Naturals, Integers, FiniteSets
 
 CONSTANTS Backend, Jobs, Capacity, MaxRestarts
 
-ASSUME /\ Backend \in {"redis", "memory"}
+ASSUME /\ Backend \in {"postgres", "memory"}
        /\ Jobs # {}
        /\ Capacity \in Nat \ {0}
        /\ MaxRestarts \in Nat
@@ -58,7 +58,7 @@ EmptyOperationalState == /\ markers' = {}
                          /\ sessions' = {}
                          /\ checkpointPages' = {}
 
-Init == /\ mode \in {"browser", "redis", "memory"}
+Init == /\ mode \in {"browser", "postgres", "memory"}
         /\ topology \in Topologies
         /\ phase = "cold"
         /\ epoch = 0
@@ -80,7 +80,7 @@ Start == /\ phase = "cold"
                       ELSE IF ~SelectionAllowed THEN "rejected"
                       ELSE IF Backend = "memory" THEN "recovering" ELSE "running")
          /\ opened' = (mode # "browser" /\ SelectionAllowed)
-         /\ bootstrapReady' = (mode # "browser" /\ SelectionAllowed /\ Backend = "redis")
+         /\ bootstrapReady' = (mode # "browser" /\ SelectionAllowed /\ Backend = "postgres")
          /\ UNCHANGED <<mode, topology, epoch, OperationalState,
                         active, evidence, admissionAuthorized>>
 
@@ -207,7 +207,7 @@ Spec == /\ Init
         /\ WF_vars(JoinWorkers /\ Remember)
         /\ WF_vars(Close /\ Remember)
 
-TypeOK == /\ mode \in {"browser", "redis", "memory"}
+TypeOK == /\ mode \in {"browser", "postgres", "memory"}
           /\ topology \in Topologies
           /\ phase \in {"cold", "browser", "rejected", "recovering",
                          "running", "stopping", "closed"}
@@ -248,8 +248,8 @@ MemoryLossIsExplicit == (Backend = "memory" /\ phase \in {"cold", "closed", "rej
                        => markers = {} /\ sessions = {} /\ checkpointPages = {}
 
 EvidencePersists == history.evidence \subseteq evidence
-RedisRestartPersistence ==
-    (Backend = "redis" /\
+DurableRestartPersistence ==
+    (Backend = "postgres" /\
      ((history.phase = "stopping" /\ phase = "closed") \/
       (history.phase = "closed" /\ phase = "cold")))
         => history.protected = OperationalState

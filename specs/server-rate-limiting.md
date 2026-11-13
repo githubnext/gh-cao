@@ -42,10 +42,10 @@ pre-authentication edge bucket because it admits requests only from the local
 operator.
 
 PostgreSQL is the default distributed implementation, enforcing atomic buckets
-under the database clock; explicitly selected Redis uses Redis server time.
+under the database clock.
 An explicitly acknowledged
 single-process memory deployment MAY enforce these same token-bucket semantics
-atomically under its process clock instead of Redis server time. Its active
+atomically under its process clock instead of database time. Its active
 buckets MUST NOT be evicted to reset quotas; capacity failure MUST fail closed.
 Buckets are lost on restart and MUST NOT coordinate separate processes. This
 limited exception is specified by
@@ -89,7 +89,7 @@ by one atomic storage operation. The operation MUST:
 2. refill continuously up to the configured capacity;
 3. consume exactly one token for an ordinary allowed request;
 4. for a completed query, atomically consume a total cost derived from the
-   greatest of started execution seconds, measured row operations plus Redis
+   greatest of started execution seconds, measured row operations plus operational
    rows, peak working rows, and estimated peak working bytes; the cost is capped
    at the query bucket capacity and the initial request token counts toward it;
 5. preserve fractional tokens on ordinary one-token denials and drain available
@@ -109,7 +109,7 @@ The total cost of a completed query MUST be the greatest of:
 
 - one;
 - execution duration rounded up to seconds;
-- measured row operations plus Redis rows, rounded up in units of 250,000;
+- measured row operations plus operational rows, rounded up in units of 250,000;
 - peak working rows, rounded up in units of 100,000;
 - estimated peak working bytes, rounded up in units of 16 MiB.
 

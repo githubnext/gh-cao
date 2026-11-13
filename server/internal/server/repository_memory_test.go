@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/repositorymemory"
 )
 
@@ -83,12 +83,20 @@ func TestRepositoryMemoryHandlersRejectInvalidAndMissingRequests(t *testing.T) {
 	}
 }
 
+type contendedRepositoryMemoryCache struct {
+	repositorymemory.RemoteCache
+}
+
+func (contendedRepositoryMemoryCache) TryLock(context.Context, string, string, time.Duration) (bool, error) {
+	return false, nil
+}
+
 func TestRepositoryMemoryHandlerReportsConcurrentRefresh(t *testing.T) {
 	database := integrationDatabase(t)
 	seedDatabase(t, database, nil)
-	store := redisx.NewStore(&repositoryMemoryClient{}, "test")
+	store := newTestOperationalStore(t)
 	app := &App{services: store.OperationalServices(), database: database,
-		memory: &repositorymemory.RemoteResolver{Cache: store},
+		memory: &repositorymemory.RemoteResolver{Cache: contendedRepositoryMemoryCache{store}},
 	}
 	response := httptest.NewRecorder()
 	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/memory/example", nil)
@@ -181,23 +189,6 @@ func TestRepositoryMemoryContentRejectsIntegrityFailure(t *testing.T) {
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("integrity-failure response = %d %s", response.Code, response.Body.String())
 	}
-}
-
-type repositoryMemoryClient struct {
-}
-
-func (c *repositoryMemoryClient) Do(_ context.Context, arguments ...string) (any, error) {
-	if arguments[0] == "INFO" {
-		return cacheTestMemoryInfo, nil
-	}
-	if arguments[0] == "EVAL" && strings.Contains(arguments[1], "local function probe") {
-		return cacheTestCapabilityReply(), nil
-	}
-	return nil, nil
-}
-
-func (*repositoryMemoryClient) DoMany(context.Context, [][]string) ([]any, error) {
-	return nil, nil
 }
 
 func repositoryMemoryArtifact(t *testing.T, manifest []byte, fileID string, content []byte) string {

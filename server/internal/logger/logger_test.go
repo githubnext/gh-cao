@@ -28,8 +28,8 @@ func TestPatterns(t *testing.T) {
 		{"*", "cao:server", true},
 		{"cao:*", "cao:server", true},
 		{"*:server", "cao:server", true},
-		{"cao:*,-cao:redis", "cao:redis", false},
-		{"cao:*,-cao:redis", "cao:query", true},
+		{"cao:*,-cao:operational", "cao:operational", false},
+		{"cao:*,-cao:operational", "cao:query", true},
 	}
 	for _, test := range tests {
 		debugEnv = test.pattern

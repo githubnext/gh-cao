@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/githubnext/gh-cao/server/internal/model"
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -14,10 +17,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-
-	"github.com/githubnext/gh-cao/server/internal/model"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
-	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
 func TestQueryCacheTelemetryTracksUsageWithoutPrivateContent(t *testing.T) {
@@ -36,9 +35,9 @@ func TestQueryCacheTelemetryTracksUsageWithoutPrivateContent(t *testing.T) {
 	})
 	const secret = "private-query-content"
 	client := &queryCacheClient{
-		stats: redisx.QueryCacheStats{MemoryBytes: 4096, Entries: 2, Expired: 1, Evicted: 2},
+		stats: operational.QueryCacheStats{MemoryBytes: 4096, Entries: 2, Expired: 1, Evicted: 2},
 	}
-	app := &App{services: redisx.NewStore(client, "private-namespace").OperationalServices()}
+	app := &App{services: newTestOperationalStore(t, client).OperationalServices()}
 	config, err := (QueryCacheConfig{}).resolve()
 	if err != nil {
 		t.Fatal(err)

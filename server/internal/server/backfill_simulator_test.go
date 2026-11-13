@@ -13,19 +13,19 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/operational"
+	operationalpostgres "github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/simulator"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 func backfillServices(t *testing.T) {
 	t.Helper()
-	if os.Getenv("REDIS_URL") == "" || (os.Getenv("CAO_POSTGRES_URL") == "" && os.Getenv("POSTGRES_URL") == "") {
+	if os.Getenv("CAO_POSTGRES_URL") == "" && os.Getenv("POSTGRES_URL") == "" {
 		if os.Getenv("CAO_BACKFILL_INTEGRATION") == "1" || os.Getenv("CAO_BACKFILL_STRESS") == "1" {
-			t.Fatal("explicit backfill integration/stress requires local Postgres and Redis")
+			t.Fatal("explicit backfill integration/stress requires local Postgres and Operational")
 		}
-		t.Skip("set Postgres/Redis endpoints to run service-backed backfill tests")
+		t.Skip("set Postgres/Operational endpoints to run service-backed backfill tests")
 	}
 }
 
@@ -80,13 +80,13 @@ type syntheticBackfill struct {
 func newSyntheticBackfill(t *testing.T, ctx context.Context, scenario simulator.Scenario) syntheticBackfill {
 	t.Helper()
 	backfillServices(t)
-	client, err := redisx.New(os.Getenv("REDIS_URL"))
+	store, err := operationalpostgres.New(ctx, firstNonempty(os.Getenv("CAO_POSTGRES_URL"), os.Getenv("POSTGRES_URL")), fmt.Sprintf("backfill-%d", time.Now().UnixNano()), operationalpostgres.Config{})
 	if err != nil {
-		t.Fatal("configure local Redis")
+		t.Fatal(err)
 	}
-	store := redisx.NewStore(client, fmt.Sprintf("backfill-%d", time.Now().UnixNano()))
+	t.Cleanup(func() { _ = store.DeleteNamespace(context.Background()); _ = store.Close() })
 	if err := store.Ping(ctx); err != nil {
-		t.Fatal("local Redis is unavailable")
+		t.Fatal("local Operational is unavailable")
 	}
 	data := testutil.Postgres(t, ctx, "CAO_POSTGRES_URL", "POSTGRES_URL")
 	lake := collect.Lake{Directory: t.TempDir()}

@@ -1,4 +1,5 @@
-package redisx
+// Package dataset owns provider-independent canonical dataset identity.
+package dataset
 
 import (
 	"crypto/sha256"
@@ -12,7 +13,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/logger"
 )
 
-var namespaceLog = logger.New("cao:redis:namespace")
+var namespaceLog = logger.New("cao:dataset:namespace")
 
 const namespacePrefix = "cao:"
 
@@ -32,7 +33,7 @@ func NormalizeNamespace(value string) (string, error) {
 	name := strings.ToLower(strings.TrimSpace(value))
 	name = strings.TrimPrefix(name, namespacePrefix)
 	if !namespaceName.MatchString(name) {
-		return "", errors.New("redis namespace must contain 1-64 lowercase letters, digits, underscores, or hyphens")
+		return "", errors.New("dataset namespace must contain 1-64 lowercase letters, digits, underscores, or hyphens")
 	}
 	return namespacePrefix + name, nil
 }
@@ -40,7 +41,7 @@ func NormalizeNamespace(value string) (string, error) {
 func DefaultNamespace(workingDirectory string) (string, error) {
 	directory, err := filepath.Abs(workingDirectory)
 	if err != nil {
-		return "", errors.New("resolve Redis namespace working directory")
+		return "", errors.New("resolve dataset namespace working directory")
 	}
 	if resolved, resolveErr := filepath.EvalSymlinks(directory); resolveErr == nil {
 		directory = resolved

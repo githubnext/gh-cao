@@ -20,7 +20,7 @@ func memoryOAuthApp(t *testing.T, githubURL string) *App {
 	profile := hostedHostProfile()
 	profile.SingleProcess = true
 	profile.SingleReplica = true
-	profile.RequiresRedis = false
+
 	app, err := New(t.Context(), focusedTestStore(store), Config{
 		Database: constructorDatabase(), SiteDirectory: hostedTestSite(t),
 		HostProfile: profile, Listen: "0.0.0.0:8443",
@@ -36,7 +36,7 @@ func memoryOAuthApp(t *testing.T, githubURL string) *App {
 }
 
 func TestMemoryRestartInvalidatesSessionsCSRFAndPendingLogin(t *testing.T) {
-	t.Setenv("CAO_REDIS_MAX_BYTES", "irrelevant-invalid-Redis-setting")
+
 	github := fakeGitHub(t, fakeGitHubOptions{membershipState: "active", accessExpiresIn: 3600})
 	first := memoryOAuthApp(t, github.URL)
 	session, csrf := callbackSession(t, first)

@@ -14,6 +14,6 @@ execution. Next read the
 then inspect `.github/workflows/shared/control.md` and its dependencies.
 
 The optional `control-plane.web.host` section composes an app server target module
-with an independent Redis provider module and records only non-secret capabilities
+with a PostgreSQL operational store (or explicit bounded process memory) and records only non-secret capabilities
 and environment-variable references. Keep connection
 URLs, passwords, and CA certificate contents in the deployment secret manager.

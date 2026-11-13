@@ -79,7 +79,7 @@ same Go `serve-hosted` process serves built assets, OAuth, server-side PostgreSQ
 queries and revision events on one origin. Private PostgreSQL, separate
 privileged provisioning and runtime-only ingestion identities, scoped Key Vault
 references and managed-identity ACR pulls remain. Log Analytics receives
-container logs; Application Insights and Redis are not provisioned.
+container logs; Application Insights is not provisioned.
 
 Supply immutable `dashboardImage`, `provisioningImage` and `ingestionImage`
 references in the selected `containerRegistryName`, plus `keyVaultName`,

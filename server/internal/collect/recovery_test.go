@@ -5,44 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 )
 
 func TestReporterRequiresPostgres(t *testing.T) {
 	if _, err := (Reporter{}).Snapshot(context.Background()); err == nil {
 		t.Fatal("collection status without Postgres must fail closed")
 	}
-}
-
-type recoveryStateClient struct {
-	mu     sync.Mutex
-	values map[string]string
-}
-
-func (c *recoveryStateClient) Do(_ context.Context, command ...string) (any, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	switch command[0] {
-	case "GET":
-		return c.values[command[1]], nil
-	case "SET":
-		c.values[command[1]] = command[2]
-		return "OK", nil
-	case "DEL":
-		delete(c.values, command[1])
-		return int64(1), nil
-	default:
-		return nil, errors.New("unsupported recovery test command")
-	}
-}
-
-func (*recoveryStateClient) DoMany(context.Context, [][]string) ([]any, error) {
-	return nil, nil
 }
 
 type recoveryDeliveryPage struct {
@@ -76,8 +49,12 @@ func (c *recoveryDeliveryClient) Redeliver(_ context.Context, id int64) error {
 	return nil
 }
 
-func newRecoveryStore() *redisx.Store {
-	return redisx.NewStore(&recoveryStateClient{values: make(map[string]string)}, "recovery-test")
+func newRecoveryStore() *memory.Store {
+	store, err := memory.New(memory.Config{})
+	if err != nil {
+		panic(err)
+	}
+	return store
 }
 
 func TestPlanRedeliveriesSelectsOnlyNonSuccessStatuses(t *testing.T) {

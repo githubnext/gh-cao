@@ -57,14 +57,14 @@ boundaries.
 | --- | --- |
 | Entrypoints, hosting, HTTP/OAuth/MCP | Current authentication/session/stream/rebuild code and focused synthetic tests; no deployed ingress, membership, provider or proxy validation |
 | Canonical stores, SQL and shared query engine | Current resource/transport/temporal contracts and local evaluator tests; PostgreSQL execution, roles and snapshot parity remain partly skipped |
-| Ingestion, collection and operational adapters | Current erasure, replay intent, shared filtering, adapter contracts and tests; real PostgreSQL/Redis restart, withdrawal and fault paths skipped |
+| Ingestion, collection and operational adapters | Current erasure, replay intent, shared filtering, adapter contracts and tests; real durable-backend restart, withdrawal and fault paths skipped |
 | Derived services and model | Repository memory, marketplace, operational-value and SQLite tests; external registries, physical resource ceilings and governed disposal unverified |
 | Admission, gateway and execution | Synthetic policy, replay, requester identity, broker, egress and gateway tests; real executor kernels, upstream compiled runtimes and durable provider operation unverified |
 | Audit, telemetry, diagnostics and lifecycle | Synthetic chain/export faults, TLS telemetry receipts, rebuild lifecycle and doctor tests; real independent destination, alerts and recovery unverified |
 | Build, release, deployment and API contract | Current source-build guard, template telemetry and candidate scan/SBOM definitions reviewed; mocked deployment checks only, no image scan/build/provenance or full generated-contract gate run |
 | Test infrastructure and clock/shared contracts | Exercised transitively by selected deterministic tests; simulator/bootstrap stress and platform integration are not independently reassessed |
 
-Local SQLite/capability, hosted/external, Azure Functions, PostgreSQL/Redis/memory,
+Local SQLite/capability, hosted/external, Azure Functions, then-supported operational adapters,
 admission-only, gateway and experimental CLI are **separate evaluated designs**,
 not an asserted deployed feature inventory. Native Apple/Windows, real Docker
 egress, fleet stress, live integrations and production access were excluded
@@ -86,7 +86,7 @@ Each row is a narrow claim, not satisfaction of a whole TSC criterion.
 | OPS-01: hosted rebuild requires durable admission/start audit and reports terminal audit failures | CC6.3, CC7.2-CC7.3 | design-supported | `server/internal/server/operations.go:86-89,116-170,183-223` | passed: synthetic lifecycle/admission/terminal faults; skipped: PostgreSQL independent history | Reconcile missing terminal IDs; retained independent lifecycle evidence; cross-store commits are not atomic |
 | OPS-02: Azure templates explicitly support optional Go OTLP and log opt-in | CC7.2-CC7.3 | design-supported | `server/azure/main.bicep:45-69,615-625`; `server/azure/collector.bicep:299-307`; `server/internal/telemetry/azure_deployment_test.go:31-120` | passed: template-driven synthetic TLS receipts/failure isolation and CLI config tests | Effective per-role collector configuration, backend receipts, absent-signal/failure alerts and acknowledgements |
 | OPS-03: Azure source-build apply refuses non-development config/plan | CC7.1, CC8.1 | design-supported | `internal/cli/deploy_azure_apply.go:43-54`; `.github/workflows/cao-package.yml:432-518` | passed: mocked source-build, digest binding/read-back and context tests | Production image/source/digest assurance and promotion evidence; development declaration is not environment attestation |
-| OPS-04: Redis persistence diagnostics preserve unknown and narrowly describe observed AOF success | CC7.1-CC7.2; candidate A1 | design-supported | `server/internal/doctor/checks_redis.go:371-450` | passed: missing/invalid/RDB/AOF diagnostic fixtures | Provider persistence settings and restore proof; INFO success does not establish durability |
+| OPS-04: Retired backend persistence diagnostics | CC7.1-CC7.2; candidate A1 | historical, no current implementation claim | Historical assessment revision only | Reported fixture checks apply only to that revision | No current durability or restore claim follows from retired backend evidence |
 | DATA-08: native-measure temporal contract uses the maintained shared fixture | CC8.1; candidate PI1 | design-supported | `server/internal/query/sql_temporal_test.go:182-225` | passed: current query package; PostgreSQL execution cases skipped | Remaining provider-backed SQL/fixture gate, applicable release evidence and authorized closure |
 | Transport, durable store selection and privilege separation design | CC6.1, CC6.3, CC6.7 | design-supported | `server/internal/postgresconn/config.go:29-61`; `server/internal/server/operational_factory.go:82-119`; `server/postgres/operational-grants.sql:1-45` | passed: transport/composition tests; skipped: real DB privilege/adapter tests | Actual roles/inheritance/PUBLIC/default ACLs, no runtime owner credentials, encryption/key/TLS exceptions |
 | Independent anchored audit delivery design | CC7.2-CC7.3, CC9.2 | design-supported | `server/internal/auditdelivery/delivery.go:96-200`; `server/audit-delivery/README.md:3-57` | passed: local TLS/chain/replay/fault fixtures; skipped: real destination | Independently administered retention/anchors, conformance, scheduler/backlog/deadman alerts and period receipts |
@@ -111,7 +111,7 @@ failure or newly mandatory control is inferred.
 
 All commands below exited **0** on this source. Counts are Go test/subtest
 events, not unique controls; skipped children remain unverified even when a
-parent passes. PostgreSQL/Redis endpoints and opt-in live/stress/native tests
+parent passes. Durable-backend endpoints and opt-in live/stress/native tests
 were unset for assessment commands. No service was started, provider accessed,
 runtime changed or dependency installed.
 
@@ -120,7 +120,7 @@ Evidence directory:
 
 | Check / evidence file | Actual outcome |
 | --- | --- |
-| `go -C server test -p 1 -count=1 -timeout=180s -json` over collect, ingest, query, sqlbuilder, postgresconn, operational/..., redisx, admission, hostedcli, githubapp, cliegress, githubquota, webhookgateway, webhookgatewayhost, webhookgatewaylocal, audit, auditdelivery, telemetry, logger, doctor; `soc2-component-tests.jsonl` | 3,149 passed / 250 skipped test events; 23 package passes; no failures |
+| `go -C server test -p 1 -count=1 -timeout=180s -json` over collect, ingest, query, sqlbuilder, postgresconn, operational/..., the then-supported backend adapter, admission, hostedcli, githubapp, cliegress, githubquota, webhookgateway, webhookgatewayhost, webhookgatewaylocal, audit, auditdelivery, telemetry, logger, doctor; `soc2-component-tests.jsonl` | 3,149 passed / 250 skipped test events; 23 package passes; no failures |
 | Same runner, `./internal/server -run 'Test.*(OAuth\|Session\|Revocation\|Expired\|EventStream\|Rebuild\|Admin\|CSRF\|CORS\|OIDC\|Proxy\|RateLimit\|Listen\|HostedModes\|Capability\|Authorization)'`; `soc2-http-tests.jsonl` | 332 passed / 19 skipped; one package pass; no failures |
 | `go test -p 1 -count=1 -timeout=180s -json ./internal/cli -run '^TestDeployAzure(SourceBuild\|ImageBindings\|ImageReadBack\|DevelopmentContext\|Telemetry)'`; `soc2-deployment-tests.jsonl` | 44 passed / zero skipped; one package pass; mocked Azure only |
 | Server runner over repositorymemory, marketplace, operationalvalue, model, sqlitex, postgresx; `soc2-data-support-tests.jsonl` | 447 passed / 56 skipped; five package passes; model package has no tests |
@@ -128,7 +128,7 @@ Evidence directory:
 
 The artifact report records exact commands and full exclusions. Skips include
 durable role/adapter/restart/atomicity/erasure cases, PostgreSQL query/storage,
-Redis, destination conformance, external OpenObserve, published upstream
+durable backends, destination conformance, external OpenObserve, published upstream
 interoperability and native executor boundaries. Intentional subprocess helper
 skips are not provider failures. Full repository validation, race detection,
 image scanning, TypeSpec regeneration and historical operation were not run
@@ -586,7 +586,7 @@ Browser -> trusted listener/proxy -> same-origin Go app -> canonical query store
                                    | quotas/cache         SQLite (local)
                                    v
                             operational services
-                            PostgreSQL / Redis / memory
+                            PostgreSQL / memory
 
 GitHub -> signature/OIDC checks -> collection/admission/gateway queues
                                       |                  |
@@ -610,7 +610,7 @@ hosted CLI web admission and execution have different credential authority.
 | HTTP, OAuth, browser session, MCP | `server/internal/server/` auth, OAuth, proxy, CORS, CSRF, rate-limit and MCP handlers | User/admin identity, membership refresh, step-up, Actions OIDC and API tokens | IAM |
 | Canonical database and query execution | `server/internal/postgresx/`, `dashboardstore/`, `sqlitex/`, `query/`, `sqlbuilder/`, `internal/dashboardquery/` | Dataset-wide access; bounded queries; transaction/snapshot integrity | DATA |
 | Ingestion and collection | `server/internal/ingest/`, `collect/`, server collector handlers | Manifest/source trust, collection credentials, atomic publication and retention | DATA |
-| Operational adapters and database privileges | `server/internal/operational/`, `redisx/`, `postgresconn/`, `server/postgres/` | Sessions, protected queues, replay records; owner/runtime/retention/evidence separation | DATA |
+| Operational adapters and database privileges | `server/internal/operational/`, `postgresconn/`, `server/postgres/` | Sessions, protected queues, replay records; owner/runtime/retention/evidence separation | DATA |
 | Derived services | `server/internal/repositorymemory/`, `marketplace/`, `operationalvalue/`, `model/` | Untrusted evidence and external registries; caching/publication authority | DATA |
 | Activation and conclusion protocols | `server/internal/admission/`, server admission handlers | Exact enrollment, OIDC, accounting freshness, replay and partial evidence | EXEC |
 | Webhook gateway | `server/internal/webhookgateway*/`, `server/cmd/cao-webhook-gateway/` | Signed ingress, policy revisions, discovery, durable dispatch and ambiguous outcomes | EXEC |
@@ -632,7 +632,6 @@ unambiguous. The assessment reports cite exact paths and line ranges.
 | Hosted/external listener | GitHub OAuth and explicit organization/team policy; same-origin app; exact trusted proxy/host boundary |
 | Azure Functions | Hosted identity plus platform listener, secret-manager, network and lifecycle controls; templates are not deployed evidence |
 | Operational PostgreSQL | Durable default; canonical and operational state have distinct contracts and privilege requirements |
-| Operational Redis | Explicit alternative with transport, namespace, capacity and durability assumptions |
 | Operational memory | Explicit single-process volatile exception; restart invalidates state and can lose pending work |
 | Admission-only and separate workers | Disabled/explicitly selected capabilities; protected PostgreSQL replay and enrollment required |
 | Gateway local SQLite vs production roles | Local file authority differs from PostgreSQL role separation; ingress and dispatch credentials differ |
@@ -896,7 +895,7 @@ completion is recorded only after canonical ingestion commits, and cannot
 consume newer intent. Existing backend StateStore/queue/lease and canonical
 transaction contracts are preserved.
 
-The session reports the full collector race suite on isolated Redis and
+The session reports the full collector race suite on isolated then-supported operational backends and
 PostgreSQL passing 260 test/subtest events, zero failures/skips:
 `GOMAXPROCS=2 go -C server test -p 1 -race ./internal/collect -count=1 -json`.
 Coverage includes both durable adapters, marker failure/cancel/reclaim,
@@ -932,7 +931,7 @@ replay remain supported; shared/derived values stay DATA-02-owned.
 
 The DATA-01 session reports 253 Activity-area tests passing without skips,
 and final serialized race tests for collector/ingest/simulator on isolated
-Redis/PostgreSQL passing 339 tests (233/11/95), zero failures/skips.
+then-supported operational backends passing 339 tests (233/11/95), zero failures/skips.
 Root lint/both type checks, collector lint/format, server build and workflow
 compile passed. An initial concurrent-load parity timeout passed on unchanged
 standalone/serialized rerun; services were removed. Deployed collision
@@ -952,9 +951,9 @@ protocol duplication.
 The DATA-02 session reports passing a real webhook-to-worker-to-Activity-
 compaction-to-isolated-PostgreSQL withdrawal regression, including unrelated
 values, zero enrollment, acquisition failure and failed-compaction retry.
-Focused race/transfer/cache checks, collector/value suites with isolated Redis,
+Focused race/transfer/cache checks, collector/value suites with isolated operational backends,
 value race/publication-preservation cases, server build/affected vet,
-format/lint and workflow compile passed. Initial shared Redis/disk conditions
+format/lint and workflow compile passed. Initial shared backend/disk conditions
 were avoided with owned tmpfs services, later removed. Not every service-backed
 test/full root/fleet/provider-principal check ran. Independently published
 packets remain intentionally protected pending disposal-authority decisions;
@@ -971,7 +970,7 @@ Admission/start precede reconciliation. Terminal/status storage failures are
 explicit; durable evidence can survive mirror failure, but not joint storage/
 mirror outage. Authorization/lease/publication semantics remain, with
 intentional hosted rebuild refusal (503) where no separate durable audit
-service is supplied, including Redis/memory profiles. Shared denial-audit
+service is supplied, including volatile-memory profiles. Shared denial-audit
 failure also surfaces 503 without granting access. API contract becomes 2.10.0.
 
 The OPS-01 session reports PostgreSQL runtime-role/SELECT-only independent
@@ -1011,22 +1010,22 @@ regenerating ARM with matching Bicep 0.44.1.
 Draft [#19327](https://github.com/githubnext/gh-cao/pull/19327), commit
 `6926c313c9c059af4a8e4f9ebb06d26dbeac0df8`, proposes provider-expiry
 provenance, CAS-staged no-refresh cleanup and retention of final cleanup
-ownership past inactive session TTL across Redis/PostgreSQL/memory.
+ownership past inactive session TTL across then-supported operational backends.
 Protected transition capacity and bounded cancellation-independent temporary
 owners cover concurrent revocation/persistence failure. Expired session
 reads/CAS still deny authority, including IAM-002 heartbeat reads.
 Coordinator verified open/draft/head/base and 22-file code/test/runtime-doc
 scope; central assessment records were not changed by that session.
 
-The session reports complete affected server/operational/Redis suites with
-isolated real Redis/PostgreSQL and role-boundary coverage passing under
+The session reports complete affected server/operational/backend suites with
+isolated real durable backends and role-boundary coverage passing under
 serialized packages, race lifecycle regressions, full server build,
 format/lint (zero issues), file-size/diff hygiene and workflow compile.
 Focused JSON reports 48 passes, zero failures/skips. Initial concurrent
 bootstrap deadlocks and socket-vs-loopback fixture failures were resolved
 through isolated numeric loopback/serialization, not weakened assertions.
 
-Rollout requires stopping old replicas for new Redis envelopes while
+Rollout required stopping old replicas for new retired-backend envelopes while
 retaining stable prefixes/protected data/current and previous keys.
 Legacy queued records remain unknown-expiry debt. Already deleted session/
 provider-grant owners require separately authorized reconciliation.
@@ -1089,7 +1088,7 @@ base `a643b5f17`. Its single `processErasure` call retains cancellation-aware
 Preflight additionally validates explicit normalized repository IDs, owner/name
 and repositoryId references, allowing legitimate normalized replay shards while
 rejecting conflicting identities. The session reports 271 collector tests
-with real isolated Redis/PostgreSQL under race detection, zero skips/failures,
+with real isolated then-supported backends under race detection, zero skips/failures,
 plus lint/types/build and 73-workflow compile. Coordinator verified current
 head/open/non-draft and **in-progress CI**, not a completed CI gate.
 Deployment collision inventory/legacy repair remains unresolved.
@@ -1125,7 +1124,7 @@ and diff checks. Added tables cover missing/malformed/partial/RDB/AOF/
 combined/provider omissions. These are reported local results, not a new
 independent provider assessment or historical operating evidence.
 
-No CONFIG access, live Redis changes or merge occurred. Provider persistence
+No CONFIG access, live backend changes or merge occurred. Provider persistence
 policy, backup retention, accepted-work RPO/RTO and actual restore operation
 remain evidence requests under DATA-07/OPS-06 and are not closed by this PR.
 
@@ -1178,10 +1177,10 @@ No production loss, deployed collision or actual crash-loss was established.
 | DATA-01 / design-gap / high | Collector lake: repository identity must remain distinct during acquisition/erasure. Flattening slash to hyphen makes valid `octo-a/b` and `octo/a-b` share `octo-a-b-logs-`; Forget of one deletes the other's matching files. CC6.1; PI1.3/A1.2 candidates | `server/internal/collect/lake.go:74-78,125-145,160-169`; `server/internal/collect/runner.go:249-276` | Production-helper observation reproduced cross-repository file deletion using synthetic files. Volatile startup detects ambiguity (`server/internal/collect/volatile_recovery.go:89-91,146-172`), but ordinary durable collection/Forget does not use that check. Enrollment ownership/leases do not make encoding injective. |
 | DATA-02 / design-gap / medium | Collector withdrawal: shared `operational-values.jsonl` retains withdrawn repository bytes; Forget removes only prefixed shards, while retained merge has no withdrawal filter and zero-enrollment refresh returns early. CC6.5; C1.2/P4/P6 candidates | `server/internal/collect/lake.go:125-145`; `server/internal/collect/projector.go:273-279,302-330`; `server/internal/operationalvalue/collector.go:341-357,845-897`; `specs/server-ingestion.md:362-388` | Synthetic production-helper test confirms retained disk bytes, NOT canonical reappearance. Prefixed shards are removed and durable erasure admission exists. Explicit independently published packets require DATA-06's separate scope decision, not indiscriminate deletion. |
 | DATA-03 / design-gap / medium | Collector erasure ACK precedes durable projection intent; crash/cancellation/state-write failure in the gap can leave old canonical rows until later replay/activity. CC7.2; PI1.3/C1.2 candidates | `server/internal/collect/worker.go:153-165,242-271,312-347`; `server/internal/collect/queue.go:320-327`; `server/internal/collect/projector.go:122-131`; `specs/server-ingestion.md:386-389` | Production worker-helper observation leaves queue empty and projection marker false; no real crash injected. Restart backfill/future activity can repair, and scope refresh persists intent before ACK. This is not permanent loss or a backend replacement-atomicity defect. |
-| DATA-04 / evidence-needed / high conditional authority priority | Hosted PostgreSQL/Redis: deployed owner/runtime/evidence/retention roles, inherited/PUBLIC/default privileges and principal isolation remain unknown. CC6.1-CC6.3 | `server/postgres/operational-grants.sql:1-45`; `server/postgres/canonical-grants.sql:1-28`; `server/POSTGRES.md:70-176`; `server/internal/operational/postgres/store.go:154-177`; `server/internal/postgresx/provisioned.go:15-31` | Granular fresh-role grants, guards/fixed functions and explicit provisioning support design; startup is not a scrubber for all inherited privileges. Real-principal tests skipped. Namespaces/SQLite files do not establish hostile-principal isolation. |
-| DATA-05 / evidence-needed / medium | Persistent databases/lake/snapshots: encryption at rest, key custody, credential rotation/recovery and transport exceptions need actual configuration/period evidence. CC6.1, CC6.7; C1.1 candidate | `server/internal/postgresconn/config.go:29-60`; `server/internal/redisx/client.go:112-151`; `server/internal/server/oauth.go:1313-1369`; `server/internal/operational/sqlite/store.go:82-107`; `server/internal/collect/lake.go:200-232` | Verified remote DB TLS and encrypted session/revocation records support design. File permissions/WAL are not disk encryption and canonical data is not globally application-encrypted. Coordinate IAM-006/OPS-07. |
+| DATA-04 / evidence-needed / high conditional authority priority | Hosted database: deployed owner/runtime/evidence/retention roles, inherited/PUBLIC/default privileges and principal isolation remain unknown. CC6.1-CC6.3 | `server/postgres/operational-grants.sql:1-45`; `server/postgres/canonical-grants.sql:1-28`; `server/POSTGRES.md:70-176`; `server/internal/operational/postgres/store.go:154-177`; `server/internal/postgresx/provisioned.go:15-31` | Granular fresh-role grants, guards/fixed functions and explicit provisioning support design; startup is not a scrubber for all inherited privileges. Real-principal tests skipped. Namespaces/SQLite files do not establish hostile-principal isolation. |
+| DATA-05 / evidence-needed / medium | Persistent databases/lake/snapshots: encryption at rest, key custody, credential rotation/recovery and transport exceptions need actual configuration/period evidence. CC6.1, CC6.7; C1.1 candidate | `server/internal/postgresconn/config.go:29-60`; retired adapter transport at the assessment revision; `server/internal/server/oauth.go:1313-1369`; `server/internal/operational/sqlite/store.go:82-107`; `server/internal/collect/lake.go:200-232` | Verified remote DB TLS and encrypted session/revocation records support design. File permissions/WAL are not disk encryption and canonical data is not globally application-encrypted. Coordinate IAM-006/OPS-07. |
 | DATA-06 / evidence-needed / medium | Governed retention, derived copies, independent packets, legal holds and deployed maintenance/deletion schedules are unknown. CC6.5; C1.2/P3-P8 candidates | `server/internal/postgresx/partitions.go:19-22,33-100,213-288`; `server/internal/operationalvalue/collector.go:30-36`; `server/internal/operational/postgres/schema.sql:158-182`; `server/internal/postgresx/value_preservation.go:13-74` | Default run/linked/value/audit lifetimes differ (30/7/365/400 days); daily canonical partitions and bounded audit oldest-prefix retention need schedule/backlog review. This does not assert any chosen duration violates commitments. DATA-02 is the separate demonstrated withdrawal gap. |
-| DATA-07 / evidence-needed / medium | Provider persistence/replication/eviction and filesystem power-loss semantics have not established accepted-work RPO/RTO. CC7.3-CC7.5, CC9.2; A1.2/A1.3 candidates | `server/internal/operational/postgres/store.go:365-380`; `server/internal/redisx/stream.go:28-85,145-210`; `server/internal/collect/lake.go:200-232`; `server/internal/operationalvalue/collector.go:923-952` | Atomic rename/publication is not unconditional power-loss durability: lake helper does not sync parent directory; value writer lacks file sync. Replay/incomplete-recovery handling exists. No crash-loss finding; OPS-06 owns overall backup/restore commitments. |
+| DATA-07 / evidence-needed / medium | Provider persistence/replication/eviction and filesystem power-loss semantics have not established accepted-work RPO/RTO. CC7.3-CC7.5, CC9.2; A1.2/A1.3 candidates | `server/internal/operational/postgres/store.go:365-380`; retired stream adapter at the assessment revision; `server/internal/collect/lake.go:200-232`; `server/internal/operationalvalue/collector.go:923-952` | Atomic rename/publication is not unconditional power-loss durability: lake helper does not sync parent directory; value writer lacks file sync. Replay/incomplete-recovery handling exists. No crash-loss finding; OPS-06 owns overall backup/restore commitments. |
 | DATA-08 / evidence-needed / medium validation priority | Existing `TestTemporalSQLDeployedCampaignQuery` fails: required `operational-value-plot-series` fragment query not found. CC8.1; PI1.2 candidate | `server/internal/query/sql_temporal_test.go:182-220` | Scoped package command exit 1 with this sole failed test event; no DB needed. Could be stale test or declarative drift; no runtime processing defect inferred. Independent local evaluator passes do not resolve the failed SQL/campaign contract. |
 | DATA-09 / not-applicable-proposed / informational | Local read-only SQLite, local operational SQLite and acknowledged hosted memory need explicit applicability decisions for production durability/principal-isolation commitments. CC6.3; A1.2/C1.1 candidates | `server/internal/server/local_sqlite.go:45-52`; `server/internal/sqlitex/store.go:58-73`; `server/internal/operational/sqlite/store.go:1-5,82-107`; `server/internal/server/operational_factory.go:85-102` | Local/volatile guards preserve identity controls but do not grant durable availability. Local confidentiality/privacy is not automatically excluded. No exclusion approved. |
 | DATA-10 / evidence-needed / low | Physical SQL/temp/process and metadata-source ceilings need bounded-work measurements, not only logical row/operation limits. CC7.1; A1.1 candidate | `server/internal/postgresx/sql_plan.go:104-172`; `server/internal/postgresx/store.go:317-339`; `server/internal/repositorymemory/memory.go:112-134,159-174`; `server/internal/marketplace/resolve.go:78-91` | Query timeout/structural limits and trusted-source/HTTP bounds reduce exposure. Manifest reads/JSON helper lack some pre-materialization byte guards; actual resource impact or arbitrary attacker source control not demonstrated. Fleet stress not run. |
@@ -1205,7 +1204,7 @@ No production loss, deployed collision or actual crash-loss was established.
 
 The main scoped package command exited **1**, reporting 1,055 passed,
 220 skipped and one failed test/subtest events: DATA-08. It covered
-postgresconn/sqlbuilder/query/sqlitex, memory/Redis/PostgreSQL stores,
+postgresconn/sqlbuilder/query/sqlitex, then-supported operational stores,
 ingest/collect, registry/repository memory/value services and model/store
 contracts. Additional commands passed: selected boundary cases (66 pass,
 20 skip events), operational/SQLite conformance (118 pass, 21 skip),
@@ -1216,7 +1215,7 @@ Three artifact-only `go -C server test -overlay ... -json ./internal/collect
 -run '^TestDATAObserve' -count=1` observations passed by reproducing current
 DATA-01/02/03 adverse behavior, not verifying fixes. Counts overlap and include
 subtests; they MUST NOT be summed into unique controls or a compliance rate.
-Real PostgreSQL/Redis role, retention, recovery, transaction/parity and
+Real durable-backend role, retention, recovery, transaction/parity and
 connection-loss paths remain skipped/unverified; no live services were used.
 The initial local Go 1.27.1 prerequisite failed, then automatic required
 toolchain selection allowed execution. No runtime/repository changes made.
@@ -1274,7 +1273,7 @@ configuration or provider lifecycle behavior was established.
 | EXEC-01 | Investigate numeric actor continuity and provider lifecycle assumptions; changing queue contract requires legacy-record handling. | Execution maintainer + IAM | Account lifecycle/queue-age policy, reviewed immutable-ID contract, changed-ID/same-login and renamed-original fixtures, deployment disposition of old pending commands |
 | EXEC-02 | Collect intended-executor evidence; do not infer enablement authorization. | Execution platform + release/OPS | Real Linux boundary/allowed-traffic results, OS/daemon/admin boundary, reviewed egress policy and relay/image/source digests |
 | EXEC-03 | Confirm cooperative-control commitments and complementary budget controls. | Admission/accounting owner | Protected atomic publisher/client configuration, freshness/failed-publication alerts, pinned interoperability and outage policy |
-| EXEC-04 | Collect DATA-owned real backend/recovery proof; preserve fail-closed ambiguity and receipts. | DATA/platform + execution | PostgreSQL/Redis fault/restart tests, grants/namespaces/capacity, old-process termination and restore/replay reconciliation |
+| EXEC-04 | Collect DATA-owned real backend/recovery proof; preserve fail-closed ambiguity and receipts. | DATA/platform + execution | Durable-backend fault/restart tests, grants/namespaces/capacity, old-process termination and restore/replay reconciliation |
 | EXEC-05 | Review actual secret/App/host reach and key rotation/offboarding. | Identity/secrets + execution | Sanitized process/mount identity inventory, App scopes/access approvals, daemon controls, pause/drain/two-key restart evidence |
 | EXEC-06 | Approve accurate authorization/race contract or request separately reviewed hardening. | Service/security + control operator | Offboarding/cancel runbook, residual-race decision, ambiguous-send/label/downstream reconciliation exercise |
 | EXEC-07 | Collect native-platform tests or propose exclusion; strict VM ownership can block shared-workstation use. | Workstation/runtime + compliance | Intended-platform workspace/DACL/VM ownership/termination tests, or operator/auditor-approved scope exclusion |
@@ -1299,7 +1298,7 @@ events and 39 skipped test/subtest events. Package tests cover admission,
 hosted CLI, gateway/host/local, App/scoped tokens, egress/quota and selected
 server/CLI handlers. Selectors explicitly excluded real Linux Docker egress,
 real Apple containers and fleet tests. Windows platform cases, real
-PostgreSQL/Redis and pinned upstream compiled-runtime interoperability remain
+Durable-backend and pinned upstream compiled-runtime interoperability remain
 unverified. Parent tests with skipped children do not verify those children.
 
 IAM and EXEC ran on macOS without live provider, production, service setup or
@@ -1332,7 +1331,7 @@ not a vulnerability/exploitability rating. Criteria mappings are provisional.
 | OPS-01 / design-gap / medium | Administrative rebuild: successful changes lack durable actor-attributable lifecycle history; the replaceable rebuild status has no actor/request ID, and terminal persistence errors are discarded. CC6.3, CC7.2, CC7.3 | `server/internal/server/operations.go:56-136,352-357`; `server/internal/server/server.go:1103-1112` | Admin/step-up/CSRF gating, projection lease, atomic publication and denied-admin audit remain. This is an evidence-coverage objective, not an authorization bypass or a claim every local operation must use the hosted-CLI audit table. |
 | OPS-02 / design-gap / medium | Azure template-only monitoring: Application Insights settings do not activate Go OTLP exports without the separate endpoint/collector and log opt-in. CC7.2, CC7.3 | `server/azure/main.bicep:466-469`; `server/azure/collector.bicep:282-300`; `server/internal/telemetry/telemetry.go:82-108`; `server/README.md:3173-3177` | Platform/container logs, stderr audit mirrors and independent delivery may provide alternative monitoring. A tenant overlay may already supply OTLP; none was provided. Optional instrumentation is not evidence that all monitoring is absent. |
 | OPS-03 / design-gap / medium | Production use of Azure development source-build without an external gate: ACR build/apply lacks the official candidate image scan/SBOM/attestation step for those rebuilt targets. CC7.1, CC8.1 | `internal/cli/deploy_azure_images.go:251-309`; `internal/cli/deploy_azure_apply.go:130-149,186-208`; `.github/workflows/cao-package.yml:427-527` | Explicitly a development path; digest-pinned bases, reviewed context, digest receipts, locked tags and plan checks exist. An independent pipeline could supply the missing gate. Published-image guarantees do not cover later rebuilds. |
-| OPS-04 / design-gap / medium | Redis doctor: empty RDB status with AOF disabled is labelled healthy writes instead of insufficient evidence. CC7.1, CC7.2; A1 candidate | `server/internal/doctor/checks_redis.go:375-430`; `server/internal/doctor/checks_redis_test.go:310-314` | Known write errors warn and other diagnostics expose persistence details. The existing passing test confirms this diagnostic behavior, not disabled backups, lost writes or a provider SLA failure. |
+| OPS-04 / historical design-gap / medium | Retired backend doctor classified incomplete persistence evidence as healthy writes. CC7.1, CC7.2; A1 candidate | Historical assessment revision only | Historical fixture success did not prove backups, write durability or a provider SLA; the retired implementation is not current evidence. |
 | OPS-05 / evidence-needed / high if independently durable audit is relied upon | Independent destination, anchor enrollment, complete committed-row export, retention and independent heartbeat/alert operation are unestablished. CC6.3, CC7.2, CC7.3, CC9.2; C1 candidate | `server/audit-delivery/README.md:3-12,49-57,95-109,133-171,201-221`; `server/SECURITY.md:879-901` | Chain/anchor verification, read-back, immutable objects, CAS and replay fault tests support design. Real destination conformance was skipped. Storage-owned events need committed-row export rather than mirror-only collection. |
 | OPS-06 / evidence-needed / high if availability/durable-work commitments apply | RTO/RPO and complete consistent restoration of protected operational state, lake evidence and audit history are unestablished. CC7.5, CC9.1; A1.2/A1.3 candidate | `server/azure/network.bicep:105-112`; `server/azure/collector.bicep:143-208`; `server/README.md:2299-2306,3306-3309` | Seven-day baseline PostgreSQL backups, rebuild/replay and drain exist; baseline HA/geo backup is disabled. These are tradeoffs, not universal SOC 2 failures. Rebuilding canonical projections does not recover all accepted work or audit/revocation state. |
 | OPS-07 / evidence-needed / medium | Effective cloud privileges, secret/key rotation, network restrictions and log/evidence classification are unknown. CC6.1, CC6.3, CC6.7, CC9.2; C1/P applicability pending | `server/azure/main.bicep:299-315,433-447,527-577`; `server/azure/worker-roles.bicep:15-36`; `server/azure/function-roles.bicep:48-76`; `server/azure/collector.bicep:143-221` | Secret-scoped RBAC, managed identities, TLS and separated roles are modeled; public authenticated ingress is not itself a defect. Templates cannot establish actual grants, key retirement, lake account-key access or deployed boundaries. |
@@ -1376,7 +1375,7 @@ in the detailed report:
   generated-artifact reproducibility gate or artifact regeneration was run.
 
 Local execution used Go 1.27.3/darwin-arm64 and Node 26.9.0; Node differed
-from CI's Node 24. No scanner/build/publication, real database/Redis provider,
+from CI's Node 24. No scanner/build/publication, real database provider,
 production access, restore/failover, real alert routing or period-operation
 test was run. Doctor coverage was bounded; generic logging APIs were not
 proved to redact arbitrary caller fields. DATA, IAM and EXEC implementation

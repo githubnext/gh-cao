@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
-
 	"github.com/githubnext/gh-cao/server/internal/operational"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // UsageInterval is the width of one retained usage slot.
@@ -47,7 +46,7 @@ type AggregateUsagePoint struct {
 
 // UsageReport is the retained usage history of every observed bucket.
 type UsageReport struct {
-	// GeneratedAt is the shared Redis clock the window was measured from.
+	// GeneratedAt is the shared operational storage clock the window was measured from.
 	GeneratedAt     time.Time             `json:"generatedAt"`
 	From            time.Time             `json:"from"`
 	IntervalSeconds int                   `json:"intervalSeconds"`
@@ -98,11 +97,11 @@ func (s *Service) Usage(ctx context.Context) (_ UsageReport, err error) {
 
 // buildUsagePoints decodes each sample's storage key into a BucketID and
 // bounds its counters into UsagePoint, discarding samples whose bucket key
-// does not decode (for example a corrupted or legacy-format Redis field). It
+// does not decode (for example a corrupted or legacy-format operational storage field). It
 // returns the decoded points sorted by slot and then bucket, and how many
 // samples were skipped, so Usage can log that count without recomputing it.
 // It is a pure function extracted from Usage so decoding, bounding, and
-// ordering are independently testable without a Redis-backed Store.
+// ordering are independently testable without an operational Store.
 func buildUsagePoints(samples []operational.GitHubQuotaUsageSample) ([]UsagePoint, int) {
 	points := make([]UsagePoint, 0, len(samples))
 	skipped := 0
@@ -135,7 +134,7 @@ func buildUsagePoints(samples []operational.GitHubQuotaUsageSample) ([]UsagePoin
 // aggregateUsagePoints sums every bucket's peak usage within each slot,
 // assuming points is already ordered by slot (buildUsagePoints' contract).
 // It is a pure function extracted from Usage so slot aggregation is
-// independently testable without decoding samples or calling Redis.
+// independently testable without decoding samples or calling operational storage.
 func aggregateUsagePoints(points []UsagePoint) []AggregateUsagePoint {
 	aggregate := make([]AggregateUsagePoint, 0, len(points))
 	for _, point := range points {

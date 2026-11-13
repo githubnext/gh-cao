@@ -6,15 +6,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
-	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
 
 func TestBackfillLifecycleTelemetryIsBoundedAndMarksIncompleteWork(t *testing.T) {
@@ -59,18 +58,20 @@ func TestBackfillLifecycleTelemetryIsBoundedAndMarksIncompleteWork(t *testing.T)
 	}
 }
 
-type checkpointFailureClient struct{}
-
-func (checkpointFailureClient) Do(_ context.Context, _ ...string) (any, error) {
-	return nil, errors.New("injected checkpoint failure")
+type checkpointFailureStore struct {
+	operational.StateStore
+	operational.CollectionMetadata
 }
 
-func (checkpointFailureClient) DoMany(_ context.Context, _ [][]string) ([]any, error) {
+func (checkpointFailureStore) OperationalState(context.Context, string) ([]byte, error) {
 	return nil, errors.New("injected checkpoint failure")
+}
+func (checkpointFailureStore) SetOperationalState(context.Context, string, []byte) error {
+	return errors.New("injected checkpoint failure")
 }
 
 func TestBackfillDoesNotReportSuccessWhenCheckpointCannotBePersisted(t *testing.T) {
-	store := redisx.NewStore(checkpointFailureClient{}, "checkpoint-failure")
+	store := checkpointFailureStore{}
 	state, err := (Backfill{StateStore: store, Metadata: store}).Run(t.Context())
 	if err == nil || state.Phase != "failed" || state.CompletedAt == "" {
 		t.Fatalf("checkpoint failure was hidden: %+v, %v", state, err)

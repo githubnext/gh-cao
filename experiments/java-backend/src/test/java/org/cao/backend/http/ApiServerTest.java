@@ -54,7 +54,7 @@ class ApiServerTest {
             assertEquals(503, h.statusCode());
             JsonNode hb = JSON.readTree(h.body());
             assertEquals("unhealthy", hb.get("status").asText());
-            assertFalse(hb.get("redis").get("connected").asBoolean());
+            assertFalse(hb.get("operational").get("connected").asBoolean());
             assertFalse(hb.get("data").get("available").asBoolean());
             assertEquals("unsupported",
                 hb.get("operational").get("capabilities").get("sessions").get("scope").asText());

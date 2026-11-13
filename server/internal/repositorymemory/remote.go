@@ -28,7 +28,7 @@ const (
 
 var ErrNotFound = errors.New("repository memory was not found")
 
-// RemoteCache is the Redis-backed storage used by lazy GitHub resolution.
+// RemoteCache is the operational storage used by lazy GitHub resolution.
 type RemoteCache interface {
 	CachedRepositoryMemoryCampaign(context.Context, string) ([]byte, error)
 	CacheRepositoryMemoryCampaign(context.Context, string, []byte, time.Duration) error
@@ -59,7 +59,7 @@ type Governor interface {
 	Headroom(context.Context, int64) (int, time.Time, error)
 }
 
-// RemoteResolver lazily resolves memory from GitHub and caches it in Redis.
+// RemoteResolver lazily resolves memory from GitHub and caches it in operational storage.
 type RemoteResolver struct {
 	Cache             RemoteCache
 	Installations     InstallationResolver

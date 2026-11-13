@@ -310,7 +310,7 @@ func (a *App) githubWebhook(response http.ResponseWriter, request *http.Request)
 	fresh, err := a.services.Deliveries.RememberDelivery(request.Context(), delivery, deliveryTTL)
 	if err != nil {
 		a.recordIngestionCounter(request.Context(), "webhookAdmissionFailed")
-		a.recordIngestionFailure(request.Context(), "redis")
+		a.recordIngestionFailure(request.Context(), "operational")
 		a.releaseProjectionLock(request.Context(), token)
 		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook deduplication is unavailable")
 		return

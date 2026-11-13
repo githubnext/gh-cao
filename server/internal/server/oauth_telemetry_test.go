@@ -20,8 +20,6 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
 func TestOAuthCallbackTelemetryExcludesCredentialsAndIdentifiers(t *testing.T) {
@@ -160,11 +158,9 @@ func TestOAuthCallbackTelemetryExcludesCredentialsAndIdentifiers(t *testing.T) {
 
 	app = newAzureTestApp(t, github.URL)
 	stateCookie, state = loginState(t, app)
-	unavailable, err := redisx.New("redis://127.0.0.1:1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	unavailableStore := redisx.NewStore(unavailable, "test")
+
+	unavailableStore := newTestOperationalStore(t)
+	_ = unavailableStore.Close()
 	app.oauth.sessions, app.oauth.invalidator, app.oauth.revocations = unavailableStore, unavailableStore, unavailableStore
 	failedSave := httptest.NewRecorder()
 	request = azureRequest(t, http.MethodGet, "/auth/callback?code="+callbackCode+"&state="+url.QueryEscape(state))

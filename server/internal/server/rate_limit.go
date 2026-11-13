@@ -137,7 +137,7 @@ func (a *App) preAuthRateLimit(next http.Handler) http.Handler {
 }
 
 // validRateLimitBoundary prevents an invalid Host or forwarded-host request
-// from reaching Redis before the access middleware rejects it. It also ensures
+// from reaching operational storage before the access middleware rejects it. It also ensures
 // clientIP only sees forwarding headers after the trusted boundary is verified.
 func (a *App) validRateLimitBoundary(request *http.Request) bool {
 	return validProxyRequest(request, a.proxyPolicy())

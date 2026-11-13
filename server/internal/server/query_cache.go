@@ -273,7 +273,7 @@ func encodeCompactQuery(etag string, result queryResponse, limit int64) ([]byte,
 }
 
 func queryCacheError(err error) (queryResponse, int, error) {
-	// Never expose Redis errors, internal cache keys, or cached content.
+	// Never expose operational storage errors, internal cache keys, or cached content.
 	queryCacheLog.Printf("request failed reason=cache-unavailable")
 	if errors.Is(err, context.Canceled) {
 		return queryResponse{}, http.StatusServiceUnavailable, context.Canceled

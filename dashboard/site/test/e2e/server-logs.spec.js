@@ -36,7 +36,7 @@ test('Pages and local server settings do not request server logs', async ({ page
 test('administrator can inspect server logs in a full settings view and return with focus', async ({ page }) => {
   await page.route('**/api/admin/logs', (route) => route.fulfill({
     contentType: 'application/json',
-    body: JSON.stringify({ logs: [{ message: 'server ready' }], redis: { status: 'ok' } })
+    body: JSON.stringify({ logs: [{ message: 'server ready' }], operational: { status: 'ok' } })
   }));
   await page.evaluate(async ({ viewUrl, stylesUrl }) => {
     const meta = document.createElement('meta');

@@ -62,7 +62,7 @@ standard or a substitute for the organization's approved control matrix.
    findings. An absent search match is not proof of an absent control.
 4. Use the narrowest existing deterministic test commands. Record exact
    command, exit status, passed/failed/skipped coverage, environment
-   prerequisites, and evidence location. A skipped PostgreSQL/Redis or
+   prerequisites, and evidence location. A skipped PostgreSQL or
    platform test is unverified, not a pass. Do not install dependencies until
    a selected check reports missing dependencies. Do not run full fleet stress
    tests, start services, or invoke live integrations merely for completeness.
