@@ -1,34 +1,7 @@
 {
- "source_sha": "6e75d30afed4a4dcece79b9dae39d1d1ff1c684f",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "f369d46150784b371a40c8dfc9bd5a208ebb75a3",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T05:21:00Z",
-   "worker_run_id": "43370949051",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T11:05:24Z to 2026-11-13T04:58:50Z; all within 14 days; 2 in-progress/pending runs 43371217266 and 43371269326 excluded; source b52e46d = checkout HEAD = new source_sha). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). Comparable n=18 successful push runs (5-run minimum met; no schedule run in window). Job and step metadata only: job logs HTTP 403 difc_forbidden (re-probed once 05:20Z on build job 131678162945; not retried). build-start-to-deploy-end median 85 s (p90 111.1 s); 15 percent gate 12.75 s. Category steps: Upload Pages artifact median 2 s (p90 3); Configure Pages median 0.5 s (p90 1); Configure plus upload per-run median 3 s (p90 4); build-end to deploy-create handoff median 0 s (p90 1); deploy queue median 5 s (p90 6); Deploy Pages median 7 s (p90 11.2, GitHub-managed). github-pages artifact median 8.33 MB (range 8.29-8.37 MB, 18 runs; stable). Removing all upload and configure work saves at most about 3 s; halving the artifact saves at most about 1 s and is unmeasured; merging deploy into build saves about 5 s of handoff and queue but moves id-token: write and the github-pages environment into the job that runs npm ci lifecycle scripts, and none of these clear the gate. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T05:34:12Z",
    "worker_run_id": "43372213373",
@@ -864,25 +837,54 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43341713733 created 2026-11-13T01:01:41Z to 43440055797 created 14:09:27Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; source 6e75d30 = HEAD = source_sha; same window as the 14:34Z evaluation). Jobs API re-fetched for all 20 runs; medians match memory. Category step Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao): median 4 s, p90 5 s, range 3-5 s = 4.6 percent of median build-start-to-deploy-end 87.5 s (p90 98 s). 15 percent gate = 13.1 s; full removal saves at most 4 s, so the gate is unreachable. No duplicate dashboard build: docs:build (astro build + validate-agent-docs + agent-docs-discovery test) has no reference to buildDashboardSite, dashboard/site or dashboard/report in docs/ or astro.config.mjs; callers are scripts/simulate-dashboard-pages.mjs and tests only; root has no workspaces. Cross-run reuse would stale output: scripts/dashboard-demo-data.mjs enterpriseSample(now) embeds ms-resolution generatedAt and observed_at (re-verified). Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 31, max 56), largest step, not evaluated here. No suggestion; no issue created (no open self-care:docs-build-time-investigator issues). next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T15:20:28Z",
+   "worker_run_id": "43450723904",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 2026-11-13T14:57:34Z; all within 14 days; none queued or in progress; checkout HEAD f369d46 = new source_sha). All 20 succeeded: 19 push plus 1 schedule (43371878284); no cancelled runs; failed 43297524311 is older than the window. Comparable n=20 (5-run gate met). Job and step metadata only (job logs HTTP 403 difc_forbidden re-probed on build job 131763446973). Medians (p90) for the category: Upload Pages artifact 2 s (3); Configure Pages 0 s (1); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable transfer overhead excluding Deploy Pages: median 8.5 s (p90 10) = 9.7 percent of median exec 87.5 s (p90 98); 15 percent gate 13.12 s; eliminating all of it stays below the gate. Merging deploy into build saves about 6 s (queue plus setup) but would give id-token: write to the job running npm ci and Astro, rejected on least privilege and still below the gate. github-pages artifact 8.26-8.38 MB (20/20 matched via artifacts API, median 8.30 MB); halving the upload saves about 1 s. Outlier 43380585034 (exec 114 s) retained as a normal sample. Carry-forward outside rotation: Checkout fetch-depth 0 median 24.5 s (p90 31; 28 percent of exec), largest step, not evaluated here. No suggestion; no issue created; no open issue with label self-care:docs-build-time-investigator. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T14:21:00Z",
+  "verified_at": "2026-11-13T15:20:28Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
   "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
   "restore": "exact key only (no restore-keys)",
-  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T14:16:10Z, refs/heads/main. Post Set up Node.js 0 s in 20/20 window runs.",
+  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T15:15:20Z, refs/heads/main. Post Set up Node.js 0 s in 20/20 window runs (exact-key hits; setup-node saves only on miss).",
   "lock_history": "root package-lock last changed 063cbe9 (2026-11-12T06:17:07Z), before every window run; dashboard/site/package-lock.json last changed 3d20dbb (2026-10-22T19:48Z); docs.yml last changed 063cbe9 (before the window).",
   "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
-  "logs": "HTTP 403 difc_forbidden re-probed 2026-11-13T09:20Z for job logs; re-probed 2026-11-13T12:53Z on build job 131763446973 (still 403); hits inferred from Post Set up Node.js 0 s plus actions/caches created-at and accessed-at timestamps. Re-probed 2026-11-13T14:33Z on build job 131763446973 for run 43440055797 (still 403 difc_forbidden).",
-  "caches_listing": "2026-11-13T14:16Z: 94 entries, 10.7 GB total (cap 10 GB). head key node-cache-Linux-x64-npm-e62f6006 accessed each run; other repo keys (macOS, Windows, PR refs) are not docs.yml inputs.",
+  "logs": "HTTP 403 difc_forbidden re-probed 2026-11-13T15:18Z on build job 131763446973 (still 403). Hits inferred from Post Set up Node.js 0 s plus actions/caches created-at and last-accessed timestamps.",
+  "caches_listing": "2026-11-13T15:18Z: 89 entries returned by the caches listing, head key accessed each run; the other node-cache key (43bd5832..., 312 MB) is not produced by the current root lock hash and is not a docs.yml input.",
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API."
  },
  "run_samples": {
-  "window_created": "2026-11-13T01:01:41Z..2026-11-13T14:09:27Z",
-  "evaluated_at": "2026-11-13T14:54:30Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size bytes = github-pages artifact from the Actions artifacts API (carried from prior verification). Jobs API timings (logs 403 DIFC).  Re-verified at 2026-11-13T14:54:30Z (worker 43446486267) from the jobs API: same 20 runs, all success; step medians and p90 unchanged.",
+  "window_created": "2026-11-13T01:29:30Z..2026-11-13T14:57:34Z",
+  "evaluated_at": "2026-11-13T15:20:28Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from the artifacts API (name=github-pages). Jobs API timings (logs 403 DIFC). Measured by worker 43450723904.",
   "step_stats_median_p90_s": {
    "Set up job": [
     1,
@@ -890,15 +892,15 @@
    ],
    "Checkout": [
     25,
-    32
+    31
    ],
    "Set up Node.js": [
-    4,
+    3,
     7
    ],
    "Install dependencies": [
     17,
-    22.1
+    23
    ],
    "Build documentation": [
     14,
@@ -935,15 +937,37 @@
   },
   "rows": [
    {
+    "run": 43447728981,
+    "event": "push",
+    "exec_s": 92,
+    "build_s": 77,
+    "queue_s": 2,
+    "handoff_s": 1,
+    "deploy_s": 9,
+    "dash_s": 3,
+    "pages_size_mb": 8.31
+   },
+   {
+    "run": 43447111490,
+    "event": "push",
+    "exec_s": 73,
+    "build_s": 59,
+    "queue_s": 2,
+    "handoff_s": 0,
+    "deploy_s": 9,
+    "dash_s": 3,
+    "pages_size_mb": 8.31
+   },
+   {
     "run": 43440055797,
     "event": "push",
     "exec_s": 90,
     "build_s": 75,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 10,
     "dash_s": 5,
-    "pages_size": 8300539
+    "pages_size_mb": 8.3
    },
    {
     "run": 43430232636,
@@ -951,10 +975,10 @@
     "exec_s": 91,
     "build_s": 76,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 10,
     "dash_s": 3,
-    "pages_size": 8298169
+    "pages_size_mb": 8.3
    },
    {
     "run": 43430166810,
@@ -962,10 +986,10 @@
     "exec_s": 77,
     "build_s": 63,
     "queue_s": 2,
-    "handoff_s": 6,
+    "handoff_s": 1,
     "deploy_s": 8,
     "dash_s": 3,
-    "pages_size": 8302489
+    "pages_size_mb": 8.3
    },
    {
     "run": 43388781287,
@@ -973,10 +997,10 @@
     "exec_s": 85,
     "build_s": 72,
     "queue_s": 3,
-    "handoff_s": 4,
+    "handoff_s": 0,
     "deploy_s": 9,
     "dash_s": 4,
-    "pages_size": 8278226
+    "pages_size_mb": 8.28
    },
    {
     "run": 43380585034,
@@ -984,10 +1008,10 @@
     "exec_s": 114,
     "build_s": 101,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 1,
     "deploy_s": 8,
     "dash_s": 4,
-    "pages_size": 8275299
+    "pages_size_mb": 8.28
    },
    {
     "run": 43378597209,
@@ -995,10 +1019,10 @@
     "exec_s": 91,
     "build_s": 75,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 11,
     "dash_s": 3,
-    "pages_size": 8276366
+    "pages_size_mb": 8.28
    },
    {
     "run": 43378369544,
@@ -1006,10 +1030,10 @@
     "exec_s": 75,
     "build_s": 58,
     "queue_s": 2,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 12,
     "dash_s": 3,
-    "pages_size": 8272485
+    "pages_size_mb": 8.27
    },
    {
     "run": 43374719202,
@@ -1017,10 +1041,10 @@
     "exec_s": 81,
     "build_s": 67,
     "queue_s": 2,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 9,
     "dash_s": 4,
-    "pages_size": 8270262
+    "pages_size_mb": 8.27
    },
    {
     "run": 43373049149,
@@ -1028,10 +1052,10 @@
     "exec_s": 95,
     "build_s": 79,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 11,
     "dash_s": 4,
-    "pages_size": 8264630
+    "pages_size_mb": 8.26
    },
    {
     "run": 43371878284,
@@ -1039,10 +1063,10 @@
     "exec_s": 86,
     "build_s": 70,
     "queue_s": 2,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 11,
     "dash_s": 3,
-    "pages_size": 8266577
+    "pages_size_mb": 8.27
    },
    {
     "run": 43371269326,
@@ -1050,10 +1074,10 @@
     "exec_s": 89,
     "build_s": 72,
     "queue_s": 2,
-    "handoff_s": 6,
+    "handoff_s": 1,
     "deploy_s": 11,
     "dash_s": 4,
-    "pages_size": 8268177
+    "pages_size_mb": 8.27
    },
    {
     "run": 43371217266,
@@ -1061,10 +1085,10 @@
     "exec_s": 69,
     "build_s": 56,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 8,
     "dash_s": 3,
-    "pages_size": 8375128
+    "pages_size_mb": 8.38
    },
    {
     "run": 43368963164,
@@ -1072,10 +1096,10 @@
     "exec_s": 85,
     "build_s": 70,
     "queue_s": 2,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 10,
     "dash_s": 4,
-    "pages_size": 8370582
+    "pages_size_mb": 8.37
    },
    {
     "run": 43368845651,
@@ -1083,10 +1107,10 @@
     "exec_s": 98,
     "build_s": 82,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 11,
     "dash_s": 5,
-    "pages_size": 8370986
+    "pages_size_mb": 8.37
    },
    {
     "run": 43362224525,
@@ -1094,10 +1118,10 @@
     "exec_s": 106,
     "build_s": 91,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 10,
     "dash_s": 5,
-    "pages_size": 8368240
+    "pages_size_mb": 8.37
    },
    {
     "run": 43360893141,
@@ -1105,10 +1129,10 @@
     "exec_s": 79,
     "build_s": 64,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 0,
     "deploy_s": 10,
     "dash_s": 4,
-    "pages_size": 8314790
+    "pages_size_mb": 8.31
    },
    {
     "run": 43347280419,
@@ -1116,10 +1140,10 @@
     "exec_s": 82,
     "build_s": 67,
     "queue_s": 3,
-    "handoff_s": 6,
+    "handoff_s": 1,
     "deploy_s": 9,
     "dash_s": 3,
-    "pages_size": 8307655
+    "pages_size_mb": 8.31
    },
    {
     "run": 43345305064,
@@ -1127,32 +1151,10 @@
     "exec_s": 97,
     "build_s": 84,
     "queue_s": 3,
-    "handoff_s": 5,
+    "handoff_s": 1,
     "deploy_s": 8,
     "dash_s": 4,
-    "pages_size": 8306989
-   },
-   {
-    "run": 43341730805,
-    "event": "push",
-    "exec_s": 92,
-    "build_s": 78,
-    "queue_s": 2,
-    "handoff_s": 5,
-    "deploy_s": 9,
-    "dash_s": 4,
-    "pages_size": 8306257
-   },
-   {
-    "run": 43341713733,
-    "event": "push",
-    "exec_s": 83,
-    "build_s": 68,
-    "queue_s": 4,
-    "handoff_s": 5,
-    "deploy_s": 10,
-    "dash_s": 3,
-    "pages_size": 8297062
+    "pages_size_mb": 8.31
    }
   ]
  },
@@ -1168,11 +1170,6 @@
    "note": "Run 37642403569 (event workflow_run, queued since 2026-10-07T15:12Z, head 6206962) is outside the 14-day window and not a docs.yml build sample. Checked 2026-11-13: it does not appear to block the documentation-pages group (19 later runs had concurrency waits median 1 s, not behind it). Housekeeping for a maintainer; no build-time saving."
   },
   {
-   "observed_at": "2026-11-13T07:36:00Z",
-   "source": "docs.yml install step, dependency category",
-   "note": "Set up Node.js plus Install dependencies median 22 s (p90 28) in 19/19 exact-key hits. A node_modules cache clears the 12.75 s gate only if node setup plus the node_modules restore totals under about 9 s. Unmeasured; re-evaluate only with a maintainer-branch restore timing."
-  },
-  {
    "observed_at": "2026-11-13T07:53:40Z",
    "source": "docs.yml Build documentation step, Astro category",
    "note": "Astro build parallelism or moving validate/discovery into a parallel job is unmeasured and bounded by a few seconds, below the 12.75 s gate. Re-evaluate only with maintainer-branch step timing or readable logs that split astro build from validation."
@@ -1183,39 +1180,9 @@
    "note": "docs.yml has no 'dashboard' job; the dashboard runs as 'Build synthetic enterprise demo' (median 4 s, p90 5 s) inside build. Reuse saving is capped at about 4 s, below the 12.75 s gate. Demo output embeds run time, so cross-run reuse would be stale. Re-evaluate only if the demo grows beyond about 12 s median."
   },
   {
-   "observed_at": "2026-11-13T08:36:49Z",
-   "source": "docs.yml concurrency group documentation-pages (scheduling category, next)",
-   "note": "3 of 19 successes waited on the group behind the immediately preceding push: 43341730805 81 s behind 43341713733 (queued 8 s apart), 43371269326 44 s behind 43371217266, 43368963164 32 s behind 43368845651. Each wait ended within 2 s of the blocker's completion. Median run-to-build wait 1 s; p90 34 s. cancel-in-progress is false, so a superseded push still publishes after the blocker; evaluate with deployment-safety review, not as a cancel toggle."
-  },
-  {
-   "observed_at": "2026-11-13T08:53:34Z",
-   "source": "docs.yml concurrency group documentation-pages (scheduling category, re-check)",
-   "note": "Re-check of the 20-run window: 3 of 19 successes waited 32-81 s behind an in-progress publication; medians unchanged (wait 1 s, exec 85 s). Split or cancel-in-progress changes stay rejected for ordering and in-flight deploy safety. Same-SHA schedule duplicate: 1 occurrence (5943848). Re-evaluate only if a same-SHA duplicate repeats or a maintainer-branch measurement shows the predecessor publication can shorten."
-  },
-  {
    "observed_at": "2026-11-13T10:32:31Z",
    "source": "docs.yml concurrency wait definition",
    "note": "Verified via run and jobs APIs: 43341730805 run created 01:01:49Z, build created 01:03:10Z (81 s wait), build started 01:03:12Z; 43371269326 run 05:19:29Z, build created 05:20:13Z (44 s). Concurrency waits sit before build-job creation. Runner-queue column is 2-3 s in all runs."
-  },
-  {
-   "observed_at": "2026-11-13T10:58:00Z",
-   "source": "docs.yml dependency category (install cost gate)",
-   "note": "Install dependencies + Set up Node.js = 20 s median (17+3). A node_modules cache clears the 12.75 s gate only if setup plus node_modules restore is at or below about 7 s. Unmeasured; re-evaluate only with maintainer-branch restore timing."
-  },
-  {
-   "observed_at": "2026-11-13T11:54:00Z",
-   "source": "docs.yml artifact transfer and Pages packaging (category 4)",
-   "note": "Window 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z: removable transfer overhead median 9 s (max 10 s, 11.8 percent of median execution) is below the 12.75 s gate; Deploy Pages 14 to 15 s outliers did not recur (max 8 s). Re-evaluate only if Deploy Pages or handoff medians grow materially, or if a maintainer-branch measurement shows the artifact upload is slower than about 0.24 s per MB."
-  },
-  {
-   "observed_at": "2026-11-13T13:34:24Z",
-   "source": "docs.yml artifact transfer and Pages packaging (category 4, re-evaluated)",
-   "note": "Trusted artifacts metadata shows the github-pages artifact at 8.26 to 8.38 MB across all 20 window runs (median 8.30 MB). Upload Pages artifact median 2 s (p90 3), so any size reduction saves under 1 s. Build end to deploy job start median 5 s (p90 6); Deploy Pages median 7 s is required. Revisit only if Deploy Pages or upload medians move materially, or if a maintainer design change removes the separate deploy job."
-  },
-  {
-   "observed_at": "2026-11-13T13:54:58Z",
-   "source": "docs.yml scheduling category (worker 43436914213)",
-   "note": "Concurrency waits in the current window: 4/20 (81, 51, 44, 32 s), median 1 s, p90 45 s; queue time outside the exec gate. Same-SHA scheduled duplicate still 1 occurrence (5943848). Cadence history: d57c4c8 (2026-11-11T21:35Z) replaced the */15 cron and schedule-freshness gate with a daily 05:23 UTC cron. Re-evaluate only if a same-SHA scheduled duplicate repeats or a maintainer adds a freshness gate."
   },
   {
    "observed_at": "2026-11-13T14:21:00Z",
@@ -1223,14 +1190,24 @@
    "note": "Install dependencies median 17 s (p90 22) with exact-key npm cache hits in 20/20 runs; setup plus install must fall to about 8 s to clear the 13.1 s gate. Only node_modules caching could plausibly reach that, and its restore time is unmeasured; re-evaluate only with a maintainer-branch run timing setup plus node_modules restore."
   },
   {
-   "observed_at": "2026-11-13T14:34:41Z",
-   "source": "docs.yml Checkout step (carry-forward, outside rotation categories)",
-   "note": "Checkout fetch-depth 0: median 25 s, p90 32 s, max 56 s over the 20-run window (28.6% of median exec 87.5 s); largest single step. Carried forward again because the rotation has no category for it. Repo-local git use in the docs path is HEAD-only so far (agent-docs-discovery test runs git rev-parse HEAD; astro.config.mjs has no git calls); the synthetic demo and other steps are unverified. Shallow clone was rejected at 11:20Z for per-resource sourceCommittedAt correctness; a partial-clone variant is unmeasured. Needs a maintainer rotation decision or a shallow-clone measurement before any suggestion."
-  },
-  {
    "observed_at": "2026-11-13T14:54:30Z",
    "source": "docs.yml reusable dashboard generation (worker 43446486267)",
    "note": "Build synthetic enterprise demo median 4 s (p90 5 s) is the only dashboard generation cost; no duplicate build in docs:build. Re-evaluate only if the demo step grows beyond about 12 s median or a dashboard build is added to the Astro docs path."
+  },
+  {
+   "observed_at": "2026-11-13T15:20:28Z",
+   "source": "docs.yml artifact transfer and Pages packaging (category 4, worker 43450723904)",
+   "note": "Controllable transfer overhead (Configure Pages, Upload Pages artifact, handoff, deploy queue, deploy setup) median 8.5 s (p90 10), below the 13.12 s gate even if removed entirely; Deploy Pages 7 s is GitHub-managed. Re-evaluate only if controllable overhead median reaches the gate or a maintainer removes the separate deploy job."
+  },
+  {
+   "observed_at": "2026-11-13T15:20:28Z",
+   "source": "docs.yml Checkout step (carry-forward, outside rotation)",
+   "note": "Checkout fetch-depth 0: median 24.5 s, p90 31 s over the 20-run window (28 percent of median exec 87.5 s); largest single step. Shallow clone was rejected earlier for per-resource sourceCommittedAt correctness; a partial-clone variant is unmeasured and needs a maintainer decision or a branch measurement before any suggestion."
+  },
+  {
+   "observed_at": "2026-11-13T15:20:28Z",
+   "source": "docs.yml scheduling category (carry-forward for next category)",
+   "note": "Concurrency waits 3-4 of 20 at 32-81 s before build creation (queue only). Re-evaluate only with a same-SHA duplicate that repeats or a maintainer decision on group ordering."
   }
  ]
 }
