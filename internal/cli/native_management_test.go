@@ -222,9 +222,10 @@ func TestNativeManagementWildcardEnrollment(t *testing.T) {
 						return "[]", "", nil
 					}
 					count := 0
-					if failure == "truncated" {
+					switch failure {
+					case "truncated":
 						count = 1000
-					} else if failure == "too many" {
+					case "too many":
 						count = 101
 					}
 					if count > 0 {
