@@ -35,6 +35,9 @@ it('uses worker transport even in hosted mode, passes backend auth, and cleans u
   expect(worker?.postMessage).toHaveBeenCalledWith(expect.objectContaining({
     operation: 'configure-cli-queue', enabled: false
   }));
+  expect(worker?.postMessage).toHaveBeenCalledWith({
+    operation: 'configure-dashboard-data', configuration: { statisticalRefreshIntervalMs: 300_000 }
+  });
   expect(message).toMatchObject({
     operation: 'subscribe-github-resource',
     configuration: { baseUrl: 'https://dashboard.example/api/v1/github/', credentials: 'same-origin' }
@@ -46,7 +49,7 @@ it('uses worker transport even in hosted mode, passes backend auth, and cleans u
   expect(notify).toHaveBeenCalledWith(snapshot);
   controller.abort();
   stop();
-  expect(worker?.postMessage).toHaveBeenCalledTimes(3);
+  expect(worker?.postMessage).toHaveBeenCalledTimes(4);
   expect(worker?.postMessage).toHaveBeenLastCalledWith({ operation: 'unsubscribe-github-resource', subscriptionId: message.subscriptionId });
   worker?.listeners.get('message')?.({ data: { type: 'github-resource', subscriptionId: message.subscriptionId, snapshot } });
   expect(notify).toHaveBeenCalledOnce();

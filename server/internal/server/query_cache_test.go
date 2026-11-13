@@ -293,6 +293,26 @@ func TestQueryCacheErrorsAreExplicitAndRedacted(t *testing.T) {
 	}
 }
 
+func TestStatisticalQueriesBypassOrdinaryResultCache(t *testing.T) {
+	app, fixture := newLocalPostgresTestApp(t, false)
+	client := &queryCacheClient{}
+	app.services.Cache = redisx.NewStore(client, "statistical-cache").OperationalServices().Cache
+	app.config.QueryCache = QueryCacheConfig{MinDuration: time.Nanosecond}
+	input := queryRequest{SourceNames: []string{"statistical-runs"}}
+	first, status, err := app.executeQuery(t.Context(), input, false)
+	if err != nil || status != http.StatusOK {
+		t.Fatalf("initial sample query: status=%d err=%v", status, err)
+	}
+	fixture.publish(t, "sample-updated", "updated")
+	second, status, err := app.executeQuery(t.Context(), input, false)
+	if err != nil || status != http.StatusOK || second.Revision <= first.Revision ||
+		second.Sources["statistical-runs"].Metadata["freshness"] != "stale" ||
+		client.reads != 0 || client.writes != 0 {
+		t.Fatalf("ordinary cache masked sample revision/freshness: %+v reads=%d writes=%d err=%v",
+			second, client.reads, client.writes, err)
+	}
+}
+
 func TestQueryCacheRejectsTrailingAndIncompleteDocuments(t *testing.T) {
 	client := &queryCacheClient{}
 	app := &App{services: redisx.NewStore(client, "corruption-test").OperationalServices()}

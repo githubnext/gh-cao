@@ -2,7 +2,7 @@
   "version": 1,
   "title": "Statistical sampling",
   "specification": "specs/dashboard-data.md#511-independent-statistical-run-projection",
-  "scope": "Bounded snapshot sampling and PostgreSQL persisted bundles; not hot-tier eviction, daily aggregates, or an online reservoir.",
+  "scope": "Bounded lazy summary sampling with configurable throttling; not hot-tier eviction, daily aggregates, or an online reservoir.",
   "requiredSuites": [
     "coverage-contract",
     "formal-publication",
@@ -14,7 +14,7 @@
     "postgresql"
   ],
   "requirements": {
-    "formal-atomicity": "Bounded publication, abort, restart, whole-bundle admission, exact-source isolation and post-selection filtering",
+    "formal-atomicity": "Bounded lazy summary replacement, throttled attempts, abort, disposable restart, exact-source isolation and post-selection filtering",
     "allocation-parity": "Versioned SHA256 priorities, deterministic strata/allocation and weights agree across JS and Go",
     "frame-binding": "Full-population frame identities survive filtering, projection and input replay",
     "clock-validity": "Recorded canonical clocks only; pending/expired evidence and incomplete frames cannot invent weights",
@@ -23,7 +23,8 @@
     "owned-evidence": "Owned observations inherit selected Run membership and frame bindings",
     "sample-composition": "Shipped query remains unweighted sample composition, not exact or population totals",
     "native-browser": "Native IndexedDB and a real data worker execute statistical queries, not synthesized source rows",
-    "persisted-bundles": "PostgreSQL preserves complete frozen bundles across restart, exact retention and incremental revisions",
+    "lazy-summaries": "Sampling never runs during ingestion; cached summaries retain their values while ordinary revisions are throttled, with detail unavailable across revisions",
+    "refresh-throttle": "Configurable attempt interval, single-flight, failures and authorization invalidation cannot be bypassed by revision changes",
     "publication-rollback": "Invalid or cancelled PostgreSQL publication preserves the committed frame",
     "external-refresh": "The local PostgreSQL HTTP app observes external canonical publications, rejects stale continuation tokens, and updates revision subscriptions"
   },
@@ -52,7 +53,9 @@
       "runner": "vitest",
       "files": [
         "dashboard/site/test/unit/statistical-sampling.test.js",
-        "dashboard/site/test/unit/statistical-model-distribution.test.js"
+        "dashboard/site/test/unit/statistical-model-distribution.test.js",
+        "dashboard/site/test/unit/statistical-cache.test.js",
+        "dashboard/site/test/unit/statistical-worker-subscription.test.js"
       ],
       "coverage": {
         "allocation-parity": "shares framed SHA256 priorities and largest-remainder/failure-reserve golden membership with Go",
@@ -115,9 +118,10 @@
         "./internal/server"
       ],
       "files": [
-        "server/internal/server/local_postgres_test.go"
+        "server/internal/server/local_postgres_test.go",
+        "server/internal/server/query_cache_test.go"
       ],
-      "pattern": "^TestLocalPostgresExternalPublication$",
+      "pattern": "^Test(LocalPostgresExternalPublication|StatisticalQueriesBypassOrdinaryResultCache)$",
       "coverage": {
         "external-refresh": "TestLocalPostgresExternalPublication"
       }
@@ -132,16 +136,18 @@
       "files": [
         "server/internal/postgresx/statistical_test.go",
         "server/internal/postgresx/statistical_clock_test.go",
-        "server/internal/postgresx/statistical_storage_test.go"
+        "server/internal/postgresx/statistical_storage_test.go",
+        "server/internal/postgresx/statistical_lazy_test.go"
       ],
-      "pattern": "^Test(Statistical|MissingStatistical|OversizedStatistical|PersistedStatistical|FrozenStatistical|CancelledStatistical)",
+      "pattern": "^Test(Statistical|MissingStatistical|OversizedStatistical|LazyStatistical|FrozenStatistical|CancelledLazyStatistical)",
       "coverage": {
         "owned-evidence": "TestStatisticalNativeSQLBoundary",
         "clock-validity": "TestMissingStatisticalClockPreservesExactQueries",
         "input-budgets": "TestOversizedStatisticalInputIsCappedBeforePublication",
         "candidate-range-pushdown": "TestStatisticalCandidateRangeExcludesHistoricalPopulation",
-        "persisted-bundles": "TestPersistedStatisticalBundles",
-        "publication-rollback": "TestCancelledStatisticalPublicationRollsBack"
+        "lazy-summaries": "TestLazyStatisticalSummaries",
+        "refresh-throttle": "TestStatisticalRefreshThrottle",
+        "publication-rollback": "TestCancelledLazyStatisticalQueryPreservesSample"
       }
     }
   ]

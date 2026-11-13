@@ -12,6 +12,8 @@ import {
   readWorkflowSubjectPage,
   readWorkflowSubjectRevision,
   readTransactions,
+  openCanonicalDatabase,
+  canonicalDatabaseName,
   scanCanonicalCollection
 } from '../storage/indexeddb.js';
 import { STORAGE_SHARD_STORE } from '../storage/shards.js';
@@ -38,11 +40,40 @@ import { DAILY_RUN_COUNT_STATE_ID } from '../model/daily-run-counts.js';
 import { incrementalAggregate } from './incremental-aggregate.js';
 import { evidencePacketSelection, readEvidencePackets } from './evidence-selection.js';
 import { measurementRows, measurementSelection, readMeasurements } from './measurement-selection.js';
-import { canonicalStatisticalWatermark, sampleStatisticalRuns, STATISTICAL_INPUT_LIMITS } from './statistical-sample.js';
+import { canonicalStatisticalWatermark, sampleStatisticalRuns, STATISTICAL_CAPACITIES, STATISTICAL_INPUT_LIMITS } from './statistical-sample.js';
+import { createStatisticalCache, statisticalRefreshConfiguration } from './statistical-cache.js';
 
 const debugDatabase = createDebug('database');
 const monotonicNow = () => globalThis.performance?.now() ?? Date.now();
 const databaseQueryIndex = dashboardQueryIndex(databaseQueries);
+/** @typedef {{ source: import('../../presenter.js').LogicalSourceInput, runs: Record<string, unknown>[] }} StatisticalSnapshot */
+/** @type {WeakMap<IDBFactory, ReturnType<typeof createStatisticalCache<StatisticalSnapshot>>>} */
+const statisticalCaches = new WeakMap();
+let statisticalAuthorityEpoch = 0;
+/** @type {Set<WeakRef<ReturnType<typeof createStatisticalCache<StatisticalSnapshot>>>>} */
+const activeStatisticalCaches = new Set();
+
+export function invalidateStatisticalCaches() {
+  statisticalAuthorityEpoch++;
+  for (const reference of activeStatisticalCaches) {
+    const cache = reference.deref();
+    if (cache) cache.invalidate();
+    else activeStatisticalCaches.delete(reference);
+  }
+}
+
+/** @param {IDBFactory} indexedDB */
+async function statisticalRevision(indexedDB) {
+  const database = await openCanonicalDatabase(indexedDB);
+  try {
+    const request = database.transaction(STORAGE_SHARD_STORE).objectStore(STORAGE_SHARD_STORE).get('totals');
+    const totals = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return String(totals?.revision ?? 'unaccounted');
+  } finally { database.close(); }
+}
 const RUN_RECORD_STORES = new Set(['domains', 'tools', 'skills', 'friction', 'audits', 'issues']);
 const DIRECT_EVIDENCE_SOURCES = new Set([
   'experiments', 'experiment-assignments', 'graders',
@@ -140,6 +171,9 @@ function executeDatabaseQuery(queryName, inputs, sources, metadataSource, budget
           availability: result.rows.length > 0 ? 'available' : 'empty',
           ...(queryName.startsWith('statistical-') && inputs.$statisticalMembership
             ? {
+                ...inputs.$statisticalMembership.metadata,
+                'source-id': queryName,
+                availability: result.rows.length > 0 ? 'available' : 'empty',
                 'as-of': inputs.$statisticalMembership.metadata['as-of'],
                 'statistical-frame': inputs.$statisticalMembership.metadata['statistical-frame'],
                 'sample-frame': inputs.$statisticalMembership.metadata['statistical-frame']
@@ -1266,9 +1300,101 @@ function queryStores(name) {
  * @param {IDBFactory} indexedDB
  * @param {Record<string, unknown>} logicalSources
  * @param {string[]} sourceNames
- * @param {{ onMetrics?: (metrics: { databaseMs: number, projectionMs: number, totalMs: number, recordsRead: number, stores: string[] }) => void, checkpoint?: () => void, statisticalCapacity?: number, evidenceSelection?: ReturnType<typeof import('./evidence-selection.js').evidencePacketSelection>, measurementSelection?: ReturnType<typeof measurementSelection>, workflowIds?: string[] }} [options]
+ * @param {{ onMetrics?: (metrics: { databaseMs: number, projectionMs: number, totalMs: number, recordsRead: number, stores: string[] }) => void, checkpoint?: () => void, statisticalCapacity?: number, evidenceSelection?: ReturnType<typeof import('./evidence-selection.js').evidencePacketSelection>, measurementSelection?: ReturnType<typeof measurementSelection>, workflowIds?: string[], statisticalSnapshot?: StatisticalSnapshot, captureStatisticalRuns?: (rows: Record<string, unknown>[]) => void }} [options]
+ * @returns {Promise<Record<string, import('../../presenter.js').LogicalSourceInput>>}
  */
 export async function queryDatabaseSources(indexedDB, logicalSources, sourceNames, options = {}) {
+  if (!Array.isArray(sourceNames) || sourceNames.some((name) => typeof name !== 'string')) {
+    throw new TypeError('Dashboard source names must be an array of strings.');
+  }
+  const authorityEpoch = statisticalAuthorityEpoch;
+  const names = sourceNames.filter((name) => name.startsWith('statistical-'));
+  if (!names.length) return queryDatabaseSourcesUncached(indexedDB, logicalSources, sourceNames, options);
+  const exact = sourceNames.filter((name) => !name.startsWith('statistical-'));
+  const result = await queryDatabaseSourcesUncached(indexedDB, logicalSources, exact, options);
+  const sources = namedSources(logicalSources);
+  const metadata = queryMetadata(sources, 'runs', 'statistical-runs', true);
+  let cache = statisticalCaches.get(indexedDB);
+  if (!cache) {
+    cache = createStatisticalCache();
+    statisticalCaches.set(indexedDB, cache);
+    activeStatisticalCaches.add(new WeakRef(cache));
+  }
+  /** @type {(name: string, error: unknown) => import('../../presenter.js').LogicalSourceInput} */
+  const unavailable = (name, error) => ({
+    source: name, rows: [],
+    metadata: { ...metadata, availability: 'unavailable', error: String(error),
+      'refresh-interval-ms': statisticalRefreshConfiguration() }
+  });
+  if (/** @type {{ metadata?: { availability?: string } } | undefined} */ (sources.runs)?.metadata?.availability === 'unavailable') {
+    cache.invalidate();
+    return { ...result, ...Object.fromEntries(names.map((name) => [name, unavailable(name, 'Run evidence withdrawn')])) };
+  }
+  try {
+    options.checkpoint?.();
+    const revision = JSON.stringify([await statisticalRevision(indexedDB), metadata['as-of'], metadata.completeness]);
+    const ready = Number.isFinite(Date.parse(metadata['as-of']))
+      || (await countCollections(indexedDB, ['runs'])).runs > 0;
+    const cached = await cache.get(`${canonicalDatabaseName()}:${options.statisticalCapacity ?? STATISTICAL_CAPACITIES.indexeddb}`, revision, async () => {
+      /** @type {Record<string, unknown>[]} */
+      let runs = [];
+      const built = await queryDatabaseSourcesUncached(indexedDB, logicalSources, ['statistical-runs'], {
+        ...options, captureStatisticalRuns: (rows) => { runs = rows; }
+      });
+      if (built['statistical-runs'].metadata.availability === 'unavailable') {
+        throw new Error(String(built['statistical-runs'].metadata.error ?? 'Statistical sample unavailable'));
+      }
+      if (JSON.stringify([await statisticalRevision(indexedDB), metadata['as-of'], metadata.completeness]) !== revision) {
+        throw new Error('Canonical revision changed during statistical refresh');
+      }
+      const snapshot = { source: built['statistical-runs'], runs };
+      if (new TextEncoder().encode(JSON.stringify(snapshot)).length > STATISTICAL_INPUT_LIMITS.bytes) {
+        throw new Error('Statistical snapshot exceeds retained byte budget');
+      }
+      return snapshot;
+    }, options.checkpoint, ready);
+    const snapshot = cached.value;
+    if (authorityEpoch !== statisticalAuthorityEpoch) throw new Error('Statistical authority changed');
+    if (!snapshot) throw cached.error ?? new Error(ready
+      ? 'Statistical refresh is throttled; no authorized snapshot is available'
+      : 'Statistical source is awaiting canonical Run evidence');
+    const source = {
+      ...snapshot.source,
+      metadata: {
+        ...snapshot.source.metadata,
+        freshness: cached.stale ? 'stale' : snapshot.source.metadata.freshness,
+        'sample-stale': cached.stale,
+        'sample-source-revision': cached.sourceRevision,
+        'refresh-interval-ms': cached.refreshIntervalMs,
+        'sample-built-at': snapshot.source.metadata['sample-built-at'],
+        ...(cached.error ? { 'sample-refresh-error': String(cached.error) } : {})
+      }
+    };
+    if (names.includes('statistical-runs')) result['statistical-runs'] = structuredClone(source);
+    const children = names.filter((name) => name !== 'statistical-runs');
+    if (children.length) {
+      if (cached.stale) {
+        for (const name of children) result[name] = unavailable(name, 'Linked statistical detail is unavailable for a stale snapshot');
+      } else {
+        const detail = await queryDatabaseSourcesUncached(indexedDB, logicalSources, children, {
+          ...options, statisticalSnapshot: { ...snapshot, source }
+        });
+        const unchanged = JSON.stringify([await statisticalRevision(indexedDB), metadata['as-of'], metadata.completeness]) === revision
+          && authorityEpoch === statisticalAuthorityEpoch;
+        for (const name of children) result[name] = unchanged ? detail[name]
+          : unavailable(name, 'Canonical revision changed while reading linked statistical detail');
+      }
+    }
+    return result;
+  } catch (error) {
+    if (error instanceof DashboardQueryCancelledError) throw error;
+    for (const name of names) result[name] = unavailable(name, error);
+    return result;
+  }
+}
+
+/** @type {typeof queryDatabaseSources} */
+async function queryDatabaseSourcesUncached(indexedDB, logicalSources, sourceNames, options = {}) {
   const startedAt = monotonicNow();
   if (!Array.isArray(sourceNames) || sourceNames.some((name) => typeof name !== 'string')) {
     throw new TypeError('Dashboard source names must be an array of strings.');
@@ -1291,7 +1417,10 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   const collectionStores = /** @type {Array<typeof import('../storage/indexeddb.js').DATABASE_STORES[number]>} */ (
     stores.filter((name) => name !== 'transactions' && name !== 'operationalValueEvidence'
       && !(name === 'workflowValueCollections' && options.workflowIds !== undefined)
-      && !(name === 'operationalValues' && databaseRequested.includes('workflow-value-measurements')))
+      && !(name === 'operationalValues' && databaseRequested.includes('workflow-value-measurements'))
+      && !(options.statisticalSnapshot && (name === 'runs' || name === 'workflows'
+        || RUN_RECORD_STORES.has(name)))
+      && !(statisticalRequested && !exactStores.has('workflows') && name === 'workflows'))
   );
   const sources = namedSources(logicalSources);
   const rawRuns = /** @type {import('../../presenter.js').LogicalSourceInput | undefined} */ (sources.runs);
@@ -1302,7 +1431,7 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   const [collections, transactions] = await Promise.all([
     collectionStores.length > 0 ? readCollections(indexedDB, collectionStores, {
       checkpoint: options.checkpoint,
-      ...(statisticalRequested ? {
+      ...(statisticalRequested && !options.statisticalSnapshot ? {
         statisticalRuns: {
           watermark: runMetadata['as-of'],
           exact: exactStores.has('runs'),
@@ -1327,6 +1456,23 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
     }) : {},
     transactionRequested ? readTransactions(indexedDB) : []
   ]);
+  if (options.statisticalSnapshot) {
+    collections.runs = options.statisticalSnapshot.runs;
+    collections.workflows = [];
+    const encoder = new TextEncoder();
+    let remainingBytes = STATISTICAL_INPUT_LIMITS.bytes - collections.runs.reduce(
+      (/** @type {number} */ bytes, /** @type {Record<string, unknown>} */ row) =>
+        bytes + encoder.encode(JSON.stringify(row)).length, 0);
+    for (const store of stores.filter((store) => RUN_RECORD_STORES.has(store))) {
+      const ids = options.statisticalSnapshot.runs.map((run) => run.id);
+      collections[store] = ids.length ? await queryCollection(indexedDB,
+        /** @type {typeof import('../storage/indexeddb.js').ENTITY_STORES[number]} */ (store),
+        [{ op: 'filter', predicates: [{ field: 'runId', in: ids }] }],
+        { maxRows: STATISTICAL_INPUT_LIMITS.rows, maxBytes: remainingBytes, checkpoint: options.checkpoint }
+      ) : [];
+      for (const row of collections[store]) remainingBytes -= encoder.encode(JSON.stringify(row)).length;
+    }
+  }
   if (stores.includes('operationalValueEvidence')) {
     collections.operationalValueEvidence = await readEvidencePackets(indexedDB, options.evidenceSelection ?? null, options.checkpoint);
   }
@@ -1344,7 +1490,9 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   const databaseMs = monotonicNow() - databaseStartedAt;
   /** @type {import('../../presenter.js').LogicalSourceInput | undefined} */
   let statisticalMembership;
-  if (statisticalRequested && !statisticalError) {
+  if (options.statisticalSnapshot) {
+    statisticalMembership = options.statisticalSnapshot.source;
+  } else if (statisticalRequested && !statisticalError) {
     try {
       const statisticalRuns = /** @type {{ rows?: Record<string, unknown>[], watermark?: string } | undefined} */ (
         collections.statisticalRuns
@@ -1358,16 +1506,29 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
         checkpoint: options.checkpoint
       });
       sample.frame['watermark-policy'] = runMetadata['as-of'] ? 'recorded-run-as-of' : 'canonical-run-max';
+      options.captureStatisticalRuns?.(sample.rows);
+      collections.runs = sample.rows;
+      delete collections.statisticalRuns;
+      if (!collections.workflows) {
+        const workflowIds = [...new Set(sample.rows.map((row) => row.workflowId).filter((id) => typeof id === 'string'))];
+        collections.workflows = workflowIds.length ? await queryCollection(indexedDB, 'workflows', [{
+          op: 'filter', predicates: [{ field: 'id', in: workflowIds }]
+        }], { maxRows: STATISTICAL_INPUT_LIMITS.rows, maxBytes: STATISTICAL_INPUT_LIMITS.bytes, checkpoint: options.checkpoint }) : [];
+      }
       statisticalMembership = {
         source: '$statisticalMembership',
         rows: sample.rows.map((row) => ({
           id: row.id, organization: row.owner, repository: row.repository, run: String(row.githubRunId),
           ...Object.fromEntries(Object.entries(row).filter(([field]) => field.startsWith('statistical-')))
         })),
-        metadata: { ...runMetadata, 'as-of': sample.frame.watermark, 'statistical-frame': sample.frame }
+        metadata: { ...runMetadata, 'as-of': sample.frame.watermark,
+          'statistical-frame': { ...sample.frame, 'storage-mode': 'lazy-summaries' },
+          'sample-built-at': new Date().toISOString() }
       };
     } catch (error) {
       if (error instanceof DashboardQueryCancelledError) throw error;
+      statisticalError = String(error);
+      for (const name of statisticalNames) unavailableStatistical.add(name);
       statisticalMembership = {
         source: '$statisticalMembership', rows: [],
         metadata: { ...runMetadata, availability: 'unavailable', error: String(error) }
@@ -1381,6 +1542,7 @@ export async function queryDatabaseSources(indexedDB, logicalSources, sourceName
   const visiting = new Set();
   /** @param {string} name @returns {import('../../presenter.js').LogicalSourceInput} */
   const resolveSource = (name) => {
+    if (name === 'statistical-runs' && options.statisticalSnapshot) return options.statisticalSnapshot.source;
     const cached = resolved.get(name);
     if (cached) return cached;
     if (unavailableStatistical.has(name)) {

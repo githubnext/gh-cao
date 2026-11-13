@@ -11,8 +11,12 @@ import {
 import { normalize } from './data/normalize/index.js';
 import {
   queryDatabaseSources,
-  loadDatabaseQuerySources
+  loadDatabaseQuerySources,
+  invalidateStatisticalCaches
 } from './data/queries/database.js';
+import {
+  configureStatisticalRefresh, requestsStatisticalSources, subscribeStatisticalRefresh
+} from './data/queries/statistical-cache.js';
 import { relationshipErrors } from './data/model/schema.js';
 import {
   DATABASE_VERSION,
@@ -169,7 +173,7 @@ let hasCompleteDashboardSnapshot = false;
  */
 let publicationPhase = 'complete';
 /**
- * @typedef {{ sourceNames: string[], context: ReturnType<typeof dashboardContext>, requestContext: { githubUrlBase?: string, dashboardRepository?: string | null }, pagination: Record<string, { limit: number, continuationToken?: string }>, revision: number | null, emitted: boolean, previewedViews?: Set<string>, controller?: AbortController, githubController?: AbortController, githubSources?: Record<string, import('./presenter.js').LogicalSourceInput>, hostedSources?: Record<string, import('./presenter.js').LogicalSourceInput>, pageId?: string, viewId?: string, routeParameters?: Record<string, string>, queryContext?: import('./data/queries/view-payload-compiler.js').GlobalQueryContext }} DashboardSubscription
+ * @typedef {{ sourceNames: string[], context: ReturnType<typeof dashboardContext>, requestContext: { githubUrlBase?: string, dashboardRepository?: string | null }, pagination: Record<string, { limit: number, continuationToken?: string }>, revision: number | null, emitted: boolean, previewedViews?: Set<string>, controller?: AbortController, statisticalController?: AbortController, statisticalRefreshStarted?: boolean, githubController?: AbortController, githubSources?: Record<string, import('./presenter.js').LogicalSourceInput>, hostedSources?: Record<string, import('./presenter.js').LogicalSourceInput>, pageId?: string, viewId?: string, routeParameters?: Record<string, string>, queryContext?: import('./data/queries/view-payload-compiler.js').GlobalQueryContext }} DashboardSubscription
  */
 /** @type {Map<string, DashboardSubscription>} */
 const dashboardSubscriptions = new Map();
@@ -708,6 +712,8 @@ async function flushDashboardSubscriptions(allowDuringIngestion = false) {
           logicalSources: { ...dashboard.logicalSources, ...subscription.hostedSources, ...subscription.githubSources }
         } : dashboard;
         const controller = new AbortController();
+        const authorityEpoch = githubAuthenticationEpoch;
+        const statistical = requestsStatisticalSources(subscription.context.queries, subscription.sourceNames);
         subscription.controller = controller;
         try {
           const pagination = subscription.revision === dashboard.revision
@@ -730,11 +736,12 @@ async function flushDashboardSubscriptions(allowDuringIngestion = false) {
               true,
               partialViews.map(({ viewId }) => viewId)
             );
-            if (dashboardSubscriptions.get(id) !== subscription || liveDashboard !== dashboard) continue;
+            if (dashboardSubscriptions.get(id) !== subscription || liveDashboard !== dashboard
+                || (statistical && authorityEpoch !== githubAuthenticationEpoch)) continue;
             subscription.previewedViews = new Set(partialViews.map(({ viewId }) => viewId));
             workerScope?.postMessage({
               subscriptionId: id, revision: dashboard.revision, data: partial, partial: true,
-              ...(subscription.githubSources ? { githubEpoch: githubAuthenticationEpoch } : {})
+              ...(subscription.githubSources || statistical ? { githubEpoch: authorityEpoch } : {})
             });
             if (!isPhaseSubscription(subscription, publicationPhase)) {
               subscription.emitted = true;
@@ -755,25 +762,33 @@ async function flushDashboardSubscriptions(allowDuringIngestion = false) {
             subscription.viewId,
             queryDashboard
           );
-          if (dashboardSubscriptions.get(id) === subscription && liveDashboard === dashboard) {
+          if (dashboardSubscriptions.get(id) === subscription && liveDashboard === dashboard
+              && (!statistical || authorityEpoch === githubAuthenticationEpoch)) {
             subscription.emitted = true;
             subscription.revision = dashboard.revision;
             subscription.pagination = pagination;
             workerScope?.postMessage({
               subscriptionId: id, revision: dashboard.revision, data,
-              ...(subscription.githubSources ? { githubEpoch: githubAuthenticationEpoch } : {})
+              ...(subscription.githubSources || statistical ? { githubEpoch: authorityEpoch } : {})
             });
           }
         } catch (error) {
-          if (dashboardSubscriptions.get(id) === subscription && liveDashboard === dashboard) {
+          if (dashboardSubscriptions.get(id) === subscription && liveDashboard === dashboard
+              && (!statistical || authorityEpoch === githubAuthenticationEpoch)) {
             workerScope?.postMessage({
               subscriptionId: id,
-              ...(subscription.githubSources ? { githubEpoch: githubAuthenticationEpoch } : {}),
+              ...(subscription.githubSources || statistical ? { githubEpoch: authorityEpoch } : {}),
               error: error instanceof Error ? error.message : String(error)
             });
           }
         } finally {
           if (subscription.controller === controller) delete subscription.controller;
+          if (subscription.statisticalController && !subscription.statisticalRefreshStarted) {
+            subscription.statisticalRefreshStarted = true;
+            subscribeStatisticalRefresh(() => {
+              scheduleDashboardSubscriptions([id]);
+            }, subscription.statisticalController.signal);
+          }
         }
 
       }
@@ -1505,11 +1520,22 @@ if (typeof document === 'undefined' && workerScope) {
   const githubSubscriptions = new Map();
   workerScope.addEventListener('message', (event) => {
     const id = event.data?.id;
+    if (event.data?.operation === 'configure-dashboard-data') {
+      configureStatisticalRefresh(event.data.configuration ?? {});
+      return;
+    }
     if (event.data?.operation === 'configure-cli-queue') {
       configureCliQueue(event.data.enabled === true, event.data.endpoint);
       return;
     }
     if (event.data?.operation === 'invalidate-github-authentication') {
+      invalidateStatisticalCaches();
+      for (const subscription of dashboardSubscriptions.values()) {
+        if (subscription.statisticalController) {
+          subscription.statisticalController.abort();
+          subscription.controller?.abort();
+        }
+      }
       githubAuthenticationEpoch = Number.isSafeInteger(event.data.epoch) ? event.data.epoch : githubAuthenticationEpoch + 1;
       githubResources.invalidateAuthentication();
       return;
@@ -1568,7 +1594,17 @@ if (typeof document === 'undefined' && workerScope) {
         });
         dashboardSubscriptions.get(subscriptionId)?.controller?.abort();
         dashboardSubscriptions.get(subscriptionId)?.githubController?.abort();
+        dashboardSubscriptions.get(subscriptionId)?.statisticalController?.abort();
         dashboardSubscriptions.set(subscriptionId, subscription);
+        if (requestsStatisticalSources(context.queries, subscription.sourceNames)) {
+          subscription.statisticalController = new AbortController();
+          if (event.data.emitCurrent === false) {
+            subscription.statisticalRefreshStarted = true;
+            subscribeStatisticalRefresh(() => {
+              scheduleDashboardSubscriptions([subscriptionId]);
+            }, subscription.statisticalController.signal);
+          }
+        }
         if (resolveDashboardQuerySources(context.queries, subscription.sourceNames).some(isGitHubQuerySource)) {
           subscription.githubController = new AbortController();
           subscription.githubSources = {};
@@ -1599,6 +1635,7 @@ if (typeof document === 'undefined' && workerScope) {
         // as a stale, unusable entry, then report the failure so the main
         // thread's pending page load rejects instead of waiting forever for
         // a snapshot that will never arrive.
+        dashboardSubscriptions.get(subscriptionId)?.statisticalController?.abort();
         dashboardSubscriptions.delete(subscriptionId);
         workerScope.postMessage({
           subscriptionId,
@@ -1611,6 +1648,7 @@ if (typeof document === 'undefined' && workerScope) {
       queueSubscriptions.get(event.data.subscriptionId)?.abort();
       dashboardSubscriptions.get(event.data.subscriptionId)?.controller?.abort();
       dashboardSubscriptions.get(event.data.subscriptionId)?.githubController?.abort();
+      dashboardSubscriptions.get(event.data.subscriptionId)?.statisticalController?.abort();
       dashboardSubscriptions.delete(event.data.subscriptionId);
       dirtyDashboardSubscriptions.delete(event.data.subscriptionId);
       if (dirtyDashboardSubscriptions.size === 0 && subscriptionFlushTimer !== null) {

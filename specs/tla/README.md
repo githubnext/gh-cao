@@ -133,22 +133,23 @@ The enabled configuration explores about 600,000 distinct states.
 
 [`StatisticalSampling.tla`](StatisticalSampling.tla) is the bounded lifecycle
 companion to [`dashboard-data.md` §5.1.1](../dashboard-data.md#511-independent-statistical-run-projection).
-Three eligible identities, one sample slot and two canonical revisions exercise
-staged/committed/aborted publication, budget and missing-clock rejection,
-incomplete quality, consumer filtering, incremental replacement/retention, and
-one application restart. Each Run owns two abstract children and one structural
-parent. Identity-ordered priorities in a single stratum abstract the deterministic
+Two eligible identities, one sample slot, two canonical revisions, and two clock
+ticks exercise independent canonical ingestion and lazy sample replacement,
+throttled attempts, budget and missing-clock rejection, incomplete quality,
+consumer filtering, authorization invalidation, and one disposable application
+restart. Each sampled Run owns one abstract structural parent; linked children
+are not independently archived. Identity-ordered priorities in a single stratum abstract the deterministic
 sampler; hash bytes, UTC eligibility, failure-reserve allocation, actual SQL,
 namespace isolation, concurrency and physical memory are covered by executable
 tests, not proved by this model. No fairness or eventual-publication claim is made.
 
 | Checked property | Implementation/test boundary |
 | --- | --- |
-| `WholeBundles`, `Bounded`, `UnavailableIsEmpty` | PostgreSQL all-or-nothing typed bundle admission and budget rejection |
-| `NoPartialPublication`, `AbortPreservesPublication` | Transactional publication, failed validation and cancellation rollback |
-| `ExactPublicationIndependent` | Sampling-only rejection preserves canonical exact publication |
+| `WholeSummaries`, `Bounded`, `UnavailableIsEmpty` | All-or-nothing summary-cache admission and budget rejection |
+| `NoPartialPublication`, `AbortPreservesPublication` | Atomic cache replacement and cancellation preservation |
+| `ExactPublicationIndependent`, `IngestionDoesNotSample` | Canonical publication never builds or waits for a sample |
 | `HonestWeights`, `FrozenSelection`, `SelectionBeforeFilter` | Complete recorded frames, deterministic membership and no consumer refill |
-| `FrozenAcrossIncremental`, `RestartPreservesEvidence` | Frozen PostgreSQL evidence survives incremental revisions, partition retention and application restart |
+| `RefreshThrottled`, `RestartDiscardsEvidence` | Revisions and failed attempts respect the process-local interval; restart discards cached evidence |
 
 ```bash
 java -XX:+UseParallelGC -Xmx1g -cp "$TLA2TOOLS_JAR" tlc2.TLC -workers 2 \

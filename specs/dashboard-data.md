@@ -695,14 +695,14 @@ The implementation profile defined by this specification is:
 `statistical-runs` is a separate, bounded statistical query layer over the current
 canonical snapshot. It SHALL NOT replace `runs`, change existing exact Run or
 linked-detail retention, evict evidence, or create daily aggregates. This is the
-incremental sampling and PostgreSQL bundle-persistence portion of
+bounded query-sampling portion of
 [the three-tier proposal](../adr/three-tier-operational-storage.md), not an
 implementation of the entire proposed three-tier architecture or online reservoir.
 PostgreSQL's independently enforced capacity boundary is specified in §37;
 additive daily contributions are specified in §72.2.
 
-Selection SHALL execute inside the canonical worker/storage query boundary, or
-PostgreSQL's canonical publication transaction, before consumer filters, joins,
+Selection SHALL execute lazily inside the canonical worker/storage query boundary,
+never inside canonical publication, and before consumer filters, joins,
 grouping, or pagination. All consumers of a snapshot and sampling policy SHALL use the
 same frame. UI code SHALL NOT reconstruct a sample from view rows.
 
@@ -769,38 +769,60 @@ allocated zero records SHALL preclude a full-population estimate. There is no
 expiration-without-refill probability claim: complete frames are reconstructed
 from canonical snapshots rather than maintained as an online reservoir.
 
-PostgreSQL SHALL atomically publish the frame, membership, strata, source
-quality, selected Runs, all nine admitted Run-linked collections, and their
-structural parent closure in private typed `cao_sample_*` tables. These tables
-SHALL NOT be canonical ingestion inputs or daily retention partitions.
-Statistical query dependencies SHALL read these frozen copies, including their
-parent context; exact dependencies in the same plan SHALL continue to read
-canonical tables. A manifest or membership cache joined to mutable canonical
-detail does not constitute persisted bundles.
+The worker and PostgreSQL adapter SHALL cache a bounded, consistent snapshot of
+selected Run summaries, structural context, membership, frame and source quality.
+Canonical ingestion SHALL NOT build, copy or refresh this cache. Statistical
+dependencies SHALL read cached Run values and context, not old membership joined
+to newer mutable Run values. Exact dependencies in the same plan SHALL continue
+to read canonical tables. The former private `cao_sample_*` tables are not used
+by this query projection; their schema declarations do not imply persisted
+statistical evidence or a compatibility fallback.
 
-The persisted frame SHALL expose `storage-mode: persisted-bundles`,
-`source-data-revision`, and `source-revision`. It describes its recorded
-publication watermark and evidence revision, not the latest incremental state.
-Independent admission, conclusion, lifecycle writes and partition maintenance
-SHALL NOT mutate or independently expire sampled children, recompute weights,
-or refill membership. Those subsequent canonical revisions SHALL make the frozen
-source stale, without changing its historical weights. Complete canonical snapshot
-publication and explicit Run-bundle publication (§5.2) SHALL replace the entire
-frame and bundles, rebuilding the seven-day window from canonical state at the
-publication's recorded watermark in the same transaction. Run-bundle publication
-does not incrementally patch sampled rows or turn partial acquisition into a
-complete population. This is bounded snapshot persistence, not a continuously
-maintained reservoir or an extension of exact retention.
+The PostgreSQL frame SHALL expose `storage-mode: lazy-summaries`,
+`source-data-revision`, and `source-revision`. Metadata SHALL expose the effective
+`refresh-interval-ms` and `sample-built-at` separately from the evidence watermark.
+An ordinary canonical revision SHALL mark a cached sample stale without changing
+its selected values, original frame or historical weights. Cache replacement
+SHALL be atomic and bound to one canonical read snapshot.
 
-Bundle admission SHALL be all-or-nothing and bounded to 200,000 records per
-collection, 500,000 evidence/context records in total, and 256 MiB of expanded
-typed values plus estimated membership bytes and a 1 MiB metadata reserve.
-The byte envelope excludes PostgreSQL page/index overhead. Budget exhaustion
-SHALL publish an unavailable statistical source with no retained bundle subset
-or valid weights, while preserving independent exact publication. Database
-errors, cancellation, or failed canonical validation SHALL roll back publication
-and preserve the previous committed frame. Snapshot readers SHALL observe either
-the previous complete publication or the next complete publication.
+Refresh SHALL be demand-driven and single-flight per authorized scope and
+selection policy. The minimum interval between attempt starts SHALL be
+configurable, defaulting to five minutes; failed attempts also consume it.
+PostgreSQL reads `CAO_STATISTICAL_REFRESH_INTERVAL` as a positive Go duration of
+at least one millisecond. Its attempt fence and cache are local to one
+Store/process, not a cross-replica or restart-persistent rate limit.
+Browser bootstrap uses `__CAO_DASHBOARD_CONFIG__.statisticalRefreshIntervalMs`,
+a positive safe-integer millisecond duration forwarded to the worker through
+`configure-dashboard-data`. Hosted subscription timers prefer the server's
+effective `refresh-interval-ms` metadata over that bootstrap fallback. Timer
+delays SHALL respect platform limits without shortening cache eligibility.
+Neither canonical revisions, consumer predicates nor result-cache invalidation
+SHALL create a fresh throttle identity. An unchanged revision SHALL reuse the
+sample even after the interval elapses. With no interested query/subscription,
+elapsed time alone SHALL NOT initiate sampling. Active subscriptions SHALL
+recheck dirty samples when refresh becomes eligible and release timers on abort.
+The interval is a rate limit, not a guarantee of maximum sample age.
+
+Restart MAY discard the cache. Authorization/enrollment changes SHALL invalidate
+cached evidence immediately without resetting the attempt fence. PostgreSQL
+checks the canonical enrollment-epoch fingerprint in each read snapshot, including
+changes made by another process. A throttled request with no authorized sample
+SHALL report unavailability rather than a successful empty sample. Refresh errors
+SHALL remain explicit; they SHALL NOT fail canonical ingestion.
+
+Linked observations SHALL NOT be eagerly copied or independently archived.
+Requested detail MAY be read lazily from canonical storage only when its revision
+matches the sample's source revision, preserving selection-before-filter and
+same-snapshot provenance. Otherwise that detail source SHALL be unavailable,
+not silently joined from a newer revision or represented as a historical zero.
+An old cached Run summary does not extend linked-detail retention.
+
+Summary admission SHALL be all-or-nothing and bounded to 200,000 records per
+collection, 500,000 context records in total, and 256 MiB of logical serialized
+values including membership and a 1 MiB metadata reserve. This is not a physical
+heap/RSS bound. Budget exhaustion SHALL expose an unavailable statistical source
+with no usable subset or valid weights, preserving independent exact queries.
+Database errors and caller cancellation SHALL NOT become successful empty samples.
 
 The Models & Agents sample-composition query consumes `statistical-runs`. Its
 counts and chart shares SHALL describe the unweighted sample only, explicitly
@@ -817,17 +839,16 @@ Conformance for this increment is declared in
 [`tests/contracts/statistical-sampling.json`](../tests/contracts/statistical-sampling.json).
 `npm run test:conformance:statistical-sampling` SHALL execute all declared suites:
 Activity publication, IndexedDB worker and native Chromium, shared Go sampler
-and CLI, PostgreSQL query and external-refresh HTTP boundaries, real PostgreSQL bundle
-lifecycle, and the bounded TLA+ model
+and CLI, PostgreSQL query and external-refresh HTTP boundaries, real PostgreSQL lazy
+summary lifecycle, and the bounded TLA+ model
 [`StatisticalSampling.tla`](tla/StatisticalSampling.tla). It requires an isolated
 `POSTGRES_URL` with schema-creation permission and `TLA2TOOLS_JAR`; missing tools,
 skipped backends, omitted coverage tests, and incomplete model checks do not
 constitute conformance. The model checks abstract single-stratum publication
 safety, not the statistical quality of the SHA256 or allocation implementation.
 
-Only the PostgreSQL profile persists independent bundles; browser projections
-cannot preserve detail already removed by canonical retention.
-Persistence cannot recover detail missing at admission. No profile reduces
+Neither profile promises independent historical bundles or preservation of detail
+already removed by canonical retention. No profile reduces
 underlying canonical storage or shard download volume in this increment.
 
 ## 5.2 Go server profile
@@ -963,8 +984,9 @@ Run-bundle publication SHALL retain the namespace writer lock, atomic revision
 and quality publication, native integrity checks, cancellation, Audit curation,
 retention, daily contribution reconciliation, and whole-subtree capacity limits.
 Ordinary publication SHALL mutate only accepted Run subtrees and supplied
-structural parents, except for necessary capacity eviction and complete frozen
-statistical reconstruction. Private typed per-Run footprints and per-source
+structural parents, except for necessary capacity eviction. Run-bundle publication
+SHALL mark cached statistical summaries stale without rebuilding them. Private
+typed per-Run footprints and per-source
 counts, ordinals and evidence clocks MAY accelerate writes only at the locked
 canonical revision; independent writers SHALL invalidate them, requiring
 reconstruction from authoritative native rows. They are not query sources or

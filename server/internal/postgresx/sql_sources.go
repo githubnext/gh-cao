@@ -154,11 +154,41 @@ func typedRowsSQLSource(name string, table entityTable, source model.Source) (qu
 	if query.EstimateRowsBytes(source.Rows) > query.MaxWorkingBytes {
 		return query.SQLRelation{}, fmt.Errorf("query %q exceeds max working bytes", name)
 	}
+	// Absent columns need no value/presence arrays. Keep their typed expressions
+	// so wide, sparse Run summaries do not multiply the query's working memory.
+	absent := map[string]query.SQLColumn{}
+	allColumns := relationColumns(table, func(int) string { return "FALSE" })
+	present := map[string]bool{}
+	for _, row := range source.Rows {
+		for _, column := range table.columns {
+			if _, exists := entityFieldValue(row, column.field); exists {
+				present[column.field] = true
+			}
+		}
+	}
+	retained := make([]entityColumn, 0, len(table.columns))
+	for _, column := range table.columns {
+		parent, _, nested := strings.Cut(column.field, ".")
+		if present[column.field] || nested && present[parent] {
+			retained = append(retained, column)
+		} else if !nested {
+			value := allColumns[column.field]
+			value.Expression, value.Presence = "NULL::"+column.sql, "FALSE"
+			if column.kind == "object" {
+				value.Expression = "NULL::jsonb"
+			}
+			absent[column.field] = value
+		}
+	}
+	table.columns = retained
 	aliases := []string{}
 	for index, column := range table.columns {
 		aliases = append(aliases, query.SQLIdentifier(column.name), query.SQLIdentifier(fmt.Sprintf("__p_%d", index)))
 	}
 	columns := relationColumns(table, func(index int) string { return "t." + query.SQLIdentifier(fmt.Sprintf("__p_%d", index)) })
+	for field, column := range absent {
+		columns[field] = column
+	}
 	workingBytes := query.EstimateRowsBytes(source.Rows) + int64(len(source.Rows))*int64(len(table.columns))*32
 	if workingBytes > query.MaxWorkingBytes {
 		return query.SQLRelation{}, fmt.Errorf("query %q exceeds max working bytes", name)
@@ -180,6 +210,9 @@ func typedRowsSQLSource(name string, table entityTable, source model.Source) (qu
 		parameters = append(parameters, "{}::"+column.sql+"[]", "{}::boolean[]")
 	}
 	aliases = append(aliases, "ordinal")
+	if len(parameters) == 0 {
+		return query.SQLRelation{SQL: "generate_series(1, {}::integer) AS t(ordinal)", Params: []any{len(source.Rows)}, Columns: columns, Order: "t.ordinal"}, nil
+	}
 	relation := "unnest(" + strings.Join(parameters, ",") + ") WITH ORDINALITY AS t(" + strings.Join(aliases, ",") + ")"
 	return query.SQLRelation{SQL: relation, Params: args, Columns: columns, Order: "t.ordinal"}, nil
 }

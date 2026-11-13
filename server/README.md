@@ -32,6 +32,40 @@ the focused contracts.
 The browser never connects directly to Postgres or Redis and never receives
 database credentials. It communicates only with the same-origin HTTP(S) API.
 
+### Lazy sampled Runs
+
+Statistical queries build a bounded Run-summary sample on demand, outside
+ingestion. Set `CAO_STATISTICAL_REFRESH_INTERVAL=15m` to change the default
+five-minute minimum interval between rebuild attempts. Values must be positive
+Go durations of at least `1ms`; invalid values fail storage startup.
+The cache and single-flight throttle belong to one Store/server process.
+Replicas and restarted processes have independent attempt fences.
+
+SQL plans consuming cached summaries run without parallel workers for that read
+transaction. PostgreSQL otherwise copies all bound summary arrays into parallel
+query shared memory, even for an independent exact-table scan in the same plan.
+Canonical-only reads retain the server's parallel-query settings; no global or
+CI shared-memory configuration change is required.
+
+For the browser/IndexedDB projection, set
+`globalThis.__CAO_DASHBOARD_CONFIG__.statisticalRefreshIntervalMs` in the
+deployment bootstrap to a positive safe-integer millisecond duration
+(default `300000`). Hosted subscriptions use the server response's effective
+`refresh-interval-ms`, with the bootstrap interval only as a fallback.
+
+Canonical updates mark an existing sample stale; they do not trigger work or
+reset the throttle. Unchanged revisions are reused without rebuilding. Sample
+metadata reports its original evidence revision/watermark, build time and
+effective interval. Failed attempts are throttled too. Exact sources and
+Operational Value are unchanged. Statistical responses bypass the ordinary
+HTTP result cache so authorization, errors and refresh eligibility are rechecked.
+
+Only Run summaries and structural context are cached. Linked observations are
+queried lazily at the same canonical revision or reported unavailable; they are
+not retained as independent historical bundles. Withdrawal invalidates cached
+evidence immediately. Restart discards the sample, and idle ingestion never
+rebuilds it.
+
 ### Local development and synthetic Pages demo
 
 From the repository root, `npm run dev` or `npm run dashboard:local` builds

@@ -1,8 +1,8 @@
 package postgresx
 
 import (
+	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -43,11 +43,6 @@ func TestOversizedStatisticalInputIsCappedBeforePublication(t *testing.T) {
 		store.namespace, dashboardquery.StatisticalMaxInputRows+1); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := writer.statisticalCandidates(t.Context(), sql.NullTime{
-		Time: time.Now().UTC().Add(time.Minute), Valid: true,
-	}); !errors.Is(err, dashboardquery.ErrStatisticalBudget) {
-		t.Fatalf("unpublished oversized input bypassed the sampling guard: %v", err)
-	}
 	if err := writer.Quality(t.Context(), "$runs", model.Metadata{
 		"as-of":        time.Now().UTC().Add(time.Minute).Format(time.RFC3339),
 		"availability": "available", "completeness": "complete",
@@ -58,24 +53,29 @@ func TestOversizedStatisticalInputIsCappedBeforePublication(t *testing.T) {
 	if err != nil || state.Counts["$runs"] != query.MaxInputRows {
 		t.Fatalf("publication did not cap retained input: %+v %v", state, err)
 	}
-	results, _, err := store.ExecuteSQLPlan(t.Context(), []query.Definition{
+	definitions := []query.Definition{
 		{Name: "sample", From: "$statisticalMembership"},
 		{Name: "exact", From: "$repositories"},
 		{Name: "retained", From: "$runs", Aggregate: &query.Aggregate{
 			Values: []query.AggregateValue{{Field: "id", As: "runs", Reducer: "count"}},
 		}},
-	}, []string{"sample", "exact", "retained"})
-	if err != nil {
-		t.Fatal(err)
 	}
-	if results["sample"].Metadata["availability"] != "available" || len(results["sample"].Rows) == 0 {
-		t.Fatalf("bounded retained frame became unavailable: %+v", results["sample"].Metadata)
-	}
-	if rows := results["retained"].Rows; len(rows) != 1 || fmt.Sprint(rows[0]["runs"]) != fmt.Sprint(query.MaxInputRows) {
-		t.Fatalf("retained exact query was not usable at capacity: %+v", results["retained"])
-	}
-	if len(results["exact"].Rows) != 1 || results["exact"].Rows[0]["id"] != "repository" {
-		t.Fatalf("sampling budget changed exact evidence: %+v", results["exact"])
+	for _, phase := range []string{"cold", "cached"} {
+		t.Run(phase, func(t *testing.T) {
+			results, _, err := store.ExecuteSQLPlan(t.Context(), definitions, []string{"sample", "exact", "retained"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if results["sample"].Metadata["availability"] != "available" || len(results["sample"].Rows) == 0 {
+				t.Fatalf("bounded retained frame became unavailable: %+v", results["sample"].Metadata)
+			}
+			if rows := results["retained"].Rows; len(rows) != 1 || fmt.Sprint(rows[0]["runs"]) != fmt.Sprint(query.MaxInputRows) {
+				t.Fatalf("retained exact query was not usable at capacity: %+v", results["retained"])
+			}
+			if len(results["exact"].Rows) != 1 || results["exact"].Rows[0]["id"] != "repository" {
+				t.Fatalf("sampling budget changed exact evidence: %+v", results["exact"])
+			}
+		})
 	}
 }
 
@@ -141,12 +141,20 @@ func TestStatisticalCandidateRangeExcludesHistoricalPopulation(t *testing.T) {
 		store.namespace, dashboardquery.StatisticalMaxInputRows+1, historicalAt); err != nil {
 		t.Fatal(err)
 	}
-	rows, watermark, policy, err := writer.statisticalCandidates(t.Context(), sql.NullTime{
-		Time: asOf, Valid: true,
-	})
-	if err != nil || len(rows) != 1 || rows[0]["id"] != "github:run:o/r:eligible" ||
-		watermark != asOf.Format("2006-01-02T15:04:05.000Z") || policy != "recorded-run-as-of" {
-		t.Fatalf("historical rows consumed the PostgreSQL candidate budget: rows=%d watermark=%s policy=%s err=%v",
-			len(rows), watermark, policy, err)
+	if err := writer.tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.WithReadTransaction(t.Context(), func(ctx context.Context, reader NativeReader) error {
+		rows, watermark, policy, err := reader.(*readTransaction).lazyStatisticalCandidates(ctx, sql.NullTime{
+			Time: asOf, Valid: true,
+		})
+		if err != nil || len(rows) != 1 || rows[0]["id"] != "github:run:o/r:eligible" ||
+			watermark != asOf.Format("2006-01-02T15:04:05.000Z") || policy != "recorded-run-as-of" {
+			t.Fatalf("historical rows consumed the PostgreSQL candidate budget: rows=%d watermark=%s policy=%s err=%v",
+				len(rows), watermark, policy, err)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

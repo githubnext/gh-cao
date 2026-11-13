@@ -19,6 +19,10 @@ import { isGitHubQuerySource } from './data/github-query-sources.js';
 import { invalidateGitHubResourceAuthentication } from './auth.js';
 import { cliQueueAvailable } from './backend-mode.js';
 import { DEMO_MODE } from './deployment-profile.js';
+import {
+  configureStatisticalRefresh, requestsStatisticalSources,
+  hostedStatisticalRefreshInterval, statisticalRefreshConfiguration, subscribeStatisticalRefresh
+} from './data/queries/statistical-cache.js';
 
 export { cliQueueAvailable } from './backend-mode.js';
 
@@ -68,6 +72,15 @@ globalThis.addEventListener?.('cao-authentication-change', (event) => {
   githubAuthenticationEpoch++;
   worker?.postMessage({ operation: 'invalidate-github-authentication', epoch: githubAuthenticationEpoch });
   for (const subscription of subscriptions.values()) {
+    if (requestsStatisticalSources(subscription.context.queries ?? [], subscription.sourceNames)) {
+      subscription.latest = null;
+      subscription.snapshot = null;
+      subscription.snapshotRevision = null;
+      for (const listener of subscription.listeners) cancelSubscriberFrame(listener);
+      subscription.remoteStop?.();
+      subscription.remoteStop = undefined;
+      subscription.registeredWorker = null;
+    }
     if (githubDashboardDependencies(subscription.sourceNames, subscription.context)) {
       subscription.latest = null;
       subscription.snapshot = null;
@@ -79,7 +92,14 @@ globalThis.addEventListener?.('cao-authentication-change', (event) => {
   }
   if (/** @type {CustomEvent<{ resume?: boolean }>} */ (event).detail?.resume !== true) return;
   queueMicrotask(() => {
-    if (!worker) return;
+    if (!worker) {
+      if (usesRemoteDataBackend()) for (const subscription of subscriptions.values()) {
+        if (requestsStatisticalSources(subscription.context.queries ?? [], subscription.sourceNames)) {
+          registerRemoteSubscription(subscription);
+        }
+      }
+      return;
+    }
     const configuration = githubWorkerBackendConfiguration();
     for (const [subscriptionId, subscription] of githubSubscriptions) {
       subscription.processor.postMessage({
@@ -87,6 +107,11 @@ globalThis.addEventListener?.('cao-authentication-change', (event) => {
       });
     }
     for (const subscription of subscriptions.values()) {
+      if (requestsStatisticalSources(subscription.context.queries ?? [], subscription.sourceNames)
+          && !githubDashboardDependencies(subscription.sourceNames, subscription.context)) {
+        if (usesRemoteDataBackend()) registerRemoteSubscription(subscription);
+        else registerSubscription(worker, subscription);
+      }
       if (!githubDashboardDependencies(subscription.sourceNames, subscription.context)) continue;
       subscription.registeredWorker = null;
       registerSubscription(worker, subscription);
@@ -647,6 +672,7 @@ export function loadDashboardSnapshotMetadata() {
  * @returns {() => void}
  */
 export function subscribeCanonicalDashboardView(viewId, sourceNames, context, listener, pagination, options = {}) {
+  configureStatisticalRefresh(Reflect.get(globalThis, '__CAO_DASHBOARD_CONFIG__') ?? {});
   if (typeof viewId !== 'string' || !viewId.trim()) {
     throw new TypeError('Canonical dashboard subscriptions require a view identifier.');
   }
@@ -762,12 +788,26 @@ function registerRemoteGitHubSubscription(processor, subscription) {
   const controller = new AbortController();
   let running = false;
   let queued = false;
+  let refreshInterval = statisticalRefreshConfiguration();
+  let stopStatistical = () => {};
+  let statisticalTimerStarted = false;
+  const startStatistical = () => {
+    if (!requestsStatisticalSources([], names)) return;
+    statisticalTimerStarted = true;
+    stopStatistical();
+    stopStatistical = subscribeStatisticalRefresh(refresh, controller.signal, () => refreshInterval);
+  };
   const refresh = async () => {
     if (controller.signal.aborted) return;
     if (running) { queued = true; return; }
     running = true;
     try {
       const result = await queryRemoteDashboard(names, { ...subscription.context, pages: [], queries: [] }, undefined, { signal: controller.signal });
+      const interval = hostedStatisticalRefreshInterval(result.sources, refreshInterval);
+      if (interval !== refreshInterval) {
+        refreshInterval = interval;
+        if (statisticalTimerStarted) startStatistical();
+      }
       if (!controller.signal.aborted) processor.postMessage({
         operation: 'update-github-dashboard-sources', subscriptionId: subscription.id, sources: result.sources
       });
@@ -781,8 +821,8 @@ function registerRemoteGitHubSubscription(processor, subscription) {
     }
   };
   const stopRevision = subscribeRemoteRevision(() => { void refresh(); });
-  subscription.remoteStop = () => { controller.abort(); stopRevision(); };
-  void refresh();
+  subscription.remoteStop = () => { controller.abort(); stopRevision(); stopStatistical(); };
+  void refresh().finally(startStatistical);
 }
 
 /** @param {ViewSubscription} subscription */
@@ -790,6 +830,16 @@ function registerRemoteSubscription(subscription) {
   if (subscription.remoteStop) return;
   let active = true;
   const controller = new AbortController();
+  const statistical = requestsStatisticalSources(subscription.context.queries ?? [], subscription.sourceNames);
+  let refreshInterval = statisticalRefreshConfiguration();
+  let stopStatistical = () => {};
+  let statisticalTimerStarted = false;
+  const startStatistical = () => {
+    if (!statistical) return;
+    statisticalTimerStarted = true;
+    stopStatistical();
+    stopStatistical = subscribeStatisticalRefresh(() => query(true), controller.signal, () => refreshInterval);
+  };
   /** @type {{ revision: number, healthRevision: number | null } | null} */
   let queuedUpdate = null;
   const query = async (refreshDecayingLoad = false) => {
@@ -815,6 +865,11 @@ function registerRemoteSubscription(subscription) {
         }
       );
       if (!active || subscriptions.get(subscription.id) !== subscription) return;
+      const interval = hostedStatisticalRefreshInterval(result.sources, refreshInterval);
+      if (interval !== refreshInterval) {
+        refreshInterval = interval;
+        if (statisticalTimerStarted) startStatistical();
+      }
       subscription.remoteRevision = result.revision;
       subscription.remoteHealthRevision = result.healthRevision;
       debugDataProcessor({
@@ -868,10 +923,12 @@ function registerRemoteSubscription(subscription) {
   subscription.remoteStop = () => {
     active = false;
     if (loadTimer !== null) clearInterval(loadTimer);
+    stopStatistical();
     stopEvents();
     controller.abort();
   };
-  if (subscription.emitCurrent) void query();
+  if (subscription.emitCurrent) void query().finally(startStatistical);
+  else startStatistical();
 }
 
 /** @param {ViewSubscription} subscription @param {string[]} sourceNames @param {ViewSubscription['context']} context @param {ViewSubscription['pagination']} pagination @param {{ pageId?: string, viewId?: string, routeParameters?: Record<string, string>, queryContext?: ViewSubscription['queryContext'] }} [options] */
@@ -984,6 +1041,7 @@ function registerSubscription(processor, subscription) {
  */
 function enqueueSubscriptionUpdate(subscription, sources, revision, partial = false) {
   if (Number.isSafeInteger(revision)
+      && !requestsStatisticalSources(subscription.context.queries ?? [], subscription.sourceNames)
       && subscription.snapshot
       && subscription.snapshotRevision === revision
       && (partial || !subscription.snapshotPartial)) return;
@@ -1042,6 +1100,11 @@ function processRequest(request, fallback, recoverWorkerError = true, signal) {
       if (!pending.has(id)) return;
       processor.postMessage({ id: ++nextRequestId, operation: 'cancel-data-processing', ids: [id] });
     };
+    const context = /** @type {{ queries?: unknown[] } | undefined} */ (request.context);
+    const statistical = requestsStatisticalSources(
+      Array.isArray(request.queries) ? request.queries : context?.queries ?? [],
+      Array.isArray(request.sourceNames) ? request.sourceNames : []
+    );
     pending.set(id, {
       resolve: (value) => resolve(/** @type {T} */ (value)),
       reject,
@@ -1050,7 +1113,7 @@ function processRequest(request, fallback, recoverWorkerError = true, signal) {
         cliQueueOutputListeners.delete(id);
       },
       processor,
-      githubEpoch: 'githubConfiguration' in request ? githubAuthenticationEpoch : undefined
+      githubEpoch: 'githubConfiguration' in request || statistical ? githubAuthenticationEpoch : undefined
     });
     const { cliQueueOutput, ...serializable } = request;
     if (typeof cliQueueOutput === 'function') cliQueueOutputListeners.set(id, /** @type {(event: Record<string, any>) => void} */ (cliQueueOutput));
@@ -1065,8 +1128,13 @@ function processRequest(request, fallback, recoverWorkerError = true, signal) {
 function getWorker() {
   if (worker) return worker;
   if (typeof Worker === 'undefined' || import.meta.url.startsWith('data:')) return null;
+  configureStatisticalRefresh(Reflect.get(globalThis, '__CAO_DASHBOARD_CONFIG__') ?? {});
   worker = new Worker(withDebugParameter(new URL('./data-worker.js', import.meta.url)), { type: 'module' });
   const processor = worker;
+  processor.postMessage({
+    operation: 'configure-dashboard-data',
+    configuration: { statisticalRefreshIntervalMs: statisticalRefreshConfiguration() }
+  });
   processor.postMessage({
     operation: 'configure-cli-queue', enabled: cliQueueAvailable(),
     endpoint: new URL('./__cli_commands', globalThis.location.href).href
@@ -1156,7 +1224,8 @@ function getWorker() {
     }
     if (typeof event.data?.subscriptionId === 'string') {
       const subscription = subscriptions.get(event.data.subscriptionId);
-      if (subscription && githubDashboardDependencies(subscription.sourceNames, subscription.context)
+      if (subscription && (githubDashboardDependencies(subscription.sourceNames, subscription.context)
+          || requestsStatisticalSources(subscription.context.queries ?? [], subscription.sourceNames))
           && (event.data.githubEpoch ?? 0) !== githubAuthenticationEpoch) return;
       if (subscription?.registeredWorker === processor
           && event.data.data && typeof event.data.data === 'object') {

@@ -1620,16 +1620,18 @@ func (a *App) executeQuery(ctx context.Context, input queryRequest, allowCollect
 	cacheEnabled := !cache.Disabled && a.services.Cache != nil && (len(input.SourceNames) > 0 || len(input.Aliases) > 0)
 	liveWebhook := false
 	liveValueCosts := false
+	liveStatistical := false
 	if cacheEnabled {
 		definitions, requested := a.queryPlan(input)
 		if err := query.WalkPlan(definitions, requested, func(name string) error {
 			liveWebhook = liveWebhook || name == webhookStatusSourceName
 			liveValueCosts = liveValueCosts || name == valueCollectionCostsSourceName
+			liveStatistical = liveStatistical || name == "$statisticalMembership" || strings.HasPrefix(name, "$frozen:")
 			return nil
 		}, func(query.Definition) error { return nil }); err != nil {
 			return queryResponse{}, http.StatusBadRequest, err
 		}
-		cacheEnabled = !liveWebhook && !liveValueCosts
+		cacheEnabled = !liveWebhook && !liveValueCosts && !liveStatistical
 	}
 	if !cacheEnabled {
 		reason := "readiness"
@@ -1638,6 +1640,8 @@ func (a *App) executeQuery(ctx context.Context, input queryRequest, allowCollect
 			reason = "live-webhook"
 		case liveValueCosts:
 			reason = "live-value-costs"
+		case liveStatistical:
+			reason = "live-statistical"
 		case cache.Disabled:
 			reason = "disabled"
 		case a.services.Cache == nil:

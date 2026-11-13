@@ -117,6 +117,7 @@ func TestRunBundlesReconstructAfterRetention(t *testing.T) {
 	if _, err := store.PublishRunBundles(t.Context(), input); err != nil {
 		t.Fatal(err)
 	}
+
 	var children int
 	if err := store.db.QueryRowContext(t.Context(), `SELECT count(*) FROM tools WHERE namespace=$1 AND run_id='run-a'`,
 		store.namespace).Scan(&children); err != nil || children != 0 {
@@ -131,5 +132,52 @@ func TestRunBundlesReconstructAfterRetention(t *testing.T) {
 	state, err := store.PublishRunBundles(t.Context(), input)
 	if err != nil || state.Counts["$runs"] != 2 || state.Counts["$tools"] != 1 {
 		t.Fatalf("retention left a trusted stale Run footprint: %+v %v", state, err)
+	}
+}
+
+func TestRunBundlePublicationLeavesStatisticalSamplingLazy(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	now := time.Now()
+	store.statistical.now = func() time.Time { return now }
+	at := seedBundleRuns(t, store, "github:run:octo/api:101", "github:run:octo/api:102")
+	input := bundleUpdate(at)
+	input.Runs[0].Run["id"] = "github:run:octo/api:101"
+	if _, err := store.PublishRunBundles(t.Context(), input); err != nil {
+		t.Fatal(err)
+	}
+	if store.statistical.snapshot != nil || !store.statistical.lastAttempt.IsZero() {
+		t.Fatal("Run-bundle publication performed statistical work")
+	}
+	baseline := statisticalResults(t, store)
+	first := store.statistical.snapshot
+	if first == nil || len(baseline["statistical-runs"].Rows) != 1 {
+		t.Fatalf("initial sample unavailable: %+v", baseline["statistical-runs"])
+	}
+	input.ObservedAt = input.ObservedAt.Add(time.Second)
+	input.Runs[0].Run["conclusion"] = "success"
+	state, err := store.PublishRunBundles(t.Context(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if store.statistical.snapshot != first {
+		t.Fatal("Run-bundle publication rebuilt the sample")
+	}
+	stale := statisticalResults(t, store)
+	if !reflect.DeepEqual(stale["statistical-runs"].Rows, baseline["statistical-runs"].Rows) ||
+		stale["statistical-runs"].Metadata["freshness"] != "stale" {
+		t.Fatal("Run-bundle publication changed the throttled sample")
+	}
+	for _, name := range []string{"statistical-tools", "statistical-audits"} {
+		if stale[name].Metadata["availability"] != "unavailable" || len(stale[name].Rows) != 0 {
+			t.Fatalf("%s exposed detail from a different revision", name)
+		}
+	}
+	now = now.Add(defaultStatisticalRefreshInterval)
+	refreshed := statisticalResults(t, store)
+	frame := refreshed["statistical-runs"].Metadata["statistical-frame"].(map[string]any)
+	if store.statistical.snapshot == first || frame["source-data-revision"] != state.DataRevision ||
+		len(refreshed["statistical-runs"].Rows) != 1 ||
+		refreshed["statistical-runs"].Rows[0]["run-conclusion"] != "success" {
+		t.Fatalf("eligible sample did not reflect the Run-bundle publication: %+v", refreshed["statistical-runs"])
 	}
 }

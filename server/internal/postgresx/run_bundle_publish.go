@@ -108,11 +108,6 @@ func (w *Writer) publishRunBundles(ctx context.Context, input RunBundlePublicati
 	}
 	digest := sha256.Sum256([]byte(w.PreviousDataRevision + "\x00run-bundles/v1\x00" + content))
 	dataRevision := "sha256:" + hex.EncodeToString(digest[:])
-	// Selection and bundles are still reconstructed synchronously, from the
-	// complete retained namespace, not just this delta's selected Runs.
-	if err := w.persistStatisticalSnapshot(ctx, dataRevision, query.MaxWorkingBytes); err != nil {
-		return State{}, fmt.Errorf("publish run-bundle statistical snapshot: %w", err)
-	}
 	workflowDigest, workflowRevision := w.workflowSubjectDigest, w.workflowSubjectRevision
 	if changed["$workflows"] {
 		workflowDigest, err = workflowSubjectDigestPGX(ctx, w.tx, w.store.namespace)

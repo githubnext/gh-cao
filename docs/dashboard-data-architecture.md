@@ -507,9 +507,15 @@ Undated executions cannot be assigned to ingestion day.
 
 The statistical layer selects before consumer filtering, with independent
 capacities: PostgreSQL 64,000, IndexedDB 16,000 selected Runs.
-Only PostgreSQL persists frozen evidence bundles and parent closure;
-incremental revisions mark them stale, and complete snapshot publication
-rebuilds them. Browser and PostgreSQL sampling cannot restore expired detail.
+Both backends select lazily on query demand and cache complete sampled Run
+summaries with their source revision. Ingestion never builds a sample.
+A configurable minimum rebuild-attempt interval defaults to five minutes;
+ordinary revisions mark summaries stale without bypassing the throttle.
+PostgreSQL operators set `CAO_STATISTICAL_REFRESH_INTERVAL` (for example `15m`);
+the cache and throttle are local to one Store/process and reset on restart.
+Linked evidence is fetched only when requested at the sampled revision or is
+explicitly unavailable, never silently joined from newer data.
+Browser and PostgreSQL sampling cannot restore expired detail.
 Sampling does not reduce canonical storage or download volume.
 
 **Retention qualification:** the draft contains conflicting summary-retention

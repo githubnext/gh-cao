@@ -264,16 +264,23 @@ consumer predicates, with separate backend capacities and explicit frame/weight
 metadata. It does not change exact sources, retention, or Operational Value.
 The Models & Agents composition chart describes sampled observations rather
 than population shares; its cost/token summaries continue using exact retained
-runs. PostgreSQL atomically persists complete sampled bundles, typed frame and
-membership metadata, source quality, and structural parents at canonical snapshot
-publication; statistical dependencies read those private, non-partitioned copies
-without changing exact dependencies. Incremental revisions mark the frozen source
-stale, never mutate sampled evidence or weights; only a complete publication
-rebuilds the seven-day frame. Admission limits reject an entire statistical
-snapshot rather than truncate bundles. IndexedDB browser sampling remain query
-projections. Hot eviction and daily aggregates from the three-tier proposal remain
-separate work; persistence cannot recover evidence missing at admission or reduce
-canonical storage/downloads.
+runs. Sampling is a lazy query projection, never part of canonical ingestion.
+The worker and PostgreSQL adapter cache bounded sampled Run summaries, their
+structural context, membership and frame as one consistent snapshot. Rebuilds
+are single-flight and demand-driven, with a configurable minimum attempt interval
+defaulting to five minutes. Ordinary canonical revisions mark the sample stale
+without bypassing the throttle; unchanged revisions reuse it indefinitely.
+PostgreSQL uses `CAO_STATISTICAL_REFRESH_INTERVAL` (for example `5m`); its cache
+and throttle are local to one Store/process, not a deployment-wide lease.
+Failures consume the attempt interval and remain explicit. Cached summaries retain
+their original evidence revision and weights. Linked detail is not independently
+archived: queries read retained detail only at the sample's canonical revision,
+otherwise report it unavailable. Active subscriptions recheck dirty samples
+after the refresh interval; idle ingestion never starts sampling. Enrollment
+withdrawal invalidates cached evidence immediately. Restart discards the cache.
+The former private sample tables are no longer populated or queried by this path.
+Hot eviction and daily aggregates from the three-tier proposal remain separate
+work; lazy sampling does not reduce canonical storage or shard downloads.
 
 The Go server is the unified local and hosted dashboard serving runtime.
 Self-contained builds embed the complete built site and declarative query/MCP
@@ -615,13 +622,9 @@ as one operation rather than inventing per-statement execution durations.
 Unchanged ingestion checks publication identity without counting sources, then
 curates audits under the namespace writer lock and reads the resulting counts once.
 Invocation preservation stages structural and conclusion dependencies only when
-the locked namespace actually contains retained invocation Runs. Statistical
-bundle publication selects each source into a bounded materialized relation once,
-measures expanded typed bytes there, and inserts only if both source and cumulative
-budgets admit it. Each dependency remains a separate SQL plan; an over-budget
-source is not inserted, and publication clears all bundles before exposing the
-unavailable frame. Neither optimization changes the full-snapshot replacement
-contract or bypasses native integrity checks.
+the locked namespace actually contains retained invocation Runs. This optimization
+does not change the full-snapshot replacement contract or bypass native integrity
+checks.
 Explicit Run-bundle publication uses a separate bounded contract after the first
 authoritative snapshot: typed staging and UPSERTs affect only accepted Runs,
 their source-owned children and supplied structural parents. Coverage controls
@@ -633,10 +636,10 @@ counts, ordinals, evidence clocks and expanded-byte footprints. Independent
 writers invalidate that acceleration state; authoritative rows reconstruct it.
 Daily reconciliation, curation and native ANALYZE are scoped to affected keys or
 sources, while capacity ordering still scans compact namespace receipts.
-Frozen statistical frame and bundle reconstruction remains synchronous and
-namespace-wide in the same transaction: delta publication is not constant-time
-or an online reservoir. Independent admission and conclusion writes retain their
-existing stale-sample behavior. The local collector explicitly negotiates
+Run-bundle publication marks cached statistical summaries stale without rebuilding
+them; sampling remains demand-driven rather than an online reservoir. Independent
+admission and conclusion writes retain their stale-sample behavior. The local
+collector explicitly negotiates
 `run-bundles`, verifies its fixed manifested sidecar and all recovery shards, and
 keeps initial/final full reconciliation. It still writes a complete disk snapshot.
 The new private bookkeeping requires freshly provisioned canonical storage.
@@ -2103,7 +2106,7 @@ not authorize cross-repository evidence access.
   receipt-fenced queue acknowledgement. A bounded database ownership transaction
   serializes authenticated enrollment changes and atomically withdraws safe
   intents, canonical evidence, daily contributions and configured shared trace
-  objects; frozen statistical bundles become unavailable. Operational indexes
+  objects; statistical caches become unavailable. Operational indexes
   cannot grant native scope, and reenrollment does not reapprove withdrawn
   traces. These are shared durable boundaries, not filesystem caches.
   The existing backfill API can use paginated native enrollment and publication

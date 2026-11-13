@@ -34,6 +34,7 @@ type Store struct {
 	linkedRetentionDays int
 	dailyCounts         bool
 	runCapacity         runCapacity
+	statistical         statisticalCache
 	stopMaintenance     context.CancelFunc
 	maintenanceDone     sync.WaitGroup
 }
@@ -48,6 +49,8 @@ type readTransaction struct {
 	store              *Store
 	tx                 *sql.Tx
 	publicationSources map[string]model.Source
+	statistical        *statisticalSnapshot
+	statisticalError   error
 }
 
 var _ dashboardstore.Store = (*Store)(nil)
@@ -139,7 +142,13 @@ func openConfig(ctx context.Context, config *pgx.ConnConfig, provision bool, nam
 		_ = db.Close()
 		return nil, err
 	}
+	statisticalInterval, err := configuredStatisticalRefreshInterval()
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	store := &Store{db: db, config: config.Copy(), namespace: namespace, linkedRetentionDays: linkedRetention}
+	store.statistical.interval = statisticalInterval
 	store.dailyCounts, err = dailyCapability(ctx, db)
 	if err != nil {
 		_ = db.Close()
@@ -236,7 +245,11 @@ func (s *Store) Close() error {
 		s.stopMaintenance()
 		s.maintenanceDone.Wait()
 	}
-	return s.db.Close()
+	err := s.db.Close()
+	s.statistical.mu.Lock()
+	s.statistical.snapshot = nil
+	s.statistical.mu.Unlock()
+	return err
 }
 
 func (s *Store) DeleteNamespace(ctx context.Context) error {

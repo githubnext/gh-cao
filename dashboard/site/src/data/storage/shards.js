@@ -19,7 +19,7 @@ const BATCH_SIZE = 1000;
 const DAY_MS = 86400000;
 
 /** @typedef {{ shard: string, timestamp: number, bytes: number, failureLogPruned?: boolean }} StorageMetadata */
-/** @typedef {{ id: string, storeName?: string, day?: number, bytes: number, count: number, dirty?: boolean, runId?: string, auditId?: string, failureLogs?: boolean }} Shard */
+/** @typedef {{ id: string, storeName?: string, day?: number, bytes: number, count: number, dirty?: boolean, runId?: string, auditId?: string, failureLogs?: boolean, revision?: string }} Shard */
 
 /** @template T @param {IDBRequest<T>} request @returns {Promise<T>} */
 function result(request) {
@@ -210,6 +210,10 @@ export async function writeAccountedRecords(transaction, storeName, records, rem
   const existing = await Promise.all([TOTALS_ID, ...changes.map(({ id }) => id)]
     .map((id) => result(shards.get(id))));
   const totals = /** @type {Shard} */ (existing[0] ?? { id: TOTALS_ID, bytes: 0, count: 0, failureLogs: false });
+  totals.revision = typeof globalThis.crypto.randomUUID === 'function'
+    ? globalThis.crypto.randomUUID()
+    : [...globalThis.crypto.getRandomValues(new Uint8Array(16))]
+      .map((byte) => byte.toString(16).padStart(2, '0')).join('');
   if (failureLogs) totals.failureLogs = true;
   changes.forEach((delta, index) => {
     const previous = /** @type {Shard | undefined} */ (existing[index + 1]);

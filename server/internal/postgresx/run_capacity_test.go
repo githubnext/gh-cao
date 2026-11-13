@@ -104,10 +104,15 @@ func TestRunCapacityKeepsNewestSubtreesAndDailyCounts(t *testing.T) {
 			WHERE namespace=$1 AND collection='$runs'`, store.namespace).Scan(&completeness); err != nil || completeness != "partial" {
 			t.Fatalf("evicted population claimed complete coverage: %s %v", completeness, err)
 		}
-		var frameComplete bool
-		if err := store.db.QueryRowContext(t.Context(), `SELECT weight_valid FROM cao_sample_statistical_frame
-			WHERE namespace=$1`, store.namespace).Scan(&frameComplete); err != nil || frameComplete {
-			t.Fatalf("evicted population produced valid population weights: %v %v", frameComplete, err)
+		sample, _, err := store.ExecuteSQLPlan(t.Context(), []query.Definition{
+			{Name: "sample", From: "$statisticalMembership"},
+		}, []string{"sample"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		frame := sample["sample"].Metadata["statistical-frame"].(map[string]any)
+		if frame["weight-valid"] != false {
+			t.Fatalf("evicted population produced valid population weights: %v", frame)
 		}
 	}
 }
