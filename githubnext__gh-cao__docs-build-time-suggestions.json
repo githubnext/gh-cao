@@ -1,35 +1,7 @@
 {
- "source_sha": "b82f8c9569f6a7c62594e245d4e38e63f3941cd8",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "source_sha": "12694b25e8215683099bda50596b4ac4691b1b28",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T03:53:53Z",
-   "worker_run_id": "43361368650",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:17:12Z to 2026-11-13T03:43:58Z; all within 14 days; none in progress; HEAD f101be5; no schedule run in window). Excluded: cancelled superseded 43206161686 (no jobs) and failed 43297524311 (Build documentation failed at e465d28, deploy skipped; fixed by cd1e0ba 43301807773 about 25 min later). Comparable n=18 successful push publications; 5-run minimum met. Job and step metadata only (log endpoints not re-read this run). Scheduling: run created to build job created (concurrency wait, group documentation-pages) median 1 s, p90 43 s, max 81 s; 3 of 18 waited behind an in-progress publication (43341730805 81 s behind c1fa69c; 43228124764 43 s behind 6ed8658; 43206235849 27 s behind 26bd463); build job queue median 3 s (p90 4); deploy job queue median 5 s; build-end to deploy-job creation median 0 s (p90 1). Run created to deploy end median 88 s (p90 169, includes waits); build start to deploy end median 84.5 s (p90 123); 15 percent gate 12.7 s; 60 s unreachable. Avoidable rebuilds: compare API for all 18 consecutive head ranges; every range contains at least one build-consumed path (docs/** content, dashboard/site/** or dashboard/site/scripts/build.mjs, astro.config.mjs, and .github/workflows/shared/policy.mjs, which the dashboard build imports); 0 of 18 pushes avoidable, so trigger narrowing saves 0. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy; median saving 0), split concurrency per job or removing the group (out-of-order Pages deploys; median saving 0), merging deploy into build (environment gate and id-token scope; about 5 s), conditional cron (weakens daily synthetic-date refresh; no per-run saving). Tail waits are queue-only and do not reach the 15 percent median gate. Observation, not timing: dashboard/site/scripts/build.mjs embeds gh-aw-version from .github/workflows/cao.json, which is not in the docs.yml push path filter, so a policy-only commit does not refresh the synthetic demo until the next docs-triggering commit or the daily cron. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T04:23:20Z",
    "worker_run_id": "43364542287",
@@ -863,10 +835,39 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43430232636 back to 43339642321; created 2026-11-13T00:45:49Z to 2026-11-13T13:02:36Z; all 20 success; none queued or in progress; no failed or cancelled run in window; failed 43297524311 left the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics. Source HEAD b82f8c9 = source_sha; docs.yml last changed 063cbe9, before every window run. Evidence: Actions jobs, steps and artifacts API metadata; job logs not read. Push medians (p90): Upload Pages artifact 2 s (3); Configure Pages 0 s (1); packaging sum 3 s (4); handoff build end to deploy job start 5 s (6; gap 0 plus deploy queue 5); Deploy Pages 7 s (8), required. github-pages artifact 8.26 to 8.38 MB, median 8.30 MB, now verified from the artifacts API; a size cut saves under 1 s. Best-case removal of packaging plus handoff = 8 s median (9.4 percent of median build start to deploy end 85 s; 15 percent gate 12.75 s; 60 s unreachable). Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate would move to the job running npm ci and the Astro build). Cache: head key node-cache-Linux-x64-npm-e62f6006... (278.9 MB, created 2026-11-12T06:18:07Z, last accessed 13:28:58Z) equals the sha256-of-raw-digest of root package-lock.json; every window run is after its creation. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T13:54:58Z",
+   "worker_run_id": "43436914213",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43430232636 back to 43339642321; created 2026-11-13T00:45:49Z to 13:02:36Z; all 20 success, none cancelled or failed; failed 43297524311 left the window). Comparable n=20 (19 push + schedule 43371878284). Source HEAD 12694b2 is 1 commit past b82f8c9, touching only server/cmd/cao-cli-quota (outside docs paths); docs.yml last changed 063cbe9. Queue vs exec: run-to-build-created concurrency wait median 1 s, p90 45 s, max 81 s; 4/20 waited 32-81 s behind an in-progress publication (43341730805, 43368963164, 43371269326, 43430232636). Build exec median 71 s (p90 85); full build-start-to-deploy-end median 85.5 s (p90 98.8). Rejected: (a) cancel-in-progress or split groups: the wait is queue time, not execution, and either change weakens ordered publication safety; (b) skip same-SHA scheduled rebuild: 1 occurrence (43371878284 at 5943848, 5 min after push 43371269326); the only other scheduled run (9537899) had no same-SHA push; saving 86 s on one daily run and needs a new freshness gate. History: before d57c4c8 (2026-11-11T21:35Z) the cron was */15 with a schedule-freshness gate (dozens of schedule runs on 11-11, outside window); replaced by daily 05:23 UTC cron. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T13:34:24Z",
+  "verified_at": "2026-11-13T13:54:58Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
   "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
@@ -875,13 +876,13 @@
   "lock_history": "root package-lock last changed 063cbe9 (2026-11-12T06:17:07Z) and is unchanged through f0c3fc4; dashboard/site/package-lock.json and docs.yml unchanged since 2026-11-12T20:00Z.",
   "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
   "logs": "HTTP 403 difc_forbidden re-probed 2026-11-13T09:20Z for job logs; re-probed 2026-11-13T12:53Z on build job 131763446973 (still 403); hits inferred from Post Set up Node.js 0 s plus actions/caches created-at and accessed-at timestamps.",
-  "caches_listing": "2026-11-13T13:34:24Z: head key node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 13:28:58Z, refs/heads/main; key-prefix listing re-run this cycle (worker 43434087979). Hit evidence remains step timing (Post Set up Node.js 0 s) plus cache timestamps; job logs HTTP 403 DIFC not re-probed this cycle.",
+  "caches_listing": "2026-11-13T13:54:58Z: head key node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 13:43:56Z, refs/heads/main; no new node-cache key since 06:18Z 11-12. 20/20 window runs show Post Set up Node.js 0 s (exact-key hit inferred from step timing and cache timestamps). Job logs not read this cycle (metadata only).",
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API."
  },
  "run_samples": {
   "window_created": "2026-11-13T00:45:49Z..2026-11-13T13:02:36Z",
-  "evaluated_at": "2026-11-13T13:34:24Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size bytes = github-pages artifact size from the Actions artifacts API (trusted metadata, all 20 fetched); from Actions jobs API (logs 403 DIFC).",
+  "evaluated_at": "2026-11-13T13:54:58Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size bytes = github-pages artifact size from the Actions artifacts API (trusted metadata, all 20 fetched); from Actions jobs API (logs 403 DIFC). Re-verified 2026-11-13T13:54:58Z (worker 43436914213): identical 20-run window and values.",
   "rows": [
    {
     "run": 43430232636,
@@ -1175,6 +1176,11 @@
    "observed_at": "2026-11-13T13:34:24Z",
    "source": "docs.yml artifact transfer and Pages packaging (category 4, re-evaluated)",
    "note": "Trusted artifacts metadata shows the github-pages artifact at 8.26 to 8.38 MB across all 20 window runs (median 8.30 MB). Upload Pages artifact median 2 s (p90 3), so any size reduction saves under 1 s. Build end to deploy job start median 5 s (p90 6); Deploy Pages median 7 s is required. Revisit only if Deploy Pages or upload medians move materially, or if a maintainer design change removes the separate deploy job."
+  },
+  {
+   "observed_at": "2026-11-13T13:54:58Z",
+   "source": "docs.yml scheduling category (worker 43436914213)",
+   "note": "Concurrency waits in the current window: 4/20 (81, 51, 44, 32 s), median 1 s, p90 45 s; queue time outside the exec gate. Same-SHA scheduled duplicate still 1 occurrence (5943848). Cadence history: d57c4c8 (2026-11-11T21:35Z) replaced the */15 cron and schedule-freshness gate with a daily 05:23 UTC cron. Re-evaluate only if a same-SHA scheduled duplicate repeats or a maintainer adds a freshness gate."
   }
  ]
 }
