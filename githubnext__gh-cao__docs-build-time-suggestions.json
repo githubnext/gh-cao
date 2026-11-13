@@ -1,35 +1,7 @@
 {
   "source_sha": "10f579c17725015e651bbde12d13cdfbfeddf79d",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T13:55:04Z",
-      "worker_run_id": "43230759467",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43228124764,
-        43228046118,
-        43225202834,
-        43206235849,
-        43206161686,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579,
-        43103737760
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:31:05Z to 2026-11-12T13:31:34Z; 14-day window; source 3eed0d6a). Excluded: 1 cancelled pending run 43206161686 (no jobs; superseded by 43206235849, commit included in 203826e4) and 1 failed pre-design schedule 43103737760 (retired Mount step). n=18 successes (17 push, 1 schedule 43161224542). Medians (p90): queue created-to-build-start 4 s (30 s; max 46 s; only 43228124764 46 s and 43206235849 30 s waited behind an in-progress publication); build-start-to-deploy-end execution 85 s (123 s); created-to-updated wall 89 s (157 s). Avoidable rebuilds: compare API on 17 push ranges; every publication changed at least one build-consumed file (docs/, dashboard/site/src, dashboard/report, scripts, package or astro config); 9 publications also carried trigger-only files (dashboard/site/test/**, aw.yml, dashboard/aw.yml, shared/cao.schema.json), so narrowing trigger paths would avoid 0 of 17 runs. Schedule 05:23 UTC is required for synthetic date refresh (1 run per day). Concurrency documentation-pages with cancel-in-progress false already coalesces pending runs; cancelling in-progress publications would risk deploy safety and only trims queue latency, not execution. Open 20380 is another category; closed 20131 not revived. Anomaly for maintainers, outside window and not sampled: workflow_run run 37642403569 (created 2026-10-07) still queued. Logs not read (job and step metadata plus compare file lists only). No suggestion; next_category advanced to dependency installation and caching."
-    },
     {
       "evaluated_at": "2026-11-12T14:24:10Z",
       "worker_run_id": "43235551039",
@@ -839,6 +811,35 @@
         43138878761
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; all within 14 days; 0 in progress; source 10f579c). Excluded: 1 cancelled 43206161686 (superseded pending run); 1 failed 43297524311 (Build documentation failed at 14 s before Pages steps; fixed by cd1e0ba). n=18 successful (17 push, 1 schedule 43161224542). Medians (p90): Configure Pages 1 s (1); Upload Pages artifact 2 s (3); build-end to deploy-start handoff 6 s (7); deploy Set up job 1 s (1); Deploy Pages 7 s (14; 14-15 s on 43206235849 and 43206080696); demo packaging 4 s (4). Per-run removable transfer median 9 s (p90 11), 10.7% of median execution 84.5 s (p90 123 s); 15% gate 12.7 s and 60 s gate unmet. github-pages artifact median 8.32 MB (8.27 to 8.36 MB); shrinking saves about 1 s. Merging deploy into build saves about 7 s and would move id-token and github-pages environment into the build job (rejected). Wall created-to-deploy-end median 88 s (p90 157 s), driven by queue waits of 30 and 46 s (scheduling category). Job logs re-verified 403 difc_forbidden; cache hit/miss not part of this category. Compare cd1e0ba...10f579c: 3 commits, docs.yml and build inputs unchanged. No suggestion; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-13T00:38:23Z",
+      "worker_run_id": "43337676572",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43301807773,
+        43297524311,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206161686,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206,
+        43141528595,
+        43139972486,
+        43138878761
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; within 14 days; source HEAD 10f579c; no docs.yml run completed since 20:35Z, so window identical to the 20:55-23:54Z evaluations). Excluded: 1 failed push 43297524311 (Build documentation step failed per job metadata; commit cd1e0ba title says llms-small.txt 64 KiB; site stayed on last good deploy until 43301807773) and 1 cancelled pending push 43206161686 (coalesced by 43206235849; never ran). Comparable n=18 successes (17 push, 1 schedule 43161224542). Medians (p90): queue created-to-build-start 4 s (30 s; max 46 s); build job 67 s (104 s); build-end to deploy-start 6 s (7 s); deploy job 10.5 s (18 s); execution build-start-to-deploy-end 84.5 s (123 s); wall created-to-deploy-end 88 s (157 s); 15% gate 12.7 s. Concurrency: only 2 runs waited, both behind an in-progress predecessor (43228124764 46 s behind 43228046118; 43206235849 30 s behind 43206080696); queue is not execution time, and the 60 s/15% gate is not met (median queue 4 s). Avoidable rebuilds: 0 of 18 push publications changed only trigger-only paths (compare API per deploy range; trigger-only verified by code as dashboard/site/test/** and shared/cao.schema.json). Correction to earlier notes: root aw.yml and */aw.yml ARE build inputs (docs/lib/catalog.ts import.meta.glob and ?raw), not trigger-only. Under-triggered build inputs (changes do not publish): scripts/dashboard-demo-data.mjs, scripts/validate-agent-docs.mjs, tests/integration/agent-docs-discovery.test.mjs, .github/workflows/cao.json (read by dashboard/site/scripts/build.mjs:61,168); adding them adds rebuilds and saves no time; freshness bounded by the daily 05:23Z schedule. Schedule: the 15-minute schedule ended with run 43103737760 on 2026-11-11 (pre d57c4c821); one daily run now, required for synthetic date refresh. Stale queued workflow_run run 37642403569 (2026-10-07) is outside window and not blocking observed runs; maintainer cleanup only. Rejected: cancel-in-progress true (unsafe for Pages deploys), dropping the schedule (freshness), cutting trigger paths (0 avoidable). Logs HTTP 403 not read. No suggestion; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ]
