@@ -403,6 +403,51 @@ func TestReconcileWithNoReservationsIsNoop(t *testing.T) {
 	}
 }
 
+func TestFinishMarksReservationAndReturnsHeldResources(t *testing.T) {
+	b, _ := testBridge(t, 5000)
+	ctx := context.Background()
+	admitted := b.handle(ctx, request{ID: 1, Operation: "admit", Resources: []string{"core"}})
+	if admitted.ReservationID == "" {
+		t.Fatalf("admission: %+v", admitted)
+	}
+
+	got := b.finish(admitted.ReservationID, []string{"core", "graphql"})
+	if len(got) != 1 || got[0] != "core" {
+		t.Fatalf("finish returned %v, want the held resources only", got)
+	}
+	if !b.reservations[admitted.ReservationID].finished {
+		t.Fatal("reservation was not marked finished")
+	}
+	if active := b.activeCount(); active != 0 {
+		t.Fatalf("active = %d after finish", active)
+	}
+}
+
+func TestFinishUnknownReservationReturnsFallback(t *testing.T) {
+	b, _ := testBridge(t, 5000)
+	fallback := []string{"core", "graphql"}
+	got := b.finish("missing", fallback)
+	if len(got) != 2 || got[0] != "core" || got[1] != "graphql" {
+		t.Fatalf("finish returned %v, want fallback", got)
+	}
+	if len(b.reservations) != 0 {
+		t.Fatalf("unknown ID created state: %d", len(b.reservations))
+	}
+}
+
+func TestCompleteWithHeldReservationSettlesAllHeldResources(t *testing.T) {
+	b, _ := testBridge(t, 5000)
+	ctx := context.Background()
+	admitted := b.handle(ctx, request{ID: 1, Operation: "admit"})
+	done := b.handle(ctx, request{ID: 2, Operation: "complete", ReservationID: admitted.ReservationID, Resources: []string{"core"}})
+	if done.Reason != "available" {
+		t.Fatalf("complete: %+v", done)
+	}
+	if _, ok := b.reservations[admitted.ReservationID]; ok {
+		t.Fatal("finished reservation was not settled by the fresh observation")
+	}
+}
+
 func TestActiveCountIgnoresFinishedReservations(t *testing.T) {
 	b, _ := testBridge(t, 5000)
 	if got := b.activeCount(); got != 0 {

@@ -99,6 +99,23 @@ func (b *bridge) release(ctx context.Context, id string) error {
 	return nil
 }
 
+// finish marks a held reservation's command as finished so the next fresh
+// observation can settle it. It returns the resources the reservation holds,
+// or fallback when the ID is unknown.
+func (b *bridge) finish(id string, fallback []string) []string {
+	held := b.reservations[id]
+	if held == nil {
+		return fallback
+	}
+	held.finished = true
+	resources := make([]string, 0, len(held.buckets))
+	for _, r := range held.buckets {
+		resources = append(resources, r.Bucket.Resource)
+	}
+	quotaLog.Printf("finished reservation: buckets=%d", len(held.buckets))
+	return resources
+}
+
 // limits applies the documented defaults to unset admission parameters.
 func (r request) limits() (concurrency, cost, floor int) {
 	concurrency, cost, floor = r.MaxConcurrency, r.EstimatedCost, r.MinimumRemaining
@@ -134,13 +151,7 @@ func (b *bridge) handle(ctx context.Context, req request) decision {
 		return b.unknown(req.ID)
 	}
 	if req.Operation == "complete" {
-		if held := b.reservations[req.ReservationID]; held != nil {
-			held.finished = true
-			resources = nil
-			for _, r := range held.buckets {
-				resources = append(resources, r.Bucket.Resource)
-			}
-		}
+		resources = b.finish(req.ReservationID, resources)
 		if req.RateLimited {
 			if err := b.parkAfterRateLimit(ctx, req.RetryAfterSeconds); err != nil {
 				return b.unknown(req.ID)
