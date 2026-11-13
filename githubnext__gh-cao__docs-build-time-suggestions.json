@@ -1,34 +1,7 @@
 {
  "source_sha": "f0c3fc4aff1ab9e7ee0d7020df3c19c545784e26",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T23:34:22Z",
-   "worker_run_id": "43329323016",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43301807773,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T02:04:52Z to 2026-11-12T20:35:27Z; all within 14 days; no new completed runs since the 23:20Z evaluation; source cd1e0ba = HEAD = source_sha). Excluded and disclosed: 1 failed 43297524311 (e465d28c; Build documentation failed at 14 s; fixed by cd1e0ba; cause unverified, logs 403) and 1 cancelled 43206161686 (no jobs). Comparable n=18 successes (17 push, 1 schedule 43161224542; identical build+deploy step shape; 5-run gate met). Category step 'Build synthetic enterprise demo' (docs.yml lines 55-58: npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, then cp to dist/cao): median 4 s, p90 4 s, range 2-5 s = 4.7% of median build-start-to-deploy-end 84.5 s (p90 120.2 s) and 6.0% of build job median 67 s. Full removal cannot reach 60 s or 15% (12.7 s). No dashboard job exists; the step has no cache (docs.yml uses only setup-node npm cache), so no hit/miss verification applies. Caching its output would conflict with the daily synthetic-date refresh (Date.now in simulate-dashboard-pages.mjs). The dashboard-site npm ci is inside the unsplit Install dependencies step (median 16 s, p90 22.3 s), so its share is not separable from metadata. Open-issue check via gh: no open issue with label self-care:docs-build-time-investigator; open [aw] failure-tracking issues 20440 and 20719 are operational, not improvement suggestions. Carry-forward, unchanged and unmeasured, not evaluated in this category: Checkout fetch-depth 0 median 24 s (p90 46 s), largest build step. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T23:54:22Z",
    "worker_run_id": "43332074164",
@@ -854,6 +827,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none in progress or queued; source f0c3fc4 = HEAD = source_sha; window identical to the 09:23Z evaluation). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s, deploy skipped; fixed by cd1e0ba; correctness failure, not timing). Comparable n=18 push successes plus 1 schedule 43371878284 (19 successes); 5-run gate met. Category step 'Build documentation' (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): push-only median 14 s, p90 15 s, range 9-15 s = 16.5% of median build-start-to-deploy-end 85 s (p90 99.6 s). 15% gate = 12.75 s, which needs about 91% of the step removed; only full removal clears it, and generated docs are required for publication, so rejected. Astro sub-steps not separable: job log reads re-verified HTTP 403 DIFC at 09:34Z. docs.yml has no Astro-specific cache (setup-node npm cache only); Astro-internal caching unmeasured and cannot show >=12.75 s. Sub-step parallelism (validate or node --test alongside astro build) is bounded by a few seconds, below the gate. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T09:52:43Z",
+   "worker_run_id": "43404417470",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; none queued or in progress; source f0c3fc4 = HEAD = source_sha; window identical to the 09:35Z evaluation, latest run 43388781287 re-verified via runs list and jobs API). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba). n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Category step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, then cp to dist/cao; no separate dashboard job): median 4 s, p90 5 s, range 3-5 s = 4.7% of median execution 85 s (p90 106 s). 15% gate 12.75 s and 60 s gate unmet even at full removal (max saving 4 s). No cache step; caching would conflict with freshness because the generator defaults now to Date.now() (scripts/simulate-dashboard-pages.mjs line 78). No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -869,8 +871,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-12T20:09:54Z..2026-11-13T07:51:43Z",
-  "evaluated_at": "2026-11-13T09:35:00Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed; 18 push, 1 schedule 43371878284). exec_s=build start to deploy end; wall_s=run created to run updated; step values from Actions jobs API (logs 403 DIFC). Jobs API omits job createdAt in this window, so queue and handoff are not recomputed.",
+  "evaluated_at": "2026-11-13T09:52:43Z",
+  "note": "compact per-run seconds (refreshed at 2026-11-13T09:52:43Z with an unchanged window) for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed; 18 push, 1 schedule 43371878284). exec_s=build start to deploy end; wall_s=run created to run updated; step values from Actions jobs API (logs 403 DIFC). Jobs API omits job createdAt in this window, so queue and handoff are not recomputed.",
   "rows": [
    {
     "run": 43388781287,
