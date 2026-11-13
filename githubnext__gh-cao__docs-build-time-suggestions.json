@@ -1,36 +1,7 @@
 {
  "source_sha": "f0c3fc4aff1ab9e7ee0d7020df3c19c545784e26",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T02:23:10Z",
-   "worker_run_id": "43351090918",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206161686,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; 0 in progress or queued; HEAD 0206402; docs.yml last changed 063cbe9). Excluded and disclosed: 1 cancelled 43206161686 (superseded pending run, no jobs) and 1 failed 43297524311 (Build documentation failed, deploy skipped, fixed by cd1e0ba). n=18 successful push publications; no schedule run in window; 5-run gate met. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 43 s, max 81 s; 3 of 18 waited behind an in-progress publication (43341730805 81 s, 43228124764 43 s, 43206235849 27 s). Pending coalescing already active (43206161686 superseded by 43206235849). Execution build start to deploy end median 84.5 s (p90 123 s); wall median 88 s (p90 169 s); 15% gate 12.7 s and 60 s gate unmet. Waits move wall p90 only; median saving 0 s. Avoidable rebuilds: compare API over all 20 consecutive head ranges (chain from schedule head 9537899): every range has at least one non-test docs.yml trigger path, so 0 of 18 runs avoidable; narrowing filters saves 0. Schedule 05:23 UTC rebuild required for synthetic-date freshness. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy); deploy-only or split build concurrency (parallel builds risk out-of-order Pages deploys; saves only p90 queue); build-deploy merge (about 6 s, weakens environment and id-token isolation). Carry-forward, not re-measured this run: Checkout median 24 s (fetch-depth 0). Lookups: 20 job-list and 20 compare calls; run samples now cached in run_samples. No suggestion; no issue created; no open worker issue. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T02:36:00Z",
    "worker_run_id": "43352566073",
@@ -859,6 +830,35 @@
     43297524311
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; none queued or in progress; source HEAD f0c3fc4 unchanged from prior evaluations). Excluded and disclosed: failed 43297524311 (Build documentation failed; deploy skipped). n=19 successful build+deploy publications (18 push, 1 schedule 43371878284); 5-run minimum met; no cancelled runs in window. Packaging medians (p90): Configure Pages 0 s (1 s); Upload Pages artifact 2 s (3 s); build-end to deploy-start handoff 5 s (6 s); deploy job Set up 1 s (1 s); Deploy Pages 7 s (8 s, max 8 s); build tail after upload 2 s (3 s). Removable transfer overhead (Configure+Upload+handoff+deploy setup) median 9 s (p90 10 s, max 10 s) = 10.6 percent of median execution 85 s (p90 106 s); 15 percent gate 12.75 s and 60 s gate both unmet even at per-run max (11.8 percent). github-pages artifact 8.26 to 8.38 MB (median 8.30 MB); upload about 0.24 s per MB, so shrinking it saves about 1 to 2 s. Merging deploy into build (about 6 s) remains rejected for id-token and environment isolation. Prior Deploy Pages 14 to 15 s outliers did not recur in this window (max 8 s). Job logs HTTP 403 difc_forbidden (re-probed 11:52Z); timings from trusted job and step metadata; artifact size from Actions artifacts API. No open worker issue (search 11:53Z; open 20440 and 20719 are workflow-failure reports). No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T12:24:02Z",
+   "worker_run_id": "43424183439",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none in progress; 1 stale queued workflow_run 37642403569 from 2026-10-07 is outside the window and remains housekeeping; HEAD f0c3fc4 = source_sha; docs.yml last changed 063cbe9 (2026-11-12T06:17Z), before the window, so the trigger/job definition is constant across it). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed; fixed by cd1e0ba). n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Run list and HEAD re-verified this run; per-run timings reused from run_samples (completed runs are immutable). Concurrency (documentation-pages, cancel-in-progress false): 3 of 19 waited 32-81 s before build-job creation (43341730805 81 s, 43371269326 44 s, 43368963164 32 s); median run-to-build wait 1 s. Waits add wall time only: exec median 85 s, p90 106 s; median saving 0 s; 15% gate 12.75 s and 60 s gate unmet. Avoidable rebuilds: 0 of 18 push publications (trigger-only classification from the 08:53Z evaluation over the same immutable ranges). Same-SHA schedule duplicate 43371878284 after push 43371269326 (5943848): still one occurrence, not repeated. Rejected as before: cancel-in-progress true (could cut an in-flight Pages deploy), deploy-only or split build concurrency (out-of-order publication risk), dropping the schedule (synthetic-date freshness). No suggestion; no issue created; no open worker issue. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
   }
  ],
