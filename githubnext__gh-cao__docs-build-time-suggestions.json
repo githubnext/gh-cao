@@ -1,36 +1,7 @@
 {
   "source_sha": "cf80d5c3bfd9f216f6f13a655f2934d1154f7a4e",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-12T14:55:17Z",
-      "worker_run_id": "43241124962",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43236057780,
-        43228124764,
-        43228046118,
-        43225202834,
-        43206235849,
-        43206161686,
-        43206080696,
-        43194788185,
-        43167568535,
-        43167070179,
-        43165397534,
-        43161224542,
-        43145803206,
-        43141528595,
-        43139972486,
-        43138878761,
-        43129836945,
-        43124416558,
-        43121504364,
-        43104481579
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-11T21:36:04Z to 2026-11-12T14:19:54Z; 0 in progress). Sample n=19 successful (18 push, 1 schedule 43161224542; source d57c4c821..a5dfc36, docs.yml last changed d57c4c821 per git log). Excluded: 43206161686 cancelled after 43206235849 was queued (likely pending-run replacement). No dashboard job exists (build and deploy only). Category step Build synthetic enterprise demo (npm run dashboard:pages:build = normalization + esbuild dashboard build + synthetic sample write, then cp to dist/cao): median 3 s, p90 4 s, range 2-4 s = 3.4% of workflow median wall 89 s (p90 157 s), 4.3% of build median 70 s; full removal cannot reach 60 s or 15% (13.4 s). Caching its output conflicts with the daily synthetic-date refresh (Date.now in simulate-dashboard-pages.mjs). Open #20380 premise targets cao-dashboard.yml, absent from workflows; not supported. Logs HTTP 403 re-verified; cache hit/miss unverified (setup-node npm cache only; no actions/cache in docs.yml). Carry-forward lead for scheduling category: concurrency waits 27-43 s (43206235849, 43228124764) and overlapping publications 13:31-13:32Z, unlike prior windows. No suggestion; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-12T15:21:04Z",
       "worker_run_id": "43245872976",
@@ -843,15 +814,42 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T03:05:21Z to 2026-11-13T01:01:49Z; all within 14 days; none in progress; source HEAD cf80d5c). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed 2026-11-12T20:10Z; fixed by cd1e0ba) and 1 cancelled 43206161686 (no jobs). n=18 successes (17 push, 1 schedule 43161224542); 5-run gate met. Category step 'Build documentation' (npm run docs:build): median 14 s, p90 15 s, range 8-15 s = 16.6% of median build-start-to-deploy-end 84.5 s (p90 123 s). 15% gate 12.7 s (wall gate 13.2 s of median 88 s): only full removal clears it, and generated docs are required for publication, so rejected. Build job median 67.5 s (p90 104); Checkout 24 s (47); Install dependencies 15.5 s (21); demo 4 s; deploy job 11 s (18). Astro-internal split (astro build vs validate-agent-docs vs node --test) not visible: job logs HTTP 403 difc_forbidden re-verified 2026-11-13T01:19Z. Cache: setup-node exact-key npm cache; Post Set up Node.js 0 s in 18/18 (consistent with hits, not log-verified); docs.yml has no actions/cache step; an Astro-cache restore is unmeasured and cannot show >=12.7 s. Queue (not this category): run-created to build-start median 4 s; waits behind in-progress publications 43341730805 81 s, 43228124764 43 s, 43206235849 27 s. Carry-forward (not this category): Checkout fetch-depth 0 remains the largest step (24 s median vs 3 s shallow calibration); blobless or history-scoped alternatives unmeasured. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-13T01:33:13Z",
+      "worker_run_id": "43345138166",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43341730805,
+        43341713733,
+        43339642321,
+        43301807773,
+        43249903823,
+        43242792853,
+        43236057780,
+        43228124764,
+        43228046118,
+        43225202834,
+        43206235849,
+        43206080696,
+        43194788185,
+        43167568535,
+        43167070179,
+        43165397534,
+        43161224542,
+        43145803206
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T03:05:21Z to 2026-11-13T01:01:49Z; within 14 days; none in progress in window; in-progress 43345305064 on 6b37c52 excluded). Excluded and disclosed: cancelled 43206161686 (no jobs); failed 43297524311 (e465d28, Build documentation failed, deploy skipped). Comparable n=18 successful (17 push, 1 schedule 43161224542; source cf80d5c = HEAD). Medians (p90): execution build start to deploy end 84.5 s (123 s); build 67.5 s (104 s); deploy 11 s (18 s); queue 4 s (46 s; outlier 83 s on 43341730805); wall created-to-deploy-end 88 s (169 s). Category: only dashboard step is Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao); median 4 s, p90 4 s, max 5 s = 4.7% of median execution. 15% gate = 12.7 s and 60 s are out of reach; full removal saves at most 5 s. No dashboard job exists (build and deploy only). Output embeds Date.now() synthetic dates (scripts/simulate-dashboard-pages.mjs, daily refresh), so caching conflicts with freshness. Astro docs build (astro.config.mjs) does not invoke the dashboard build: no duplicate. Dashboard-site npm ci is inside combined Install dependencies (median 15.5 s), not splittable from metadata; left to dependency category. Cache: Post Set up Node.js 0 s in 18/18 runs; cache list shows node-cache-Linux-x64-npm-e62f60064d02 (278.9 MB) accessed by main at 01:31Z; log read HTTP 403 difc_forbidden re-verified 01:32Z, so hit/miss inferred. Carry-forward lead, not a suggestion: Checkout fetch-depth 0 median 24 s (45-49 s in 3 runs with 103-105 s builds). Next category: artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
-    "verified_at": "2026-11-13T01:19:57Z",
+    "verified_at": "2026-11-13T01:33:13Z",
     "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 src/cache-restore.ts",
     "key": "node-cache-<RUNNER_OS>-<arch>-npm-<glob.hashFiles(root package-lock.json)>",
     "hash_rule": "sha256 over per-file sha256 digests (not plain file sha256)",
     "restore": "exact key only (no restore-keys)",
     "head_root_lock_key_suffix": "e62f60064d02",
-    "logs": "HTTP 403 difc_forbidden re-verified 2026-11-13T01:19Z; hit/miss inferred only"
+    "logs": "HTTP 403 difc_forbidden re-verified 2026-11-13T01:32Z; hit/miss inferred only (cache list metadata consistent with exact-key restore hits)"
   }
 }
