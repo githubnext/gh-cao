@@ -76,18 +76,23 @@ test('production data worker preserves statistical frames across filtering and c
         ...normalize([]), runs: [{ ...rows[0], conclusion: 'failure', attempt: 2 }]
       }, { validateRelationships: false });
       const corrected = await request();
-      return { initial, replay, corrected, composition: composition.name };
+      worker.postMessage({
+        operation: 'configure-dashboard-data', configuration: { statisticalRefreshIntervalMs: 1 }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const refreshed = await request();
+      return { initial, replay, corrected, refreshed, composition: composition.name };
     } finally {
       worker.terminate();
     }
   });
   expect(result.replay).toEqual(result.initial);
-  for (const sources of [result.initial, result.corrected]) {
+  for (const sources of [result.initial, result.refreshed]) {
     const sample = sources['statistical-runs'];
     const frame = /** @type {Record<string, unknown>} */ (sample.metadata['statistical-frame']);
     expect(frame).toMatchObject({
       capacity: 16000, 'population-count': 6, 'selected-count': 6,
-      'weight-valid': true, 'watermark-policy': 'recorded-run-as-of'
+      'weight-valid': true, 'watermark-policy': 'recorded-run-as-of', 'storage-mode': 'lazy-summaries'
     });
     expect(sample.rows.map((row) => row.run).sort()).toEqual(['1', '2', '3', '4', '5', '6']);
     expect(sample.rows.every((row) => row['statistical-frame-id'] === frame['frame-id'] &&
@@ -104,9 +109,32 @@ test('production data worker preserves statistical frames across filtering and c
       summary: 'copilot / model', 'sampled-runs': 6, 'statistical-frame-id': frame['frame-id']
     }]);
   }
-  expect(result.corrected['statistical-runs'].metadata['statistical-frame']).not.toEqual(
+  expect(result.corrected['statistical-runs'].rows).toEqual(result.initial['statistical-runs'].rows);
+  expect(result.corrected['statistical-runs'].metadata).toMatchObject({
+    freshness: 'stale', 'sample-stale': true, 'refresh-interval-ms': 300000,
+    'statistical-frame': result.initial['statistical-runs'].metadata['statistical-frame'],
+    'sample-built-at': result.initial['statistical-runs'].metadata['sample-built-at']
+  });
+  expect(result.corrected.runs.rows.find((row) => row.run === '1')).toMatchObject({
+    'run-attempt': 2, 'run-conclusion': 'failure'
+  });
+  expect(result.corrected['statistical-audits'].rows).toEqual([]);
+  expect(result.corrected['statistical-audits'].metadata).toMatchObject({
+    availability: 'unavailable', error: 'Linked statistical detail is unavailable for a stale snapshot'
+  });
+  expect(result.corrected[result.composition].rows).toEqual(result.initial[result.composition].rows);
+  expect(result.corrected[result.composition].metadata.freshness).toBe('stale');
+  expect(result.corrected['empty-sample'].metadata['statistical-frame']).toEqual(
     result.initial['statistical-runs'].metadata['statistical-frame']);
-  expect(result.corrected['statistical-runs'].rows.find((row) => row.run === '1')).toMatchObject({
+  expect(result.refreshed['statistical-runs'].metadata).toMatchObject({
+    'sample-stale': false, 'refresh-interval-ms': 1
+  });
+  expect(result.refreshed['statistical-runs'].metadata['statistical-frame']).not.toEqual(
+    result.initial['statistical-runs'].metadata['statistical-frame']);
+  expect(result.refreshed['statistical-runs'].rows.find((row) => row.run === '1')).toMatchObject({
+    'run-attempt': 2, 'run-conclusion': 'failure'
+  });
+  expect(result.refreshed['statistical-audits'].rows[0]).toMatchObject({
     'run-attempt': 2, 'run-conclusion': 'failure'
   });
 });

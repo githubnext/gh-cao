@@ -12,6 +12,84 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
+});
+
+it('refreshes statistical subscribers at the configured interval without a new server revision', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('__CAO_DASHBOARD_CONFIG__', { statisticalRefreshIntervalMs: 1_000 });
+  vi.mocked(queryRemoteDashboard).mockResolvedValue({
+    revision: 1, healthRevision: 1,
+    sources: { composition: { source: 'composition', rows: [{ sample: 1 }] } }
+  });
+  const listener = vi.fn();
+  const controller = new AbortController();
+  const stop = subscribeCanonicalDashboardView('statistical-composition', ['composition'], {
+    pages: [], queries: [{ name: 'composition', from: 'statistical-runs' }]
+  }, listener, undefined, { signal: controller.signal });
+  await vi.advanceTimersByTimeAsync(20);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(979);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(21);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+  expect(listener).toHaveBeenCalledTimes(2);
+  const signal = vi.mocked(queryRemoteDashboard).mock.calls[0][3]?.signal;
+  controller.abort();
+  stop();
+  expect(signal?.aborted).toBe(true);
+  await vi.advanceTimersByTimeAsync(5_000);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+});
+
+it('uses the server refresh interval instead of the browser default and adopts a changed interval', async () => {
+  vi.useFakeTimers();
+  const response = (/** @type {number} */ interval) => ({
+    revision: 1, healthRevision: 1,
+    sources: { composition: {
+      source: 'composition', rows: [{ sample: 1 }],
+      metadata: {
+        'refresh-interval-ms': interval, 'sample-built-at': '2026-11-13T14:00:00Z', freshness: 'stale'
+      }
+    } }
+  });
+  vi.mocked(queryRemoteDashboard).mockResolvedValueOnce(response(60_000)).mockResolvedValue(response(15_000));
+  const listener = vi.fn();
+  const stop = subscribeCanonicalDashboardView('server-statistical-composition', ['composition'], {
+    pages: [], queries: [{ name: 'composition', from: 'statistical-runs' }]
+  }, listener);
+  await vi.advanceTimersByTimeAsync(59_999);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(21);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+  expect(listener).toHaveBeenCalledTimes(2);
+  await vi.advanceTimersByTimeAsync(14_979);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+  await vi.advanceTimersByTimeAsync(21);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(3);
+  expect(listener).toHaveBeenCalledTimes(3);
+  stop();
+  await vi.advanceTimersByTimeAsync(300_000);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(3);
+});
+
+it('chunks long positive server intervals instead of overflowing into immediate polling', async () => {
+  vi.useFakeTimers();
+  vi.mocked(queryRemoteDashboard).mockResolvedValue({
+    revision: 1, healthRevision: 1,
+    sources: { composition: {
+      source: 'composition', rows: [], metadata: { 'refresh-interval-ms': 4_000_000_000 }
+    } }
+  });
+  const stop = subscribeCanonicalDashboardView('long-server-statistical', ['composition'], {
+    pages: [], queries: [{ name: 'composition', from: 'statistical-runs' }]
+  }, vi.fn());
+  await vi.advanceTimersByTimeAsync(2_147_483_646);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+  stop();
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 it('refreshes webhook counters without a revision and aborts polling when the view closes', async () => {

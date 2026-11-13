@@ -244,7 +244,7 @@ An agentic workflow that participates directly in CAO without a campaign, orches
 
 ## Statistical runs
 
-The `statistical-runs` source: a separate, bounded sampling layer over the current canonical snapshot that never replaces exact `runs`, retention, or linked detail. Selection runs inside the canonical storage query boundary or PostgreSQL publication transaction against a recorded logical UTC watermark, so every consumer of a snapshot and sampling policy shares one frame. It draws a deterministic, seeded sample of terminal Runs from the seven days before the watermark, stratified by execution UTC date and outcome, and is marked unavailable rather than exact-empty when no recorded clock or sampling input limit is exceeded. See the Dashboard Language Data Specification, Section 5.1.1.
+The `statistical-runs` source: a separate, bounded, lazy query projection that never replaces exact `runs`, retention, or linked detail. Selection runs inside the canonical storage query boundary, never ingestion, against a recorded logical UTC watermark. A cached Run-summary snapshot retains one frame across consumers; canonical revisions mark it stale until a demand-driven refresh is eligible. The configurable minimum rebuild-attempt interval defaults to five minutes. It draws a deterministic, seeded sample of terminal Runs from the seven days before the watermark, stratified by execution UTC date and outcome, and reports unavailability rather than exact-empty when no recorded clock exists or a sampling input limit is exceeded. Linked detail is not independently archived. See the Dashboard Language Data Specification, Section 5.1.1.
 
 ## Target repository
 

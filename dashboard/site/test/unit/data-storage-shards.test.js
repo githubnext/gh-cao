@@ -41,6 +41,25 @@ async function expectAccurateTotals(indexedDB) {
 }
 
 describe('incremental canonical storage shards', () => {
+  it('commits distinct canonical revisions when only non-secure-context getRandomValues is available', async () => {
+    const getRandomValues = vi.fn(globalThis.crypto.getRandomValues.bind(globalThis.crypto));
+    vi.stubGlobal('crypto', { getRandomValues });
+    try {
+      const indexedDB = new IDBFactory();
+      await upsertCanonicalBatch(indexedDB, {
+        ...normalize([]), repositories: [{ id: 'repo:1' }]
+      });
+      const first = await totals(indexedDB);
+      await upsertCanonicalBatch(indexedDB, {
+        ...normalize([]), repositories: [{ id: 'repo:2' }]
+      });
+      const second = await totals(indexedDB);
+      expect(second.revision).not.toBe(first.revision);
+      expect(await readCollection(indexedDB, 'repositories')).toHaveLength(2);
+      expect(getRandomValues).toHaveBeenCalledTimes(2);
+    } finally { vi.unstubAllGlobals(); }
+  });
+
   it('preserves usage through the production normalized-shard ingestion boundary', async () => {
     const indexedDB = new IDBFactory();
     const run = { id: 'run:303', attempt: 1, startedAt: '2026-10-09T00:00:00Z' };

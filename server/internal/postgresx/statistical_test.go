@@ -101,7 +101,8 @@ func publishStatisticalFixture(t *testing.T, store *Store, revision, watermark s
 		source string
 		row    model.Row
 	}{
-		{"$campaigns", model.Row{"id": "campaign", "slug": "sample"}},
+		{"$campaigns", model.Row{"id": "campaign", "slug": "sample",
+			"campaignLink": map[string]any{"href": "https://example.test/campaign", "relation": "campaign"}}},
 		{"$repositories", model.Row{"id": "repo", "owner": "o", "name": "r"}},
 		{"$workflows", model.Row{"id": "workflow", "repositoryId": "repo", "campaignId": "campaign", "path": "worker.md"}},
 		{"$workflows", model.Row{"id": "experiment-workflow", "repositoryId": "repo", "campaignId": "campaign", "path": "experiment.md"}},

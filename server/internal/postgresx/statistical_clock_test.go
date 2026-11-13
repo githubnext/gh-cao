@@ -1,8 +1,8 @@
 package postgresx
 
 import (
+	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -42,11 +42,6 @@ func TestOversizedStatisticalInputIsCappedBeforePublication(t *testing.T) {
 		WHERE namespace=$1 AND id='github:run:o/r:1'`,
 		store.namespace, dashboardquery.StatisticalMaxInputRows+1); err != nil {
 		t.Fatal(err)
-	}
-	if _, _, _, err := writer.statisticalCandidates(t.Context(), sql.NullTime{
-		Time: time.Now().UTC().Add(time.Minute), Valid: true,
-	}); !errors.Is(err, dashboardquery.ErrStatisticalBudget) {
-		t.Fatalf("unpublished oversized input bypassed the sampling guard: %v", err)
 	}
 	if err := writer.Quality(t.Context(), "$runs", model.Metadata{
 		"as-of":        time.Now().UTC().Add(time.Minute).Format(time.RFC3339),
@@ -141,12 +136,20 @@ func TestStatisticalCandidateRangeExcludesHistoricalPopulation(t *testing.T) {
 		store.namespace, dashboardquery.StatisticalMaxInputRows+1, historicalAt); err != nil {
 		t.Fatal(err)
 	}
-	rows, watermark, policy, err := writer.statisticalCandidates(t.Context(), sql.NullTime{
-		Time: asOf, Valid: true,
-	})
-	if err != nil || len(rows) != 1 || rows[0]["id"] != "github:run:o/r:eligible" ||
-		watermark != asOf.Format("2006-01-02T15:04:05.000Z") || policy != "recorded-run-as-of" {
-		t.Fatalf("historical rows consumed the PostgreSQL candidate budget: rows=%d watermark=%s policy=%s err=%v",
-			len(rows), watermark, policy, err)
+	if err := writer.tx.Commit(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.WithReadTransaction(t.Context(), func(ctx context.Context, reader NativeReader) error {
+		rows, watermark, policy, err := reader.(*readTransaction).lazyStatisticalCandidates(ctx, sql.NullTime{
+			Time: asOf, Valid: true,
+		})
+		if err != nil || len(rows) != 1 || rows[0]["id"] != "github:run:o/r:eligible" ||
+			watermark != asOf.Format("2006-01-02T15:04:05.000Z") || policy != "recorded-run-as-of" {
+			t.Fatalf("historical rows consumed the PostgreSQL candidate budget: rows=%d watermark=%s policy=%s err=%v",
+				len(rows), watermark, policy, err)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

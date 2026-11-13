@@ -671,9 +671,6 @@ func (w *Writer) Publish(ctx context.Context, dataRevision string) (State, error
 		w.store.namespace); err != nil {
 		return State{}, err
 	}
-	if err := w.persistStatisticalSnapshot(ctx, dataRevision, query.MaxWorkingBytes); err != nil {
-		return State{}, fmt.Errorf("publish statistical bundles: %w", err)
-	}
 	workflowDigest, err := workflowSubjectDigestPGX(ctx, w.tx, w.store.namespace)
 	if err != nil {
 		return State{}, err

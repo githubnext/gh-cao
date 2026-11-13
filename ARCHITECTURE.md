@@ -264,16 +264,23 @@ consumer predicates, with separate backend capacities and explicit frame/weight
 metadata. It does not change exact sources, retention, or Operational Value.
 The Models & Agents composition chart describes sampled observations rather
 than population shares; its cost/token summaries continue using exact retained
-runs. PostgreSQL atomically persists complete sampled bundles, typed frame and
-membership metadata, source quality, and structural parents at canonical snapshot
-publication; statistical dependencies read those private, non-partitioned copies
-without changing exact dependencies. Incremental revisions mark the frozen source
-stale, never mutate sampled evidence or weights; only a complete publication
-rebuilds the seven-day frame. Admission limits reject an entire statistical
-snapshot rather than truncate bundles. IndexedDB browser sampling remain query
-projections. Hot eviction and daily aggregates from the three-tier proposal remain
-separate work; persistence cannot recover evidence missing at admission or reduce
-canonical storage/downloads.
+runs. Sampling is a lazy query projection, never part of canonical ingestion.
+The worker and PostgreSQL adapter cache bounded sampled Run summaries, their
+structural context, membership and frame as one consistent snapshot. Rebuilds
+are single-flight and demand-driven, with a configurable minimum attempt interval
+defaulting to five minutes. Ordinary canonical revisions mark the sample stale
+without bypassing the throttle; unchanged revisions reuse it indefinitely.
+PostgreSQL uses `CAO_STATISTICAL_REFRESH_INTERVAL` (for example `5m`); its cache
+and throttle are local to one Store/process, not a deployment-wide lease.
+Failures consume the attempt interval and remain explicit. Cached summaries retain
+their original evidence revision and weights. Linked detail is not independently
+archived: queries read retained detail only at the sample's canonical revision,
+otherwise report it unavailable. Active subscriptions recheck dirty samples
+after the refresh interval; idle ingestion never starts sampling. Enrollment
+withdrawal invalidates cached evidence immediately. Restart discards the cache.
+The former private sample tables are no longer populated or queried by this path.
+Hot eviction and daily aggregates from the three-tier proposal remain separate
+work; lazy sampling does not reduce canonical storage or shard downloads.
 
 The Go server is the unified local and hosted dashboard serving runtime.
 Self-contained builds embed the complete built site and declarative query/MCP
@@ -2076,7 +2083,7 @@ not authorize cross-repository evidence access.
   receipt-fenced queue acknowledgement. A bounded database ownership transaction
   serializes authenticated enrollment changes and atomically withdraws safe
   intents, canonical evidence, daily contributions and configured shared trace
-  objects; frozen statistical bundles become unavailable. Operational indexes
+  objects; statistical caches become unavailable. Operational indexes
   cannot grant native scope, and reenrollment does not reapprove withdrawn
   traces. These are shared durable boundaries, not filesystem caches.
   The existing backfill API can use paginated native enrollment and publication

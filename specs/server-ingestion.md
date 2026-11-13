@@ -180,7 +180,7 @@ task admission.
 
 Ownership changes MUST atomically invalidate claims, pending safe evidence,
 the withdrawn repository's canonical graph and its daily contributions. Frozen
-statistical bundles MUST become explicitly unavailable, not retain withdrawn
+statistical caches MUST become explicitly unavailable, not retain withdrawn
 evidence or silently substitute live detail. Unrelated canonical repositories
 MUST remain intact.
 

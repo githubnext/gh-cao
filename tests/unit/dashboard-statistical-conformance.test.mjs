@@ -21,9 +21,9 @@ test('statistical conformance binds every backend to executable requirements', (
     'node scripts/run-daily-run-counts-conformance.mjs --statistical');
   const model = suites.find((suite) => suite.id === 'formal-publication');
   const config = readFileSync(new URL(`../../${model.files.find((file) => file.endsWith('.cfg'))}`, import.meta.url), 'utf8');
-  for (const property of ['WholeBundles', 'Bounded', 'UnavailableIsEmpty', 'NoPartialPublication',
-    'HonestWeights', 'FrozenSelection', 'SelectionBeforeFilter', 'FrozenAcrossIncremental',
-    'RestartPreservesEvidence', 'ExactPublicationIndependent', 'AbortPreservesPublication']) {
+  for (const property of ['WholeSummaries', 'Bounded', 'UnavailableIsEmpty', 'NoPartialPublication',
+    'HonestWeights', 'FrozenSelection', 'SelectionBeforeFilter', 'IngestionDoesNotSample',
+    'RefreshThrottled', 'RestartDiscardsEvidence', 'ExactPublicationIndependent', 'AbortPreservesPublication']) {
     assert.ok(config.includes(property), `TLC must check ${property}`);
   }
 });

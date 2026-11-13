@@ -111,7 +111,7 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 			if len(options.Repositories) > 0 {
 				return query.SQLRelation{}, fmt.Errorf("hosted local Value cannot query unscoped statistical source %q", name)
 			}
-			relation, quality, err := r.frozenStatisticalSource(ctx, name)
+			relation, quality, err := r.lazyStatisticalSQLSource(ctx, name)
 			metadata[name] = quality
 			return relation, err
 		}
@@ -119,7 +119,7 @@ func (r *readTransaction) ExecuteSQLPlanWithOptions(ctx context.Context, definit
 			if len(options.Repositories) > 0 {
 				return query.SQLRelation{}, fmt.Errorf("hosted local Value cannot query unscoped statistical source %q", name)
 			}
-			relation, quality, err := r.statisticalSQLSource(ctx)
+			relation, quality, err := r.lazyStatisticalSQLSource(ctx, name)
 			metadata[name] = quality
 			return relation, err
 		}
