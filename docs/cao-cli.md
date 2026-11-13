@@ -150,10 +150,16 @@ updated, rather than replacing every canonical row. Streamed child coverage is
 partial, so missing same-attempt evidence is retained; newer attempts replace
 older-attempt details. Replays are idempotent and older observations cannot undo
 newer accepted evidence. Final reconciliation remains a full verified snapshot.
-The private cache still contains a complete recovery snapshot and every
-manifested shard is hash-verified on each request. Frozen statistical bundles
-are still rebuilt atomically; these file and statistical costs are not eliminated
-by scoped canonical writes. The updated physical layout requires fresh,
+The private cache still contains a complete canonical recovery snapshot. Its
+immutable, content-addressed shards group at most 16 Runs and target 1 MiB per
+JSONL file (an individual record is never truncated to fit). A checksum-covered
+private index locates changed Runs, globally identified Issues and expiring
+detail. Streamed publications rewrite those groups and shared inventory, not
+the retained Run history; a legacy cache is repartitioned once. Manifest/index
+bookkeeping still scales with retained identities. Every manifested canonical
+shard remains subject to server integrity verification; this optimization does
+not remove server-side verification or statistical costs.
+The updated physical layout requires fresh,
 provisioned canonical storage, not automatic migration of an existing database.
 Database commits and normal revision subscriptions update the open data
 status dialog and active views; its run count and latest-run timestamp remain
@@ -176,6 +182,26 @@ POSIX mode bits are not sufficient.
 A failed refresh preserves previously published evidence, including already
 admitted streamed runs, without advancing its history checkpoint. A separate
 status update reports the failure rather than replacing evidence with empty data.
+It updates only the inventory checkpoint, preserving canonical shards and their
+index. The manifest selects the committed checkpoint; on restart the CLI repairs
+an interrupted fixed-name inventory/bundle replacement from private,
+checksum-verified checkpoint bytes. Full reconciliations also collect unreferenced
+immutable preparations, without putting a directory scan on the streaming path.
+
+The focused scaling benchmark can be repeated with:
+
+```bash
+go test ./internal/cli -run '^$' -bench '^BenchmarkDashboardSmallPublication$' \
+  -benchmem -benchtime=20x -count=3
+```
+
+In one Linux/amd64 run, median fixed 16-Run updates over 10,000 retained Runs
+and their Tool records fell from 129 ms / 39.6 MB allocated with whole-history
+rewriting to 14.4 ms / 5.28 MB with incremental shards. At 100 retained Runs the
+medians were 2.17 ms / 565 KB and 6.35 ms / 302 KB respectively: file durability
+flushes add fixed overhead, so this is a scaling improvement, not a
+claim that every tiny cache is faster. These are local publication measurements,
+not end-to-end PostgreSQL or acquisition latency guarantees.
 
 `gh cao dashboard` collects and refreshes automatically while serving.
 To force one bounded collection and PostgreSQL ingestion pass without serving:

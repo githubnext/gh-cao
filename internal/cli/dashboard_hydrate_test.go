@@ -277,24 +277,9 @@ func TestDashboardSnapshotDoesNotRetainFalseEmptySources(t *testing.T) {
 
 func readDashboardPublishedCollection(t *testing.T, directory, collection string) []map[string]any {
 	t.Helper()
-	rows := []map[string]any{}
-	for _, phase := range []string{"runs", "records"} {
-		content, err := os.ReadFile(filepath.Join(directory, "gh-aw-logs-"+phase, "local.jsonl"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, line := range strings.Split(strings.TrimSpace(string(content)), "\n") {
-			var envelope struct {
-				Collection string         `json:"collection"`
-				Record     map[string]any `json:"record"`
-			}
-			if err := json.Unmarshal([]byte(line), &envelope); err != nil {
-				t.Fatal(err)
-			}
-			if envelope.Collection == collection {
-				rows = append(rows, envelope.Record)
-			}
-		}
+	batch, err := readDashboardArtifactBatch(t.Context(), directory)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return rows
+	return batch[collection]
 }

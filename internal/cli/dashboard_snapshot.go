@@ -9,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -34,7 +36,11 @@ func readDashboardStatus(ctx context.Context, cache string, repositories []strin
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	content, err := os.ReadFile(filepath.Join(cache, "inventory-sources.json"))
+	manifest, err := readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		return nil, err
+	}
+	content, err := readDashboardCheckpointPayload(ctx, cache, "inventory-sources.json", manifest["inventory-sources.json"])
 	if err != nil {
 		return nil, fmt.Errorf("no local dashboard evidence; run gh cao dashboard: %w", err)
 	}
@@ -104,10 +110,7 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 		return err
 	}
 	if keepHistory {
-		batch, err = retainDashboardHistory(ctx, cache, batch)
-		if err != nil {
-			return err
-		}
+		return writeDashboardIncrementalSnapshot(ctx, cache, batch, bundles)
 	}
 	staging, err := os.MkdirTemp(cache, ".deployed-dashboard-")
 	if err != nil {
@@ -164,26 +167,7 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 		hash := sha256.Sum256(content.Bytes())
 		manifest[name] = hex.EncodeToString(hash[:])
 	}
-	var local, ingestion map[string]any
-	for _, row := range batch["transactions"] {
-		switch row["id"] {
-		case "local-dashboard":
-			local = row
-		case "local-dashboard-ingestion":
-			ingestion = row
-		}
-	}
-	quality := map[string]any{"availability": "available", "completeness": "partial", "freshness": "unknown"}
-	if local != nil {
-		quality["as-of"], quality["local-dashboard"] = local["windowEnd"], local
-	}
-	if ingestion != nil {
-		quality["local-dashboard-ingestion"] = ingestion
-	}
-	inventory, err := json.Marshal(map[string]any{
-		"repositories": map[string]any{"rows": []any{}, "metadata": quality},
-		"workflows":    map[string]any{"rows": []any{}, "metadata": quality},
-	})
+	inventory, err := dashboardSnapshotInventory(batch)
 	if err != nil {
 		return err
 	}
@@ -208,33 +192,71 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 	if err := os.WriteFile(filepath.Join(staging, "payload-hashes.json"), content, 0o600); err != nil {
 		return err
 	}
-	return nativePublishDownload(staging, cache, names)
+	if err := nativePublishDownload(staging, cache, names); err != nil {
+		return err
+	}
+	return cleanupDashboardSnapshotOrphans(ctx, cache, manifest)
+}
+
+func dashboardSnapshotInventory(batch map[string][]map[string]any) ([]byte, error) {
+	var local, ingestion map[string]any
+	for _, row := range batch["transactions"] {
+		switch row["id"] {
+		case "local-dashboard":
+			local = row
+		case "local-dashboard-ingestion":
+			ingestion = row
+		}
+	}
+	quality := map[string]any{"availability": "available", "completeness": "partial", "freshness": "unknown"}
+	if local != nil {
+		quality["as-of"], quality["local-dashboard"] = local["windowEnd"], local
+	}
+	if ingestion != nil {
+		quality["local-dashboard-ingestion"] = ingestion
+	}
+	return json.Marshal(map[string]any{
+		"repositories": map[string]any{"rows": []any{}, "metadata": quality},
+		"workflows":    map[string]any{"rows": []any{}, "metadata": quality},
+	})
 }
 
 func readDashboardArtifactBatch(ctx context.Context, cache string) (map[string][]map[string]any, error) {
 	batch := map[string][]map[string]any{}
-	content, err := os.ReadFile(filepath.Join(cache, "payload-hashes.json"))
-	if errors.Is(err, os.ErrNotExist) {
-		return batch, nil
-	}
+	manifest, err := readDashboardSnapshotManifest(ctx, cache)
 	if err != nil {
 		return nil, err
 	}
-	var manifest map[string]string
-	if err := json.Unmarshal(content, &manifest); err != nil {
-		return nil, err
+	names := []string{}
+	for name := range manifest {
+		if dashboardCanonicalShard(name) {
+			names = append(names, name)
+		}
 	}
-	for _, phase := range []string{"runs", "records"} {
-		name := "gh-aw-logs-" + phase + "/local.jsonl"
+	slices.Sort(names)
+	for _, name := range names {
 		if err := readDashboardArtifactPhase(ctx, cache, name, manifest[name], batch); err != nil {
 			return nil, err
 		}
+	}
+	for _, rows := range batch {
+		slices.SortFunc(rows, func(a, b map[string]any) int {
+			return strings.Compare(nativeText(a["id"]), nativeText(b["id"]))
+		})
 	}
 	return batch, nil
 }
 
 func readDashboardArtifactPhase(ctx context.Context, cache, name, expected string, batch map[string][]map[string]any) (err error) {
-	file, err := os.Open(filepath.Join(cache, filepath.FromSlash(name)))
+	if !dashboardCanonicalShard(name) || !filepath.IsLocal(name) || filepath.ToSlash(filepath.Clean(name)) != name {
+		return errors.New("local dashboard canonical artifact path is invalid")
+	}
+	root, err := os.OpenRoot(cache)
+	if err != nil {
+		return err
+	}
+	defer func() { err = errors.Join(err, root.Close()) }()
+	file, err := root.Open(filepath.FromSlash(name))
 	if err != nil {
 		return err
 	}
@@ -269,20 +291,14 @@ func readDashboardArtifactPhase(ctx context.Context, cache, name, expected strin
 	return nil
 }
 
-func retainDashboardHistory(ctx context.Context, cache string, incoming map[string][]map[string]any) (map[string][]map[string]any, error) {
-	previous, err := readDashboardArtifactBatch(ctx, cache)
+func dashboardCanonicalShard(name string) bool {
+	return (strings.HasPrefix(name, "gh-aw-logs-runs/") || strings.HasPrefix(name, "gh-aw-logs-records/")) && strings.HasSuffix(name, ".jsonl")
+}
+
+func mergeDashboardHistory(previous, incoming map[string][]map[string]any) (map[string][]map[string]any, error) {
+	retainAfter, err := dashboardHistoryCutoff(incoming)
 	if err != nil {
 		return nil, err
-	}
-	cutoff := ""
-	for _, row := range incoming["transactions"] {
-		if row["id"] == "local-dashboard" {
-			cutoff = nativeText(row["windowStart"])
-		}
-	}
-	retainAfter, err := time.Parse(time.RFC3339Nano, cutoff)
-	if err != nil {
-		return nil, errors.New("history publication requires a valid detail retention cutoff")
 	}
 	merged := map[string]map[string]map[string]any{}
 	for collection, rows := range previous {
@@ -355,15 +371,33 @@ func retainDashboardHistory(ctx context.Context, cache string, incoming map[stri
 	return batch, nil
 }
 
+func dashboardHistoryCutoff(incoming map[string][]map[string]any) (time.Time, error) {
+	cutoff := ""
+	for _, row := range incoming["transactions"] {
+		if row["id"] == "local-dashboard" {
+			cutoff = nativeText(row["windowStart"])
+		}
+	}
+	retainAfter, err := time.Parse(time.RFC3339Nano, cutoff)
+	if err != nil {
+		return time.Time{}, errors.New("history publication requires a valid detail retention cutoff")
+	}
+	return retainAfter, nil
+}
+
 func readDashboardIngestion(ctx context.Context, cache string) (state dashboardIngestion, err error) {
 	state.Cursors = map[string]dashboardHistoryCursor{}
 	if err := ctx.Err(); err != nil {
 		return state, err
 	}
-	content, err := os.ReadFile(filepath.Join(cache, "inventory-sources.json"))
-	if errors.Is(err, os.ErrNotExist) {
+	manifest, err := readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		return state, err
+	}
+	if len(manifest) == 0 {
 		return state, nil
 	}
+	content, err := readDashboardCheckpointPayload(ctx, cache, "inventory-sources.json", manifest["inventory-sources.json"])
 	if err != nil {
 		return state, err
 	}
@@ -404,7 +438,11 @@ func dashboardIngestionRecord(state dashboardIngestion) (map[string]any, error) 
 }
 
 func writeDashboardIngestion(ctx context.Context, cache string, state dashboardIngestion) error {
-	content, err := os.ReadFile(filepath.Join(cache, "inventory-sources.json"))
+	manifest, err := readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		return err
+	}
+	content, err := readDashboardCheckpointPayload(ctx, cache, "inventory-sources.json", manifest["inventory-sources.json"])
 	if err != nil {
 		return err
 	}
@@ -422,10 +460,6 @@ func writeDashboardIngestion(ctx context.Context, cache string, state dashboardI
 	if err != nil {
 		return err
 	}
-	batch, err := readDashboardArtifactBatch(ctx, cache)
-	if err != nil {
-		return err
-	}
-	batch["transactions"] = []map[string]any{metadata, record}
-	return publishDashboardSnapshot(ctx, cache, batch)
+	return publishDashboardSnapshotCheckpoint(ctx, cache, maps.Clone(manifest), manifest,
+		map[string][]map[string]any{"transactions": {metadata, record}}, nil)
 }

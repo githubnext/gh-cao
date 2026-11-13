@@ -345,6 +345,18 @@ func dashboardRefreshInterval(cache string, refresh time.Duration) time.Duration
 }
 
 func dashboardSnapshotHasRuns(cache string) bool {
+	ctx := context.Background()
+	manifest, err := readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		return false
+	}
+	index, name, err := readDashboardShardIndex(ctx, cache, manifest)
+	if err != nil {
+		return false
+	}
+	if name != "" {
+		return len(index.Groups) > 0
+	}
 	file, err := os.Open(filepath.Join(cache, "gh-aw-logs-runs", "local.jsonl"))
 	if err != nil {
 		return false
