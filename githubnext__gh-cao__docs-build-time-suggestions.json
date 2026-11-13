@@ -1,36 +1,7 @@
 {
  "source_sha": "75c762eaf69db919b1906dc0e562e93e018dea73",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T07:53:40Z",
-   "worker_run_id": "43388461559",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "43380585034",
-    "43378597209",
-    "43378369544",
-    "43374719202",
-    "43373049149",
-    "43371878284",
-    "43371269326",
-    "43371217266",
-    "43368963164",
-    "43368845651",
-    "43362224525",
-    "43360893141",
-    "43347280419",
-    "43345305064",
-    "43341730805",
-    "43341713733",
-    "43339642321",
-    "43301807773",
-    "43297524311",
-    "43249903823"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38Z to 2026-11-13T06:42Z; all within 14 days; source e71feab = checkout HEAD = source_sha; in-progress 43388781287 at f0c3fc4 excluded as not completed). Excluded and disclosed: 1 failed 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba; logs 403). Comparable n=19 successes (18 push, 1 schedule 43371878284; identical 11-step build shape; 5-run gate met). Step 'Build documentation' (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs) median 14 s (p90 15; range 9-15) = 16.5% of exec median 85 s (p90 106). 15% gate 12.75 s needs about 91% of the step removed; 60 s gate unreachable. Post-build work is cheap: both scripts read dist/ and run only git ls-files / git rev-parse; no duplicate Astro build. Astro vs validation split not visible (logs 403), but no in-step change or validation split clears the gate. Medians (p90): checkout 24 s (41), install 17 s (22), build job 70 s (91). Open issues 20440 and 20719 are gh-aw failure reports, not this work. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T08:22:43Z",
    "worker_run_id": 43392156001,
@@ -869,6 +840,35 @@
    ],
    "outcome": "actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 cancelled or failed; source 75c762e = HEAD = source_sha). Medians (p90, jobs API): exec 87.5 s (98); build job 72 (82); queue 3; deploy 10; Checkout 24.5 (29; outliers 56 s in 43380585034 and 41 s in 43362224525, both kept); Install dependencies 17.5 (23) = 20%; Build documentation 14 (15); demo 4 (5). Checkout = 28% of exec. Category routed here by the prior carry-forward. Cause: fetch-depth 0 makes actions/checkout fetch all 1270 branches and 67 tags with blobs (src/ref-helper.ts getRefSpecForAllHistory). Pinned v7.0.1 supports filter (action.yml line 60; fetch path passes --filter, git-source-provider.ts 182-190). Probe (sandbox, public remote, same refspecs): full fetch+checkout 19.4 s (1.5 GB) vs filter blob:none 4.0 s (fetch 1.3, checkout 2.7, 93 MB); HEAD identical. Provenance: git log -1 --format=%cI for all 3348 tracked files identical (0 mismatches, 0 lazy blob fetches). Build path reads no historical blobs (grep docs/, scripts/, dashboard build chain). Expected saving about 19.5 s median (22%; 24.5 s x 4.0/19.4 ratio); conservative 13.5 s (15.4%) if blobless checkout costs 11 s on runners; gate 13.1 s (15% of 87.5). Confidence medium-high (magnitude from sandbox, not runner). Issue created: one-line filter: blob:none addition. node_modules caching not re-proposed (issue 19689 closed NOT_PLANNED 2026-11-07). next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": "docs-checkout-blobless-history-v1"
+  },
+  {
+   "evaluated_at": "2026-11-13T18:22:33Z",
+   "worker_run_id": "43481071504",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days; 20/20 success, 19 push + 1 schedule 43371878284; 0 cancelled, failed or in progress; newest run head 75c762e = source_sha; workspace HEAD ac90547 has no docs.yml run and docs.yml still has fetch-depth 0 without filter, so issue 20815 is unlanded). Category Astro documentation generation = step 'Build documentation' (npm run docs:build). Median 14 s (p90 15; range 9-15) = 16.0% of exec median 87.5 s (p90 98); push-only n=19: step median 14 s, exec median 89 s = 15.7%. 15% gate 13.1 s needs about 94% of the step removed; 60 s gate unreachable. Step cannot be removed because deploy needs its output. Job logs still 403 difc_forbidden (re-probed 2026-11-13T18:22Z), so astro vs validation split is not visible. Moving validation to another job adds checkout plus install (median 42 s), so it cannot save time. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -887,7 +887,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T01:45:42Z..2026-11-13T16:44:14Z",
-  "evaluated_at": "2026-11-13T17:38:10Z",
+  "evaluated_at": "2026-11-13T18:22:33Z",
   "note": "per-run seconds, latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success). exec_s=build job start to deploy end; build_s=build job; queue_s=build created to start; handoff_s=build end to deploy created; deploy_s=deploy job; checkout_s, install_s, docs_s=build-job steps. Jobs API timings, logs not read.",
   "step_stats_median_p90_s": {
    "Checkout": [
