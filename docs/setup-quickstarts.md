@@ -25,9 +25,10 @@ To use your own database instead, pass `--postgres-url` or set `CAO_POSTGRES_URL
 That connection bypasses container management and automatic provisioning;
 provision its exact printed namespace using the
 [PostgreSQL setup contract](https://github.com/githubnext/gh-cao/blob/main/server/POSTGRES.md).
-The query server itself never gains bootstrap credentials. No cloud deployment,
-Azure setup, Redis, or separate Node.js, npm or gh-aw installation is required.
-The release includes the Go server, built dashboard and pinned gh-aw log collector.
+The query server never gains bootstrap credentials. No cloud, Azure, Redis,
+Node.js or npm setup is needed. The release embeds the server and dashboard.
+Streaming logs require gh-aw v1.2.3+; the installer and dashboard collection
+install it when missing.
 
 Verify GitHub CLI authentication, install the extension, and select the
 GitHub.com repository you can read:

@@ -57,7 +57,7 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     return source?.metadata?.availability !== 'unavailable' ? source?.rows?.[0]?.['ingested-runs'] : undefined;
   }, { signal: scope.signal });
   if (configuration) {
-    const timer = setInterval(() => clock.set(Date.now()), 60_000);
+    const timer = setInterval(() => clock.set(Date.now()), 1000);
     scope.signal.addEventListener('abort', () => clearInterval(timer), { once: true });
     const bindings = [
       { name: configuration['freshness-source'], result: freshness },
@@ -167,13 +167,12 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
     const next = formatHumanFriendlyTimestamp(progress['next-attempt-at'], clock.get());
     const active = running.get();
     const request = startRequest.get();
+    const latestSource = freshness.get();
+    const latestRunUpdate = latestSource?.metadata.availability !== 'unavailable' ? latestSource?.rows?.[0]?.['latest-data-at'] : undefined;
+    const latestRunTimestamp = typeof latestRunUpdate === 'number' ? new Date(latestRunUpdate).toJSON() : latestRunUpdate;
     return h('span', { className: 'ingestion-status-card' },
-      h('span', { className: 'ingestion-status-heading' }, octicon(current.icon),
-        h('strong', null, 'value' in current ? current.value : current.label),
-        h('span', {
-          className: 'ingestion-status-state',
-          'data-state': active ? 'running' : 'idle'
-        }, octicon(active ? 'sync' : 'dot-fill'), active ? 'Running' : 'Idle')),
+      h('span', { className: 'ingestion-status-heading' },
+        h('strong', null, 'value' in current ? current.value : current.label)),
       h('span', { className: 'ingestion-status-repository' }, stringOrFallback(progress.repository, 'Unknown repository')),
       h('span', { className: 'ingestion-status-history' },
         h('span', null, 'History'),
@@ -184,6 +183,8 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
       h('span', { className: 'ingestion-status-runs' },
         h('span', null, 'Runs ingested'),
         h('strong', null, ingestionNumber(ingestedRuns.get()))),
+      h('small', { className: 'ingestion-status-run-update' },
+        `Latest run update: ${formatHumanFriendlyTimestamp(latestRunTimestamp, clock.get()) || 'Unknown'}`),
       h('span', { className: 'ingestion-status-budget', 'aria-label': `API points remaining: ${ingestionNumber(progress['api-remaining'])}` },
         octicon('shield'), h('strong', null, ingestionNumber(progress['api-remaining'], true)),
         h('span', null, 'API left'),
@@ -191,13 +192,13 @@ export function renderDashboardCurrentStatus(snapshot, { refreshing = false, fai
       h('span', { className: 'ingestion-status-footer' },
         next ? h('span', { title: formatUtcDateTime(progress['next-attempt-at']), 'aria-label': `Next attempt ${next}` }, octicon('clock'), next) : null,
         h('small', { title: 'History discovery and artifacts remain partial.' }, 'Partial')),
-      h('button', {
+      active ? null : h('button', {
         type: 'button',
         className: 'btn ingestion-status-start',
-        disabled: active || request === 'requesting',
+        disabled: request === 'requesting',
         onClick: startIngestion
-      }, octicon(active ? 'sync' : 'play'),
-      active ? 'Ingestion running' : request === 'requesting' ? 'Starting…' : request === 'requested' ? 'Ingestion requested' : 'Start ingestion now'),
+      }, octicon('play'),
+      request === 'requesting' ? 'Starting…' : request === 'requested' ? 'Ingestion requested' : 'Start ingestion now'),
       h('details', {
         open: detailsExpanded.get(),
         onToggle: (/** @type {Event} */ event) => {

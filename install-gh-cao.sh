@@ -100,6 +100,7 @@ usage() {
     'Install in the current GitHub checkout, or explicitly create and clone a private control repository.' \
     '--create-repo requires typing an eligible OWNER and NAME with no defaults; pass OWNER/NAME for non-interactive use.' \
     '--setup opens guided setup; without a terminal or in CI, it applies exact public-repository workflow-token defaults.' \
+    'Installs gh-aw with JSONL streaming support when missing; asks before upgrading an older installation.' \
     'Existing policy and unrelated files are preserved and no campaign is added or run.'
 }
 
@@ -568,7 +569,7 @@ upgrade_gh_aw() {
     printf 'gh-aw was not upgraded. Run `%s`, then rerun the CAO installer.\n' "$upgrade_command" >&2
     return 1
   fi
-  if { printf 'The installed gh-aw is too old for this CAO campaign. Upgrade it now with %s? [y/N] ' "$upgrade_command" > /dev/tty; } 2>/dev/null &&
+  if { printf 'The installed gh-aw is too old for CAO and streaming dashboard collection. Upgrade it now with %s? [y/N] ' "$upgrade_command" > /dev/tty; } 2>/dev/null &&
     IFS= read -r answer < /dev/tty && [[ "$answer" =~ ^[Yy]$ ]]; then
     if ! install_gh_aw; then
       printf 'Failed to install gh-aw %s.\n' "$required_gh_aw" >&2
@@ -745,7 +746,7 @@ main() {
     local version_manifest="aw.yml"
     [[ ! -d "$catalog_source" ]] || version_manifest="$catalog_source/aw.yml"
     manifest_required_gh_aw="$(awk '$1 == "min-version:" { print $2; exit }' "$version_manifest")"
-    if [[ -n "$manifest_required_gh_aw" ]]; then
+    if [[ -n "$manifest_required_gh_aw" ]] && version_at_least "$manifest_required_gh_aw" "$required_gh_aw"; then
       required_gh_aw="$manifest_required_gh_aw"
     fi
   fi

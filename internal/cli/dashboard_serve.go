@@ -229,18 +229,30 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 		return nil
 	}
-	ingest := func() {
-		refresh := exec.CommandContext(ctx, server, "ingest", "--source", cache,
-			"--redis-namespace", namespace,
-			"--database-queries", filepath.Join(site, "src/data/queries/database.json"))
-		refresh.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+options.postgresURL)
-		if err := refresh.Run(); err != nil && ctx.Err() == nil {
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Dashboard PostgreSQL ingestion failed; previous canonical revision retained.")
+	ingestor, err := startDashboardIngestor(ctx, server, site, cache, namespace, options.postgresURL, cmd.ErrOrStderr())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := ingestor.Close(); err != nil {
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
 		}
+	}()
+	ingest := func() error {
+		if err := ingestor.Ingest(); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			err := errors.New("dashboard PostgreSQL ingestion failed; previous canonical revision retained")
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+			return err
+		}
+		return nil
 	}
 	// Publish the "collecting" status before the pass ends so the dashboard
 	// shows ingestion as running while GitHub evidence is acquired.
-	options.onCollecting = ingest
+	options.onCollecting = func() { _ = ingest() }
+	options.onPublished = ingest
 	// Initial ingestion must finish before collection can replace snapshot files.
 	// The server announces its listener only after ingesting the initial source.
 	ticker := time.NewTimer(options.refresh)
@@ -252,7 +264,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
 		}
 		if ctx.Err() == nil {
-			ingest()
+			_ = ingest()
 		}
 		// Requests made during this pass are satisfied by it.
 		select {

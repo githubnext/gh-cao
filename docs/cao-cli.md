@@ -32,9 +32,13 @@ gh cao dashboard --repo octo/api
 gh cao dashboard --repo octo/api --repo octo/web
 ```
 
-Release binaries embed the pinned gh-aw log collector, the existing Go server,
-and the built dashboard. Use an authenticated GitHub CLI and Docker or Podman;
-there is no separate gh-aw, Node.js, npm, or Redis setup. Without an explicit
+Release binaries embed the existing Go server and built dashboard. Collection
+uses the installed gh-aw extension with `gh aw logs --format jsonl` support
+(v1.2.3 or newer). `install-gh-cao.sh` installs gh-aw when missing and asks before
+upgrading an older version; an older campaign manifest cannot lower this minimum.
+Before acquiring artifacts, the dashboard also checks streaming support and installs v1.2.3 if unavailable,
+without changing workflows or CAO policy. Use an authenticated GitHub CLI and
+Docker or Podman; no Node.js, npm, or Redis setup is needed. Without an explicit
 `--postgres-url` or `CAO_POSTGRES_URL`, the command pulls and starts an owned
 PostgreSQL container and provisions separate owner/runtime roles. Its data is
 bind-mounted under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
@@ -50,7 +54,7 @@ separate CAO runtime files. The command extracts its bundled resources
 to a private temporary directory and removes them on shutdown; only the local
 evidence cache is retained. Release installation checks start the dashboard from
 an empty directory with the required native executables and exercise its
-embedded collector, HTTP assets, and PostgreSQL queries.
+installed collector, HTTP assets, and PostgreSQL queries.
 The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 
@@ -75,7 +79,8 @@ PostgreSQL until they age out of the selected window; restarting reuses the save
 checkpoint. Discovery completion is not a guarantee of complete artifacts or
 upstream coverage.
 
-The header's **data-status card** shows a history progress bar, compact API
+The header's **data-status card** uses one status label and offers its start
+action only while idle. It shows a history progress bar, compact API
 headroom and a retry countdown. On mobile, tap the labeled menu button to open
 its popup; desktop keeps a hover tooltip. **Details** expands diagnostics and
 timestamps. This status updates
@@ -128,11 +133,24 @@ cache. Select an external cache explicitly with `--logs-dir PATH`. Existing gh-a
 records are reused by the same gh-aw collector. Only profile-owned artifact
 caches receive the 256 MiB storage budget; existing external gh-aw caches are
 not pruned by this command.
-Collection selects exact remote workflow IDs from the Actions inventory and observed runs,
+Collection selects remote workflow paths from the Actions inventory and observed runs,
+combining them in one JSONL command rather than restarting collection per workflow,
 so it does not depend on workflow files in the current folder. Its rich-run
 budget is shared across those observed workflows under one two-minute deadline
 and the pass's API ceiling;
 reaching this acquisition limit is reported and publishes partial collected evidence.
+The first accepted JSONL run is published promptly; subsequent runs are grouped
+on a one-second cadence or at 16 records, with pending evidence flushed at EOF
+or a collection error. They pass through the production canonical normalizer and
+are ingested into PostgreSQL while collection continues. One owned ingestion
+process reuses its connection pool for the session instead of restarting for each
+record. Database commits and normal revision subscriptions update the open data
+status dialog and active views; its run count and latest-run timestamp remain
+canonical query results, not estimates from CLI progress events. The normal revision
+subscription refreshes the active dashboard. The final summary reconciles those
+provisional records by run identity, rather than counting them twice. Stream
+completion and the command exit status are checked separately; a summary alone
+does not establish successful collection.
 Refresh reuses analyses and artifacts, but fetches fresh run-discovery lists
 rather than replaying a stale open-ended cached listing. Older profile-owned
 run directories may be pruned to enforce the artifact budget; external caches
@@ -144,12 +162,30 @@ and each repository's artifact input to 32 MiB. Oversized or malformed evidence
 fails the refresh rather than publishing a truncated success. Cache files can
 contain private repository evidence; protect directory ACLs on Windows, where
 POSIX mode bits are not sufficient.
-A failed refresh preserves previously published evidence and its history
-checkpoint; a separate status update reports the failure rather than replacing
-evidence with empty data.
+A failed refresh preserves previously published evidence, including already
+admitted streamed runs, without advancing its history checkpoint. A separate
+status update reports the failure rather than replacing evidence with empty data.
 
-`gh cao dashboard` only serves the dashboard; it has no subcommands.
-Collection and refresh happen automatically while it is running. Maintenance
+`gh cao dashboard` collects and refreshes automatically while serving.
+To force one bounded collection and PostgreSQL ingestion pass without serving:
+
+```bash
+gh cao dashboard collect --repo OWNER/REPOSITORY --json
+```
+
+This uses the same streaming path, cache, history checkpoints and API limits.
+It never bypasses an active collection lock. For benchmarks, use a separate
+`--cache-dir` to obtain an independent managed PostgreSQL instance; do not point
+an explicit database connection at the live namespace. JSON reports retained
+record counts, publication/ingestion counts, setup time, total collection time,
+and exclusive wall-time attribution for GitHub CLI discovery, gh-aw logs,
+normalization, snapshot writing and PostgreSQL ingestion. Logs time excludes
+downstream processing; concurrent acquisition may overlap it. Coverage remains
+partial, including after a successful pass. `--timeout` defaults to five minutes.
+The ingester's connection setup is included in `setup_ms`; the PostgreSQL phase
+measures requests to that persistent process.
+
+Maintenance
 controls use a separate private, durable command queue, not the canonical snapshot.
 They accept only declared gh-aw maintenance actions for the exact `--repo` scope,
 require pull-request publication, and ask for approval in the owning terminal

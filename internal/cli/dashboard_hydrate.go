@@ -18,6 +18,37 @@ import (
 	"github.com/githubnext/gh-cao/internal/dashboardingest"
 )
 
+func publishDashboardEvidence(ctx context.Context, repositories []string, cache string, options dashboardOptions, evidence []dashboardRepositoryEvidence, state dashboardIngestion, now time.Time) error {
+	start := time.Now()
+	batch, err := projectDashboardEvidence(evidence, now.Add(-options.window), now)
+	if err != nil {
+		return err
+	}
+	batch, err = hydrateDashboardEvidence(ctx, evidence, batch, now)
+	options.timings.record("normalization", start)
+	if err != nil {
+		return err
+	}
+	counts := map[string]int{}
+	for store, rows := range batch {
+		counts[store] = len(rows)
+	}
+	state.CreatedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	state.Message = "Streaming collected run evidence; history and artifact coverage remain partial."
+	checkpoint, err := dashboardIngestionRecord(state)
+	if err != nil {
+		return err
+	}
+	batch["transactions"] = []map[string]any{dashboardObservationMetadata(repositories, options, now, counts), checkpoint}
+	if err := options.publishSnapshot(ctx, cache, batch); err != nil {
+		return err
+	}
+	if options.onPublished != nil {
+		return options.onPublished()
+	}
+	return nil
+}
+
 func hydrateDashboardEvidence(ctx context.Context, evidence []dashboardRepositoryEvidence, batch map[string][]map[string]any, now time.Time) (map[string][]map[string]any, error) {
 	result := map[string][]map[string]any{}
 	indexes := map[string]map[string]int{}

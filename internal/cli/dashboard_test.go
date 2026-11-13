@@ -270,10 +270,10 @@ func TestDashboardRejectsSubcommandsBeforeCollection(t *testing.T) {
 	}
 }
 
-func TestDashboardHelpIsServeOnly(t *testing.T) {
+func TestDashboardHelpExposesServingAndOneShotCollection(t *testing.T) {
 	cmd := dashboardCommand("test", nil, nil)
-	if len(cmd.Commands()) != 0 {
-		t.Fatal("dashboard must not register subcommands")
+	if len(cmd.Commands()) != 1 || cmd.Commands()[0].Name() != "collect" {
+		t.Fatal("dashboard must expose only the one-shot collect subcommand")
 	}
 	output := &bytes.Buffer{}
 	cmd.SetOut(output)
@@ -281,8 +281,8 @@ func TestDashboardHelpIsServeOnly(t *testing.T) {
 	if err := cmd.ExecuteContext(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(output.String(), "Available Commands:") || strings.Contains(output.String(), "[command]") {
-		t.Fatalf("dashboard help advertises subcommands: %s", output)
+	if !strings.Contains(output.String(), "collect") {
+		t.Fatalf("dashboard help omits one-shot collection: %s", output)
 	}
 	for _, flag := range []string{"--repo", "--refresh", "--listen"} {
 		if !strings.Contains(output.String(), flag) {
