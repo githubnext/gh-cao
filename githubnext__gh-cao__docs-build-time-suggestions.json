@@ -1,36 +1,7 @@
 {
  "source_sha": "f0c3fc4aff1ab9e7ee0d7020df3c19c545784e26",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T02:55:53Z",
-   "worker_run_id": "43354840501",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206161686,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (created 2026-11-12T06:02:55Z to 2026-11-13T01:45:42Z; all within 14 days; 0 in progress; no docs-triggering commit after ba15d39 per compare API to dfe04168). Excluded and disclosed: 1 cancelled 43206161686 (no jobs) and 1 failed 43297524311 (Build documentation failed, deploy skipped; fixed by cd1e0ba). Comparable n=18 successful push publications; 5-run gate met; no schedule run in window. Category Astro documentation generation, step Build documentation (npm run docs:build = astro build, validate-agent-docs, node --test): median 14 s, p90 15 s (nearest-rank), range 8-15 s = 16.6% of median build-start-to-deploy-end 84.5 s (p90 123 s). 15% gate = 12.7 s, so the step must lose about 91% of its time; 60 s unreachable. Only near-full removal reaches the gate, and the step builds and validates the published docs root, so no Astro change qualifies. Trend: first 9 runs median 12 s, last 9 median 14 s (small n, not treated as a regression). Metadata only; job logs not re-read this run (HTTP 403 difc_forbidden documented at 02:34Z). Carry-forward lead outside this category, not evaluated: Checkout fetch-depth 0 median 24 s (p90 47 s, 28% of median execution); full history appears needed only for per-resource sourceCommittedAt in Astro provenance code; partial-clone or other saving unmeasured. Scope note: this run also read package.json and Astro plugin source to interpret the step; the verdict rests on step metadata alone. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T03:21:18Z",
    "worker_run_id": "43357861852",
@@ -860,6 +831,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha; identical to the 12:24Z window). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed; deploy skipped). Comparable n=18 push successes; schedule 43371878284 kept out of push statistics (exec 86 s). Job and step metadata (logs still HTTP 403 DIFC this run): median exec 85 s, p90 106 s; Install dependencies median 17 s, p90 22 s (range 12-23 s) = 20% of median exec; Set up Node.js median 4 s, p90 7 s; Post Set up Node.js 0 s in 18/18. 15% gate = 12.75 s, so setup plus install (median 22 s) must fall to 9.25 s or less; a node_modules cache must restore both installs inside that budget, which is unmeasured. Caches listing 10.74 GB across 84 entries against a 10 GB cap (LRU pressure). Cache key verified locally: sha256 of the raw digest of package-lock.json = e62f6006..., matching node-cache-Linux-x64-npm-e62f... (278 MB, created 2026-11-12T06:18:07Z, accessed this run); commits API shows package-lock last changed 063cbe9 at 06:17:07Z, before every window run. No candidate clears the gate; no suggestion; no issue; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T12:53:43Z",
+   "worker_run_id": "43428346207",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none queued or in progress; source f0c3fc4 = HEAD = source_sha; no docs.yml run since the 12:39Z evaluation). Excluded and disclosed: 1 failed 43297524311 (Build documentation failed at 14 s; fixed by cd1e0ba); schedule 43371878284 kept out of push statistics (docs 14 s, exec 86 s). Comparable n=18 push successes (5-run minimum met). Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s = 16.5% of median build-start-to-deploy-end 85 s (p90 106 s). 15% gate = 12.75 s, so the step would need to lose about 91% of its time; 60 s unreachable. Trend: first 9 push runs median 14 s, last 9 median 14 s. Build-log read HTTP 403 difc_forbidden re-probed 12:53Z on build job 131763446973 (not retried), so the astro build versus validation split and cache effects are unverified; the step builds and validates the published docs root, so no Astro change qualifies on present evidence. Parallel validation or Astro build tuning is unmeasured and bounded by a few seconds. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -871,7 +871,7 @@
   "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278.9 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T11:43:47Z, refs/heads/main. Post Set up Node.js 0 s in 19/19 comparable successes.",
   "lock_history": "root package-lock last changed 063cbe9 (2026-11-12T06:17:07Z) and is unchanged through f0c3fc4; dashboard/site/package-lock.json and docs.yml unchanged since 2026-11-12T20:00Z.",
   "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
-  "logs": "HTTP 403 difc_forbidden re-probed 2026-11-13T09:20Z for job logs; hits inferred from Post Set up Node.js 0 s plus actions/caches created-at and accessed-at timestamps.",
+  "logs": "HTTP 403 difc_forbidden re-probed 2026-11-13T09:20Z for job logs; re-probed 2026-11-13T12:53Z on build job 131763446973 (still 403); hits inferred from Post Set up Node.js 0 s plus actions/caches created-at and accessed-at timestamps.",
   "caches_listing": "2026-11-13T12:36Z: 84 entries totalling 10.74 GB (cap 10 GB); head key node-cache-Linux-x64-npm-e62f... 278 MB last accessed 12:36Z. Job logs HTTP 403 DIFC re-probed in the same run (worker 43426225031).",
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API."
  },
