@@ -62,7 +62,11 @@ export function renderCommandTerminal(context) {
       hasOutput.set(false);
       if (command.command) write(`$ ${command.command}\r\n`);
       const complete = await attachCliCommand(currentId, (event) => {
-        if (!controller.signal.aborted) write(event.data, event.stream);
+        if (controller.signal.aborted) return;
+        if (event.type === 'status') {
+          status.set(event.command.status);
+          message.set(`${event.command.id} · ${event.command.status}`);
+        } else write(event.data, event.stream);
       }, controller.signal);
       if (controller.signal.aborted) return;
       status.set(complete.command.status);

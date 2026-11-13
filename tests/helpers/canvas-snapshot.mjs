@@ -70,6 +70,16 @@ export async function startCanvasServer({ prepareSnapshot, ...options } = {}) {
       ...(directory ? { snapshotDirectory: directory } : {}) });
     return {
       ...preview,
+      async ingestSnapshot() {
+        if (!directory || !postgres) throw new Error("Snapshot ingestion requires a prepared PostgreSQL fixture.");
+        await execute(process.env.CAO_DASHBOARD_EXECUTABLE ?? resolve(".tmp/cao-dashboard"),
+          ["ingest", "--source", directory, "--redis-namespace", postgres.namespace, "--database-queries",
+            resolve(import.meta.dirname, "../../dashboard/site/src/data/queries/database.json")], {
+            env: { ...process.env, CAO_POSTGRES_URL: postgres.postgresURL,
+              CAO_OPERATIONAL_NAMESPACE: postgres.namespace, OTEL_SDK_DISABLED: "true" },
+            timeout: 120_000, maxBuffer: 1 << 20,
+          });
+      },
       async close() {
         try { await preview.close(); }
         finally {

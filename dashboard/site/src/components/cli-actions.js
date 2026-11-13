@@ -73,9 +73,10 @@ async function executeAction(id, argumentsValue, templateValues, onOutput, input
   if (Object.keys(templateValues).length > 0) payload.values = templateValues;
   if (input !== undefined) payload.input = input;
   const command = await enqueueCliCommand(payload, signal);
-  const complete = await attachCliCommand(command.id, (event) => onOutput(
-    /** @type {{ stream: 'stdout'|'stderr', data: string }} */ (event)
-  ), signal);
+  const complete = await attachCliCommand(command.id, (event) => {
+    if (event.type === 'status') return;
+    onOutput(/** @type {{ stream: 'stdout'|'stderr', data: string }} */ (event));
+  }, signal);
   if (complete.command?.status === 'canceled') {
     return { ...complete.result, error: 'Cancelled. Completed changes are not undone.' };
   }

@@ -136,6 +136,9 @@ disabled. **Back to Commands** or a disconnected browser detaches the display;
 it does not cancel execution. Reopening a command replays retained output rather
 than rerunning it. The console remains available after success, failure,
 timeout, or cancellation.
+The console receives queued-to-running status changes through the data worker
+without reconnecting or waiting for completion. Status updates are separate from
+sequenced output and do not advance the replay cursor.
 
 **Cancel** in the approval dialog starts nothing. The console offers **Copy**
 and, for failed or timed-out work, **Retry command**; a retry requires fresh

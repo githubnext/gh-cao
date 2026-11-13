@@ -8,7 +8,7 @@ import { normalizedRunShard } from './normalized-shard.js';
 import { writeCanvasArtifact } from './canvas-fixture.js';
 
 test.describe('Go canvas query editor', () => {
-/** @type {{ url: string, close: () => Promise<void> }} */
+/** @type {{ url: string, close: () => Promise<void>, ingestSnapshot: () => Promise<void> }} */
 let server;
 let workspace = '';
 let artifactDirectory = '';
@@ -33,8 +33,17 @@ test.beforeAll(async () => {
     ),
     prepareSnapshot: async (/** @type {string} */ destination) => {
       artifactDirectory = destination;
+      const offset = Date.now() - Date.parse('2026-10-10T10:00:00Z');
+      const runs = (await readFile(new URL('../fixtures/query-editor-runs.jsonl', import.meta.url), 'utf8'))
+        .trim().split('\n').map(line => {
+          const record = JSON.parse(line);
+          for (const field of ['created_at', 'started_at', 'updated_at']) {
+            record.run[field] = new Date(Date.parse(record.run[field]) + offset).toISOString();
+          }
+          return JSON.stringify(record);
+        }).join('\n');
       await writeCanvasArtifact(destination, {
-        sources, shards: [normalizedRunShard(await readFile(new URL('../fixtures/query-editor-runs.jsonl', import.meta.url), 'utf8'))]
+        sources, shards: [normalizedRunShard(runs)]
       });
     },
   });
@@ -303,17 +312,20 @@ test('preview subscriptions refresh from Go canonical revisions and query output
   await page.getByRole('textbox', { name: 'Acceptance criteria', exact: true }).fill('Show native conclusion counts');
   await page.getByRole('button', { name: 'Generate query and view', exact: true }).click();
   await expect(page.locator('.query-editor > [role=status]')).toContainText('Preview updated');
+  const timestamp = new Date().toISOString();
   await writeCanvasArtifact(artifactDirectory, { sources: {
       ...sources,
       runs: {
-        metadata: { 'as-of': '2026-10-10T11:00:00Z', 'artifact-generation': 'query-editor-refresh' },
+        metadata: { 'as-of': timestamp, 'artifact-generation': 'query-editor-refresh' },
         rows: Array.from({ length: 251 }, (_, index) => ({
           organization: 'githubnext', repository: 'gh-cao', workflow: '.github/workflows/example.md',
           run: String(1000 + index), 'run-attempt': 1, 'run-status': 'completed', 'run-conclusion': 'failure',
-          'started-at': '2026-10-10T10:00:00Z'
+          'started-at': timestamp
         }))
       }
   } });
+  await server.ingestSnapshot();
+  await expect(page.locator('.query-editor-preview .chart-legend-pie')).toContainText('251');
   const outputCounts = await page.evaluate(async () => {
     const { loadCanonicalDashboardPage, validateQueryEditorDocument } =
       await import(new URL('./src/data-processor.js', location.href).href);
@@ -339,7 +351,6 @@ test('preview subscriptions refresh from Go canonical revisions and query output
   });
   expect(outputCounts.length).toBeGreaterThan(0);
   expect(outputCounts.every((count) => count === 200)).toBe(true);
-  await expect(page.locator('.query-editor-preview .chart-legend-pie')).toContainText('252');
 });
 
 test('intent improvement preserves edits during an in-flight request and cancels on navigation', async ({ page }) => {
