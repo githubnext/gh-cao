@@ -1,36 +1,7 @@
 {
  "source_sha": "f0c3fc4aff1ab9e7ee0d7020df3c19c545784e26",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-12T22:35:37Z",
-   "worker_run_id": "43320277521",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43301807773,
-    43297524311,
-    43249903823,
-    43242792853,
-    43236057780,
-    43228124764,
-    43228046118,
-    43225202834,
-    43206235849,
-    43206161686,
-    43206080696,
-    43194788185,
-    43167568535,
-    43167070179,
-    43165397534,
-    43161224542,
-    43145803206,
-    43141528595,
-    43139972486,
-    43138878761
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43301807773 back to 43138878761; created 2026-11-12T02:04Z to 2026-11-12T20:35Z; within 14 days; source cd1e0ba0 = local HEAD = source_sha; no new completed runs since the 22:18Z evaluation; docs.yml last changed 063cbe91 at 06:17Z). Excluded and disclosed: 1 cancelled superseded pending run 43206161686 (no jobs; replaced by 43206235849); 1 failed push run 43297524311 (e465d28c; Build documentation failed at 14 s, correctness fault fixed by cd1e0ba0 about 25 min later, not a scheduling cost). Comparable n=18 successes (17 push, 1 schedule 43161224542). Medians (p90) from job and step metadata: run-created to build-start 4 s (12.5 s); build job 67 s (103 s); build-end to deploy-created handoff 0 s (1 s); deploy queue 5 s (6 s); deploy job 10.5 s (14.5 s); build-start to deploy-end 84.5 s (120 s); wall 88 s (133 s). 15% of median execution = 12.7 s. Concurrency: 2 of 18 waited behind an in-progress publication (43228124764 43 s, behind 43228046118; 43206235849 27 s, behind 43206080696); no other waits over 5 s; the 60 s/15% gate is not met because the median wait is 0 s. Avoidable rebuilds: compare API on all 20 pairs (two 500s retried successfully); 0 of 17 push runs changed only files outside build inputs; trigger-only dashboard/site/test/** files always rode with consumed src/docs/report changes; docs/lib/catalog.ts is consumed by docs/pages/catalog. Schedule 05:23 UTC daily is the one required synthetic-date refresh; removing it weakens freshness. Maintainer note, not a time saving: docs:build and the Pages builder read files outside the docs.yml paths filter (scripts/dashboard-demo-data.mjs, scripts/validate-agent-docs.mjs, tests/integration/agent-docs-discovery.test.mjs, .github/workflows/cao.json gh-aw-version read in dashboard/site/scripts/build.mjs); a change to these alone would not rebuild Pages until the next daily run; none occurred alone in this window. Carry-forward lead, unchanged and unmeasured: Checkout fetch-depth 0 median 24 s (p90 46 s), the largest build step, partial-clone (filter: blob:none) savings unmeasured; Install dependencies median 16 s (p90 22 s) in this window. No suggestion; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-12T22:56:00Z",
    "worker_run_id": "43323137179",
@@ -850,6 +821,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; source f0c3fc4 = workspace HEAD = source_sha). Excluded and disclosed: 1 failed 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped, fixed by cd1e0ba); 0 cancelled. Comparable n=19 successes (18 push, 1 schedule 43371878284; identical step names in all 19). docs.yml defines only build and deploy jobs; dashboard work is the build step 'Build synthetic enterprise demo' (median 4 s), not a dashboard job. Chain medians (p90) from job and step metadata: Upload Pages artifact 2 s (3); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy Set up job 1 s; Deploy Pages 7 s (8). Chain total 15 s (p90 16) = 17.6% of median exec 85 s (p90 99.6). No concrete change removes 12.75 s (15% gate) from this category: merging deploy into build saves about 6 s (queue plus setup plus handoff), 7% of median exec, and grants id-token and pages write to the job that runs npm ci and the Astro build (least-privilege regression); rejected. Upload is 2 s total, so artifact size reduction saves at most about 1-2 s; artifact github-pages median 8.30 MB (8.26-8.38), stable. Deploy Pages is GitHub-managed. Logs 403 DIFC re-probed 2026-11-13T08:35Z; no log-based attribution. Open issues: none with label self-care:docs-build-time-investigator; 20440 and 20719 are gh-aw failure reports, not evaluated. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T08:53:34Z",
+   "worker_run_id": "43396036088",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419,
+    43345305064,
+    43341730805,
+    43341713733,
+    43339642321,
+    43301807773,
+    43297524311
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 back to 43297524311; created 2026-11-12T20:09:54Z to 2026-11-13T07:51:43Z; all within 14 days; none in progress; no new completions since the 08:36Z evaluation; source f0c3fc4 = HEAD = source_sha). Excluded and disclosed: 1 failed 43297524311 (e465d28; Build documentation failed at 14 s; fixed by cd1e0ba); 0 cancelled. Comparable n=19 successes (18 push, 1 schedule 43371878284); 5-run gate met. Job and step metadata re-fetched this run for all 20 runs and matched run_samples. Concurrency: 3 of 19 waited more than 5 s, each ending at the predecessor completion: 43341730805 81 s behind 43341713733; 43371269326 44 s behind 43371217266; 43368963164 32 s behind 43368845651. Median wait 1 s, p90 44 s; queue created-to-start median 3 s. Gate unmet: the 60 s / 15% (12.75 s) gate cannot be reached by scheduling, since a wait shortens only if the predecessor publication shortens (median exec 85 s, p90 106 s). Rejected for deployment safety: cancel-in-progress true (cuts in-flight Pages publication); deploy-only concurrency with parallel builds (an older SHA could publish after a newer one). Avoidable rebuilds: compare API on 18 consecutive publication ranges; 0 of 18 push runs changed only trigger-only paths (dashboard/site/test/**, shared/cao.schema.json); each push changed a build input (dashboard/site/src, docs/**, aw.yml, dashboard/site/scripts/build.mjs). Same-SHA duplicate: 1 (schedule 43371878284 republished 5943848 about 5 min after push 43371269326 on the same UTC date); not repeated; a skip needs same-day date-equivalence logic and is unmeasured. Open issues: none with this worker label; 20440 and 20719 are gh-aw failure reports. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -865,7 +865,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-12T20:09:54Z..2026-11-13T07:51:43Z",
-  "evaluated_at": "2026-11-13T08:36:49Z",
+  "evaluated_at": "2026-11-13T08:53:34Z",
   "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 successes plus failed 43297524311 disclosed; 18 push, 1 schedule 43371878284). queue_s=build job created to started; concwait_s=run created to build job created; exec_s=build start to deploy end; wall_s=run created to run updated; handoff_s=build end to deploy created; dqueue_s=deploy created to started; dsetup_s=deploy job Set up job. Job, step, and artifact metadata from the Actions jobs and artifacts APIs; logs 403 DIFC.",
   "rows": [
    {
@@ -1372,11 +1372,6 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-13T05:54:45Z",
-   "source": "docs.yml install step, dependency category",
-   "note": "Install (median 17 s) is dominated by root npm ci (765 entries) since the dashboard install is 36 prod entries. Only a node_modules cache could clear the 12.75 s gate; it needs a measured restore at or under about 6 s plus a measured miss penalty. Issue 19689 (closed NOT_PLANNED) covered this lever. Re-evaluate only with timing evidence from a maintainer branch."
-  },
-  {
    "observed_at": "2026-11-13T06:41:58Z",
    "source": "docs.yml Checkout step fetch-depth 0",
    "note": "Checkout median 24 s, p90 31 s in the 2026-11-13 window (p90 41 s in the prior window), largest non-build step (about 28 percent of execution). Full history is needed for correctness: docs/plugins/starlight-agent/resource.ts runs git log -1 -- <file> per resource for sourceCommittedAt. Only a partial clone keeping commit history could cut cost; unmeasured; outside the five rotation categories."
@@ -1430,6 +1425,11 @@
    "observed_at": "2026-11-13T08:36:49Z",
    "source": "docs.yml concurrency group documentation-pages (scheduling category, next)",
    "note": "3 of 19 successes waited on the group behind the immediately preceding push: 43341730805 81 s behind 43341713733 (queued 8 s apart), 43371269326 44 s behind 43371217266, 43368963164 32 s behind 43368845651. Each wait ended within 2 s of the blocker's completion. Median run-to-build wait 1 s; p90 34 s. cancel-in-progress is false, so a superseded push still publishes after the blocker; evaluate with deployment-safety review, not as a cancel toggle."
+  },
+  {
+   "observed_at": "2026-11-13T08:53:34Z",
+   "source": "docs.yml concurrency group documentation-pages (scheduling category, re-check)",
+   "note": "Re-check of the 20-run window: 3 of 19 successes waited 32-81 s behind an in-progress publication; medians unchanged (wait 1 s, exec 85 s). Split or cancel-in-progress changes stay rejected for ordering and in-flight deploy safety. Same-SHA schedule duplicate: 1 occurrence (5943848). Re-evaluate only if a same-SHA duplicate repeats or a maintainer-branch measurement shows the predecessor publication can shorten."
   }
  ]
 }
