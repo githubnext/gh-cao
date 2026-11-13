@@ -1,36 +1,7 @@
 {
- "source_sha": "4b78c815aada40179d7da86383075bb4504321e4",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "75c762eaf69db919b1906dc0e562e93e018dea73",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T06:55:00Z",
-   "worker_run_id": 43381404709,
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321,
-    43301807773,
-    43297524311,
-    43249903823
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43380585034 back to 43249903823; created 2026-11-12T15:38:00Z to 2026-11-13T06:42:40Z; all within 14 days; source e71feab = HEAD = new source_sha). Excluded and disclosed: 1 failed push 43297524311 (e465d28; Build documentation failed at 14 s, deploy skipped; cause not read, job logs 403). Outside window: non-completed record 37642403569 (queued since 2026-10-07; not a sample). Comparable n=19 successes (18 push, 1 schedule 43371878284; 5-run gate met). Medians (p90) from job and step metadata: Upload Pages artifact 2 s (3); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages step 7 s (8; GitHub-managed polling); artifact chain 15 s (16) = 17.6% of median build-start-to-deploy-end 85 s (p90 98). Controllable transfer overhead excluding Deploy Pages: 8 s (p90 9) = 9.4% of median; even eliminating all of it stays below the 12.75 s gate. Merging deploy into build saves about 6 s (queue plus setup) and would expose id-token: write (deploy job only) to the job running npm ci and Astro builds; rejected. github-pages artifact 8.26-8.38 MB, stable; upload-size lever at most about 1-2 s. Open issues: none with this worker label (label search empty); 20440, 20719, 20720 are gh-aw failure reports, not evaluated here. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T07:21:50Z",
    "worker_run_id": "43384568246",
@@ -869,15 +840,44 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 14:57:34Z; all within 14 days; none queued or in progress; newest docs run head f369d46; local HEAD 4b78c81 is 2 commits ahead and the compare API shows no docs-trigger path changed). Excluded: none (20/20 success, no cancelled or failed run; failed 43297524311 left the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics; 5-run gate met. Jobs API metadata re-fetched for all 20 runs; step medians match the stored run_samples. Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao, inside the build job): push median 4 s, p90 5 s, range 3-5 s = 4.5 percent of push median build-start-to-deploy-end 89 s (p90 106 s); 15 percent gate 13.35 s unreachable; full removal saves at most 4 s, 60 s unreachable. docs.yml has no dashboard job (the task text names one). A separate job would add its own checkout (median 24 s) plus handoff, net negative. Reuse is capped at about 4 s and stale-unsafe: the workflow comment says the daily cron exists to refresh synthetic dates. Job logs not read (403 difc_forbidden on prior probes; not retried), so the dashboard install inside shared Install dependencies (median 17 s) is not separable. Cache hit inferred from Post Set up Node.js 0-1 s in 20/20. No suggestion; no issue created; no open issue with label self-care:docs-build-time-investigator. next_category advanced to artifact transfer and Pages packaging. Carry-forward outside rotation: Checkout fetch-depth 0 median 24 s (p90 31), largest controllable step, unevaluated.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-13T16:55:48Z",
+   "worker_run_id": 43466641593,
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544,
+    43374719202,
+    43373049149,
+    43371878284,
+    43371269326,
+    43371217266,
+    43368963164,
+    43368845651,
+    43362224525,
+    43360893141,
+    43347280419
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days; newest run head 75c762e = checkout HEAD = new source_sha). Excluded: none (20/20 success; failed 43297524311 and cancelled 43206161686 are outside the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics (exec 86 s). 5-run gate met. Artifact chain medians (p90, nearest-rank) from jobs API: Upload Pages artifact 2 s (3); build end to deploy created 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages 7 s (8); chain 15 s (p90 16) = 16.9% of median exec 89 s (p90 106). Controllable part (upload + handoff + deploy setup) median 3 s (p90 4). The 15% gate (13.35 s) is unreachable even if all of it were removed. Merging build and deploy saves about 6 s and grants id-token: write to the build job; rejected again. github-pages artifact 8.26-8.38 MB decimal, stable; size lever at most 1-2 s. Deploy Pages is GitHub-managed. Logs not read; timings from jobs API only. Open issues with label self-care:docs-build-time-investigator: none. No suggestion; no issue created. Checkout carry-forward closed: fetch-depth 0 is required because resolveBuildProvenance (docs/plugins/starlight-agent/resource.ts:249) runs git log -1 -- <file>; a depth-1 clone returned the HEAD commit time (16:44Z) for astro.config.mjs, whose true last change is 2026-11-12T13:13Z (commits API). next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T15:55:03Z",
+  "verified_at": "2026-11-13T16:55:48Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
   "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
   "restore": "exact key only (no restore-keys)",
-  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 278,939,951 bytes, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T15:43:57Z, refs/heads/main. Post Set up Node.js 0 s in 19/20 window runs and 1 s in 43447111490 (exact-key hits; setup-node saves only on miss).",
+  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 279 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T16:52:16Z, refs/heads/main. Post Set up Node.js 0 s median (max 1 s) in 19/19 push runs = exact-key hits (setup-node saves only on miss).",
   "lock_history": "root package-lock last changed 063cbe9 (2026-11-12T06:17:07Z), before every window run; dashboard/site/package-lock.json last changed 3d20dbb (2026-10-22T19:48Z); docs.yml last changed 063cbe9 (before the window).",
   "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
   "logs": "HTTP 403 difc_forbidden on job logs (not re-probed this run); hits inferred from Post Set up Node.js durations plus actions/caches created-at and last-accessed timestamps.",
@@ -885,24 +885,24 @@
   "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API."
  },
  "run_samples": {
-  "window_created": "2026-11-13T01:29:30Z..2026-11-13T14:57:34Z",
-  "evaluated_at": "2026-11-13T16:35:42Z",
-  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy start; dash_s=Build synthetic enterprise demo step; pages_size_mb from artifacts API. Jobs API timings (logs 403). Re-measured by worker 43456406182; re-verified by worker 43461190855 (jobs API, 20/20 success, medians unchanged). Re-verified by worker 43463458503 at 2026-11-13T16:35:42Z (jobs API, 20/20 success, step medians unchanged).",
+  "window_created": "2026-11-13T01:45:42Z..2026-11-13T16:44:14Z",
+  "evaluated_at": "2026-11-13T16:55:48Z",
+  "note": "compact per-run seconds for the latest 20 completed docs.yml runs (19 push + 1 schedule 43371878284; all success); exec_s=build job start to deploy end; build_s=build job exec; queue_s=build job created to start; handoff_s=build end to deploy job created; deploy_s=deploy job exec; dash_s=Build synthetic enterprise demo step; pages_size_mb=github-pages artifact, decimal MB. Jobs API timings (logs not read). Re-measured by worker 43466641593 (jobs API, 20/20 success).",
   "step_stats_median_p90_s": {
    "Set up job": [
     1,
     2
    ],
    "Checkout": [
-    24.5,
-    32
+    24,
+    41
    ],
    "Set up Node.js": [
     3,
-    7.1
+    7
    ],
    "Install dependencies": [
-    17,
+    18,
     23
    ],
    "Build documentation": [
@@ -939,6 +939,17 @@
    ]
   },
   "rows": [
+   {
+    "run": 43465706802,
+    "event": "push",
+    "exec_s": 89,
+    "build_s": 74,
+    "queue_s": 3,
+    "handoff_s": 0,
+    "deploy_s": 10,
+    "dash_s": 4,
+    "pages_size_mb": 8.33
+   },
    {
     "run": 43447728981,
     "event": "push",
@@ -1147,20 +1158,10 @@
     "deploy_s": 9,
     "dash_s": 3,
     "pages_size_mb": 8.31
-   },
-   {
-    "run": 43345305064,
-    "event": "push",
-    "exec_s": 97,
-    "build_s": 84,
-    "queue_s": 3,
-    "handoff_s": 1,
-    "deploy_s": 8,
-    "dash_s": 4,
-    "pages_size_mb": 8.31
    }
   ],
   "wait_to_build_s_by_run": {
+   "43465706802": 1,
    "43447728981": 1,
    "43447111490": 1,
    "43440055797": 0,
@@ -1179,8 +1180,7 @@
    "43368845651": 0,
    "43362224525": 1,
    "43360893141": 1,
-   "43347280419": 1,
-   "43345305064": 1
+   "43347280419": 1
   }
  },
  "observations_pending": [
@@ -1243,6 +1243,11 @@
    "observed_at": "2026-11-13T16:23:20Z",
    "source": "docs.yml Astro category sandbox limits (worker 43461190855)",
    "note": "Local npm ci fails with DEPTH_ZERO_SELF_SIGNED_CERT on the package feed; do not bypass TLS. Astro-vs-validation split stays unmeasured without maintainer-branch step timing or readable logs. Checkout carry-forward: docs/plugins/starlight-agent/resource.ts runs git log -1 per resource (sourceCommittedAt), so fetch-depth 1 changes output; a partial-clone variant needs a maintainer decision and a branch measurement."
+  },
+  {
+   "observed_at": "2026-11-13T16:55:48Z",
+   "source": "docs.yml checkout fetch-depth 0 (carry-forward closed)",
+   "note": "Checkout median 24 s (p90 41), largest controllable step (about 27% of exec). fetch-depth 0 is required: resolveBuildProvenance (docs/plugins/starlight-agent/resource.ts:249) runs git log -1 -- <file> per agent resource. A depth-1 clone returned the HEAD commit time for astro.config.mjs (true last change 2026-11-12T13:13Z), so a shallow checkout would mis-stamp provenance. Re-evaluate only if provenance is redesigned (for example, precomputed per-file commit dates)."
   }
  ]
 }
