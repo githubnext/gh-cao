@@ -43,6 +43,35 @@ Is unsafe activity active or broadly possible?
 If shared control, authentication, or multiple campaigns may be affected, use the control-plane-wide emergency stop before investigating.
 :::
 
+## Repository Pull Request Reviewers
+
+This source repository maintains three on-demand reviewers adapted from
+[`github/gh-aw` at `7517bb7`](https://github.com/github/gh-aw/tree/7517bb740093e38f08ca54f6c2758ee7bfb6f53d/.github/workflows).
+They are repository-local tools, not installed campaigns or fleet operations.
+Invoke them in a pull request comment or review comment through the centralized
+slash-command dispatcher:
+
+- `/matt`: apply pinned Matt Pocock engineering skills to changed lines.
+- `/test-quality`: review Go, Node, Vitest and Playwright behavioral tests,
+  including body-only changes and weakened assertions.
+- `/design-gate`: inspect significant changes for a durable decision record in
+  the root `adr/` directory; draft one only when the evidence supports it.
+
+All three retain explicit invocation: no automatic PR or scheduled triggers.
+They share bounded, uncached PR prefetch, reject incomplete file listings and
+head changes during acquisition, and disclose unavailable or truncated diffs.
+Reviewers inspect untrusted PR code without executing it. Reviews and comments
+use declared safe outputs; only the design gate can update a branch, confined
+to `adr/**`. It cannot change rollout policy or grant authority.
+
+Test quality scores are diagnostics, not merge gates. CAO does not import
+gh-aw's mandatory Go build-tag or blanket mock-library rules. Skipped backend
+tests remain missing evidence. ADR drafts are proposals for human review, not
+accepted decisions, normative specifications or branch-protection enforcement.
+Upstream imports tied to gh-aw telemetry, agents, caches and build conventions
+are replaced with local contracts; engine credentials and campaign policy are
+unchanged.
+
 ## Validate Before Scheduled Live Runs
 
 Before scheduled live operation, run one target through two manual checks:
