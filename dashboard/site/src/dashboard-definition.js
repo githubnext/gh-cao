@@ -11,6 +11,7 @@ const pageRequests = new Map();
 export function loadDashboardSchema() {
   if (schemaRequest) return schemaRequest;
   schemaRequest = fetch('./dashboard.json', { cache: 'no-store' }).then((response) => {
+    debugDefinition({ event: 'schema-response', status: response.status, ok: response.ok });
     if (!response.ok) throw new Error(`Unable to load dashboard.json: ${response.status}`);
     return response.json();
   });
@@ -23,6 +24,7 @@ export function loadDashboardPageChunk(path) {
   let request = pageRequests.get(path);
   if (!request) {
     request = fetch(`./${path}`, { cache: 'reload' }).then((response) => {
+      debugDefinition({ event: 'page-chunk-response', status: response.status, ok: response.ok });
       if (!response.ok) throw new Error(`Unable to load dashboard page "${path}": ${response.status}`);
       return response.json();
     });
