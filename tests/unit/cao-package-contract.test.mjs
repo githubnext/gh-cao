@@ -190,7 +190,7 @@ test("Docker dashboard builder installs production tooling without shipping buil
   const manifest = JSON.parse(await text("dashboard/site/package.json"));
   assert.ok(manifest.dependencies.esbuild, "esbuild is required by the production build");
   assert.doesNotMatch(builder, /--include=dev/);
-  for (const name of ["dashboard-runtime", "azure-functions-runtime"]) {
+  for (const name of ["dashboard-runtime"]) {
     const runtime = stages.find((stage) => stage.includes(` AS ${name}`));
     assert.ok(runtime);
     assert.doesNotMatch(runtime, /node_modules|control-plane-inventory\.json/);

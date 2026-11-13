@@ -73,6 +73,7 @@ async function streamCommand(queue, id, after, response) {
   });
   response.flushHeaders();
   let cursor = after;
+  let status;
   let wake;
   let changed = true;
   let detached = false;
@@ -119,6 +120,10 @@ async function streamCommand(queue, id, after, response) {
         });
         response.end();
         return;
+      }
+      if (command.status !== status) {
+        status = command.status;
+        await write({ type: "status", command: { id: command.id, status } });
       }
       if (!changed && !detached) {
         await new Promise((resolve) => { wake = resolve; });

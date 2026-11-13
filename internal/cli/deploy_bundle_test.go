@@ -57,6 +57,7 @@ func TestDeployBundleCommandsOffline(t *testing.T) {
 	}
 	for _, args := range [][]string{
 		{"init", "--out", config}, {"generate", "--config", config, "--out", output}, {"generate", "--config", config}, {"check"}, {"generate", "--unknown"},
+		{"azure", "--plan"}, {"init", "--deployment", "azure-functions", "--out", filepath.Join(directory, "retired.yaml")},
 	} {
 		if _, err := run(args...); err == nil {
 			t.Fatalf("expected failure: %v", args)

@@ -522,7 +522,7 @@ func nativeValidateHost(value any, at string) error {
 		"tls": nativePolicyObject(map[string]nativePolicyRule{"mode": nativeEnum("auto", "required", "disabled"), "server-name-env": env, "ca-certificate-env": env}),
 	}, "module")
 	target := nativePolicyObject(map[string]nativePolicyRule{
-		"module": nativeEnum("generic", "container", "azure-functions"), "name": nativePolicyString(slugPattern),
+		"module": nativeEnum("generic", "container"), "name": nativePolicyString(slugPattern),
 		"authentication": nativeEnum("github-oauth"), "listener": nativeEnum("process", "platform", "external"),
 		"require-https": func(v any, p string) error {
 			if v != true {

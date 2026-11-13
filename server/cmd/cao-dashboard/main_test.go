@@ -26,6 +26,9 @@ import (
 )
 
 func TestServeWithExistingPostgresOperationalTables(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL server integration; covered by daily full validation")
+	}
 	endpoint := os.Getenv("POSTGRES_URL")
 	if endpoint == "" {
 		t.Skip("POSTGRES_URL is not set")
@@ -800,7 +803,7 @@ func TestActionsEnvironmentPresentReportsPresenceNotValues(t *testing.T) {
 }
 
 func TestRootCommandRegistersEverySubcommand(t *testing.T) {
-	want := []string{"admission", "adx", "app-key-check", "audit", "azure-functions", "backfill", "benchmark-queries", "collect", "compile-queries", "database", "doctor", "execute-cli", "hosted-cli", "ingest", "local-queue", "otel-smoke", "read", "serve", "serve-hosted", "serve-pages", "simulate-api", "simulate-webhooks"}
+	want := []string{"admission", "adx", "app-key-check", "audit", "backfill", "benchmark-queries", "collect", "compile-queries", "database", "doctor", "execute-cli", "hosted-cli", "ingest", "local-queue", "otel-smoke", "read", "serve", "serve-hosted", "serve-pages", "simulate-api", "simulate-webhooks"}
 	root := newRootCommand()
 
 	got := make([]string, 0, len(want))

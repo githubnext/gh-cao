@@ -574,7 +574,11 @@ test("credential verification is opt-in and cannot reach the validation issue re
   assert.equal(workflow.on.workflow_dispatch.inputs["verify-credentials"].default, false);
   assert.match(workflow.jobs.credentials.if, /github.event_name == 'workflow_dispatch'.*inputs.verify-credentials == true/);
   assert.ok(Object.values(workflow.jobs.credentials.permissions).every(permission => permission === "read"));
-  assert.match(workflow.jobs.report.if, /inputs.verify-credentials != true/);
+  assert.equal(workflow.jobs.report, undefined);
+  for (const job of Object.values(workflow.jobs)) {
+    assert.ok(Object.values(job.permissions).every(permission => permission === "read"));
+    assert.ok(job.steps.every(step => !/createIssue|issues\.create|gh issue create/.test(step.with?.script ?? step.run ?? "")));
+  }
   const token = steps.find(step => step.id === "cao_pre_activation_app_token");
   assert.equal(token.with.repositories, "${{ github.event.repository.name }}");
   assert.match(token.if, /cao_admission.outputs.authorized == 'true'/);

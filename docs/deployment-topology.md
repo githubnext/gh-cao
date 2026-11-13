@@ -25,7 +25,7 @@ The standalone `bicep` executable must be on `PATH`; installing only the
 `az bicep` wrapper is not sufficient. No compiler is downloaded automatically.
 
 ```sh
-gh cao deploy init --out /private/operator/requirements.yaml
+gh cao deploy init --deployment azure-container-apps --out /private/operator/requirements.yaml
 # Edit the example's identities, feature choices and references.
 gh cao deploy generate --config /private/operator/requirements.yaml \
   --out /private/operator/azure-plan
@@ -40,9 +40,8 @@ The same input samples are shipped by the command and exercised by Go tests:
 | --- | --- | --- | --- |
 | `single-vm` | One persistent VM; hosted Go + OAuth + direct TLS | On that same VM, socket/loopback only | Existing external Key Vault; no new managed database |
 | `minimal-azure` | One persistent hosted Go VM | Private Azure Flexible Server | Private DNS; existing external Key Vault |
-| `azure-functions` | Existing Functions baseline, unchanged Bicep | Private Azure Flexible Server | ACR, target vault, runtime storage, jobs and monitoring |
-| `azure-container-apps` | One hosted Go replica on Container Apps Consumption, managed HTTPS | Private Azure Flexible Server | ACR, target vault, provisioning/ingestion jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
-| `full-azure` | Functions plus separate archive/receive/dispatch hosts | Private Azure Flexible Server | Collector/backfill, Blob session lake, two separate ADX destinations, gateway, external OTLP |
+| `azure-container-apps` | One hosted Go replica on Container Apps Consumption, managed HTTPS | Private Azure Flexible Server | ACR, target vault, provisioning/ingestion jobs and Log Analytics |
+| `full-azure` | Container Apps plus separate staged archive/receive/dispatch hosts | Private Azure Flexible Server | Private Blob session lake, separate lake ADX destination and gateway; activation requires independent review |
 
 ```sh
 gh cao deploy init --deployment single-vm --out /private/operator/vm.yaml
@@ -57,9 +56,10 @@ silently substitute SQLite or volatile memory. VM runtime activation, disk
 setup, schema bootstrap, TLS and evidence ingestion are explicit runbook steps.
 Existing vaults are external prerequisites, not free or verified resources.
 
-The compact profiles deliberately support Actions snapshots only. Select the
-Functions profile for optional collection, archive, gateway, ADX and telemetry;
-incompatible combinations fail rather than carrying hidden full-stack services.
+The supported profiles use Actions snapshots. Container Apps may additionally
+stage explicitly selected archive and gateway infrastructure; the base profile
+does not support collector acquisition, OTLP or base ADX analytics.
+Incompatible combinations fail rather than carrying hidden full-stack services.
 These are operational artifacts acquired with authorized Actions access, not
 the public synthetic Pages demo. Production serves the complete Go/PostgreSQL
 application on one origin; local Go/PostgreSQL uses the same views over a real
@@ -74,8 +74,7 @@ gh cao deploy generate --config /private/operator/containers.yaml \
 gh cao deploy check /private/operator/containers-plan
 ```
 
-This additive profile replaces the Functions HTTP host, runtime Storage and
-Elastic Premium plan with a Container Apps **Consumption** environment. The
+This profile uses a Container Apps **Consumption** environment. The
 same Go `serve-hosted` process serves built assets, OAuth, server-side PostgreSQL
 queries and revision events on one origin. Private PostgreSQL, separate
 privileged provisioning and runtime-only ingestion identities, scoped Key Vault
@@ -107,8 +106,10 @@ OAuth callback registration, deployed digest checks and application readiness;
 TCP platform probes establish only listener availability.
 
 This profile currently supports public OAuth ingress and Actions snapshots only.
-Unsupported optional features fail closed. It does not change `gh cao deploy
-azure --apply`, which remains Functions-only. Consumption with one minimum
+Unsupported optional features fail closed. Azure Functions runtime, deployment
+commands, receipts and local harness support are retired; there is no native
+apply command. Operators execute the reviewed templates separately.
+Consumption with one minimum
 replica, ACR, Key Vault, PostgreSQL and logs still incur costs; this is neither
 scale-to-zero nor production acceptance.
 
@@ -182,10 +183,9 @@ read-only scope and rejection tests. Short-lived job credentials stay in
 process memory/environment, not bootstrap secret files or vaults.
 
 Compatible `serve-hosted` deployments must separately opt in with
-`--mcp-enabled` and `CAO_MCP_ACTIONS_REPOSITORY`. The unchanged Functions
-entrypoint does **not** wire MCP, including in the full Azure sample;
-this is explicitly marked as an activation limitation, not silently enabled
-by the diagrams. MCP grants no admission, token-broker, dispatch or write authority.
+`--mcp-enabled` and `CAO_MCP_ACTIONS_REPOSITORY`. A generated topology or
+diagram does not enable MCP. MCP grants no admission, token-broker, dispatch
+or write authority.
 
 ## Feature choices
 
@@ -193,11 +193,11 @@ by the diagrams. MCP grants no admission, token-broker, dispatch or write author
 version: 1
 backend: azure
 features:
-  deployment: azure-functions # single-vm | minimal-azure | azure-functions | azure-container-apps
-  acquisition: actions # actions | collector, mutually exclusive
-  ingress: public # public OAuth | private, external connectivity required
-  analytics: none # none | adx, a paid destination, not an exporter
-  telemetry: none # none | otlp, an external HTTPS collector
+  deployment: azure-container-apps # single-vm | minimal-azure | azure-container-apps
+  acquisition: actions
+  ingress: public # public OAuth for Container Apps
+  analytics: none
+  telemetry: none
   sessionDataLake: false # dedicated persistent host + private Blob + paid ADX
   webhookGateway: false # isolated receive and dispatch hosts
 ```
@@ -211,17 +211,10 @@ list are supplied when omitted; allow at least one organization, team or user.
 `azure.secrets` maps secure parameter names to secret names under
 `azure.secretVaultId`. Optional secure parameters use the same mechanism.
 
-Collector mode additionally requires `collectorImage`, numeric
-`collectorGithubAppId`, `collectorControlRepository`,
-`collectorNativeInventoryDigest`, nonempty `githubAdminUsers`, and secret
-references for `collectorPrivateKey` and `githubWebhookSecret`. Provision the
-exact reviewed inventory independently before worker startup. Keep the
-baseline's manual snapshot-ingestion job stopped in collector mode.
-
-OTLP needs a credential-free HTTPS `otlpEndpoint`; optionally enable
-`otlpLogsEnabled` and reference `otlpHeaders` through Key Vault.
-Private Functions ingress needs independently approved connectivity; disabling
-public access alone does not provision a private endpoint or a working route.
+The Container Apps profile supports public OAuth ingress and Actions snapshots,
+not collector acquisition, private ingress, OTLP or base ADX analytics.
+Optional archive/gateway infrastructure has its own explicit activation gates
+and does not broaden this runtime contract.
 
 ## Additional feature infrastructure
 
@@ -267,17 +260,15 @@ Keep the generating CLI release when checking older bundles. The CLI embeds
 deterministic, reviewable snapshots of every bundled template, example,
 script and runbook, including the canonical Bicep sources and ARM parameter
 contract. It never needs a source checkout or downloads resources at runtime.
-`deploy azure` uses the same embedded ARM template and TOSCA requirement graph
-for its guarded JSON-config preflight, plan and development apply path.
-The YAML bundles are review-only outputs, not apply plan files; their optional
-profiles do not expand native apply support. The separate `topology` command
+The YAML bundles are review-only outputs, not executable apply plans.
+No native Azure preflight, plan, apply or receipt command remains. The separate `topology` command
 has been removed; use `deploy init`, `deploy generate` and `deploy check`.
-After changing `server/azure/`, run
+After changing shared `server/azure/` modules or the selected profile templates, run
 `go generate ./internal/topology`. A parity test rejects stale embedded sources;
 the generator never maintains a second baseline resource implementation.
 Asset regeneration also compiles the compact and Container Apps ARM parameter contracts,
 so it requires the official Bicep CLI on `PATH`. `TestDeploymentSamples` compiles
-all five shipped samples with the actual compiler and checks VM/database/Functions/
+all four shipped samples with the actual compiler and checks VM/database/
 Container Apps resource definitions (including activation-gated definitions).
 Missing Bicep fails those tests; CI installs a checksum-pinned
 official compiler. Static rule and bad-configuration regressions run separately.

@@ -13,7 +13,7 @@ Approve exact collection scope, a versioned closed content/redaction policy,
 rights, full-content readers, retention/replay horizons, destination suitability,
 and resource budgets. Use a private persistent POSIX volume with verified lock,
 rename, and durability semantics. Do not use a public shard directory, ephemeral
-container filesystem, per-request Functions host, or a shared multi-replica mount.
+container filesystem, per-request host, or a shared multi-replica mount.
 Archive configuration never authorizes new GitHub acquisition.
 
 The supplied standard Alpine images do not imply DuckDB compatibility or

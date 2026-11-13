@@ -105,7 +105,8 @@ test("cloud-architect guide is discoverable, diagram-rich, and preserves evidenc
 test("database architecture worker maintains the private lake and final Azure mapping without new authority", () => {
   for (const path of [
     "specs/session-archive.md", "docs/deployment-azure.md", "server/SESSION-ARCHIVE.md",
-    "server/ADX-INGEST.md", "server/ADX-TRACES.md", "server/azure/main.bicep",
+    "server/ADX-INGEST.md", "server/ADX-TRACES.md",
+    "internal/topology/assets/container-apps/main.bicep",
   ]) {
     assert.ok(source.includes(path), `missing worker evidence source: ${path}`);
   }
@@ -115,7 +116,7 @@ test("database architecture worker maintains the private lake and final Azure ma
   assert.match(source, /authorized artifact visit before normalization/);
   assert.match(source, /metadata-only PostgreSQL source privacy authority/);
   assert.match(source, /archive `BlobStore`\/`QueryService` adapters/);
-  assert.match(source, /Functions runtime storage\nis not the session lake/);
+  assert.match(source, /ephemeral container storage\s+is not the session lake/);
   assert.match(source, /baseline-provisioned, conditionally provisioned,\noperator-managed or unsupported/);
   assert.match(source, /real destination acceptance gates/);
   assert.match(source, /without provisioning resources or widening authority/);
@@ -149,21 +150,24 @@ test("Azure mapping is the final guide section and distinguishes resources from 
   assert.equal(headings.at(-1), "13. Azure service mapping");
   const azure = guide.split("## 13. Azure service mapping\n")[1];
   for (const service of [
-    "Azure Functions", "PostgreSQL Flexible Server", "Azure Container Apps",
-    "Azure Container Registry", "Azure Key Vault", "Azure Storage account",
+    "PostgreSQL Flexible Server", "Azure Container Apps",
+    "Azure Container Registry", "Azure Key Vault",
     "Azure Blob Storage", "Azure Data Explorer", "Application Insights",
     "Log Analytics", "private DNS", "`BlobStore`", "`QueryService`",
   ]) {
     assert.ok(azure.includes(service), `missing Azure mapping: ${service}`);
   }
-  assert.match(azure, /Runtime state only, \*\*not the session lake\*\*/);
+  assert.match(azure, /ephemeral container storage is not the session lake/);
   assert.match(azure, /requires neither Redis nor Azure Service Bus/);
   assert.match(azure, /GitHub remains the OAuth and membership provider, not Entra/);
   assert.match(azure, /no external table, exporter or archive activation/);
-  assert.match(azure, /not the Functions platform listener/);
-  assert.match(azure, /host Insights settings alone do not enable Go export/);
+  assert.match(azure, /No Application Insights or OTLP in the base profile/);
+  assert.match(azure, /operators execute\nreviewed templates separately/);
+  assert.match(azure, /offline checks are not real destination acceptance/);
+  assert.match(azure, /ARM dependencies\ndo not execute or verify jobs/);
+  assert.doesNotMatch(azure, /Azure Functions|server\/azure\/main\.bicep|deploy azure/);
   assert.match(azure, /Managed-identity Key Vault access does not itself authenticate Blob\/ADX/);
   assert.match(azure, /digest pinning alone is not production/);
   assert.match(azure, /```mermaid\n/);
-  assert.ok(azure.includes("server/azure/main.bicep"));
+  assert.ok(azure.includes("internal/topology/assets/container-apps/main.bicep"));
 });

@@ -42,8 +42,7 @@ PostgreSQL also provides separate operational state by default.
 | [Synthetic enterprise demo](deployment-actions.md#building-the-synthetic-pages-demo) | GitHub Pages | Web Worker over isolated browser IndexedDB | No operational sign-in or live services | Documentation/demo workflow only; no operational artifacts |
 | [On-demand local dashboard](setup-quickstarts.md#open-a-local-dashboard-no-deployment) | Bundled loopback Go server | Go over a private PostgreSQL cache | Local capability URL; collection uses authenticated `gh` | Docker/Podman, or an explicitly configured provisioned database |
 | [Local development](dashboard-data-ingestion.md#use-local-postgresql) | Loopback Go server | Go over canonical PostgreSQL | Private local capability URL | Explicitly acquired operational snapshot |
-| [Azure Functions](deployment-azure.md) | Azure Functions | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Function App, Elastic Premium plan, PostgreSQL, Key Vault, ACR, runtime storage, jobs and monitoring |
-| [Azure Container Apps](deployment-topology.md#azure-container-apps) | Container Apps Consumption, one hosted Go replica | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Container Apps environment, PostgreSQL, Key Vault, ACR, jobs and Log Analytics; no Functions, runtime Storage or Premium plan |
+| [Azure Container Apps](deployment-azure.md) | Container Apps Consumption, one hosted Go replica | On the server, over PostgreSQL | Explicitly allowed GitHub users, organizations or teams | Container Apps environment, PostgreSQL, Key Vault, ACR, jobs and Log Analytics; offline review bundle and separate operator-run deployment |
 
 ## Choosing an option
 
@@ -71,7 +70,7 @@ The browser uses server-side PostgreSQL queries; a hosted failure does not
 switch to browser storage or the Pages deployment.
 
 > [!NOTE]
-> Your credential profile still matters for server-backed deployments. The CAO Activity workflow collects their evidence in GitHub Actions, using the profile that you configure. Dashboard users sign in separately, through a GitHub OAuth app. The optional Azure collection profile requires a GitHub App and doesn't support PATs.
+> Your credential profile still matters for server-backed deployments. Actions snapshot acquisition uses explicitly authorized GitHub access. Dashboard users sign in separately through GitHub OAuth. Independently configured native collection requires its own GitHub App and enrollment; it is not supported by the base Container Apps review bundle.
 
 ## About the shared data flow
 
@@ -81,9 +80,10 @@ samples and passes them through production normalization and worker ingestion;
 it never consumes operational artifacts. [Data ingestion](dashboard-data-ingestion.md) owns the collection,
 verified payload, retention, and backend-processing details;
 [Data model](dashboard-data-model.md) owns entities and identities.
-The optional [Azure collection profile](deployment-azure.md#using-the-optional-collection-profile)
-uses server-side workers driven by GitHub App webhooks instead of relying only
-on scheduled Activity snapshots.
+Independently configured native collection can use server-side workers driven
+by GitHub App webhooks. The [Container Apps review bundle](deployment-azure.md)
+supports explicitly selected Actions snapshots, not collector acquisition;
+optional staged infrastructure is not native collection activation.
 
 ## What every option guarantees
 

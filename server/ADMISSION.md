@@ -165,8 +165,8 @@ workflow results.
 
 Use an existing HTTPS hosted deployment with the **PostgreSQL operational
 backend**. Redis and volatile operational backends cannot enable
-this service. The same handler is used by the process, external-listener and
-Azure Functions profiles; the existing trusted-host/proxy policy still applies.
+this service. The same handler is used by the process and external-listener
+profiles; the existing trusted-host/proxy policy still applies.
 The endpoint authenticates OIDC independently of dashboard OAuth and CSRF.
 It never accepts a dashboard session or local bearer capability as admission.
 

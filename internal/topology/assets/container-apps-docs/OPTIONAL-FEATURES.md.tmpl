@@ -1,13 +1,13 @@
 # Optional infrastructure and activation
 
-Deploy optional/hosts.bicep AFTER the unchanged main.bicep baseline. Review
+Deploy optional/hosts.bicep AFTER the Container Apps main.bicep baseline. Review
 `bash scripts/what-if-optional.sh SUBSCRIPTION_ID RESOURCE_GROUP` separately.
 No generated script deploys infrastructure or starts a service automatically.
 All optional-role credentials and TLS keys must be referenced in the existing
 input Key Vault. runtime-secret-references.json names them without values.
 Missing required references fail generation rather than bypassing secret custody.
 
-The dedicated 10.43.0.0/16 VNet peers to the baseline's 10.42.0.0/16. Verify
+The dedicated 10.43.0.0/16 VNet peers to the baseline's 10.45.0.0/16. Verify
 no overlap with other connected networks. Dedicated subnets/default-deny NSGs
 isolate archive, receive and dispatch. Only reviewed CIDRs reach public HTTPS.
 SSH is NOT exposed; arrange approved private administration/Run Command.
@@ -23,7 +23,7 @@ recovery; default VM and ADX SKUs are development choices, not production advice
 A SINGLE persistent archive VM has a detached-on-delete 128 GiB managed disk.
 A dedicated private Blob account/container and paid managed-identity ADX
 cluster/database provide Parquet generation storage and bounded external-table
-queries. Functions runtime storage is NOT a lake. The host has container-scoped
+queries. Dashboard PostgreSQL is NOT a lake. The host has container-scoped
 Blob Data Contributor; ADX has container-scoped Blob Data Reader.
 The ADX-managed private Blob endpoint needs independent approval.
 

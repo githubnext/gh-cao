@@ -284,8 +284,9 @@ test("docs dashboard installs renderer assets without experimental campaign page
     const mainHash = builtIndex.match(/script\.src = '\.\/src\/main\.js\?sha=([a-f0-9]{64})'/)?.[1];
     assert.ok(mainHash, "entry module includes the site content SHA");
     assert.ok(builtIndex.includes(`rel="modulepreload" href="./src/main.js?sha=${mainHash}"`));
-    assert.ok(builtIndex.includes(`rel="stylesheet" href="./styles.css?sha=${mainHash}"`));
     const stylesheet = await readFile(new URL("styles.css", destination), "utf8");
+    assert.ok(builtIndex.includes(`<style data-dashboard-styles>${stylesheet}</style>`));
+    assert.ok(!builtIndex.includes('rel="stylesheet"'), "startup does not block on a separate CSS request");
     assert.ok(stylesheet.includes(".sidebar") && stylesheet.includes(".dashboard-notifications"),
       "compiled stylesheet preserves the dashboard and notification styles");
     assert.match(
@@ -321,7 +322,7 @@ test("docs dashboard installs renderer assets without experimental campaign page
       await readFile(new URL(href, destination));
     }
     assert.ok(preloadedChunks.length > 0 && preloadedChunks.length <= 6,
-      "startup preloads stay bounded and leave bandwidth for the render-blocking stylesheet");
+      "startup preloads stay bounded and leave bandwidth for the document's inline stylesheet");
     assert.ok(preloadedChunks.some((file) => chunkMaps[chunkFiles.indexOf(file)].sources
       .some((source) => source.endsWith("/src/dashboard-app.js"))), "application startup is preloaded");
     for (const file of preloadedChunks) {

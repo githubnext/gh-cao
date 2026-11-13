@@ -64,23 +64,19 @@ func filesFor(ctx context.Context, content []byte) (map[string][]byte, Topology,
 	}
 	files["RULES.md"] = []byte(report.Markdown())
 	files["MANIFEST.md"] = []byte(renderManifest(solution.Topology) + fmt.Sprintf("\n## Architecture rules\n\n%d strict errors; %d advisory warnings. See [RULES.md](RULES.md).\nStatic declared topology only; not a security certification or live assessment.\n", report.Errors, report.Warnings))
-	documentDirectory := "assets/docs"
+	documentDirectory := "assets/compact-docs"
 	if input.Features.Deployment == "azure-container-apps" {
 		documentDirectory = "assets/container-apps-docs"
-	} else if input.Features.Deployment != "azure-functions" {
-		documentDirectory = "assets/compact-docs"
 	}
-	if input.Features.Deployment != "azure-functions" || len(additionalRuntimeSecrets(input.Features)) > 0 {
-		references := map[string]*SecretReference{}
-		for name, secret := range input.Azure.Secrets {
-			ref := &SecretReference{SecretName: secret}
-			ref.KeyVault.ID = input.Azure.SecretVaultID
-			references[name] = ref
-		}
-		files["runtime-secret-references.json"], err = jsonBytes(references)
-		if err != nil {
-			return nil, Topology{}, err
-		}
+	references := map[string]*SecretReference{}
+	for name, secret := range input.Azure.Secrets {
+		ref := &SecretReference{SecretName: secret}
+		ref.KeyVault.ID = input.Azure.SecretVaultID
+		references[name] = ref
+	}
+	files["runtime-secret-references.json"], err = jsonBytes(references)
+	if err != nil {
+		return nil, Topology{}, err
 	}
 	documents, err := fs.ReadDir(assets, documentDirectory)
 	if err != nil {
@@ -177,7 +173,7 @@ func writeExclusive(name string, content []byte) error {
 }
 
 func Init(destination string) error {
-	return InitExample(destination, "azure-functions")
+	return InitExample(destination, "azure-container-apps")
 }
 
 func InitExample(destination, deployment string) error {

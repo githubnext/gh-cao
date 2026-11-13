@@ -236,6 +236,9 @@ func TestBuildBenchmarkMeasurementReturnsMeasurement(t *testing.T) {
 }
 
 func TestBenchmarkQueriesWithDeployedSubset(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL benchmark; covered by daily full validation")
+	}
 	url := os.Getenv("POSTGRES_URL")
 	if url == "" {
 		t.Skip("POSTGRES_URL is not set")
@@ -299,6 +302,9 @@ func TestBenchmarkQueriesWithDeployedSubset(t *testing.T) {
 }
 
 func TestBenchmarkCleanupPreservesOtherNamespaces(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL benchmark; covered by daily full validation")
+	}
 	url := os.Getenv("POSTGRES_URL")
 	if url == "" {
 		t.Skip("POSTGRES_URL is not set")

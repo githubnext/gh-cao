@@ -89,13 +89,10 @@ required for this MCP path.
   approved runner/network reachability. Do not widen source CIDRs or expose
   a private service merely to make the sample connect.
 
-The unchanged **Azure Functions baseline does NOT wire hosted MCP**:
-its `azure-functions` entrypoint does not expose `--mcp-enabled` or populate
-the MCP configuration. Setting the caller-repository environment variable
-alone does not register `/mcp`. A reviewed hosting-composition change or a
-compatible `serve-hosted` deployment is required; this generator makes neither
-change automatically. The same limitation applies to the Functions front end
-in the full Azure sample.
+**Generated deployments do NOT enable hosted MCP**. Setting the
+caller-repository environment variable alone does not register `/mcp`.
+A reviewed `serve-hosted --mcp-enabled` hosting-composition change is required;
+this generator does not make that change automatically.
 
 ## Access and authority boundaries
 

@@ -59,15 +59,12 @@ test("dashboard canvas shares concurrent opens and closes pending startup", asyn
 
 test("dashboard canvas uses hook context and retains each preview's working directory", async () => {
   const previews = [];
-  const commands = [];
   const { config, closePreviews } = createDashboardExtension({
     workingDirectory: "/initial",
     startPreview: async (options) => {
       previews.push(options);
       return { url: `http://127.0.0.1:1234/${previews.length}`, close: async () => {} };
     },
-    executeCommand: async (options) => { commands.push(options); },
-    approveCommand: async () => true,
   });
   const canvas = config.canvases[0];
   const guidance = await config.hooks.onSessionStart({ workingDirectory: "/first" });
@@ -78,12 +75,7 @@ test("dashboard canvas uses hook context and retains each preview's working dire
   await canvas.open(context("third", "/third"));
   assert.deepEqual(previews.map(({ workingDirectory }) => workingDirectory), ["/first", "/second", "/third"]);
   assert.equal(previews[0].repository, "acme/control");
-  assert.equal(previews[0].dataBackend, undefined);
-  assert.equal(previews[1].dataBackend, undefined);
-  assert.equal(await previews[0].approveCliAction({ command: "gh aw compile" }), true);
-  await previews[0].executeCliAction({ command: "gh aw compile" });
-  assert.equal(commands[0].workingDirectory, "/first");
-  assert.equal(commands[0].command, "gh aw compile");
+  assert.deepEqual(Object.keys(previews[0]), ["workingDirectory", "repository"]);
   await closePreviews();
 });
 
@@ -105,30 +97,6 @@ test("dashboard canvas reports startup errors and allows a fresh retry", async (
   assert.equal((await canvas.open(context("preview"))).url, "http://127.0.0.1:1234/preview");
   assert.equal(starts, 2);
   await closePreviews();
-});
-
-test("canvas prompt handoff invokes the Copilot app session tool, not an agent task", async () => {
-  let previewOptions;
-  const requests = [];
-  let result = { resultType: "success", textResultForLlm: "Created session." };
-  const { config, closePreviews } = createDashboardExtension({
-    executeSessionTool: async (request) => { requests.push(request); return result; },
-    startPreview: async (options) => {
-      previewOptions = options;
-      return { url: "http://127.0.0.1:1234/", close: async () => {} };
-    },
-  });
-  await config.canvases[0].open(context("session-handoff"));
-  await previewOptions.startSession("Create a Pull Request for the following task:\nTriage issues.");
-  assert.deepEqual(requests, [{
-    name: "create_session",
-    arguments: { kickoff: { prompt: "Create a Pull Request for the following task:\nTriage issues." } },
-  }]);
-  result = { resultType: "failure", textResultForLlm: "Unavailable." };
-  await assert.rejects(previewOptions.startSession("Try again."), /could not start the session/);
-  await closePreviews();
-  await assert.rejects(previewOptions.startSession("After closing."), /shutting down/);
-  assert.equal(requests.length, 2);
 });
 
 test("dashboard extension waits for all preview cleanup and reports failures", async () => {
@@ -257,69 +225,4 @@ test("shutdown rejects new opens while cleanup is pending and after it completes
   await closing;
   await assert.rejects(config.canvases[0].open(context("third")), /shutting down/);
   assert.equal(starts, 1);
-});
-
-test("preview approval is bound to its working directory, command, and exact input", async () => {
-  let previewOptions;
-  let request;
-  const { config, closePreviews } = createDashboardExtension({
-    startPreview: async (options) => {
-      previewOptions = options;
-      return { url: "http://127.0.0.1:1234/preview", close: async () => {} };
-    },
-    approveCommand: async (input) => { request = input; return true; },
-  });
-  await config.canvases[0].open(context("preview", "/approved-workspace"));
-  await config.hooks.onUserPromptSubmitted({ workingDirectory: "/another-workspace" });
-  assert.equal(await previewOptions.approveCliAction({
-    command: "gh agent-task create --from-file -",
-    input: "exact reviewed input",
-  }), true);
-  assert.deepEqual(request, {
-    command: "gh agent-task create --from-file -",
-    input: "exact reviewed input",
-    workingDirectory: "/approved-workspace",
-  });
-  assert.ok(Object.isFrozen(request));
-  await closePreviews();
-  await assert.rejects(previewOptions.approveCliAction({ command: "gh aw compile" }), /shutting down/);
-});
-
-test("default preview approval validates canvas-confirmed commands without a host prompt", async () => {
-  let previewOptions;
-  const { config, closePreviews } = createDashboardExtension({
-    startPreview: async (options) => {
-      previewOptions = options;
-      return { url: "http://127.0.0.1:1234/preview", close: async () => {} };
-    },
-  });
-  await config.canvases[0].open(context("preview"));
-  try {
-    assert.equal(await previewOptions.approveCliAction({ command: "gh aw compile" }), true);
-    for (const command of ["node attacker.mjs", "gh aw compile\necho unexpected", 'gh aw compile "']) {
-      await assert.rejects(previewOptions.approveCliAction({ command }));
-    }
-  } finally {
-    await closePreviews();
-  }
-});
-
-test("custom preview approval must explicitly approve canvas commands", async () => {
-  let previewOptions;
-  let decision = false;
-  const { config, closePreviews } = createDashboardExtension({
-    startPreview: async (options) => {
-      previewOptions = options;
-      return { url: "http://127.0.0.1:1234/preview", close: async () => {} };
-    },
-    approveCommand: async () => decision,
-  });
-  await config.canvases[0].open(context("preview"));
-  try {
-    for (decision of [false, undefined, "approved", true]) {
-      assert.equal(await previewOptions.approveCliAction({ command: "gh aw compile" }), decision === true);
-    }
-  } finally {
-    await closePreviews();
-  }
 });

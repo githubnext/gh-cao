@@ -27,14 +27,11 @@ func generate() error {
 		return err
 	}
 	directory := filepath.Join("..", "..", "server", "azure")
-	names, err := filepath.Glob(filepath.Join(directory, "*.bicep"))
-	if err != nil {
-		return err
+	names := []string{
+		filepath.Join(directory, "provisioning.bicep"),
+		filepath.Join(directory, "ingestion.bicep"),
+		filepath.Join(directory, "worker-roles.bicep"),
 	}
-	if len(names) == 0 {
-		return fmt.Errorf("no canonical Azure Bicep sources found")
-	}
-	names = append(names, filepath.Join(directory, "main.json"))
 	destination := filepath.Join("assets", "azure-baseline.generated")
 	if err := os.MkdirAll(destination, 0o755); err != nil {
 		return err
@@ -89,7 +86,7 @@ func compileContainerApps() error {
 }
 
 func compileContract(destination string, sources map[string]string) (err error) {
-	stage, err := os.MkdirTemp("", "cao-topology-contract-")
+	stage, err := os.MkdirTemp(".", ".cao-topology-contract-")
 	if err != nil {
 		return err
 	}

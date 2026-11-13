@@ -62,6 +62,9 @@ func TestValidateManifestFailsClosed(t *testing.T) {
 }
 
 func TestLocalIngestionReceiptsRejectForeignTransactions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	for _, row := range []model.Row{
 		{"id": "unrelated", "kind": "local-dashboard-ingestion"},
 		{"id": "local-dashboard-ingestion", "kind": "unrelated"},

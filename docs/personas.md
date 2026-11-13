@@ -1,6 +1,6 @@
 ---
 title: Who is CAO for?
-description: The target user personas for Central Agentic Ops.
+description: The target user personas and two main usage patterns for Central Agentic Ops.
 ---
 
 Central Agentic Ops (CAO) is built for people who **maintain many, sometimes
@@ -72,6 +72,75 @@ across one or more enterprise organizations.
 - **Typical setup:** dedicated control repository, GitHub Apps per
   organization, optional [hosted deployment](deployment.md); see
   [Set Up Multiple Organizations](setup-multiple-organizations.md).
+
+## Two main usage patterns
+
+CAO supports two main ways of working: individual investigation on a local
+server and shared access through a hosted service. Either persona can use
+both. A maintainer may need a shared dashboard; an organization administrator
+may prefer a local session to investigate a specific repository.
+
+### Local server with a dev token (`gh cao dashboard`)
+
+Use a local server to inspect workflow activity, cost, and outcomes without
+deploying a shared service. Run `gh cao dashboard` in a repository checkout,
+or select repositories with `--repo OWNER/REPOSITORY`, then open the printed
+dashboard URL. The usual prerequisites are an authenticated GitHub CLI and
+Docker or Podman. No control-repository setup or campaign installation is
+required.
+
+The command serves the dashboard on your machine and manages a private
+PostgreSQL cache. A local bearer token—the dev token—controls dashboard
+access; your `gh` credentials separately authorize evidence collection from
+GitHub. Keep the dashboard URL and cache private. This mode is for local use,
+not shared hosting.
+
+Leave the command running to refresh evidence, and press Ctrl-C to stop.
+The cache remains for later sessions. Collection requires network access and
+repository permissions, and its limits can leave gaps in the available
+history. Opening the dashboard does not change remote workflows or rollout
+policy.
+
+**Documentation priorities**
+
+- Start with the [local quickstart](setup-quickstarts.md#open-a-local-dashboard-no-deployment),
+  not hosted deployment instructions.
+- Explain how to open and stop a session, protect the token and cache, and
+  recognize incomplete or stale evidence.
+- Keep detailed flags and limits in the
+  [command reference](cao-cli.md#on-demand-local-dashboard).
+
+### Hosted service
+
+Use a hosted service when a team needs a shared dashboard with centrally
+managed access and evidence collection. An operator deploys and maintains the
+service; users open its URL and sign in with GitHub. They do not need to run
+a local server.
+
+GitHub OAuth and explicit user, organization, or team authorization control
+dashboard access. Operators configure collection credentials separately.
+Signing in grants neither collection nor workflow execution authority, and
+a local dev token is not a substitute for hosted authentication.
+
+The Go service serves the dashboard and evaluates queries against PostgreSQL.
+Operators are responsible for secrets, monitoring, recovery, and evidence
+freshness. Hosting does not widen reviewed policy or enable live workflow
+execution. Deployment options are experimental and require the security and
+operational reviews described in the [deployment guide](deployment.md).
+
+**Documentation priorities**
+
+- Separate the operator's deployment and maintenance tasks from the user's
+  sign-in and investigation tasks.
+- Guide operators through hosting, collection, access control, and recovery.
+  Link to [deployment options](deployment.md),
+  [authentication](authentication.md), and [operations](operations.md).
+- Help users resolve access failures and recognize stale or unavailable
+  evidence without requiring them to understand the deployment.
+
+Organize documentation around these two patterns, with prerequisites and next
+steps for each. Both use the same dashboard and evidence model. The synthetic
+Pages demo illustrates CAO; it is not an operational hosting option.
 
 ## Who CAO is not for
 

@@ -164,7 +164,7 @@ coordination service.
 
 The initial supported profile is a persistent host with a suitable converter and
 durable staging lifecycle. Do not assume an ephemeral container filesystem or
-per-request Azure Functions invocation supplies a durable spool or publisher.
+per-request invocation supplies a durable spool or publisher.
 Destination outage, capacity, or archive admission failures remain explicit
 archive failures and must not claim readiness or alter core dashboard evidence.
 

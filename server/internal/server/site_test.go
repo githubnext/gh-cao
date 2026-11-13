@@ -110,7 +110,7 @@ func testHostedHandlerServesDashboardAndAssets(t *testing.T, embedded bool) {
 			profile := hostedHostProfile()
 			switch name {
 			case "platform":
-				profile = azureFunctionsHostProfile()
+				profile = platformHostProfile()
 			case "external":
 				profile.Listener = HostListenerExternal
 			}

@@ -165,7 +165,7 @@ prompts, tool payloads or sensitive data. Do not spawn agents or sessions.
    provisioned resources or illustrative examples into implemented guarantees.
 3. Inspect at most 30 relevant implementation/test files under
    `dashboard/site/src/data/`, `server/internal/`, `server/spec/`,
-   `server/azure/` and `activity/`
+   `internal/topology/assets/container-apps/`, `server/azure/` and `activity/`
    to verify material changed claims. Trace consumer, owned contract, adapter
    and regression tests before describing a boundary. Normative conflicts
    remain explicit qualifications; do not silently reconcile contradictory
@@ -215,19 +215,19 @@ does not complete the proposed ADR or activate native collection.
 Maintain **Azure service mapping as the final section** of the guide, after
 document ownership. Map domain responsibilities and owned interfaces to concrete
 Azure services with a concise table, a bounded accessible topology diagram and
-nearby source citations. Verify `server/azure/main.bicep` and relevant modules,
+nearby source citations. Verify `internal/topology/assets/container-apps/main.bicep` and relevant modules,
 operational contracts, archive `BlobStore`/`QueryService` adapters and regression
 tests rather than deriving deployment from service names. Cover the complete Go
 handler, canonical and operational PostgreSQL, owner/runtime jobs, optional
-collection/backfill, ACR, Key Vault/managed identity, Functions runtime storage,
+collection/backfill, ACR, Key Vault/managed identity,
 private lake Blob, ADX, observability and network boundaries.
 
 Label each mapping as baseline-provisioned, conditionally provisioned,
-operator-managed or unsupported for the selected host. Functions runtime storage
+operator-managed or unsupported for the selected host; ephemeral container storage
 is not the session lake; `adxEnabled` provisions a destination, not exporter or
 archive activation, external tables or runtime data roles. Preserve the persistent
-single-owner archive/exporter restriction and rejection of Functions platform
-listeners, ephemeral/per-request hosts and standalone collection jobs as archive
+single-owner archive/exporter restriction and rejection of
+ephemeral/per-request hosts and standalone collection jobs as archive
 hosts. Do not invent Redis/Service Bus substitutions, Entra dashboard sign-in,
 managed-identity archive authentication, automatic Go telemetry export or
 production assurance. Changes to mappings must update affected diagrams and

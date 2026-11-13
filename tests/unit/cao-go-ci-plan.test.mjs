@@ -84,7 +84,8 @@ test("Go unit jobs partition every package exactly once, including future packag
   const prefix = "github.com/githubnext/gh-cao/server/";
   const step = jobs["server-tests"].steps.find((step) => step.name === "Unit tests");
   const covered = [];
-  for (const area of goTestAreas) {
+  const matrix = goTestPlan([], true).matrix.include.filter(({ area, shard }) => area !== "storage" || shard === 0);
+  for (const { area, shard, shards } of matrix) {
     const result = spawnSync("bash", ["-c", `
       go() {
         if [[ "$3" == "list" ]]; then printf '%s\\n' "$MOCK_PACKAGES";
@@ -95,7 +96,8 @@ test("Go unit jobs partition every package exactly once, including future packag
       encoding: "utf8",
       env: {
         ...process.env, MOCK_PACKAGES: packages.map((name) => prefix + name).join("\n"),
-        GO_TEST_AREA: area, GO_TEST_MODE: "-short", TEST_SHARD: "0", TEST_SHARD_COUNT: "1",
+        GO_TEST_AREA: area, GO_TEST_MODE: "-short", TEST_SHARD: String(shard),
+        TEST_SHARD_COUNT: area === "core" ? String(shards) : "1",
       },
     });
     assert.equal(result.status, 0, result.stderr);
@@ -107,7 +109,8 @@ test("Go unit jobs partition every package exactly once, including future packag
   assert.deepEqual(covered.sort(), packages.sort());
   assert.match(step.env.POSTGRES_URL, /job\.services\.postgres/);
   assert.match(step.env.CAO_TEST_POSTGRES_URL, /job\.services\.postgres/);
-  assert.match(step.env.GO_TEST_MODE, /'-short' \|\| '-count=1'/);
+  assert.equal(step.env.GO_TEST_MODE,
+    "${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '-count=1' || '-short' }}");
 });
 
 test("Go unit selection propagates package-list and test failures", () => {
@@ -124,17 +127,82 @@ test("Go unit selection propagates package-list and test failures", () => {
   }
 });
 
-test("storage-only changes select four shards without duplicating other areas", () => {
+test("core and storage select four shards while other areas retain a single job", () => {
   const shards = [0, 1, 2, 3].map((shard) => ({ area: "storage", shard, shards: 4 }));
   assert.deepEqual(goTestPlan(["server/internal/postgresx/schema_test.go"]).matrix.include, shards);
   const matrix = goTestPlan([], true).matrix.include;
   assert.deepEqual(matrix.filter(({ area }) => area === "storage"), shards);
-  assert.deepEqual(matrix.filter(({ area }) => area !== "storage"),
-    ["http", "hosted-cli", "core"].map((area) => ({ area, shard: 0, shards: 1 })));
+  const core = shards.map((shard) => ({ ...shard, area: "core" }));
+  assert.deepEqual(goTestPlan(["server/internal/query/query_test.go"]).matrix.include, core);
+  assert.deepEqual(matrix.filter(({ area }) => area === "core"), core);
+  assert.deepEqual(matrix.filter(({ area }) => !["storage", "core"].includes(area)),
+    ["http", "hosted-cli"].map((area) => ({ area, shard: 0, shards: 1 })));
   const step = jobs["server-tests"].steps.find((step) => step.name === "Unit tests");
   assert.equal(step.env.TEST_SHARD, "${{ matrix.shard }}");
   assert.equal(step.env.TEST_SHARD_COUNT, "${{ matrix.shards }}");
   assert.ok(jobs["server-tests"].services.postgres);
+});
+
+test("core shards partition packages without compiling or listing other shards' tests", () => {
+  const step = jobs["server-tests"].steps.find((step) => step.name === "Unit tests");
+  const prefix = "github.com/githubnext/gh-cao/server/";
+  const packages = [
+    "cmd/cao-dashboard", "internal/collect", "internal/ingest", "internal/query",
+    "internal/operational/postgres", "internal/future-package", "internal/server/child",
+    "internal/simulator", "internal/webhookgateway",
+  ].map((name) => prefix + name);
+  const excluded = ["internal/server", "internal/hostedcli", "internal/postgresx"]
+    .map((name) => prefix + name);
+  const mock = `
+    go() {
+      if [[ "$3" == "list" ]]; then printf '%s\\n' "$MOCK_PACKAGES";
+      else
+        [[ "$*" != *" -list "* ]] || return 42
+        [[ "$*" == *" -p 1 $GO_TEST_MODE -v "* ]] || return 43
+        shift 7
+        printf '%s\\n' "$@"
+      fi
+    }
+  `;
+  for (const mode of ["-short", "-count=1"]) {
+    const covered = [];
+    for (const { shard, shards } of goTestPlan(["server/internal/ingest/ingest_test.go"]).matrix.include) {
+      const env = {
+        ...process.env, GO_TEST_AREA: "core", GO_TEST_MODE: mode,
+        TEST_SHARD: String(shard), TEST_SHARD_COUNT: String(shards),
+        MOCK_PACKAGES: [...packages, ...excluded].toReversed().join("\n"),
+      };
+      const result = spawnSync("bash", ["-c", `${mock}\n${step.run}`], { encoding: "utf8", env });
+      assert.equal(result.status, 0, result.stderr);
+      const selected = result.stdout.trim().split("\n");
+      assert.deepEqual(selected, [...packages].sort().filter((_, index) => index % shards === shard));
+      covered.push(...selected);
+      const reordered = spawnSync("bash", ["-c", `${mock}\n${step.run}`], {
+        encoding: "utf8", env: { ...env, MOCK_PACKAGES: [...packages, ...excluded].join("\n") },
+      });
+      assert.equal(reordered.status, 0, reordered.stderr);
+      assert.equal(reordered.stdout, result.stdout);
+    }
+    assert.deepEqual(covered.sort(), [...packages].sort());
+  }
+});
+
+test("core shards fail closed on package-list errors, empty selections, and test failures", () => {
+  const step = jobs["server-tests"].steps.find((step) => step.name === "Unit tests");
+  for (const [mock, expected] of [
+    ["go() { return 23; }", 23],
+    ["go() { echo github.com/githubnext/gh-cao/server/internal/server; }", 1],
+    ['go() { if [[ "$3" == "list" ]]; then echo example/core; else return 24; fi; }', 24],
+  ]) {
+    const result = spawnSync("bash", ["-c", `${mock}\n${step.run}`], {
+      encoding: "utf8",
+      env: {
+        ...process.env, GO_TEST_AREA: "core", GO_TEST_MODE: "-short",
+        TEST_SHARD: "0", TEST_SHARD_COUNT: "4",
+      },
+    });
+    assert.equal(result.status, expected, result.stderr);
+  }
 });
 
 test("storage shards execute every discovered test exactly once with existing test modes", () => {

@@ -1047,7 +1047,7 @@ Conflicts SHALL NOT mutate either store. Compact request retention SHALL remain
 separate from ordinary canonical evidence retention; no public raw-session
 endpoint, additional credential grant or financial mutation is implied.
 
-Hosted container, Azure Functions, and external-listener deployments SHALL
+Hosted container and external-listener deployments SHALL
 serve the built dashboard HTML and assets through the complete Go handler on
 the same origin as OAuth, query APIs, and revision events. They SHALL NOT
 require a separately hosted Pages or static frontend. Hosted startup SHALL

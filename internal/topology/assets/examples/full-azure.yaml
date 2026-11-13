@@ -1,33 +1,29 @@
-# Synthetic compile-only example. Neither inventory, Apps, vault entries nor
-# OTLP destination are provisioned/approved by this file.
+# Synthetic compile-only Container Apps example with separately staged optional hosts.
 version: 1
 backend: azure
 features:
-  deployment: azure-functions
-  acquisition: collector
+  deployment: azure-container-apps
+  acquisition: actions
   ingress: public
-  analytics: adx
-  telemetry: otlp
+  analytics: none
+  telemetry: none
   sessionDataLake: true
   webhookGateway: true
 azure:
   parameters:
     location: eastus
-    functionAppName: example-full
-    storageAccountName: examplefullsa
+    deploymentName: example-full
     containerRegistryName: examplefullacr
     keyVaultName: example-full-kv
-    functionImageTag: reviewed-image-tag
+    dashboardImage: examplefullacr.azurecr.io/cao-dashboard@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    provisioningImage: examplefullacr.azurecr.io/cao-provision@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    ingestionImage: examplefullacr.azurecr.io/cao-ingest@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    runtimeEnabled: false
+    trustedProxyCidrs: [10.45.0.0/23]
     githubClientId: example-client-id
     githubAllowedOrganizations: [example-org]
     githubAdminUsers: [example-admin]
     postgresRunRetentionDays: 45
-    collectorImage: examplefullacr.azurecr.io/cao-collector@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-    collectorGithubAppId: "123456"
-    collectorControlRepository: example-org/control
-    collectorNativeInventoryDigest: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-    collectorWorkerReplicas: 1
-    otlpEndpoint: https://otel.example.com
   secretVaultId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/example-secrets/providers/Microsoft.KeyVault/vaults/example-secrets
   secrets:
     githubClientSecret: github-client-secret
@@ -35,9 +31,7 @@ azure:
     postgresAdministratorPassword: postgres-admin-password
     postgresOwnerPassword: postgres-owner-password
     postgresRuntimePassword: postgres-runtime-password
-    collectorPrivateKey: collection-private-key
     githubWebhookSecret: collection-webhook-secret
-    otlpHeaders: otlp-headers
     archiveOauthClientSecret: archive-oauth-secret
     archiveSessionSecret: archive-session-secret
     archiveEntraClientSecret: archive-entra-secret

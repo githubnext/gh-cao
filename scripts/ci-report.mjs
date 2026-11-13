@@ -36,3 +36,20 @@ export function buildCIReport(suites, jobs, url, sha) {
   ].join("\n");
   return { status, sha, url, suites: results, runnerMinutes, jobs: timedJobs, markdown };
 }
+
+export async function reportCIFailure(github, repo, report) {
+  if (report.status === "success") return;
+  const marker = "<!-- cao-daily-validation-failure -->";
+  const title = "Daily full validation failed";
+  const body = `${marker}\n\n${report.markdown}`;
+  const issues = await github.paginate(github.rest.issues.listForRepo, {
+    ...repo, state: "open", creator: "github-actions[bot]", per_page: 100,
+  });
+  const existing = issues.find((issue) =>
+    !issue.pull_request && issue.body?.includes(marker));
+  if (existing) {
+    await github.rest.issues.update({ ...repo, issue_number: existing.number, body });
+  } else {
+    await github.rest.issues.create({ ...repo, title, body });
+  }
+}

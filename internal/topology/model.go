@@ -98,7 +98,7 @@ func parameterDocument(values map[string]Parameter) Parameters {
 
 func Parse(content []byte) (Requirements, error) {
 	var result Requirements
-	result.Features = Features{Deployment: "azure-functions", Acquisition: "actions", Ingress: "public", Analytics: "none", Telemetry: "none"}
+	result.Features = Features{Deployment: "azure-container-apps", Acquisition: "actions", Ingress: "public", Analytics: "none", Telemetry: "none"}
 	if len(content) > 1<<20 {
 		return result, fmt.Errorf("requirements exceed 1 MiB")
 	}

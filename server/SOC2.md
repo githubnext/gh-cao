@@ -1,9 +1,14 @@
 # Go server SOC 2 readiness assessment
 
 > Historical evidence: the assessments below apply to their cited source SHAs,
-> not the current PostgreSQL-only implementation. SQLite backends are removed;
-> recorded SQLite results are not current validation or supported deployment
-> guidance. See `ARCHITECTURE.md` and `server/POSTGRES.md` for current boundaries.
+> not the current PostgreSQL-only implementation. SQLite backends and all Azure
+> Functions runtime, deployment/receipt and local harness support are removed.
+> Recorded SQLite or Functions results, file paths and proposal descriptions
+> below are historical evidence only, not current validation or supported
+> deployment guidance. Azure now uses an offline Container Apps review bundle
+> and separate operator-run deployment; no new deployment acceptance is claimed.
+> See `ARCHITECTURE.md`, `server/POSTGRES.md` and
+> [`docs/deployment-azure.md`](../docs/deployment-azure.md) for current boundaries.
 > This note does not reassess controls or establish operating effectiveness.
 
 ## Current-source reassessment - 2026-10-22 UTC

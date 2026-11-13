@@ -10,15 +10,56 @@ import { startCanvasServer as startPreparedCanvasServer } from "../../dashboard/
 
 const execute = promisify(execFile);
 
-export async function prepareCanvasPostgres() {
-  if (!process.env.POSTGRES_URL) throw new Error("Canvas tests require an explicitly configured disposable POSTGRES_URL.");
-  const endpoint = new URL(process.env.POSTGRES_URL);
+function canvasPostgresEndpoint(value) {
+  if (!value) throw new Error("Canvas tests require an explicitly configured disposable POSTGRES_URL.");
+  const endpoint = new URL(value);
   if (!["127.0.0.1", "[::1]"].includes(endpoint.hostname)) throw new Error("Canvas tests require numeric-loopback PostgreSQL.");
+  return endpoint;
+}
+
+const postgresCommand = (endpoint, sql) => execute("psql", ["-X", "--dbname", endpoint,
+  "-v", "ON_ERROR_STOP=1", "-At", "-c", sql], { timeout: 120_000, maxBuffer: 1 << 20 });
+
+export async function prepareCanvasPostgresTemplate(endpoint = process.env.POSTGRES_URL) {
+  const target = canvasPostgresEndpoint(endpoint);
+  const database = "canvas_template_" + randomBytes(10).toString("hex");
+  const close = () => postgresCommand(endpoint, "DROP DATABASE IF EXISTS " + database + " WITH (FORCE)");
+  await postgresCommand(endpoint, "CREATE DATABASE " + database);
+  target.pathname = "/" + database;
+  try {
+    const fixture = await prepareCanvasPostgres({ endpoint: target.href, template: null });
+    await postgresCommand(endpoint, "ALTER DATABASE " + database + " ALLOW_CONNECTIONS false");
+    return { postgresURL: fixture.postgresURL, close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
+
+export async function prepareCanvasPostgres({
+  endpoint: configuredEndpoint = process.env.POSTGRES_URL,
+  template = process.env.CAO_CANVAS_POSTGRES_TEMPLATE,
+} = {}) {
+  const endpoint = canvasPostgresEndpoint(configuredEndpoint);
+  if (template) {
+    const source = canvasPostgresEndpoint(template);
+    if (source.host !== endpoint.host || source.username !== endpoint.username
+        || source.password !== endpoint.password || !/^\/canvas_template_[a-f0-9]{20}$/.test(source.pathname)
+        || !/^canvas_test_[a-f0-9]{20}$/.test(source.searchParams.get("search_path") ?? "")) {
+      throw new Error("Canvas template must belong to the configured PostgreSQL test server.");
+    }
+    const database = "canvas_clone_" + randomBytes(10).toString("hex");
+    await postgresCommand(configuredEndpoint, "CREATE DATABASE " + database + " TEMPLATE " + source.pathname.slice(1));
+    source.pathname = "/" + database;
+    return {
+      postgresURL: source.href, namespace: "canvas-test",
+      close: () => postgresCommand(configuredEndpoint, "DROP DATABASE IF EXISTS " + database + " WITH (FORCE)"),
+    };
+  }
   const schema = "canvas_test_" + randomBytes(10).toString("hex");
   const namespace = "canvas-test";
   const binary = process.env.CAO_DASHBOARD_EXECUTABLE ?? resolve(".tmp/cao-dashboard");
-  const psql = async (sql) => execute("psql", ["-X", "--dbname", process.env.POSTGRES_URL,
-    "-v", "ON_ERROR_STOP=1", "-At", "-c", sql], { maxBuffer: 1 << 20 });
+  const psql = (sql) => postgresCommand(configuredEndpoint, sql);
   await psql("CREATE SCHEMA " + schema);
   let closed = false;
   const close = async () => {
@@ -70,6 +111,16 @@ export async function startCanvasServer({ prepareSnapshot, ...options } = {}) {
       ...(directory ? { snapshotDirectory: directory } : {}) });
     return {
       ...preview,
+      async ingestSnapshot() {
+        if (!directory || !postgres) throw new Error("Snapshot ingestion requires a prepared PostgreSQL fixture.");
+        await execute(process.env.CAO_DASHBOARD_EXECUTABLE ?? resolve(".tmp/cao-dashboard"),
+          ["ingest", "--source", directory, "--redis-namespace", postgres.namespace, "--database-queries",
+            resolve(import.meta.dirname, "../../dashboard/site/src/data/queries/database.json")], {
+            env: { ...process.env, CAO_POSTGRES_URL: postgres.postgresURL,
+              CAO_OPERATIONAL_NAMESPACE: postgres.namespace, OTEL_SDK_DISABLED: "true" },
+            timeout: 120_000, maxBuffer: 1 << 20,
+          });
+      },
       async close() {
         try { await preview.close(); }
         finally {

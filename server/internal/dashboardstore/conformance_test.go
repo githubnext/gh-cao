@@ -22,6 +22,9 @@ type readFixture struct {
 }
 
 func TestReadContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL read conformance; covered by daily full validation")
+	}
 	repositories := []model.Row{
 		{"id": "repo:1", "owner": "octo", "name": "one"},
 		{"id": "repo:2", "owner": "octo", "name": "two"},

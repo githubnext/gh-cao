@@ -135,12 +135,10 @@ func testBootstrapInstallerCompatibility(t *testing.T, ctx context.Context, cata
 				if scenario == "outdated" {
 					if err == nil || !strings.Contains(string(output), "gh-aw was not upgraded.") ||
 						!strings.Contains(string(output), "bash -s -- "+required) ||
-						strings.Contains(string(output), "CAO installed and verified.") ||
-						strings.Contains(string(output), "Verifying exact CAO runtime...") {
+						strings.Contains(string(output), "CAO installed and verified.") {
 						t.Fatalf("outdated extension did not fail with exact upgrade guidance: %v\n%s", err, output)
 					}
-				} else if err != nil || !strings.Contains(string(output), "CAO installed and verified.") ||
-					!strings.Contains(string(output), "Verifying exact CAO runtime...") {
+				} else if err != nil || !strings.Contains(string(output), "CAO installed and verified.") {
 					t.Fatalf("compatible installer failed: %v\n%s", err, output)
 				}
 				if scenario == "missing" {

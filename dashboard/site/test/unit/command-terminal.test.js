@@ -42,6 +42,20 @@ afterEach(async () => {
 });
 
 describe('persistent command terminal', () => {
+  it('updates queued status from the worker stream before completion', async () => {
+    queue.available.mockReturnValue(true);
+    queue.get.mockResolvedValue({ id: 'persistent-1', status: 'queued', command: 'gh aw compile' });
+    queue.attach.mockImplementation(() => new Promise(() => {}));
+    const root = renderCommandTerminal(context);
+    document.body.append(root);
+    await vi.waitFor(() => expect(queue.attach).toHaveBeenCalledOnce());
+    expect(root.querySelector('[role="status"]')?.textContent).toBe('persistent-1 · queued');
+    const [, notify] = queue.attach.mock.calls[0];
+    notify({ type: 'status', command: { id: 'persistent-1', status: 'running' } });
+    await vi.waitFor(() => expect(root.querySelector('[role="status"]')?.textContent).toBe('persistent-1 · running'));
+    expect(terminalWrites).not.toHaveBeenCalledWith(undefined, undefined);
+  });
+
   it('renders an accessible full-page console and detaches without cancelling', async () => {
     queue.available.mockReturnValue(true);
     queue.get.mockResolvedValue({ id: 'persistent-1', status: 'running', command: 'gh aw compile --strict' });

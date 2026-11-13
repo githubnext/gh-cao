@@ -21,18 +21,20 @@ const dashboardMaximumDuration = 48 * time.Hour
 const dashboardMaximumWindow = 7 * 24 * time.Hour
 
 type dashboardOptions struct {
-	repositories    []string
-	cache           string
-	logs            string
-	listen          string
-	server          string
-	site            string
-	postgresURL     string
-	containerEngine string
-	window          time.Duration
-	duration        time.Duration
-	refresh         time.Duration
-	count           int
+	repositories     []string
+	cache            string
+	logs             string
+	listen           string
+	server           string
+	site             string
+	postgresURL      string
+	containerEngine  string
+	window           time.Duration
+	duration         time.Duration
+	refresh          time.Duration
+	count            int
+	json             bool
+	exitOnStdinClose bool
 	// localRepository is the lowercase github.com repository of the working
 	// checkout, when known; only that target may reuse .github/aw/logs.
 	localRepository string
@@ -68,6 +70,8 @@ Collection never changes policy, workflows, or remote repository state.`,
 	cmd.Flags().StringVar(&options.listen, "listen", "127.0.0.1:0", "Numeric loopback listener; port 0 selects an available port")
 	cmd.Flags().DurationVar(&options.duration, "duration", dashboardMaximumDuration, "Server lifetime (positive, at most 48h)")
 	cmd.Flags().DurationVar(&options.refresh, "refresh", 5*time.Minute, "Refresh interval (at least 1m)")
+	cmd.Flags().BoolVar(&options.json, "json", false, "Emit a JSON readiness message on stdout; diagnostics stay on stderr")
+	cmd.Flags().BoolVar(&options.exitOnStdinClose, "exit-on-stdin-close", false, "Stop when the parent closes stdin")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if options.duration <= 0 || options.duration > dashboardMaximumDuration {
 			return errors.New("--duration must be positive and at most 48h")

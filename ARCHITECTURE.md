@@ -306,26 +306,29 @@ and exposure. Existing browser real-data databases are unused disposable state.
 The demo must not automatically delete databases or caches outside its scoped
 namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
-The Copilot canvas also uses Go `serve`: `dashboard/canvas-go-host.mjs` launches
-the bundled server module or an explicitly selected compatible executable.
-Go owns the capability-protected browser origin, assets, canonical PostgreSQL
-queries, diagnostics, read-only repository memory and revision events.
-Canvas startup reads the workspace's prepared `.cao/` snapshot, or its explicitly
-selected `snapshotDirectory`, and ingests its checksum-verified canonical JSONL
-shards into PostgreSQL. It performs
-no Actions artifact or legacy dashboard-bundle discovery.
-Synthetic manifests and manifests without canonical shard checksums are rejected.
-Dashboard backlinks require explicit `caoUrl` or `CAO_DASHBOARD_URL`, never a
-GitHub Pages API lookup. There is
-no Node query backend, logical-source HTTP transport or browser ingestion
-fallback. Published inventory quality may accompany the snapshot as metadata
-only; missing quality remains unknown, never inferred complete from row counts.
-`dashboard/canvas-server.mjs` is a private loopback-only integration adapter
+The Copilot canvas launches the installed `gh cao dashboard` command in the
+session's working directory, optionally selecting one explicit repository.
+The native CLI owns bounded acquisition, managed PostgreSQL, cached canonical
+evidence and the capability-protected Go serving origin. It emits machine-readable
+readiness with `--json`, keeps diagnostics on stderr and stops collection and
+its server when `--exit-on-stdin-close` observes the extension's pipe close.
+The extension validates and probes the loopback readiness URL before returning it.
+It never builds or imports executable workspace code, stages a site, or requires
+a prepared `.cao/` snapshot. There is no legacy-host or browser ingestion fallback.
+The canvas retains native maintenance actions and their trusted interactive-terminal
+approval boundary. Missing terminal access fails explicitly rather than approving
+commands from canvas access alone.
+The former canvas-only query editor, custom views and session handoff are not
+part of this native canvas; bundled agent query/specification tools remain.
+
+The separate developer harness `dashboard/canvas-server.mjs` remains a private
+loopback-only integration adapter
 for JSON composition/live reload, authoring and trusted command callbacks.
 Bounded local-user GitHub reads and their cache remain in Go/PostgreSQL.
 Go proxies only those integration
-routes on the same public origin. Installed plugins carry the server sources
-and native query module; they never build or import executable workspace code.
+routes on the same public origin. This harness uses `dashboard/canvas-go-host.mjs`
+and an explicitly prepared checksum-verified canonical snapshot; it is not the
+installed Copilot canvas startup path.
 The adapter owns the Go child's stdin lifetime, stops it before removing staged
 assets, and cleans up failed startup. Canvas command execution requires paired
 trusted execution and approval callbacks; read-only authoring starts no command queue.
@@ -640,7 +643,7 @@ capabilities before configuring authentication or ingestion. Target modules own
 authentication, listener ownership, HTTPS, and trusted-proxy requirements.
 Redis modules own environment mappings, session semantics, process namespace
 isolation, replica constraints, and collection support. Local, host-neutral
-container, Azure Functions, and Upstash are compositions rather than provider
+container and Upstash are compositions rather than provider
 checks in shared request handling.
 Startup rejects configurations or services that do not satisfy the selected
 per-feature coordination scope and restart-persistence capabilities. Business
@@ -1060,7 +1063,7 @@ The hosted dashboard has one strict storage split:
 
 The Go HTTP(S) server serves the hosted dashboard itself, including its built
 HTML, JavaScript and other assets, OAuth routes, query API, and revision events
-on one origin. Container, Azure Functions, and externally owned listeners all
+on one origin. Container and externally owned listeners all
 expose the complete CAO handler, not an API behind a separately hosted Pages
 application. Hosted startup requires a readable, non-empty built `index.html`.
 The server injects the `server-http` backend bootstrap into dashboard entry
@@ -1508,7 +1511,7 @@ and removal remain authenticated and never hydrate notification payloads.
 | `cmd/gh-cao/`, `internal/cli/`, `internal/ghcli/`, `dashboard/catalog.go` | Entirely Go operator-facing `gh cao` executable, including onboarding, policy management, PostgreSQL-backed queries, computations and MCP; embeds the authoritative JSON contracts and uses the bundled server's canonical read boundary. Actions packaging remains Node-owned. |
 | `internal/dashboardquery/` | Independent Go module owning bounded native Dashboard Language evaluation and the canonical read-session contract; PostgreSQL reads stay behind the server-owned adapter. |
 | `dashboard/` | Dashboard campaign, report/source adapters, canvas-only authoring bridge, and shared browser UI served operationally by Go or as a synthetic-only Pages demo. |
-| `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Functions deployment profile. |
+| `server/` | Optional host-neutral Go HTTP(S) service, deployed-artifact ingester, authenticated canonical API, webhook/rebuild control, Postgres entity storage and default operational state, explicit Redis or single-process memory alternatives, server-side Dashboard Language query engine, externally hosted handler facade, container image, and Azure Container Apps deployment templates. |
 | `server/cmd/cao-webhook-gateway/`, `server/internal/webhookgateway/`, `server/internal/webhookgatewayhost/` | Optional isolated gateway entry point, consumer contracts and pure decisions, and host adapters; durable state extends the existing PostgreSQL operational adapter. |
 | `server/spec/` | Editable TypeSpec HTTP/SSE, fresh Postgres storage and optional ADX export contracts; generates OpenAPI 3.1, wire JSON Schemas, standalone SQL DDL, Go bindings and ADX setup KQL; checks routes, payloads and canonical field coverage. |
 | `dashboard/site/src/data/` | Canonical browser data model, adapters, normalization, storage, and declarative query engine. |
@@ -1942,21 +1945,21 @@ not authorize cross-repository evidence access.
   rotation can retain the previous key until sessions and revocations drain.
   Refreshed sessions use an atomic compare-and-swap so logout cannot be undone
   by a concurrent OAuth refresh.
-- The Azure deployment baseline provisions private PostgreSQL for both canonical
-  and operational storage, without Redis. One Log Analytics workspace and one
-  workspace-backed Application Insights component are shared by the deployment.
+- The `azure-container-apps` topology (`internal/topology/`) uses the
+  existing process-owned container host with PostgreSQL operational state,
+  managed HTTPS ingress and explicitly verified private proxy peers. It reuses
+  private PostgreSQL and the separate provisioning/ingestion job modules, but
+  uses Log Analytics without Application Insights or Redis.
   A private manual ingestion job publishes explicitly selected adopter snapshots
   or an explicit empty dataset; builds never download a catalog-owned dataset
   implicitly. Instance policy, credentials, and target enrollment remain
   adopter-owned inputs, not public deployment defaults.
-- The additive `azure-container-apps` topology (`internal/topology/`) uses the
-  existing process-owned container host with PostgreSQL operational state,
-  managed HTTPS ingress and explicitly verified private proxy peers. It reuses
-  private PostgreSQL and the separate provisioning/ingestion job modules, but
-  omits Functions, runtime Storage, the Premium plan and Application Insights.
   Web activation is default-off until independently verified provisioning and
-  ingestion succeed. Topology generation remains offline/review-only; the native
-  `deploy azure --apply` command still targets the Functions baseline.
+  ingestion succeed. `deploy init --deployment azure-container-apps`,
+  `deploy generate` and `deploy check` produce an offline review bundle;
+  operators separately execute reviewed Container Apps templates. Generation
+  does not deploy or establish runtime acceptance. Azure Functions runtime,
+  deployment commands and local harness support are retired.
 - Explicit `CAO_GITHUB_LOCAL_USER` development OAuth replaces membership
   authorization with one configured GitHub login and a valid numeric account
   ID. Classic login requests `read:user` without `read:org`; GitHub App clients

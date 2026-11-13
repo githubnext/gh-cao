@@ -48,7 +48,7 @@ func renderManifest(t Topology) string {
 		}
 	}
 	out.WriteString("```\n\n## Configuration and activation\n\nReview [README.md](README.md), [TODO.md](TODO.md) and [GITHUB-APPS.md](GITHUB-APPS.md).\n")
-	out.WriteString("\n[AGENT-MCP.md](AGENT-MCP.md) documents Actions agents using BOTH a bearer GITHUB_TOKEN\nand signed OIDC provenance in X-GitHub-OIDC-Token, with audience https://cao.githubnext.com.\nThis optional read-only path requires separate host activation and repository/default-branch\npermission checks; OIDC alone grants no access. The unchanged Functions baseline does NOT wire MCP.\n")
+	out.WriteString("\n[AGENT-MCP.md](AGENT-MCP.md) documents Actions agents using BOTH a bearer GITHUB_TOKEN\nand signed OIDC provenance in X-GitHub-OIDC-Token, with audience https://cao.githubnext.com.\nThis optional read-only path requires separate host activation and repository/default-branch\npermission checks; OIDC alone grants no access. Generated deployments do not enable MCP.\n")
 	if t.Features.SessionDataLake || t.Features.WebhookGateway {
 		out.WriteString("Additional host resources and activation gates: [OPTIONAL-FEATURES.md](OPTIONAL-FEATURES.md).\n")
 	}
@@ -60,50 +60,11 @@ func architecture(f Features) string {
 	if f.Deployment == "azure-container-apps" {
 		return containerAppsArchitecture(f)
 	}
-	if f.Deployment != "azure-functions" {
-		return compactArchitecture(f)
-	}
-	lines := []string{
-		"flowchart LR", `  browser["Authorized browser"]`, `  signin["GitHub browser sign-in App"]`,
-		`  subgraph baseline["Azure baseline"]`,
-		`    dashboard["Functions: dashboard + OAuth<br/>one HTTP origin"]`,
-		`    postgres["Private PostgreSQL<br/>canonical + isolated operational state"]`,
-		`    vault["Key Vault<br/>secret-scoped managed identities"]`,
-		`    registry["ACR<br/>reviewed runtime and job images"]`,
-		`    storage["Functions runtime storage<br/>NOT the session lake"]`,
-		`    provision["Manual DB provisioning<br/>separate privileged identity"]`, "  end",
-		"  signin <-->|OAuth authorization code| dashboard",
-		"  dashboard -->|runtime login, verified TLS| postgres",
-		"  dashboard -->|managed identity, secret references| vault",
-		"  registry -->|managed identity pull| dashboard", "  dashboard --> storage",
-		"  provision -->|bootstrap only| postgres",
-	}
-	if f.Ingress == "private" {
-		lines = append(lines, `  privateIngress["Approved private connectivity<br/>EXTERNAL prerequisite"]`, "  browser --> privateIngress", "  privateIngress -.->|HTTPS + OAuth| dashboard")
-	} else {
-		lines = append(lines, "  browser -->|public HTTPS, OAuth required| dashboard")
-	}
-	if f.Acquisition == "collector" {
-		lines = append(lines,
-			`  collectionApp["Installation-scoped collection App"]`,
-			`  workers["Private collection workers + backfill<br/>App key, reviewed inventory"]`,
-			"  collectionApp -->|signed webhooks| dashboard", "  dashboard -->|admit only, no App private key| postgres",
-			"  postgres -->|durable collection queue| workers", "  collectionApp -->|authorized evidence| workers",
-			"  workers -->|canonical publication| postgres", "  vault -->|secret-scoped access| workers")
-	} else {
-		lines = append(lines, `  snapshot["Verified Actions snapshot<br/>OR explicitly empty evidence"]`,
-			`  ingestion["Manual ingestion job<br/>runtime-only identity"]`,
-			"  snapshot --> ingestion", "  provision -.->|must succeed first| ingestion", "  ingestion --> postgres")
-	}
-	if f.Analytics == "adx" {
-		lines = append(lines, `  analyticsAdx["Paid private ADX destination<br/>NO exporter enabled"]`)
-	}
-	if f.Telemetry == "otlp" {
-		lines = append(lines, `  otlp["Operator-managed HTTPS OTLP collector<br/>EXTERNAL prerequisite"]`, "  dashboard -.->|opt-in telemetry| otlp")
-		if f.Acquisition == "collector" {
-			lines = append(lines, "  workers -.->|opt-in telemetry| otlp")
-		}
-	}
+	return compactArchitecture(f)
+}
+
+func optionalArchitecture(f Features) []string {
+	lines := []string{}
 	if f.SessionDataLake || f.WebhookGateway {
 		lines = append(lines, `  subgraph optional["Separate peered VNet: optional infrastructure, runtimes STAGED"]`)
 		if f.SessionDataLake {
@@ -138,7 +99,7 @@ func architecture(f Features) string {
 			"  gatewayQueue -.->|fenced claims, fresh authorization| dispatcher",
 			"  dispatcher -.->|only approved dispatch transport| workflows")
 	}
-	return strings.Join(append(lines, agentMCPArchitecture(f)...), "\n")
+	return lines
 }
 
 func containerAppsArchitecture(f Features) string {
@@ -173,6 +134,7 @@ func containerAppsArchitecture(f Features) string {
 		"  vault -->|runtime URL ONLY| ingestion",
 		"  environment --> monitoring",
 	}
+	lines = append(lines, optionalArchitecture(f)...)
 	return strings.Join(append(lines, agentMCPArchitecture(f)...), "\n")
 }
 
@@ -208,9 +170,6 @@ func compactArchitecture(f Features) string {
 
 func agentMCPArchitecture(f Features) []string {
 	endpoint := "Optional Go /mcp<br/>separate serve-hosted activation"
-	if f.Deployment == "azure-functions" {
-		endpoint = "Go /mcp contract: NOT WIRED<br/>unchanged Functions entrypoint"
-	}
 	return []string{
 		`  actionsAgent["Agent in GitHub Actions job<br/>default-branch caller only"]`,
 		`  oidcIssuer["GitHub Actions OIDC issuer<br/>short-lived signed provenance"]`,

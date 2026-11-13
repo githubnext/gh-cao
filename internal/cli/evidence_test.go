@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -35,7 +34,6 @@ type evidenceFixture struct {
 	jobs         []evidenceAPIJob
 	artifacts    []evidenceAPIArtifact
 	approvals    []evidenceAPIApproval
-	receipt      deployAzureReceipt
 	verification string
 	verifyErr    error
 	calls        [][]string
@@ -78,20 +76,6 @@ func newEvidenceFixture(t *testing.T) *evidenceFixture {
       "invocationId":"https://github.com/octo/cao/actions/runs/42/attempts/2"
     }}}
   }} }]`
-	f.receipt = deployAzureReceipt{
-		Kind: "cao.deploy.azure.receipt", SchemaVersion: 1, SourceRevision: testEvidenceRevision, SourceWorktree: "dirty",
-		Environment: "development", ImageAssurance: "not-evaluated-development-only",
-		ContextSHA256: strings.Repeat("c", 64), PlanSHA256: strings.Repeat("d", 64),
-		StartedAt: testEvidenceDate, CompletedAt: testEvidenceDate, DeploymentID: testEvidenceSecret,
-		Verification: []deployAzureVerification{{Check: "health", Status: 200, Passed: true, CheckedAt: testEvidenceDate}},
-	}
-	for _, target := range []string{"azure-functions-runtime", "azure-empty-ingest-runtime"} {
-		ref := "private.azurecr.io/image@" + testEvidenceDigest
-		f.receipt.Images = append(f.receipt.Images, deployAzureBuiltImage{
-			Target: target, Digest: testEvidenceDigest, Reference: ref, ConfiguredReference: ref,
-			Scan: "not-performed", SBOM: "not-generated", Provenance: "local-context-not-attested", Tag: testEvidenceSecret,
-		})
-	}
 	f.deps = evidenceDeps{
 		now:      func() time.Time { parsed, _ := time.Parse(time.RFC3339, testEvidenceDate); return parsed },
 		version:  "test",
@@ -232,60 +216,6 @@ func TestEvidenceProvenance(t *testing.T) {
 	}
 }
 
-func TestEvidenceAzureReceipt(t *testing.T) {
-	f := newEvidenceFixture(t)
-	f.options.AzureReceipt = filepath.Join(t.TempDir(), "azure.json")
-	f.receipt.Verification[0].Passed = false
-	f.receipt.Verification[0].Status = 503
-	content := evidenceTestJSON(t, f.receipt)
-	content = strings.TrimSuffix(content, "}") + `,"extra":"` + testEvidenceSecret + `"}`
-	if err := os.WriteFile(f.options.AzureReceipt, []byte(content), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	report := evidenceTestCollect(t, f)
-	azure := report.Deployment
-	if azure.Status != "reported" || azure.SourceWorktree != "dirty" ||
-		azure.ImageAssurance != "not-evaluated-development-only" || len(azure.Images) != 2 ||
-		azure.Images[0].Digest != testEvidenceDigest || !evidenceHashPattern.MatchString(azure.Images[0].ReferenceSHA256) ||
-		azure.Verification[0].Passed || azure.Verification[0].Status != 503 || azure.VerificationComplete ||
-		azure.RunningImageMeasurement != "unknown" || report.DeployedImageDigest.Status != "unknown" {
-		t.Fatal("development assurance or failed verification was incorrectly promoted")
-	}
-	if regexp.MustCompile(`private\.azurecr\.io`).MatchString(evidenceTestJSON(t, report)) {
-		t.Fatal("report exposed the private image reference")
-	}
-}
-
-func TestEvidenceAzureRejectsMismatch(t *testing.T) {
-	for name, change := range map[string]func(*deployAzureReceipt){
-		"source":           func(r *deployAzureReceipt) { r.SourceRevision = strings.Repeat("f", 40) },
-		"production":       func(r *deployAzureReceipt) { r.Environment = "production" },
-		"assurance":        func(r *deployAzureReceipt) { r.ImageAssurance = "verified" },
-		"digest":           func(r *deployAzureReceipt) { r.Images[0].Digest = "sha256:" + strings.Repeat("f", 64) },
-		"configured":       func(r *deployAzureReceipt) { r.Images[0].ConfiguredReference = "another-image" },
-		"duplicate target": func(r *deployAzureReceipt) { r.Images[1] = r.Images[0] },
-		"conflicting ingestion": func(r *deployAzureReceipt) {
-			image := r.Images[1]
-			image.Target = "azure-ingest-runtime"
-			r.Images = append(r.Images, image)
-		},
-		"credential URL": func(r *deployAzureReceipt) {
-			r.Images[0].Reference = "https://user:" + testEvidenceSecret + "@host/image"
-		},
-		"duplicate check": func(r *deployAzureReceipt) { r.Verification = append(r.Verification, r.Verification[0]) },
-		"false success":   func(r *deployAzureReceipt) { r.Verification[0].Status = 503 },
-	} {
-		t.Run(name, func(t *testing.T) {
-			f := newEvidenceFixture(t)
-			change(&f.receipt)
-			_, err := summarizeEvidenceAzure([]byte(evidenceTestJSON(t, f.receipt)), testEvidenceRevision)
-			if err == nil || strings.Contains(err.Error(), testEvidenceSecret) {
-				t.Fatalf("expected sanitized failure, got %v", err)
-			}
-		})
-	}
-}
-
 func TestEvidenceOptionalFailuresAndRoles(t *testing.T) {
 	f := newEvidenceFixture(t)
 	for _, path := range []string{"actions/runs/42/approvals", "actions/runs/42/artifacts?per_page=100&page=1", "actions/runs/42/attempts/2/jobs?per_page=100&page=1"} {
@@ -392,12 +322,8 @@ func TestEvidenceInvalidSelections(t *testing.T) {
 
 func TestEvidenceCommandPersistence(t *testing.T) {
 	f := newEvidenceFixture(t)
-	f.options.AzureReceipt = filepath.Join(t.TempDir(), "azure.json")
-	if err := os.WriteFile(f.options.AzureReceipt, []byte(evidenceTestJSON(t, f.receipt)), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	args := []string{"release", "--repo", testEvidenceRepo, "--revision", testEvidenceRevision,
-		"--image", testEvidenceImage, "--package-run", "42", "--azure-receipt", f.options.AzureReceipt, "--output", f.options.Output}
+		"--image", testEvidenceImage, "--package-run", "42", "--output", f.options.Output}
 	execute := func() error {
 		cmd := evidenceCommand(f.deps)
 		cmd.SetOut(&bytes.Buffer{})
@@ -417,7 +343,7 @@ func TestEvidenceCommandPersistence(t *testing.T) {
 		t.Fatal("output must have private permissions")
 	}
 	var report evidenceReleaseReport
-	if json.Unmarshal(before, &report) != nil || report.Deployment.SourceRevision != testEvidenceRevision || report.Status != "incomplete" {
+	if json.Unmarshal(before, &report) != nil || report.Deployment.Status != "unknown" || report.Status != "incomplete" {
 		t.Fatal("persisted report lost evidence shape")
 	}
 	if err := execute(); err == nil {
@@ -426,14 +352,6 @@ func TestEvidenceCommandPersistence(t *testing.T) {
 	after, err := os.ReadFile(f.options.Output)
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatal("existing output changed")
-	}
-	for _, content := range []string{testEvidenceSecret, strings.Repeat("x", 1024*1024+1)} {
-		if err := os.WriteFile(f.options.AzureReceipt, []byte(content), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		if err := execute(); err == nil || strings.Contains(err.Error(), testEvidenceSecret) {
-			t.Fatalf("selected invalid receipt did not fail safely: %v", err)
-		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

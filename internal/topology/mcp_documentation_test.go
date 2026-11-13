@@ -7,13 +7,13 @@ import (
 )
 
 func TestSamplesDocumentActionsOIDCMCPWithoutEnablingIt(t *testing.T) {
-	for _, profile := range []string{"single-vm", "minimal-azure", "azure-functions", "azure-container-apps", "full-azure"} {
+	for _, profile := range []string{"single-vm", "minimal-azure", "azure-container-apps", "full-azure"} {
 		t.Run(profile, func(t *testing.T) {
 			source, err := ExampleFor(profile)
 			if err != nil {
 				t.Fatal(err)
 			}
-			files, graph, err := filesFor(context.Background(), source)
+			files, _, err := filesFor(context.Background(), source)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29,7 +29,7 @@ func TestSamplesDocumentActionsOIDCMCPWithoutEnablingIt(t *testing.T) {
 				"CAO_MCP_ACTIONS_REPOSITORY",
 				"CURRENT", "default branch",
 				"Pull-request, environment and non-default-branch",
-				"Azure Functions baseline does NOT wire hosted MCP",
+				"Generated deployments do NOT enable hosted MCP",
 				"must NOT be added to `azure.secrets`",
 			} {
 				if !strings.Contains(document, required) {
@@ -42,9 +42,8 @@ func TestSamplesDocumentActionsOIDCMCPWithoutEnablingIt(t *testing.T) {
 					t.Fatalf("architecture omits %q", required)
 				}
 			}
-			unwired := strings.Contains(manifest, "Go /mcp contract: NOT WIRED")
-			if unwired != (graph.Features.Deployment == "azure-functions") {
-				t.Fatal("diagram misrepresents the host's MCP activation capability")
+			if strings.Contains(manifest, "NOT WIRED") {
+				t.Fatal("diagram retained the retired hosting profile")
 			}
 			if !strings.Contains(string(files["topology.yaml"]), "agent_mcp_activation: documented-not-enabled") {
 				t.Fatal("TOSCA implies activation or omits the MCP contract reference")

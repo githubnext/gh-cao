@@ -15,9 +15,6 @@ var containerAppsSecretNames = []string{
 
 func solveContainerApps(ctx context.Context, input Requirements) (Solution, error) {
 	result := Solution{Requirements: input}
-	if input.Azure.Hosts != nil {
-		return result, fmt.Errorf("azure.hosts is only supported by the azure-functions deployment")
-	}
 	definitions, parameters, defaults, err := deploymentParameters(input, "assets/container-apps/main.generated.json", containerAppsSecretNames)
 	if err != nil {
 		return result, err
@@ -66,10 +63,14 @@ func solveContainerApps(ctx context.Context, input Requirements) (Solution, erro
 	if err := validateHostedParameters(input, value); err != nil {
 		return result, err
 	}
-	if err := validateVaultReferences(input, containerAppsSecretNames); err != nil {
+	runtimeSecrets := additionalRuntimeSecrets(input.Features)
+	if err := validateVaultReferences(input, append(slices.Clone(containerAppsSecretNames), runtimeSecrets...)); err != nil {
 		return result, err
 	}
 	for name, secret := range input.Azure.Secrets {
+		if slices.Contains(runtimeSecrets, name) {
+			continue
+		}
 		if !slices.Contains(containerAppsSecretNames, name) {
 			return result, fmt.Errorf("unknown Container Apps secret reference: %s", name)
 		}
@@ -85,6 +86,11 @@ func solveContainerApps(ctx context.Context, input Requirements) (Solution, erro
 		}
 	}
 	result.Parameters = parameterDocument(parameters)
+	deploymentName, _ := value("deploymentName").(string)
+	result.Optional, err = solveHosts(input, parameters, deploymentName)
+	if err != nil {
+		return result, err
+	}
 	result.TOSCA, err = providerServiceTemplate(input.Features, parameters, definitions)
 	if err != nil {
 		return result, err

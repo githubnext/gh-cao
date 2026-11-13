@@ -53,6 +53,9 @@ func publishSession(t *testing.T, data *postgresx.Store, tokens int) {
 }
 
 func TestPostgresSimulatorDurableRestartAndCanonicalReplacement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow PostgreSQL ingestion integration; covered by daily full validation")
+	}
 	data := testutil.Postgres(t, t.Context(), "POSTGRES_URL")
 	publishSession(t, data, 0)
 	endpoint := os.Getenv("POSTGRES_URL")

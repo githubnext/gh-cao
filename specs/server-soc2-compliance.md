@@ -105,7 +105,7 @@ version, component owners, evaluated profiles/features, data classes, system
 boundaries, external dependencies, explicit exclusions, and deployed evidence
 availability. The component inventory in `server/SOC2.md` is the coverage index.
 
-**S2-S02** Local PostgreSQL/capability access, hosted/external listeners, Azure Functions,
+**S2-S02** Local PostgreSQL/capability access, hosted/external listeners, Azure Container Apps,
 PostgreSQL/Redis/memory operational adapters, admission-only operation,
 gateway ingress/dispatch, and experimental CLI executor platforms MUST be
 distinguished. Optional features MUST NOT be assumed enabled. A checked-in

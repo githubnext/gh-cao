@@ -69,13 +69,6 @@ func hostedHostProfile() HostProfile {
 	}
 }
 
-func azureLocalSimulationProfile(profile HostProfile, localSimulation bool) HostProfile {
-	if localSimulation {
-		profile.RequiresHTTPS = false
-	}
-	return profile
-}
-
 func (profile HostProfile) validate() error {
 	if strings.TrimSpace(profile.Name) == "" {
 		return errors.New("host profile requires a name")

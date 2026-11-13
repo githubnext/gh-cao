@@ -57,9 +57,6 @@ jobs:
   actions-runtime:
     needs: revision
     uses: ./.github/workflows/actions-runtime.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
-  azure:
-    needs: revision
-    uses: ./.github/workflows/azure-local-integration.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
   mobile:
     needs: revision
     uses: ./.github/workflows/actions.yml # zizmor: ignore[self-repository] - Local reusable workflows use syntax supported by Actions and actionlint.
@@ -149,7 +146,6 @@ jobs:
       - extension
       - bootstrap
       - actions-runtime
-      - azure
       - mobile
       - views
       - deployed
@@ -163,6 +159,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -171,12 +168,13 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           SUITES: ${{ toJSON(needs) }}
+          REPORT_FAILURE: ${{ github.ref == 'refs/heads/main' && needs.revision.result == 'success' }}
         with:
           script: |
             const { writeFileSync, appendFileSync } = require('node:fs')
             const { pathToFileURL } = require('node:url')
             const { resolve } = require('node:path')
-            const { buildCIReport } = await import(pathToFileURL(resolve('scripts/ci-report.mjs')).href)
+            const { buildCIReport, reportCIFailure } = await import(pathToFileURL(resolve('scripts/ci-report.mjs')).href)
             const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
               ...context.repo, run_id: context.runId, filter: 'latest', per_page: 100,
             })
@@ -186,6 +184,7 @@ jobs:
             writeFileSync('ci-daily-report.json', JSON.stringify(report, null, 2) + '\n')
             writeFileSync('ci-daily-report.md', report.markdown)
             appendFileSync(process.env.GITHUB_STEP_SUMMARY, report.markdown)
+            if (process.env.REPORT_FAILURE === 'true') await reportCIFailure(github, context.repo, report)
             if (report.status !== 'success') core.setFailed('Daily validation failed or is incomplete; see the suite report.')
       - name: Retain daily report
         if: always()

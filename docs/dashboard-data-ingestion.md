@@ -367,9 +367,13 @@ server reader. Node cao retains artifact preparation and catalog discovery, not 
 second local database backend. Removed ingestion and repair commands have no
 compatibility path.
 
-The Copilot canvas uses the same Go/PostgreSQL host, with private loopback authoring
-callbacks. Neither local storage nor canvas configuration grants collection,
-rollout, credential or hosted execution authority.
+The [Copilot canvas](agent-plugin.md) launches the installed `gh cao dashboard`
+command, which acquires bounded recent activity and manages local PostgreSQL
+unless an explicit connection is supplied. It needs no prepared snapshot or
+private authoring bridge. Maintenance execution retains the native CLI's trusted
+terminal approval checks; canvas access alone does not approve a command.
+Neither local storage nor canvas access grants rollout, credential or hosted
+execution authority.
 
 ### Query the private session archive
 

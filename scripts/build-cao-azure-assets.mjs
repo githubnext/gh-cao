@@ -4,11 +4,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
-import azureAssetAllowlist from "../internal/cli/deploy_azure_assets.json" with { type: "json" };
+import azureAssetAllowlist from "./cao-azure-assets.json" with { type: "json" };
 
 export const AZURE_ASSET_MANIFEST = "cao-azure.json";
 
-// Exactly the inputs that the azure-functions-runtime, azure-ingest-runtime, and
+// Exactly the inputs that the azure-container-apps-runtime, azure-ingest-runtime, and
 // azure-empty-ingest-runtime and azure-db-provision targets read from the build
 // context (esbuild also reads dashboard/site/tsconfig.json), plus the compiled
 // ARM template. Entries ending in "/" select tracked files below that directory.
@@ -161,8 +161,8 @@ export function buildCaoAzureAssets(sourceRoot, destination, revision) {
     schemaVersion: 1,
     revision,
     dockerfile: "server/Dockerfile",
-    template: "server/azure/main.json",
-    targets: ["azure-functions-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"],
+    template: "internal/topology/assets/container-apps/main.generated.json",
+    targets: ["azure-container-apps-runtime", "azure-ingest-runtime", "azure-empty-ingest-runtime", "azure-db-provision"],
     buildContexts: { "cao-policy": "required", "cao-ingest-source": "azure-ingest-runtime" },
     files: Object.fromEntries(entries.map(({ path: file, content }) => [
       file, createHash("sha256").update(content).digest("hex"),

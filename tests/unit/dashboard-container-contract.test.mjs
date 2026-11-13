@@ -18,7 +18,6 @@ test("server and native CLI builds require the CA-compromise-patched Go toolchai
     ".github/workflows/cao-package.yml",
     ".github/workflows/release-promote.yml",
     ".github/workflows/backfill-stress.yml",
-    ".github/workflows/azure-local-integration.yml",
     ".github/workflows/copilot-setup-steps.yml",
   ]) {
     const workflow = await text(path);

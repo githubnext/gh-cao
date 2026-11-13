@@ -17,9 +17,9 @@ func upstashHostProfile() HostProfile {
 	return profile
 }
 
-func azureFunctionsHostProfile() HostProfile {
+func platformHostProfile() HostProfile {
 	profile := hostedHostProfile()
-	profile.Name = "azure-functions"
+	profile.Name = "platform"
 	profile.Listener = HostListenerPlatform
 	profile.TrustsPlatformProxy = true
 	return profile
@@ -35,7 +35,7 @@ func TestBuiltInHostProfilesDeclareExpectedCapabilities(t *testing.T) {
 	}{
 		{localHostProfile(), HostAuthenticationBearer, HostListenerProcess, HostRedisPooled, true},
 		{hostedHostProfile(), HostAuthenticationOAuth, HostListenerProcess, HostRedisPooled, true},
-		{azureFunctionsHostProfile(), HostAuthenticationOAuth, HostListenerPlatform, HostRedisPooled, true},
+		{platformHostProfile(), HostAuthenticationOAuth, HostListenerPlatform, HostRedisPooled, true},
 		{func() HostProfile { p := hostedHostProfile(); p.Listener = HostListenerExternal; return p }(), HostAuthenticationOAuth, HostListenerExternal, HostRedisPooled, true},
 		{upstashHostProfile(), HostAuthenticationOAuth, HostListenerProcess, HostRedisSerialized, false},
 	}
@@ -51,27 +51,6 @@ func TestBuiltInHostProfilesDeclareExpectedCapabilities(t *testing.T) {
 				t.Fatalf("unexpected capabilities: %+v", test.profile)
 			}
 		})
-	}
-}
-
-func TestAzureLocalSimulationDisablesHTTPSForConfiguredProfile(t *testing.T) {
-	configured := HostProfile{
-		Name:                "azure-functions",
-		Authentication:      HostAuthenticationOAuth,
-		Listener:            HostListenerPlatform,
-		RequiresHTTPS:       true,
-		TrustsPlatformProxy: true,
-		RequiresRedis:       true,
-		RedisSession:        HostRedisPooled,
-		SupportsCollection:  true,
-	}
-
-	local := azureLocalSimulationProfile(configured, true)
-	if local.RequiresHTTPS {
-		t.Fatal("local Azure simulation retained production HTTPS enforcement")
-	}
-	if !configured.RequiresHTTPS {
-		t.Fatal("local Azure simulation mutated the configured production profile")
 	}
 }
 
@@ -223,7 +202,7 @@ func TestClassifyHostProfileRejectionOrdersChecksAndReportsReason(t *testing.T) 
 		},
 		{
 			name:            "platform listener conflict",
-			profile:         azureFunctionsHostProfile(),
+			profile:         platformHostProfile(),
 			config:          Config{Listen: "127.0.0.1:8080"},
 			storeConfigured: true,
 			want:            hostProfileRejectionReasonDelegatedListener,
@@ -330,7 +309,7 @@ func TestPlatformHostProfileRejectsProcessListenerAndEnforcesTrustedProxy(t *tes
 
 	store := redisx.NewStore(client, "test")
 	config := Config{
-		HostProfile: azureFunctionsHostProfile(),
+		HostProfile: platformHostProfile(),
 		Listen:      "127.0.0.1:8080",
 		Proxy:       ProxyPolicy{TrustForwarded: true},
 	}
@@ -349,7 +328,7 @@ func TestPlatformHostProfileRejectsProcessListenerAndEnforcesTrustedProxy(t *tes
 }
 
 func TestPlatformHostProfileCannotServeProcessListener(t *testing.T) {
-	app := &App{config: Config{HostProfile: azureFunctionsHostProfile()}}
+	app := &App{config: Config{HostProfile: platformHostProfile()}}
 	if err := app.Serve(t.Context()); err == nil ||
 		!strings.Contains(err.Error(), "delegates listener ownership") {
 		t.Fatalf("platform profile opened a process listener: %v", err)

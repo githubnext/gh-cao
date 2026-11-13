@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -118,69 +117,6 @@ func TestUpstashRevocationKeyPrefixIsStableAndModeSpecific(t *testing.T) {
 	}
 }
 
-func TestAzureRedisLocalSimulationIsLoopbackOnly(t *testing.T) {
-	for _, endpoint := range []string{
-		"redis://127.0.0.1:6379/0",
-		"redis://[::1]:6379/0",
-		"redis://localhost:6379/0",
-		"rediss://redis.example.com:6380/0",
-	} {
-		if err := validateAzureRedisURL(endpoint, true); err != nil {
-			t.Errorf("local simulation rejected %s: %v", endpoint, err)
-		}
-	}
-	for _, endpoint := range []string{
-		"redis://redis.example.com:6379/0",
-		"http://127.0.0.1:6379/0",
-	} {
-		if err := validateAzureRedisURL(endpoint, true); err == nil {
-			t.Errorf("local simulation accepted %s", endpoint)
-		}
-	}
-	if err := validateAzureRedisURL("redis://127.0.0.1:6379/0", false); err == nil {
-		t.Fatal("production Azure mode accepted plaintext loopback Redis")
-	}
-}
-
-func TestAzureLocalSimulationFlagFailsClosed(t *testing.T) {
-	t.Setenv("CAO_AZURE_LOCAL_SIMULATION", "true")
-	if _, err := azureLocalSimulationFromEnv(); err == nil {
-		t.Fatal("malformed local simulation flag was accepted")
-	}
-	t.Setenv("CAO_AZURE_LOCAL_SIMULATION", "1")
-	if enabled, err := azureLocalSimulationFromEnv(); err != nil || !enabled {
-		t.Fatalf("explicit local simulation flag was not accepted: enabled=%t err=%v", enabled, err)
-	}
-}
-
-func TestAzureLocalSimulationRequiresLoopbackHTTPBoundary(t *testing.T) {
-	if err := validateAzureLocalEndpoints(
-		true,
-		[]string{"localhost", "127.0.0.1", "::1"},
-		"http://127.0.0.1:7071/auth/callback",
-	); err != nil {
-		t.Fatalf("loopback local endpoints were rejected: %v", err)
-	}
-	for _, test := range []struct {
-		hosts    []string
-		redirect string
-	}{
-		{hosts: []string{"dashboard.example.com"}, redirect: "http://127.0.0.1:7071/auth/callback"},
-		{hosts: []string{"localhost"}, redirect: "http://dashboard.example.com/auth/callback"},
-	} {
-		if err := validateAzureLocalEndpoints(true, test.hosts, test.redirect); err == nil {
-			t.Fatalf("non-loopback local endpoints were accepted: %#v", test)
-		}
-	}
-	if err := validateAzureLocalEndpoints(
-		false,
-		[]string{"dashboard.example.com"},
-		"https://dashboard.example.com/auth/callback",
-	); err != nil {
-		t.Fatalf("production endpoints were changed by local validation: %v", err)
-	}
-}
-
 func TestHostedProxyHeadersAreTrustedOnlyOnLoopbackBoundary(t *testing.T) {
 	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "https://internal.example.test/", nil)
 	request.Host = "internal.example.test"
@@ -231,11 +167,11 @@ func TestHostedModesCannotDisableHTTPS(t *testing.T) {
 		t.Fatal("hosted mode accepted disabled HTTPS enforcement")
 	}
 
-	config.HostProfile = azureFunctionsHostProfile()
+	config.HostProfile = platformHostProfile()
 	config.Listen = ""
 	config.Proxy = ProxyPolicy{AllowedHosts: []string{"dashboard.example.com"}}
 	if err := validateHostedMode(&redisx.Store{}, &config); err == nil {
-		t.Fatal("Azure Functions mode accepted disabled HTTPS enforcement")
+		t.Fatal("platform mode accepted disabled HTTPS enforcement")
 	}
 }
 
@@ -630,75 +566,6 @@ func TestAccessFailuresCarryStandardizedTraceIdentifiersWithoutDatabase(t *testi
 	}
 	if len(spanID) != 16 || payload["spanId"] != spanID {
 		t.Fatalf("error span id does not match response header: %#v", payload)
-	}
-}
-
-func TestProcessTelemetryClose(t *testing.T) {
-	var p processTelemetry
-	if err := p.close(t.Context()); err != nil {
-		t.Fatalf("unconfigured telemetry shutdown: %v", err)
-	}
-	called := false
-	p.shutdown = func(ctx context.Context) error {
-		called = true
-		if ctx.Err() != nil {
-			t.Fatal("telemetry shutdown received a cancelled context")
-		}
-		return nil
-	}
-	if err := p.close(t.Context()); err != nil || !called {
-		t.Fatalf("process telemetry shutdown: called=%t err=%v", called, err)
-	}
-}
-
-func TestAzureFunctionsHandlerLogsTelemetryFailureOnceAndKeepsServing(t *testing.T) {
-	// NewAzureFunctionsHandlerFromEnv is the only caller of azureProcessTelemetry
-	// in the process, and this is its only test, so the shared sync.Once
-	// has not fired yet; sync.Once cannot be copied/reset, so no
-	// save/restore is attempted here.
-	previousErr := azureProcessTelemetry.err
-	t.Cleanup(func() { azureProcessTelemetry.err = previousErr })
-
-	// An OTLP endpoint plus a malformed OTEL_RESOURCE_ATTRIBUTES value
-	// forces telemetry.Setup to fail while building the OpenTelemetry
-	// resource, without needing a reachable collector.
-	t.Setenv("OTEL_SDK_DISABLED", "")
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4318")
-	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "not-a-valid-key-value-list")
-	policyPath := t.TempDir() + "/cao.json"
-	if err := os.WriteFile(policyPath, []byte(`{
-		"control-plane": {
-			"web": {
-				"host": {
-					"target": {"module": "azure-functions"},
-					"redis": {
-						"module": "local",
-						"url-env": "CAO_REDIS_URL",
-						"allow-private-plaintext": true,
-						"tls": {"mode": "disabled"}
-					}
-				}
-			}
-		}
-	}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("CAO_POLICY_PATH", policyPath)
-	t.Setenv("CAO_REDIS_URL", "")
-
-	var logOutput strings.Builder
-	logger := log.New(&logOutput, "", 0)
-
-	for i := 0; i < 2; i++ {
-		_, err := NewAzureFunctionsHandlerFromEnv(t.Context(), t.TempDir(), "", logger)
-		if err == nil || !strings.Contains(err.Error(), "CAO_REDIS_URL") {
-			t.Fatalf("call %d: expected the missing CAO_REDIS_URL error, got %v", i, err)
-		}
-	}
-
-	occurrences := strings.Count(logOutput.String(), "telemetry configuration failed")
-	if occurrences != 1 {
-		t.Fatalf("expected exactly one telemetry failure log line across repeated invocations, got %d: %q", occurrences, logOutput.String())
 	}
 }
 

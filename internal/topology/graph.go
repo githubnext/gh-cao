@@ -7,16 +7,13 @@ import (
 )
 
 var contracts = map[string][]string{
-	"network": {}, "postgres": {"network"}, "registry": {}, "monitoring": {}, "runtime-storage": {},
+	"network": {}, "postgres": {"network"}, "registry": {}, "monitoring": {},
 	"sign-in-app": {}, "secrets": {"sign-in-app"}, "job-environment": {"network", "monitoring"},
 	"database-provisioning": {"postgres", "secrets", "registry", "job-environment"},
-	"dashboard":             {"database-provisioning", "registry", "monitoring", "runtime-storage", "secrets"},
+	"dashboard":             {"database-provisioning", "registry", "monitoring", "secrets"},
 	"snapshot-ingestion":    {"database-provisioning", "job-environment", "registry", "secrets"},
-	"collection-app":        {}, "reviewed-inventory": {"database-provisioning", "collection-app"},
-	"collection": {"dashboard", "reviewed-inventory", "collection-app", "job-environment", "registry", "secrets"},
-	"adx":        {"network"}, "private-connectivity": {}, "otlp-collector": {},
-	"telemetry-export": {"dashboard", "otlp-collector"}, "feature-network": {"network"},
-	"archive-host": {"feature-network", "registry"}, "archive-blob": {"feature-network", "archive-host"},
+	"feature-network":       {"network"},
+	"archive-host":          {"feature-network", "registry"}, "archive-blob": {"feature-network", "archive-host"},
 	"archive-adx": {"feature-network", "archive-blob"}, "archive-approval": {}, "archive-acquisition": {},
 	"session-data-lake": {"archive-host", "archive-blob", "archive-adx", "archive-approval", "archive-acquisition", "sign-in-app"},
 	"gateway-apps":      {}, "gateway-policy": {}, "gateway-receive-secrets": {}, "gateway-dispatch-secrets": {},
@@ -28,8 +25,7 @@ var contracts = map[string][]string{
 }
 
 var external = map[string]bool{
-	"sign-in-app": true, "collection-app": true, "reviewed-inventory": true,
-	"private-connectivity": true, "otlp-collector": true, "archive-approval": true, "archive-acquisition": true,
+	"sign-in-app": true, "archive-approval": true, "archive-acquisition": true,
 	"gateway-apps": true, "gateway-policy": true, "gateway-receive-secrets": true, "gateway-dispatch-secrets": true,
 	"runtime-secrets": true, "runtime-image": true, "runtime-activation": true,
 }
@@ -39,7 +35,7 @@ func (f Features) validate() error {
 		value   string
 		choices []string
 	}{
-		"deployment":  {f.Deployment, []string{"single-vm", "minimal-azure", "azure-functions", "azure-container-apps"}},
+		"deployment":  {f.Deployment, []string{"single-vm", "minimal-azure", "azure-container-apps"}},
 		"acquisition": {f.Acquisition, []string{"actions", "collector"}},
 		"ingress":     {f.Ingress, []string{"public", "private"}},
 		"analytics":   {f.Analytics, []string{"none", "adx"}},
@@ -49,8 +45,11 @@ func (f Features) validate() error {
 			return fmt.Errorf("unsupported features.%s", name)
 		}
 	}
-	if f.Deployment != "azure-functions" && (f.Acquisition != "actions" || f.Ingress != "public" || f.Analytics != "none" || f.Telemetry != "none" || f.SessionDataLake || f.WebhookGateway) {
-		return fmt.Errorf("compact and Container Apps deployments support public hosted OAuth with Actions snapshots only; select azure-functions for optional managed features")
+	if f.Acquisition != "actions" || f.Ingress != "public" || f.Analytics != "none" || f.Telemetry != "none" {
+		return fmt.Errorf("compact and Container Apps deployments support public hosted OAuth with Actions snapshots only")
+	}
+	if f.Deployment != "azure-container-apps" && (f.SessionDataLake || f.WebhookGateway) {
+		return fmt.Errorf("optional managed hosts require the Container Apps deployment")
 	}
 	return nil
 }
@@ -64,7 +63,7 @@ func dependencies(id string, f Features) []string {
 			return slices.Clone(contracts[id])
 		}
 	}
-	if f.Deployment != "azure-functions" {
+	if f.Deployment != "azure-container-apps" {
 		switch id {
 		case "dashboard":
 			return []string{"vm", "postgres", "sign-in-app", "runtime-secrets", "runtime-image", "runtime-activation", "snapshot-ingestion"}
@@ -79,35 +78,11 @@ func dependencies(id string, f Features) []string {
 			return []string{"vm", "database-provisioning", "runtime-image"}
 		}
 	}
-	result := append([]string{}, contracts[id]...)
-	if id == "dashboard" && f.Ingress == "private" {
-		result = append(result, "private-connectivity")
-	}
-	if id == "secrets" && f.Acquisition == "collector" {
-		result = append(result, "collection-app")
-	}
-	if id == "telemetry-export" && f.Acquisition == "collector" {
-		result = append(result, "collection")
-	}
-	return result
+	return slices.Clone(contracts[id])
 }
 
 func componentIDs(f Features) []string {
-	selected := map[string]bool{"dashboard": true}
-	if f.Acquisition == "collector" {
-		selected["collection"] = true
-	} else {
-		selected["snapshot-ingestion"] = true
-	}
-	if f.Analytics == "adx" {
-		selected["adx"] = true
-	}
-	if f.Ingress == "private" {
-		selected["private-connectivity"] = true
-	}
-	if f.Telemetry == "otlp" {
-		selected["telemetry-export"] = true
-	}
+	selected := map[string]bool{"dashboard": true, "snapshot-ingestion": true}
 	if f.SessionDataLake {
 		selected["session-data-lake"] = true
 	}

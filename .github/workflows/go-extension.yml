@@ -152,23 +152,11 @@ jobs:
           ./gh-cao pages --json > /dev/null
 
   extension-setup-simulator:
-    name: Setup against local GitHub and Azure simulators
+    name: Setup against local GitHub simulators
     # Keep the full external-tool topology matrix off the PR critical path.
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
-        env:
-          POSTGRES_DB: cao
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres -d cao"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -191,21 +179,6 @@ jobs:
           GH_ENTERPRISE_TOKEN: ""
           GITHUB_ENTERPRISE_TOKEN: ""
         run: npm run test:integration:setup
-      - name: Prepare offline Azure simulation prerequisites
-        run: |
-          go mod download
-          go -C server mod download
-          docker pull mcr.microsoft.com/azure-storage/azurite:3.37.0@sha256:830430c1da1a2d537e08f3e6764dd1f5ae00cf0346bcaf625b968ec3f0971fd5
-      - name: Run Azure setup with official Azurite and local control-plane simulation
-        env:
-          POSTGRES_URL: postgres://postgres@127.0.0.1:5432/cao?sslmode=disable
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          GH_ENTERPRISE_TOKEN: ""
-          GITHUB_ENTERPRISE_TOKEN: ""
-        run: |
-          npm run test:integration:setup-azure
-          npm run test:integration:azure-install-journey
 
   extension-authtests:
     name: Doctor authenticated integration tests
