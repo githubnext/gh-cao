@@ -889,7 +889,8 @@ between cancellation-aware polling attempts. Application-owned maintenance
 reclaims only bounded expired state. Sessions, accepted work, enrollment,
 checkpoints, and pending revocations survive process restart under the database's
 configured durability. Backend selection comes from reviewed host policy, with PostgreSQL as the
-selector-free default and explicit legacy Redis configuration preserved.
+selector-free default and Redis available only through the explicit
+`operational-store` selector. The former `host.redis` selector is rejected.
 This is not an operational-state migration, fallback, or campaign rollout change.
 The read-only doctor opens existing
 operational state without initializing it.
@@ -1096,8 +1097,8 @@ the non-secret `control-plane.web.host` section of
 than storing connection URLs, credentials, server-name overrides, or CA
 certificates. Managed-provider modules map provider conventions into the same
 generic URL and verified-TLS configuration; they do not create provider-specific
-runtime paths. When no host section exists, legacy environment configuration is
-retained for existing deployments.
+runtime paths. Hosted startup requires the reviewed host section and rejects
+environment-only host configuration.
 
 Modules are compiled registry entries, not dynamically loaded code. Policy
 selects one target and one operational backend; Redis selection also resolves one provider module. Unknown names, attempts to

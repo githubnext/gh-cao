@@ -12,7 +12,7 @@ import (
 
 var serverLogsLog = logger.New("cao:server:logs")
 
-type serverLogRedis struct {
+type serverLogOperational struct {
 	Status       string           `json:"status"`
 	Counters     map[string]int64 `json:"counters,omitempty"`
 	QueueDepth   *int64           `json:"queueDepth,omitempty"`
@@ -21,13 +21,13 @@ type serverLogRedis struct {
 }
 
 type serverLogSnapshot struct {
-	Logs  []json.RawMessage `json:"logs"`
-	Redis serverLogRedis    `json:"redis"`
+	Logs        []json.RawMessage    `json:"logs"`
+	Operational serverLogOperational `json:"operational"`
 }
 
 // collectionQueueCounts reads the collection queue's depth, pending, and
 // dead-letter counts as one unit. It is a pure extraction from
-// serverLogRedis's inline error handling, so the "any count unavailable
+// serverLogOperational's inline error handling, so the "any count unavailable
 // fails the whole snapshot" rule is testable directly against a Queue
 // without going through the HTTP handler.
 func collectionQueueCounts(ctx context.Context, queue collect.Queue) (depth, pending, dead int64, err error) {
@@ -43,23 +43,23 @@ func collectionQueueCounts(ctx context.Context, queue collect.Queue) (depth, pen
 	return depth, pending, dead, nil
 }
 
-func (a *App) serverLogRedis(ctx context.Context) serverLogRedis {
+func (a *App) serverLogOperational(ctx context.Context) serverLogOperational {
 	if a.services.IngestionMetrics == nil {
-		return serverLogRedis{Status: "not-configured"}
+		return serverLogOperational{Status: "not-configured"}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	counters, _, err := a.services.IngestionMetrics.IngestionHealth(ctx)
 	if err != nil {
 		serverLogsLog.PrintfContext(ctx, "server log snapshot unavailable stage=ingestion-health")
-		return serverLogRedis{Status: "unavailable"}
+		return serverLogOperational{Status: "unavailable"}
 	}
-	result := serverLogRedis{Status: "ok", Counters: counters}
+	result := serverLogOperational{Status: "ok", Counters: counters}
 	if collector := a.Collector(); collector != nil {
 		depth, pending, dead, err := collectionQueueCounts(ctx, collector.reporter.Queue)
 		if err != nil {
 			serverLogsLog.PrintfContext(ctx, "server log snapshot unavailable stage=collection-queue")
-			return serverLogRedis{Status: "unavailable"}
+			return serverLogOperational{Status: "unavailable"}
 		}
 		result.QueueDepth, result.PendingTasks, result.DeadLetters = &depth, &pending, &dead
 	}
@@ -72,7 +72,7 @@ func (a *App) serverLogsAuthorized(ctx context.Context) bool {
 }
 
 func (a *App) serverLogsSnapshot(ctx context.Context) serverLogSnapshot {
-	return serverLogSnapshot{Logs: a.logs.Snapshot(), Redis: a.serverLogRedis(ctx)}
+	return serverLogSnapshot{Logs: a.logs.Snapshot(), Operational: a.serverLogOperational(ctx)}
 }
 
 func (a *App) serverLogs(response http.ResponseWriter, request *http.Request) {

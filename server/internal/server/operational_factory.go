@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/githubnext/gh-cao/server/internal/namespaces"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
@@ -54,8 +55,8 @@ func validateRedisStoreComposition(store *redisx.Store, profile HostProfile) err
 	return nil
 }
 
-// configureOperationalStore is the composition-only hook for legacy callers
-// that supply an already constructed Redis adapter to New.
+// configureOperationalStore applies provider-specific cache limits at the
+// composition boundary, including directly constructed Redis adapters.
 func configureOperationalStore(_ context.Context, store operational.Store, config *Config) error {
 	redisStore, isRedis := store.(*redisx.Store)
 	if !isRedis {
@@ -129,7 +130,7 @@ func newRedisOperationalStore(ctx context.Context, host *resolvedHostPolicy) (*r
 	if err != nil {
 		return nil, "", err
 	}
-	namespace := firstNonempty(host.OperationalNamespace, host.RedisNamespace, "hosted-dashboard")
+	namespace := firstNonempty(host.OperationalNamespace, host.DatabaseNamespace, "hosted-dashboard")
 	revocations, err := durableRevocationKeyPrefix(host.Profile.IsolateProcessNamespace, namespace)
 	if err != nil {
 		return nil, "", err
@@ -192,7 +193,7 @@ func validateStandaloneOperational(host *resolvedHostPolicy) error {
 }
 
 func storeFromClient(ctx context.Context, client *redisx.Client, namespaceValue string, isolateSession bool) (*redisx.Store, error) {
-	namespace, err := redisx.NormalizeNamespace(firstNonempty(namespaceValue, "hosted-dashboard"))
+	namespace, err := namespaces.NormalizeNamespace(firstNonempty(namespaceValue, "hosted-dashboard"))
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +217,7 @@ func durableRevocationKeyPrefix(isolateProcess bool, namespace string) (string, 
 	if !isolateProcess {
 		return "", nil
 	}
-	normalized, err := redisx.NormalizeNamespace(firstNonempty(strings.TrimSpace(namespace), "hosted-dashboard"))
+	normalized, err := namespaces.NormalizeNamespace(firstNonempty(strings.TrimSpace(namespace), "hosted-dashboard"))
 	if err != nil {
 		return "", err
 	}

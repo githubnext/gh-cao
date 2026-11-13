@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -82,7 +83,7 @@ func OperationalEnvironmentFromEnv() (OperationalEnvironment, error) {
 }
 
 // OperationalPolicySelectedFromEnv identifies an explicit reviewed selector
-// without requiring Redis credentials for legacy local CLI commands.
+// without opening an adapter or requiring provider credentials.
 func OperationalPolicySelectedFromEnv() (bool, error) {
 	path := configuredHostPolicyPath()
 	if _, err := os.Stat(path); os.IsNotExist(err) &&
@@ -97,6 +98,9 @@ func OperationalPolicySelectedFromEnv() (bool, error) {
 	control, _ := document["control-plane"].(map[string]any)
 	web, _ := control["web"].(map[string]any)
 	host, _ := web["host"].(map[string]any)
+	if _, legacy := host["redis"]; legacy {
+		return false, errors.New("host.redis is no longer supported; use host.operational-store")
+	}
 	_, selected := host["operational-store"]
 	return selected, nil
 }
@@ -136,7 +140,7 @@ func operationalEnvironment(host *resolvedHostPolicy) OperationalEnvironment {
 	return OperationalEnvironment{
 		Backend: host.OperationalBackend, Namespace: host.OperationalNamespace,
 		RedisURL:          host.RedisURL,
-		DatabaseNamespace: host.RedisNamespace, SingleProcess: host.Profile.SingleProcess,
+		DatabaseNamespace: host.DatabaseNamespace, SingleProcess: host.Profile.SingleProcess,
 		AllowVolatile: host.AllowVolatile,
 	}
 }

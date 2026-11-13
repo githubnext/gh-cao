@@ -17,7 +17,7 @@ func TestNativeLocalValuesTracksComposedBasePolicyAuthority(t *testing.T) {
 		t.Fatal(err)
 	}
 	profile := []byte(`{"extends":"base.json","control-plane":{"web":{"host":{
-		"target":{"module":"container","name":"fixture"},"redis":{"module":"generic"}}}}}`)
+		"target":{"module":"container","name":"fixture"},"operational-store":{"backend":"redis"}}}}}`)
 	if err := os.WriteFile(p.PolicyPath, profile, 0o600); err != nil { // #nosec G703 -- generated profile in the test-owned catalog.
 		t.Fatal(err)
 	}

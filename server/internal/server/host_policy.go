@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/githubnext/gh-cao/server/internal/namespaces"
 	"github.com/githubnext/gh-cao/server/internal/redisx"
 )
 
@@ -74,7 +75,7 @@ type resolvedHostPolicy struct {
 	AllowVolatile          bool
 	OperationalPostgresURL string
 	RedisURL               string
-	RedisNamespace         string
+	DatabaseNamespace      string
 	RedisOptions           redisx.Options
 	CORS                   CORSPolicy
 }
@@ -89,7 +90,6 @@ type hostPolicyDocument struct {
 
 type hostPolicy struct {
 	Target      targetPolicy       `json:"target"`
-	Redis       redisPolicy        `json:"redis"`
 	Operational *operationalPolicy `json:"operational-store"`
 	CORS        corsPolicyDocument `json:"cors"`
 }
@@ -125,7 +125,6 @@ type redisPolicy struct {
 	PortEnv                 string           `json:"port-env"`
 	UsernameEnv             string           `json:"username-env"`
 	PasswordEnv             string           `json:"password-env"`
-	NamespaceEnv            string           `json:"namespace-env"`
 	Session                 HostRedisSession `json:"session"`
 	IsolateProcessNamespace *bool            `json:"isolate-process-namespace"`
 	SingleReplica           *bool            `json:"single-replica"`
@@ -181,9 +180,6 @@ func loadHostPolicyFromEnv() (*resolvedHostPolicy, error) {
 		if string(selector) == "null" {
 			return nil, errors.New("operational-store must be an object")
 		}
-		if _, legacy := hostFields["redis"]; legacy {
-			return nil, errors.New("host.redis and host.operational-store cannot both select an operational backend")
-		}
 		var fields map[string]json.RawMessage
 		if err := json.Unmarshal(selector, &fields); err != nil {
 			return nil, errors.New("operational-store must be an object")
@@ -208,9 +204,6 @@ func loadHostPolicyFromEnv() (*resolvedHostPolicy, error) {
 	hostDecoder.DisallowUnknownFields()
 	if err := hostDecoder.Decode(&policy); err != nil {
 		return nil, errors.New("parse CAO host policy")
-	}
-	if _, legacyRedis := hostFields["redis"]; legacyRedis && policy.Redis.Module == "" {
-		return nil, errors.New("host.redis requires an explicit provider module")
 	}
 	return policy.resolve(os.LookupEnv)
 }
@@ -422,16 +415,11 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 		return nil, err
 	}
 	backend := "postgres"
-	if policy.Redis != (redisPolicy{}) {
-		backend = "redis"
-	}
-	if policy.Operational == nil && backend == "postgres" {
+	redis := redisPolicy{Module: "generic"}
+	if policy.Operational == nil {
 		policy.Operational = &operationalPolicy{Backend: "postgres"}
 	}
 	if policy.Operational != nil {
-		if policy.Redis != (redisPolicy{}) {
-			return nil, errors.New("host.redis and host.operational-store cannot both select an operational backend")
-		}
 		backend = policy.Operational.Backend
 		switch backend {
 		case "redis":
@@ -441,9 +429,8 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 			if policy.Operational.SingleProcess || policy.Operational.AllowVolatile {
 				return nil, errors.New("redis operational-store does not accept memory topology or volatile-state options")
 			}
-			policy.Redis = redisPolicy{Module: "generic"}
 			if policy.Operational.Redis != nil {
-				policy.Redis = *policy.Operational.Redis
+				redis = *policy.Operational.Redis
 			}
 		case "memory":
 			if policy.Operational.Redis != nil || policy.Operational.Postgres != nil {
@@ -467,9 +454,10 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 			return nil, fmt.Errorf("unsupported operational-store backend %q", backend)
 		}
 	}
-	// The legacy namespace is also the canonical Postgres dataset identity.
-	// A neutral operational namespace must not silently move that dataset.
-	namespace := envValue(lookup, firstNonempty(policy.Redis.NamespaceEnv, "REDIS_NAMESPACE"))
+	namespace, err := namespaces.Environment(lookup)
+	if err != nil {
+		return nil, err
+	}
 	if namespace == "" {
 		namespace = "hosted-dashboard"
 	}
@@ -490,7 +478,7 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 		return &resolvedHostPolicy{
 			Profile: profile, SingleReplicaConfirmed: true,
 			OperationalBackend: backend, OperationalNamespace: operationalNamespace,
-			AllowVolatile: true, RedisNamespace: namespace, CORS: cors,
+			AllowVolatile: true, DatabaseNamespace: namespace, CORS: cors,
 		}, nil
 	}
 	if backend == "postgres" {
@@ -511,10 +499,10 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 		return &resolvedHostPolicy{
 			Profile: profile, SingleReplicaConfirmed: true,
 			OperationalBackend: backend, OperationalNamespace: operationalNamespace,
-			OperationalPostgresURL: dsn, RedisNamespace: namespace, CORS: cors,
+			OperationalPostgresURL: dsn, DatabaseNamespace: namespace, CORS: cors,
 		}, nil
 	}
-	provider, err := resolveRedisProviderModule(policy.Redis)
+	provider, err := resolveRedisProviderModule(redis)
 	if err != nil {
 		return nil, err
 	}
@@ -538,12 +526,12 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 	if err := validateRedisProfile(profile); err != nil {
 		return nil, err
 	}
-	urlEnv := firstNonempty(policy.Redis.URLEnv, provider.urlEnv)
-	hostEnv := firstNonempty(policy.Redis.HostEnv, provider.hostEnv)
-	portEnv := firstNonempty(policy.Redis.PortEnv, provider.portEnv)
-	usernameEnv := firstNonempty(policy.Redis.UsernameEnv, provider.usernameEnv)
-	passwordEnv := firstNonempty(policy.Redis.PasswordEnv, provider.passwordEnv)
-	tlsMode, tlsSource, err := resolveRedisTLSMode(policy.Redis.TLS.Mode, provider.tlsMode, policy.Redis.Module)
+	urlEnv := firstNonempty(redis.URLEnv, provider.urlEnv)
+	hostEnv := firstNonempty(redis.HostEnv, provider.hostEnv)
+	portEnv := firstNonempty(redis.PortEnv, provider.portEnv)
+	usernameEnv := firstNonempty(redis.UsernameEnv, provider.usernameEnv)
+	passwordEnv := firstNonempty(redis.PasswordEnv, provider.passwordEnv)
+	tlsMode, tlsSource, err := resolveRedisTLSMode(redis.TLS.Mode, provider.tlsMode, redis.Module)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +545,7 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 	if err != nil {
 		return nil, err
 	}
-	if policy.Redis.Module == "upstash" && !isUpstashRedisURL(redisURL) {
+	if redis.Module == "upstash" && !isUpstashRedisURL(redisURL) {
 		return nil, errors.New("upstash Redis provider module requires an upstash.io endpoint")
 	}
 	return &resolvedHostPolicy{
@@ -566,15 +554,15 @@ func (policy hostPolicy) resolve(lookup func(string) (string, bool)) (*resolvedH
 		OperationalBackend:     backend,
 		OperationalNamespace:   operationalNamespace,
 		RedisURL:               redisURL,
-		RedisNamespace:         namespace,
+		DatabaseNamespace:      namespace,
 		CORS:                   cors,
 		RedisOptions: redisx.Options{
-			AllowPrivatePlaintext: policy.Redis.AllowPrivatePlaintext,
+			AllowPrivatePlaintext: redis.AllowPrivatePlaintext,
 			SingleSession:         provider.session == HostRedisSerialized,
 			ForceTLS:              tlsMode == redisTLSRequired,
 			DisableTLS:            tlsMode == redisTLSDisabled,
-			TLSServerName:         envValue(lookup, policy.Redis.TLS.ServerNameEnv),
-			TLSCACertificatePEM:   envValue(lookup, policy.Redis.TLS.CACertificateEnv),
+			TLSServerName:         envValue(lookup, redis.TLS.ServerNameEnv),
+			TLSCACertificatePEM:   envValue(lookup, redis.TLS.CACertificateEnv),
 		},
 	}, nil
 }

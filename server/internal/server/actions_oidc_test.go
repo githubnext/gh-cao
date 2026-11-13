@@ -339,7 +339,7 @@ func TestHostedActionsMCPAuthentication(t *testing.T) {
 		t.Fatal(err)
 	}
 	var snapshot serverLogSnapshot
-	if err := json.Unmarshal(logsPayload, &snapshot); err != nil || snapshot.Logs == nil || snapshot.Redis.Status == "" {
+	if err := json.Unmarshal(logsPayload, &snapshot); err != nil || snapshot.Logs == nil || snapshot.Operational.Status == "" {
 		t.Fatalf("invalid hosted logs: %s (%v)", logsPayload, err)
 	}
 

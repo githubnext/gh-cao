@@ -145,7 +145,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	}
 	defer stopActions()
 	child := exec.CommandContext(ctx, server, "serve", "--source", cache,
-		"--redis-namespace", namespace,
+		"--namespace", namespace,
 		"--site", site, "--listen", options.listen, "--exit-on-stdin-close",
 		"--operator-config", actionsConfig,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"),

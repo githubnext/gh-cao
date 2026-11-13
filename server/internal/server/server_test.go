@@ -641,6 +641,13 @@ func TestHealthAndReadinessExposeAuthoritativeEvaluatedAt(t *testing.T) {
 		if !strings.Contains(response.Body.String(), `"evaluatedAt":"2026-02-03T04:05:06Z"`) {
 			t.Fatalf("%s did not expose authoritative evaluatedAt: %s", path, response.Body.String())
 		}
+		var payload map[string]json.RawMessage
+		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload["redis"] != nil || !strings.Contains(string(payload["operational"]), `"connected":true`) {
+			t.Fatalf("%s did not use provider-neutral operational health: %s", path, response.Body.String())
+		}
 	}
 }
 

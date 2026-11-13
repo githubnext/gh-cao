@@ -327,7 +327,7 @@ func TestDashboardManagedPostgresContainer(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	command := exec.CommandContext(t.Context(), server, "ingest", "--source", cache, "--redis-namespace", "managed-test",
+	command := exec.CommandContext(t.Context(), server, "ingest", "--source", cache, "--namespace", "managed-test",
 		"--database-queries", "../../dashboard/site/src/data/queries/database.json")
 	command.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+connection)
 	if content, err := command.CombinedOutput(); err != nil {

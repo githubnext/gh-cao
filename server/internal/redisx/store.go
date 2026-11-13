@@ -16,6 +16,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/operational"
 
 	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/namespaces"
 )
 
 var storeLog = logger.New("cao:redis:store")
@@ -58,21 +59,21 @@ type CommandClient interface {
 	DoMany(context.Context, [][]string) ([]any, error)
 }
 
-func NewStore(client CommandClient, namespaces ...string) *Store {
+func NewStore(client CommandClient, names ...string) *Store {
 	var namespace string
-	switch len(namespaces) {
+	switch len(names) {
 	case 0:
-		defaultNamespace, err := DefaultNamespace(".")
+		defaultNamespace, err := namespaces.DefaultNamespace(".")
 		if err != nil {
 			panic(err)
 		}
 		namespace = defaultNamespace
 	case 1:
-		namespace = namespaces[0]
+		namespace = names[0]
 	default:
 		panic("NewStore accepts at most one Redis namespace")
 	}
-	normalized, err := NormalizeNamespace(namespace)
+	normalized, err := namespaces.NormalizeNamespace(namespace)
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +81,7 @@ func NewStore(client CommandClient, namespaces ...string) *Store {
 }
 
 func NewProcessIsolatedStore(client CommandClient, namespace string) (*Store, error) {
-	normalized, err := NormalizeNamespace(namespace)
+	normalized, err := namespaces.NormalizeNamespace(namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func NewProcessIsolatedStore(client CommandClient, namespace string) (*Store, er
 		return nil, errors.New("generate process-isolated Redis namespace")
 	}
 	sum := sha256.Sum256([]byte(normalized))
-	isolated, err := NormalizeNamespace(
+	isolated, err := namespaces.NormalizeNamespace(
 		"process-" + hex.EncodeToString(sum[:6]) + "-" + hex.EncodeToString(nonce[:]),
 	)
 	if err != nil {

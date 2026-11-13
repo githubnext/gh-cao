@@ -218,7 +218,7 @@ test("dashboard build accepts resolved settings and extracts composed policy set
       extends: "cao.json",
       "control-plane": { web: { host: {
         target: { module: "container", name: "test" },
-        redis: { module: "generic" },
+        "operational-store": { backend: "redis", redis: { module: "generic" } },
       } } },
     }));
     const composedSettings = await loadDashboardControlSettings(profileSettings);

@@ -18,9 +18,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/spf13/cobra"
 
+	"github.com/githubnext/gh-cao/server/internal/doctor"
+	"github.com/githubnext/gh-cao/server/internal/namespaces"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
-	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/server"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
 )
@@ -82,7 +83,7 @@ func TestServeWithExistingPostgresOperationalTables(t *testing.T) {
 	cmd := newServeCommand()
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
-	cmd.SetArgs([]string{"--redis-namespace", namespace, "--dashboard-queries", filepath.Join(t.TempDir(), "missing-dashboard-queries.json")})
+	cmd.SetArgs([]string{"--namespace", namespace, "--dashboard-queries", filepath.Join(t.TempDir(), "missing-dashboard-queries.json")})
 	err = cmd.Execute()
 	if err == nil || !strings.Contains(err.Error(), "missing-dashboard-queries.json") {
 		t.Fatalf("serve must reach dashboard query loading after both stores initialize: %v", err)
@@ -188,6 +189,11 @@ func TestOperationalBackendSelectionUsesComposedReviewedPolicy(t *testing.T) {
 	}
 	if settings.Backend != "memory" {
 		t.Fatalf("selected = %q, want memory", settings.Backend)
+	}
+	doctor := newDoctorCommand()
+	doctor.SetArgs([]string{"--namespace", "different-dataset"})
+	if err := doctor.Execute(); err == nil || !strings.Contains(err.Error(), "--namespace cannot override") {
+		t.Fatalf("doctor accepted an ignored namespace override: %v", err)
 	}
 	cmd := newServeHostedCommand()
 	cmd.SetArgs([]string{"--operational-store", "redis"})
@@ -443,10 +449,10 @@ func TestResolveNamespaceDefault(t *testing.T) {
 	}
 }
 
-func TestCheckoutNamespaceDefaultMatchesRedisxDefaultNamespace(t *testing.T) {
-	want, err := redisx.DefaultNamespace(".")
+func TestCheckoutNamespaceDefaultMatchesSharedDefaultNamespace(t *testing.T) {
+	want, err := namespaces.DefaultNamespace(".")
 	if err != nil {
-		t.Fatalf("redisx.DefaultNamespace() error = %v, want nil", err)
+		t.Fatalf("namespaces.DefaultNamespace() error = %v, want nil", err)
 	}
 	got, err := checkoutNamespaceDefault()
 	if err != nil {
@@ -455,63 +461,122 @@ func TestCheckoutNamespaceDefaultMatchesRedisxDefaultNamespace(t *testing.T) {
 	if got != want {
 		t.Errorf("checkoutNamespaceDefault() = %q, want %q", got, want)
 	}
-	if _, normalizeErr := redisx.NormalizeNamespace(got); normalizeErr != nil {
+	if _, normalizeErr := namespaces.NormalizeNamespace(got); normalizeErr != nil {
 		t.Errorf("checkoutNamespaceDefault() = %q is not a valid namespace: %v", got, normalizeErr)
 	}
 }
 
-func TestRegisterRedisNamespaceFlagUsesCheckoutDefault(t *testing.T) {
+func TestRegisterNamespaceFlagUsesCheckoutDefault(t *testing.T) {
 	want, err := checkoutNamespaceDefault()
 	if err != nil {
 		t.Fatalf("checkoutNamespaceDefault() error = %v, want nil", err)
 	}
 
 	cmd := &cobra.Command{Use: "test"}
-	namespace, namespaceErr := registerRedisNamespaceFlag(cmd, "usage")
+	namespace, namespaceErr := registerNamespaceFlag(cmd, "usage")
 	if namespaceErr != nil {
-		t.Fatalf("registerRedisNamespaceFlag() error = %v, want nil", namespaceErr)
+		t.Fatalf("registerNamespaceFlag() error = %v, want nil", namespaceErr)
 	}
 	if *namespace != want {
-		t.Errorf("registerRedisNamespaceFlag() default = %q, want %q", *namespace, want)
+		t.Errorf("registerNamespaceFlag() default = %q, want %q", *namespace, want)
 	}
-	if got, err := cmd.Flags().GetString("redis-namespace"); err != nil || got != want {
-		t.Errorf("cmd.Flags().GetString(redis-namespace) = (%q, %v), want (%q, nil)", got, err, want)
+	if got, err := cmd.Flags().GetString("namespace"); err != nil || got != want {
+		t.Errorf("cmd.Flags().GetString(namespace) = (%q, %v), want (%q, nil)", got, err, want)
 	}
 }
 
-func TestRegisterRedisNamespaceFlagWithEnvOverridePrefersEnv(t *testing.T) {
-	t.Setenv("CAO_REDIS_NAMESPACE", "custom-namespace")
+func TestRegisterNamespaceFlagWithEnvOverridePrefersEnv(t *testing.T) {
+	t.Setenv("CAO_DATABASE_NAMESPACE", "custom-namespace")
 
 	cmd := &cobra.Command{Use: "test"}
-	namespace, source, namespaceErr := registerRedisNamespaceFlagWithEnvOverride(cmd, "usage")
+	namespace, source, namespaceErr := registerNamespaceFlagWithEnvOverride(cmd, "usage")
 	if namespaceErr != nil {
-		t.Fatalf("registerRedisNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
+		t.Fatalf("registerNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
 	}
 	if *namespace != "custom-namespace" {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, "custom-namespace")
+		t.Errorf("registerNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, "custom-namespace")
 	}
 	if source != namespaceDefaultSourceEnv {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceEnv)
+		t.Errorf("registerNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceEnv)
 	}
 }
 
-func TestRegisterRedisNamespaceFlagWithEnvOverrideFallsBackToCheckout(t *testing.T) {
-	t.Setenv("CAO_REDIS_NAMESPACE", "")
+func TestRegisterNamespaceFlagWithEnvOverrideFallsBackToCheckout(t *testing.T) {
+	t.Setenv("CAO_DATABASE_NAMESPACE", "")
 	want, err := checkoutNamespaceDefault()
 	if err != nil {
 		t.Fatalf("checkoutNamespaceDefault() error = %v, want nil", err)
 	}
 
 	cmd := &cobra.Command{Use: "test"}
-	namespace, source, namespaceErr := registerRedisNamespaceFlagWithEnvOverride(cmd, "usage")
+	namespace, source, namespaceErr := registerNamespaceFlagWithEnvOverride(cmd, "usage")
 	if namespaceErr != nil {
-		t.Fatalf("registerRedisNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
+		t.Fatalf("registerNamespaceFlagWithEnvOverride() error = %v, want nil", namespaceErr)
 	}
 	if *namespace != want {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, want)
+		t.Errorf("registerNamespaceFlagWithEnvOverride() default = %q, want %q", *namespace, want)
 	}
 	if source != namespaceDefaultSourceCheckout {
-		t.Errorf("registerRedisNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceCheckout)
+		t.Errorf("registerNamespaceFlagWithEnvOverride() source = %q, want %q", source, namespaceDefaultSourceCheckout)
+	}
+}
+
+func TestCommandsRejectLegacyRedisFlags(t *testing.T) {
+	for _, newCommand := range []func() *cobra.Command{
+		newServeCommand, newIngestCommand, newReadCommand, newDoctorCommand, newLocalQueueCommand,
+	} {
+		command := newCommand()
+		t.Run(command.Name(), func(t *testing.T) {
+			if err := command.ParseFlags([]string{"--redis-namespace", "existing"}); err == nil {
+				t.Fatal("removed --redis-namespace flag was accepted")
+			}
+			if err := command.ParseFlags([]string{"--namespace", "existing"}); err != nil {
+				t.Fatalf("neutral namespace flag was rejected: %v", err)
+			}
+		})
+	}
+	if err := newIngestCommand().ParseFlags([]string{"--redis-url", defaultRedisURL}); err == nil {
+		t.Fatal("ingest accepted a Redis URL it cannot use")
+	}
+	for _, command := range []*cobra.Command{newServeCommand(), newDoctorCommand()} {
+		if err := command.ParseFlags([]string{"--redis-url", defaultRedisURL}); err != nil {
+			t.Fatalf("%s rejected explicit Redis adapter configuration: %v", command.Name(), err)
+		}
+	}
+}
+
+func TestNamespaceFlagsRejectLegacyEnvironment(t *testing.T) {
+	t.Setenv("CAO_REDIS_NAMESPACE", "previous-dataset")
+	_, err := registerNamespaceFlag(&cobra.Command{}, "dataset namespace")
+	if err == nil || !strings.Contains(err.Error(), "CAO_REDIS_NAMESPACE") {
+		t.Fatalf("legacy namespace silently selected a different dataset: %v", err)
+	}
+}
+
+func TestDoctorPreservesCanonicalNamespace(t *testing.T) {
+	for _, name := range []string{
+		"CAO_POLICY_PATH", "CAO_MARKETPLACE_POLICY_PATH", "CAO_POSTGRES_URL",
+		"CAO_REDIS_URL", "CAO_OPERATIONAL_NAMESPACE",
+	} {
+		t.Setenv(name, "")
+	}
+	t.Setenv("CAO_DATABASE_NAMESPACE", "Existing.Dataset")
+	var output bytes.Buffer
+	command := newDoctorCommand()
+	command.SilenceErrors = true
+	command.SilenceUsage = true
+	command.SetOut(&output)
+	command.SetErr(io.Discard)
+	command.SetArgs([]string{"--format", "json"})
+	if err := command.Execute(); !errors.Is(err, errDoctorFoundProblems) {
+		t.Fatalf("doctor must report missing stores without rejecting the canonical namespace: %v", err)
+	}
+	var report doctor.Report
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.Namespace != "Existing.Dataset" {
+		t.Fatalf("canonical namespace was normalized as a Redis prefix: %q", report.Namespace)
 	}
 }
 

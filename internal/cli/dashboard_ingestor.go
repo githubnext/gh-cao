@@ -25,7 +25,7 @@ func startDashboardIngestor(ctx context.Context, server, site, cache, namespace,
 	parent := ctx
 	ctx, cancel := context.WithCancel(ctx)
 	child := exec.CommandContext(ctx, server, "ingest", "--stdin", "--source", cache,
-		"--redis-namespace", namespace,
+		"--namespace", namespace,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"))
 	child.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+postgresURL)
 	child.Stderr = diagnostics
