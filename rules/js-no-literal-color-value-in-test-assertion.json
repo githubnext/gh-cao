@@ -151,16 +151,6 @@
       "txn_id": "refiner-37156057344-2"
     },
     {
-      "true_positive_count": 0,
-      "false_positive_count": 0,
-      "false_negative_count": 0,
-      "readiness_for_target": "not-applicable",
-      "target_commit": "97b70090f01eab67204b05d8d897506c1c657d2d",
-      "target_repo": "github/gh-aw",
-      "txn_id": "refiner-37835259305-4",
-      "reason": "Searched all *.test.ts/*.test.js/*.test.cjs/*.test.mjs files under github/gh-aw for assert.match/toMatch/toContain assertions against hex color literals or color-mix() expressions copied from an actively-tuned themed source: zero hits. Not applicable here regardless of the rule's central deprecated status."
-    },
-    {
       "txn_id": "refiner-38434456740-2",
       "readiness_for_target": "needs-work",
       "true_positive_count": 0,
