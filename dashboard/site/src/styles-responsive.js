@@ -186,7 +186,8 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .report-actions { width: 100%; position: relative; margin-left: 0; }
   .report-actions .tooltip-help { position: static; }
   .report-actions .tooltip-content { width: min(320px, 100%); right: auto; left: 0; }
-  .dashboard-current-status.tooltip-mobile-popup .tooltip-content[popover] { width: auto !important; max-width: 480px; max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); inset: auto 12px calc(12px + env(safe-area-inset-bottom)) 12px !important; margin: 0 auto; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
+  /* WebKit resolves the popover UA height: fit-content to max-height when the sheet is bottom-anchored, stretching grid rows. */
+  .dashboard-current-status.tooltip-mobile-popup .tooltip-content[popover] { width: auto !important; height: auto; align-content: start; max-width: 480px; max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); inset: auto 12px calc(12px + env(safe-area-inset-bottom)) 12px !important; margin: 0 auto; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
   .mobile-ingestion-indicator:not([hidden]) { width: 44px; height: 44px; display: grid; flex: 0 0 44px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--muted); cursor: pointer; }
   .mobile-ingestion-indicator:hover { background: var(--neutral-muted); }
   .mobile-ingestion-indicator .octicon { width: 16px; height: 16px; }
