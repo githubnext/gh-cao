@@ -53,8 +53,22 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const files = readdirSync(unitDirectory).filter((file) => file.endsWith(".test.mjs")).sort();
   const selected = partitionUnitTests(files)[area].map((file) => join(unitDirectory, file));
-  const result = spawnSync(process.execPath, ["--test",
-    ...(process.env.POSTGRES_URL ? ["--test-concurrency=4"] : []), ...selected], { stdio: "inherit" });
+  let template;
+  let result;
+  try {
+    if (area === "dashboard" && process.env.POSTGRES_URL) {
+      // Provision partitions once; each canvas fixture still owns a private database.
+      const { prepareCanvasPostgresTemplate } = await import("../tests/helpers/canvas-snapshot.mjs");
+      template = await prepareCanvasPostgresTemplate();
+    }
+    result = spawnSync(process.execPath, ["--test",
+      ...(process.env.POSTGRES_URL ? ["--test-concurrency=4"] : []), ...selected], {
+      stdio: "inherit",
+      env: { ...process.env, ...(template ? { CAO_CANVAS_POSTGRES_TEMPLATE: template.postgresURL } : {}) },
+    });
+  } finally {
+    await template?.close();
+  }
   if (result.error) throw result.error;
   if (result.signal) process.kill(process.pid, result.signal);
   process.exitCode = result.status ?? 1;
