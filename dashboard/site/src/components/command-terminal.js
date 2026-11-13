@@ -115,7 +115,10 @@ export function renderCommandTerminal(context) {
         window.location.hash = `page-command?command=${encodeURIComponent(command.id)}`;
         if (previousId === currentId) void attach();
       } catch (error) {
-        if (!scope.signal.aborted) publishNotification({ message: error instanceof Error ? error.message : 'Retry failed.', tone: 'error' });
+        if (!scope.signal.aborted) {
+          debugCommandTerminal({ event: 'retry', outcome: 'error', error: diagnosticErrorName(error) });
+          publishNotification({ message: error instanceof Error ? error.message : 'Retry failed.', tone: 'error' });
+        }
       } finally { busy.set(false); }
     }
   }, 'Retry command');
