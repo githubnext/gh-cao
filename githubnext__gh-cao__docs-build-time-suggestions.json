@@ -1,36 +1,7 @@
 {
  "source_sha": "2000a4eaf72b334211dc7d95121855e76d840f40",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T15:20:28Z",
-   "worker_run_id": "43450723904",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43447728981 back to 43345305064; created 2026-11-13T01:29:30Z to 2026-11-13T14:57:34Z; all within 14 days; none queued or in progress; checkout HEAD f369d46 = new source_sha). All 20 succeeded: 19 push plus 1 schedule (43371878284); no cancelled runs; failed 43297524311 is older than the window. Comparable n=20 (5-run gate met). Job and step metadata only (job logs HTTP 403 difc_forbidden re-probed on build job 131763446973). Medians (p90) for the category: Upload Pages artifact 2 s (3); Configure Pages 0 s (1); build-end to deploy-created handoff 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable transfer overhead excluding Deploy Pages: median 8.5 s (p90 10) = 9.7 percent of median exec 87.5 s (p90 98); 15 percent gate 13.12 s; eliminating all of it stays below the gate. Merging deploy into build saves about 6 s (queue plus setup) but would give id-token: write to the job running npm ci and Astro, rejected on least privilege and still below the gate. github-pages artifact 8.26-8.38 MB (20/20 matched via artifacts API, median 8.30 MB); halving the upload saves about 1 s. Outlier 43380585034 (exec 114 s) retained as a normal sample. Carry-forward outside rotation: Checkout fetch-depth 0 median 24.5 s (p90 31; 28 percent of exec), largest step, not evaluated here. No suggestion; no issue created; no open issue with label self-care:docs-build-time-investigator. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T15:35:15Z",
    "worker_run_id": "43453133420",
@@ -869,6 +840,35 @@
     43380585034
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; all within 14 days; none queued or in progress; 0 cancelled; 0 schedule runs in window). Excluded and disclosed: failed 43506161539 (install step; docs and demo not reached). Comparable n=19 successful push runs (5-run gate met). Jobs API re-fetched for all 20 runs this run; step medians match stored run_samples. Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median build-start-to-deploy-end 83 s (p90 93 s). 15 percent gate 12.45 s and 60 s gate unreachable; full removal saves at most 3 s. No duplicate dashboard generation: docs:build (astro build, validate-agent-docs, agent-docs-discovery test) does not reach buildDashboardSite; the only production caller is scripts/simulate-dashboard-pages.mjs, run once per Pages build. Reuse stays unsafe: scripts/dashboard-demo-data.mjs enterpriseSample(now) embeds generatedAt and observed_at (re-verified), and the daily cron exists to refresh synthetic dates. Source: workspace HEAD 2000a4e is 2 commits ahead of newest docs run head 54e08aa (compare API: server/ and kubernetes/ files only; no docs trigger path changed). No suggestion; no issue created; no noop-cap issue. next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T01:53:18Z",
+   "worker_run_id": "43542742799",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; about 18 h, so the 20-run cap binds and all runs are within 14 days; none queued or in progress; newest run head 54e08aa; workspace HEAD 2000a4e is 2 commits ahead and the compare API shows no docs-trigger path changed). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, 20:56Z, Install dependencies 17 s, Build documentation skipped; cause unverified, logs HTTP 403); 0 cancelled; no schedule run in window. Comparable n=19 push successes; 5-run gate met. Jobs API re-fetched for all 20 runs (no ETag, so no If-None-Match). Medians (p90, nearest rank): exec build start to deploy end 83 s (93); Upload Pages artifact 2 s (3); Configure Pages 0 s (1); build end to deploy created 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages 7 s (8, GitHub-managed); upload-to-deploy chain 15 s (p90 17) = 18% of exec median. Controllable subset (upload + configure + handoff + deploy setup) median 4 s (p90 5) = 4.8% of exec. github-pages artifact 8.33 MB median (8.28-8.37, 19/19 matched via artifacts API). 15% gate 12.45 s unreachable: merging deploy into build removes only about 6 s (queue 5 + setup 1) and needs id-token: write in the job that runs npm ci and Astro (rejected again, least privilege); artifact shrink saves about 1 s. Open issue 20815 (blobless checkout, dependency category) is still OPEN with 0 comments; not re-evaluated. No suggestion; no issue created. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
   }
  ],
