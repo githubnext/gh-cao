@@ -91,6 +91,7 @@
     },
     "campaigns": {
       "modernization": {
+        "icon": "tools",
         "enabled": false,
         "mode": "review",
         "max-repositories": 6,
