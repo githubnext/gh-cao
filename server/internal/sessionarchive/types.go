@@ -16,6 +16,8 @@ var (
 	ErrLimit     = errors.New("session archive result exceeds limit")
 	ErrNotFound  = errors.New("session archive trace not found")
 	ErrUncertain = errors.New("session archive durability is uncertain; retry or recover before acknowledgement")
+	// ErrAcquisitionGap reports a durably recorded identity-only gap record.
+	ErrAcquisitionGap = errors.New("session archive acquisition gap")
 )
 
 type Member struct {

@@ -58,6 +58,19 @@ the ordinary loopback bearer capability. Treat that capability as granting
 the explicitly reviewed archive content scope; do not share it as a
 metadata-only dashboard token.
 
+### Local dashboard (`gh cao dashboard --session-archive`)
+
+`gh cao dashboard --session-archive --session-archive-policy <policy.json>`
+is the local producer. The CLI copies the approved policy to a private file,
+writes one identity-only run frame per completed run whose `gh aw logs`
+artifact directory exists, and configures only its serving child with
+`CAO_SESSION_ARCHIVE_*`. The serving process remains the sole archive owner and
+receives capture requests over stdin (`cao-dashboard serve --session-archive-stdin`),
+so no second process opens the DuckDB store. Because startup checks archive
+scope against the canonical inventory, the CLI ingests one collection pass
+before starting the server. Missing or unapproved session logs are recorded as
+acquisition gaps, not content.
+
 ## Hosted persistent server
 
 Use the existing OAuth host with one confirmed persistent replica and
