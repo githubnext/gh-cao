@@ -54,7 +54,7 @@ jobs:
     needs: activation
     runs-on: ubuntu-latest
     permissions:
-      checks: read
+      actions: read
       contents: read
       statuses: read
     outputs:
@@ -126,9 +126,19 @@ jobs:
               const scope = { owner: context.repo.owner, repo: context.repo.repo };
               const { data: main } = await github.rest.repos.getBranch({ ...scope, branch: 'main' });
               if (context.ref !== 'refs/heads/main' || !/^[0-9a-f]{40}$/.test(context.sha) ||
-                  main.commit?.sha !== context.sha) {
-                skip('the scheduled revision is not the current main SHA');
+                  !/^[0-9a-f]{40}$/.test(main.commit?.sha ?? '')) {
+                skip('the scheduled revision or current main SHA is not verified');
                 return;
+              }
+              // Main may advance while the schedule is queued; release the scheduled SHA only if main still contains it.
+              if (main.commit.sha !== context.sha) {
+                const { data: onMain } = await github.rest.repos.compareCommitsWithBasehead({
+                  ...scope, basehead: `${context.sha}...${main.commit.sha}`,
+                });
+                if (onMain.status !== 'ahead' || !Number.isSafeInteger(onMain.behind_by) || onMain.behind_by !== 0) {
+                  skip('the scheduled revision is no longer contained in main');
+                  return;
+                }
               }
               const published = releases.filter((release) => release.draft === false);
               if (!published.length || published.some((release) =>
@@ -153,19 +163,25 @@ jobs:
                 skip(`main has no verified new commits since ${latestPublished.tag_name}`);
                 return;
               }
-              const [checks, statuses] = await Promise.all([
-                github.paginate(github.rest.checks.listForRef, {
-                  ...scope, ref: context.sha, filter: 'latest', per_page: 100,
+              const [pushRuns, statuses] = await Promise.all([
+                github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+                  ...scope, head_sha: context.sha, event: 'push', per_page: 100,
                 }),
                 github.paginate(github.rest.repos.listCommitStatusesForRef, {
                   ...scope, ref: context.sha, per_page: 100,
                 }),
               ]);
-              // Only this run is excluded: its in-progress jobs would otherwise deadlock the gate.
-              const currentRun = `${context.serverUrl}/${scope.owner}/${scope.repo}/actions/runs/${context.runId}`;
-              const otherChecks = checks.filter((check) =>
-                check.app?.slug !== 'github-actions' ||
-                (check.details_url !== currentRun && !check.details_url?.startsWith(`${currentRun}/`)));
+              // Gate on push CI only: scheduled, dispatched, and comment-triggered agentic runs also
+              // attach check runs to main SHAs, and their outcomes do not describe the commit's health.
+              const latestRuns = new Map();
+              for (const run of pushRuns) {
+                if (!Number.isSafeInteger(run.id) || !Number.isSafeInteger(run.workflow_id)) {
+                  throw new Error('Incomplete push workflow-run evidence');
+                }
+                if (!latestRuns.has(run.workflow_id) || run.id > latestRuns.get(run.workflow_id).id) {
+                  latestRuns.set(run.workflow_id, run);
+                }
+              }
               const latestStatuses = new Map();
               for (const status of statuses) {
                 if (!status.context || !Number.isSafeInteger(status.id)) {
@@ -175,14 +191,15 @@ jobs:
                   latestStatuses.set(status.context, status);
                 }
               }
-              if (otherChecks.length + latestStatuses.size === 0 ||
-                  otherChecks.some((check) => check.head_sha !== context.sha ||
-                    check.status !== 'completed' || check.conclusion !== 'success') ||
+              if (latestRuns.size + latestStatuses.size === 0 ||
+                  [...latestRuns.values()].some((run) => run.head_sha !== context.sha ||
+                    run.event !== 'push' || run.status !== 'completed' ||
+                    !['success', 'skipped'].includes(run.conclusion)) ||
                   [...latestStatuses.values()].some((status) => status.state !== 'success')) {
-                skip('main checks or commit statuses are missing, pending, or not all successful');
+                skip('main push workflow runs or commit statuses are missing, pending, or not all successful');
                 return;
               }
-              core.info(`All observed checks are green for ${context.sha}; new commits since ${latestPublished.tag_name}.`);
+              core.info(`All push workflow runs and commit statuses are green for ${context.sha}; new commits since ${latestPublished.tag_name}.`);
             }
             const toVersion = (name) => {
               const match = versionPattern.exec(name);
@@ -801,12 +818,14 @@ steps:
 
 # Release Highlights
 
-Daily runs consider only the exact current `main` SHA and use a patch bump. They
-require new commits after the newest release by publication time (including
-prereleases, excluding drafts), and successful latest check runs and commit
-statuses across every API page. Neutral, skipped, pending, failed, or absent
-evidence does not qualify. Only checks belonging to this release run are excluded
-to avoid waiting on its own unfinished jobs; other release runs are not exempt.
+Daily runs release the scheduled `main` SHA, provided current `main` still
+contains it, and use a patch bump. They require new commits after the newest
+release by publication time (including prereleases, excluding drafts), and the
+latest push-triggered workflow run of every workflow for that SHA, plus the latest
+commit status per context, to be successful across every API page. Push runs
+may also be skipped; pending, failed, cancelled, or absent evidence does not
+qualify. Scheduled, dispatched, and comment-triggered agentic runs do not gate
+the release because they do not describe the commit's CI health.
 Missing baselines and unchanged, behind, or diverged history produce no release;
 API errors fail closed. Maintainer/admin manual dispatch retains its existing
 default-branch authorization and explicit version-bump behavior.

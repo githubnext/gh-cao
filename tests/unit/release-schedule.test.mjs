@@ -10,11 +10,8 @@ const config = parse(/^---\n([\s\S]*?)\n---/.exec(source)[1]);
 const script = config.jobs["resolve-version"].steps[0].with.script;
 const sha = "a".repeat(40);
 const previousSha = "b".repeat(40);
-const currentRun = "https://github.com/acme/gh-cao/actions/runs/42";
-const green = {
-  head_sha: sha, status: "completed", conclusion: "success",
-  details_url: "https://ci.example/check", app: { slug: "github-actions" },
-};
+const mainSha = "c".repeat(40);
+const green = { id: 10, workflow_id: 1, head_sha: sha, event: "push", status: "completed", conclusion: "success" };
 const release = { id: 1, tag_name: "v1.0.0", draft: false, prerelease: false, published_at: "2026-11-10T00:00:00Z" };
 
 async function resolve(options = {}) {
@@ -23,15 +20,18 @@ async function resolve(options = {}) {
   const pages = {
     releases: [release],
     tags: [{ name: "v1.0.0" }],
-    checks: [green, { ...green, status: "in_progress", conclusion: null, details_url: `${currentRun}/job/123` }],
+    runs: [green, { ...green, id: 11, workflow_id: 2, conclusion: "skipped" }],
     statuses: [],
     ...options.pages,
   };
   const endpoint = (name, data) => async (params) => {
     calls.push({ name, params });
     if (options.error === name) throw new Error("API unavailable");
-    return { data };
+    return { data: typeof data === "function" ? data(params) : data };
   };
+  const compare = ({ basehead }) => basehead.startsWith(`${sha}...`)
+    ? (options.containment || { status: "ahead", ahead_by: 2, behind_by: 0 })
+    : (options.comparison || { status: "ahead", ahead_by: 3 });
   const list = (name) => Object.assign(() => {}, { endpointName: name });
   const result = runInNewContext(`(async () => { ${script} })()`, {
     process: { env: { RELEASE_BUMP: options.bump, TRIGGERING_ACTOR: "maintainer" } },
@@ -49,14 +49,14 @@ async function resolve(options = {}) {
         return pages[name];
       },
       rest: {
-        checks: { listForRef: list("checks") },
+        actions: { listWorkflowRunsForRepo: list("runs") },
         repos: {
           listReleases: list("releases"), listTags: list("tags"),
           listCommitStatusesForRef: list("statuses"),
           getCollaboratorPermissionLevel: endpoint("permission", { permission: options.role || "maintain" }),
           getBranch: endpoint("branch", { commit: { sha: options.mainSha || sha } }),
           getCommit: endpoint("commit", { sha: options.baselineSha || previousSha }),
-          compareCommitsWithBasehead: endpoint("compare", options.comparison || { status: "ahead", ahead_by: 3 }),
+          compareCommitsWithBasehead: endpoint("compare", compare),
         },
       },
     },
@@ -69,7 +69,7 @@ async function resolve(options = {}) {
 test("daily release defaults to patch and gates all version consumers in source and lock", () => {
   assert.equal(config.on.schedule, "daily");
   assert.equal(config.on.workflow_dispatch.inputs.bump.default, "patch");
-  assert.deepEqual(config.jobs["resolve-version"].permissions, { checks: "read", contents: "read", statuses: "read" });
+  assert.deepEqual(config.jobs["resolve-version"].permissions, { actions: "read", contents: "read", statuses: "read" });
   const jobs = generatedJobs(workflow("release.lock.yml"));
   for (const name of ["prepare-release", "build-extension"]) {
     assert.equal(config.jobs[name].if, "needs.resolve-version.outputs.release_tag != ''");
@@ -81,11 +81,28 @@ test("scheduled release checks the exact main SHA and defaults to patch even wit
   const { outputs, calls } = await resolve({ bump: "major" });
   assert.equal(outputs.release_tag, "v1.0.1");
   assert.equal(calls.some(({ name }) => name === "permission"), false);
-  for (const name of ["checks", "statuses"]) {
-    assert.equal(calls.find((call) => call.name === name).params.ref, sha);
-  }
-  assert.equal(calls.find(({ name }) => name === "checks").params.filter, "latest");
+  assert.equal(calls.find(({ name }) => name === "statuses").params.ref, sha);
+  assert.deepEqual(
+    (({ head_sha, event }) => ({ head_sha, event }))(calls.find(({ name }) => name === "runs").params),
+    { head_sha: sha, event: "push" },
+  );
+  assert.equal(calls.filter(({ name }) => name === "compare").length, 1, "unchanged main needs no containment check");
   assert.equal(calls.find(({ name }) => name === "compare").params.basehead, `${previousSha}...${sha}`);
+});
+
+test("scheduled release still ships its SHA after main advances past it", async () => {
+  const { outputs, calls } = await resolve({ mainSha });
+  assert.equal(outputs.release_tag, "v1.0.1");
+  assert.equal(calls.find(({ name }) => name === "compare").params.basehead, `${sha}...${mainSha}`);
+});
+
+test("non-push agentic runs never gate the release, but newer push attempts do", async () => {
+  assert.equal((await resolve({ pages: { runs: [
+    { ...green, id: 1, conclusion: "failure" }, { ...green, id: 2 },
+  ] } })).outputs.release_tag, "v1.0.1", "latest push run per workflow wins");
+  assert.equal((await resolve({ pages: { runs: [
+    { ...green, id: 2 }, { ...green, id: 3, conclusion: "failure" },
+  ] } })).outputs.release_tag, undefined);
 });
 
 test("newest published release includes prereleases, ignores drafts and API ordering", async () => {
@@ -102,7 +119,11 @@ test("newest published release includes prereleases, ignores drafts and API orde
 
 test("scheduled release no-ops on incomplete, non-green, stale, and unchanged evidence", async (t) => {
   const cases = [
-    ["changed main", { mainSha: previousSha }],
+    ...[["removed from main", { status: "diverged", ahead_by: 1, behind_by: 1 }],
+      ["main behind schedule", { status: "behind", ahead_by: 0, behind_by: 1 }],
+      ["incomplete containment", { status: "ahead", ahead_by: 1 }],
+    ].map(([name, containment]) => [name, { mainSha, containment }]),
+    ["unverified main", { mainSha: "main" }],
     ["no releases", { pages: { releases: [] } }],
     ["only draft", { pages: { releases: [{ ...release, draft: true }] } }],
     ["missing publication time", { pages: { releases: [{ ...release, published_at: null }] } }],
@@ -110,23 +131,18 @@ test("scheduled release no-ops on incomplete, non-green, stale, and unchanged ev
     ["behind", { comparison: { status: "behind", ahead_by: 0 } }],
     ["diverged", { comparison: { status: "diverged", ahead_by: 5 } }],
     ["incomplete comparison", { comparison: { status: "ahead" } }],
-    ["no checks or statuses", { pages: { checks: [] } }],
-    ["only own checks", { pages: { checks: [{ ...green, details_url: currentRun }] } }],
-    ["other release run pending", { pages: { checks: [
-      green, { ...green, status: "in_progress", details_url: `${currentRun}0/job/1` },
-    ] } }],
-    ["another app cannot impersonate this run", { pages: { checks: [
-      green, { ...green, app: { slug: "other-ci" }, status: "in_progress", details_url: `${currentRun}/job/1` },
-    ] } }],
-    ["wrong check SHA", { pages: { checks: [{ ...green, head_sha: previousSha }] } }],
-    ...["failure", "neutral", "skipped", "cancelled", "timed_out", "action_required", null]
-      .map((conclusion) => [`check ${conclusion}`, { pages: { checks: [{ ...green, conclusion }] } }]),
-    ...["queued", "in_progress"].map((status) => [status, { pages: { checks: [{ ...green, status }] } }]),
+    ["no push runs or statuses", { pages: { runs: [] } }],
+    ["wrong run SHA", { pages: { runs: [{ ...green, head_sha: previousSha }] } }],
+    ["non-push run in results", { pages: { runs: [{ ...green, event: "schedule" }] } }],
+    ...["failure", "neutral", "cancelled", "timed_out", "action_required", "stale", null]
+      .map((conclusion) => [`run ${conclusion}`, { pages: { runs: [{ ...green, conclusion }] } }]),
+    ...["queued", "in_progress", "waiting"].map((status) => [status, { pages: { runs: [{ ...green, status }] } }]),
     ...["pending", "failure", "error", undefined].map((state) => [
       `status ${state}`, { pages: { statuses: [{ id: 1, context: "legacy", state }] } },
     ]),
-    ["failure on later flattened check page", { pages: { checks: [
-      ...Array.from({ length: 100 }, () => green), { ...green, conclusion: "failure" },
+    ["failure on later flattened run page", { pages: { runs: [
+      ...Array.from({ length: 100 }, (_, id) => ({ ...green, id, workflow_id: id })),
+      { ...green, id: 100, workflow_id: 100, conclusion: "failure" },
     ] } }],
     ["failure on later flattened status page", { pages: { statuses: [
       ...Array.from({ length: 100 }, (_, id) => ({ id, context: `ci-${id}`, state: "success" })),
@@ -139,7 +155,7 @@ test("scheduled release no-ops on incomplete, non-green, stale, and unchanged ev
 });
 
 test("latest legacy status wins per context, while status-only success is valid", async () => {
-  const { outputs } = await resolve({ pages: { checks: [], statuses: [
+  const { outputs } = await resolve({ pages: { runs: [], statuses: [
     { id: 3, context: "ci", state: "success" }, { id: 1, context: "ci", state: "failure" },
     { id: 2, context: "ci", state: "pending" },
   ] } });
@@ -151,16 +167,17 @@ test("latest legacy status wins per context, while status-only success is valid"
 });
 
 test("API failures and malformed evidence fail closed", async (t) => {
-  for (const error of ["releases", "tags", "branch", "commit", "compare", "checks", "statuses"]) {
+  for (const error of ["releases", "tags", "branch", "commit", "compare", "runs", "statuses"]) {
     await t.test(error, async () => assert.rejects(resolve({ error }), /API .*unavailable/));
   }
   await assert.rejects(resolve({ baselineSha: "main" }), /verified commit SHA/);
   await assert.rejects(resolve({ ref: "refs/heads/other" }), /must run from/);
   await assert.rejects(resolve({ pages: { statuses: [{ context: "ci", state: "success" }] } }), /Incomplete/);
+  await assert.rejects(resolve({ pages: { runs: [{ ...green, workflow_id: undefined }] } }), /Incomplete/);
 });
 
 test("manual dispatch preserves maintainer authorization, bumps, and default-branch restriction", async () => {
-  const manual = { eventName: "workflow_dispatch", pages: { checks: [] } };
+  const manual = { eventName: "workflow_dispatch", pages: { runs: [] } };
   assert.equal((await resolve({ ...manual, bump: "minor" })).outputs.release_tag, "v1.1.0");
   assert.equal((await resolve({ ...manual, bump: "major", role: "admin" })).outputs.release_tag, "v2.0.0");
   assert.equal((await resolve(manual)).outputs.release_tag, "v1.0.1");
