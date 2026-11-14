@@ -1,36 +1,7 @@
 {
  "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T13:54:58Z",
-   "worker_run_id": "43436914213",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733,
-    43339642321
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43430232636 back to 43339642321; created 2026-11-13T00:45:49Z to 13:02:36Z; all 20 success, none cancelled or failed; failed 43297524311 left the window). Comparable n=20 (19 push + schedule 43371878284). Source HEAD 12694b2 is 1 commit past b82f8c9, touching only server/cmd/cao-cli-quota (outside docs paths); docs.yml last changed 063cbe9. Queue vs exec: run-to-build-created concurrency wait median 1 s, p90 45 s, max 81 s; 4/20 waited 32-81 s behind an in-progress publication (43341730805, 43368963164, 43371269326, 43430232636). Build exec median 71 s (p90 85); full build-start-to-deploy-end median 85.5 s (p90 98.8). Rejected: (a) cancel-in-progress or split groups: the wait is queue time, not execution, and either change weakens ordered publication safety; (b) skip same-SHA scheduled rebuild: 1 occurrence (43371878284 at 5943848, 5 min after push 43371269326); the only other scheduled run (9537899) had no same-SHA push; saving 86 s on one daily run and needs a new freshness gate. History: before d57c4c8 (2026-11-11T21:35Z) the cron was */15 with a schedule-freshness gate (dozens of schedule runs on 11-11, outside window); replaced by daily 05:23 UTC cron. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T14:21:00Z",
    "worker_run_id": "43441140909",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; source 7cb5134 = HEAD = source_sha; window identical to the 22:19Z to 23:34Z evaluations; no docs.yml run since 20:56:37Z). Excluded and disclosed: 43506161539 failed (Install dependencies at 17 s; Build, Pages and deploy skipped; job log HTTP 403, not re-probed). n=19 push successes; 5-run gate met. Jobs API re-fetched for all 20 runs. Medians (p90, nearest rank): exec 84 (93) s; Configure Pages 0 (1); Upload Pages artifact 2 (3); build-end to deploy-start handoff 5 (6); deploy Set up job 1 (2); Deploy Pages 7 (8, GitHub-managed). Removable transfer (configure+upload+handoff+deploy setup) median 9 s, p90 11, max 11 = 10.7 percent of exec median; 15 percent gate 12.6 s and 60 s gate unreachable even at max. Merging deploy into build saves about 6 s and stays rejected (id-token and environment gate). Artifact about 8.3 MB; shrinking saves about 1 s. Carry-forward, not evaluated here: checkout median 25 s covered by open issue 20815 (OPEN, unchanged, not re-filed). Ops note: Pages stale since the 20:53:41Z deploy of 43505502149; cache key 7808ecf8 (HEAD root lock, recomputed) exists on main since 20:57:12Z (creator unverified); local grep finds 163 root and 6 dashboard lock entries on pkgs.visualstudio.com feed hosts (cache-miss fetch risk, unverified). No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T00:38:55Z",
+   "worker_run_id": "43534646046",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034,
+    43378597209,
+    43378369544
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; 14.5 h span so the 20-run cap binds; 19 success, 1 failure 43506161539 at Install dependencies (log HTTP 403, cause unverified), 0 cancelled, 0 queued or in progress; no schedule run in window; source 7cb5134 = HEAD = source_sha; same window as the 23:34Z and 23:52Z evaluations, no docs.yml run since 20:56Z). Comparable n=19 successful push runs. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 51 s, max 68 s; 3/19 waited 42-68 s and each ended at the predecessor updatedAt (43430232636 51 s after 43430166810 at 13:03:28; 43502660435 42 s after 43502562196 at 20:34:16; 43504143936 68 s after 43504093917 at 20:44:24). Queue only: build exec median 69 s (p90 79); build start to deploy end median 84 s (p90 93, max 114). Avoidable rebuilds: 0 of 19 pushes had only non-build trigger matches; test-only matches in 10 pushes always alongside build inputs; shared/** non-build matches in 2 pushes alongside build inputs. Median saving of any scheduling change = 0 s; 15 percent gate 12.6 s and 60 s gate unmet. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy), split or deploy-only groups (out-of-order publication), dropping schedule (synthetic-date freshness), skipping same-SHA schedule (one occurrence in the prior window, none in this one; needs actions read permission). Freshness gaps, not timing, no issue: docs.yml paths omit scripts/dashboard-demo-data.mjs (imported by simulate-dashboard-pages.mjs), */README.md (docs/lib/catalog.ts glob) and .github/workflows/cao.json (dashboard/site/scripts/build.mjs loadDashboardGhAwVersion); staleness bounded by the 05:23 UTC daily schedule. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1255,36 +1255,6 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-13T20:54:30Z",
-   "source": "docs.yml scheduling, concurrency, avoidable rebuilds (worker 43505085302)",
-   "note": "Window 43373049149..43504143936 (20 push success): run-to-build wait median 1 s, p90 42 s, max 68 s in 3 of 20 (queue only; exec median 84.5 s). Six newest pushes each changed docs-trigger paths (compare API), so 0 avoidable; no test-only publication. Re-evaluate only if a same-SHA scheduled duplicate repeats, a maintainer approves a superseded-pending or group-ordering change, or a test-only push publication appears."
-  },
-  {
-   "observed_at": "2026-11-13T21:24:25Z",
-   "source": "docs.yml FAILURE 43506161539 (push 7c8faf4, 2026-11-13T20:56:37Z)",
-   "note": "build job Install dependencies failed at 17 s; Build documentation and deploy skipped, so Pages was not updated. Log unreadable (HTTP 403 DIFC), so cause unverified. Root and dashboard locks both changed in 7c8faf4 (node-pty and node-addon-api removed; hasInstallScript flags removed). Root lock still resolves 163 entries to ms-feed-*.pkgs.visualstudio.com; dashboard lock has 6. Next docs-path push or 05:23Z schedule reruns the same cold-cache install. Maintainer should read run 43506161539 install log and confirm a green docs.yml run on main; re-evaluate timing only after a green run."
-  },
-  {
-   "observed_at": "2026-11-13T21:34:40Z",
-   "source": "docs.yml Astro documentation generation (worker 43511136391)",
-   "note": "Window 43378369544..43506161539 (19 successful push, 1 failed). Build documentation median 12 s (p90 15, range 9-15) = 14.3% of median exec 84 s; full elimination (12 s) stays below the 12.6 s gate and is blocked because deploy consumes the output. Astro-internal split unmeasured (logs 403 DIFC, re-probed). Re-evaluate only if Build documentation median reaches 20 s or more, or readable maintainer-branch logs show one Astro sub-step at 12.6 s or more."
-  },
-  {
-   "observed_at": "2026-11-13T21:53:17Z",
-   "source": "docs.yml FAILURE 43506161539 annotation check (worker 43513988133)",
-   "note": "Build check-run annotations: failure 'Process completed with exit code 152'; notice 'ubuntu-latest will migrate to Ubuntu 26 beginning October 19, 2026' also appears on successful run 43505502149, so the notice is not the failure cause. Cause still unverified (log HTTP 403). Maintainer should read the install log of 43506161539 and confirm a green docs.yml run on main."
-  },
-  {
-   "observed_at": "2026-11-13T22:19:02Z",
-   "source": "docs.yml artifact transfer and Pages packaging (worker 43517625242)",
-   "note": "Removable transfer median 9 s (p90 10) = 10.7% of median exec 84 s; gate 12.6 s unreachable (max 10 s). Re-evaluate only if Deploy Pages median reaches 13 s, removable transfer median reaches 13 s, or a maintainer removes the deploy job."
-  },
-  {
-   "observed_at": "2026-11-13T22:31:00Z",
-   "source": "docs.yml scheduling (worker 43519522791)",
-   "note": "Run-to-build waits behind documentation-pages group (3 of 19 push runs, 42-68 s) equal predecessor remaining time; not execution. Re-evaluate only if a same-SHA scheduled duplicate repeats, a maintainer approves a superseded-pending or group-ordering change, or a test-only push publication appears."
-  },
-  {
    "observed_at": "2026-11-13T22:31:00Z",
    "source": "docs.yml FAILURE 43506161539 still unverified (worker 43519522791)",
    "note": "No docs.yml run after 20:56:37Z. Main content since 7c8faf4 is not published; the next docs-path push or 05:23Z schedule reruns the install. Job log still HTTP 403 DIFC. Maintainer should read the install log of 43506161539 and confirm a green docs.yml run on main."
@@ -1298,6 +1268,16 @@
    "observed_at": "2026-11-13T23:52:41Z",
    "source": "docs.yml artifact transfer (worker 43529776475)",
    "note": "No docs.yml run after 20:56:37Z; failed 43506161539 still unexplained (log 403). Cache key 7808ecf8 for HEAD root lock exists on main, so a maintainer rerun should restore it; no timing change proposed. Maintainer should read the install step of 43506161539 or rerun docs.yml on main and confirm a green run that updates Pages."
+  },
+  {
+   "observed_at": "2026-11-14T00:38:55Z",
+   "source": "docs.yml scheduling (worker 43534646046)",
+   "note": "No docs.yml run after 20:56:37Z; Pages stale since f695ad3 (20:53Z). Failed 43506161539 cause still unverified (log 403). Feed-host URLs are not the distinguishing cause: 165 lines at successful 6e75d30 vs 163 at 7c8faf4; root package.json and lock deps match at HEAD. Maintainer should read the install step of 43506161539 or rerun docs.yml on main and confirm a green run; re-evaluate timing only after that."
+  },
+  {
+   "observed_at": "2026-11-14T00:38:55Z",
+   "source": "docs.yml path-filter review (worker 43534646046)",
+   "note": "Freshness gap, not a timing finding: triggers omit scripts/dashboard-demo-data.mjs, */README.md and .github/workflows/cao.json, which the Pages/docs build reads. Staleness bounded by the daily 05:23 UTC schedule. Re-evaluate only if a maintainer changes path filters or a gap-caused stale publication is observed."
   }
  ],
  "checkout_probe": {
@@ -1327,6 +1307,70 @@
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
    "checked_at": "2026-11-13T23:34:44Z"
+  }
+ },
+ "scheduling_sample": {
+  "evaluated_at": "2026-11-14T00:38:55Z",
+  "window": "43378369544..43506161539 (06:23Z-20:56Z 2026-11-13)",
+  "n_success_push": 19,
+  "failed": [
+   "43506161539"
+  ],
+  "schedule_in_window": 0,
+  "concurrency_wait_s_median_p90_max": [
+   1,
+   51,
+   68
+  ],
+  "waits_ge_40s": [
+   "43430232636:51",
+   "43502660435:42",
+   "43504143936:68"
+  ],
+  "build_exec_s_median_p90": [
+   69,
+   79
+  ],
+  "build_start_to_deploy_end_s_median_p90_max": [
+   84,
+   93,
+   114
+  ],
+  "steps_s_median_p90": {
+   "checkout": [
+    25,
+    31
+   ],
+   "setup_node": [
+    4,
+    7
+   ],
+   "install": [
+    16,
+    24
+   ],
+   "build_docs": [
+    12,
+    15
+   ],
+   "demo": [
+    3,
+    4
+   ],
+   "upload": [
+    2,
+    3
+   ]
+  },
+  "avoidable_pushes": 0,
+  "trigger_gaps": [
+   "scripts/dashboard-demo-data.mjs",
+   "*/README.md",
+   "workflows/cao.json"
+  ],
+  "lock_feed_host_lines": {
+   "6e75d30": 165,
+   "7c8faf4": 163
   }
  }
 }
