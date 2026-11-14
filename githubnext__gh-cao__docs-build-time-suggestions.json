@@ -1,36 +1,7 @@
 {
   "source_sha": "decb7eeb08289dad35b53857983bc61bc906ef3e",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T06:28:07Z",
-      "worker_run_id": "43565938032",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529,
-        43484369040,
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287,
-        43561388555
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 to 43561388555 (created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; no newer run since 05:24Z; none queued or in progress; 0 cancelled). Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; logs 403). 19 successes (18 push, 1 schedule); 5-run gate met. Source 4d25cbd = HEAD = source_sha. Category Astro documentation generation = step Build documentation (npm run docs:build: astro build, validate-agent-docs, agent-docs-discovery test): push n=18 median 12 s, p90 15 s = 14.6% of exec median 82 s. 15% gate 12.3 s would need 103% of the step removed, i.e. the deploy-required docs build; 60 s gate unreachable. Jobs API re-read of 43561388555 and 43536796952 matched stored rows exactly. Astro-versus-validation split unmeasured: job logs HTTP 403 (not re-probed); local npm ci failed on sandbox TLS (DEPTH_ZERO_SELF_SIGNED_CERT), not bypassed. No suggestion; no issue. Open 20815 (checkout, other category) not repeated. next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T06:38:50Z",
       "worker_run_id": "43567051432",
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43447111490 (created 2026-11-13T14:53:45Z) to 43613020723 (push 600b56a, created 2026-11-14T15:58:23Z); none queued or in progress; 0 cancelled. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies) and 43613020723 FAILED (push 600b56a; install 8 s succeeded; Build documentation failed at 12 s; deploy skipped; Pages not updated by that push; logs not read). Comparable n=18 successes (17 push + schedule 43561388555); 5-run gate met. Window medians (p90): exec 81.5 s (92); install 14.5 s (24), inflated by pre-7c8faf4 runs on the prior lock (pre-rollover median 15.5 s, n=12). Current key only: root lock sha256 digest unchanged since 7c8faf4 (compare 04c9d9e...decb7ee shows no package-lock change); key node-cache-Linux-x64-npm-7808ecf8 on refs/heads/main; post-change successes n=6 install 9.5 s median (7 to 11 s) and Post Set up Node.js 0 to 1 s in all six. 15 percent gate = 12.2 s; full removal of the current install step saves at most about 11 s; 60 s gate unreachable; node_modules caching would still pay a restore comparable to the 4 s npm cache restore, so net saving is a few seconds, and #19689 was closed NOT_PLANNED. Observation, not a suggestion: setup-node key covers root lock only; dashboard/site/package-lock.json last changed in 7c8faf4 (same minute as key rollover), so a future dashboard-only lock change would not rotate the cache and would not be measured here. No suggestion; no issue; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T16:34:24Z",
+      "worker_run_id": "43615888648",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43613020723,
+        43611206032,
+        43608206381,
+        43593405440,
+        43561388555,
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533,
+        43503506778,
+        43502660435,
+        43502562196,
+        43494667529,
+        43484369040,
+        43465706802,
+        43447728981,
+        43447111490
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43447111490 (created 2026-11-13T14:53:45Z) to 43613020723 (push 600b56a, created 2026-11-14T15:58:23Z); run list re-read 16:32Z: unchanged, none queued or in progress, 0 cancelled; source decb7ee = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (install, 7c8faf4) and 43613020723 FAILED (Build documentation, 600b56a; log read HTTP 403). n=18 successes (17 push + schedule 43561388555); 5-run gate met. Jobs API spot check 43611206032: Build documentation 15:38:36-15:38:50 = 14 s, matches stored row. Category step Build documentation (npm run docs:build = astro build, validate-agent-docs, agent-docs-discovery test): median 12 s, p90 15 s, range 9-15 = 14.7 percent of median exec 81.5 s (p90 92). 15 percent gate 12.2 s: full removal (12 s) misses it and is blocked because deploy consumes the output; 60 s gate unreachable. Astro-internal split unmeasured (logs 403) and not needed. Observation: main has two later commits (f56aa3d, decb7ee) with no docs inputs; Pages has not been updated since the 04c9d9e deploy (15:39Z). Reliability finding, not timing. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1250,6 +1250,11 @@
       "observed_at": "2026-11-14T16:19:54.203Z",
       "source": "docs.yml cache scope (worker 43614532796)",
       "note": "setup-node cache key is the root lock only; dashboard/site/package-lock.json is installed in the same job but does not rotate the key. No measured effect yet (dashboard lock last changed 7c8faf4). Re-evaluate if a dashboard-only lock change lands or if post-change install median exceeds about 12 s over at least 5 successful runs."
+    },
+    {
+      "observed_at": "2026-11-14T16:34:24Z",
+      "source": "docs.yml failure 43613020723 (worker 43615888648)",
+      "note": "Latest docs-input push 600b56a (15:58Z) failed at Build documentation after Install passed; no later docs run; Pages still reflects the 04c9d9e deploy (15:39Z). Later main commits f56aa3d and decb7ee touch no docs inputs. Log read HTTP 403; cause unverified; sandbox npm ci unavailable (TLS), so not reproduced. Reliability finding for maintainer, not a timing finding; not a suggestion."
     }
   ],
   "checkout_probe": {
