@@ -9,7 +9,10 @@ import (
 	"io"
 
 	"github.com/githubnext/gh-cao/server/internal/ingest"
+	debuglogger "github.com/githubnext/gh-cao/server/internal/logger"
 )
+
+var ingestStreamLog = debuglogger.New("cao:dashboard:ingest-stream")
 
 type ingestStreamResponse struct {
 	Type   string         `json:"type"`
@@ -33,17 +36,13 @@ func runIngestStream(ctx context.Context, input io.Reader, output io.Writer, run
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		var request ingestStreamRequest
-		decoder := json.NewDecoder(bytes.NewReader(scanner.Bytes()))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&request); err != nil || request.Type != "ingest" ||
-			request.Mode != "" && request.Mode != "snapshot" && request.Mode != "run-bundles" {
-			return errors.New("invalid ingestion stream request")
-		}
-		if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
-			return errors.New("ingestion stream requires one request per line")
+		request, err := parseIngestStreamRequest(scanner.Bytes())
+		if err != nil {
+			ingestStreamLog.Printf("ingestion stream request rejected")
+			return err
 		}
 		result, err := run(ctx, request)
+		ingestStreamLog.Printf("ingestion stream request finished: mode=%q ok=%t", request.Mode, err == nil)
 		response := ingestStreamResponse{Type: "error"}
 		if err == nil {
 			response = ingestStreamResponse{Type: "complete", Result: &result}
@@ -53,4 +52,20 @@ func runIngestStream(ctx context.Context, input io.Reader, output io.Writer, run
 		}
 	}
 	return scanner.Err()
+}
+
+// parseIngestStreamRequest decodes one stream line, accepting exactly one known
+// ingest request and rejecting unknown fields, modes, and trailing documents.
+func parseIngestStreamRequest(line []byte) (ingestStreamRequest, error) {
+	var request ingestStreamRequest
+	decoder := json.NewDecoder(bytes.NewReader(line))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil || request.Type != "ingest" ||
+		request.Mode != "" && request.Mode != "snapshot" && request.Mode != "run-bundles" {
+		return ingestStreamRequest{}, errors.New("invalid ingestion stream request")
+	}
+	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+		return ingestStreamRequest{}, errors.New("ingestion stream requires one request per line")
+	}
+	return request, nil
 }
