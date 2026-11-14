@@ -1,36 +1,7 @@
 {
  "source_sha": "93fdfef0cbc318ac2d80f5785aa7f6ab46f0a27b",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T12:36:41Z",
-   "worker_run_id": "43595227009",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); all within 14 days; none queued or in progress; source 7e620f3 = newest docs head; main HEAD 215837f (parent 7e620f3) changes only experiments/java-backend, not a docs trigger path. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Queue (run-created to build-created, jobs API re-read for all 20 runs): median 1 s, p90 51 s, max 68 s, sum 174 s; queue is not execution time (exec median 81 s, p90 92 s), so the 60 s and 15 percent (12.15 s) gates are unmet. Only docs.yml uses group documentation-pages (cancel-in-progress false). Avoidable rebuilds: new push 7e620f3 changed only docs/components/SiteFooter.astro (docs/** input), so 0 avoidable pushes; schedule 43561388555 has no same-SHA duplicate in window. Superseded in-progress builds (newer run created while an older build was running): 3 cases (37, 28, 52 s), upper bound 117 s of remaining build time over the window (about 6 s per run; median saving 0); cancelling them would need build-job cancellation touching deploy-group safety, and it cannot clear the per-run gate. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T12:53:13.171Z",
    "worker_run_id": "43596636288",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); all within 14 days; none queued or in progress; 0 cancelled; no docs.yml run after 20:51Z (run list re-read at 22:16Z). Source: workspace HEAD 93fdfef (docs-trigger head 6418dcd); compare API 6418dcd...93fdfef touches no docs.yml trigger path (no docs.yml, shared, docs, dashboard, astro, package, or public changes). Excluded and disclosed: 6 failures (Build documentation on 5 push runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929; Install dependencies on 43506161539); n=14 successes (13 push + schedule 43561388555); 5-run gate met. Jobs API re-read of all 20 runs. Wall (build start to deploy end) median 81.5 s, p90 92 s; 15 percent gate 12.2 s; 60 s gate unreachable. Category removable transfer (build-to-deploy handoff 5 s + Configure Pages 0.5-1 s + Upload Pages artifact 2 s + deploy job setup 1 s) median 9 s, p90 10 s = 11.0 percent of wall median; below gate even at full removal. Deploy Pages (GitHub-managed) median 7 s not controllable. Merging deploy into build would save about 6 s but needs id-token and github-pages environment in the job that runs npm ci (rejected, least privilege). Artifact github-pages 8,352,438 bytes (run 43611206032); shrinking saves about 1 s. Checkout (median 24 s, 30 percent of wall) remains covered by open issue 20815 (OPEN, 0 comments), not repeated. Reliability, not timing (unresolved, reported in noop): Build documentation failed on 5 consecutive push runs since 15:58Z; no open issue tracks the streak (search at 22:16Z). No suggestion; no create_issue; noop used. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T22:35:08Z",
+   "worker_run_id": "43648232592",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); re-read at evaluation: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run. Source 93fdfef = workspace HEAD: no docs trigger path (no run expected). Excluded and disclosed: 6 failures (43506161539 plus 5 push runs failing Build documentation since 15:58Z). n=14 successes (13 push + schedule 43561388555); 5-run gate met. Exec (build start to deploy end) median 81.5 s, p90 91.4 s (linear interpolation); 15 percent gate 12.2 s; 60 s gate unreachable. Avoidable rebuilds: 19 push runs; only 2cb6d9c (run 43536491714) matched the filter solely through .github/workflows/shared/** non-closure files and modernization/aw.yml; the demo build closure imports only shared/policy.mjs, authority.mjs, value-acquisition.mjs. One occurrence (about 80 s, median saving 0) fails the repeated-evidence gate. Queue (created to build start, n=20): median 3 s, p90 8.1 s, max 71 s; two runs waited behind a running deploy (43502660435 45 s, 43504143936 71 s); median saving 0. Schedule 43561388555 is the intended daily date refresh. No pending runs superseded or cancelled; 0 same-SHA duplicates. Reliability, not timing (not a suggestion): see observations_pending. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1187,19 +1187,24 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T22:18:26Z",
-   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (worker 43646940636)",
-   "note": "Reliability, not timing (highest priority, unresolved at 2026-11-14T22:18:26Z): Build documentation failed on 5 consecutive push runs since 15:58Z (heads 600b56a, afe0ba0, 93c64ff, 185fd26, 6418dcd); the failing step is Build documentation after about 10-15 s, with Build demo, Configure Pages, Upload and Deploy skipped. Last green push 04c9d9e (run 43611206032, deployed 15:39Z); Pages not redeployed since. No docs.yml run since 20:51Z. Open-issue search at 22:16Z found no issue tracking the streak (20815 is checkout; 20891 is an engine-crash report for this worker; 20934 is a workflow-contracts gate). Logs HTTP 403 (not bypassed). Excluded from timing samples; maintainer triage needed."
+   "observed_at": "2026-11-14T22:35:08Z",
+   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (worker 43648232592)",
+   "note": "Reliability, not timing (highest priority, unresolved at evaluation): Build documentation fails after install on 5 consecutive push runs since 15:58Z (heads 600b56a, afe0ba0, 93c64ff, 185fd26, 6418dcd); Build demo, Configure Pages, Upload and Deploy skipped; Pages last deployed 15:39Z (04c9d9e, run 43611206032). No docs.yml run since 20:51Z. Job log read returned HTTP 403 (DIFC policy), not bypassed; cause unverified. Open issue 20934 (workflow-contracts gate, OPEN, updated 21:34Z) reports a failing docs:build step at a2b14dd and may share the root cause (unverified). No open issue tracks the docs.yml streak. Maintainer triage needed."
   },
   {
-   "observed_at": "2026-11-14T21:34:40Z",
-   "source": "docs.yml run list (worker 43643035690)",
-   "note": "Stale queued run 37642403569 (workflow_run, headSha 6206962, created 2026-10-07T15:12Z) still queued at 21:32Z; outside window; no observed blocking (queue median 3 s)."
+   "observed_at": "2026-11-14T22:35:08Z",
+   "source": "docs.yml path filter vs build closure (worker 43648232592)",
+   "note": "Freshness gap, not timing: scripts/dashboard-demo-data.mjs (imported by scripts/simulate-dashboard-pages.mjs, supplies published demo data) and .github/workflows/cao.json (read by dashboard/site/scripts/build.mjs) are outside docs.yml push paths; data-only changes wait for another filtered push or the 05:23Z daily schedule. Adding them increases rebuilds with no timing gain; record for triage, not a suggestion. Shared closure of the demo build is shared/policy.mjs, authority.mjs, value-acquisition.mjs."
+  },
+  {
+   "observed_at": "2026-11-14T22:35:08Z",
+   "source": "docs.yml run list (worker 43648232592)",
+   "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued; the current docs.yml has no workflow_run trigger; no observed blocking in window. Maintainer hygiene item; not a suggestion."
   },
   {
    "observed_at": "2026-11-14T21:34:40Z",
    "source": "docs.yml cache scope (worker 43643035690)",
-   "note": "setup-node cache key is root package-lock.json only (key 7808ecf8, created 2026-11-13T20:57:12Z, still present 21:30Z); dashboard/site/package-lock.json is not in the key (correctness-neutral, untimed). Post-rollover install median 9.5 s (n=6 successes); re-evaluate if it exceeds about 12 s over at least 5 successful runs."
+   "note": "setup-node cache key is root package-lock.json only (key 7808ecf8, still present at 21:30Z); dashboard/site/package-lock.json is not in the key (correctness-neutral, untimed). Post-rollover install median 9.5 s (n=6); re-evaluate if it exceeds about 12 s over at least 5 successful runs."
   }
  ],
  "checkout_probe": {
@@ -1236,7 +1241,7 @@
   ]
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-14T21:34:40Z",
+  "evaluated_at": "2026-11-14T22:35:08Z",
   "window": "43494667529..43639680929 (2026-11-13T19:42:08Z to 2026-11-14T20:51:15Z)",
   "n_success_push": 13,
   "n_success_schedule": 1,
@@ -1250,16 +1255,23 @@
   ],
   "cancelled": [],
   "queued_or_in_progress_in_window": [],
-  "stale_queued_outside_window": "37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued at 21:32Z",
+  "stale_queued_outside_window": "37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued at evaluation",
   "queue_s_median_p90_max": [
    3,
-   4,
+   8.1,
    71
   ],
+  "queue_waits_behind_deploy_s": {
+   "43502660435": 45,
+   "43504143936": 71
+  },
   "exec_s_median_p90": [
    81.5,
-   92
+   91.4
   ],
-  "gate_s": 12.2
+  "gate_s": 12.2,
+  "avoidable_push_runs": [
+   "43536491714 (shared/** non-closure files and modernization/aw.yml only)"
+  ]
  }
 }
