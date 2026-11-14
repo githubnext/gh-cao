@@ -45,6 +45,12 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("./");
     await page.evaluate(() => document.fonts.ready);
+    if (width >= 800) {
+      await openSlideshow(page);
+      for (let index = 0; index < slideTitles.indexOf("OpenTelemetry. Your observability stack."); index++) {
+        await page.keyboard.press("ArrowRight");
+      }
+    }
     for (const [topic, label] of [
       ["otel", "Signals, not authority"],
       ["governance", "Complementary control layers"],
@@ -52,13 +58,16 @@ for (const width of [390, 1440]) {
     ]) {
       const story = page.locator(`.enterprise-${topic}-story`);
       await story.scrollIntoViewIfNeeded();
+      if (width >= 800) await expectSlide(page, slideTitles.indexOf(await story.locator("h2").textContent()));
       await expect(story.getByRole("heading", { level: 2 })).toBeVisible();
       await expect(story.getByRole("figure", { name: label })).toBeVisible();
       await expect(story.locator(".enterprise-stack li")).toHaveCount(3);
       await expect(story.getByRole("link")).toHaveAttribute("href", /^(\/gh-cao\/|https:\/\/github\.github\.com\/gh-aw\/)/);
       const path = testInfo.outputPath(`enterprise-${topic}-${width}.png`);
-      await story.screenshot({ path });
+      if (width >= 800) await page.screenshot({ path });
+      else await story.screenshot({ path });
       await testInfo.attach(`Enterprise ${topic} ${width}px`, { path, contentType: "image/png" });
+      if (width >= 800) await page.keyboard.press("ArrowRight");
     }
     expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
   });

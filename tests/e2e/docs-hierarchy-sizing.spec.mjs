@@ -58,8 +58,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 800, height: 600 
     await page.goto("./");
     await page.getByRole("button", { name: "Start slideshow", exact: true }).click();
     const dialog = page.locator("#landing-slideshow");
+    await expect(dialog.locator("[data-slideshow-slide]")).toHaveCount(16);
     const slideCount = await dialog.locator("[data-slideshow-slide]").count();
-    expect(slideCount).toBe(16);
     for (let index = 0; index < slideCount; index++) {
       await expect(dialog).toHaveAttribute("data-slide-index", String(index));
       await expect.poll(() => dialog.locator("[data-slideshow-slide]:visible").evaluate(section => {
