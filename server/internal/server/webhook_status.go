@@ -86,7 +86,7 @@ func (a *App) webhookSnapshot() webhookStatus {
 	a.webhookMetrics.mu.Lock()
 	status := a.webhookMetrics.status
 	a.webhookMetrics.mu.Unlock()
-	status.Configured = a.reconciler != nil && len(a.webhookSecret) > 0
+	status.Configured = len(a.webhookSecret) > 0 && len(a.Webhooks().Listeners()) > 0
 	status.Scope = "process"
 	return status
 }

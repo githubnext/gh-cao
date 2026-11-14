@@ -15,6 +15,7 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/collect"
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
+	"github.com/githubnext/gh-cao/server/internal/githubwebhook"
 	"github.com/githubnext/gh-cao/server/internal/operational/memory"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
@@ -354,5 +355,52 @@ func TestWebhookStatusAuthorizationAndProcessIsolation(t *testing.T) {
 	status := readWebhookStatus(t, http.HandlerFunc(fresh.webhookStatus))
 	if status.Configured || status.Received != 0 || status.LastReceivedAt != "" {
 		t.Fatalf("new process inherited webhook state: %+v", status)
+	}
+}
+
+func TestWebhookServiceFansOutToRegisteredListeners(t *testing.T) {
+	app, _ := newWebhookStatusApp(t)
+	handler := app.Handler()
+	var received []string
+	var fail error
+	registration, err := app.Webhooks().Register("audit", githubwebhook.ListenerFunc(
+		func(_ context.Context, delivery GitHubWebhook) (githubwebhook.Outcome, error) {
+			received = append(received, delivery.Event+":"+delivery.Delivery)
+			return githubwebhook.Outcome{Fields: map[string]any{"audited": true}}, fail
+		}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := app.Webhooks().Listeners(); len(got) != 2 || got[0] != reconcilerWebhookListenerName {
+		t.Fatalf("reconciler is not the first listener: %v", got)
+	}
+	deliver := func(id string) *httptest.ResponseRecorder {
+		t.Helper()
+		request, err := simulator.SignedRequest(t.Context(), "http://127.0.0.1/api/github/webhook",
+			string(app.webhookSecret), simulator.Delivery{ID: id, Event: "ping", Payload: json.RawMessage(`{}`)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		return response
+	}
+
+	response := deliver("fan-out-1")
+	var ack map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &ack); err != nil || response.Code != http.StatusAccepted ||
+		ack["audited"] != true || ack["kind"] == nil {
+		t.Fatalf("fan-out acknowledgement missing listener fields: HTTP %d %s", response.Code, response.Body.String())
+	}
+	fail = errors.New("audit sink unavailable")
+	if response := deliver("fan-out-2"); response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("failed listener was acknowledged: HTTP %d", response.Code)
+	}
+	registration.Unregister()
+	if response := deliver("fan-out-3"); response.Code != http.StatusAccepted {
+		t.Fatalf("delivery after unregister returned HTTP %d", response.Code)
+	}
+	if strings.Join(received, ",") != "ping:fan-out-1,ping:fan-out-2" {
+		t.Fatalf("listener deliveries = %v", received)
 	}
 }

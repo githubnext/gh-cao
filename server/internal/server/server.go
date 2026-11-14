@@ -42,6 +42,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/githubwebhook"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/marketplace"
@@ -95,8 +96,12 @@ type Config struct {
 	Reconciler           Reconciler
 	Collector            *CollectorConfig
 	WebhookSecret        string
-	AdminUsers           []string
-	Logger               *log.Logger
+	// WebhookService receives verified GitHub webhook deliveries. Nil selects
+	// the in-process githubwebhook.Registry. The configured reconciler is
+	// registered on it as the "reconciler" listener.
+	WebhookService githubwebhook.Service
+	AdminUsers     []string
+	Logger         *log.Logger
 	// Audit records security audit events for administrator and hosted CLI
 	// operations; nil disables them (local mode and tests).
 	Audit              *audit.Logger
@@ -139,6 +144,8 @@ type App struct {
 	reconciler       Reconciler
 	memory           *repositorymemory.RemoteResolver
 	webhookSecret    []byte
+	webhooks         githubwebhook.Service
+	webhookOnce      sync.Once
 	webhookMetrics   webhookMetrics
 	mcp              http.Handler
 	actionsToken     string
@@ -393,6 +400,15 @@ func New(ctx context.Context, store operational.Store, config Config) (*App, err
 		canonical: canonicalService{store: config.Database, definitions: databaseQueries}, reconciler: reconciler, memory: memoryResolver,
 		webhookSecret: []byte(config.WebhookSecret), actionsToken: actionsToken, actionsActor: actionsActor,
 		quota: quota, drain: make(chan struct{}),
+	}
+	app.webhooks = config.WebhookService
+	if app.webhooks == nil {
+		app.webhooks = githubwebhook.NewRegistry()
+	}
+	if reconciler != nil {
+		if _, err := app.webhooks.Register(reconcilerWebhookListenerName, app.reconcilerWebhookListener(reconciler)); err != nil {
+			return nil, fmt.Errorf("register webhook reconciler: %w", err)
+		}
 	}
 	if isPostgres {
 		app.valuePublisher = postgresDatabase

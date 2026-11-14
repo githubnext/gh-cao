@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/audit"
+	"github.com/githubnext/gh-cao/server/internal/githubwebhook"
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
@@ -33,11 +34,8 @@ type Reconciler interface {
 	Reconcile(context.Context, GitHubWebhook) (ingest.Result, error)
 }
 
-type GitHubWebhook struct {
-	Delivery string
-	Event    string
-	Payload  json.RawMessage
-}
+// GitHubWebhook is one verified delivery passed to webhook listeners.
+type GitHubWebhook = githubwebhook.Delivery
 
 type DirectoryReconciler struct {
 	Store               *postgresx.Store
@@ -259,7 +257,8 @@ func (a *App) githubWebhook(response http.ResponseWriter, request *http.Request)
 	response = tracked
 	ping := false
 	defer func() { a.webhookMetrics.finish(tracked.status, ping) }()
-	if a.reconciler == nil || len(a.webhookSecret) == 0 {
+	service := a.Webhooks()
+	if len(a.webhookSecret) == 0 || len(service.Listeners()) == 0 {
 		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook reconciliation is not configured")
 		return
 	}
@@ -285,56 +284,34 @@ func (a *App) githubWebhook(response http.ResponseWriter, request *http.Request)
 	ping = event == "ping"
 	a.recordIngestionCounter(request.Context(), "webhookReceived")
 	a.recordIngestionEvent(request.Context(), "webhook", "")
-	if admitter, ok := a.reconciler.(EventAdmitter); ok {
-		a.admitWebhook(response, request, admitter, GitHubWebhook{
-			Delivery: delivery,
-			Event:    event,
-			Payload:  payload,
-		})
-		return
-	}
-	token, err := operationToken()
+	outcome, err := service.Dispatch(request.Context(), GitHubWebhook{Delivery: delivery, Event: event, Payload: payload})
 	if err != nil {
-		writeError(request.Context(), response, http.StatusInternalServerError, "reconciliation could not start")
-		return
-	}
-	acquired, err := a.services.Leases.TryLock(request.Context(), "projection", token, projectionLockTTL)
-	if err != nil || !acquired {
-		if err != nil {
-			writeError(request.Context(), response, http.StatusServiceUnavailable, "reconciliation coordination is unavailable")
-		} else {
-			writeError(request.Context(), response, http.StatusConflict, "a projection update is already running")
+		var rejection *webhookRejection
+		if errors.As(err, &rejection) {
+			writeError(request.Context(), response, rejection.status, rejection.message)
+			return
 		}
-		return
-	}
-	fresh, err := a.services.Deliveries.RememberDelivery(request.Context(), delivery, deliveryTTL)
-	if err != nil {
 		a.recordIngestionCounter(request.Context(), "webhookAdmissionFailed")
-		a.recordIngestionFailure(request.Context(), "redis")
-		a.releaseProjectionLock(request.Context(), token)
-		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook deduplication is unavailable")
+		a.recordIngestionFailure(request.Context(), "admission")
+		serverLog.PrintfContext(request.Context(), "webhook admission failed")
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook admission is unavailable")
 		return
 	}
-	if !fresh {
+	acknowledgement := map[string]any{"accepted": true}
+	for key, value := range outcome.Fields {
+		acknowledgement[key] = value
+	}
+	if outcome.Duplicate {
+		acknowledgement["duplicate"] = true
 		a.webhookMetrics.duplicate()
 		a.recordIngestionCounter(request.Context(), "webhookDuplicate")
-		a.releaseProjectionLock(request.Context(), token)
-		writeJSON(response, http.StatusAccepted, map[string]any{"accepted": true, "duplicate": true})
-		return
+		serverLog.PrintfContext(request.Context(), "webhook delivery duplicate")
+	} else {
+		serverLog.PrintfContext(request.Context(), "webhook admission completed kind=%v queued=%v reason=%v admitted_at=%s",
+			outcome.Fields["kind"], outcome.Fields["queued"], outcome.Fields["reason"],
+			time.Now().UTC().Format(time.RFC3339Nano))
 	}
-	eventPayload := GitHubWebhook{
-		Delivery: delivery,
-		Event:    event,
-		Payload:  payload,
-	}
-	ctx, cancel := a.operationContext(request.Context())
-	if !a.launchTask(func() { a.performReconciliation(ctx, cancel, token, eventPayload) }) {
-		cancel()
-		a.releaseProjectionLock(request.Context(), token)
-		writeError(request.Context(), response, http.StatusServiceUnavailable, "dashboard service is not running")
-		return
-	}
-	writeJSON(response, http.StatusAccepted, map[string]any{"accepted": true})
+	writeJSON(response, http.StatusAccepted, acknowledgement)
 }
 
 // EventAdmitter is implemented by a reconciler that admits webhook deliveries
@@ -346,36 +323,84 @@ type EventAdmitter interface {
 	Admit(ctx context.Context, event GitHubWebhook) (map[string]any, error)
 }
 
-// admitWebhook hands the delivery to an admitting reconciler. Implementations
-// commit deduplication with their durable admission state before returning.
-func (a *App) admitWebhook(
-	response http.ResponseWriter,
-	request *http.Request,
-	admitter EventAdmitter,
-	event GitHubWebhook,
-) {
-	result, err := admitter.Admit(request.Context(), event)
+// reconcilerWebhookListenerName names the built-in listener that forwards
+// deliveries to the configured Reconciler.
+const reconcilerWebhookListenerName = "reconciler"
+
+// webhookRejection is a listener failure with a specific ingress response.
+type webhookRejection struct {
+	status  int
+	message string
+}
+
+func (r *webhookRejection) Error() string { return r.message }
+
+// Webhooks returns the pluggable GitHub webhook service. Components may
+// register additional listeners; each receives every verified delivery.
+func (a *App) Webhooks() githubwebhook.Service {
+	a.webhookOnce.Do(func() {
+		if a.webhooks != nil {
+			return
+		}
+		// Apps assembled without New still expose their reconciler.
+		registry := githubwebhook.NewRegistry()
+		if a.reconciler != nil {
+			_, _ = registry.Register(reconcilerWebhookListenerName, a.reconcilerWebhookListener(a.reconciler))
+		}
+		a.webhooks = registry
+	})
+	return a.webhooks
+}
+
+// reconcilerWebhookListener adapts a Reconciler to the webhook service. An
+// EventAdmitter commits deduplication with its durable admission state;
+// other reconcilers take the projection lease per delivery.
+func (a *App) reconcilerWebhookListener(reconciler Reconciler) githubwebhook.Listener {
+	if admitter, ok := reconciler.(EventAdmitter); ok {
+		return githubwebhook.ListenerFunc(func(ctx context.Context, event GitHubWebhook) (githubwebhook.Outcome, error) {
+			result, err := admitter.Admit(ctx, event)
+			if err != nil {
+				return githubwebhook.Outcome{}, err
+			}
+			duplicate, _ := result["duplicate"].(bool)
+			return githubwebhook.Outcome{Duplicate: duplicate, Fields: result}, nil
+		})
+	}
+	return githubwebhook.ListenerFunc(func(ctx context.Context, event GitHubWebhook) (githubwebhook.Outcome, error) {
+		return a.scheduleReconciliation(ctx, reconciler, event)
+	})
+}
+
+func (a *App) scheduleReconciliation(ctx context.Context, reconciler Reconciler, event GitHubWebhook) (githubwebhook.Outcome, error) {
+	token, err := operationToken()
 	if err != nil {
-		a.recordIngestionCounter(request.Context(), "webhookAdmissionFailed")
-		a.recordIngestionFailure(request.Context(), "admission")
-		serverLog.PrintfContext(request.Context(), "webhook admission failed")
-		writeError(request.Context(), response, http.StatusServiceUnavailable, "webhook admission is unavailable")
-		return
+		return githubwebhook.Outcome{}, &webhookRejection{http.StatusInternalServerError, "reconciliation could not start"}
 	}
-	payload := map[string]any{"accepted": true}
-	for key, value := range result {
-		payload[key] = value
+	acquired, err := a.services.Leases.TryLock(ctx, "projection", token, projectionLockTTL)
+	if err != nil {
+		return githubwebhook.Outcome{}, &webhookRejection{http.StatusServiceUnavailable, "reconciliation coordination is unavailable"}
 	}
-	if duplicate, _ := result["duplicate"].(bool); duplicate {
-		a.webhookMetrics.duplicate()
-		a.recordIngestionCounter(request.Context(), "webhookDuplicate")
-		serverLog.PrintfContext(request.Context(), "webhook delivery duplicate")
-	} else {
-		serverLog.PrintfContext(request.Context(), "webhook admission completed kind=%v queued=%v reason=%v admitted_at=%s",
-			result["kind"], result["queued"], result["reason"],
-			time.Now().UTC().Format(time.RFC3339Nano))
+	if !acquired {
+		return githubwebhook.Outcome{}, &webhookRejection{http.StatusConflict, "a projection update is already running"}
 	}
-	writeJSON(response, http.StatusAccepted, payload)
+	fresh, err := a.services.Deliveries.RememberDelivery(ctx, event.Delivery, deliveryTTL)
+	if err != nil {
+		a.recordIngestionCounter(ctx, "webhookAdmissionFailed")
+		a.recordIngestionFailure(ctx, "redis")
+		a.releaseProjectionLock(ctx, token)
+		return githubwebhook.Outcome{}, &webhookRejection{http.StatusServiceUnavailable, "webhook deduplication is unavailable"}
+	}
+	if !fresh {
+		a.releaseProjectionLock(ctx, token)
+		return githubwebhook.Outcome{Duplicate: true}, nil
+	}
+	operationCtx, cancel := a.operationContext(ctx)
+	if !a.launchTask(func() { a.performReconciliation(operationCtx, cancel, token, reconciler, event) }) {
+		cancel()
+		a.releaseProjectionLock(ctx, token)
+		return githubwebhook.Outcome{}, &webhookRejection{http.StatusServiceUnavailable, "dashboard service is not running"}
+	}
+	return githubwebhook.Outcome{}, nil
 }
 
 func (a *App) recordIngestionCounter(ctx context.Context, name string) {
@@ -398,11 +423,12 @@ func (a *App) performReconciliation(
 	ctx context.Context,
 	cancel context.CancelFunc,
 	token string,
+	reconciler Reconciler,
 	event GitHubWebhook,
 ) {
 	defer cancel()
 	defer a.releaseProjectionLock(ctx, token)
-	result, err := a.reconciler.Reconcile(ctx, event)
+	result, err := reconciler.Reconcile(ctx, event)
 	if err != nil {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 		defer cleanupCancel()
