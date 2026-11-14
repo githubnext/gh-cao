@@ -1,36 +1,7 @@
 {
-  "source_sha": "edd5171cf843eb16ec6aedfd868d8e5dcda3d948",
-  "next_category": "reusable dashboard generation",
+  "source_sha": "54faceef30df6ee380dcb7360a7c3b5c7bf15b94",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T04:52:40Z",
-      "worker_run_id": "43558493786",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529,
-        43484369040,
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287,
-        43380585034
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; 60 most recent docs.yml runs returned, all completed, none queued or in progress; no docs.yml run since 00:50:15Z; window unchanged since the 04:34Z evaluation). source 2000a4e = HEAD = source_sha. Excluded and disclosed: 43506161539 failed (install); 0 cancelled. n=19 successful push runs; 5-run gate met. Category step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs: production normalization, esbuild buildDashboardSite, cp to dist/cao): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median exec 83 s (p90 93). 15 percent gate 12.45 s and 60 s gate unreachable; full removal saves at most 3 s. Spot-check: jobs API 43536796952 matched stored row (checkout 24, install 7, docs 10, demo 3, deploy 12). Earlier 4 s demo medians came from prior windows; the current stored rows give 3 s. Cross-run reuse stale-unsafe: demo output derives generatedAt and observed_at from the run clock (scripts/dashboard-demo-data.mjs), and the 05:23Z refresh is by design. docs:build path does not call buildDashboardSite (astro.config.mjs dashboard matches are metadata globs only). No suggestion; no issue created; open worker issue 20815 (blobless checkout) not repeated. next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T05:18:59Z",
       "worker_run_id": "43560547964",
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); run list re-read at this evaluation: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run. Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; logs 403, not re-probed). n=19 successes (18 push + schedule 43561388555); 5-run gate met. Source: workspace HEAD edd5171 is 3 commits ahead of 7e620f3 (newest docs run head); compare API lists no docs.yml trigger path, so no run was expected. Category Astro documentation generation = step Build documentation (npm run docs:build = astro build, then validate-agent-docs, then agent-docs-discovery test; split unmeasured because job logs return 403). Stored rows recomputed: median 12 s (p90 15, range 9-15) = 14.8 percent of exec median 81 s (p90 92); push-only n=18 median 11.5 s, p90 15 s. 15 percent gate 12.15 s would need the whole step removed, which exceeds its median; the deploy job consumes the built output, so removal is not possible; 60 s gate unreachable. Jobs API spot-check 43593405440 (10 s), 43561388555 (14 s), 43536491714 (13 s) matched stored rows. No local build measurement (no node_modules; sandbox npm ci TLS failure not bypassed). No suggestion; no issue created; open 20815 (checkout, other category) not repeated. next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T15:17:59Z",
+      "worker_run_id": "43608993871",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43608206381,
+        43593405440,
+        43561388555,
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533,
+        43503506778,
+        43502660435,
+        43502562196,
+        43494667529,
+        43484369040,
+        43465706802,
+        43447728981,
+        43447111490,
+        43440055797,
+        43430232636
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43608206381 (push 54faceef, created 2026-11-14T15:04:46Z) back to 43430232636 (created 2026-11-13T13:02:36Z); none queued or in progress; 0 cancelled. Replaces 43430166810 versus the 14:52Z window. Excluded and disclosed: 43506161539 failed (install; logs not read). n=19 successes (18 push + 1 schedule 43561388555); 5-run gate met. Category reusable dashboard generation = step 'Build synthetic enterprise demo' (npm run dashboard:pages:build plus cp to dist/cao): median 4 s, p90 4 s, range 3-5 s = 4.9 percent of median exec 82 s (p90 92). 15 percent gate 12.3 s and 60 s gate unreachable; full removal saves about 4 s. Caching stale-unsafe: scripts/simulate-dashboard-pages.mjs defaults now = Date.now() and generatedAt flows into the output (daily 05:23Z refresh is by design). Parallel split would need a second checkout plus npm ci (median 24 s and 15 s) to save at most 4 s: rejected. Cross-workflow reuse of cid.yml dashboard output rejected for the same reason. Jobs API timings for 43608206381: build 65 s, checkout 25, install 11, docs 15, demo 4, upload 2, deploy job 12. Open issue 20815 (checkout) not repeated. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -885,9 +885,9 @@
     "current_key_install": "n=4 (43536491714 9 s, 43536796952 7 s, 43561388555 10 s, 43593405440 9 s): median 9 s, max 10 s; older-key n=15 median 16 s; rollover at 2026-11-13T20:57:12Z"
   },
   "run_samples": {
-    "window_created": "2026-11-13T13:02:07Z..2026-11-14T12:09:24Z",
-    "evaluated_at": "2026-11-14T12:21:33Z",
-    "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Recomputed 2026-11-14T12:21:33Z: added 43593405440, dropped 43388781287. build_queue carried from an earlier window (not recomputed).",
+    "window_created": "2026-11-13T13:02:36Z..2026-11-14T15:04:46Z",
+    "evaluated_at": "2026-11-14T15:17:59Z",
+    "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Recomputed 2026-11-14T15:17:59Z: added 43608206381, dropped 43430166810. build_queue carried (not recomputed).",
     "median_p90_s": {
       "Checkout": [
         24,
@@ -906,7 +906,7 @@
         15
       ],
       "Build synthetic enterprise demo": [
-        3,
+        4,
         4
       ],
       "Upload Pages artifact": [
@@ -914,7 +914,7 @@
         3
       ],
       "exec": [
-        81,
+        82,
         92
       ],
       "build_queue": [
@@ -928,6 +928,19 @@
     },
     "columns": "run,conclusion,exec,checkout,setup,post_setup,install,docs,demo,upload,deploy",
     "rows": [
+      [
+        43608206381,
+        "succ",
+        82,
+        25,
+        5,
+        0,
+        11,
+        15,
+        4,
+        2,
+        12
+      ],
       [
         43593405440,
         "succ",
@@ -1163,19 +1176,6 @@
         10
       ],
       [
-        43430166810,
-        "succ",
-        77,
-        25,
-        3,
-        0,
-        14,
-        11,
-        3,
-        2,
-        8
-      ],
-      [
         43561388555,
         "succ",
         92,
@@ -1314,11 +1314,22 @@
     "trigger_observation": "Corrected 2026-11-14T10:52Z: 4d25cbd changed only server/kubernetes files; 215837f (main HEAD) changed only experiments/java-backend; no docs run expected for either."
   },
   "transfer_samples": {
-    "evaluated_at": "2026-11-14T13:52:18Z",
-    "window": "43430166810..43593405440 (latest 20 completed docs.yml runs; 19 success, 43506161539 failed and excluded)",
+    "evaluated_at": "2026-11-14T15:17:59Z",
+    "window": "43430232636..43608206381 (latest 20 completed docs.yml runs; 19 success, 43506161539 failed and excluded)",
     "columns": "run,conclusion,exec_s,build_job_s,handoff_s,configure_pages_s,upload_pages_artifact_s,deploy_setup_s,deploy_pages_s",
-    "note": "Jobs API step/job timings; completed-run timings are immutable, so reuse rows by run ID and fetch only new runs. Logs not read. 2026-11-14T12:21:33Z: new run 43593405440 fetched (deploy_setup step-based 1 s); 43561388555 spot-check matched. Removable transfer median 9, p90 10, max 10 s (11.1 percent of median exec 81 s). 2026-11-14 2026-11-14T13:52:18Z: window unchanged; 43593405440 Jobs API spot-check matched; no new run.",
+    "note": "Jobs API step/job timings; completed-run timings are immutable, so reuse rows by run ID and fetch only new runs. Logs not read. 2026-11-14T12:21:33Z: new run 43593405440 fetched (deploy_setup step-based 1 s); 43561388555 spot-check matched. Removable transfer median 9, p90 10, max 10 s (11.1 percent of median exec 81 s). 2026-11-14 2026-11-14T13:52:18Z: window unchanged; 43593405440 Jobs API spot-check matched; no new run. 2026-11-14T15:17:59Z: window rolled; 43608206381 Jobs API fetched (build 65 s, deploy_pages 8 s, handoff 5 s); other rows unchanged.",
     "rows": [
+      [
+        43608206381,
+        "succ",
+        82,
+        65,
+        5,
+        0,
+        2,
+        1,
+        8
+      ],
       [
         43593405440,
         "succ",
@@ -1527,29 +1538,18 @@
         3,
         1,
         7
-      ],
-      [
-        43430166810,
-        "succ",
-        77,
-        63,
-        6,
-        1,
-        2,
-        1,
-        5
       ]
     ]
   },
   "demo_step_check": {
-    "verified_at": "2026-11-14T13:32:53Z",
+    "verified_at": "2026-11-14T15:17:59Z",
     "runs": [
-      "43593405440"
+      "43608206381"
     ],
     "demo_s": [
       4
     ],
-    "note": "Jobs API matched run_samples row (12:10:16 to 12:10:20 UTC); reuse rows by run ID. Recomputed demo median 3 s, p90 4 s over 19 successes."
+    "note": "Jobs API matched run_samples row (15:05:47 to 15:05:51 UTC). Recomputed demo median 4 s, p90 4 s, range 3-5 s over 19 successes (9x3 s, 9x4 s, 1x5 s)."
   },
   "docs_step_check": {
     "verified_at": "2026-11-14T14:52:32Z",
