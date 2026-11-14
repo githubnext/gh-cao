@@ -40,7 +40,7 @@ function completed(transaction) {
 }
 
 /** @param {Record<string, unknown>} record */
-export function withoutStorageMetadata(record) {
+function withoutStorageMetadata(record) {
   const canonical = { ...record };
   delete canonical._storage;
   delete canonical._queryKeys;
