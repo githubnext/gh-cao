@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T19:53:52Z",
-   "worker_run_id": "43495727601",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:24Z to 43494667529 created 19:42:09Z; all within 14 days; none cancelled, failed or in progress; 19 push + 1 schedule 43371878284; 5-run gate met). Source changed: workspace HEAD c6939dd9 is 31 files past 01e2e1cd (ahead 2), none of them docs.yml (last changed 063cbe9, before the window); changed files under dashboard/site and dashboard/report match docs.yml triggers but are not inputs to docs:build (no dashboard reference in docs/ or astro.config.mjs, as earlier verified). Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s, identical push-only and all-20 = 15.7% of median exec 89 s (p90 98; push p90 106). 15% gate = 13.35 s requires at least 95% of the step removed, which equals removing the docs build that deploy needs; 60 s gate unreachable. Astro-internal split unmeasured (build-job log HTTP 403 DIFC, probed once this run). Carry-forward, not evaluated as Astro: Checkout median 25 s (p90 31; push p90 41) remains the largest step, covered by open issue 20815 (blobless checkout, unlanded). No suggestion; no issue created (open issues with worker label: 20815 only). next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T20:20:28Z",
    "worker_run_id": "43499956488",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 to 43561388555 (created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; within 14 days; 19 success = 18 push + 1 schedule 43561388555; 1 failure 43506161539 (Install dependencies, 7c8faf4 era) excluded and disclosed; 0 cancelled; none queued or in progress; 5-run gate met). Run list re-read at this evaluation: identical 20 IDs, no newer docs.yml run; source 4d25cbd = HEAD = source_sha; stored step rows reused (completed-run timings immutable). Push n=18: Install dependencies median 15.5 s (p90 24) = 19 percent of exec median 82 s (p90 92); 15 percent gate 12.3 s. Current key node-cache-Linux-x64-npm-7808ecf8 re-verified: raw-digest sha256 of HEAD root package-lock.json = 7808ecf8; caches API lists it on refs/heads/main (created 2026-11-13T20:57:12Z, 263 MB); Post Set up Node.js 0 to 1 s in 19/19 successes. Post-change install on this key, n=3 (43536491714 9 s, 43536796952 7 s, schedule 43561388555 10 s; exec 79, 75, 92 s): median 9 s, max 10 s, so full install removal stays under the 12.3 s gate; 60 s gate unreachable. node_modules caching (#19689 closed NOT_PLANNED) and the dashboard install split cannot save more than the step total. Checkout (median 24.5 s) is outside this category and is represented by open issue 20815 (OPEN, unchanged), not repeated. The workflow has no separate dashboard job (dashboard generation is the build-job step). No suggestion; no issue created; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T06:28:07Z",
+   "worker_run_id": "43565938032",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43561388555
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 to 43561388555 (created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; no newer run since 05:24Z; none queued or in progress; 0 cancelled). Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; logs 403). 19 successes (18 push, 1 schedule); 5-run gate met. Source 4d25cbd = HEAD = source_sha. Category Astro documentation generation = step Build documentation (npm run docs:build: astro build, validate-agent-docs, agent-docs-discovery test): push n=18 median 12 s, p90 15 s = 14.6% of exec median 82 s. 15% gate 12.3 s would need 103% of the step removed, i.e. the deploy-required docs build; 60 s gate unreachable. Jobs API re-read of 43561388555 and 43536796952 matched stored rows exactly. Astro-versus-validation split unmeasured: job logs HTTP 403 (not re-probed); local npm ci failed on sandbox TLS (DEPTH_ZERO_SELF_SIGNED_CERT), not bypassed. No suggestion; no issue. Open 20815 (checkout, other category) not repeated. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,8 +884,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T07:51:43Z..2026-11-14T05:24:33Z",
-  "evaluated_at": "2026-11-14T05:33:03Z",
-  "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Step medians (push n=18): exec 82 (p90 92); install 15.5 (24); checkout 24.5 (28); setup 3.5 (7); docs 12 (15); demo 3 (4); upload 2 (3); deploy 9 (12). Window re-verified repeatedly through 2026-11-14T05:51Z (run list only: same 20 IDs, no queued or in-progress run); stored rows reused.",
+  "evaluated_at": "2026-11-14T06:28:07Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Step medians (push n=18): exec 82 (p90 92); install 15.5 (24); checkout 24.5 (28); setup 3.5 (7); docs 12 (15); demo 3 (4); upload 2 (3); deploy 9 (12). Window re-verified repeatedly through 2026-11-14T05:51Z (run list only: same 20 IDs, no queued or in-progress run); stored rows reused. Re-verified at 2026-11-14T06:28:07Z: run list unchanged (newest 43561388555); jobs API spot-check of 43561388555 and 43536796952 matched stored rows.",
   "median_p90_s": {
    "Checkout": [
     24.5,
@@ -1218,6 +1218,11 @@
    "observed_at": "2026-11-14T00:38:55Z",
    "source": "docs.yml path-filter review (worker 43534646046)",
    "note": "Freshness gap, not a timing finding: triggers omit scripts/dashboard-demo-data.mjs, */README.md and .github/workflows/cao.json, which the Pages build reads. Staleness is bounded by the daily 05:23 UTC schedule."
+  },
+  {
+   "observed_at": "2026-11-14T06:28:07Z",
+   "source": "docs.yml local Astro split attempt (worker 43565938032)",
+   "note": "Local npm ci in the sandbox failed with DEPTH_ZERO_SELF_SIGNED_CERT on the package feed (after 87 s). Not bypassed. Astro-versus-validation split therefore remains unmeasured; do not retry npm ci in this sandbox unless the environment changes. Not a suggestion."
   }
  ],
  "checkout_probe": {
