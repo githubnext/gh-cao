@@ -38,6 +38,68 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  cold-start:
+    name: Empty database / offline GitHub ingestion
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ""
+      GITHUB_TOKEN: ""
+      GH_ENTERPRISE_TOKEN: ""
+      GITHUB_ENTERPRISE_TOKEN: ""
+      OTEL_SDK_DISABLED: "true"
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cao_bootstrap
+          POSTGRES_DB: cao_dashboard
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U cao_bootstrap -d cao_dashboard"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            server/go.sum
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            dashboard/site/package-lock.json
+      - name: Install build dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm --prefix dashboard/site ci --ignore-scripts --no-audit --no-fund
+      - name: Build local dashboard
+        env:
+          CAO_DASHBOARD_PROFILE: server
+        run: |
+          npm --prefix dashboard/site run build -- dist ../../.github/workflows/cao.json
+          mkdir -p .tmp
+          go -C server build -mod=readonly -o ../.tmp/cao-dashboard ./cmd/cao-dashboard
+      - name: Test empty-database ingestion against local GitHub simulator
+        env:
+          CAO_DASHBOARD_COLD_START_INTEGRATION: "1"
+          CAO_DASHBOARD_TEST_SERVER: ${{ github.workspace }}/.tmp/cao-dashboard
+          CAO_DASHBOARD_TEST_SITE: ${{ github.workspace }}/dashboard/site/dist
+          CAO_DASHBOARD_TEST_POSTGRES_URL: postgres://cao_bootstrap@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_dashboard?sslmode=disable
+        run: go test ./internal/cli -run '^TestDashboardColdStartIntegration$' -count=1 -timeout=10m -v
+
   serving:
     name: ${{ matrix.os }} / ${{ matrix.backend }}
     runs-on: ${{ matrix.runner }}

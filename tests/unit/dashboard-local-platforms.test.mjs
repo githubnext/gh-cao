@@ -6,6 +6,29 @@ import { parse } from "yaml";
 
 const workflow = parse(readFileSync(new URL("../../.github/workflows/dashboard-local-platforms.yml", import.meta.url), "utf8"));
 
+test("cold-start ingestion uses isolated PostgreSQL and a token-free local GitHub simulator", () => {
+  const job = workflow.jobs["cold-start"];
+  assert.equal(job.if, undefined, "cold-start coverage must run on pull requests");
+  assert.deepEqual(job.permissions, { contents: "read" }, "no Actions or Issues permissions");
+  for (const variable of ["GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"]) {
+    assert.equal(job.env[variable], "");
+    for (const step of job.steps) assert.equal(step.env?.[variable], undefined);
+  }
+  assert.equal(job.steps[0].with["persist-credentials"], false);
+  assert.equal(job.services.postgres.image, "postgres:16-alpine");
+  assert.equal(job.services.postgres.env.POSTGRES_USER, "cao_bootstrap");
+  assert.equal(job.services.postgres.env.POSTGRES_DB, "cao_dashboard");
+  assert.ok(job.steps.every((step) => !step["continue-on-error"]));
+  const integration = job.steps.find((step) => step.name === "Test empty-database ingestion against local GitHub simulator");
+  assert.equal(integration.env.CAO_DASHBOARD_COLD_START_INTEGRATION, "1");
+  assert.match(integration.env.CAO_DASHBOARD_TEST_POSTGRES_URL, /127\.0\.0\.1:\$\{\{ job\.services\.postgres\.ports/);
+  for (const variable of ["CAO_DASHBOARD_TEST_SERVER", "CAO_DASHBOARD_TEST_SITE"]) {
+    assert.ok(integration.env[variable].startsWith("${{ github.workspace }}/"), variable);
+  }
+  assert.match(integration.run, /\^TestDashboardColdStartIntegration\$/);
+  assert.doesNotMatch(JSON.stringify(job), /secrets\.|github\.token|gh (?:api|run|issue)/);
+});
+
 test("local serving runs on native Linux, macOS, and Windows with real PostgreSQL", () => {
   assert.deepEqual(workflow.permissions, { contents: "read" });
   const job = workflow.jobs.serving;
