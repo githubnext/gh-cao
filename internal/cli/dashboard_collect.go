@@ -115,7 +115,7 @@ func collectDashboard(ctx context.Context, repositories []string, cache string, 
 			state.Status, state.Message = "failed", dashboardPauseMessage(err)
 			if errors.Is(err, errDashboardQuota) {
 				state.Status = "paused"
-				state.NextAt = time.Now().UTC().Add(options.refresh).Format(time.RFC3339)
+				state.NextAt = time.Now().UTC().Add(dashboardNextRefresh(state, options.refresh, time.Now())).Format(time.RFC3339)
 				if state.Remaining != nil && *state.Remaining <= state.Reserve {
 					state.NextAt = state.ResetAt
 				}
@@ -199,11 +199,13 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		if err := json.Unmarshal([]byte(raw), &runs); err != nil || runs == nil {
 			return nil, errors.New("GitHub runs response is not a valid run list")
 		}
+		runs = slices.DeleteFunc(runs, dashboardRunNotExecuted)
 		cursor := dashboardHistoryRange(state.Cursors[repository], cutoff, now)
 		history, nextCursor, err := collectDashboardHistory(ctx, repository, cursor, options.count, gh)
 		if err != nil {
 			return nil, err
 		}
+		history = slices.DeleteFunc(history, dashboardRunNotExecuted)
 		seen := map[string]bool{}
 		for _, run := range runs {
 			seen[nativeScalar(run["databaseId"])] = true
@@ -385,7 +387,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			maps.Copy(merged, record)
 			cached.Enriched[id] = merged
 		}
-		runs = mergeDashboardCachedRuns(runs, workflows, cached, options.count)
+		runs = slices.DeleteFunc(mergeDashboardCachedRuns(runs, workflows, cached, options.count), dashboardRunNotExecuted)
 		evidence = append(evidence, dashboardRepositoryEvidence{
 			Repository: repository, Workflows: workflows, Runs: runs, Enriched: cached.Enriched,
 			Directory: directory, SafeOutputs: cached.SafeOutputs,
@@ -418,12 +420,15 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		return nil, err
 	}
 	state.Status = "waiting"
-	state.NextAt = time.Now().UTC().Add(options.refresh).Format(time.RFC3339)
+	state.Remaining = &quota.Remaining
 	if quota.Remaining <= state.Reserve {
 		state.Status, state.Message = "paused", dashboardPauseMessage(errDashboardQuota)
-		state.NextAt = state.ResetAt
 	}
 	state.summarize(repositories, cutoff, time.Now().UTC(), options.window)
+	state.NextAt = time.Now().UTC().Add(dashboardNextRefresh(*state, options.refresh, time.Now())).Format(time.RFC3339)
+	if state.Status == "paused" {
+		state.NextAt = state.ResetAt
+	}
 	checkpoint, err := dashboardIngestionRecord(*state)
 	if err != nil {
 		return nil, err
@@ -535,6 +540,21 @@ func readDashboardLogCache(filename, repository string) (result dashboardCachedL
 		}
 	}
 	return result, scanner.Err()
+}
+
+// dashboardRunNotExecuted reports runs whose jobs never ran: skipped
+// activations and runs held for approval. They carry no agent evidence and
+// would otherwise crowd executed runs out of each bounded page.
+func dashboardRunNotExecuted(run map[string]any) bool {
+	switch strings.ToLower(nativeText(run["conclusion"])) {
+	case "skipped", "action_required":
+		return true
+	}
+	switch strings.ToLower(nativeText(run["status"])) {
+	case "waiting", "action_required":
+		return true
+	}
+	return false
 }
 
 func mergeDashboardCachedRuns(runs []map[string]any, workflows []dashboardWorkflow, cached dashboardCachedLogs, limit int) []map[string]any {

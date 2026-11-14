@@ -990,6 +990,10 @@ All discovery and embedded collectors share a 100-point core API pass ceiling
 counting only the pass's own requests, so other consumers of the same token
 cannot exhaust it, and reserve at least 1000 points or 20% of the
 core limit. Quota is required; exhausted headroom pauses acquisition.
+Until discovery reaches the requested window, including on an empty database,
+the local server runs passes back to back; every request still rechecks the
+reserve, reserve exhaustion waits for the quota reset, and failed passes keep
+the normal refresh cadence.
 Its shared count and two-minute limits produce explicitly reported partial
 artifact coverage. Analyses and artifacts are reusable, but discovery lists are
 refreshed. Optional Node-based Markdown report parsing is disabled;
