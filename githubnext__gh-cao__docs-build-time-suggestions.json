@@ -1,36 +1,7 @@
 {
-  "source_sha": "54faceef30df6ee380dcb7360a7c3b5c7bf15b94",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "04c9d9e1c6ba0a66246d7ec4ce0fbf3ad93f86ce",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T05:33:03Z",
-      "worker_run_id": "43561713579",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43561388555,
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529,
-        43484369040,
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; advanced from the 05:18Z window by one scheduled run, which replaced push 43380585034). Source 4d25cbd = HEAD = source_sha. Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; logs HTTP 403, cause unverified); 0 cancelled; 0 in progress. Comparable n=18 push successes plus 1 schedule success (43561388555, exec 92 s); 5-run gate met. Push exec median 82 s, p90 92 s; 15 percent gate 12.3 s. Concurrency wait (run created to build created): median 1 s, p90 51 s, max 68 s; the three waits of 42 to 68 s each ended at a predecessor deploy; queue only, and removing serialization would allow out-of-order Pages publication (rejected). Scheduled run waited 1 s. Avoidable rebuilds: 0 of 18 push publications were trigger-only; compare 54e08aa...4d25cbd (3 commits) touches no docs trigger path, so no push run was expected; the 05:23Z daily schedule is by design (synthetic-date refresh) and has no same-SHA push duplicate. Best-case scheduling saving on median exec is 0 s; 60 s and 15 percent gates unmet. Open issue 20815 (blobless checkout, OPEN, 0 comments, updatedAt 2026-11-13T17:41Z) not repeated; schedule checkout 37 s is a single sample under that issue. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T05:53:00Z",
       "worker_run_id": "43563309050",
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43608206381 (push 54faceef, created 2026-11-14T15:04:46Z) back to 43430232636 (created 2026-11-13T13:02:36Z); run list re-read at this evaluation: same 20 IDs, all completed, none queued or in progress, no newer docs run; source 54faceef = workspace HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; docs and transfer not reached); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Jobs API spot-checks: 43608206381 (build 65, handoff 5, Configure Pages 0, upload 2, deploy setup 1, Deploy Pages 8) and 43430232636 (build 76, handoff 5, Configure 1, upload 3, deploy setup 1, Deploy Pages 7) matched stored rows. Removable transfer (handoff + Configure Pages + upload + deploy setup) recomputed from transfer_samples: median 9 s, p90 10 s, max 10 s = 11.0 percent of exec median 82 s (p90 92); 15 percent gate 12.3 s is unreachable even if the whole removable set were zero, and 60 s gate unreachable. Deploy Pages (GitHub-managed, median 7 s) not controllable. Merging deploy into build saves about 6 s but needs id-token write and the github-pages environment in the npm-ci job (rejected, least privilege). Artifact about 8.3 MB; shrinking saves about 1 s. Open-issue dedupe: label query shows only 20815 (checkout, OPEN, 0 comments; not repeated); no open issue covers transfer or Pages packaging. No suggestion; no create_issue; noop used. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T15:54:45Z",
+      "worker_run_id": "43612213407",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43611206032,
+        43608206381,
+        43593405440,
+        43561388555,
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533,
+        43503506778,
+        43502660435,
+        43502562196,
+        43494667529,
+        43484369040,
+        43465706802,
+        43447728981,
+        43447111490,
+        43440055797
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43440055797 (created 2026-11-13T14:09:27Z) to 43611206032 (push 04c9d9e, created 2026-11-14T15:37:50Z); source 04c9d9e = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, install; logs unread); 0 cancelled; none queued or in progress. n=19 successes (18 push, 1 schedule 43561388555); 5-run gate met. Concurrency wait (run created to build created): median 1 s, p90 42 s (nearest rank), max 68 s, sum 124 s; the two waits (43502660435 42 s, 43504143936 68 s) ended at the predecessor deploy (cancel-in-progress false, by design). Queue time, not execution time: exec median 82 s, p90 92 s; 15 percent gate 12.3 s and 60 s gate unmet because the median run saves 0 s. Avoidable rebuilds: 0 of 18 push publications; 54faceef (docs/configuration.md) and 04c9d9e (docs/cao-cli.md) are docs/** inputs. Rejected: cancelling in-flight builds or relaxing serialization needs new cancellation/ordering logic (out-of-order Pages risk) for 2 of 19 runs. Open issue 20815 (checkout, other category) not repeated. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -885,9 +885,9 @@
     "current_key_install": "n=4 (43536491714 9 s, 43536796952 7 s, 43561388555 10 s, 43593405440 9 s): median 9 s, max 10 s; older-key n=15 median 16 s; rollover at 2026-11-13T20:57:12Z"
   },
   "run_samples": {
-    "window_created": "2026-11-13T13:02:36Z..2026-11-14T15:04:46Z",
-    "evaluated_at": "2026-11-14T15:17:59Z",
-    "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Recomputed 2026-11-14T15:17:59Z: added 43608206381, dropped 43430166810. build_queue carried (not recomputed).",
+    "window_created": "2026-11-13T14:09:27Z..2026-11-14T15:37:50Z",
+    "evaluated_at": "2026-11-14T15:54:45Z",
+    "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Recomputed 2026-11-14T15:54:45Z: added 43611206032 (04c9d9e), dropped 43430232636; build_queue recomputed (create to start).",
     "median_p90_s": {
       "Checkout": [
         24,
@@ -923,11 +923,24 @@
       ],
       "deploy_job": [
         9,
-        12
+        13
       ]
     },
     "columns": "run,conclusion,exec,checkout,setup,post_setup,install,docs,demo,upload,deploy",
     "rows": [
+      [
+        43611206032,
+        "succ",
+        83,
+        24,
+        5,
+        1,
+        11,
+        14,
+        4,
+        2,
+        13
+      ],
       [
         43608206381,
         "succ",
@@ -1163,19 +1176,6 @@
         10
       ],
       [
-        43430232636,
-        "succ",
-        91,
-        25,
-        5,
-        0,
-        18,
-        15,
-        3,
-        3,
-        10
-      ],
-      [
         43561388555,
         "succ",
         92,
@@ -1273,15 +1273,15 @@
     }
   },
   "scheduling_sample": {
-    "evaluated_at": "2026-11-14T14:16:29Z",
-    "window": "43430166810..43593405440 (2026-11-13T13:02Z to 2026-11-14T12:09Z); none queued or in progress; source 7e620f3 newest docs head",
+    "evaluated_at": "2026-11-14T15:54:45Z",
+    "window": "43440055797..43611206032 (2026-11-13T14:09:27Z to 2026-11-14T15:37:50Z); none queued or in progress; source 04c9d9e = HEAD = source_sha",
     "n_success_push": 18,
     "n_success_schedule": 1,
     "failed": [
       "43506161539"
     ],
     "cancelled": [],
-    "avoidable_push_test": "compare API 4d25cbd...7e620f3 for new push 43593405440: only docs/components/SiteFooter.astro (docs/** input) = not avoidable; prior 18 push runs remain 0 avoidable",
+    "avoidable_push_test": "new pushes checked by compare: 7e620f3...54faceef touches docs/configuration.md and 54faceef...04c9d9e touches docs/cao-cli.md (both docs/** Starlight inputs, srcDir ./docs) = not avoidable; prior 18 push runs remain 0 avoidable",
     "avoidable_pushes": 0,
     "build_inputs_verified": "docs/**, astro.config.mjs, public/**, package*.json, aw.yml and */aw.yml (docs/lib/catalog.ts glob and ?raw import), */README.md (catalog glob, not a trigger), dashboard/site/** excluding test, dashboard/report/**, scripts/simulate-dashboard-pages.mjs, scripts/dashboard-demo-data.mjs (not a trigger), .github/workflows/cao.json (dashboard build reads it, not a trigger), shared policy/authority/value-acquisition/actions-log (imported by dashboard build)",
     "concurrency_wait_s_successful_median_p90_max_sum": [
@@ -1291,7 +1291,7 @@
       174
     ],
     "exec_s_median_p90": [
-      81,
+      82,
       92
     ],
     "superseded_in_progress": {
@@ -1311,14 +1311,41 @@
       ".github/workflows/cao.json (read by dashboard build; not a trigger)",
       "scripts/dashboard-demo-data.mjs (read by simulate-dashboard-pages.mjs; not a trigger)"
     ],
-    "trigger_observation": "Corrected 2026-11-14T10:52Z: 4d25cbd changed only server/kubernetes files; 215837f (main HEAD) changed only experiments/java-backend; no docs run expected for either."
+    "trigger_observation": "Corrected 2026-11-14T10:52Z: 4d25cbd changed only server/kubernetes files; 215837f (main HEAD) changed only experiments/java-backend; no docs run expected for either.",
+    "concurrency_wait_s_n_median_p90_max_sum": [
+      19,
+      1,
+      42,
+      68,
+      124
+    ],
+    "predecessor_wait_cases": {
+      "cases": 2,
+      "pairs": [
+        "43502562196->43502660435 42s (build created 20:34:16 = predecessor deploy end 20:34:15)",
+        "43504093917->43504143936 68s (build created 20:44:24 = predecessor deploy end 20:44:23)"
+      ],
+      "median_saving_s": 0,
+      "note": "queue time, not execution time; cancelling in-flight builds or relaxing serialization needs new cancellation/ordering logic and would not change the median run"
+    }
   },
   "transfer_samples": {
-    "evaluated_at": "2026-11-14T15:33:51Z",
-    "window": "43430232636..43608206381 (latest 20 completed docs.yml runs; 19 success, 43506161539 failed and excluded)",
+    "evaluated_at": "2026-11-14T15:54:45Z",
+    "window": "43440055797..43611206032 (latest 20 completed docs.yml runs; 19 success, 43506161539 failed and excluded)",
     "columns": "run,conclusion,exec_s,build_job_s,handoff_s,configure_pages_s,upload_pages_artifact_s,deploy_setup_s,deploy_pages_s",
-    "note": "Jobs API step/job timings; completed-run timings are immutable, so reuse rows by run ID and fetch only new runs. Logs not read. 2026-11-14T12:21:33Z: new run 43593405440 fetched (deploy_setup step-based 1 s); 43561388555 spot-check matched. Removable transfer median 9, p90 10, max 10 s (11.1 percent of median exec 81 s). 2026-11-14 2026-11-14T13:52:18Z: window unchanged; 43593405440 Jobs API spot-check matched; no new run. 2026-11-14T15:17:59Z: window rolled; 43608206381 Jobs API fetched (build 65 s, deploy_pages 8 s, handoff 5 s); other rows unchanged. 2026-11-14T15:33:51Z: window unchanged (no docs.yml run since 43608206381 15:04Z); spot-checks 43608206381 and 43430232636 matched rows; removable median 9 s recomputed = 11.0 percent of exec median 82 s; not actionable.",
+    "note": "Jobs API step/job timings; completed-run timings are immutable, so reuse rows by run ID and fetch only new runs. Logs not read. 2026-11-14T12:21:33Z: new run 43593405440 fetched (deploy_setup step-based 1 s); 43561388555 spot-check matched. Removable transfer median 9, p90 10, max 10 s (11.1 percent of median exec 81 s). 2026-11-14 2026-11-14T13:52:18Z: window unchanged; 43593405440 Jobs API spot-check matched; no new run. 2026-11-14T15:17:59Z: window rolled; 43608206381 Jobs API fetched (build 65 s, deploy_pages 8 s, handoff 5 s); other rows unchanged. 2026-11-14T15:33:51Z: window unchanged (no docs.yml run since 43608206381 15:04Z); spot-checks 43608206381 and 43430232636 matched rows; removable median 9 s recomputed = 11.0 percent of exec median 82 s; not actionable. 2026-11-14T15:54:45Z: window rolled (+43611206032 Jobs API fetched: build 65, handoff 5, configure 0, upload 2, deploy_setup 1, deploy_pages 9; -43430232636). Other rows reused by run ID.",
     "rows": [
+      [
+        43611206032,
+        "succ",
+        83,
+        65,
+        5,
+        0,
+        2,
+        1,
+        9
+      ],
       [
         43608206381,
         "succ",
@@ -1526,17 +1553,6 @@
         0,
         2,
         0,
-        7
-      ],
-      [
-        43430232636,
-        "succ",
-        91,
-        76,
-        5,
-        1,
-        3,
-        1,
         7
       ]
     ]
