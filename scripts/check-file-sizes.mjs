@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 const maximumSize = 256 * 1024;
@@ -22,14 +22,23 @@ const lineCountExclusions = new Set([
 const root = path.resolve(import.meta.dirname, "..");
 let trackedFiles;
 
+// Untracked files can be removed by concurrent tests between listing and reading.
+function ignoreMissing(read) {
+  try {
+    return read();
+  } catch (error) {
+    if (error?.code === "ENOENT" || error?.code === "ENOTDIR") return undefined;
+    throw error;
+  }
+}
+
 try {
   trackedFiles = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], {
     cwd: root,
     encoding: "utf8",
   })
     .split("\0")
-    .filter(Boolean)
-    .filter((file) => existsSync(path.join(root, file)));
+    .filter(Boolean);
 } catch {
   console.error("Unable to list tracked files. Ensure Git is installed and this command runs inside the repository.");
   process.exit(1);
@@ -41,7 +50,8 @@ const oversizedFiles = trackedFiles.filter((file) => {
   return !isLockfile && !isAssetImage && !excludedFiles.has(file);
 }).flatMap((file) => {
   const filePath = path.join(root, file);
-  const size = statSync(filePath).size;
+  const size = ignoreMissing(() => statSync(filePath).size);
+  if (size === undefined) return [];
   const isGeneratedWorkflow = file.startsWith(".github/workflows/") && file.endsWith(".lock.yml");
   const limit = isGeneratedWorkflow ? maximumGeneratedWorkflowSize : maximumSize;
   return size > limit ? [{ file, size, limit }] : [];
@@ -57,7 +67,9 @@ if (oversizedFiles.length > 0) {
 
 const overlongFiles = trackedFiles.flatMap((file) => {
   if (lineCountExclusions.has(file) || !sourceExtensions.has(path.extname(file).toLowerCase())) return [];
-  const lineCount = readFileSync(path.join(root, file), "utf8").split(/\r?\n/).length;
+  const content = ignoreMissing(() => readFileSync(path.join(root, file), "utf8"));
+  if (content === undefined) return [];
+  const lineCount = content.split(/\r?\n/).length;
   return lineCount > maximumLines ? [{ file, lineCount }] : [];
 });
 
