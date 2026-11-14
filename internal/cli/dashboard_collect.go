@@ -27,13 +27,15 @@ type dashboardWorkflow struct {
 }
 
 type dashboardRepositoryEvidence struct {
-	Repository  string
-	Workflows   []dashboardWorkflow
-	Runs        []map[string]any
-	Enriched    map[string]map[string]any
-	Directory   string
-	SafeOutputs []map[string]any
-	GithubID    string
+	Repository string
+	Workflows  []dashboardWorkflow
+	// AgenticWorkflows holds lowercase workflow IDs reported by `gh aw list`.
+	AgenticWorkflows map[string]bool
+	Runs             []map[string]any
+	Enriched         map[string]map[string]any
+	Directory        string
+	SafeOutputs      []map[string]any
+	GithubID         string
 }
 
 type dashboardLogRequest struct {
@@ -186,6 +188,14 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		if err := json.Unmarshal([]byte(inventory), &workflows); err != nil || workflows == nil {
 			return nil, errors.New("GitHub workflow inventory is not a valid workflow list")
 		}
+		// gh aw rejects host-qualified targets; the helper refuses non-github.com GH_HOST.
+		agentic, err := collectDashboardAgenticWorkflows(ctx, repository, gh)
+		if err != nil {
+			if errors.Is(err, errDashboardQuota) {
+				return nil, err
+			}
+			return nil, fmt.Errorf("cannot read agentic workflow list for %s; previous snapshot preserved: %w", repository, err)
+		}
 		raw, _, err := gh(ctx, "run", "list", "--repo", target, "--created", ">="+cutoff.Format(time.RFC3339),
 			"--limit", strconv.Itoa(options.count), "--json",
 			"databaseId,workflowDatabaseId,workflowName,displayTitle,status,conclusion,event,headBranch,headSha,createdAt,startedAt,updatedAt,url,attempt")
@@ -328,7 +338,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			}
 			onRuns := func(streamCtx context.Context, records []map[string]any) error {
 				source := dashboardRepositoryEvidence{
-					Repository: repository, Workflows: workflows, Directory: directory,
+					Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Directory: directory,
 					GithubID: resolved.ID, Enriched: map[string]map[string]any{},
 				}
 				for _, record := range records {
@@ -421,7 +431,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		}
 		runs = slices.DeleteFunc(mergeDashboardCachedRuns(runs, workflows, cached, options.count), dashboardRunNotExecuted)
 		evidence = append(evidence, dashboardRepositoryEvidence{
-			Repository: repository, Workflows: workflows, Runs: runs, Enriched: cached.Enriched,
+			Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Runs: runs, Enriched: cached.Enriched,
 			Directory: directory, SafeOutputs: cached.SafeOutputs,
 			GithubID: resolved.ID,
 		})
@@ -676,6 +686,35 @@ func dashboardCoordinate(value string) string {
 	return result.String()
 }
 
+// collectDashboardAgenticWorkflows asks gh-aw which workflows in the repository
+// are agentic workflows; the result carries IDs only, never source provenance.
+func collectDashboardAgenticWorkflows(ctx context.Context, repository string, gh ghExecutor) (map[string]bool, error) {
+	// gh aw list accepts only owner/repo, so an ambient GH_HOST would silently
+	// change the queried host; fail closed instead of widening scope.
+	if host := strings.TrimSpace(os.Getenv("GH_HOST")); host != "" && !strings.EqualFold(host, "github.com") {
+		return nil, errors.New("gh aw list cannot be pinned to github.com while GH_HOST names another host")
+	}
+	raw, _, err := gh(ctx, "aw", "list", "--repo", repository, "--json")
+	if err != nil {
+		return nil, err
+	}
+	var listed []struct {
+		Workflow string `json:"workflow"`
+	}
+	if err := json.Unmarshal([]byte(raw), &listed); err != nil || listed == nil {
+		return nil, errors.New("gh aw list did not return a valid workflow list")
+	}
+	result := make(map[string]bool, len(listed))
+	for _, entry := range listed {
+		id := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(entry.Workflow), ".md"))
+		if id == "" || strings.ContainsAny(id, `/\`) || strings.Contains(id, "..") {
+			return nil, errors.New("gh aw list returned an invalid workflow identity")
+		}
+		result[id] = true
+	}
+	return result, nil
+}
+
 func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, now time.Time) (map[string][]map[string]any, error) {
 	batch := map[string][]map[string]any{"repositories": {}, "workflows": {}, "runs": {}}
 	observed := now.Format(time.RFC3339Nano)
@@ -699,14 +738,19 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 			}
 			workflows[strconv.FormatInt(workflow.ID, 10)] = workflow
 			path := strings.TrimSuffix(strings.ToLower(workflow.Path), ".lock.yml") + ".md"
-			batch["workflows"] = append(batch["workflows"], map[string]any{
+			record := map[string]any{
 				"id": "workflow:" + dashboardCoordinate(source.Repository+":"+path), "repositoryId": repositoryID,
 				"githubId": strconv.FormatInt(workflow.ID, 10), "name": workflow.Name, "path": path, "state": workflow.State, "observedAt": observed,
 				"organizationLink": "https://github.com/" + parts[0],
 				"repositoryLink":   "https://github.com/" + source.Repository,
 				"workflowLink":     "https://github.com/" + source.Repository + "/actions/workflows/" + filepath.Base(workflow.Path),
 				"provenance":       map[string]any{"source": "local-dashboard", "sourceId": workflow.Path, "observedAt": observed},
-			})
+			}
+			// gh aw list exposes no source provenance, so sourceKind stays unset (unknown).
+			if source.AgenticWorkflows[strings.TrimSuffix(filepath.Base(path), ".md")] {
+				record["role"] = "standalone"
+			}
+			batch["workflows"] = append(batch["workflows"], record)
 		}
 		for _, raw := range source.Runs {
 			workflow, exists := workflows[nativeScalar(raw["workflowDatabaseId"])]

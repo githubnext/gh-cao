@@ -43,6 +43,8 @@ func dashboardTestGH(t *testing.T, now time.Time) ghExecutor {
 				}}})
 			}
 			return `{"total_count":0,"workflow_runs":[]}`, "", nil
+		case "aw list":
+			return encode([]map[string]any{{"workflow": "agent", "engine_id": "copilot", "compiled": "Yes"}})
 		case "workflow list":
 			return encode([]dashboardWorkflow{{42, "Agent", ".github/workflows/agent.lock.yml", "active"},
 				{43, "Tests", ".github/workflows/tests.yml", "active"}})
@@ -388,6 +390,53 @@ func TestDashboardCachedUsageUnionIsBoundedAndAttemptSafe(t *testing.T) {
 	raw[0]["attempt"] = "invalid"
 	if _, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows, Runs: raw}}, now.Add(-48*time.Hour), now); err == nil {
 		t.Fatal("invalid attempt accepted")
+	}
+}
+
+func TestDashboardMarksGhAwListedWorkflowsStandalone(t *testing.T) {
+	now := time.Now().UTC()
+	workflows := []dashboardWorkflow{
+		{42, "Agent", ".github/workflows/Agent.lock.yml", "active"},
+		{44, "Other", ".github/workflows/other.lock.yml", "active"},
+	}
+	agentic, err := collectDashboardAgenticWorkflows(t.Context(), "octo/api",
+		func(_ context.Context, args ...string) (string, string, error) {
+			if strings.Join(args, " ") != "aw list --repo octo/api --json" {
+				t.Fatalf("unexpected command: %v", args)
+			}
+			return `[{"workflow":"agent","engine_id":"copilot","compiled":"Yes"}]`, "", nil
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	batch, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows,
+		AgenticWorkflows: agentic}}, now.Add(-time.Hour), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roles := map[string]any{}
+	for _, row := range batch["workflows"] {
+		if _, present := row["sourceKind"]; present {
+			t.Fatalf("source provenance was invented: %v", row)
+		}
+		roles[nativeText(row["path"])] = row["role"]
+	}
+	if roles[".github/workflows/agent.md"] != "standalone" || roles[".github/workflows/other.md"] != nil {
+		t.Fatalf("unexpected workflow roles: %v", roles)
+	}
+	for _, invalid := range []string{`{}`, `[{"workflow":"../x"}]`, `[{"workflow":""}]`} {
+		if _, err := collectDashboardAgenticWorkflows(t.Context(), "octo/api",
+			func(context.Context, ...string) (string, string, error) { return invalid, "", nil }); err == nil {
+			t.Fatalf("invalid gh aw list output accepted: %s", invalid)
+		}
+	}
+	t.Setenv("GH_HOST", "ghe.example.com")
+	if _, err := collectDashboardAgenticWorkflows(t.Context(), "octo/api",
+		func(context.Context, ...string) (string, string, error) {
+			t.Fatal("gh aw list ran against an ambient non-github.com host")
+			return "", "", nil
+		}); err == nil {
+		t.Fatal("ambient GH_HOST was not rejected")
 	}
 }
 
