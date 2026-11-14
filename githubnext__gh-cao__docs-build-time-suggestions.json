@@ -1,36 +1,7 @@
 {
   "source_sha": "215837f1ae141544da5e4ca6da225dc340c2b09d",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T03:52:43Z",
-      "worker_run_id": 43553496776,
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529,
-        43484369040,
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287,
-        43380585034
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; identical to the 03:34Z window; none queued or in progress; no docs.yml run since 00:50:15Z; source 2000a4e = HEAD = source_sha). Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; build and deploy skipped). 0 cancelled; 0 schedule runs in window. n=19 successful push runs; 5-run gate met. Concurrency wait (run created to build created, successful runs): median 1 s, p90 51 s (nearest rank), max 68 s (43504143936), sum 173 s. Jobs API spot-check: 43504143936 build created 20:44:24Z = predecessor 43504093917 deploy completed 20:44:23Z; 43430232636 build created 13:03:27Z = predecessor 43430166810 deploy completed 13:03:27Z. Waits are queue time: exec median 83 s (p90 93) from stored run_samples recomputed, so median execution saving 0 s; 15 percent gate 12.45 s and 60 s gate unmet even with all waits removed. Removing workflow-level serialization would allow out-of-order publication (rejected). Avoidable rebuilds: 0 of 19 push publications trigger-only (carried from the 02:24Z evaluation of this identical window). Schedule 05:23Z synthetic-date refresh is outside the window and designed; zero median effect. Trigger gap noted, not build time: scripts/dashboard-demo-data.mjs feeds triggered scripts/simulate-dashboard-pages.mjs but is not a docs.yml path; the daily cron bounds staleness to about 24 h. No suggestion; no issue created; open issue 20815 (checkout, OPEN, 0 comments) not repeated. next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T04:24:09Z",
       "worker_run_id": "43556042354",
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43430166810 (created 2026-11-13T13:02Z) to 43593405440 (2026-11-14T12:09Z); unchanged since the 12:21Z evaluation (no newer docs.yml run; none queued or in progress; 0 cancelled). Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies). n=19 successes (18 push + 1 schedule 43561388555); 5-run gate met. Source: HEAD 215837f = source_sha; compare 7e620f3...215837f is 1 commit touching only experiments/java-backend, no docs.yml trigger path. Jobs API spot-check of 43593405440 matched the stored row (build 59, handoff 5, Configure Pages 1, Upload 2, deploy setup 1, Deploy Pages 5, exec 73). Removable transfer (handoff + configure + upload + deploy setup) median 9 s, p90 10 s = 11.1 percent of exec median 81 s (p90 92); 15 percent gate 12.15 s; 60 s gate unreachable. Deploy Pages (GitHub-managed, median 7 s) not removable; merging deploy into build saves about 6 s but needs id-token and environment in the npm-ci job (rejected, least privilege). Artifact about 8.3 MB; shrinking saves about 1 s. Checkout (median 24 s, 30 percent of exec) is outside this category and remains covered by open issue 20815 (OPEN, 0 comments), not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T14:16:29Z",
+      "worker_run_id": "43603740474",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "43593405440",
+        "43561388555",
+        "43536796952",
+        "43536491714",
+        "43506161539",
+        "43505502149",
+        "43504143936",
+        "43504093917",
+        "43503897533",
+        "43503506778",
+        "43502660435",
+        "43502562196",
+        "43494667529",
+        "43484369040",
+        "43465706802",
+        "43447728981",
+        "43447111490",
+        "43440055797",
+        "43430232636",
+        "43430166810"
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); run list re-read 14:16Z: same 20 IDs, all completed, none queued or in progress, no newer docs run; source 215837f = HEAD = source_sha. Compare 7e620f3...215837f = 1 commit touching only experiments/java-backend/** (no docs trigger path). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Queue spot-check (jobs API): 43504143936 run-to-build-created 68 s and 43430232636 51 s match stored values; queue median 1 s, p90 51 s is not execution time, so the 60 s and 15 percent gates are unmet. Avoidable rebuilds: 0 of 18 successful push runs (the newest push matched docs/** only). Superseded in-progress builds (3 cases, upper bound 117 s, median saving 0) stay rejected: cancel-in-progress true or split groups risk Pages publication order. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1272,7 +1272,7 @@
     }
   },
   "scheduling_sample": {
-    "evaluated_at": "2026-11-14T12:36:41Z",
+    "evaluated_at": "2026-11-14T14:16:29Z",
     "window": "43430166810..43593405440 (2026-11-13T13:02Z to 2026-11-14T12:09Z); none queued or in progress; source 7e620f3 newest docs head",
     "n_success_push": 18,
     "n_success_schedule": 1,
