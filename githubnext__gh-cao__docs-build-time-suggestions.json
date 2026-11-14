@@ -1,36 +1,7 @@
 {
- "source_sha": "2000a4eaf72b334211dc7d95121855e76d840f40",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T18:53:04Z",
-   "worker_run_id": "43486180054",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43484369040 back to 43360893141; created 2026-11-13T03:43:58Z to 18:37:04Z; all within 14 days; none in progress; long-queued 37642403569 (2026-10-07) is outside the window; source = workspace HEAD 01e2e1c, newest docs run head f60a3f2; docs.yml last changed 063cbe9 before the window). Excluded: 0 failed, 0 cancelled. Comparable n=20 successes (19 push, 1 schedule 43371878284); 5-run gate met. Medians (p90): exec 87.5 s (98); build job 72 s (82); deploy job 10 s (10-11). Transfer chain: Configure Pages 0 s (1); Upload Pages artifact 2 s (3); build-end to deploy-created 0 s (1); deploy queue 5 s (5); deploy Set up job 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable overhead (first five) median 8 s, p90 10 s, max 10 s = 9.1% of median exec; 15% gate 13.1 s unmet even at full removal; 60 s unreachable. github-pages artifact median 8.30 MB (8.26-8.38); shrinking saves at most 1-2 s. Merging deploy into build saves about 6 s and moves id-token and pages write into the npm-ci build job: rejected (least privilege). Demo cp into dist/cao is sub-second inside the 4 s demo step. No suggestion; no issue created (open issue 20815 already carries the prior docs-checkout-blobless-history-v1 suggestion and is not repeated). next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T19:20:26Z",
    "worker_run_id": "43490268561",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; 60 most recent docs.yml runs returned, all completed, none queued or in progress; no docs.yml run since 00:50:15Z; window unchanged since the 04:34Z evaluation). source 2000a4e = HEAD = source_sha. Excluded and disclosed: 43506161539 failed (install); 0 cancelled. n=19 successful push runs; 5-run gate met. Category step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs: production normalization, esbuild buildDashboardSite, cp to dist/cao): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median exec 83 s (p90 93). 15 percent gate 12.45 s and 60 s gate unreachable; full removal saves at most 3 s. Spot-check: jobs API 43536796952 matched stored row (checkout 24, install 7, docs 10, demo 3, deploy 12). Earlier 4 s demo medians came from prior windows; the current stored rows give 3 s. Cross-run reuse stale-unsafe: demo output derives generatedAt and observed_at from the run clock (scripts/dashboard-demo-data.mjs), and the 05:23Z refresh is by design. docs:build path does not call buildDashboardSite (astro.config.mjs dashboard matches are metadata globs only). No suggestion; no issue created; open worker issue 20815 (blobless checkout) not repeated. next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T05:18:59Z",
+   "worker_run_id": "43560547964",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; all within 14 days; none queued or in progress; no docs.yml run since 00:50:15Z; window identical to the 01:53Z to 04:52Z evaluations). Source: workspace HEAD 4d25cbd is 1 commit ahead of source_sha 2000a4e; compare API lists 3 changed files, none on a docs.yml trigger path, so no run was expected for it. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies; Build and deploy skipped; log HTTP 403, cause unverified); 0 cancelled. n=19 successful push runs; 5-run gate met. Jobs API spot-check of 43536796952 matched the stored row (exec 75 s; Configure Pages 1; Upload 2; build-end to deploy-start 5; deploy setup 1; Deploy Pages 6). Window medians (p90) carried from the 01:53Z full jobs-API re-read of this identical window: exec 83 (93) s; Configure Pages 0 (1); Upload Pages artifact 2 (3); build-end to deploy-created 0 (1); deploy queue 5 (5); deploy setup 1 (1); Deploy Pages 7 (8, GitHub-managed). Controllable subset (upload + configure + handoff + queue + setup) about 8 s = about 10% of exec median; 15% gate 12.45 s and 60 s gate unreachable even at full removal. Merging deploy into build saves about 6 s but needs id-token and environment in the npm-ci job: rejected (least privilege). Artifact about 8.3 MB; shrinking saves about 1 s. Open issue 20815 (blobless checkout) OPEN, 0 comments, not re-filed. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,8 +884,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T06:42:40Z..2026-11-14T00:50:15Z",
-  "evaluated_at": "2026-11-14T04:52:40Z",
-  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93). Re-verified at 2026-11-14T04:34:02Z (run list only: same 20 IDs, no queued or in-progress run; stored rows reused). Re-verified at 2026-11-14T04:52:40Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row; demo median recomputed as 3 s, p90 4 s).",
+  "evaluated_at": "2026-11-14T05:18:59Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93). Re-verified at 2026-11-14T04:34:02Z (run list only: same 20 IDs, no queued or in-progress run; stored rows reused). Re-verified at 2026-11-14T04:52:40Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row; demo median recomputed as 3 s, p90 4 s). Re-verified at 2026-11-14T05:18:59Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row).",
   "median_p90_s": {
    "Checkout": [
     25,
@@ -1247,7 +1247,7 @@
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
    "comments": 0,
-   "checked_at": "2026-11-14T01:20:36Z"
+   "checked_at": "2026-11-14T05:18:59Z"
   }
  },
  "scheduling_sample": {
