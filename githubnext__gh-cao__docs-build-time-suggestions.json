@@ -1,36 +1,7 @@
 {
   "source_sha": "2000a4eaf72b334211dc7d95121855e76d840f40",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-13T16:55:48Z",
-      "worker_run_id": 43466641593,
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287,
-        43380585034,
-        43378597209,
-        43378369544,
-        43374719202,
-        43373049149,
-        43371878284,
-        43371269326,
-        43371217266,
-        43368963164,
-        43368845651,
-        43362224525,
-        43360893141,
-        43347280419
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days; newest run head 75c762e = checkout HEAD = new source_sha). Excluded: none (20/20 success; failed 43297524311 and cancelled 43206161686 are outside the window). Comparable n=19 push successes; schedule 43371878284 kept out of push statistics (exec 86 s). 5-run gate met. Artifact chain medians (p90, nearest-rank) from jobs API: Upload Pages artifact 2 s (3); build end to deploy created 0 s (1); deploy queue 5 s (5); deploy job setup 1 s (1); Deploy Pages 7 s (8); chain 15 s (p90 16) = 16.9% of median exec 89 s (p90 106). Controllable part (upload + handoff + deploy setup) median 3 s (p90 4). The 15% gate (13.35 s) is unreachable even if all of it were removed. Merging build and deploy saves about 6 s and grants id-token: write to the build job; rejected again. github-pages artifact 8.26-8.38 MB decimal, stable; size lever at most 1-2 s. Deploy Pages is GitHub-managed. Logs not read; timings from jobs API only. Open issues with label self-care:docs-build-time-investigator: none. No suggestion; no issue created. Checkout carry-forward closed: fetch-depth 0 is required because resolveBuildProvenance (docs/plugins/starlight-agent/resource.ts:249) runs git log -1 -- <file>; a depth-1 clone returned the HEAD commit time (16:44Z) for astro.config.mjs, whose true last change is 2026-11-12T13:13Z (commits API). next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-13T17:20:18Z",
       "worker_run_id": 43470744333,
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; identical to the 01:34Z to 02:52Z windows; none queued or in progress; no docs.yml run since 00:50Z; source 2000a4e = HEAD = source_sha). Excluded and disclosed: 43506161539 failed (Install dependencies at 17 s; Build and deploy skipped; log not read). 0 cancelled; 0 schedule runs. n=19 successful push runs; 5-run gate met. Stored step timings recomputed from run_samples: Build synthetic enterprise demo median 3 s (p90 4, range 3-5) = 3.6 percent of median exec 83 s (p90 93). 15 percent gate 12.45 s and 60 s gate unreachable; full removal saves at most 3 s. Reuse stays stale-unsafe: enterpriseSample(now) embeds generatedAt and observed_at, and the daily 05:23Z cron refreshes synthetic dates. buildDashboardSite has one caller (scripts/simulate-dashboard-pages.mjs), so no duplicate dashboard build in the docs chain. Separate dashboard job rejected (checkout median 25 s plus handoff). Checkout (30 percent of exec) remains covered by open issue 20815 (OPEN, 0 comments, unchanged; not re-filed). No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T03:34:50Z",
+      "worker_run_id": 43552041372,
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533,
+        43503506778,
+        43502660435,
+        43502562196,
+        43494667529,
+        43484369040,
+        43465706802,
+        43447728981,
+        43447111490,
+        43440055797,
+        43430232636,
+        43430166810,
+        43388781287,
+        43380585034
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z); run list re-read at this evaluation: no docs.yml run since 00:50:15Z, none queued or in progress; source 2000a4e = HEAD = source_sha. Window unchanged, so stored run_samples were reused (completed-run timings immutable; no Jobs API calls). Excluded and disclosed: 43506161539 failed (push 7c8faf4, install step; docs and deploy skipped). 0 cancelled; 0 schedule runs. n=19 successful push runs; 5-run gate met. Recomputed from run_samples (median, p90): exec 83 (93) s; Upload Pages artifact 2 (3) s = 2.4 percent; deploy job 9 (12) s = 10.8 percent, which includes GitHub-managed Deploy Pages (about 7 s). Build-to-deploy queue about 5 s and Configure Pages 0 s carried from the 01:53Z jobs-API evaluation (same window). Removable transfer (configure, upload, handoff/queue, deploy setup) about 8 s; medians do not add exactly. That is about 10 percent of exec median; 15 percent gate 12.45 s and 60 s gate unreachable even with all of it removed. Merging deploy into build saves about 6 s (queue plus setup) but needs id-token: write and the github-pages environment in the job that runs npm ci and Astro; rejected again (least privilege). Artifact about 8.3 MB; shrinking saves about 1 s. Checkout (30 percent of exec) remains covered by open issue 20815 and was not re-raised. No new evidence; no suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -884,8 +884,8 @@
   },
   "run_samples": {
     "window_created": "2026-11-13T06:42:40Z..2026-11-14T00:50:15Z",
-    "evaluated_at": "2026-11-14T03:20:00Z",
-    "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match.",
+    "evaluated_at": "2026-11-14T03:34:50Z",
+    "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match.",
     "median_p90_s": {
       "Checkout": [
         25,
