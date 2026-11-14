@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T22:55:05Z",
-   "worker_run_id": "43522372012",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress except stale 37642403569; no docs.yml run since 20:56:37Z; source 7cb5134 = main HEAD = source_sha; window identical to the 22:31Z window). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies failed at 17 s on cache miss for key 7808ecf8; Build and deploy skipped; Pages still reflects f695ad3 from 43505502149 at 20:53:41Z; job log HTTP 403 DIFC re-probed 22:52Z, cause unverified). n=19 push successes; 0 cancelled; 0 schedule in window; 5-run gate met. Jobs API only (logs unreadable). Medians (p90): build start to deploy end exec 84 (93) s; run create to update 88 (146) s incl. concurrency wait median 1 s, p90 51 s; Set up Node.js 4 (7); Install dependencies 16 (24) = 19 percent of median exec; setup plus install median 20 s; Post Set up Node.js 0-1 s in 19/19 (exact-key hits). 15 percent gate 12.6 s; 60 s unreachable. Candidates, none evidenced at gate: node_modules cache (saves at most about 16 s minus restore; restore unmeasured; clears gate only if restore is about 3.5 s or less); root --ignore-scripts (correctness risk; few seconds); dashboard lock outside key (zero current cost, latent). Cache: key 7808ecf8 (263 MB, refs/heads/main) created 20:57:12Z during the failed job (likely its post-step save, unverified) and last accessed 22:43:46Z by a workflow other than docs.yml; key e62f6006 last accessed 20:56:23Z. Open issue 20815 (blobless checkout) unchanged and not repeated. No suggestion; no issue; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T23:18:36Z",
    "worker_run_id": "43525630597",
@@ -869,14 +840,43 @@
     "43388781287"
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 created 2026-11-13T07:51:43Z to 43561388555 created 2026-11-14T05:24:33Z; within 14 days; run list re-read 09:18Z: unchanged, none queued or in progress; source 4d25cbd = HEAD = source_sha). 43506161539 failed (excluded from timing, kept as evidence). Avoidable-rebuild test: changed files per push run from the compare API (previous docs.yml head to this head), classified against the Pages build inputs read by docs:build and dashboard:pages:build. All 19 successful push runs matched at least one real build input (docs/**, dashboard/site/src, dashboard/report, package*.json, aw.yml or */aw.yml via catalog glob, shared policy/authority/value-acquisition/actions-log closure, cao.json), so avoidable pushes = 0; narrowing trigger paths would skip no run in this window. Non-input trigger matches (dashboard/site/test, shared files not in the closure) never produced a run alone. Schedule 43561388555 is the daily freshness refresh (about 82 s), not avoidable. Concurrency: 0 cancelled runs; queue wait median 1 s, p90 51 s is queue time, not execution, so it does not count toward the 60 s or 15 percent gate; cancel-in-progress true would risk deploy safety. Freshness gaps, not timing: docs inputs not in triggers (*/README.md read by catalog glob, cao.json, scripts/dashboard-demo-data.mjs). Checkout (median 24.5 s, largest step) is represented by open issue 20815 (0 comments, updated 2026-11-13T17:41Z), not re-filed. No suggestion; no issue created; next_category advanced to dependency installation and caching."
+  },
+  {
+   "evaluated_at": "2026-11-14T09:33:48Z",
+   "worker_run_id": "43580745621",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529",
+    "43484369040",
+    "43465706802",
+    "43447728981",
+    "43447111490",
+    "43440055797",
+    "43430232636",
+    "43430166810",
+    "43388781287"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; no docs.yml run since 05:24Z; source 4d25cbd = HEAD = source_sha; run list unchanged since the 07:52Z and 09:18Z evaluations). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies 17 s on a cache miss; job log HTTP 403, cause unverified). 0 cancelled, 0 in progress; comparable n=18 push successes plus 1 schedule (43561388555); 5-run gate met. Jobs API rows reused (completed runs immutable); spot-check of 43561388555 matched (install 10 s, checkout 37 s). Medians (p90, push n=18): exec 82 (92) s; Set up Node.js 3.5 (7); Install dependencies 15.5 (24) = 18.9 percent of exec median; 15 percent gate = 12.3 s. Post-change install 7 and 9 s (push), 10 s (schedule). Cache key verified: hashFiles(root package-lock.json) = sha256 of the file's sha256 digest, so 7808ecf8 matches HEAD root lock and the dashboard lock is outside the key; 19/19 successes restore exact key (Post Set up Node.js 0 to 1 s). Candidates, none clear the gate on current evidence: node_modules cache (saves install minus restore; post-change ceiling about 9 s; window median needs restore at or below 3.2 s versus 3.5 s setup median for the 251 MiB npm cache; restore unmeasured; #19689 CLOSED NOT_PLANNED 2026-11-07 for the same idea, not repeated); root --omit=dev (about 2.4 s est.); parallel or flag tweaks (seconds); root --ignore-scripts (correctness risk). Checkout (median 24.5 s, newest 37 s) is the largest removable step but is the same work as open issue 20815 (OPEN, 0 comments, checked 09:31Z), so no duplicate. Reliability caveat only: exact-key restore makes a root lock change a cache miss (20:56Z failure). No suggestion; no issue; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-14T05:53:00Z",
+  "verified_at": "2026-11-14T09:33:48Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
-  "key": "node-cache-<RUNNER_OS>-<arch>-npm-<sha256 of raw digest of root package-lock.json>",
+  "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) = sha256 of the file's sha256 digest; root lock only>",
   "restore": "exact key only; no restore-keys",
-  "head_key": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263 MB, refs/heads/main, created 2026-11-13T20:57:12Z, last accessed 2026-11-14T07:43:42Z per caches API)",
+  "head_key": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263 MB; refs/heads/main created 2026-11-13T20:57:12Z, last accessed 2026-11-14T09:28:40Z; plus refs/pull/20818/merge entry created 20:02:28Z); verified 09:31Z",
   "previous_key": "node-cache-Linux-x64-npm-e62f6006... (279 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T20:56:23Z) served 2026-11-12 to 2026-11-13 runs; compare API: no root lock change between 7c8faf4 and 54e08aa",
   "hits": "Post Set up Node.js 0 to 1 s in 19/19 successful runs; setup restore 2 to 8 s; miss in 43506161539 (setup 1 s, no Post step)",
   "caches_listing": "2026-11-14T00:59Z: npm entries for other lock hashes (43bd5832 312 MB, aaf3a193 296 MB, 36b11d9f 58 MB, d6275959 7 MB) are not docs.yml inputs",
@@ -884,8 +884,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T07:51:43Z..2026-11-14T05:24:33Z",
-  "evaluated_at": "2026-11-14T07:52:28Z",
-  "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Step medians (push n=18): exec 82 (p90 92); install 15.5 (24); checkout 24.5 (28); setup 3.5 (7); docs 12 (15); demo 3 (4); upload 2 (3); deploy 9 (12). Window re-verified repeatedly through 2026-11-14T05:51Z (run list only: same 20 IDs, no queued or in-progress run); stored rows reused. Re-verified at 2026-11-14T06:28:07Z: run list unchanged (newest 43561388555); jobs API spot-check of 43561388555 and 43536796952 matched stored rows. Re-verified at 2026-11-14T06:38:50Z: run list unchanged (same 20 IDs, all completed); jobs API spot-check of 43561388555 matched stored rows.",
+  "evaluated_at": "2026-11-14T09:33:48Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful (18 push + 1 schedule 43561388555); 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Step medians (push n=18): exec 82 (p90 92); install 15.5 (24); checkout 24.5 (28); setup 3.5 (7); docs 12 (15); demo 3 (4); upload 2 (3); deploy 9 (12). Window re-verified repeatedly through 2026-11-14T05:51Z (run list only: same 20 IDs, no queued or in-progress run); stored rows reused. Re-verified at 2026-11-14T06:28:07Z: run list unchanged (newest 43561388555); jobs API spot-check of 43561388555 and 43536796952 matched stored rows. Re-verified at 2026-11-14T06:38:50Z: run list unchanged (same 20 IDs, all completed); jobs API spot-check of 43561388555 matched stored rows. Re-verified 2026-11-14T09:33:48Z: run list unchanged (same 20 IDs, all completed); jobs spot-check of 43561388555 matched rows.",
   "median_p90_s": {
    "Checkout": [
     24.5,
@@ -1190,6 +1190,11 @@
  },
  "observations_pending": [
   {
+   "observed_at": "2026-11-14T09:33:48Z",
+   "source": "docs.yml dependency-install category (worker 43580745621)",
+   "note": "Checkout newest sample 37 s (43561388555) above the stored 24.5 s median and 31 s max; median unchanged. Same work as open issue 20815, so no new issue; not a dependency finding. Not a suggestion."
+  },
+  {
    "observed_at": "2026-11-14T07:52:28Z",
    "source": "docs.yml install category (worker 43572816768)",
    "note": "Post-7c8faf4 install samples n=3 (7, 9, 10 s; jobs API) median 9 s, superseding the earlier n=2 figure. Re-evaluate only if install median rises above about 12 s after at least 5 successful post-change runs; not a suggestion."
@@ -1262,7 +1267,7 @@
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
    "comments": 0,
-   "checked_at": "2026-11-14T05:33:03Z"
+   "checked_at": "2026-11-14T09:33:48Z"
   }
  },
  "scheduling_sample": {
