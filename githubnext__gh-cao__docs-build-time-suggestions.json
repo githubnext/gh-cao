@@ -1,36 +1,7 @@
 {
- "source_sha": "e11a86f8fba27ce217b2cd2f31b8c28a200c50e7",
- "next_category": "reusable dashboard generation",
+ "source_sha": "2000a4eaf72b334211dc7d95121855e76d840f40",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T14:54:30Z",
-   "worker_run_id": "43446486267",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43341713733 created 2026-11-13T01:01:41Z to 43440055797 created 14:09:27Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; source 6e75d30 = HEAD = source_sha; same window as the 14:34Z evaluation). Jobs API re-fetched for all 20 runs; medians match memory. Category step Build synthetic enterprise demo (npm run dashboard:pages:build + cp to dist/cao): median 4 s, p90 5 s, range 3-5 s = 4.6 percent of median build-start-to-deploy-end 87.5 s (p90 98 s). 15 percent gate = 13.1 s; full removal saves at most 4 s, so the gate is unreachable. No duplicate dashboard build: docs:build (astro build + validate-agent-docs + agent-docs-discovery test) has no reference to buildDashboardSite, dashboard/site or dashboard/report in docs/ or astro.config.mjs; callers are scripts/simulate-dashboard-pages.mjs and tests only; root has no workspaces. Cross-run reuse would stale output: scripts/dashboard-demo-data.mjs enterpriseSample(now) embeds ms-resolution generatedAt and observed_at (re-verified). Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 31, max 56), largest step, not evaluated here. No suggestion; no issue created (no open self-care:docs-build-time-investigator issues). next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T15:20:28Z",
    "worker_run_id": "43450723904",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; none queued or in progress; queued 37642403569 is from 2026-10-07, outside window; source e11a86f = workspace HEAD = source_sha). Comparable n=19 successful push runs (5-run gate met). Excluded and disclosed: failed 43506161539 (install failure, docs step not reached); no cancelled runs; no schedule run in window. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs): median 12 s, p90 15 s, range 9-15 s = 14.5 percent of median build-start-to-deploy-end 83 s (p90 93 s). 15 percent gate = 12.45 s; removing the whole step saves at most 12 s, so neither the 15 percent nor the 60 s gate is reachable. Build-job log read still HTTP 403 difc_forbidden (probed once, build job 132267659354, not retried); astro-versus-validation split unmeasured and not decision-relevant. Validator and discovery test run only git ls-files and rev-parse HEAD; per-resource git log in docs/plugins/starlight-agent/resource.ts measured about 2 ms per call in sandbox (indicative), negligible. Checkout fetch-depth 0 (median 25 s, p90 31; full history needed by sourceCommittedAt) is already represented by open issue 20815 (fingerprint docs-checkout-blobless-history-v1; 0 comments; no new timing evidence), so not re-raised. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T01:34:48Z",
+   "worker_run_id": "43540937288",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; all within 14 days; none queued or in progress; 0 cancelled; 0 schedule runs in window). Excluded and disclosed: failed 43506161539 (install step; docs and demo not reached). Comparable n=19 successful push runs (5-run gate met). Jobs API re-fetched for all 20 runs this run; step medians match stored run_samples. Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median build-start-to-deploy-end 83 s (p90 93 s). 15 percent gate 12.45 s and 60 s gate unreachable; full removal saves at most 3 s. No duplicate dashboard generation: docs:build (astro build, validate-agent-docs, agent-docs-discovery test) does not reach buildDashboardSite; the only production caller is scripts/simulate-dashboard-pages.mjs, run once per Pages build. Reuse stays unsafe: scripts/dashboard-demo-data.mjs enterpriseSample(now) embeds generatedAt and observed_at (re-verified), and the daily cron exists to refresh synthetic dates. Source: workspace HEAD 2000a4e is 2 commits ahead of newest docs run head 54e08aa (compare API: server/ and kubernetes/ files only; no docs trigger path changed). No suggestion; no issue created; no noop-cap issue. next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -885,8 +885,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T06:42:40Z..2026-11-14T00:50:15Z",
-  "evaluated_at": "2026-11-14T00:59:52Z",
-  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read.",
+  "evaluated_at": "2026-11-14T01:34:48Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged.",
   "median_p90_s": {
    "Checkout": [
     25,
@@ -1190,6 +1190,11 @@
   ]
  },
  "observations_pending": [
+  {
+   "observed_at": "2026-11-14T01:34:48Z",
+   "source": "docs.yml jobs API (worker 43540937288)",
+   "note": "Jobs endpoint returned no ETag header, so If-None-Match cannot be used. Completed-run job timings are immutable: reuse run_samples rows keyed by run ID and fetch only runs new to the window."
+  },
   {
    "observed_at": "2026-11-14T01:20:36Z",
    "source": "docs.yml build log probe (worker 43539565633)",
