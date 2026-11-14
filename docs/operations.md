@@ -62,7 +62,9 @@ slash-command dispatcher:
   overlap and significant architectural decisions, and suggest precise architecture
   documentation updates without editing files or creating ADRs.
 
-All four retain explicit invocation: no automatic PR or scheduled triggers.
+All four support explicit invocation. The architecture reviewer also runs when
+a PR changing `server/**/*.go` is marked ready for review; the other three have
+no automatic PR triggers. None have scheduled triggers.
 They share bounded, uncached PR prefetch, reject incomplete file listings and
 head changes during acquisition, and disclose unavailable or truncated diffs.
 Reviewers inspect untrusted PR code without executing it. Reviews and comments

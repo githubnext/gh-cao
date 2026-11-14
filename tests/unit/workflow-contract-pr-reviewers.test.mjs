@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 import { workflow } from "./workflow-contract.helpers.mjs";
@@ -16,6 +16,10 @@ test("service architecture reviewer is local, bounded and suggestion-only", () =
   const source = workflow("service-architecture-reviewer.md");
   const settings = config(source);
   assert.deepEqual(settings.on, {
+    pull_request: {
+      types: ["ready_for_review"],
+      paths: ["server/**/*.go"],
+    },
     reaction: "none",
     slash_command: {
       name: "architecture",
@@ -44,6 +48,17 @@ test("service architecture reviewer is local, bounded and suggestion-only", () =
     status_comment: true,
   }]);
   const lock = parse(workflow("service-architecture-reviewer.lock.yml"));
+  assert.deepEqual(lock.on.pull_request, settings.on.pull_request);
+  for (const [path, expected] of [
+    ["server/main.go", true],
+    ["server/internal/collect/ingest.go", true],
+    ["server/internal/collect/ingest_test.go", true],
+    ["internal/cli/setup.go", false],
+    ["server/spec/storage.tsp", false],
+    ["server/README.md", false],
+  ]) {
+    assert.equal(settings.on.pull_request.paths.some((pattern) => posix.matchesGlob(path, pattern)), expected, path);
+  }
   const outputs = JSON.parse(lock.jobs.safe_outputs.steps.find((step) => step.env?.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG).env.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
   assert.equal(outputs.create_pull_request_review_comment.max, 8);
   assert.equal(outputs.submit_pull_request_review.max, 1);

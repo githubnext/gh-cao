@@ -3,6 +3,10 @@ name: Service Architecture Reviewer
 description: Reviews PR service boundaries, data stores and ingestion pipelines against ARCHITECTURE.md and suggests evidence-backed documentation updates.
 private: true
 on:
+  pull_request:
+    types: [ready_for_review]
+    paths:
+      - "server/**/*.go"
   reaction: none
   slash_command:
     name: architecture
@@ -45,7 +49,8 @@ safe-outputs:
 
 Review only this repository's triggering pull request. Compare its implementation
 with `ARCHITECTURE.md`, focusing on service architecture, data stores and data
-ingestion pipelines. This is an on-demand architectural review, not the
+ingestion pipelines. Run automatically when a PR changing server Go files is
+marked ready for review, or on demand through `/architecture`. This is not the
 Continuous Architecture Review campaign or the Design Decision Gate. Do not
 create ADRs, perform remediation, or discover fleet repositories.
 
