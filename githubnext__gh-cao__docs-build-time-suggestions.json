@@ -1,36 +1,7 @@
 {
- "source_sha": "7cb5134de200cd5d27125613422c3ecc7abdf846",
- "next_category": "dependency installation and caching",
+ "source_sha": "e11a86f8fba27ce217b2cd2f31b8c28a200c50e7",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T14:21:00Z",
-   "worker_run_id": "43441140909",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43440055797 back to 43341713733; created 2026-11-13T01:01:41Z to 2026-11-13T14:09:27Z; all 20 success, none queued or in progress, no failed or cancelled run; failed 43297524311 left the window; source 6e75d30 = HEAD = source_sha). Comparable n=20 (19 push + schedule 43371878284; 5-run gate met). Evidence: Actions jobs and steps API only (job logs not read this cycle). Medians (p90): exec build-start to deploy-end 87.5 s (98; push-only n=19 median 89 s, p90 106 s); Install dependencies 17 s (22; range 12-23 s) = 19.4% of median exec; Set up Node.js 4 s (7); Post Set up Node.js 0 s in 20/20 (exact-key hit). Cache node-cache-Linux-x64-npm-e62f6006 (278.9 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T14:16Z) equals sha256 of the raw digest of root package-lock.json (verified locally); root lock last changed 063cbe9 (2026-11-12T06:17:07Z), before every window run. docs.yml keys on root lock only; dashboard/site lock last changed 3d20dbb (2026-10-22) and is outside this key (its key 9328fd17 belongs to other workflows); no stale-key effect observed. 15% gate = 13.1 s, so setup plus install must fall to about 8 s combined. Candidates, none evidenced at the gate: node_modules cache (needs restore plus setup at or below about 8 s; tree size and restore time unmeasured; needs a maintainer-branch run); root --ignore-scripts (4 install-script packages; correctness risk; unmeasured); --no-audit/--no-fund and --prefer-offline (few seconds at most, unmeasured); root --omit=dev (108 of 765 lock entries dev-only; est <=2.4 s; dependency-surface change, not evidenced); parallel root and dashboard installs (bounded by dashboard share; unmeasured). Caches listing 94 entries totalling 10.7 GB against a 10 GB cap (LRU pressure); the docs key is accessed on every run, so eviction risk is low. Open issues with this worker label: none. No suggestion; no issue created; next_category advanced to Astro documentation generation. Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 31, max 56) remains the largest step; not evaluated here.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T14:34:41Z",
    "worker_run_id": "43443264728",
@@ -870,36 +841,59 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; 14.5 h span so the 20-run cap binds; 19 success, 1 failure 43506161539 at Install dependencies (log HTTP 403, cause unverified), 0 cancelled, 0 queued or in progress; no schedule run in window; source 7cb5134 = HEAD = source_sha; same window as the 23:34Z and 23:52Z evaluations, no docs.yml run since 20:56Z). Comparable n=19 successful push runs. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 51 s, max 68 s; 3/19 waited 42-68 s and each ended at the predecessor updatedAt (43430232636 51 s after 43430166810 at 13:03:28; 43502660435 42 s after 43502562196 at 20:34:16; 43504143936 68 s after 43504093917 at 20:44:24). Queue only: build exec median 69 s (p90 79); build start to deploy end median 84 s (p90 93, max 114). Avoidable rebuilds: 0 of 19 pushes had only non-build trigger matches; test-only matches in 10 pushes always alongside build inputs; shared/** non-build matches in 2 pushes alongside build inputs. Median saving of any scheduling change = 0 s; 15 percent gate 12.6 s and 60 s gate unmet. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy), split or deploy-only groups (out-of-order publication), dropping schedule (synthetic-date freshness), skipping same-SHA schedule (one occurrence in the prior window, none in this one; needs actions read permission). Freshness gaps, not timing, no issue: docs.yml paths omit scripts/dashboard-demo-data.mjs (imported by simulate-dashboard-pages.mjs), */README.md (docs/lib/catalog.ts glob) and .github/workflows/cao.json (dashboard/site/scripts/build.mjs loadDashboardGhAwVersion); staleness bounded by the 05:23 UTC daily schedule. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T00:59:52Z",
+   "worker_run_id": "43537183263",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; about 18 h, so the 20-run cap binds and the 14-day bound is not reached). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies at 17 s on a cache miss; Build and deploy skipped; job logs not read this run, earlier probes HTTP 403). 0 cancelled, 0 in progress, 0 schedule runs. n=19 successful push runs; 5-run gate met. Source e11a86f = HEAD = source_sha (1 commit ahead of newest docs head 54e08aa, no docs trigger path). Medians (p90): exec build start to deploy end 83 s (93); build job 67 s (79); deploy 9 s (12); Set up Node.js 3 s (7); Install dependencies 16 s (24) = 19 percent of exec median; Post Set up Node.js 0 s (max 1) in 19/19 = exact-key hits (caches API: key node-cache-Linux-x64-npm-7808ecf8 is sha256 of the HEAD root lock). 15 percent gate = 12.4 s. Lock change 7c8faf4 (compare API: root lock -18 lines, dashboard lock -18, runtime/package.json -16) created the new key. Pre-change key e62f6006 (n=17): install median 16 s (p90 24). Post-change n=2 (2cb6d9c, 54e08aa): install 9 and 7 s, setup 3 to 5 s, exec 79 and 75 s. An 18-line lock diff does not explain a halving; cache state or runner variance is unresolved and n=2 is insufficient. Candidates, none evidenced at the gate: node_modules cache (best case removes install; restore unmeasured; #19689 closed NOT_PLANNED 2026-11-07); root --omit=dev (est <=2.4 s); --no-audit/--no-fund and parallel dashboard install (seconds, unmeasured); root --ignore-scripts (correctness risk). Reliability, not timing: failed install began 20:56:37Z, before key 7808ecf8 existed on main (created 20:57:12Z; creator unverified, several same-push workflows also saved caches); exact-key restore means a root lock change makes the first docs run a cache miss; Pages stayed at 20:53Z publication until the 00:48Z recovery run. Open issue 20815 (checkout, OPEN, unchanged) not repeated. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-13T19:35:43Z",
-  "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache restore/save; key rule from prior verification)",
-  "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hash of root package-lock.json>",
-  "hash_rule": "sha256 over the raw digest bytes of each file (sha256(raw digest of HEAD package-lock.json) = e62f6006...)",
-  "restore": "exact key only (no restore-keys)",
-  "head_key_entry": "node-cache-Linux-x64-npm-e62f6006... 279 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T16:52:16Z, refs/heads/main. Post Set up Node.js 0 s median (max 1 s) in 19/19 push runs = exact-key hits (setup-node saves only on miss).",
-  "lock_history": "root package-lock last changed 063cbe9 (2026-11-12T06:17:07Z), before every window run; dashboard/site/package-lock.json last changed 3d20dbb (2026-10-22T19:48Z); docs.yml last changed 063cbe9 (before the window).",
-  "install_shape": "root npm ci: 765 entries, 657 prod-reachable, 4 with install scripts (esbuild, fsevents, koffi, node-pty); dashboard npm --prefix ci --omit=dev --ignore-scripts: 36 of 327 entries prod-only.",
-  "logs": "HTTP 403 difc_forbidden on job logs (not re-probed this run); hits inferred from Post Set up Node.js durations plus actions/caches created-at and last-accessed timestamps.",
-  "caches_listing": "2026-11-13T15:18Z: 89 entries returned by the caches listing, head key accessed each run; the other node-cache key (43bd5832..., 312 MB) is not produced by the current root lock hash and is not a docs.yml input.",
-  "key_local_check": "2026-11-13: sha256(raw digest bytes of package-lock.json) = e62f60064d029508f211ec68b5dbe6fec5a670a362fc29e8f7cbd32048ff278a, matching the live key suffix; checkout is shallow (depth 1), so history uses the commits API.",
-  "note_2026_11_13_1728Z": "head key node-cache-Linux-x64-npm-e62f6006... last_accessed 2026-11-13T17:28:44Z (caches API); unchanged created 2026-11-12T06:18:07Z",
-  "note_2026_11_13_1935Z": "head key node-cache-Linux-x64-npm-e62f6006 created 2026-11-12T06:18:07Z, last_accessed 2026-11-13T19:28:45Z (caches API); root package-lock.json recomputes to e62f6006 (unchanged). dashboard/site/package-lock.json recomputes to 9328fd17, a separate main-branch key created 2026-11-13T04:01:40Z that docs.yml does not use (docs.yml key covers the root lock only).",
-  "note_2026_11_13_2135Z": "Head root lock hash 7808ecf8 recomputed (sha256 of sha256 digest of package-lock.json). Caches API: node-cache-Linux-x64-npm-7808ecf8 exists for refs/pull/20818/merge (created 2026-11-13T20:02:28Z) and refs/heads/main (created 20:57:12Z, after failed run 43506161539). Post Set up Node.js 0-1 s in 19/19 successful runs (exact-key hits). Failure cause not verifiable (job log HTTP 403); cache existence alone does not prove the next run restores it.",
-  "note_2026_11_13_2252Z": "key 7808ecf8 (263 MB, main) created 20:57:12Z during failed 43506161539 (likely post-step save, unverified), last accessed 22:43:46Z by a non-docs workflow; e62f6006 (279 MB) last accessed 20:56:23Z; a partial npm cache saved by a failed job would be restored by the next docs run; cache entries are content-addressed so partial content should cause retries, not corruption (unverified)."
+  "verified_at": "2026-11-14T00:59:52Z",
+  "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
+  "key": "node-cache-<RUNNER_OS>-<arch>-npm-<sha256 of raw digest of root package-lock.json>",
+  "restore": "exact key only; no restore-keys",
+  "head_key": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263 MB, refs/heads/main, created 2026-11-13T20:57:12Z, last accessed 2026-11-14T00:52:21Z); verified locally (root lock hash 7808ecf8 at HEAD)",
+  "previous_key": "node-cache-Linux-x64-npm-e62f6006... (279 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T20:56:23Z) served 2026-11-12 to 2026-11-13 runs; compare API: no root lock change between 7c8faf4 and 54e08aa",
+  "hits": "Post Set up Node.js 0 to 1 s in 19/19 successful runs; setup restore 2 to 8 s; miss in 43506161539 (setup 1 s, no Post step)",
+  "caches_listing": "2026-11-14T00:59Z: npm entries for other lock hashes (43bd5832 312 MB, aaf3a193 296 MB, 36b11d9f 58 MB, d6275959 7 MB) are not docs.yml inputs",
+  "install_shape": "root npm ci: 765 entries; dashboard npm --prefix ci --omit=dev --ignore-scripts; both in the Install dependencies step, which cannot be split from job logs"
  },
  "run_samples": {
-  "window_created": "2026-11-13T06:23:31Z..2026-11-13T20:56:37Z",
-  "evaluated_at": "2026-11-13T23:34:44Z",
-  "note": "window = latest 20 completed docs.yml runs (43506161539..43378369544); 19 successful push runs (n=19), 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs HTTP 403 DIFC. Re-verified at 2026-11-13T23:34:44Z (same window; build start to deploy end median 84, p90 92.2; demo step 3 (4); install 16 (23.2)).",
+  "window_created": "2026-11-13T06:42:40Z..2026-11-14T00:50:15Z",
+  "evaluated_at": "2026-11-14T00:59:52Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read.",
   "median_p90_s": {
    "Checkout": [
     25,
     31
    ],
    "Set up Node.js": [
-    4,
+    3,
     7
    ],
    "Install dependencies": [
@@ -919,365 +913,302 @@
     3
    ],
    "exec": [
-    84,
+    83,
     93
    ],
-   "queue_wait": [
-    1,
-    51
+   "build_queue": [
+    3,
+    3
    ],
    "deploy_job": [
     9,
     12
    ]
   },
+  "columns": "run,conclusion,exec,checkout,setup,post_setup,install,docs,demo,upload,deploy",
   "rows": [
-   {
-    "run": 43506161539,
-    "c": "fail",
-    "exec": 46,
-    "wait": 1,
-    "co": 24,
-    "node": 1,
-    "post_node": 0,
-    "inst": 17,
-    "docs": 0,
-    "demo": 0,
-    "up": 0,
-    "deploy": 0
-   },
-   {
-    "run": 43505502149,
-    "c": "succ",
-    "exec": 81,
-    "wait": 1,
-    "co": 24,
-    "node": 2,
-    "post_node": 1,
-    "inst": 16,
-    "docs": 11,
-    "demo": 3,
-    "up": 1,
-    "deploy": 13
-   },
-   {
-    "run": 43504143936,
-    "c": "succ",
-    "exec": 90,
-    "wait": 68,
-    "co": 24,
-    "node": 4,
-    "post_node": 0,
-    "inst": 24,
-    "docs": 14,
-    "demo": 4,
-    "up": 2,
-    "deploy": 7
-   },
-   {
-    "run": 43504093917,
-    "c": "succ",
-    "exec": 84,
-    "wait": 1,
-    "co": 26,
-    "node": 7,
-    "post_node": 0,
-    "inst": 15,
-    "docs": 12,
-    "demo": 3,
-    "up": 3,
-    "deploy": 9
-   },
-   {
-    "run": 43503897533,
-    "c": "succ",
-    "exec": 68,
-    "wait": 1,
-    "co": 20,
-    "node": 3,
-    "post_node": 0,
-    "inst": 11,
-    "docs": 9,
-    "demo": 4,
-    "up": 3,
-    "deploy": 9
-   },
-   {
-    "run": 43503506778,
-    "c": "succ",
-    "exec": 78,
-    "wait": 0,
-    "co": 23,
-    "node": 2,
-    "post_node": 0,
-    "inst": 14,
-    "docs": 11,
-    "demo": 4,
-    "up": 2,
-    "deploy": 12
-   },
-   {
-    "run": 43502660435,
-    "c": "succ",
-    "exec": 83,
-    "wait": 42,
-    "co": 25,
-    "node": 3,
-    "post_node": 0,
-    "inst": 15,
-    "docs": 14,
-    "demo": 4,
-    "up": 3,
-    "deploy": 11
-   },
-   {
-    "run": 43502562196,
-    "c": "succ",
-    "exec": 77,
-    "wait": 1,
-    "co": 21,
-    "node": 5,
-    "post_node": 1,
-    "inst": 20,
-    "docs": 10,
-    "demo": 3,
-    "up": 1,
-    "deploy": 8
-   },
-   {
-    "run": 43494667529,
-    "c": "succ",
-    "exec": 93,
-    "wait": 1,
-    "co": 31,
-    "node": 4,
-    "post_node": 0,
-    "inst": 17,
-    "docs": 15,
-    "demo": 4,
-    "up": 3,
-    "deploy": 9
-   },
-   {
-    "run": 43484369040,
-    "c": "succ",
-    "exec": 80,
-    "wait": 1,
-    "co": 26,
-    "node": 4,
-    "post_node": 0,
-    "inst": 15,
-    "docs": 9,
-    "demo": 3,
-    "up": 3,
-    "deploy": 9
-   },
-   {
-    "run": 43465706802,
-    "c": "succ",
-    "exec": 89,
-    "wait": 1,
-    "co": 25,
-    "node": 4,
-    "post_node": 0,
-    "inst": 20,
-    "docs": 15,
-    "demo": 4,
-    "up": 2,
-    "deploy": 10
-   },
-   {
-    "run": 43447728981,
-    "c": "succ",
-    "exec": 92,
-    "wait": 1,
-    "co": 23,
-    "node": 8,
-    "post_node": 0,
-    "inst": 25,
-    "docs": 12,
-    "demo": 3,
-    "up": 2,
-    "deploy": 9
-   },
-   {
-    "run": 43447111490,
-    "c": "succ",
-    "exec": 73,
-    "wait": 1,
-    "co": 23,
-    "node": 3,
-    "post_node": 1,
-    "inst": 13,
-    "docs": 11,
-    "demo": 3,
-    "up": 1,
-    "deploy": 9
-   },
-   {
-    "run": 43440055797,
-    "c": "succ",
-    "exec": 90,
-    "wait": 0,
-    "co": 24,
-    "node": 3,
-    "post_node": 0,
-    "inst": 23,
-    "docs": 14,
-    "demo": 5,
-    "up": 2,
-    "deploy": 10
-   },
-   {
-    "run": 43430232636,
-    "c": "succ",
-    "exec": 91,
-    "wait": 51,
-    "co": 25,
-    "node": 5,
-    "post_node": 0,
-    "inst": 18,
-    "docs": 15,
-    "demo": 3,
-    "up": 3,
-    "deploy": 10
-   },
-   {
-    "run": 43430166810,
-    "c": "succ",
-    "exec": 77,
-    "wait": 1,
-    "co": 25,
-    "node": 3,
-    "post_node": 0,
-    "inst": 14,
-    "docs": 11,
-    "demo": 3,
-    "up": 2,
-    "deploy": 8
-   },
-   {
-    "run": 43388781287,
-    "c": "succ",
-    "exec": 85,
-    "wait": 0,
-    "co": 28,
-    "node": 3,
-    "post_node": 0,
-    "inst": 17,
-    "docs": 14,
-    "demo": 4,
-    "up": 2,
-    "deploy": 9
-   },
-   {
-    "run": 43380585034,
-    "c": "succ",
-    "exec": 114,
-    "wait": 0,
-    "co": 56,
-    "node": 3,
-    "post_node": 0,
-    "inst": 16,
-    "docs": 15,
-    "demo": 4,
-    "up": 3,
-    "deploy": 8
-   },
-   {
-    "run": 43378597209,
-    "c": "succ",
-    "exec": 91,
-    "wait": 1,
-    "co": 27,
-    "node": 7,
-    "post_node": 0,
-    "inst": 16,
-    "docs": 12,
-    "demo": 3,
-    "up": 4,
-    "deploy": 11
-   },
-   {
-    "run": 43378369544,
-    "c": "succ",
-    "exec": 75,
-    "wait": 1,
-    "co": 20,
-    "node": 5,
-    "post_node": 0,
-    "inst": 15,
-    "docs": 9,
-    "demo": 3,
-    "up": 2,
-    "deploy": 12
-   }
-  ],
-  "packaging": {
-   "evaluated_at": "2026-11-13T22:19:02Z",
-   "window": "43378369544..43506161539",
-   "push_successes": 19,
-   "Configure Pages": [
-    0,
-    1
-   ],
-   "Upload Pages artifact": [
-    2,
-    3
-   ],
-   "handoff_build_end_to_deploy_start": [
+   [
+    43536796952,
+    "succ",
+    75,
+    24,
     5,
-    6
-   ],
-   "deploy_setup": [
-    1,
-    1
-   ],
-   "Deploy Pages": [
+    0,
     7,
-    8
+    10,
+    3,
+    2,
+    12
    ],
-   "removable_transfer": [
+   [
+    43536491714,
+    "succ",
+    79,
+    28,
+    3,
+    0,
     9,
+    13,
+    3,
+    2,
     10
    ],
-   "exec": [
-    84,
-    93
+   [
+    43506161539,
+    "fail",
+    46,
+    24,
+    1,
+    0,
+    17,
+    0,
+    0,
+    0,
+    0
    ],
-   "removable_pct_of_median_exec": 10.7
-  },
-  "run_to_build_wait_s_over_50": [
-   68,
-   51,
-   42
+   [
+    43505502149,
+    "succ",
+    81,
+    24,
+    2,
+    1,
+    16,
+    11,
+    3,
+    1,
+    13
+   ],
+   [
+    43504143936,
+    "succ",
+    90,
+    24,
+    4,
+    0,
+    24,
+    14,
+    4,
+    2,
+    7
+   ],
+   [
+    43504093917,
+    "succ",
+    84,
+    26,
+    7,
+    0,
+    15,
+    12,
+    3,
+    3,
+    9
+   ],
+   [
+    43503897533,
+    "succ",
+    68,
+    20,
+    3,
+    0,
+    11,
+    9,
+    4,
+    3,
+    9
+   ],
+   [
+    43503506778,
+    "succ",
+    78,
+    23,
+    2,
+    0,
+    14,
+    11,
+    4,
+    2,
+    12
+   ],
+   [
+    43502660435,
+    "succ",
+    83,
+    25,
+    3,
+    0,
+    15,
+    14,
+    4,
+    3,
+    11
+   ],
+   [
+    43502562196,
+    "succ",
+    77,
+    21,
+    5,
+    1,
+    20,
+    10,
+    3,
+    1,
+    8
+   ],
+   [
+    43494667529,
+    "succ",
+    93,
+    31,
+    4,
+    0,
+    17,
+    15,
+    4,
+    3,
+    9
+   ],
+   [
+    43484369040,
+    "succ",
+    80,
+    26,
+    4,
+    0,
+    15,
+    9,
+    3,
+    3,
+    9
+   ],
+   [
+    43465706802,
+    "succ",
+    89,
+    25,
+    4,
+    0,
+    20,
+    15,
+    4,
+    2,
+    10
+   ],
+   [
+    43447728981,
+    "succ",
+    92,
+    23,
+    8,
+    0,
+    25,
+    12,
+    3,
+    2,
+    9
+   ],
+   [
+    43447111490,
+    "succ",
+    73,
+    23,
+    3,
+    1,
+    13,
+    11,
+    3,
+    1,
+    9
+   ],
+   [
+    43440055797,
+    "succ",
+    90,
+    24,
+    3,
+    0,
+    23,
+    14,
+    5,
+    2,
+    10
+   ],
+   [
+    43430232636,
+    "succ",
+    91,
+    25,
+    5,
+    0,
+    18,
+    15,
+    3,
+    3,
+    10
+   ],
+   [
+    43430166810,
+    "succ",
+    77,
+    25,
+    3,
+    0,
+    14,
+    11,
+    3,
+    2,
+    8
+   ],
+   [
+    43388781287,
+    "succ",
+    85,
+    28,
+    3,
+    0,
+    17,
+    14,
+    4,
+    2,
+    9
+   ],
+   [
+    43380585034,
+    "succ",
+    114,
+    56,
+    3,
+    0,
+    16,
+    15,
+    4,
+    3,
+    8
+   ]
   ]
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-13T22:31:00Z",
-   "source": "docs.yml FAILURE 43506161539 still unverified (worker 43519522791)",
-   "note": "No docs.yml run after 20:56:37Z. Main content since 7c8faf4 is not published; the next docs-path push or 05:23Z schedule reruns the install. Job log still HTTP 403 DIFC. Maintainer should read the install log of 43506161539 and confirm a green docs.yml run on main."
+   "observed_at": "2026-11-14T00:59:52Z",
+   "source": "docs.yml failure 43506161539 (worker 43537183263)",
+   "note": "Pages recovered: successes 2cb6d9c (00:47Z) and 54e08aa (00:50Z) deployed, ending a stale period from 20:53Z. The install failure cause is still unverified (logs not read this run). No maintainer action needed for timing."
   },
   {
-   "observed_at": "2026-11-13T22:55:05Z",
-   "source": "docs.yml dependency category (worker 43522372012)",
-   "note": "Failure 43506161539 still unverified: no docs.yml run since 20:56:37Z; Pages stale at f695ad3 since 20:53:41Z. Maintainer with Actions log access should read the install step of 43506161539, or re-run docs.yml on main, and confirm a green run. Re-evaluate timing only after a green run; a restored key 7808ecf8 would show as Post Set up Node.js 0-1 s."
+   "observed_at": "2026-11-14T00:59:52Z",
+   "source": "docs.yml install category (worker 43537183263)",
+   "note": "Re-evaluate install timing after at least 5 successful runs on key 7808ecf8. If the median install stays at or below about 9 s, the dependency category stays below the 15 percent gate and no change is warranted."
   },
   {
-   "observed_at": "2026-11-13T23:52:41Z",
-   "source": "docs.yml artifact transfer (worker 43529776475)",
-   "note": "No docs.yml run after 20:56:37Z; failed 43506161539 still unexplained (log 403). Cache key 7808ecf8 for HEAD root lock exists on main, so a maintainer rerun should restore it; no timing change proposed. Maintainer should read the install step of 43506161539 or rerun docs.yml on main and confirm a green run that updates Pages."
-  },
-  {
-   "observed_at": "2026-11-14T00:38:55Z",
-   "source": "docs.yml scheduling (worker 43534646046)",
-   "note": "No docs.yml run after 20:56:37Z; Pages stale since f695ad3 (20:53Z). Failed 43506161539 cause still unverified (log 403). Feed-host URLs are not the distinguishing cause: 165 lines at successful 6e75d30 vs 163 at 7c8faf4; root package.json and lock deps match at HEAD. Maintainer should read the install step of 43506161539 or rerun docs.yml on main and confirm a green run; re-evaluate timing only after that."
+   "observed_at": "2026-11-14T00:59:52Z",
+   "source": "docs.yml cache-miss fragility (worker 43537183263)",
+   "note": "Exact-key restore means a root lock change makes the first docs run a cache miss, and a failed miss can leave Pages stale until the next docs-path push or the daily schedule. This is a reliability and maintainer decision, not a timing finding; not a suggestion."
   },
   {
    "observed_at": "2026-11-14T00:38:55Z",
    "source": "docs.yml path-filter review (worker 43534646046)",
-   "note": "Freshness gap, not a timing finding: triggers omit scripts/dashboard-demo-data.mjs, */README.md and .github/workflows/cao.json, which the Pages/docs build reads. Staleness bounded by the daily 05:23 UTC schedule. Re-evaluate only if a maintainer changes path filters or a gap-caused stale publication is observed."
+   "note": "Freshness gap, not a timing finding: triggers omit scripts/dashboard-demo-data.mjs, */README.md and .github/workflows/cao.json, which the Pages build reads. Staleness is bounded by the daily 05:23 UTC schedule."
   }
  ],
  "checkout_probe": {
@@ -1306,7 +1237,8 @@
    "number": 20815,
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
-   "checked_at": "2026-11-13T23:34:44Z"
+   "comments": 0,
+   "checked_at": "2026-11-14T00:59:52Z"
   }
  },
  "scheduling_sample": {
