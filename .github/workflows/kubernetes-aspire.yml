@@ -6,20 +6,20 @@ on:
       - .github/workflows/kubernetes-aspire.yml
       - .github/workflows/cao.json
       - .github/workflows/cao.azure.json
+      - .github/workflows/shared/**
+      - .dockerignore
       - .npmrc
       - package.json
       - package-lock.json
-      - server/Dockerfile
-      - server/kubernetes/**
-      - server/azure/**
-      - server/postgres/**
-      - server/go.mod
-      - server/go.sum
+      - server/**
       - internal/dashboardquery/**
-      - dashboard/site/**
+      - dashboard/**
+      - tests/unit/kubernetes-local.test.mjs
+      - tests/integration/kubernetes-kind.test.mjs
   push:
     branches: [main]
     paths: *paths
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -59,25 +59,26 @@ jobs:
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
       - name: Install Node dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Test Kubernetes helper contracts
+        run: node --test tests/unit/kubernetes-local.test.mjs
       - name: Start Aspire and wait for database provisioning
         env:
           ASPIRE_CLI_START_TIMEOUT: "300"
         run: |
           set -euo pipefail
           aspire start --apphost server/kubernetes/aspire/apphost.cs
-          aspire wait database --status down --timeout 1800
+          aspire wait database --status down --timeout 1800 --apphost server/kubernetes/aspire/apphost.cs
           logs="$(aspire logs database --tail 100 --apphost server/kubernetes/aspire/apphost.cs)"
           printf '%s\n' "$logs"
           grep -Fq 'CAO database provisioning and explicit grants complete' <<< "$logs"
-      - name: Run and verify canonical maintenance
+      - name: Test local Kubernetes maintenance and hosted HTTPS
+        env:
+          CAO_KUBERNETES_INTEGRATION: "1"
+          CAO_LOCAL_KIND_CLUSTER: cao-local
         run: |
           set -euo pipefail
           kind export kubeconfig --name cao-local
-          kubectl --context kind-cao-local -n cao-local-system create job \
-            --from=cronjob/cao-canonical-maintenance cao-maintenance-ci
-          kubectl --context kind-cao-local -n cao-local-system wait \
-            --for=condition=complete job/cao-maintenance-ci --timeout=10m
-          kubectl --context kind-cao-local -n cao-local-system logs job/cao-maintenance-ci
+          node --test tests/integration/kubernetes-kind.test.mjs
       - name: Show Aspire diagnostics
         if: failure()
         run: |
@@ -86,6 +87,9 @@ jobs:
             aspire logs "$resource" --tail 100 --apphost server/kubernetes/aspire/apphost.cs || true
           done
           kubectl --context kind-cao-local get pods -A || true
+          for namespace in cao-local-system cao-local; do
+            kubectl --context kind-cao-local -n "$namespace" get events --sort-by=.lastTimestamp || true
+          done
       - name: Stop Aspire and remove the CI cluster
         if: always()
         run: |
