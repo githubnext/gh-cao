@@ -357,6 +357,19 @@ test("CAO workflows bind GitHub tools to exact declared read permissions", () =>
       assert.equal(controlImport.with.github_tools, false, `${name} must disable unused shared GitHub authentication`);
       continue;
     }
+    if (name === "modernization-system.md") {
+      assert.equal(controlImport.with.role, "standalone");
+      assert.equal(config.tools.github["github-token"], "${{ steps.modernization_system_read.outputs.token }}");
+      const steps = parse(lock).jobs.agent.steps;
+      const scope = steps.find(step => step.id === "modernization_system_scope");
+      const app = steps.find(step => step.id === "modernization_system_app");
+      assert.match(scope.with.script, /runtime\.systemContext\(\)/);
+      assert.equal(app.with.owner, "${{ steps.modernization_system_scope.outputs.owner }}");
+      assert.equal(app.with.repositories, "${{ steps.modernization_system_scope.outputs.repositories }}");
+      assert.ok(Object.entries(app.with).filter(([key]) => key.startsWith("permission-")).every(([, value]) => value === "read"));
+      assert.match(lock, /GITHUB_MCP_SERVER_TOKEN: \$\{\{ steps\.modernization_system_read\.outputs\.token \}\}/);
+      continue;
+    }
     assert.match(
       lock,
       /(?:GH_TOKEN|GITHUB_MCP_SERVER_TOKEN): \$\{\{ steps\.cao_target_read_credential\.outputs\.token \}\}/,

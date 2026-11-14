@@ -118,9 +118,10 @@ test("optimization package includes its README", () => {
 
 test("operational packages own their workflows without reinstalling the control plane", () => {
   const control = workflow("shared/control.md");
-  const policyCampaigns = JSON.parse(
+  const policy = JSON.parse(
     readFileSync(join(root, ".github", "workflows", "cao.json"), "utf8"),
-  )["control-plane"].campaigns;
+  );
+  const policyCampaigns = policy["control-plane"].campaigns;
   const declaredOperationWorkflows = Object.keys(policyCampaigns).flatMap((campaignName) => {
     const descriptorPath = join(root, campaignName, "cao.json");
     if (!existsSync(descriptorPath)) {
@@ -133,7 +134,7 @@ test("operational packages own their workflows without reinstalling the control 
       false,
       `${campaignName} must be installed through cao add without importing the root catalog package`,
     );
-    const declaredWorkflowIds = [descriptor.orchestrator, ...Object.values(descriptor.workers)].sort();
+    const declaredWorkflowIds = [descriptor.orchestrator, ...Object.values(descriptor.workers), ...(descriptor["standalone-workflows"] ?? [])].sort();
     const declaredWorkflowPaths = declaredWorkflowIds
       .map((workflowId) => `.github/workflows/${workflowId}.md`)
       .sort();
@@ -163,7 +164,14 @@ test("operational packages own their workflows without reinstalling the control 
         `${campaignName} private campaign manifest must not include undeclared operation workflows`,
       );
     }
-    return declaredWorkflowIds.map((workflowId) => `.github/workflows/${workflowId}.md`);
+    for (const workflow of descriptor["standalone-workflows"] ?? []) {
+      const standalone = workflowConfig(`${workflow}.md`).imports.find(entry => entry.uses === "shared/control.md");
+      assert.equal(standalone.with.role, "standalone");
+      assert.equal(standalone.with.workflow, workflow);
+      assert.equal(policy["control-plane"].workflows[workflow]["max-mode"], "review");
+    }
+    return [descriptor.orchestrator, ...Object.values(descriptor.workers)]
+      .map((workflowId) => `.github/workflows/${workflowId}.md`);
   }).sort();
 
   assert.match(control, /dispatch_max:\r?\n\s+type: number/);

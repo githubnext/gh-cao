@@ -1,7 +1,12 @@
 ---
+import-schema:
+  publication_gate:
+    type: string
+    default: detection
 safe-outputs:
   jobs:
     publish-review-bundle:
+      needs: ["${{ github.aw.import-inputs.publication_gate }}"]
       description: "Publish one review bundle as a workflow artifact from a prepared directory"
       runs-on: ubuntu-latest
       artifacts:

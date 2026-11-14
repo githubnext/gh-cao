@@ -69,3 +69,65 @@ func TestIngestStreamExplicitlyRoutesRunBundles(t *testing.T) {
 		t.Fatalf("explicit ingestion mode was not honored: %v %v", modes, err)
 	}
 }
+
+func TestParseIngestStreamRequest(t *testing.T) {
+	for _, test := range []struct {
+		name, line, mode string
+	}{
+		{"default mode", `{"type":"ingest"}`, ""},
+		{"snapshot", `{"type":"ingest","mode":"snapshot"}`, "snapshot"},
+		{"run bundles", `{"type":"ingest","mode":"run-bundles"}`, "run-bundles"},
+		{"trailing whitespace", `{"type":"ingest"}  `, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request, err := parseIngestStreamRequest([]byte(test.line))
+			if err != nil || request.Type != "ingest" || request.Mode != test.mode {
+				t.Fatalf("valid request was not parsed: %+v %v", request, err)
+			}
+		})
+	}
+}
+
+func TestParseIngestStreamRequestRejectsInvalidLines(t *testing.T) {
+	for _, test := range []struct {
+		name, line, message string
+	}{
+		{"empty", ``, "invalid ingestion stream request"},
+		{"malformed", `{"type":`, "invalid ingestion stream request"},
+		{"unknown type", `{"type":"rebuild"}`, "invalid ingestion stream request"},
+		{"unknown mode", `{"type":"ingest","mode":"automatic"}`, "invalid ingestion stream request"},
+		{"unknown field", `{"type":"ingest","source":"/other"}`, "invalid ingestion stream request"},
+		{"second document", `{"type":"ingest"} {"type":"ingest"}`, "ingestion stream requires one request per line"},
+		{"trailing garbage", `{"type":"ingest"} x`, "ingestion stream requires one request per line"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			request, err := parseIngestStreamRequest([]byte(test.line))
+			if err == nil || err.Error() != test.message || request != (ingestStreamRequest{}) {
+				t.Fatalf("invalid request was accepted: %+v %v", request, err)
+			}
+		})
+	}
+}
+
+func TestIngestStreamStopsAfterRejectedRequest(t *testing.T) {
+	var output bytes.Buffer
+	calls := 0
+	err := runIngestStream(t.Context(), strings.NewReader("{\"type\":\"ingest\"}\n{\"type\":\"rebuild\"}\n{\"type\":\"ingest\"}\n"), &output,
+		func(context.Context, ingestStreamRequest) (ingest.Result, error) {
+			calls++
+			return ingest.Result{Revision: 1}, nil
+		})
+	if err == nil || calls != 1 {
+		t.Fatalf("stream continued past a rejected request: calls=%d err=%v", calls, err)
+	}
+	decoder := json.NewDecoder(&output)
+	for _, kind := range []string{"ready", "complete"} {
+		var response ingestStreamResponse
+		if err := decoder.Decode(&response); err != nil || response.Type != kind {
+			t.Fatalf("incorrect response before rejection: %+v %v", response, err)
+		}
+	}
+	if decoder.More() {
+		t.Fatal("rejected request produced a response")
+	}
+}

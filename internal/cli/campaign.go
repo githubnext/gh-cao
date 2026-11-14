@@ -19,6 +19,7 @@ type campaignWorker struct {
 type campaignDeclaration struct {
 	Campaign, Orchestrator string
 	Workers                []campaignWorker
+	StandaloneWorkflows    []string
 }
 
 func (d *campaignDeclaration) workerNames() []string {
@@ -38,6 +39,7 @@ func campaignWorkflows(campaign string) ([]string, error) {
 	for _, worker := range declaration.Workers {
 		result = append(result, worker.Workflow)
 	}
+	result = append(result, declaration.StandaloneWorkflows...)
 	return result, nil
 }
 
@@ -52,9 +54,10 @@ func readCampaignDeclaration(directory, campaign string) (result *campaignDeclar
 	}
 	defer func() { err = errors.Join(err, file.Close()) }()
 	var declaration struct {
-		Campaign     string          `json:"campaign"`
-		Orchestrator string          `json:"orchestrator"`
-		Workers      json.RawMessage `json:"workers"`
+		Campaign            string          `json:"campaign"`
+		Orchestrator        string          `json:"orchestrator"`
+		Workers             json.RawMessage `json:"workers"`
+		StandaloneWorkflows []string        `json:"standalone-workflows"`
 	}
 	decoder := json.NewDecoder(file)
 	decoder.DisallowUnknownFields()
@@ -103,6 +106,14 @@ func readCampaignDeclaration(directory, campaign string) (result *campaignDeclar
 	}
 	if len(result.Workers) == 0 {
 		return nil, fmt.Errorf("%s workers must be a non-empty object", path)
+	}
+	seen[declaration.Orchestrator] = true
+	for _, workflow := range declaration.StandaloneWorkflows {
+		if !slugPattern.MatchString(workflow) || seen[workflow] {
+			return nil, fmt.Errorf("%s standalone-workflows must name unique kebab-case workflows distinct from the campaign workflows", path)
+		}
+		seen[workflow] = true
+		result.StandaloneWorkflows = append(result.StandaloneWorkflows, workflow)
 	}
 	return result, nil
 }

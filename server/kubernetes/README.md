@@ -118,6 +118,36 @@ claim is made. Do not grant the runtime retention authority to reclaim disk.
 The fixed retention contract, if separately deployed, is older than 400 days,
 at most 512 events per call, under its distinct retention role.
 
+## Local integration test and CI
+
+The **Aspire kind Kubernetes** Actions workflow runs on relevant pull requests,
+pushes to `main`, and manual dispatch. It uses this same AppHost and helper to
+build/import both images, provision PostgreSQL with verified TLS, and run a real
+canonical maintenance Job. It also runs the Kubernetes helper contract tests.
+
+On a **fresh, disposable** Aspire kind installation, after `database` completes,
+run the same hosted smoke test locally:
+
+```sh
+kind export kubeconfig --name cao-local
+CAO_LOCAL_KIND_CLUSTER=cao-local CAO_KUBERNETES_INTEGRATION=1 \
+  node --test tests/integration/kubernetes-kind.test.mjs
+```
+
+The test refuses an existing web Deployment. It temporarily deploys the actual
+hosted application with nonfunctional test-only OAuth settings, verifies HTTPS
+against the generated CA, the GitHub OAuth redirect and unauthenticated-session
+denial, and checks that healthy operational storage does **not** make missing
+canonical data ready. The expected rollout timeout and HTTP 503 are assertions,
+not ignored failures. It removes its maintenance Job and web Deployment/Service
+and stops its port-forward; local private state, test-only Secrets and the
+database remain until explicitly removed. CI removes its disposable cluster.
+Do not run this against an operator installation.
+
+This credential-free test does not ingest fabricated evidence, contact GitHub
+for authentication, or validate real login, native App collection, populated
+dashboard queries, Docker Desktop, HA or production deployment acceptance.
+
 ## Real evidence and native login
 
 Acquire an explicitly authorized successful Actions snapshot separately. Retain
@@ -199,6 +229,10 @@ or collector credentials.
 Ingestion, web and maintenance use stable namespaces/capacity inputs. PostgreSQL
 state survives web/database pod replacement while the same PVC exists; deleting
 the PVC, cluster or Docker Desktop data can destroy it. This is not a backup.
+`database.env` selects the canonical dataset with `CAO_DATABASE_NAMESPACE` and
+operational state with `CAO_OPERATIONAL_NAMESPACE`; the server rejects the
+removed `REDIS_NAMESPACE`. `database` and `serve` rename that key in older local
+state, preserving its value, and re-apply the `cao-database` ConfigMap.
 The local cluster administrator remains trusted: namespace separation and
 disabled ServiceAccount-token mounts are not a complete RBAC/network-security
 installation. No enforced NetworkPolicy or egress-isolation claim is made.

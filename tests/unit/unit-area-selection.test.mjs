@@ -21,6 +21,7 @@ test("every root unit test runs in exactly one topical area", () => {
   assert.ok(partition.tooling.includes("cao-retired-activity.test.mjs"));
   assert.ok(partition.tooling.includes("local-artifacts.test.mjs"));
   assert.ok(partition.workflows.includes("build-release.test.mjs"));
+  assert.ok(partition.workflows.includes("modernization.test.mjs"));
   assert.throws(() => partitionUnitTests([...files, "unclassified.test.mjs"]), /exactly one area/);
 });
 

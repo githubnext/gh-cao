@@ -1,0 +1,10 @@
+name: Modernization
+icon: ":workflow:"
+description: Native Squad assessment, approved cross-repository task coordination, implementation, and system verification.
+min-version: v1.2.3
+experimental: true
+includes:
+  - README.md
+  - .github/workflows/modernization.md
+  - .github/workflows/modernization-task.md
+  - .github/workflows/modernization-system.md

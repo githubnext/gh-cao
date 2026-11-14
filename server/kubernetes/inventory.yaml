@@ -27,7 +27,7 @@ spec:
               exec /app/cao-dashboard provision-inventory
               --source /inventory/inventory.json
               --sha256 "$CAO_COLLECT_NATIVE_INVENTORY_DIGEST"
-              --namespace "$REDIS_NAMESPACE"
+              --namespace "$CAO_DATABASE_NAMESPACE"
           envFrom:
             - configMapRef:
                 name: cao-database
