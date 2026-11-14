@@ -1,36 +1,7 @@
 {
  "source_sha": "2000a4eaf72b334211dc7d95121855e76d840f40",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T18:35:29Z",
-   "worker_run_id": "43483364918",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days, so the 20-run cap binds; 20/20 success, 19 push + 1 schedule 43371878284; none queued or in progress; no docs.yml run since 16:44Z; no failed or cancelled run in window). source: workspace HEAD ac905474 = source_sha; compare 75c762e...ac905474 is 1 commit touching only server/cmd/cao-cli-quota (no docs trigger path). Evidence: Actions jobs and steps API re-fetched for all 20 runs; docs job logs not read (403 difc_forbidden not re-probed). Category step Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs: production normalization plus buildDashboardSite, then cp to dist/cao): median 4 s, p90 5 s, range 3-5 s = 4.6 percent of median build-start-to-deploy-end 87.5 s (p90 98); push-only n=19 median 4 s, 4.5 percent of push median 89 s. 15 percent gate 13.1 s unreachable; full removal saves at most 4 s; 60 s gate unreachable. No separate dashboard job (jobs: build, deploy); docs:build (astro build, validate-agent-docs, agent-docs-discovery test) does not reference buildDashboardSite, so no duplicate build. Cross-run reuse stale-unsafe: scripts/dashboard-demo-data.mjs embeds generatedAt and observed_at. Separate job rejected (checkout median 24.5 s plus install). Open issue 20815 (fingerprint docs-checkout-blobless-history-v1, blobless checkout, expected about 19.5 s) remains open and unlanded; not re-proposed. No suggestion; no issue created. next_category advanced to artifact transfer and Pages packaging. Carry-forward: Checkout fetch-depth 0 median 24.5 s (p90 29; push p90 41) remains the largest step; covered by 20815.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T18:53:04Z",
    "worker_run_id": "43486180054",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; unchanged since the 04:24Z evaluation; no queued or in-progress run; 19 success; 1 failure 43506161539 excluded and disclosed; 0 cancelled). source 2000a4e = HEAD = source_sha. Category Astro documentation generation = step 'Build documentation' = npm run docs:build (astro build, then validate-agent-docs, then node --test agent-docs-discovery; split unmeasured because job logs return 403). Window median 12 s (p90 15) = 14.5% of exec median 83 s; full removal saves at most 12 s, below the 15% gate (12.45 s); 60 s gate unreachable. Deploy consumes the step output, so removal is not possible. Stored job rows reused (completed-run timings immutable). No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T04:52:40Z",
+   "worker_run_id": "43558493786",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; 60 most recent docs.yml runs returned, all completed, none queued or in progress; no docs.yml run since 00:50:15Z; window unchanged since the 04:34Z evaluation). source 2000a4e = HEAD = source_sha. Excluded and disclosed: 43506161539 failed (install); 0 cancelled. n=19 successful push runs; 5-run gate met. Category step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs: production normalization, esbuild buildDashboardSite, cp to dist/cao): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median exec 83 s (p90 93). 15 percent gate 12.45 s and 60 s gate unreachable; full removal saves at most 3 s. Spot-check: jobs API 43536796952 matched stored row (checkout 24, install 7, docs 10, demo 3, deploy 12). Earlier 4 s demo medians came from prior windows; the current stored rows give 3 s. Cross-run reuse stale-unsafe: demo output derives generatedAt and observed_at from the run clock (scripts/dashboard-demo-data.mjs), and the 05:23Z refresh is by design. docs:build path does not call buildDashboardSite (astro.config.mjs dashboard matches are metadata globs only). No suggestion; no issue created; open worker issue 20815 (blobless checkout) not repeated. next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,8 +884,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T06:42:40Z..2026-11-14T00:50:15Z",
-  "evaluated_at": "2026-11-14T04:34:02Z",
-  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93). Re-verified at 2026-11-14T04:34:02Z (run list only: same 20 IDs, no queued or in-progress run; stored rows reused).",
+  "evaluated_at": "2026-11-14T04:52:40Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93). Re-verified at 2026-11-14T04:34:02Z (run list only: same 20 IDs, no queued or in-progress run; stored rows reused). Re-verified at 2026-11-14T04:52:40Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row; demo median recomputed as 3 s, p90 4 s).",
   "median_p90_s": {
    "Checkout": [
     25,
