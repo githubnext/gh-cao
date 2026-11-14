@@ -1,36 +1,7 @@
 {
  "source_sha": "e11a86f8fba27ce217b2cd2f31b8c28a200c50e7",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T14:34:41Z",
-   "worker_run_id": "43443264728",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419,
-    43345305064,
-    43341730805,
-    43341713733
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43440055797 back to 43341713733; created 2026-11-13T01:01:41Z to 14:09:27Z; span 13 h so the 20-run cap, not the 14-day bound, binds; unchanged since the 14:21Z evaluation; none queued or in progress; source 6e75d30 = HEAD = source_sha). Excluded and disclosed: no cancelled runs in window; failed 43297524311 left the window. Comparable n=20 (19 push + schedule 43371878284; 5-run gate met). Job and step metadata only: build-job log read HTTP 403 difc_forbidden (probed once at 14:33Z, not retried), so the astro-build versus validator split is unmeasured. Category step Build documentation (npm run docs:build): median 14 s, p90 15 s, range 9-15 s = 16.0% of median build-start-to-deploy-end 87.5 s (p90 98.8 s). 15% gate = 13.1 s; clearing it requires removing 94% or more of the step, which removes the docs build itself. Astro-internal changes (caching, parallelism, validator split) are bounded by the 14 s step and cannot reach the gate. Carry-forward outside rotation: Checkout fetch-depth 0 median 25 s (p90 32, max 56), the largest step (28.6% of median exec); not evaluated, outside this worker evidence scope. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T14:54:30Z",
    "worker_run_id": "43446486267",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; about 18 h, so the 20-run cap binds and the 14-day bound is not reached). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies at 17 s on a cache miss; Build and deploy skipped; job logs not read this run, earlier probes HTTP 403). 0 cancelled, 0 in progress, 0 schedule runs. n=19 successful push runs; 5-run gate met. Source e11a86f = HEAD = source_sha (1 commit ahead of newest docs head 54e08aa, no docs trigger path). Medians (p90): exec build start to deploy end 83 s (93); build job 67 s (79); deploy 9 s (12); Set up Node.js 3 s (7); Install dependencies 16 s (24) = 19 percent of exec median; Post Set up Node.js 0 s (max 1) in 19/19 = exact-key hits (caches API: key node-cache-Linux-x64-npm-7808ecf8 is sha256 of the HEAD root lock). 15 percent gate = 12.4 s. Lock change 7c8faf4 (compare API: root lock -18 lines, dashboard lock -18, runtime/package.json -16) created the new key. Pre-change key e62f6006 (n=17): install median 16 s (p90 24). Post-change n=2 (2cb6d9c, 54e08aa): install 9 and 7 s, setup 3 to 5 s, exec 79 and 75 s. An 18-line lock diff does not explain a halving; cache state or runner variance is unresolved and n=2 is insufficient. Candidates, none evidenced at the gate: node_modules cache (best case removes install; restore unmeasured; #19689 closed NOT_PLANNED 2026-11-07); root --omit=dev (est <=2.4 s); --no-audit/--no-fund and parallel dashboard install (seconds, unmeasured); root --ignore-scripts (correctness risk). Reliability, not timing: failed install began 20:56:37Z, before key 7808ecf8 existed on main (created 20:57:12Z; creator unverified, several same-push workflows also saved caches); exact-key restore means a root lock change makes the first docs run a cache miss; Pages stayed at 20:53Z publication until the 00:48Z recovery run. Open issue 20815 (checkout, OPEN, unchanged) not repeated. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T01:20:36Z",
+   "worker_run_id": "43539565633",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; none queued or in progress; queued 37642403569 is from 2026-10-07, outside window; source e11a86f = workspace HEAD = source_sha). Comparable n=19 successful push runs (5-run gate met). Excluded and disclosed: failed 43506161539 (install failure, docs step not reached); no cancelled runs; no schedule run in window. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs): median 12 s, p90 15 s, range 9-15 s = 14.5 percent of median build-start-to-deploy-end 83 s (p90 93 s). 15 percent gate = 12.45 s; removing the whole step saves at most 12 s, so neither the 15 percent nor the 60 s gate is reachable. Build-job log read still HTTP 403 difc_forbidden (probed once, build job 132267659354, not retried); astro-versus-validation split unmeasured and not decision-relevant. Validator and discovery test run only git ls-files and rev-parse HEAD; per-resource git log in docs/plugins/starlight-agent/resource.ts measured about 2 ms per call in sandbox (indicative), negligible. Checkout fetch-depth 0 (median 25 s, p90 31; full history needed by sourceCommittedAt) is already represented by open issue 20815 (fingerprint docs-checkout-blobless-history-v1; 0 comments; no new timing evidence), so not re-raised. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1191,6 +1191,11 @@
  },
  "observations_pending": [
   {
+   "observed_at": "2026-11-14T01:20:36Z",
+   "source": "docs.yml build log probe (worker 43539565633)",
+   "note": "Build job log read for 43536796952 still returns HTTP 403 DIFC policy violation (single probe). Astro-versus-validation timing split stays unmeasured; the whole Build documentation step is below the 15 percent gate, so no action is implied."
+  },
+  {
    "observed_at": "2026-11-14T00:59:52Z",
    "source": "docs.yml failure 43506161539 (worker 43537183263)",
    "note": "Pages recovered: successes 2cb6d9c (00:47Z) and 54e08aa (00:50Z) deployed, ending a stale period from 20:53Z. The install failure cause is still unverified (logs not read this run). No maintainer action needed for timing."
@@ -1238,7 +1243,7 @@
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
    "comments": 0,
-   "checked_at": "2026-11-14T00:59:52Z"
+   "checked_at": "2026-11-14T01:20:36Z"
   }
  },
  "scheduling_sample": {
