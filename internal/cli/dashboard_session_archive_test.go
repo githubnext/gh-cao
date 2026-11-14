@@ -42,13 +42,13 @@ func TestDashboardSessionArchiveAutoDetection(t *testing.T) {
 		t.Fatal("--session-archive accepted a missing DuckDB")
 	}
 
-	t.Setenv("PATH", fakeDashboardDuckDB(t, "v2.0.0"))
+	t.Setenv("PATH", fakeDashboardDuckDB(t, "v1.4.3"))
 	if options, diagnostics, err := resolve(dashboardOptions{}); err != nil || options.sessionArchive ||
-		!strings.Contains(diagnostics, "requires exactly "+dashboardDuckDBVersion) {
-		t.Fatalf("unpinned DuckDB was not reported: %v %q", err, diagnostics)
+		!strings.Contains(diagnostics, "requires "+dashboardDuckDBVersion+" or newer") {
+		t.Fatalf("old DuckDB was not reported: %v %q", err, diagnostics)
 	}
 
-	t.Setenv("PATH", fakeDashboardDuckDB(t, dashboardDuckDBVersion))
+	t.Setenv("PATH", fakeDashboardDuckDB(t, "v2.10.1"))
 	if options, diagnostics, err := resolve(dashboardOptions{}); err != nil || options.sessionArchive ||
 		!strings.Contains(diagnostics, "no approved content policy") {
 		t.Fatalf("missing policy was not reported: %v %q", err, diagnostics)

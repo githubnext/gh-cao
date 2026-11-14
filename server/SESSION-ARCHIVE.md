@@ -22,19 +22,22 @@ explicitly prepared image with a compatible pinned converter. Missing runtime
 or durable storage fails startup; the server does not install binaries or
 provision Azure resources.
 
-## Pinned DuckDB
+## DuckDB runtime
 
-Use DuckDB CLI **v1.4.3**. Verify the release ZIP before extraction:
+Use DuckDB CLI **v2.0.0 or newer**. CI tests v2.0.0; verify release archives
+before extraction:
 
-| Release asset | SHA-256 |
+| v2.0.0 release asset | SHA-256 |
 | --- | --- |
-| `duckdb_cli-linux-amd64.zip` | `7a9e36141a71a353f54dfbeed607a5218c3425ce2d417610da08443259a12f7c` |
-| `duckdb_cli-osx-universal.zip` | `f44e488b1c67d007b6b12af9f1ad9122fad0f63a606caf2bfb10ca945042a3f6` |
+| `duckdb-cli-linux-amd64.tar.gz` | `c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc` |
+| `duckdb-cli-linux-arm64.tar.gz` | `859e1875d2a9515fbb4bf8871061437a14af82320da68c753f094c4b776348fe` |
+| `duckdb-cli-osx-universal.tar.gz` | `8a8f67e7c7f7d1392fa63ba3971948391392fe2a25fca63e7008e33c50beb4c2` |
 
-Download from `https://github.com/duckdb/duckdb/releases/download/v1.4.3/`.
+Download from `https://github.com/duckdb/duckdb/releases/download/v2.0.0/`.
+For newer releases, verify the digest GitHub publishes for the asset.
 Configure the reviewed executable path with the archive runtime configuration.
-The converter checks `SELECT version()`; a different version is not silently
-accepted. SQL comes only from generated trusted definitions, never request text.
+The converter checks `SELECT version()` and rejects releases older than
+v2.0.0. SQL comes only from generated trusted definitions, never request text.
 
 ## Local persistent server
 
@@ -61,7 +64,7 @@ metadata-only dashboard token.
 ### Local dashboard (`gh cao dashboard --session-archive`)
 
 `gh cao dashboard` is the local producer. It enables the archive automatically
-when the pinned DuckDB CLI is on `PATH` and an approved policy exists at
+when DuckDB v2.0.0 or newer is on `PATH` and an approved policy exists at
 `.github/cao/session-archive-policy.json` (or `--session-archive-policy`);
 `--no-session-archive` disables it and `--session-archive` requires it. The CLI copies the approved policy to a private file,
 writes one identity-only run frame per completed run whose `gh aw logs`

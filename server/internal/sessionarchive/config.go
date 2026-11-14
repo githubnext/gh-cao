@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,32 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/adxtrace"
 )
 
-const DuckDBVersion = "v1.4.3"
+// MinimumDuckDBVersion is the oldest DuckDB CLI release the converter accepts.
+const MinimumDuckDBVersion = "v2.0.0"
+
+var duckDBVersionPattern = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)$`)
+
+// SupportedDuckDBVersion reports whether a DuckDB release version string,
+// such as v2.0.0, is at least MinimumDuckDBVersion.
+func SupportedDuckDBVersion(version string) bool {
+	parse := func(value string) []int {
+		match := duckDBVersionPattern.FindStringSubmatch(value)
+		if match == nil {
+			return nil
+		}
+		parts := make([]int, 3)
+		for i := range parts {
+			n, err := strconv.Atoi(match[i+1])
+			if err != nil {
+				return nil
+			}
+			parts[i] = n
+		}
+		return parts
+	}
+	actual, minimum := parse(version), parse(MinimumDuckDBVersion)
+	return actual != nil && slices.Compare(actual, minimum) >= 0
+}
 
 type Config struct {
 	// NativeProducer selects file-free hosted Blob publication, never POSIX fallback.

@@ -59,8 +59,8 @@ The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 
 The private DuckDB/Parquet [session archive](https://github.com/githubnext/gh-cao/blob/main/server/SESSION-ARCHIVE.md)
-for agentic session logs is enabled automatically when the pinned DuckDB v1.4.3
-CLI is on `PATH` and an explicitly approved, versioned content policy exists at
+for agentic session logs is enabled automatically when DuckDB v2.0.0 or newer
+is on `PATH` and an explicitly approved, versioned content policy exists at
 `.github/cao/session-archive-policy.json` (or `--session-archive-policy`); the
 command never fabricates approval. If DuckDB is found but the version or policy
 does not match, startup explains why the archive is off. `--no-session-archive`

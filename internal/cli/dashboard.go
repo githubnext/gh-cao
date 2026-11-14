@@ -77,7 +77,7 @@ historical discovery while reserving GitHub API quota for other work.
 Ctrl-C stops the server; the private local snapshot is retained for reuse.
 Collection never changes policy, workflows, or remote repository state.
 
-When the pinned DuckDB CLI is on PATH and an approved, versioned closed content
+When DuckDB v2.0.0 or newer is on PATH and an approved, versioned closed content
 policy exists (--session-archive-policy, or ` + dashboardSessionArchiveDefaultPolicy + `),
 agentic session logs (aw_session.jsonl) from cached gh-aw run artifacts are also
 captured into a private Parquet archive. --no-session-archive disables it;
@@ -93,7 +93,7 @@ the dashboard cache; read them through the loopback session-archive API.`,
 	cmd.Flags().BoolVar(&options.sessionArchive, "session-archive", false, "Require the private DuckDB/Parquet session archive (default: enabled when DuckDB and a policy are found)")
 	cmd.Flags().BoolVar(&options.noSessionArchive, "no-session-archive", false, "Disable the session archive even when DuckDB and a policy are found")
 	cmd.Flags().StringVar(&options.sessionArchivePolicy, "session-archive-policy", "", "Approved closed session archive content policy JSON (default "+dashboardSessionArchiveDefaultPolicy+")")
-	cmd.Flags().StringVar(&options.duckDB, "duckdb", "", "Pinned DuckDB "+dashboardDuckDBVersion+" CLI for the session archive (default: duckdb on PATH)")
+	cmd.Flags().StringVar(&options.duckDB, "duckdb", "", "DuckDB "+dashboardDuckDBVersion+"+ CLI for the session archive (default: duckdb on PATH)")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if options.duration <= 0 || options.duration > dashboardMaximumDuration {
 			return errors.New("--duration must be positive and at most 48h")

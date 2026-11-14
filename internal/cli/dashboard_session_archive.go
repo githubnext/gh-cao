@@ -18,8 +18,8 @@ import (
 	"time"
 )
 
-// dashboardDuckDBVersion must match the server's pinned converter version.
-const dashboardDuckDBVersion = "v1.4.3"
+// dashboardDuckDBVersion must match the server's minimum converter version.
+const dashboardDuckDBVersion = "v2.0.0"
 
 const dashboardSessionArchivePolicyLimit = 1 << 20
 
@@ -28,7 +28,7 @@ const dashboardSessionArchivePolicyLimit = 1 << 20
 const dashboardSessionArchiveDefaultPolicy = ".github/cao/session-archive-policy.json"
 
 // resolveDashboardSessionArchiveOptions enables the archive automatically when
-// the pinned DuckDB CLI and an approved policy are present. --session-archive,
+// a supported DuckDB CLI and an approved policy are present. --session-archive,
 // --session-archive-policy or --duckdb make a missing prerequisite fatal;
 // --no-session-archive disables it.
 func resolveDashboardSessionArchiveOptions(options *dashboardOptions, diagnostics io.Writer) error {
@@ -68,17 +68,17 @@ func resolveDashboardSessionArchivePrerequisites(options *dashboardOptions) erro
 		if options.duckDB == "" {
 			err = errDashboardSessionArchiveUnavailable
 		}
-		return fmt.Errorf("the session archive requires the pinned DuckDB %s CLI; install it from "+
-			"https://github.com/duckdb/duckdb/releases/tag/%s (verify the SHA-256 in server/SESSION-ARCHIVE.md) "+
-			"and put it on PATH or pass --duckdb: %w", dashboardDuckDBVersion, dashboardDuckDBVersion, err)
+		return fmt.Errorf("the session archive requires the DuckDB %s or newer CLI; install it from "+
+			"https://github.com/duckdb/duckdb/releases (verify the SHA-256 in server/SESSION-ARCHIVE.md) "+
+			"and put it on PATH or pass --duckdb: %w", dashboardDuckDBVersion, err)
 	}
 	if path, err = filepath.Abs(path); err != nil {
 		return err
 	}
 	if version, err := dashboardDuckDBVersionOf(path); err != nil {
 		return fmt.Errorf("cannot read DuckDB version from %s: %w", path, err)
-	} else if version != dashboardDuckDBVersion {
-		return fmt.Errorf("DuckDB at %s is %s; the session archive requires exactly %s (pass --duckdb)", path, version, dashboardDuckDBVersion)
+	} else if !dashboardSupportedDuckDBVersion(version) {
+		return fmt.Errorf("DuckDB at %s is %s; the session archive requires %s or newer (pass --duckdb)", path, version, dashboardDuckDBVersion)
 	}
 	policy := options.sessionArchivePolicy
 	if policy == "" {
@@ -112,7 +112,28 @@ func dashboardDuckDBVersionOf(path string) (string, error) {
 	return "", errors.New("unrecognized --version output")
 }
 
-var dashboardDuckDBVersionPattern = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
+var dashboardDuckDBVersionPattern = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)$`)
+
+// dashboardSupportedDuckDBVersion mirrors sessionarchive.SupportedDuckDBVersion.
+func dashboardSupportedDuckDBVersion(version string) bool {
+	parse := func(value string) []int {
+		match := dashboardDuckDBVersionPattern.FindStringSubmatch(value)
+		if match == nil {
+			return nil
+		}
+		parts := make([]int, 3)
+		for i := range parts {
+			n, err := strconv.Atoi(match[i+1])
+			if err != nil {
+				return nil
+			}
+			parts[i] = n
+		}
+		return parts
+	}
+	actual := parse(version)
+	return actual != nil && slices.Compare(actual, parse(dashboardDuckDBVersion)) >= 0
+}
 
 // dashboardSessionArchive owns the CLI side of the local archive: the private
 // directory the server's archive owns, the approved policy copy, and per-run

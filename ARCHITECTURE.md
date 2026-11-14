@@ -518,7 +518,7 @@ metadata-cache membership and fan out capture/withdrawal without another
 collector. Failed admission cannot commit an acquisition-cache skip.
 
 One private durable owner stages approved complete traces, converts explicit
-TypeSpec-generated logical rows through the checksum-pinned DuckDB v1.4.3 CLI
+TypeSpec-generated logical rows through the DuckDB v2.0.0-or-newer CLI (CI-pinned by checksum)
 into packed immutable Zstandard Parquet, verifies counts/order/integrity, and
 publishes exact projection membership through fenced generations. Local
 filesystem generations use locking and durability barriers; hosted generations

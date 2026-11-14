@@ -64,9 +64,9 @@ test("Parquet CI requires real DuckDB, independent local capture, and the millio
     assert.doesNotMatch(value, /\bjob\./);
   }
   assert.equal(job["continue-on-error"], undefined);
-  const install = job.steps.find(step => step.name === "Install checksum-verified DuckDB v1.4.3");
-  assert.match(install.run, /releases\/download\/v1\.4\.3\/duckdb_cli-linux-amd64\.zip/);
-  assert.match(install.run, /7a9e36141a71a353f54dfbeed607a5218c3425ce2d417610da08443259a12f7c .*sha256sum --check/);
+  const install = job.steps.find(step => step.name === "Install checksum-verified DuckDB v2.0.0");
+  assert.match(install.run, /releases\/download\/v2\.0\.0\/duckdb-cli-linux-amd64\.tar\.gz/);
+  assert.match(install.run, /c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc .*sha256sum --check/);
   assert.match(install.run, /echo "DUCKDB_PATH=\$DUCKDB_PATH" >> "\$GITHUB_ENV"/);
   const integration = job.steps.find(step => step.name === "Verify production capture, Parquet, publication, and authenticated queries");
   assert.equal(integration.env.CAO_TEST_POSTGRES_URL, "postgres://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_archive_test?sslmode=disable");
