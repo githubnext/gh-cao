@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T22:19:02Z",
-   "worker_run_id": "43517625242",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43378369544 to 43506161539; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress; source 7cb5134; 7c8faf4 to 7cb5134 compare shows only cao-evolution-integrity.md and its test, so no docs-path commit followed the failed run). Excluded and disclosed: failed 43506161539 (Install dependencies, Pages not updated by 7c8faf4; log HTTP 403, cause unverified). n=19 push successes (5-run minimum met); 0 cancelled. Job and step metadata from the Actions jobs API; logs not read. Medians (p90): exec 84 s (93); build job 69 (79); deploy job 9 (12); Upload Pages artifact 2 (3); Configure Pages 0 (1); build-end to deploy-start handoff 5 (6); deploy Set up job 1 (1); Deploy Pages 7 (8, required). Removable transfer (configure+upload+handoff+deploy setup) median 9 s (p90 10, max 10) = 10.7 percent of median exec; 15 percent gate 12.6 s and 60 s gate unmet even at max. Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate). github-pages artifact 8.37 MB (run 43505502149); upload about 2 s, so a size cut saves under 1 s. Open issue 20815 (blobless checkout) unchanged and not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T22:31:00Z",
    "worker_run_id": "43519522791",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (2026-11-14T05:24:33Z); run list re-read at 08:32Z: unchanged, none queued or in progress, 0 cancelled; source 4d25cbd = HEAD = origin/main = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; logs not read, earlier HTTP 403). n=19 successful (18 push + 1 schedule 43561388555). Dashboard-specific work is only step Build synthetic enterprise demo (scripts/simulate-dashboard-pages.mjs: normalization, buildDashboardSite, cp to dist/cao): median 3 s, p90 4 s, max 5 s = 3.6 percent of median exec 83 s (p90 92 s). 15 percent gate 12.4 s and 60 s gate unreachable: full removal saves at most about 3 s. Jobs API spot-check 43561388555 and 43388781287: demo 4 s each, matches stored rows. Caching or reusing demo output is stale-unsafe: prepareDashboardPages sets now = Date.now() driving generatedAt, synthetic dates and pending-run durations, and the 05:23Z cron exists to refresh them. Separate dashboard job rejected (checkout median 25 s plus handoff). No suggestion; no issue; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T08:53:17Z",
+   "worker_run_id": "43577609421",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43506161539
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; within 14 days; none queued or in progress; source 4d25cbd = HEAD = source_sha; window unchanged since the 05:24Z schedule run). Excluded and disclosed: 43506161539 failed at Install dependencies (push 7c8faf4; Build, Pages and deploy skipped; logs not read). 0 cancelled. Comparable n=19 successes (18 push + 1 schedule 43561388555); 5-run gate met. Jobs API spot-check of 43561388555, 43536796952 and 43505502149 matched stored rows within 1 s (rounding); jobs endpoint returned no ETag. Medians (p90, nearest rank, n=19): exec 83 s (92); build job 67 (79); handoff 5 (6); Configure Pages 0 (1); Upload Pages artifact 2 (3); deploy Set up job 1 (1); Deploy Pages 7 (8, GitHub-managed). Removable transfer (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 10; with +1 s rounding bound median 10, max 11 = 13.3 percent of median exec at most. 15 percent gate 12.45 s and 60 s gate unreachable. Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate on the build job that runs npm ci). Artifact about 8.4 MB; shrinking saves about 1 s. Open issue 20815 (blobless checkout) unchanged, represented, not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1305,10 +1305,10 @@
   "trigger_observation": "4d25cbd (05:11Z, Kubernetes CI #20870) changed .github/workflows/docs.yml and shared/** but has no push-triggered docs.yml run; 05:24Z schedule 43561388555 rebuilt it successfully. Cause not determined from API evidence; freshness, not timing."
  },
  "transfer_samples": {
-  "evaluated_at": "2026-11-14T06:54:31Z",
+  "evaluated_at": "2026-11-14T08:53:17Z",
   "window": "43388781287..43561388555 (latest 20 completed docs.yml runs)",
   "columns": "run,conclusion,exec_s,build_job_s,handoff_s,configure_pages_s,upload_pages_artifact_s,deploy_setup_s,deploy_pages_s",
-  "note": "Jobs API step/job timings; completed-run timings are immutable, so reuse rows by run ID and fetch only new runs. Failed run 43506161539 is excluded from medians. Logs not read.",
+  "note": "Jobs API step/job timings; completed-run timings are immutable, so reuse rows by run ID and fetch only new runs. Failed run 43506161539 is excluded from medians. Logs not read. Re-verified 2026-11-14T08:53:17Z: Jobs API spot-check of 43561388555, 43536796952, 43505502149 matched rows within 1 s (fresh deploy-setup measured from job start, stored values about 1 s lower); +1 s bound gives removable max 11 s (13.3 percent), still below the 15 percent gate.",
   "rows": [
    [
     43561388555,
