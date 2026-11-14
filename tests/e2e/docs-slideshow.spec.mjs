@@ -12,6 +12,9 @@ const slideTitles = [
   "Use evidence to decide what scales.",
   "Repos that clean themselves",
   "Evolution at the Enterprise Scale",
+  "OpenTelemetry. Your observability stack.",
+  "Governance where it belongs.",
+  "Your runners. Your supply chain.",
   "Bring Your Own Backend",
   "Webhook Gateway",
   "Built on Agentic Workflows",
@@ -35,6 +38,30 @@ async function draw(page) {
   await page.mouse.down();
   await page.mouse.move(bounds.x + bounds.width * 0.6, bounds.y + bounds.height * 0.55, { steps: 5 });
   await page.mouse.up();
+}
+
+for (const width of [390, 1440]) {
+  test(`enterprise slides retain their control boundaries at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("./");
+    await page.evaluate(() => document.fonts.ready);
+    for (const [topic, label] of [
+      ["otel", "Signals, not authority"],
+      ["governance", "Complementary control layers"],
+      ["runtime", "Operator-owned infrastructure"],
+    ]) {
+      const story = page.locator(`.enterprise-${topic}-story`);
+      await story.scrollIntoViewIfNeeded();
+      await expect(story.getByRole("heading", { level: 2 })).toBeVisible();
+      await expect(story.getByRole("figure", { name: label })).toBeVisible();
+      await expect(story.locator(".enterprise-stack li")).toHaveCount(3);
+      await expect(story.getByRole("link")).toHaveAttribute("href", /^(\/gh-cao\/|https:\/\/github\.github\.com\/gh-aw\/)/);
+      const path = testInfo.outputPath(`enterprise-${topic}-${width}.png`);
+      await story.screenshot({ path });
+      await testInfo.attach(`Enterprise ${topic} ${width}px`, { path, contentType: "image/png" });
+    }
+    expect(await page.locator("html").evaluate(element => element.scrollWidth)).toBeLessThanOrEqual(width);
+  });
 }
 
 test.beforeEach(async ({ page }) => {

@@ -1,0 +1,81 @@
+---
+interface Props {
+  label: string;
+  layers: { title: string; detail: string; owner: string }[];
+  caption: string;
+}
+
+const { label, layers, caption } = Astro.props;
+---
+
+<figure class="enterprise-stack" aria-label={label}>
+  <div class="stack-header"><span>Enterprise integration</span><strong>{label}</strong></div>
+  <ol>
+    {layers.map((layer, index) => (
+      <li>
+        <span class="layer-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+        <div>
+          <span class="layer-owner">{layer.owner}</span>
+          <strong>{layer.title}</strong>
+          <span class="layer-detail">{layer.detail}</span>
+        </div>
+      </li>
+    ))}
+  </ol>
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<style>
+  .enterprise-stack {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    border: 1px solid var(--cao-loop-border);
+    border-radius: 0.75rem;
+    background: var(--cao-section-bg);
+    color: var(--cao-story-heading);
+    overflow: hidden;
+  }
+  .stack-header {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--cao-loop-border);
+  }
+  .stack-header > span,
+  .layer-owner,
+  .layer-number {
+    color: var(--sl-color-text-accent);
+    font: 500 0.625rem/1.5 "Mona Sans Mono", monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .stack-header strong { font-size: 1.125rem; }
+  ol { margin: 0; padding: 0; list-style: none; }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0;
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--cao-section-border);
+  }
+  .layer-number {
+    display: grid;
+    flex: 0 0 2rem;
+    height: 2rem;
+    place-items: center;
+    border: 1px solid var(--cao-loop-border);
+    border-radius: 0.25rem;
+  }
+  li > div { display: grid; min-width: 0; gap: 0.25rem; }
+  li strong { font-size: 1rem; line-height: 1.4; }
+  .layer-detail,
+  figcaption { color: var(--cao-story-text); font-size: 0.8125rem; line-height: 1.5; }
+  figcaption { padding: 1rem 1.25rem; }
+  @media (max-width: 42rem) {
+    li { gap: 0.75rem; padding: 1rem; }
+    .stack-header,
+    figcaption { padding: 1rem; }
+  }
+</style>

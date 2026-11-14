@@ -68,7 +68,7 @@ test("landing page presents the product through real operational surfaces", () =
   assert.doesNotMatch(terminalText, /(?<![\w-])cao\.sh|gh cao validate|gh aw run|--raw-field|integrate-cao-workflow/);
   assert.deepEqual(
     [...hero.matchAll(/<section class="product-story ([^"]+)"/g)].map(([, classes]) => classes),
-    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "repo-assist-story", "snippet-story evolution-story", "snippet-story backend-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story", "safety-story"],
+    ["dispatch-story", "maintenance-story", "terminal-story", "factory-story", "decision-story", "repo-assist-story", "snippet-story evolution-story", "snippet-story enterprise-otel-story", "snippet-story enterprise-governance-story", "snippet-story enterprise-runtime-story", "snippet-story backend-story", "snippet-story webhook-story", "snippet-story agentic-workflows-story", "safety-story"],
   );
   assert.match(hero, /aria-labelledby="maintenance-title" data-reveal data-slideshow-slide/);
   assert.match(hero, /One control plane/);
@@ -130,7 +130,7 @@ test("landing page keeps the hero and supporting copy concise", () => {
   assert.ok(title && wordCount(title) <= 8, "hero headline should stay within eight words");
   assert.ok(tagline && wordCount(tagline) <= 40, "hero tagline should stay within forty words");
   const paragraphs = [...hero.matchAll(/<p>\s*([\s\S]*?)<\/p>/g)];
-  assert.equal(paragraphs.length, 15);
+  assert.equal(paragraphs.length, 21);
   const terminalParagraph = hero.match(/id="terminal-title"[\s\S]*?<p>\s*([\s\S]*?)<\/p>/)?.[1];
   for (const [, paragraph] of paragraphs) {
     const budget = paragraph === terminalParagraph ? 60 : 30;
@@ -219,6 +219,33 @@ test("enterprise evolution connects multi-agent sessions to reviewed optimizer u
   assert.match(evolution, /radial-gradient\(circle/);
   assert.match(evolution, /Block diagram \/ Closed loop/);
   assert.doesNotMatch(evolution, /<script/);
+});
+
+test("enterprise band separates telemetry, GitHub governance, and operator-owned execution", () => {
+  const stack = readFileSync("docs/components/HeroEnterpriseStack.astro", "utf8");
+  for (const topic of ["otel", "governance", "runtime"]) {
+    const story = hero.match(new RegExp(`<section class="product-story snippet-story enterprise-${topic}-story"[\\s\\S]*?<\\/section>`))?.[0];
+    assert.ok(story, `${topic} has its own slide`);
+    assert.match(story, new RegExp(`aria-labelledby="enterprise-${topic}-title" data-reveal data-slideshow-slide`));
+    assert.match(story, /<HeroEnterpriseStack/);
+    assert.equal([...story.matchAll(/\{ owner:/g)].length, 3);
+  }
+  assert.match(hero, /evolution-story[\s\S]*enterprise-otel-story[\s\S]*enterprise-governance-story[\s\S]*enterprise-runtime-story[\s\S]*backend-story/);
+  for (const text of [
+    "GH_AW_DEFAULT_OTLP_ENDPOINT + secret headers",
+    "OTLP traces and metrics; log export is opt-in",
+    "variables never override its reviewed rollout policy",
+    "Branch rulesets + Actions policies",
+    "Self-hosted / ARC + DinD",
+    "Approved action mirrors",
+    "Internal container registries",
+    "pinned gh-aw release before rollout",
+    "not CAO-provisioned infrastructure or a certified deployment profile",
+  ]) assert.ok(hero.includes(text), text);
+  assert.match(stack, /<figure class="enterprise-stack" aria-label=\{label\}>/);
+  assert.match(stack, /<ol>/);
+  assert.match(stack, /<figcaption>\{caption\}<\/figcaption>/);
+  assert.doesNotMatch(stack, /<script|set:html|fetch\(|<animate/);
 });
 
 test("backend story maps portable specifications to an illustrative Azure application map", () => {

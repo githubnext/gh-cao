@@ -7,7 +7,7 @@ for (const width of [320, 390, 800, 1152, 1153, 1280, 1440, 1920]) {
     await page.goto("./");
     await page.evaluate(() => document.fonts.ready);
     const sections = page.locator(".hierarchy-hero, .product-story");
-    await expect(sections).toHaveCount(11);
+    await expect(sections).toHaveCount(15);
     for (const [index, section] of (await sections.all()).entries()) {
       await section.scrollIntoViewIfNeeded();
       const layout = await section.evaluate(element => {
@@ -58,7 +58,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 800, height: 600 
     await page.goto("./");
     await page.getByRole("button", { name: "Start slideshow", exact: true }).click();
     const dialog = page.locator("#landing-slideshow");
-    for (let index = 0; index < 12; index++) {
+    const slideCount = await dialog.locator("[data-slideshow-slide]").count();
+    expect(slideCount).toBe(16);
+    for (let index = 0; index < slideCount; index++) {
       await expect(dialog).toHaveAttribute("data-slide-index", String(index));
       await expect.poll(() => dialog.locator("[data-slideshow-slide]:visible").evaluate(section => {
         const bounds = section.getBoundingClientRect();
@@ -76,7 +78,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 800, height: 600 
                 && rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1;
             });
       })).toBe(true);
-      if (index < 11) await page.keyboard.press("ArrowRight");
+      if (index < slideCount - 1) await page.keyboard.press("ArrowRight");
     }
   });
 }

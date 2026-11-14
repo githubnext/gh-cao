@@ -9,6 +9,7 @@ import HeroControlDiagram from "./HeroControlDiagram.astro";
 import HeroDecisionLoop from "./HeroDecisionLoop.astro";
 import HeroFactoryDashboard from "./HeroFactoryDashboard.astro";
 import HeroEnterpriseEvolution from "./HeroEnterpriseEvolution.astro";
+import HeroEnterpriseStack from "./HeroEnterpriseStack.astro";
 import HeroRepoAssist from "./HeroRepoAssist.astro";
 import HeroBackendDiagram from "./HeroBackendDiagram.astro";
 import HeroSafetyDiagram from "./HeroSafetyDiagram.astro";
@@ -203,6 +204,87 @@ import dashboardMobileOverviewLight from "../assets/product/cao-dashboard-mobile
     </a>
   </div>
   <HeroEnterpriseEvolution />
+</section>
+
+<section class="product-story snippet-story enterprise-otel-story" aria-labelledby="enterprise-otel-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Enterprise / Observability</p>
+    <h2 id="enterprise-otel-title">OpenTelemetry. Your observability stack.</h2>
+    <p>
+      Send workflow and hosted-server signals to your approved OTLP collectors.
+      Investigate traces, metrics, and logs in the observability tools your teams already use.
+    </p>
+    <p>
+      Configure workflow export with gh-aw defaults and server export with standard OTEL environment variables.
+      Keep authentication headers in secrets, not rollout policy.
+    </p>
+    <a class="hero-story-link" href="/gh-cao/configuration/#optional-observability">
+      Explore OpenTelemetry <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroEnterpriseStack
+    label="Signals, not authority"
+    layers={[
+      { owner: "Workflow runtime", title: "GitHub Agentic Workflows", detail: "GH_AW_DEFAULT_OTLP_ENDPOINT + secret headers" },
+      { owner: "Hosted Go server", title: "Standard OTEL configuration", detail: "OTLP traces and metrics; log export is opt-in" },
+      { owner: "Your observability platform", title: "Approved OTLP collector", detail: "Correlate failures and cost; retain access controls" },
+    ]}
+    caption="Exporter settings are independent. Telemetry diagnoses execution; accepted outcomes establish value, and reviewed policy controls rollout."
+  />
+</section>
+
+<section class="product-story snippet-story enterprise-governance-story" aria-labelledby="enterprise-governance-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Enterprise / Governance</p>
+    <h2 id="enterprise-governance-title">Governance where it belongs.</h2>
+    <p>
+      Use organization and repository configuration variables for runtime defaults, protected environments for approvals,
+      and branch rulesets to require review of workflow and policy changes.
+    </p>
+    <p>
+      Actions policies restrict allowed actions and reusable workflows.
+      CAO separately narrows enrolled scope and review/live mode; variables never override its reviewed rollout policy.
+    </p>
+    <a class="hero-story-link" href="/gh-cao/deployment-and-governance/#governance-boundary">
+      Explore governance boundaries <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroEnterpriseStack
+    label="Complementary control layers"
+    layers={[
+      { owner: "GitHub administration", title: "Variables + environments", detail: "Non-secret defaults, scoped secrets, deployment approvals" },
+      { owner: "GitHub administration", title: "Branch rulesets + Actions policies", detail: "Required reviews, CODEOWNERS, approved actions" },
+      { owner: "CAO control repository", title: "Reviewed cao.json", detail: "Exact workflow revision, bounded scope, review by default" },
+    ]}
+    caption="GitHub-native controls are operator-managed. CAO is not a universal enforcement boundary; credentials and compiled safe outputs remain independent limits."
+  />
+</section>
+
+<section class="product-story snippet-story enterprise-runtime-story" aria-labelledby="enterprise-runtime-title" data-reveal data-slideshow-slide>
+  <div class="product-story-copy">
+    <p class="section-eyebrow">Enterprise / Execution infrastructure</p>
+    <h2 id="enterprise-runtime-title">Your runners. Your supply chain.</h2>
+    <p>
+      Configure gh-aw for self-hosted Linux runners, including Actions Runner Controller (ARC) with Docker-in-Docker (DinD).
+      Your platform team owns isolation, network access, and cleanup.
+    </p>
+    <p>
+      Route action references to approved custom action mirrors and container images to internal registries.
+      Recompile and validate against your pinned gh-aw release before rollout.
+    </p>
+    <a class="hero-story-link" href="https://github.github.com/gh-aw/reference/self-hosted-runners/">
+      Explore gh-aw runner requirements <span aria-hidden="true">→</span>
+    </a>
+  </div>
+  <HeroEnterpriseStack
+    label="Operator-owned infrastructure"
+    layers={[
+      { owner: "Runner fleet", title: "Self-hosted / ARC + DinD", detail: "Linux, Docker, and upstream sandbox prerequisites" },
+      { owner: "Action supply chain", title: "Approved action mirrors", detail: "gh-aw aw.json action substitutions" },
+      { owner: "Container supply chain", title: "Internal container registries", detail: "gh-aw image substitutions + registry access" },
+    ]}
+    caption="Upstream gh-aw configuration, not CAO-provisioned infrastructure or a certified deployment profile. Mirrors do not grant network, credential, or rollout authority."
+  />
 </section>
 
 <section class="product-story snippet-story backend-story" aria-labelledby="backend-title" data-reveal data-slideshow-slide>
