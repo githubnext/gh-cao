@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T21:53:17Z",
-   "worker_run_id": "43513988133",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; none queued or in progress; no cancelled runs; source 7cb5134 = HEAD = source_sha; docs.yml last changed 063cbe9 (2026-11-12T06:17:07Z) per commits API, before every window run; window identical to the 21:34Z window). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; check-run annotation 'Process completed with exit code 152'; Build documentation and deploy skipped; log HTTP 403, cause unverified; Pages still serves 43505502149). n=19 successful push runs; 5-run gate met. Category: the only dashboard step is Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median exec 84 s (p90 93 s). 15 percent gate 12.6 s; full removal saves at most 5 s (6.0 percent), so both gates are unreachable. Caching or reusing demo output is stale-unsafe: prepareDashboardPages defaults now = Date.now() into generatedAt; the 05:23Z cron refreshes synthetic dates. Separate dashboard job rejected (checkout median 25 s plus handoff). No suggestion; no issue (open 20815 is the checkout category). next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T22:19:02Z",
    "worker_run_id": "43517625242",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (2026-11-14T05:24:33Z); run list re-read 08:18Z: unchanged, no queued or in-progress run; source 4d25cbd = HEAD = origin/main = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies failed at 17 s; not re-read this run). n=19 successes (18 push + schedule 43561388555); 0 cancelled; 5-run gate met; stored Jobs-API rows reused (completed-run timings immutable). Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15, range 9-15 = 14.5 percent of median exec 83 s (p90 92). 15 percent gate 12.45 s: full removal would save at most 12 s and is blocked because deploy consumes its output; 60 s gate unreachable. Validation is a correctness gate and stays on the publish path; splitting it into a parallel job would add checkout (median 25 s) and would not clear the gate. Astro-internal split not re-probed (logs previously HTTP 403 DIFC); not needed because the gate fails even at full removal. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T08:33:26.382Z",
+   "worker_run_id": "43576080832",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (2026-11-14T05:24:33Z); run list re-read at 08:32Z: unchanged, none queued or in progress, 0 cancelled; source 4d25cbd = HEAD = origin/main = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; logs not read, earlier HTTP 403). n=19 successful (18 push + 1 schedule 43561388555). Dashboard-specific work is only step Build synthetic enterprise demo (scripts/simulate-dashboard-pages.mjs: normalization, buildDashboardSite, cp to dist/cao): median 3 s, p90 4 s, max 5 s = 3.6 percent of median exec 83 s (p90 92 s). 15 percent gate 12.4 s and 60 s gate unreachable: full removal saves at most about 3 s. Jobs API spot-check 43561388555 and 43388781287: demo 4 s each, matches stored rows. Caching or reusing demo output is stale-unsafe: prepareDashboardPages sets now = Date.now() driving generatedAt, synthetic dates and pending-run durations, and the 05:23Z cron exists to refresh them. Separate dashboard job rejected (checkout median 25 s plus handoff). No suggestion; no issue; next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1531,5 +1531,17 @@
     6
    ]
   ]
+ },
+ "demo_step_check": {
+  "verified_at": "2026-11-14T08:33:26.382Z",
+  "runs": [
+   "43561388555",
+   "43388781287"
+  ],
+  "demo_s": [
+   4,
+   4
+  ],
+  "note": "Jobs API spot-check matched run_samples rows; reuse rows by run ID"
  }
 }
