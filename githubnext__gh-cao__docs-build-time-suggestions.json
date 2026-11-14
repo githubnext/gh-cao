@@ -1,36 +1,7 @@
 {
  "source_sha": "11a826aa3412479833cd2031bd37a6bed284735a",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T13:32:53Z",
-   "worker_run_id": 43599935375,
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); all within 14 days; none queued or in progress; 0 cancelled; 19 success (18 push + 1 schedule 43561388555); 1 failure 43506161539 (Install dependencies, push 7c8faf4) excluded and disclosed. Window identical to the 12:21Z evaluation; no new docs.yml run since 12:09Z. Source 215837f = HEAD = source_sha; compare 7e620f3...215837f is 1 commit touching only experiments/java-backend/** (no docs.yml trigger path; no run expected). 5-run gate met (n=19). Jobs API re-read of 43593405440 matched stored row (exec 73 s; build-job steps demo 4 s). Category step Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs; buildDashboardSite has only that script and tests as callers; astro.config.mjs has no dashboard build call): median 3 s, p90 4 s, range 3-5 s = 3.7 percent of median exec 81 s (p90 92 s). 15 percent gate 12.15 s and 60 s gate unreachable; full removal saves at most 3 s. Cross-run reuse stale-unsafe: demo output embeds run-clock generatedAt/observed_at and the 05:23Z refresh is by design. No separate dashboard job exists; dashboard generation is a build-job step, so dashboard-job statistics are not applicable. Checkout (median 24 s, 30 percent of exec) remains covered by open issue 20815 (OPEN, 0 comments, updated 2026-11-13T17:41Z), not repeated. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T13:52:18Z",
    "worker_run_id": 43601642830,
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43639680929 (push 6418dcd, created 2026-11-14T20:51Z) back to 43494667529 (created 2026-11-13T19:42Z); no docs.yml run since 20:51Z; HEAD 11a826aa has no docs.yml run. Excluded and disclosed: 6 failures (5 push runs failing at Build documentation since 15:58Z; 43506161539 failed in Install dependencies); 0 cancelled. n=14 successes (13 push + schedule 43561388555); 5-run gate met. Category = step Build documentation (npm run docs:build = astro build && validate-agent-docs && agent-docs-discovery test): success median 12.5 s, p90 15, range 9-15 = 15.3 percent of exec median 81.5 s (p90 92); push-only median 12 s = 14.8 percent of 81 s. 15 percent gate 12.2 s needs the whole step removed; deploy consumes its output and validation is a correctness gate, so not permissible; 60 s gate unreachable. Internal split unmeasured (job logs HTTP 403). Parallelizing Build synthetic enterprise demo (median 4 s) saves at most 4 s, below gate. Jobs API re-read matched stored rows. No suggestion; no issue; noop. next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T23:35:24Z",
+   "worker_run_id": 43653530430,
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43639680929 (push 6418dcd, created 2026-11-14T20:51Z) back to 43494667529 (created 2026-11-13T19:42Z); re-read 23:35Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run. Excluded and disclosed: 6 failures (5 push runs failing at Build documentation since 15:58Z; 43506161539 failed in Install dependencies). n=14 successes (13 push + schedule 43561388555); 5-run gate met. Source: HEAD 11a826aa = source_sha; 11a826aa touches docs.yml trigger paths (dashboard/site, docs, public, shared control) yet no docs.yml run exists for its SHA at 23:35Z (freshness gap, see observations_pending). Category = step Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, then cp to dist/cao): success median 4 s, p90 4 s, range 3-4 s = 4.9 percent of exec median 81.5 s (p90 92). 15 percent gate 12.2 s and 60 s gate unreachable; full removal saves at most 4 s. Caching stale-unsafe and not net-positive: simulate script defaults now=Date.now() and embeds generatedAt (lines 78, 122, 128, 134), the 05:23Z refresh is by design, and cache restore of the output costs about the same as regenerating it. Overlapping with the docs build saves at most 4 s and adds ordering risk. No dashboard job exists (build and deploy only); dashboard statistics not applicable. Node cache key 7808ecf8 still present (263 MB, lastAccessed 23:28Z). Step logs not read; timings from Jobs API. No suggestion; no issue; noop. next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1210,6 +1210,11 @@
    "observed_at": "2026-11-14T23:18:27Z",
    "source": "docs.yml run list",
    "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued; no current trigger. Maintainer hygiene item; not a suggestion."
+  },
+  {
+   "observed_at": "2026-11-14T23:35:24Z",
+   "source": "docs.yml run list --commit 11a826aa",
+   "note": "Freshness gap: HEAD 11a826aa (committed 2026-11-14T23:03:49Z, touches docs.yml trigger paths incl. dashboard/site, docs, public, shared control) has no Documentation Pages run at 23:35Z; last Pages deploy 15:39Z (04c9d9e, run 43611206032). Record with the unresolved Build documentation failure streak; maintainer triage, not a timing suggestion."
   }
  ],
  "checkout_probe": {
