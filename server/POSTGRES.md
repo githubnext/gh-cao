@@ -180,9 +180,7 @@ PGOPTIONS='-c role=cao_owner -c search_path=cao' \
 
 Use the exact operational `CAO_OPERATIONAL_NAMESPACE` and resolved capacity
 environment settings used by every replica. The canonical namespace is the
-`CAO_DATABASE_NAMESPACE` (the hosted default is `hosted-dashboard`). When updating
-from the removed `REDIS_NAMESPACE` setting, retain its exact value here; the
-configuration rename does not move data.
+`CAO_DATABASE_NAMESPACE` (the hosted default is `hosted-dashboard`).
 With separate databases/schemas, supply the corresponding owner connection for
 each command. Both bootstrap orders are supported in a shared schema: canonical
 bootstrap's exact-name allowlist includes all operational tables, including

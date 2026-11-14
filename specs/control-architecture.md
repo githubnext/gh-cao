@@ -342,9 +342,8 @@ code loaded from policy or another runtime path. Fixed module capabilities MUST
 NOT be overridden by policy. Module composition MUST complete and be validated
 before the server accepts traffic.
 Hosted server implementations MUST require the modular `web.host` declaration
-and MUST reject the earlier flat host-capability shape, the former `host.redis`
-selector, `redis.preset`, Redis-provider `namespace-env`, and environment-only
-host selection. Operational namespace indirection belongs to
+and MUST reject the earlier flat host-capability shape, unknown host keys, and
+environment-only host selection. Operational namespace indirection belongs to
 `web.host.operational-store.namespace-env`; canonical dataset identity uses
 `CAO_DATABASE_NAMESPACE` independently.
 

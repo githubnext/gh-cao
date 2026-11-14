@@ -425,8 +425,7 @@ configuration, and set `CAO_COLLECT_WORKERS` to a positive count. Do not use
 `CAO_COLLECT_ADMIT_ONLY`, separate `collect`/`backfill` roles, an externally or
 platform-owned listener, or multiple replicas. PostgreSQL is still required for
 canonical dashboard data. Memory does not need Redis credentials.
-The former `host.redis` selector is rejected; all hosted backends use
-`host.operational-store`.
+All hosted backends are selected through `host.operational-store`.
 
 All operational state is lost on restart, including sessions, pending login,
 revocation retries, limits, enrollment, delivery markers, unfinished accepted
@@ -452,9 +451,9 @@ operational diagnostics independently of the `CAO_DATABASE_NAMESPACE`
 PostgreSQL identity.
 
 Public health/readiness includes `operational.connected`,
-`operational.capabilities` and `operational.recoveryReady`; there is no
-`redis.connected` compatibility alias. Server log snapshots likewise use
-`operational` for safe counters, including when Redis is selected.
+`operational.capabilities` and `operational.recoveryReady`. Server log
+snapshots likewise use `operational` for safe counters, including when Redis is
+selected.
 A standalone `doctor` cannot inspect a
 different process's live memory state and reports that limitation rather than
 constructing an empty store. See the [normative operational contract](../specs/server-operational-storage.md).
@@ -535,30 +534,21 @@ a disposable local PostgreSQL database for shared adapter conformance and
 cross-connection durability, isolation, cancellation, and capacity checks.
 Tests create random namespaces and remove their operational state afterward.
 
-## Updating former Redis configuration
+## Operational and canonical namespaces
 
-Redis remains supported through `operational-store.backend: "redis"`, with
-provider settings under `operational-store.redis`. Move a former `host.redis`
-object there and move its `namespace-env` to `operational-store.namespace-env`.
-Use `CAO_DATABASE_NAMESPACE` for the canonical dataset and
-`CAO_OPERATIONAL_NAMESPACE` for operational state, retaining their previous
-values. Copy the former canonical namespace value exactly, including when a
-custom Redis `namespace-env` supplied it. Hosted mode defaults the canonical
-namespace to `hosted-dashboard` and the operational namespace to the canonical
-namespace when no operational override is set.
-These changes do not migrate or delete existing data or Redis keys.
+Redis is selected through `operational-store.backend: "redis"`, with provider
+settings under `operational-store.redis`. Use `CAO_DATABASE_NAMESPACE` for the
+canonical dataset and `CAO_OPERATIONAL_NAMESPACE` (or
+`operational-store.namespace-env`) for operational state. Hosted mode defaults
+the canonical namespace to `hosted-dashboard` and the operational namespace to
+the canonical namespace when no operational override is set.
 
-Local `serve`, `ingest`, `read` and `doctor` use `--namespace`
-instead of `--redis-namespace`. `CAO_DATABASE_NAMESPACE` supplies the default
-before the checkout-derived namespace. The old flag, `REDIS_NAMESPACE`, and
-`CAO_REDIS_NAMESPACE` are rejected. `ingest --redis-url` is also rejected because
-ingestion uses PostgreSQL; `serve --redis-url` and `doctor --redis-url` still
-explicitly select the Redis adapter. A policy-backed `doctor` uses the reviewed
-namespace rather than accepting a `--namespace` override.
-
-HTTP contract version 3 removes `redis` from health/readiness responses and
-renames the log snapshot's `redis` field to `operational`. Consumers must use
-the provider-neutral fields; no aliases are emitted.
+Local `serve`, `ingest`, `read` and `doctor` accept `--namespace`;
+`CAO_DATABASE_NAMESPACE` supplies the default before the checkout-derived
+namespace. Ingestion always uses PostgreSQL; `serve --redis-url` and
+`doctor --redis-url` explicitly select the Redis adapter. A policy-backed
+`doctor` uses the reviewed namespace rather than accepting a `--namespace`
+override.
 
 ## Webhook gateway operations
 

@@ -177,18 +177,8 @@ load() {
     docker exec -i "$kind_node" ctr --namespace k8s.io images import -
 }
 
-# The server rejects the removed REDIS_NAMESPACE; rename it in state from older prepare runs.
-migrate_database_env() {
-  local file="$state/database.env"
-  grep -q '^REDIS_NAMESPACE=' "$file" || return 0
-  ! grep -q '^CAO_DATABASE_NAMESPACE=' "$file" || fail "database.env sets both REDIS_NAMESPACE and CAO_DATABASE_NAMESPACE."
-  sed 's/^REDIS_NAMESPACE=/CAO_DATABASE_NAMESPACE=/' "$file" > "$file.tmp"
-  mv "$file.tmp" "$file"
-}
-
 shared_config() {
   local ns=$1
-  migrate_database_env
   k -n "$ns" create configmap cao-database --from-env-file="$state/database.env" \
     --dry-run=client -o yaml | k apply -f -
   k -n "$ns" create configmap cao-postgres-ca --from-file=ca.crt="$state/ca.crt" \

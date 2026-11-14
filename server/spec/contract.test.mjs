@@ -437,16 +437,6 @@ test('the server-only MCP logs tool matches the HTTP snapshot contract', () => {
   )
 })
 
-test('health and log contracts use operational storage without Redis compatibility aliases', () => {
-  for (const name of ['HealthResponse', 'ReadinessResponse', 'ServerLogSnapshot']) {
-    const schema = openapi.components.schemas[name]
-    assert.ok(schema.required.includes('operational'), name)
-    assert.equal(schema.properties.redis, undefined, name)
-  }
-  assert.equal(openapi.components.schemas.RedisState, undefined)
-  assert.equal(openapi.components.schemas.ServerLogRedis, undefined)
-})
-
 test('selected JSON Schemas and nullable responses are emitted', () => {
   for (const schema of ['AdmissionRequest', 'AdmissionAllowances', 'ConclusionRequest', 'SessionCompaction', 'QueryRequest', 'QueryResponse', 'QueryDefinition', 'RevisionEvent', 'SessionArchiveQuery', 'SessionArchiveResult', 'SessionArchiveStatus', 'WebhookAcknowledgement']) {
     const document = JSON.parse(readFileSync(join(directory, 'generated/schemas', `${schema}.json`), 'utf8'))

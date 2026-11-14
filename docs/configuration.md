@@ -111,7 +111,10 @@ such as `.github/workflows/cao.host.json`:
     "web": {
       "host": {
         "target": { "module": "container", "name": "hosted-dashboard" },
-        "redis": { "module": "generic", "tls": { "mode": "required" } }
+        "operational-store": {
+          "backend": "redis",
+          "redis": { "module": "generic", "tls": { "mode": "required" } }
+        }
       }
     }
   }
@@ -124,7 +127,7 @@ This is an overlay, **not** a standalone control policy: only
 it. Keep Redis URLs, passwords, and TLS certificates in the deployment's
 secret environment, not in either JSON document.
 
-The host extension may also declare `cors` next to `target` and `redis`. Omit
+The host extension may also declare `cors` next to `target` and `operational-store`. Omit
 it to keep the dashboard same-origin. When another reviewed origin must call
 the server, list exact origins, for example
 `"cors": { "allowed-origins": ["https://tools.example.com"] }`.

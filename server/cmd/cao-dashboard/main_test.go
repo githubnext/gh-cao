@@ -521,35 +521,21 @@ func TestRegisterNamespaceFlagWithEnvOverrideFallsBackToCheckout(t *testing.T) {
 	}
 }
 
-func TestCommandsRejectLegacyRedisFlags(t *testing.T) {
+func TestCommandsAcceptNamespaceAndRedisAdapterFlags(t *testing.T) {
 	for _, newCommand := range []func() *cobra.Command{
 		newServeCommand, newIngestCommand, newReadCommand, newDoctorCommand,
 	} {
 		command := newCommand()
 		t.Run(command.Name(), func(t *testing.T) {
-			if err := command.ParseFlags([]string{"--redis-namespace", "existing"}); err == nil {
-				t.Fatal("removed --redis-namespace flag was accepted")
-			}
 			if err := command.ParseFlags([]string{"--namespace", "existing"}); err != nil {
-				t.Fatalf("neutral namespace flag was rejected: %v", err)
+				t.Fatalf("namespace flag was rejected: %v", err)
 			}
 		})
-	}
-	if err := newIngestCommand().ParseFlags([]string{"--redis-url", defaultRedisURL}); err == nil {
-		t.Fatal("ingest accepted a Redis URL it cannot use")
 	}
 	for _, command := range []*cobra.Command{newServeCommand(), newDoctorCommand()} {
 		if err := command.ParseFlags([]string{"--redis-url", defaultRedisURL}); err != nil {
 			t.Fatalf("%s rejected explicit Redis adapter configuration: %v", command.Name(), err)
 		}
-	}
-}
-
-func TestNamespaceFlagsRejectLegacyEnvironment(t *testing.T) {
-	t.Setenv("CAO_REDIS_NAMESPACE", "previous-dataset")
-	_, err := registerNamespaceFlag(&cobra.Command{}, "dataset namespace")
-	if err == nil || !strings.Contains(err.Error(), "CAO_REDIS_NAMESPACE") {
-		t.Fatalf("legacy namespace silently selected a different dataset: %v", err)
 	}
 }
 

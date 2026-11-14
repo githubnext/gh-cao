@@ -437,8 +437,6 @@ test("control policy selects a volatile OAuth single-process operational backend
   assert.notEqual(validate(JSON.stringify(policy)).status, 0);
   policy["control-plane"].web.host.target.listener = "process";
   assert.equal(validate(JSON.stringify(policy)).status, 0);
-  policy["control-plane"].web.host.redis = { module: "generic" };
-  assert.notEqual(validate(JSON.stringify(policy)).status, 0);
 });
 
 test("control policy preserves Redis selection and provider restrictions", () => {
@@ -453,26 +451,6 @@ test("control policy preserves Redis selection and provider restrictions", () =>
   assert.notEqual(validate(JSON.stringify(policy)).status, 0);
   policy["control-plane"].web.host.target.replicas = 1;
   assert.equal(validate(JSON.stringify(policy)).status, 0);
-  policy["control-plane"].web.host.redis = { module: "generic" };
-  assert.notEqual(validate(JSON.stringify(policy)).status, 0);
-});
-
-test("control policy rejects legacy host Redis selection and provider namespace configuration", () => {
-  for (const host of [
-    { target: { module: "container" }, redis: { module: "generic" } },
-    { target: { module: "container" }, "operational-store": {
-      backend: "redis", redis: { module: "generic", "namespace-env": "CACHE_NAMESPACE" },
-    } },
-  ]) {
-    const policy = JSON.parse(minimalPolicy);
-    policy["control-plane"].web = { host };
-    const result = validate(JSON.stringify(policy));
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /unknown key/);
-  }
-  assert.equal(schema.$defs.modularHost.additionalProperties, false);
-  assert.equal(schema.$defs.modularHost.properties.redis, undefined);
-  assert.equal(schema.$defs.redisModule.properties["namespace-env"], undefined);
 });
 
 test("control policy accepts explicit PostgreSQL operational storage without Redis or volatile topology", () => {
@@ -619,12 +597,6 @@ test("control policy rejects the previous flat host shape", () => {
       listener: "process",
       "require-https": true,
       "supports-collection": true,
-      redis: {
-        preset: "redis-cloud",
-        "url-env": "REDIS_URL",
-        session: "pooled",
-        tls: { mode: "required" },
-      },
     },
   };
   const result = validate(JSON.stringify(policy));

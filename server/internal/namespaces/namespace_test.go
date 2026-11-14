@@ -95,7 +95,7 @@ func TestCheckoutRootFallsBackWithoutGitMarker(t *testing.T) {
 	}
 }
 
-func TestEnvironmentPreservesNamespaceAndRejectsLegacySelectors(t *testing.T) {
+func TestEnvironmentPreservesNamespace(t *testing.T) {
 	for _, test := range []struct {
 		name   string
 		values map[string]string
@@ -105,9 +105,6 @@ func TestEnvironmentPreservesNamespaceAndRejectsLegacySelectors(t *testing.T) {
 		{"unset", nil, "", ""},
 		{"canonical identity", map[string]string{"CAO_DATABASE_NAMESPACE": " cao:existing "}, "cao:existing", ""},
 		{"unprefixed canonical identity", map[string]string{"CAO_DATABASE_NAMESPACE": "Existing.Dataset"}, "Existing.Dataset", ""},
-		{"legacy hosted", map[string]string{"REDIS_NAMESPACE": "existing"}, "", "REDIS_NAMESPACE"},
-		{"legacy CLI", map[string]string{"CAO_REDIS_NAMESPACE": "existing"}, "", "CAO_REDIS_NAMESPACE"},
-		{"conflicting selectors", map[string]string{"CAO_DATABASE_NAMESPACE": "new", "REDIS_NAMESPACE": "old"}, "", "REDIS_NAMESPACE"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := Environment(func(key string) (string, bool) {
