@@ -23,7 +23,6 @@ import { Icon } from "@astrojs/starlight/components";
       const nextTheme = theme === "dark" ? "light" : "dark";
       button.ariaLabel = `Switch to ${nextTheme} theme`;
       button.title = `Switch to ${nextTheme} theme`;
-      button.setAttribute("aria-pressed", String(theme === "dark"));
     });
   }
 
