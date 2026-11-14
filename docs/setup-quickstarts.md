@@ -67,8 +67,8 @@ The recent evidence window defaults to **seven days** (maximum `168h`), while
 server lifetime defaults to, and cannot exceed, **48 hours** per invocation.
 History checkpoints survive restarts, and admitted pages remain in PostgreSQL
 inside the selected window. The header's data-status tooltip shows ingestion progress, quota headroom,
-pauses and errors. A shared 100-point core API pass ceiling reserves at least
-1000 points or 20% of core quota for other work.
+pauses and errors. A shared 100-point core API pass ceiling, counting only the pass's own requests,
+reserves at least 1000 points or 20% of core quota for other work.
 For example, `gh cao dashboard --repo OWNER/REPOSITORY --window 12h --duration 2h`
 narrows both. The default count is **200** per repository for each of the
 recent-run lookup and cached usage sample, not a promise of complete history.

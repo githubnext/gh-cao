@@ -986,8 +986,9 @@ not local lock files. Background passes rotate through the selected repositories
 persist fixed-interval page checkpoints, and split intervals exceeding GitHub's
 1000-result search ceiling. Incremental publication retains earlier pages inside
 the evidence window and commits the discovery checkpoint with the evidence.
-All discovery and embedded collectors share a 100-point core API pass ceiling,
-corrected from observed quota, and reserve at least 1000 points or 20% of the
+All discovery and embedded collectors share a 100-point core API pass ceiling
+counting only the pass's own requests, so other consumers of the same token
+cannot exhaust it, and reserve at least 1000 points or 20% of the
 core limit. Quota is required; exhausted headroom pauses acquisition.
 Its shared count and two-minute limits produce explicitly reported partial
 artifact coverage. Analyses and artifacts are reusable, but discovery lists are

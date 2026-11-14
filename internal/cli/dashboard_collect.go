@@ -336,6 +336,10 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			if err := options.progress.publish("receiving", repository); err != nil {
 				return nil, err
 			}
+			// gh-aw takes an absolute used-quota ceiling; refresh it from the remaining pass budget.
+			if err := budget.check(ctx, 1); err != nil && !errors.Is(err, errDashboardQuota) {
+				return nil, err
+			}
 			err = logs(ctx, dashboardLogRequest{
 				Repository: repository, Directory: directory, Cache: shard,
 				StartDate: start.Format(time.RFC3339), EndDate: end.Format(time.RFC3339),

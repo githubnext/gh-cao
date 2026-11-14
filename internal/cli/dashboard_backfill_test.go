@@ -202,16 +202,34 @@ func TestDashboardHistorySplitsSearchCeilingAndRejectsIncompletePages(t *testing
 	now := time.Now().UTC().Truncate(time.Second)
 	cursor := dashboardHistoryRange(dashboardHistoryCursor{}, now.Add(-dashboardMaximumWindow), now)
 	response := `{"total_count":1200,"workflow_runs":[]}`
-	gh := func(context.Context, ...string) (string, string, error) { return response, "", nil }
+	calls := 0
+	gh := func(context.Context, ...string) (string, string, error) {
+		calls++
+		if calls > 1 && response == `{"total_count":1200,"workflow_runs":[]}` {
+			return `{"total_count":0,"workflow_runs":[]}`, "", nil
+		}
+		return response, "", nil
+	}
 	rows, next, err := collectDashboardHistory(t.Context(), "octo/api", cursor, 100, gh)
-	if err != nil || len(rows) != 0 || !next.Start.After(cursor.Start) || next.End != cursor.End || next.Page != 1 {
-		t.Fatalf("search ceiling falsely advanced history coverage: %+v %v", next, err)
+	if err != nil || len(rows) != 0 || calls != 2 || !next.End.After(cursor.Start) || !next.End.Before(cursor.End) || next.Page != 1 {
+		t.Fatalf("search ceiling was not split within the pass before advancing coverage: %+v %d %v", next, calls, err)
+	}
+	quota := func(context.Context, ...string) (string, string, error) {
+		calls++
+		if calls > 1 {
+			return "", "", errDashboardQuota
+		}
+		return response, "", nil
+	}
+	calls = 0
+	if _, next, err := collectDashboardHistory(t.Context(), "octo/api", cursor, 100, quota); err != nil || !next.Start.After(cursor.Start) || next.End != cursor.End {
+		t.Fatalf("quota pause discarded completed history splits: %+v %v", next, err)
 	}
 	response = `{"total_count":20,"workflow_runs":[]}`
 	if _, _, err := collectDashboardHistory(t.Context(), "octo/api", cursor, 100, gh); err == nil {
 		t.Fatal("incomplete page advanced the frontier")
 	}
-	response = `{"total_count":1200,"workflow_runs":[]}`
+	response, calls = `{"total_count":1200,"workflow_runs":[]}`, 0
 	cursor.Start = cursor.End
 	if _, _, err := collectDashboardHistory(t.Context(), "octo/api", cursor, 100, gh); err == nil {
 		t.Fatal("unrepresentable single-second history was silently skipped")
@@ -243,13 +261,23 @@ func TestDashboardQuotaReservesHeadroomAndSharedPassCeiling(t *testing.T) {
 			if err != nil || budget.ceiling != 300 {
 				t.Fatalf("pass ceiling was not bounded: %+v %v", budget, err)
 			}
-			current = 300
-			if _, _, err := budget.exec(t.Context(), "run", "list", "--limit", "100"); !errors.Is(err, errDashboardQuota) || remote != 0 {
+			// Other consumers sharing the token must not exhaust this pass's budget.
+			current = 350
+			if _, _, err := budget.exec(t.Context(), "run", "list", "--limit", "99"); err != nil || remote != 1 {
+				t.Fatalf("concurrent quota use exhausted the pass budget: %v", err)
+			}
+			current = 400
+			budget.spent = 99
+			if _, _, err := budget.exec(t.Context(), "run", "list", "--limit", "200"); !errors.Is(err, errDashboardQuota) || remote != 1 {
 				t.Fatal("discovery consumed points past the shared pass ceiling")
 			}
-			current = 299
+			if err := budget.check(t.Context(), 1); err != nil || budget.ceiling != 401 {
+				t.Fatalf("gh-aw ceiling did not track the remaining pass budget: %d %v", budget.ceiling, err)
+			}
+			budget.spent = 0
+			current = 3999
 			if err := budget.check(t.Context(), 2); !errors.Is(err, errDashboardQuota) {
-				t.Fatal("multi-page read was admitted without enough headroom")
+				t.Fatal("multi-page read was admitted without enough reserve headroom")
 			}
 		})
 	}
