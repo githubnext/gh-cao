@@ -43,6 +43,8 @@ func dashboardTestGH(t *testing.T, now time.Time) ghExecutor {
 				}}})
 			}
 			return `{"total_count":0,"workflow_runs":[]}`, "", nil
+		case "aw list":
+			return encode([]map[string]any{{"workflow": "agent", "engine_id": "copilot", "compiled": "Yes"}})
 		case "workflow list":
 			return encode([]dashboardWorkflow{{42, "Agent", ".github/workflows/agent.lock.yml", "active"},
 				{43, "Tests", ".github/workflows/tests.yml", "active"}})
@@ -388,6 +390,109 @@ func TestDashboardCachedUsageUnionIsBoundedAndAttemptSafe(t *testing.T) {
 	raw[0]["attempt"] = "invalid"
 	if _, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows, Runs: raw}}, now.Add(-48*time.Hour), now); err == nil {
 		t.Fatal("invalid attempt accepted")
+	}
+}
+
+func TestDashboardDetectsCheckedInCampaigns(t *testing.T) {
+	root := t.TempDir()
+	write := func(path, content string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, path)), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, path), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("care/cao.json", `{"campaign":"care","orchestrator":"care","workers":{"lint":"care-lint"},"standalone-workflows":["care-solo"]}`)
+	write("care/aw.yml", "name: Care\nicon: \":check-circle:\"\ndescription: Keeps things tidy.\n")
+	write("docs/readme.md", "not a campaign")
+	campaigns, err := detectDashboardCampaigns(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	workflows := []dashboardWorkflow{
+		{1, "Care", ".github/workflows/care.lock.yml", "active"},
+		{2, "Lint", ".github/workflows/care-lint.lock.yml", "active"},
+		{3, "Solo", ".github/workflows/care-solo.lock.yml", "active"},
+	}
+	batch, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows,
+		AgenticWorkflows: map[string]bool{"care": true, "care-lint": true, "care-solo": true}, Campaigns: campaigns}},
+		now.Add(-time.Hour), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch["campaigns"]) != 1 {
+		t.Fatalf("unexpected campaigns: %v", batch["campaigns"])
+	}
+	campaign := batch["campaigns"][0]
+	if campaign["id"] != "campaign:dashboard-sources:care" || campaign["slug"] != "care" || campaign["name"] != "Care" ||
+		campaign["icon"] != "check-circle" || campaign["description"] != "Keeps things tidy." || campaign["workerCount"] != 1 {
+		t.Fatalf("unexpected campaign record: %v", campaign)
+	}
+	got := map[string][2]any{}
+	for _, row := range batch["workflows"] {
+		got[nativeText(row["path"])] = [2]any{row["role"], row["campaignId"]}
+	}
+	want := map[string][2]any{
+		".github/workflows/care.md":      {"orchestrator", "campaign:dashboard-sources:care"},
+		".github/workflows/care-lint.md": {"worker", "campaign:dashboard-sources:care"},
+		".github/workflows/care-solo.md": {"standalone", nil},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected workflow membership: %v", got)
+	}
+	write("other/cao.json", `{"campaign":"other","orchestrator":"other","workers":{"lint":"care-lint"}}`)
+	if _, err := detectDashboardCampaigns(root); err == nil {
+		t.Fatal("a workflow claimed by two campaigns was accepted")
+	}
+}
+
+func TestDashboardMarksGhAwListedWorkflowsStandalone(t *testing.T) {
+	now := time.Now().UTC()
+	workflows := []dashboardWorkflow{
+		{42, "Agent", ".github/workflows/Agent.lock.yml", "active"},
+		{44, "Other", ".github/workflows/other.lock.yml", "active"},
+	}
+	agentic, err := collectDashboardAgenticWorkflows(t.Context(), "octo/api",
+		func(_ context.Context, args ...string) (string, string, error) {
+			if strings.Join(args, " ") != "aw list --repo octo/api --json" {
+				t.Fatalf("unexpected command: %v", args)
+			}
+			return `[{"workflow":"agent","engine_id":"copilot","compiled":"Yes"}]`, "", nil
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	batch, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows,
+		AgenticWorkflows: agentic}}, now.Add(-time.Hour), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roles := map[string]any{}
+	for _, row := range batch["workflows"] {
+		if _, present := row["sourceKind"]; present {
+			t.Fatalf("source provenance was invented: %v", row)
+		}
+		roles[nativeText(row["path"])] = row["role"]
+	}
+	if roles[".github/workflows/agent.md"] != "standalone" || roles[".github/workflows/other.md"] != nil {
+		t.Fatalf("unexpected workflow roles: %v", roles)
+	}
+	for _, invalid := range []string{`{}`, `[{"workflow":"../x"}]`, `[{"workflow":""}]`} {
+		if _, err := collectDashboardAgenticWorkflows(t.Context(), "octo/api",
+			func(context.Context, ...string) (string, string, error) { return invalid, "", nil }); err == nil {
+			t.Fatalf("invalid gh aw list output accepted: %s", invalid)
+		}
+	}
+	t.Setenv("GH_HOST", "ghe.example.com")
+	if _, err := collectDashboardAgenticWorkflows(t.Context(), "octo/api",
+		func(context.Context, ...string) (string, string, error) {
+			t.Fatal("gh aw list ran against an ambient non-github.com host")
+			return "", "", nil
+		}); err == nil {
+		t.Fatal("ambient GH_HOST was not rejected")
 	}
 }
 
