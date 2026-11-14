@@ -16,8 +16,9 @@ func readBudget(value []byte) (legacyBudget, bool) {
 		return result, false
 	}
 	for i, p := range []*int64{&result.remaining, &result.reset, &result.parked} {
+		// ParseInt accepts a leading "+", which the memory and Redis adapters reject.
 		n, err := strconv.ParseInt(parts[i], 10, 64)
-		if err != nil {
+		if err != nil || strings.HasPrefix(parts[i], "+") {
 			return legacyBudget{}, false
 		}
 		*p = n
