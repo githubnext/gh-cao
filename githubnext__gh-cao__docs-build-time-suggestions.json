@@ -1,36 +1,7 @@
 {
- "source_sha": "6418dcd5506983390799b513a3ca01ca113ce788",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "93fdfef0cbc318ac2d80f5785aa7f6ab46f0a27b",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T12:21:33Z",
-   "worker_run_id": "43594043248",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43593405440 created 2026-11-14T12:09:24Z back to 43430166810 created 2026-11-13T13:02:07Z; all within 14 days; none queued or in progress). Source: newest docs.yml head 7e620f3 (local checkout 215837f does not contain it; not used for timing). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; build and deploy skipped); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Category = handoff (build end to deploy start) + Configure Pages + Upload Pages artifact + deploy-setup step: median 9 s, p90 10 s, max 10 s = 11.1 percent of median exec 81 s (p90 92 s). 15 percent gate 12.15 s and 60 s gate unreachable even with all removed. Deploy Pages (GitHub-managed) median 7 s not controllable. Merging deploy into build saves about 6 s (handoff 5 + setup 1) but needs id-token: write and the github-pages environment in the job that runs npm ci and Astro (least privilege, rejected again). Artifact about 8.3 MB; shrinking saves about 1 s. New run 43593405440 (exec 73 s) moved exec median 82 to 81 s; no new transfer-category evidence. Jobs API spot-check of 43561388555 matched stored rows. Open issue 20815 (checkout, OPEN, 0 comments) not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T12:36:41Z",
    "worker_run_id": "43595227009",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); all within 14 days; run list and jobs re-read at this evaluation: same 20 IDs, all completed, none queued or in progress, no docs.yml run after 20:51Z. Source 6418dcd = newest docs head = source_sha. Excluded and disclosed: 6 failures (Build documentation on 43613020723, 43616204011, 43621919773, 43623754509, 43639680929; Install dependencies on 43506161539), 0 cancelled. n=14 successes (13 push + schedule 43561388555); 5-run gate met. Category reusable dashboard generation = step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 4 s, p90 4 s, range 3-4 s = 4.9 percent of exec median 81.0 s (p90 92 s). Exec median recomputed from stored rows: 81.0 (prior note 81.5 corrected; gate 12.15 s). Jobs API spot-check of 43611206032 and 43608206381 matched stored rows (demo 4 s each; exec 83 s and 82 s). 15 percent gate 12.15 s and 60 s gate unreachable; full removal saves at most 4 s. Cross-run reuse stays unsafe: demo output embeds run-clock generatedAt/observed_at and the 05:23Z refresh is by design (AGENTS.md: Pages samples come from production normalization). Reliability, not timing (unresolved): Build documentation red on 5 consecutive pushes since 15:58Z; open-issue search at this evaluation found no issue tracking the streak (20815 is checkout; 20934 is a workflow-contracts gate, relation unverified). No suggestion; no create_issue; noop used. next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T22:18:26Z",
+   "worker_run_id": "43646940636",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "43639680929",
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); all within 14 days; none queued or in progress; 0 cancelled; no docs.yml run after 20:51Z (run list re-read at 22:16Z). Source: workspace HEAD 93fdfef (docs-trigger head 6418dcd); compare API 6418dcd...93fdfef touches no docs.yml trigger path (no docs.yml, shared, docs, dashboard, astro, package, or public changes). Excluded and disclosed: 6 failures (Build documentation on 5 push runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929; Install dependencies on 43506161539); n=14 successes (13 push + schedule 43561388555); 5-run gate met. Jobs API re-read of all 20 runs. Wall (build start to deploy end) median 81.5 s, p90 92 s; 15 percent gate 12.2 s; 60 s gate unreachable. Category removable transfer (build-to-deploy handoff 5 s + Configure Pages 0.5-1 s + Upload Pages artifact 2 s + deploy job setup 1 s) median 9 s, p90 10 s = 11.0 percent of wall median; below gate even at full removal. Deploy Pages (GitHub-managed) median 7 s not controllable. Merging deploy into build would save about 6 s but needs id-token and github-pages environment in the job that runs npm ci (rejected, least privilege). Artifact github-pages 8,352,438 bytes (run 43611206032); shrinking saves about 1 s. Checkout (median 24 s, 30 percent of wall) remains covered by open issue 20815 (OPEN, 0 comments), not repeated. Reliability, not timing (unresolved, reported in noop): Build documentation failed on 5 consecutive push runs since 15:58Z; no open issue tracks the streak (search at 22:16Z). No suggestion; no create_issue; noop used. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1156,7 +1156,7 @@
   ],
   "median_p90_s": {
    "exec_ok14": [
-    81.0,
+    81.5,
     92
    ],
    "docs_ok14": [
@@ -1187,9 +1187,9 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T21:52:36Z",
-   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (worker 43644771978)",
-   "note": "Reliability, not timing (highest priority, unresolved at 2026-11-14T21:52:36Z): Build documentation failed on 5 consecutive push runs since 15:58Z (heads 600b56a, afe0ba0, 93c64ff, 185fd26, 6418dcd). Newest run 43639680929 Jobs API: Build documentation failure after 14 s; Build synthetic demo, Configure Pages, Upload and Deploy skipped. Last green push 04c9d9e (run 43611206032, deployed 15:39Z); Pages not redeployed since. No docs.yml run since 20:51Z. Logs HTTP 403 (not bypassed). No open issue tracks the streak; open issue 20934 (cao-framework-health, workflow-contracts documentation gate at a2b14dd) shares only the documentation theme, relation unverified. Maintainer triage needed; excluded from timing samples."
+   "observed_at": "2026-11-14T22:18:26Z",
+   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (worker 43646940636)",
+   "note": "Reliability, not timing (highest priority, unresolved at 2026-11-14T22:18:26Z): Build documentation failed on 5 consecutive push runs since 15:58Z (heads 600b56a, afe0ba0, 93c64ff, 185fd26, 6418dcd); the failing step is Build documentation after about 10-15 s, with Build demo, Configure Pages, Upload and Deploy skipped. Last green push 04c9d9e (run 43611206032, deployed 15:39Z); Pages not redeployed since. No docs.yml run since 20:51Z. Open-issue search at 22:16Z found no issue tracking the streak (20815 is checkout; 20891 is an engine-crash report for this worker; 20934 is a workflow-contracts gate). Logs HTTP 403 (not bypassed). Excluded from timing samples; maintainer triage needed."
   },
   {
    "observed_at": "2026-11-14T21:34:40Z",
