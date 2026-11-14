@@ -909,25 +909,29 @@ func cleanupDashboardServingPostgres(t *testing.T, engine dashboardEngine, direc
 		t.Error("refusing cleanup: container does not match test cache owner, image and identity")
 		return
 	}
+	data := filepath.Join(directory, "data")
 	if runtime.GOOS != "windows" {
-		if err := validateDashboardPostgresOwnership(container, state, filepath.Join(directory, "data")); err != nil {
+		if err := validateDashboardPostgresOwnership(container, state, data); err != nil {
 			t.Errorf("refusing to change permissions outside test-owned PostgreSQL data: %v", err)
 			return
 		}
-		if !container.State.Running {
-			if _, err := engine.run(ctx, "start", container.ID); err != nil {
-				t.Errorf("start owned PostgreSQL to restore cache ownership: %v", err)
-				return
-			}
-		}
+	}
+	// Stop PostgreSQL before restoring ownership: a live server creates and
+	// removes files under its data directory, which makes a recursive chown fail.
+	if _, err := engine.run(ctx, "container", "rm", "--force", container.ID); err != nil {
+		t.Errorf("remove uniquely owned test PostgreSQL: %v", err)
+		return
+	}
+	if runtime.GOOS != "windows" {
 		// PostgreSQL changes its bind mount to its container UID. Restore the
 		// invoking user's ownership before removing this private test workspace.
 		owner := fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
-		if _, err := engine.run(ctx, "exec", "--user", "0", container.ID, "chown", "-R", owner, "/var/lib/postgresql/data"); err != nil {
+		if _, err := engine.run(ctx, "run", "--rm", "--network", "none", "--user", "0",
+			"--label", dashboardPostgresLabel+"="+state.Owner,
+			"--volume", data+":/var/lib/postgresql/data:Z",
+			"--entrypoint", "chown", dashboardPostgresImage,
+			"-R", owner, "/var/lib/postgresql/data"); err != nil {
 			t.Errorf("restore test-owned PostgreSQL cache ownership: %v", err)
 		}
-	}
-	if _, err := engine.run(ctx, "container", "rm", "--force", container.ID); err != nil {
-		t.Errorf("remove uniquely owned test PostgreSQL: %v", err)
 	}
 }
