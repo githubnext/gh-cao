@@ -81,6 +81,16 @@ public final class PolicyResolver {
                 policy.digest());
     }
 
+    /** Non-throwing form of {@link #validateScope} for filtering discovered repositories. */
+    static boolean inScope(ControlPolicy.Scope scope, String controlRepository, String target) {
+        try {
+            validateScope(scope, controlRepository, target);
+            return true;
+        } catch (PolicyException e) {
+            return false;
+        }
+    }
+
     /** Owners default to the control repository owner; owner and repository lists are cumulative. */
     static void validateScope(ControlPolicy.Scope scope, String controlRepository, String target) {
         String normalized = target.toLowerCase(Locale.ROOT);

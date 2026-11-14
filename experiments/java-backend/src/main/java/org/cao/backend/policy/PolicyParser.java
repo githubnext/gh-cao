@@ -34,7 +34,7 @@ public final class PolicyParser {
     private static final String SCHEMA_ID =
             "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json";
     private static final Set<String> UNSUPPORTED_CONTROL_KEYS = Set.of(
-            "activity", "inventory", "web", "workflows", "operations", "publishing",
+            "activity", "web", "workflows", "operations", "publishing",
             "marketplace", "webhook-gateway", "token-broker");
     private static final Set<String> UNSUPPORTED_CAMPAIGN_KEYS = Set.of(
             "icon", "deploy", "workflow-values");
@@ -86,7 +86,7 @@ public final class PolicyParser {
                 throw new PolicyException("control-plane." + key + " is not supported by the Java backend yet");
             }
         }
-        keys(control, "control-plane", Set.of("scope", "defaults", "campaigns"));
+        keys(control, "control-plane", Set.of("scope", "defaults", "inventory", "campaigns"));
         ControlPolicy.Scope scope = new ControlPolicy.Scope(List.of(), List.of());
         if (control.has("scope")) {
             JsonNode node = control.get("scope");
@@ -108,6 +108,8 @@ public final class PolicyParser {
                     integer(node, "rollout-percent", 1, 100, "control-plane.defaults"));
             budget(node, "control-plane.defaults");
         }
+        ControlPolicy.Inventory inventory = control.has("inventory")
+                ? parseInventory(control.get("inventory")) : ControlPolicy.Inventory.DEFAULTS;
         Map<String, ControlPolicy.Campaign> campaigns = new LinkedHashMap<>();
         if (control.has("campaigns")) {
             JsonNode node = control.get("campaigns");
@@ -119,7 +121,28 @@ public final class PolicyParser {
                 campaigns.put(name, parseCampaign(node.get(name), "control-plane.campaigns." + name));
             }
         }
-        return new ControlPolicy(digest, scope, defaults, Map.copyOf(campaigns));
+        return new ControlPolicy(digest, scope, defaults, inventory, Map.copyOf(campaigns));
+    }
+
+    private static ControlPolicy.Inventory parseInventory(JsonNode node) {
+        String path = "control-plane.inventory";
+        mapping(node, path);
+        keys(node, path, Set.of("max-scan-repositories", "cell-count", "cell-index", "batch-size", "batch-index"));
+        ControlPolicy.Inventory defaults = ControlPolicy.Inventory.DEFAULTS;
+        int cellCount = orDefault(integer(node, "cell-count", 1, 1000, path), defaults.cellCount());
+        int cellIndex = orDefault(integer(node, "cell-index", 0, Integer.MAX_VALUE, path), defaults.cellIndex());
+        if (cellIndex >= cellCount) {
+            throw new PolicyException(path + ".cell-index must be smaller than cell-count");
+        }
+        return new ControlPolicy.Inventory(
+                orDefault(integer(node, "max-scan-repositories", 1, 100_000, path), defaults.maxScanRepositories()),
+                cellCount, cellIndex,
+                orDefault(integer(node, "batch-size", 1, 100_000, path), defaults.batchSize()),
+                orDefault(integer(node, "batch-index", 0, Integer.MAX_VALUE, path), defaults.batchIndex()));
+    }
+
+    private static int orDefault(Integer value, int fallback) {
+        return value == null ? fallback : value;
     }
 
     private static ControlPolicy.Campaign parseCampaign(JsonNode node, String path) {

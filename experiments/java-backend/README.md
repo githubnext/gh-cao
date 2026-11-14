@@ -17,6 +17,11 @@ The fail-closed policy/authority kernel for the control-plane subset of
   default, exact-target and worker-ceiling narrowing, and narrowing-only dispatch
   requests (widening throws `PolicyException`; expected denials return stable reasons).
 
+- `OrchestratorPlanner` / `InventoryPartition` / `EffectiveRecord.buildOrchestrator`: orchestrator planning
+  from caller-supplied inventory and workflow evidence (no GitHub access): scope-checked inventory,
+  deterministic cell/batch partitioning with JavaScript-compatible inventory digests, per-target modes,
+  eligible worker workflows and the effective repository cap, emitted as the §6.3 orchestrator record.
+
 - `operational` package: PostgreSQL adapter for the operational `AuditLog`
   (`specs/server-operational-storage.md`): tamper-evident SHA-256 hash chain compatible with the Go
   canonical record bytes, anchors, namespace isolation, runtime-versus-owner separation
