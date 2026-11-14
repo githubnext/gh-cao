@@ -229,6 +229,10 @@ or collector credentials.
 Ingestion, web and maintenance use stable namespaces/capacity inputs. PostgreSQL
 state survives web/database pod replacement while the same PVC exists; deleting
 the PVC, cluster or Docker Desktop data can destroy it. This is not a backup.
+`database.env` selects the canonical dataset with `CAO_DATABASE_NAMESPACE` and
+operational state with `CAO_OPERATIONAL_NAMESPACE`; the server rejects the
+removed `REDIS_NAMESPACE`. `database` and `serve` rename that key in older local
+state, preserving its value, and re-apply the `cao-database` ConfigMap.
 The local cluster administrator remains trusted: namespace separation and
 disabled ServiceAccount-token mounts are not a complete RBAC/network-security
 installation. No enforced NetworkPolicy or egress-isolation claim is made.
