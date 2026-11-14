@@ -984,9 +984,10 @@ release checks reject stale artifacts.
 Acquisition names exact remote workflow IDs from the observed Actions inventory,
 not local lock files. Background passes rotate through the selected repositories,
 persist fixed-interval page checkpoints, and split intervals exceeding GitHub's
-1000-result search ceiling. Incremental publication retains earlier pages inside
+1000-result search ceiling. Each pass reads a whole interval of up to 1000 runs
+(at most ten 100-run pages) unless quota pauses it. Incremental publication retains earlier pages inside
 the evidence window and commits the discovery checkpoint with the evidence.
-All discovery and embedded collectors share a 100-point core API pass ceiling
+All discovery and embedded collectors share a 500-point core API pass ceiling
 counting only the pass's own requests, so other consumers of the same token
 cannot exhaust it, and reserve at least 1000 points or 20% of the
 core limit. Quota is required; exhausted headroom pauses acquisition.

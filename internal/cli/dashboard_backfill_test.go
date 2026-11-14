@@ -60,7 +60,7 @@ func TestDashboardHistoryPagesResumeWithoutLosingSameSecondRuns(t *testing.T) {
 		content, err := json.Marshal(map[string]any{"total_count": 3, "workflow_runs": rows})
 		return string(content), "", err
 	}
-	first, next, err := collectDashboardHistory(t.Context(), "octo/api", cursor, 2, gh)
+	first, next, err := collectDashboardHistoryPage(t.Context(), "octo/api", cursor, 2, gh)
 	if err != nil || len(first) != 2 || next.Page != 2 || next.End != cursor.End {
 		t.Fatalf("first page checkpoint: %+v %v", next, err)
 	}
@@ -72,7 +72,7 @@ func TestDashboardHistoryPagesResumeWithoutLosingSameSecondRuns(t *testing.T) {
 	if partial.ScannedHours != 0 {
 		t.Fatal("elapsed wall time was reported as newly scanned history")
 	}
-	second, next, err := collectDashboardHistory(t.Context(), "octo/api", next, 2, gh)
+	second, next, err := collectDashboardHistoryPage(t.Context(), "octo/api", next, 2, gh)
 	if err != nil || len(second) != 1 || !next.End.Before(cutoff) || first[0]["createdAt"] != second[0]["createdAt"] {
 		t.Fatalf("same-second page or history frontier lost: %+v %v", next, err)
 	}
@@ -80,6 +80,22 @@ func TestDashboardHistoryPagesResumeWithoutLosingSameSecondRuns(t *testing.T) {
 	state.summarize([]string{"octo/api"}, cutoff, now, dashboardMaximumWindow)
 	if state.Status != "watching" || state.ScannedHours != 168 || state.TargetHours != 168 {
 		t.Fatalf("discovery progress is not window coverage: %+v", state)
+	}
+	calls = 0
+	all, next, err := collectDashboardHistory(t.Context(), "octo/api", cursor, 2, gh)
+	if err != nil || len(all) != 3 || calls != 2 || !next.End.Before(cutoff) {
+		t.Fatalf("one pass did not read the whole interval: %d runs, %d calls, %+v %v", len(all), calls, next, err)
+	}
+	calls = 0
+	quota := func(ctx context.Context, args ...string) (string, string, error) {
+		if calls == 1 {
+			return "", "", errDashboardQuota
+		}
+		return gh(ctx, args...)
+	}
+	kept, next, err := collectDashboardHistory(t.Context(), "octo/api", cursor, 2, quota)
+	if err != nil || len(kept) != 2 || next.Page != 2 || next.End != cursor.End {
+		t.Fatalf("pages read before a quota pause were discarded: %+v %v", next, err)
 	}
 }
 
@@ -258,7 +274,7 @@ func TestDashboardQuotaReservesHeadroomAndSharedPassCeiling(t *testing.T) {
 				}
 				return
 			}
-			if err != nil || budget.ceiling != 300 {
+			if err != nil || budget.ceiling != 200+dashboardPassRequests {
 				t.Fatalf("pass ceiling was not bounded: %+v %v", budget, err)
 			}
 			// Other consumers sharing the token must not exhaust this pass's budget.
@@ -267,7 +283,7 @@ func TestDashboardQuotaReservesHeadroomAndSharedPassCeiling(t *testing.T) {
 				t.Fatalf("concurrent quota use exhausted the pass budget: %v", err)
 			}
 			current = 400
-			budget.spent = 99
+			budget.spent = dashboardPassRequests - 1
 			if _, _, err := budget.exec(t.Context(), "run", "list", "--limit", "200"); !errors.Is(err, errDashboardQuota) || remote != 1 {
 				t.Fatal("discovery consumed points past the shared pass ceiling")
 			}
@@ -292,9 +308,17 @@ func TestDashboardHistoryPersistsAcrossPassesAndFailures(t *testing.T) {
 		if args[0] != "api" || !strings.Contains(args[len(args)-1], "/actions/runs?") {
 			return base(ctx, args...)
 		}
-		page++
+		// The first pass pauses on quota after one page; the next pass resumes.
+		if page++; page == 2 {
+			return "", "", errDashboardQuota
+		}
+		location, err := url.Parse(args[len(args)-1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		number, _ := strconv.Atoi(location.Query().Get("page"))
 		rows := []map[string]any{{
-			"id": 900 + page, "workflow_id": 42, "run_attempt": 1, "status": "completed", "conclusion": "success",
+			"id": 900 + number, "workflow_id": 42, "run_attempt": 1, "status": "completed", "conclusion": "success",
 			"created_at":     now.Add(-5 * 24 * time.Hour).Format(time.RFC3339),
 			"run_started_at": now.Add(-5 * 24 * time.Hour).Format(time.RFC3339),
 		}}

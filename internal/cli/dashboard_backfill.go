@@ -45,7 +45,7 @@ type dashboardQuota struct {
 }
 
 // dashboardPassRequests bounds the core API requests one pass may issue itself.
-const dashboardPassRequests = 100
+const dashboardPassRequests = 500
 
 type dashboardAcquisition struct {
 	gh      ghExecutor
@@ -144,11 +144,32 @@ func dashboardHistoryRange(cursor dashboardHistoryCursor, cutoff, now time.Time)
 	return cursor
 }
 
+// collectDashboardHistory reads the whole current interval in one pass. After
+// splitting, an interval holds at most GitHub's 1000 search results, so this
+// is at most ten 100-run pages. Pages already read survive a later quota pause.
+func collectDashboardHistory(ctx context.Context, repository string, cursor dashboardHistoryCursor, count int, gh ghExecutor) ([]map[string]any, dashboardHistoryCursor, error) {
+	size := min(count, 100)
+	var runs []map[string]any
+	for progressed := false; ; progressed = true {
+		page, next, err := collectDashboardHistoryPage(ctx, repository, cursor, size, gh)
+		if err != nil {
+			if progressed && errors.Is(err, errDashboardQuota) {
+				return runs, cursor, nil
+			}
+			return nil, cursor, err
+		}
+		runs = append(runs, page...)
+		cursor = next
+		if cursor.Page == 1 {
+			return runs, cursor, nil
+		}
+	}
+}
+
 // Each page uses a fixed, closed interval; advancing by page, not timestamp,
 // preserves runs sharing the same creation second. Split GitHub's 1000-row
 // filtered-search ceiling before advancing the durable frontier.
-func collectDashboardHistory(ctx context.Context, repository string, cursor dashboardHistoryCursor, count int, gh ghExecutor) ([]map[string]any, dashboardHistoryCursor, error) {
-	size := min(count, 100)
+func collectDashboardHistoryPage(ctx context.Context, repository string, cursor dashboardHistoryCursor, size int, gh ghExecutor) ([]map[string]any, dashboardHistoryCursor, error) {
 	var response struct {
 		Total *int             `json:"total_count"`
 		Runs  []map[string]any `json:"workflow_runs"`
