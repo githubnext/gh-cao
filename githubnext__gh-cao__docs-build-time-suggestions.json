@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T20:35:11Z",
-   "worker_run_id": "43502124062",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43362224525 created 2026-11-13T03:56:23Z to 43494667529 created 19:42:08Z; 20/20 success, 19 push + 1 schedule 43371878284; 0 failed, 0 cancelled; in-progress 43502562196 (79129a5, started 20:32Z) excluded; source c6939dd9 = HEAD = source_sha, unchanged). Jobs API re-read for all 20 runs; job logs still HTTP 403 difc_forbidden (re-probed this run). Category steps (median, p90): Configure Pages 0 s (1); Upload Pages artifact 2 s (3); build-end to deploy-start handoff 5 s (6); deploy Set up job 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Controllable transfer overhead per run (configure+upload+handoff+deploy setup) median 8 s (p90 10, max 10) = 9.0% of median exec 89 s (p90 98); 15% gate 13.35 s and 60 s gate unmet even with full removal. github-pages artifact 8.26 to 8.38 MB (median 8.30 MB, n=20); shrinking saves about 1-2 s. Merging deploy into build saves about 6 s and would move id-token and environment into the build job: rejected (least privilege). Open checkout suggestion is issue 20815 (docs-checkout-blobless-history-v1, OPEN, created 2026-11-13T17:41Z): not re-filed. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T20:54:30Z",
    "worker_run_id": "43505085302",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (2026-11-14T05:24:33Z); identical to the 06:28Z window; none queued or in progress; source 4d25cbd = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (install). n=19 successful (18 push + 1 schedule); 5-run gate met. Only dashboard work in the docs path is step Build synthetic enterprise demo (npm run dashboard:pages:build: synthetic normalization, buildDashboardSite static copy, cp to dist/cao): median 3 s, p90 4 s, range 3-5 s = 3.6% of median exec 83 s (p90 92). 15% gate 12.5 s and 60 s gate unreachable; full removal saves at most 5 s. Spot check 43561388555 jobs API: demo 4 s, install 10 s = stored row. Output caching is stale-unsafe (prepareDashboardPages sets generatedAt from Date.now(); the 05:23Z cron refreshes synthetic dates). No separate dashboard job; docs:build has no dashboard build (astro.config has no dashboard generation). No suggestion; no issue (open 20815 is the checkout category); next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T06:54:31Z",
+   "worker_run_id": "43568188985",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 created 2026-11-13T07:51:43Z to 43561388555 created 2026-11-14T05:24:33Z); none queued or in progress; source 4d25cbd = HEAD = source_sha; path-filtered commits API: docs.yml last changed 063cbe9 (2026-11-12T06:17:07Z), before every window run. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; deploy skipped; Pages not updated). n=19 successes (18 push + 1 schedule 43561388555); 0 cancelled. Jobs API step and job timings re-read for all 20 runs; logs not read. Medians (p90), n=19: exec 83 s (92); Configure Pages 0 s (1); Upload Pages artifact 2 s (3); build-end to deploy-start handoff 5 s (6); deploy Set up job 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Removable transfer (configure+upload+handoff+deploy setup) median 9 s (p90 10, max 10) = 11 percent of median exec; 15 percent gate 12.5 s and 60 s gate unmet even at full removal. github-pages artifact 8.33 MB (43561388555, 43536796952); upload about 2 s, so a size cut saves under 2 s. Merging deploy into build saves about 6 s and stays rejected (id-token write and github-pages environment would move into the build job that runs npm ci). Open issue 20815 (blobless checkout, OPEN) is the checkout category and was not re-filed. Cache not re-evaluated this category. No suggestion; no issue; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1291,5 +1291,233 @@
    "workflows/cao.json"
   ],
   "n_success_schedule": 1
+ },
+ "transfer_samples": {
+  "evaluated_at": "2026-11-14T06:54:31Z",
+  "window": "43388781287..43561388555 (latest 20 completed docs.yml runs)",
+  "columns": "run,conclusion,exec_s,build_job_s,handoff_s,configure_pages_s,upload_pages_artifact_s,deploy_setup_s,deploy_pages_s",
+  "note": "Jobs API step/job timings; completed-run timings are immutable, so reuse rows by run ID and fetch only new runs. Failed run 43506161539 is excluded from medians. Logs not read.",
+  "rows": [
+   [
+    43561388555,
+    "succ",
+    92,
+    79,
+    5,
+    1,
+    3,
+    0,
+    6
+   ],
+   [
+    43536796952,
+    "succ",
+    75,
+    58,
+    5,
+    1,
+    2,
+    1,
+    6
+   ],
+   [
+    43536491714,
+    "succ",
+    79,
+    64,
+    5,
+    1,
+    2,
+    1,
+    6
+   ],
+   [
+    43506161539,
+    "fail",
+    46,
+    46,
+    0,
+    0,
+    0,
+    null,
+    null
+   ],
+   [
+    43505502149,
+    "succ",
+    81,
+    62,
+    6,
+    1,
+    1,
+    2,
+    8
+   ],
+   [
+    43504143936,
+    "succ",
+    90,
+    77,
+    6,
+    1,
+    2,
+    1,
+    5
+   ],
+   [
+    43504093917,
+    "succ",
+    84,
+    69,
+    6,
+    0,
+    3,
+    1,
+    7
+   ],
+   [
+    43503897533,
+    "succ",
+    68,
+    54,
+    5,
+    0,
+    3,
+    0,
+    7
+   ],
+   [
+    43503506778,
+    "succ",
+    78,
+    61,
+    5,
+    1,
+    2,
+    1,
+    8
+   ],
+   [
+    43502660435,
+    "succ",
+    83,
+    67,
+    5,
+    0,
+    3,
+    1,
+    7
+   ],
+   [
+    43502562196,
+    "succ",
+    77,
+    64,
+    5,
+    0,
+    1,
+    0,
+    6
+   ],
+   [
+    43494667529,
+    "succ",
+    93,
+    79,
+    5,
+    0,
+    3,
+    0,
+    7
+   ],
+   [
+    43484369040,
+    "succ",
+    80,
+    66,
+    5,
+    0,
+    3,
+    1,
+    6
+   ],
+   [
+    43465706802,
+    "succ",
+    89,
+    74,
+    5,
+    0,
+    2,
+    1,
+    6
+   ],
+   [
+    43447728981,
+    "succ",
+    92,
+    77,
+    6,
+    0,
+    2,
+    1,
+    7
+   ],
+   [
+    43447111490,
+    "succ",
+    73,
+    59,
+    5,
+    1,
+    1,
+    0,
+    7
+   ],
+   [
+    43440055797,
+    "succ",
+    90,
+    75,
+    5,
+    0,
+    2,
+    0,
+    7
+   ],
+   [
+    43430232636,
+    "succ",
+    91,
+    76,
+    5,
+    1,
+    3,
+    1,
+    7
+   ],
+   [
+    43430166810,
+    "succ",
+    77,
+    63,
+    6,
+    1,
+    2,
+    1,
+    5
+   ],
+   [
+    43388781287,
+    "succ",
+    85,
+    72,
+    4,
+    0,
+    2,
+    1,
+    6
+   ]
+  ]
  }
 }
