@@ -55,6 +55,42 @@ describe('browser-storage debug logging', () => {
     }
   });
 
+  it('logs the persist request outcome only when persistence was requested', async () => {
+    const { inspectBrowserStorage, output } = await loadWithDebug('?debug=browser-storage');
+    const persist = vi.fn(async () => false);
+    await inspectBrowserStorage(/** @type {StorageManager} */ (/** @type {unknown} */ ({
+      persisted: async () => false,
+      persist,
+      estimate: async () => ({ quota: 1000, usage: 200 })
+    })));
+    expect(persist).toHaveBeenCalledOnce();
+    expect(output.debug.mock.calls).toEqual([
+      ['[cao:browser-storage]', { operation: 'persist-request', granted: false }],
+      ['[cao:browser-storage]', {
+        operation: 'inspect', persisted: false, 'has-estimate': true, 'persist-api': true
+      }]
+    ]);
+
+    output.debug.mockClear();
+    await inspectBrowserStorage(/** @type {StorageManager} */ (/** @type {unknown} */ ({
+      persisted: async () => true,
+      persist,
+      estimate: async () => ({ quota: 1000, usage: 200 })
+    })));
+    expect(output.debug.mock.calls.map(([, payload]) => payload.operation)).toEqual(['inspect']);
+  });
+
+  it('does not log the persist request when debugging is disabled and preserves its result', async () => {
+    const { inspectBrowserStorage, output } = await loadWithDebug('');
+    const inspection = await inspectBrowserStorage(/** @type {StorageManager} */ (/** @type {unknown} */ ({
+      persisted: async () => false,
+      persist: async () => true,
+      estimate: async () => ({ quota: 1000, usage: 200 })
+    })));
+    expect(inspection.persisted).toBe(true);
+    expect(output.debug).not.toHaveBeenCalled();
+  });
+
   it('is excluded by a negative pattern', async () => {
     const { inspectBrowserStorage, output } = await loadWithDebug('?debug=*,-browser-storage');
     await inspectBrowserStorage(undefined);
