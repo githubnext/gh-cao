@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/log/global"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -63,18 +62,18 @@ func TestHTTPLogContextHelper(t *testing.T) {
 	if os.Getenv(httpLogHelperEnv) != "1" {
 		t.Skip("subprocess helper for request log context")
 	}
-	previousTracer, previousLogger := otel.GetTracerProvider(), global.GetLoggerProvider()
+	previousTracer, previousLogger := otel.GetTracerProvider(), otel.GetLoggerProvider()
 	spans := tracetest.NewInMemoryExporter()
 	tracer := sdktrace.NewTracerProvider(sdktrace.WithSyncer(spans))
 	logs := &httpLogExporter{}
 	provider := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewSimpleProcessor(logs)))
 	otel.SetTracerProvider(tracer)
-	global.SetLoggerProvider(provider)
+	otel.SetLoggerProvider(provider)
 	t.Cleanup(func() {
 		_ = tracer.Shutdown(t.Context())
 		_ = provider.Shutdown(t.Context())
 		otel.SetTracerProvider(previousTracer)
-		global.SetLoggerProvider(previousLogger)
+		otel.SetLoggerProvider(previousLogger)
 	})
 	address, closeServer := fakeRedis(t)
 	t.Cleanup(closeServer)

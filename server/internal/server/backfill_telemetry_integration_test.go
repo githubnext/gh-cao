@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -43,7 +42,7 @@ func backfillTelemetry(t *testing.T, ctx context.Context, service string) func(*
 	previousTracer := otel.GetTracerProvider()
 	previousMeter := otel.GetMeterProvider()
 	previousPropagator := otel.GetTextMapPropagator()
-	previousLogs := global.GetLoggerProvider()
+	previousLogs := otel.GetLoggerProvider()
 	if os.Getenv("CAO_BACKFILL_SKIP_OPENOBSERVE") == "1" {
 		tracer := sdktrace.NewTracerProvider()
 		otel.SetTracerProvider(tracer)
@@ -77,7 +76,7 @@ func backfillTelemetry(t *testing.T, ctx context.Context, service string) func(*
 				t.Error("flush diagnostic traces")
 			}
 		}
-		if provider, ok := global.GetLoggerProvider().(*sdklog.LoggerProvider); ok {
+		if provider, ok := otel.GetLoggerProvider().(*sdklog.LoggerProvider); ok {
 			if err := provider.ForceFlush(stopCtx); err != nil {
 				t.Error("flush diagnostic logs")
 			}
@@ -94,7 +93,7 @@ func backfillTelemetry(t *testing.T, ctx context.Context, service string) func(*
 		otel.SetTracerProvider(previousTracer)
 		otel.SetMeterProvider(previousMeter)
 		otel.SetTextMapPropagator(previousPropagator)
-		global.SetLoggerProvider(previousLogs)
+		otel.SetLoggerProvider(previousLogs)
 	})
 	tracer, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider)
 	if !ok {
@@ -112,7 +111,7 @@ func backfillTelemetry(t *testing.T, ctx context.Context, service string) func(*
 		if err := meter.ForceFlush(ctx); err != nil {
 			t.Fatal("OpenObserve rejected metric export")
 		}
-		if provider, ok := global.GetLoggerProvider().(*sdklog.LoggerProvider); ok {
+		if provider, ok := otel.GetLoggerProvider().(*sdklog.LoggerProvider); ok {
 			if err := provider.ForceFlush(ctx); err != nil {
 				t.Fatal("OpenObserve rejected log export")
 			}

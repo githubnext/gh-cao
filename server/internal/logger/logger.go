@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	otelLog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 )
 
 // Logger represents a debug logger for a specific namespace.
@@ -96,7 +96,7 @@ func (l *Logger) write(ctx context.Context, severity otelLog.Severity, message s
 	record.SetTimestamp(now)
 	record.SetSeverity(severity)
 	record.SetBody(attribute.StringValue(message))
-	global.GetLoggerProvider().Logger(l.namespace).Emit(ctx, record)
+	otel.GetLoggerProvider().Logger(l.namespace).Emit(ctx, record)
 }
 
 func initDebugEnv() string {

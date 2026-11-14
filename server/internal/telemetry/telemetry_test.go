@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
 	otelLog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -315,8 +314,8 @@ func TestSetupExportsGoRuntimeMetrics(t *testing.T) {
 }
 
 func TestSetupExportsLogsOnlyWhenEnabled(t *testing.T) {
-	previousProvider := global.GetLoggerProvider()
-	t.Cleanup(func() { global.SetLoggerProvider(previousProvider) })
+	previousProvider := otel.GetLoggerProvider()
+	t.Cleanup(func() { otel.SetLoggerProvider(previousProvider) })
 	requests := make(chan *logspb.ExportLogsServiceRequest, 1)
 	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/logs" {
@@ -348,7 +347,7 @@ func TestSetupExportsLogsOnlyWhenEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if global.GetLoggerProvider() != previousProvider {
+	if otel.GetLoggerProvider() != previousProvider {
 		t.Fatal("log endpoint alone must not enable export")
 	}
 	if err := shutdown(context.Background()); err != nil {
@@ -361,7 +360,7 @@ func TestSetupExportsLogsOnlyWhenEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if global.GetLoggerProvider() != previousProvider {
+	if otel.GetLoggerProvider() != previousProvider {
 		t.Fatal("OTEL_SDK_DISABLED must override log export")
 	}
 	if err := shutdown(context.Background()); err != nil {
@@ -373,13 +372,13 @@ func TestSetupExportsLogsOnlyWhenEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if global.GetLoggerProvider() == previousProvider {
+	if otel.GetLoggerProvider() == previousProvider {
 		t.Fatal("enabled logs must install a log provider")
 	}
 	var record otelLog.Record
 	record.SetBody(attribute.StringValue("safe diagnostic"))
 	record.SetSeverity(otelLog.SeverityError)
-	global.GetLoggerProvider().Logger("cao:test").Emit(context.Background(), record)
+	otel.GetLoggerProvider().Logger("cao:test").Emit(context.Background(), record)
 	if err := shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}

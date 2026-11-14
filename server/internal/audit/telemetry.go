@@ -9,7 +9,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -94,5 +93,5 @@ func observe(ctx context.Context, event, outcome string, stored bool, sequence i
 	for _, attr := range attrs {
 		record.AddAttributes(attribute.String(attr.Key, attrString(attr.Value)))
 	}
-	global.GetLoggerProvider().Logger(instrumentationName).Emit(ctx, record)
+	otel.GetLoggerProvider().Logger(instrumentationName).Emit(ctx, record)
 }
