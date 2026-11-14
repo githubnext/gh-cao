@@ -1,36 +1,7 @@
 {
  "source_sha": "2000a4eaf72b334211dc7d95121855e76d840f40",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T18:22:33Z",
-   "worker_run_id": "43481071504",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141,
-    43347280419
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all within 14 days; 20/20 success, 19 push + 1 schedule 43371878284; 0 cancelled, failed or in progress; newest run head 75c762e = source_sha; workspace HEAD ac90547 has no docs.yml run and docs.yml still has fetch-depth 0 without filter, so issue 20815 is unlanded). Category Astro documentation generation = step 'Build documentation' (npm run docs:build). Median 14 s (p90 15; range 9-15) = 16.0% of exec median 87.5 s (p90 98); push-only n=19: step median 14 s, exec median 89 s = 15.7%. 15% gate 13.1 s needs about 94% of the step removed; 60 s gate unreachable. Step cannot be removed because deploy needs its output. Job logs still 403 difc_forbidden (re-probed 2026-11-13T18:22Z), so astro vs validation split is not visible. Moving validation to another job adds checkout plus install (median 42 s), so it cannot save time. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T18:35:29Z",
    "worker_run_id": "43483364918",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; 19 success; 1 failure 43506161539 (install, 7c8faf4 era) excluded and disclosed; 0 cancelled; none queued or in progress; no docs.yml run since 00:50:15Z; window unchanged since the 03:52Z evaluation). source 2000a4e = HEAD = source_sha. 5-run gate met (n=19). Jobs API re-read for 43536796952 matches stored row (checkout 24, setup 5, install 7, docs 10, demo 3, upload 2, deploy 12). Window install median 16 s (p90 24) = 19% of exec median 83 s; 15% gate 12.45 s. Like-for-like on current lock (key 7808ecf8, main scope, n=2: 43536491714 install 9 s, 43536796952 install 7 s; exec 79 s and 75 s): install = about 10% of exec, so full removal saves at most about 9 s, below the 11.5 s gate; 60 s unreachable. node_modules caching could save at most install minus restore, unmeasured and under gate. Exact-key cache hit in 19/19 successes (setup restore 2 to 8 s). No suggestion; no issue created (only open worker issue 20815, blobless checkout, unchanged). next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T04:34:02Z",
+   "worker_run_id": "43557026220",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287,
+    43380585034
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; unchanged since the 04:24Z evaluation; no queued or in-progress run; 19 success; 1 failure 43506161539 excluded and disclosed; 0 cancelled). source 2000a4e = HEAD = source_sha. Category Astro documentation generation = step 'Build documentation' = npm run docs:build (astro build, then validate-agent-docs, then node --test agent-docs-discovery; split unmeasured because job logs return 403). Window median 12 s (p90 15) = 14.5% of exec median 83 s; full removal saves at most 12 s, below the 15% gate (12.45 s); 60 s gate unreachable. Deploy consumes the step output, so removal is not possible. Stored job rows reused (completed-run timings immutable). No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -884,8 +884,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T06:42:40Z..2026-11-14T00:50:15Z",
-  "evaluated_at": "2026-11-14T04:24:09Z",
-  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93).",
+  "evaluated_at": "2026-11-14T04:34:02Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93). Re-verified at 2026-11-14T04:34:02Z (run list only: same 20 IDs, no queued or in-progress run; stored rows reused).",
   "median_p90_s": {
    "Checkout": [
     25,
