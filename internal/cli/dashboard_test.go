@@ -393,6 +393,62 @@ func TestDashboardCachedUsageUnionIsBoundedAndAttemptSafe(t *testing.T) {
 	}
 }
 
+func TestDashboardDetectsCheckedInCampaigns(t *testing.T) {
+	root := t.TempDir()
+	write := func(path, content string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, path)), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, path), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("care/cao.json", `{"campaign":"care","orchestrator":"care","workers":{"lint":"care-lint"},"standalone-workflows":["care-solo"]}`)
+	write("care/aw.yml", "name: Care\nicon: \":check-circle:\"\ndescription: Keeps things tidy.\n")
+	write("docs/readme.md", "not a campaign")
+	campaigns, err := detectDashboardCampaigns(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	workflows := []dashboardWorkflow{
+		{1, "Care", ".github/workflows/care.lock.yml", "active"},
+		{2, "Lint", ".github/workflows/care-lint.lock.yml", "active"},
+		{3, "Solo", ".github/workflows/care-solo.lock.yml", "active"},
+	}
+	batch, err := projectDashboardEvidence([]dashboardRepositoryEvidence{{Repository: "octo/api", Workflows: workflows,
+		AgenticWorkflows: map[string]bool{"care": true, "care-lint": true, "care-solo": true}, Campaigns: campaigns}},
+		now.Add(-time.Hour), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch["campaigns"]) != 1 {
+		t.Fatalf("unexpected campaigns: %v", batch["campaigns"])
+	}
+	campaign := batch["campaigns"][0]
+	if campaign["id"] != "campaign:dashboard-sources:care" || campaign["slug"] != "care" || campaign["name"] != "Care" ||
+		campaign["icon"] != "check-circle" || campaign["description"] != "Keeps things tidy." || campaign["workerCount"] != 1 {
+		t.Fatalf("unexpected campaign record: %v", campaign)
+	}
+	got := map[string][2]any{}
+	for _, row := range batch["workflows"] {
+		got[nativeText(row["path"])] = [2]any{row["role"], row["campaignId"]}
+	}
+	want := map[string][2]any{
+		".github/workflows/care.md":      {"orchestrator", "campaign:dashboard-sources:care"},
+		".github/workflows/care-lint.md": {"worker", "campaign:dashboard-sources:care"},
+		".github/workflows/care-solo.md": {"standalone", nil},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected workflow membership: %v", got)
+	}
+	write("other/cao.json", `{"campaign":"other","orchestrator":"other","workers":{"lint":"care-lint"}}`)
+	if _, err := detectDashboardCampaigns(root); err == nil {
+		t.Fatal("a workflow claimed by two campaigns was accepted")
+	}
+}
+
 func TestDashboardMarksGhAwListedWorkflowsStandalone(t *testing.T) {
 	now := time.Now().UTC()
 	workflows := []dashboardWorkflow{

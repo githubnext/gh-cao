@@ -31,11 +31,13 @@ type dashboardRepositoryEvidence struct {
 	Workflows  []dashboardWorkflow
 	// AgenticWorkflows holds lowercase workflow IDs reported by `gh aw list`.
 	AgenticWorkflows map[string]bool
-	Runs             []map[string]any
-	Enriched         map[string]map[string]any
-	Directory        string
-	SafeOutputs      []map[string]any
-	GithubID         string
+	// Campaigns are declared by the local checkout of this repository only.
+	Campaigns   []dashboardCampaign
+	Runs        []map[string]any
+	Enriched    map[string]map[string]any
+	Directory   string
+	SafeOutputs []map[string]any
+	GithubID    string
 }
 
 type dashboardLogRequest struct {
@@ -196,6 +198,14 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			}
 			return nil, fmt.Errorf("cannot read agentic workflow list for %s; previous snapshot preserved: %w", repository, err)
 		}
+		var campaigns []dashboardCampaign
+		if options.localRepository == repository {
+			// Remote repositories expose no checkout, so their membership stays unknown.
+			campaigns, err = detectDashboardCampaigns(".")
+			if err != nil {
+				return nil, fmt.Errorf("cannot read campaign declarations for %s; previous snapshot preserved: %w", repository, err)
+			}
+		}
 		raw, _, err := gh(ctx, "run", "list", "--repo", target, "--created", ">="+cutoff.Format(time.RFC3339),
 			"--limit", strconv.Itoa(options.count), "--json",
 			"databaseId,workflowDatabaseId,workflowName,displayTitle,status,conclusion,event,headBranch,headSha,createdAt,startedAt,updatedAt,url,attempt")
@@ -338,7 +348,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			}
 			onRuns := func(streamCtx context.Context, records []map[string]any) error {
 				source := dashboardRepositoryEvidence{
-					Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Directory: directory,
+					Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Campaigns: campaigns, Directory: directory,
 					GithubID: resolved.ID, Enriched: map[string]map[string]any{},
 				}
 				for _, record := range records {
@@ -431,7 +441,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		}
 		runs = slices.DeleteFunc(mergeDashboardCachedRuns(runs, workflows, cached, options.count), dashboardRunNotExecuted)
 		evidence = append(evidence, dashboardRepositoryEvidence{
-			Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Runs: runs, Enriched: cached.Enriched,
+			Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Campaigns: campaigns, Runs: runs, Enriched: cached.Enriched,
 			Directory: directory, SafeOutputs: cached.SafeOutputs,
 			GithubID: resolved.ID,
 		})
@@ -716,7 +726,7 @@ func collectDashboardAgenticWorkflows(ctx context.Context, repository string, gh
 }
 
 func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, now time.Time) (map[string][]map[string]any, error) {
-	batch := map[string][]map[string]any{"repositories": {}, "workflows": {}, "runs": {}}
+	batch := map[string][]map[string]any{"campaigns": {}, "repositories": {}, "workflows": {}, "runs": {}}
 	observed := now.Format(time.RFC3339Nano)
 	for _, source := range evidence {
 		parts := strings.Split(source.Repository, "/")
@@ -728,6 +738,24 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 			"id": repositoryID, "githubId": source.GithubID, "owner": parts[0], "name": parts[1], "observedAt": observed,
 			"provenance": map[string]any{"source": "local-dashboard", "sourceId": source.Repository, "observedAt": observed},
 		})
+		membership := map[string]dashboardCampaign{}
+		for _, campaign := range source.Campaigns {
+			record := map[string]any{
+				"id": dashboardCampaignID(campaign.Slug), "slug": campaign.Slug, "name": campaign.Name,
+				"workerCount": len(campaign.Roles) - 1, "observedAt": observed,
+				"provenance": map[string]any{"source": "local-dashboard", "sourceId": campaign.Slug + "/cao.json", "observedAt": observed},
+			}
+			if campaign.Description != "" {
+				record["description"] = campaign.Description
+			}
+			if campaign.Icon != "" {
+				record["icon"] = campaign.Icon
+			}
+			batch["campaigns"] = append(batch["campaigns"], record)
+			for workflow := range campaign.Roles {
+				membership[workflow] = campaign
+			}
+		}
 		workflows := map[string]dashboardWorkflow{}
 		for _, workflow := range source.Workflows {
 			if !strings.HasPrefix(workflow.Path, ".github/workflows/") || !strings.HasSuffix(workflow.Path, ".lock.yml") {
@@ -747,7 +775,10 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 				"provenance":       map[string]any{"source": "local-dashboard", "sourceId": workflow.Path, "observedAt": observed},
 			}
 			// gh aw list exposes no source provenance, so sourceKind stays unset (unknown).
-			if source.AgenticWorkflows[strings.TrimSuffix(filepath.Base(path), ".md")] {
+			id := strings.TrimSuffix(filepath.Base(path), ".md")
+			if campaign, member := membership[id]; member {
+				record["role"], record["campaignId"] = campaign.Roles[id], dashboardCampaignID(campaign.Slug)
+			} else if source.AgenticWorkflows[id] {
 				record["role"] = "standalone"
 			}
 			batch["workflows"] = append(batch["workflows"], record)
