@@ -1,36 +1,7 @@
 {
- "source_sha": "93fdfef0cbc318ac2d80f5785aa7f6ab46f0a27b",
- "next_category": "Astro documentation generation",
+ "source_sha": "11a826aa3412479833cd2031bd37a6bed284735a",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T13:18:00Z",
-   "worker_run_id": "43598671552",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); run list re-read 13:16Z: same 20 IDs, all completed, none queued or in progress, no newer docs run. Source: compare API 7e620f3...215837f = experiments/java-backend only (0 non-experiment files), so docs inputs unchanged. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; not read); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Category Astro documentation generation = step Build documentation (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery): all-success median 12 s, p90 15 s, range 9-15 = 14.8 percent of exec median 81 s (p90 92); per-run median share 14.3 percent. 15 percent gate 12.15 s; full removal would save at most 12 s and is not permissible (deploy consumes its output; validation is a correctness gate); 60 s gate unreachable. Validator and discovery test are static (readdir/readFile over dist, git ls-files, dashboard module imports; no nested astro or npm spawn), so no duplicate build sits inside the step. Jobs API spot-check 43593405440 matched stored row (Build documentation 10 s, exec 73 s). Astro-internal split unmeasured (job logs 403 earlier; local npm ci TLS failure not retried). No suggestion; no issue; noop used. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T13:32:53Z",
    "worker_run_id": 43599935375,
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z) back to 43494667529 (created 2026-11-13T19:42:08Z); re-read 22:50Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run; source 93fdfef = main HEAD = source_sha; compare 6418dcd...main (3 commits, 18 files) touches no docs trigger path. n=14 successes (13 push + schedule 43561388555); 5-run gate met. Disclosed failures: 43506161539 (pre-rollover install 17 s) and 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (Build documentation red on 5 consecutive pushes; install completed in 8-12 s). Category dependency installation and caching: key 7808ecf8 (root lock only; binary-digest hashFiles re-derived 22:52Z) install n=11 median 9 s, p90 11, max 12 = 11 percent of exec median 81 s; 15 percent gate 12.2 s; full removal saves at most about 9 s; 60 s gate unreachable. node_modules caching saves at most install minus restore (setup 4-10 s), unmeasured and under gate. Pre-rollover successes (n=8) median 15.5 s: realized gain, not a suggestion. Checkout (outside category) covered by open issue 20815. No suggestion; no issue; noop used. next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T23:18:27Z",
+   "worker_run_id": "43652146055",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43639680929 (push 6418dcd, created 2026-11-14T20:51Z) back to 43494667529 (created 2026-11-13T19:42Z); no docs.yml run since 20:51Z; HEAD 11a826aa has no docs.yml run. Excluded and disclosed: 6 failures (5 push runs failing at Build documentation since 15:58Z; 43506161539 failed in Install dependencies); 0 cancelled. n=14 successes (13 push + schedule 43561388555); 5-run gate met. Category = step Build documentation (npm run docs:build = astro build && validate-agent-docs && agent-docs-discovery test): success median 12.5 s, p90 15, range 9-15 = 15.3 percent of exec median 81.5 s (p90 92); push-only median 12 s = 14.8 percent of 81 s. 15 percent gate 12.2 s needs the whole step removed; deploy consumes its output and validation is a correctness gate, so not permissible; 60 s gate unreachable. Internal split unmeasured (job logs HTTP 403). Parallelizing Build synthetic enterprise demo (median 4 s) saves at most 4 s, below gate. Jobs API re-read matched stored rows. No suggestion; no issue; noop. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -899,7 +899,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T19:42:08Z..2026-11-14T20:51:15Z",
-  "evaluated_at": "2026-11-14T22:52:45Z",
+  "evaluated_at": "2026-11-14T23:18:27Z",
   "note": "window = latest 20 completed docs.yml runs; 14 successful; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes). Build documentation failed on 5 push runs since 15:58Z.",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
@@ -1197,24 +1197,19 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T22:52:45Z",
-   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (worker 43649938721)",
-   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on 5 consecutive push runs since 15:58Z (first red head 600b56a; latest 6418dcd, run 43639680929 at 20:51Z); no docs.yml run since 20:51Z; Pages last deployed 15:39Z (04c9d9e, run 43611206032). compare 04c9d9e...600b56a touches docs/setup-quickstarts.md, ARCHITECTURE.md, internal/cli/dashboard_*.go, scripts/check-file-sizes.mjs; cause unverified (job logs HTTP 403, not bypassed). Open issue 20934 (workflow-contracts gate, OPEN) reports docs:build failing at a2b14dd; no open issue tracks the docs.yml streak. Maintainer triage needed."
+   "observed_at": "2026-11-14T23:18:27Z",
+   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929",
+   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on 5 consecutive push runs since 15:58Z (first red 600b56a; latest 6418dcd, 20:51Z). No docs.yml run since 20:51Z; HEAD 11a826aa has none. Pages last deployed 15:39Z (04c9d9e, run 43611206032). docs:build = astro build, validate-agent-docs, agent-docs-discovery test (package.json); check-file-sizes is in lint, not docs:build, so the earlier hypothesis is weakened. Cause unverified (job logs HTTP 403). Open issue 20934 tracks the workflow-contracts copy of docs:build; no issue tracks the docs.yml streak. Maintainer triage needed."
   },
   {
-   "observed_at": "2026-11-14T22:35:08Z",
-   "source": "docs.yml path filter vs build closure (worker 43648232592)",
-   "note": "Freshness gap, not timing: scripts/dashboard-demo-data.mjs (imported by scripts/simulate-dashboard-pages.mjs, supplies published demo data) and .github/workflows/cao.json (read by dashboard/site/scripts/build.mjs) are outside docs.yml push paths; data-only changes wait for another filtered push or the 05:23Z daily schedule. Adding them increases rebuilds with no timing gain; record for triage, not a suggestion. Shared closure of the demo build is shared/policy.mjs, authority.mjs, value-acquisition.mjs."
+   "observed_at": "2026-11-14T23:18:27Z",
+   "source": "docs.yml path filter vs build closure",
+   "note": "Freshness gap, not timing: scripts/dashboard-demo-data.mjs and .github/workflows/cao.json are outside docs.yml push paths; data-only changes wait for the 05:23Z daily schedule. Record for triage, not a suggestion."
   },
   {
-   "observed_at": "2026-11-14T22:35:08Z",
-   "source": "docs.yml run list (worker 43648232592)",
-   "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued; the current docs.yml has no workflow_run trigger; no observed blocking in window. Maintainer hygiene item; not a suggestion."
-  },
-  {
-   "observed_at": "2026-11-14T22:52:45Z",
-   "source": "docs.yml cache scope (worker 43649938721)",
-   "note": "setup-node key = root package-lock.json only (verified). Current-regime install n=11 median 9 s, p90 11, max 12; successes-only n=6 median 9.5 s. Still below the 12 s re-evaluate threshold."
+   "observed_at": "2026-11-14T23:18:27Z",
+   "source": "docs.yml run list",
+   "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued; no current trigger. Maintainer hygiene item; not a suggestion."
   }
  ],
  "checkout_probe": {
