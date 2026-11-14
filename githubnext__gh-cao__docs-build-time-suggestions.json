@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T00:59:52Z",
-   "worker_run_id": "43537183263",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; about 18 h, so the 20-run cap binds and the 14-day bound is not reached). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies at 17 s on a cache miss; Build and deploy skipped; job logs not read this run, earlier probes HTTP 403). 0 cancelled, 0 in progress, 0 schedule runs. n=19 successful push runs; 5-run gate met. Source e11a86f = HEAD = source_sha (1 commit ahead of newest docs head 54e08aa, no docs trigger path). Medians (p90): exec build start to deploy end 83 s (93); build job 67 s (79); deploy 9 s (12); Set up Node.js 3 s (7); Install dependencies 16 s (24) = 19 percent of exec median; Post Set up Node.js 0 s (max 1) in 19/19 = exact-key hits (caches API: key node-cache-Linux-x64-npm-7808ecf8 is sha256 of the HEAD root lock). 15 percent gate = 12.4 s. Lock change 7c8faf4 (compare API: root lock -18 lines, dashboard lock -18, runtime/package.json -16) created the new key. Pre-change key e62f6006 (n=17): install median 16 s (p90 24). Post-change n=2 (2cb6d9c, 54e08aa): install 9 and 7 s, setup 3 to 5 s, exec 79 and 75 s. An 18-line lock diff does not explain a halving; cache state or runner variance is unresolved and n=2 is insufficient. Candidates, none evidenced at the gate: node_modules cache (best case removes install; restore unmeasured; #19689 closed NOT_PLANNED 2026-11-07); root --omit=dev (est <=2.4 s); --no-audit/--no-fund and parallel dashboard install (seconds, unmeasured); root --ignore-scripts (correctness risk). Reliability, not timing: failed install began 20:56:37Z, before key 7808ecf8 existed on main (created 20:57:12Z; creator unverified, several same-push workflows also saved caches); exact-key restore means a root lock change makes the first docs run a cache miss; Pages stayed at 20:53Z publication until the 00:48Z recovery run. Open issue 20815 (checkout, OPEN, unchanged) not repeated. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T01:20:36Z",
    "worker_run_id": "43539565633",
@@ -869,10 +840,38 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (schedule, 2026-11-14T05:24:33Z); run list re-read 10:52Z: same 20 IDs, all completed, none queued or in progress; source 4d25cbd = main HEAD (only main commit since 04:50Z; touches kubernetes files only, no docs trigger path, so no push run is expected). Excluded and disclosed: 43506161539 failed at Install dependencies (logs not read). n=19 successful (18 push + 1 schedule); 5-run gate met. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 51 s, max 68 s, sum 173 s; Jobs API spot-check of 43504143936 (68 s), 43430232636 (51 s), 43502660435 (42 s) matched stored values. Removing the wait saves 0 s median and at most 68 s on one run; cancel-in-progress true can cut an in-flight Pages publication; split or build-out-of-group concurrency allows out-of-order publication; neither is safe. Avoidable rebuilds: 0 of 18 successful push runs (each matched a build input; test-only matches always alongside build inputs). Schedule: 1 in window, no same-SHA duplicate in window (the 05:24 duplicate of push 5943848 is outside it, one occurrence); skipping schedules trades freshness for under one run per day. Correction: earlier trigger_observation claimed 4d25cbd changed docs.yml and shared/**; it did not. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T11:16:06Z",
+   "worker_run_id": "43588918224",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 created 2026-11-13T07:51:43Z to 43561388555 created 2026-11-14T05:24:33Z); run list re-read at 11:15Z: same 20 IDs, all completed, none queued or in progress, no docs.yml run since 05:24Z; source 4d25cbd = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; not re-read). 0 cancelled. n=19 successes (18 push + 1 schedule); 5-run gate met. Stored Jobs API rows reused (completed runs immutable). Medians (p90): exec 82 (92) s; Set up Node.js 3.5 (7); Install dependencies 15.5 (24) pre-change window. Post-change install 7, 9, 10 s (median 9 s) = 11 percent of post-change exec median 79 s; 15 percent gate 12.3 s and 60 s gate unmet even at full install removal. Cache: caches API shows exact key node-cache-Linux-x64-npm-7808ecf8 present (263 MB, created 2026-11-13T20:57:12Z, lastAccessed 2026-11-14T11:13:39Z); hits 19/19 successes; a node_modules cache saves at most install minus restore (about 5 s), below gate. Checkout (median 24.5 s, p90 28 s, about 30 percent of median exec) is the only dependency-adjacent step above gate and is already represented by OPEN issue 20815 (fingerprint docs-checkout-blobless-history-v1; 0 comments; updated 2026-11-13T17:41:19Z); newest 43561388555 checkout 37 s is an outlier, median unchanged, so no material change and no duplicate issue. No suggestion; no issue; next_category advanced to Astro documentation generation."
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-14T09:33:48Z",
+  "verified_at": "2026-11-14T11:16:06Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) = sha256 of the file's sha256 digest; root lock only>",
   "restore": "exact key only; no restore-keys",
