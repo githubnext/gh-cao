@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
 import { workflow } from "./workflow-contract.helpers.mjs";
@@ -11,6 +11,74 @@ const reviewers = ["mattpocock-skills-reviewer", "test-quality-sentinel", "desig
 const config = (source) => parse(/^---\n([\s\S]*?)\n---/.exec(source)[1]);
 const contextSource = workflow("shared/pr-review-context.md");
 const contextStep = config(contextSource).steps[0];
+
+test("service architecture reviewer is local, bounded and suggestion-only", () => {
+  const source = workflow("service-architecture-reviewer.md");
+  const settings = config(source);
+  assert.deepEqual(settings.on, {
+    pull_request: {
+      types: ["ready_for_review"],
+      paths: ["server/**/*.go"],
+    },
+    reaction: "none",
+    slash_command: {
+      name: "architecture",
+      strategy: "centralized",
+      events: ["pull_request_comment", "pull_request_review_comment"],
+    },
+  });
+  assert.deepEqual(settings.imports, ["shared/pr-review-context.md"]);
+  assert.equal(settings.private, true);
+  assert.equal(settings.strict, true);
+  assert.deepEqual(settings.permissions, { contents: "read", "pull-requests": "read", "copilot-requests": "write" });
+  assert.deepEqual(settings.tools, {
+    github: { mode: "gh-proxy", "min-integrity": "approved", toolsets: ["pull_requests", "repos"] },
+    bash: true,
+  });
+  assert.deepEqual(settings["safe-outputs"], {
+    "create-pull-request-review-comment": { max: 8 },
+    "submit-pull-request-review": { max: 1, "allowed-events": ["COMMENT", "REQUEST_CHANGES"] },
+    noop: { "report-as-issue": false },
+  });
+  const dispatcher = parse(workflow("agentic_commands.yml"));
+  const routing = JSON.parse(dispatcher.jobs.route.steps.find((step) => step.env?.GH_AW_SLASH_ROUTING).env.GH_AW_SLASH_ROUTING);
+  assert.deepEqual(routing.architecture, [{
+    workflow: "service-architecture-reviewer",
+    events: settings.on.slash_command.events,
+    status_comment: true,
+  }]);
+  const lock = parse(workflow("service-architecture-reviewer.lock.yml"));
+  assert.deepEqual(lock.on.pull_request, settings.on.pull_request);
+  for (const [path, expected] of [
+    ["server/main.go", true],
+    ["server/internal/collect/ingest.go", true],
+    ["server/internal/collect/ingest_test.go", true],
+    ["internal/cli/setup.go", false],
+    ["server/spec/storage.tsp", false],
+    ["server/README.md", false],
+  ]) {
+    assert.equal(settings.on.pull_request.paths.some((pattern) => posix.matchesGlob(path, pattern)), expected, path);
+  }
+  const outputs = JSON.parse(lock.jobs.safe_outputs.steps.find((step) => step.env?.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG).env.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
+  assert.equal(outputs.create_pull_request_review_comment.max, 8);
+  assert.equal(outputs.submit_pull_request_review.max, 1);
+  assert.equal(outputs.push_to_pull_request_branch, undefined);
+  assert.match(workflow("service-architecture-reviewer.lock.yml"), /Prefetch bounded repository PR review context/);
+  for (const requirement of [
+    /Read `ARCHITECTURE\.md` at both/,
+    /Services and overlap/,
+    /Data stores/,
+    /Ingestion pipelines/,
+    /Significant changes/,
+    /Trace each affected consumer/,
+    /name both service owners/,
+    /aligned, update suggested, or not assessable/,
+    /smallest exact replacement or addition/,
+    /Do not edit files or push branch updates/,
+    /explicitly mark the review incomplete/,
+    /if it changed, call `noop` and stop/,
+  ]) assert.match(source, requirement);
+});
 
 test("imported reviewers retain explicit local invocation and safe-output ceilings", () => {
   const dispatcher = parse(workflow("agentic_commands.yml"));

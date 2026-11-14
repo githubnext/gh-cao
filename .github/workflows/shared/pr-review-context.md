@@ -70,7 +70,7 @@ steps:
 
 ## Repository review boundaries
 
-These are repository-local, explicitly invoked reviewers, not fleet operations.
+These are repository-local PR reviewers, not fleet operations.
 Read `ARCHITECTURE.md`, the relevant `specs/` contract and changed source before
 judging a boundary. Use `adr/README.md` for durable decision history; normative
 requirements belong in `specs/`, not duplicate ADRs.
