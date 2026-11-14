@@ -3363,13 +3363,32 @@ IndexedDB ingestion:
 | `GET /api/v1/github-quota/usage` | Administrator-only GitHub API quota usage for the last 24 hours: the peak observed usage of each bucket (App, installation, resource) and the limit-weighted aggregate per 15-minute slot. The same data is the `github-quota-usage` runtime source behind the Ingestion page chart. No credentials are included. |
 | `GET /api/repositories` and `GET /api/repositories/:id` | Return canonical repository objects. |
 | `GET /api/repositories/:id/runs` and `GET /api/workflows/:id/runs` | Return related canonical runs. |
-| `POST /api/github/webhook` | Verify, deduplicate, and reconcile a GitHub delivery. |
+| `POST /api/github/webhook` | Verify a GitHub delivery and dispatch it to registered webhook listeners (deduplicate and reconcile by default). |
 | `POST /api/admin/rebuild` | Force a staged full rebuild and atomic activation. |
 | `GET /api/admin/rebuild/status` | Return shared rebuild state for all replicas. |
 
 API responses use `Cache-Control: no-store`. The dashboard service worker
 excludes `/api/` so query results and event streams are never placed in browser
 caches.
+
+#### GitHub webhook service
+
+The webhook route only authenticates the delivery (body cap, HMAC, delivery and
+event headers) and then calls the pluggable `githubwebhook.Service`
+(`internal/githubwebhook`). `Config.WebhookService` selects the implementation;
+nil uses the in-process `Registry`. The configured reconciler or collector is
+registered as the `reconciler` listener. Other components register more
+listeners with `App.Webhooks().Register(name, listener)` and remove them with
+the returned handle's `Unregister()` or `Service.Unregister(name)`.
+
+Every listener receives every verified delivery in registration order. A
+listener failure fails the response with `503` (or the listener's specific
+status) after the remaining listeners have run, so GitHub redelivers;
+listeners must therefore be idempotent by delivery ID. The acknowledgement
+reports `duplicate` only when every listener reports a duplicate. With no
+listeners, the route returns `503` and webhook status reports
+`configured: false`. Registering a listener grants no credentials, policy, or
+write authority.
 
 ### Cross-origin requests (CORS)
 

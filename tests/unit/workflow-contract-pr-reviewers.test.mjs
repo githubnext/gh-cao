@@ -87,7 +87,9 @@ test("imported reviewers retain explicit local invocation and safe-output ceilin
   for (const [index, command] of ["matt", "test-quality", "design-gate"].entries()) {
     const source = workflow(`${reviewers[index]}.md`);
     const settings = config(source);
-    assert.deepEqual(Object.keys(settings.on).sort(), ["reaction", "slash_command"]);
+    assert.deepEqual(Object.keys(settings.on).sort(), ["pull_request", "reaction", "slash_command"]);
+    assert.deepEqual(settings.on.pull_request.types, ["ready_for_review"]);
+    assert.deepEqual(parse(workflow(`${reviewers[index]}.lock.yml`)).on.pull_request, settings.on.pull_request);
     assert.equal(settings.on.slash_command.name, command);
     assert.equal(settings.on.slash_command.strategy, "centralized");
     assert.deepEqual(settings.on.slash_command.events, ["pull_request_comment", "pull_request_review_comment"]);
@@ -127,6 +129,21 @@ test("imported reviewers retain explicit local invocation and safe-output ceilin
   const gate = config(workflow("design-decision-gate.md"));
   assert.deepEqual(gate["safe-outputs"]["push-to-pull-request-branch"]["allowed-files"], ["adr/**"]);
   const matt = config(workflow("mattpocock-skills-reviewer.md"));
+  assert.deepEqual(matt.on.pull_request.types, ["ready_for_review"]);
+  assert.deepEqual(parse(workflow("mattpocock-skills-reviewer.lock.yml")).on.pull_request, matt.on.pull_request);
+  const ignored = (path) => matt.on.pull_request["paths-ignore"].some((pattern) => posix.matchesGlob(path, pattern));
+  for (const [path, expected] of [
+    ["server/internal/githubwebhook/service.go", false],
+    ["dashboard/site/src/data/query.js", false],
+    [".github/workflows/mattpocock-skills-reviewer.md", false],
+    ["tests/unit/example.test.mjs", false],
+    ["README.md", true],
+    ["docs/operations.md", true],
+    ["adr/0001-example.md", true],
+    ["specs/dashboard-data.md", true],
+    [".github/workflows/mattpocock-skills-reviewer.lock.yml", true],
+    ["dashboard/site/src/agent/catalog.generated.json", true],
+  ]) assert.equal(ignored(path), expected, path);
   assert.equal(matt.skills.length, 5);
   assert.ok(matt.skills.every((skill) => skill.endsWith("@4ae2317ddb22b046e26455e4f9c9b3aaaf62212d")));
   const sentinel = config(workflow("test-quality-sentinel.md"));
