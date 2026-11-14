@@ -1,36 +1,7 @@
 {
-  "source_sha": "15b9f496a43206325e8b7d19b03755f8797afe52",
-  "next_category": "Astro documentation generation",
+  "source_sha": "185fd262bc2f85c7f8a2cb7a7ae0c62840ffb414",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T08:19:00Z",
-      "worker_run_id": "43574967099",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43561388555,
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529,
-        43484369040,
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (2026-11-14T05:24:33Z); run list re-read 08:18Z: unchanged, no queued or in-progress run; source 4d25cbd = HEAD = origin/main = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies failed at 17 s; not re-read this run). n=19 successes (18 push + schedule 43561388555); 0 cancelled; 5-run gate met; stored Jobs-API rows reused (completed-run timings immutable). Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15, range 9-15 = 14.5 percent of median exec 83 s (p90 92). 15 percent gate 12.45 s: full removal would save at most 12 s and is blocked because deploy consumes its output; 60 s gate unreachable. Validation is a correctness gate and stays on the publish path; splitting it into a parallel job would add checkout (median 25 s) and would not clear the gate. Astro-internal split not re-probed (logs previously HTTP 403 DIFC); not needed because the gate fails even at full removal. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T08:33:26.382Z",
       "worker_run_id": "43576080832",
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43465706802 (created 2026-11-13T16:44:14Z) to 43621919773 (push 93c64ff, 2026-11-14T17:35:16Z); 16 successes, 4 failures (43506161539 install; 43613020723, 43616204011, 43621919773 Build documentation), 0 cancelled; no docs run queued or in progress in the window; stale queued 37642403569 (workflow_run, 2026-10-07) excluded. Gate n=16 >= 5 met. Successful exec median 81.5 s (p90 92). Post-rollover installs (key 7808ecf8, created 2026-11-13T20:57Z; install step succeeded, n=9 incl. 3 build-failed runs): median 9 s, p90 11; setup restore median 4 s; per-run setup+install median 12 s = best-case ceiling below the 12.3 s gate even at zero replacement cost; any node_modules replacement costs restore time, so gate unreachable; 60 s unreachable. Pre-rollover install median 15.5 s (n=10): key rollover already realized about 6 s. Root package-lock unchanged since 7c8faf4; no key change. Duplicates: 20815 open (blobless checkout, median 24.5 s) not repeated; 19689 closed NOT_PLANNED. No suggestion; no issue; next_category advanced to Astro documentation generation. Reliability (not timing) recorded in observations_pending.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T18:20:32Z",
+      "worker_run_id": "43625619773",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43623754509,
+        43621919773,
+        43616204011,
+        43613020723,
+        43611206032,
+        43608206381,
+        43593405440,
+        43561388555,
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533,
+        43503506778,
+        43502660435,
+        43502562196,
+        43494667529,
+        43484369040
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z), all within 14 days; none queued or in progress; 0 cancelled; source 185fd26 = HEAD = source_sha. Excluded and disclosed: failures 43506161539 (Install dependencies, 2026-11-13) and 43613020723, 43616204011, 43621919773, 43623754509 (Build documentation, consecutive since 15:58Z; log read HTTP 403 DIFC, one attempt). n=15 successes (14 push + schedule 43561388555); 5-run gate met. Category step Build documentation (npm run docs:build = astro build && node scripts/validate-agent-docs.mjs && node --test tests/integration/agent-docs-discovery.test.mjs): median 12 s, p90 15, range 9-15 = 14.8 percent of median exec 81 s (p90 92). Gate 12.15 s. Full removal saves about 12 s (13 s with 1 s timestamp rounding, 16 percent) and is blocked: validation is a correctness gate and deploy consumes its output. Every Astro-internal change is bounded by this same step total, so only whole-step removal could clear the gate; 60 s gate unreachable. Jobs API spot-check 43611206032 Build documentation 14 s matched stored row. Reliability (not timing) recorded in observations_pending. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -885,16 +885,16 @@
     "current_key_install": "post-rollover installs (install step succeeded; n=9, incl. 3 build-failed runs): median 9 s, p90 11, max 11 (7,8,8,8,9,9,10,11,11); setup median 4 s; per-run setup+install median 12 s; pre-rollover installs n=10 median 15.5 s, p90 20"
   },
   "run_samples": {
-    "window_created": "2026-11-13T16:44:14Z..2026-11-14T17:35:16Z",
-    "evaluated_at": "2026-11-14T17:55:16Z",
-    "note": "window = latest 20 completed docs.yml runs; 16 successful; failed: 43506161539 (install), 43613020723, 43616204011, 43621919773 (Build documentation). exec = build job start to deploy end (s), successes only. Jobs API timings; logs unreadable (HTTP 403 DIFC). null = not reported (failed job). Completed-run rows reused by run ID.",
+    "window_created": "2026-11-13T18:37:04Z..2026-11-14T17:55:52Z",
+    "evaluated_at": "2026-11-14T18:20:32Z",
+    "note": "window = latest 20 completed docs.yml runs; 15 successful; failed: 43506161539 (install), 43613020723, 43616204011, 43621919773, 43623754509 (Build documentation). exec = build job start to deploy end (s), successes only. Jobs API timings; logs unreadable (HTTP 403 DIFC). null = not reported (failed job). Completed-run rows reused by run ID.",
     "median_p90_s": {
       "exec": [
-        81.5,
+        81,
         92
       ],
       "checkout": [
-        24.5,
+        24,
         31
       ],
       "setup": [
@@ -902,11 +902,11 @@
         5
       ],
       "install": [
-        14.5,
+        14,
         20
       ],
       "docs": [
-        12.5,
+        12,
         15
       ],
       "demo": [
@@ -918,12 +918,25 @@
         3
       ],
       "deploy": [
-        9.5,
+        9,
         13
       ]
     },
     "columns": "run,conclusion,exec,checkout,setup,post_setup,install,docs,demo,upload,deploy",
     "rows": [
+      [
+        43623754509,
+        "fail",
+        null,
+        24,
+        2,
+        null,
+        10,
+        15,
+        0,
+        0,
+        null
+      ],
       [
         43621919773,
         "fail",
@@ -1170,23 +1183,15 @@
         3,
         3,
         9
-      ],
-      [
-        43465706802,
-        "succ",
-        89,
-        25,
-        4,
-        0,
-        20,
-        15,
-        4,
-        2,
-        10
       ]
     ]
   },
   "observations_pending": [
+    {
+      "observed_at": "2026-11-14T18:20:32Z",
+      "source": "docs.yml run 43623754509 (worker 43625619773)",
+      "note": "Reliability, not timing: fourth consecutive docs-input push failure at Build documentation (43623754509 on 185fd26, 17:55Z; earlier 43613020723, 43616204011, 43621919773). Install passed; Build and deploy skipped; Pages last deployed by 43611206032 (15:37Z). Log read HTTP 403 DIFC again (job 132534943920, one attempt). Cause unverified; maintainer triage needed; not a suggestion."
+    },
     {
       "observed_at": "2026-11-14T17:55:16Z",
       "source": "docs.yml run 43621919773 and run list (worker 43623212234)",
@@ -1502,17 +1507,13 @@
     "note": "Recomputed demo median 4 s, p90 4 s, range 3-4 over 17 successes in window 43447728981..43616204011 (7x3 s, 10x4 s). 43616204011 failed before the demo step (skipped)."
   },
   "docs_step_check": {
-    "verified_at": "2026-11-14T14:52:32Z",
+    "verified_at": "2026-11-14T18:20:32Z",
     "runs": [
-      "43593405440",
-      "43561388555",
-      "43536491714"
+      "43611206032"
     ],
     "docs_s": [
-      10,
-      14,
-      13
+      14
     ],
-    "note": "Jobs API spot-check matched stored docs column; reuse rows by run ID"
+    "note": "Jobs API spot-check matched stored docs column (15:38:36 to 15:38:50). Window 43484369040..43623754509 docs median 12 p90 15 over 15 successes."
   }
 }
