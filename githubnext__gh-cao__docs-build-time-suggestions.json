@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T01:20:36Z",
-   "worker_run_id": "43539565633",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; none queued or in progress; queued 37642403569 is from 2026-10-07, outside window; source e11a86f = workspace HEAD = source_sha). Comparable n=19 successful push runs (5-run gate met). Excluded and disclosed: failed 43506161539 (install failure, docs step not reached); no cancelled runs; no schedule run in window. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs): median 12 s, p90 15 s, range 9-15 s = 14.5 percent of median build-start-to-deploy-end 83 s (p90 93 s). 15 percent gate = 12.45 s; removing the whole step saves at most 12 s, so neither the 15 percent nor the 60 s gate is reachable. Build-job log read still HTTP 403 difc_forbidden (probed once, build job 132267659354, not retried); astro-versus-validation split unmeasured and not decision-relevant. Validator and discovery test run only git ls-files and rev-parse HEAD; per-resource git log in docs/plugins/starlight-agent/resource.ts measured about 2 ms per call in sandbox (indicative), negligible. Checkout fetch-depth 0 (median 25 s, p90 31; full history needed by sourceCommittedAt) is already represented by open issue 20815 (fingerprint docs-checkout-blobless-history-v1; 0 comments; no new timing evidence), so not re-raised. No suggestion; no issue created. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T01:34:48Z",
    "worker_run_id": "43540937288",
@@ -868,6 +839,35 @@
     43388781287
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 created 2026-11-13T07:51:43Z to 43561388555 created 2026-11-14T05:24:33Z); run list re-read at 11:15Z: same 20 IDs, all completed, none queued or in progress, no docs.yml run since 05:24Z; source 4d25cbd = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; not re-read). 0 cancelled. n=19 successes (18 push + 1 schedule); 5-run gate met. Stored Jobs API rows reused (completed runs immutable). Medians (p90): exec 82 (92) s; Set up Node.js 3.5 (7); Install dependencies 15.5 (24) pre-change window. Post-change install 7, 9, 10 s (median 9 s) = 11 percent of post-change exec median 79 s; 15 percent gate 12.3 s and 60 s gate unmet even at full install removal. Cache: caches API shows exact key node-cache-Linux-x64-npm-7808ecf8 present (263 MB, created 2026-11-13T20:57:12Z, lastAccessed 2026-11-14T11:13:39Z); hits 19/19 successes; a node_modules cache saves at most install minus restore (about 5 s), below gate. Checkout (median 24.5 s, p90 28 s, about 30 percent of median exec) is the only dependency-adjacent step above gate and is already represented by OPEN issue 20815 (fingerprint docs-checkout-blobless-history-v1; 0 comments; updated 2026-11-13T17:41:19Z); newest 43561388555 checkout 37 s is an outlier, median unchanged, so no material change and no duplicate issue. No suggestion; no issue; next_category advanced to Astro documentation generation."
+  },
+  {
+   "evaluated_at": "2026-11-14T11:31:48Z",
+   "worker_run_id": 43590174011,
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (schedule, 2026-11-14T05:24:33Z); run list re-read: same 20 IDs, all completed, none queued or in progress; HEAD 4d25cbd = source_sha. Excluded and disclosed: 43506161539 failed at Install dependencies (push 7c8faf4; docs not reached); 0 cancelled. n=19 successes; 5-run gate met. Category Astro documentation generation = step Build documentation (npm run docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery.test.mjs): recomputed from run_samples median 12 s, p90 15 s, range 9-15 s = 14.5 percent of median exec 83 s (p90 92). 15 percent gate 12.45 s; removing the whole step saves at most 12 s and deploy consumes its output, so the gate is unreachable; 60 s gate unreachable. Astro-internal split unmeasured and not decision-relevant (unreachable even at 100 percent of the step); build-job logs not read. Jobs API spot-check of 43561388555 matched stored docs value (14 s). Checkout (median 25 s) is represented by open issue 20815 (OPEN, 0 comments, owned by this worker, fingerprint docs-checkout-blobless-history-v1), so not re-raised. No suggestion; no create_issue; noop used. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1540,14 +1540,12 @@
   "note": "Jobs API spot-check matched run_samples rows; reuse rows by run ID"
  },
  "docs_step_check": {
-  "verified_at": "2026-11-14T09:52:43Z",
+  "verified_at": "2026-11-14T11:31:48Z",
   "runs": [
-   "43561388555",
-   "43536796952"
+   "43561388555"
   ],
   "docs_s": [
-   14,
-   10
+   14
   ],
   "note": "Jobs API spot-check matched stored docs column; reuse rows by run ID"
  }
