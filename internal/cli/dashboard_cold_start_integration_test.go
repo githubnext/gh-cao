@@ -421,6 +421,9 @@ func (g *dashboardColdStartGitHub) get(ctx context.Context, path string) ([]byte
 
 func (g *dashboardColdStartGitHub) execute(ctx context.Context, args ...string) (string, string, error) {
 	var path string
+	if reflect.DeepEqual(args, []string{"aw", "list", "--repo", "octo/api", "--json"}) {
+		return "[]", "", nil
+	}
 	switch {
 	case reflect.DeepEqual(args, []string{"repo", "view", "--json", "nameWithOwner,url"}),
 		reflect.DeepEqual(args, []string{"repo", "view", "github.com/octo/api", "--json", "nameWithOwner,url,id"}):
