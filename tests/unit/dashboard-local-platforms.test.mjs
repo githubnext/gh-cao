@@ -41,6 +41,23 @@ test("local serving runs on native Linux, macOS, and Windows with real PostgreSQ
   }
 });
 
+test("POSIX local serving exercises the checksum-verified DuckDB v2.0.0 session archive", () => {
+  const steps = workflow.jobs.serving.steps;
+  const duckdb = steps.findIndex((step) => step.name === "Install checksum-verified DuckDB v2.0.0");
+  const serving = steps.findIndex((step) => step.name === "Test real local serving");
+  assert.ok(duckdb >= 0 && duckdb < serving);
+  const install = steps[duckdb];
+  assert.equal(install.if, "runner.os != 'Windows'");
+  assert.match(install.run, /releases\/download\/v2\.0\.0\/\$asset/);
+  assert.match(install.run, /shasum -a 256 --check/);
+  for (const digest of [/c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc/,
+    /859e1875d2a9515fbb4bf8871061437a14af82320da68c753f094c4b776348fe/,
+    /8a8f67e7c7f7d1392fa63ba3971948391392fe2a25fca63e7008e33c50beb4c2/]) {
+    assert.match(install.run, digest);
+  }
+  assert.match(install.run, /CAO_DASHBOARD_TEST_DUCKDB=\$duckdb" >> "\$GITHUB_ENV"/);
+});
+
 test("pull requests cover source, generated dashboard assets, and build inputs", () => {
   for (const event of ["pull_request", "push"]) {
     const patterns = workflow.on[event].paths;

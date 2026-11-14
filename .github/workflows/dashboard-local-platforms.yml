@@ -83,6 +83,30 @@ jobs:
           set -euo pipefail
           test "$(docker info --format '{{.OSType}}')" = linux
           docker pull docker.io/library/postgres:16-alpine
+      - name: Install checksum-verified DuckDB v2.0.0
+        # The private session archive requires a POSIX host.
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$RUNNER_OS/$RUNNER_ARCH" in
+            Linux/X64) asset="duckdb-cli-linux-amd64.tar.gz"
+              digest="c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc" ;;
+            Linux/ARM64) asset="duckdb-cli-linux-arm64.tar.gz"
+              digest="859e1875d2a9515fbb4bf8871061437a14af82320da68c753f094c4b776348fe" ;;
+            macOS/*) asset="duckdb-cli-osx-universal.tar.gz"
+              digest="8a8f67e7c7f7d1392fa63ba3971948391392fe2a25fca63e7008e33c50beb4c2" ;;
+            *) echo "no pinned DuckDB for $RUNNER_OS/$RUNNER_ARCH" >&2; exit 1 ;;
+          esac
+          duckdb="$RUNNER_TEMP/cao-duckdb/duckdb"
+          mkdir -p "$(dirname "$duckdb")"
+          curl --fail --silent --show-error --location --proto '=https' \
+            "https://github.com/duckdb/duckdb/releases/download/v2.0.0/$asset" \
+            --output "$RUNNER_TEMP/cao-duckdb.tar.gz"
+          echo "$digest  $RUNNER_TEMP/cao-duckdb.tar.gz" | shasum -a 256 --check
+          tar -xzf "$RUNNER_TEMP/cao-duckdb.tar.gz" -C "$(dirname "$duckdb")" duckdb
+          "$duckdb" --version
+          echo "CAO_DASHBOARD_TEST_DUCKDB=$duckdb" >> "$GITHUB_ENV"
       - name: Install build dependencies
         shell: bash
         run: |
