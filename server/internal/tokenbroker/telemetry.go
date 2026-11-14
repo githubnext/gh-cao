@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	otelLog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 
 	"github.com/githubnext/gh-cao/server/internal/admission"
 	"github.com/githubnext/gh-cao/server/internal/telemetry"
@@ -32,6 +32,6 @@ func observeOperation[T any](ctx context.Context, name string, operation func(co
 	record.SetSeverity(severity)
 	record.SetBody(attribute.StringValue("token broker operation completed"))
 	record.AddAttributes(attribute.String("operation", name), attribute.String("outcome", outcome))
-	global.GetLoggerProvider().Logger("cao:tokenbroker").Emit(ctx, record)
+	otel.GetLoggerProvider().Logger("cao:tokenbroker").Emit(ctx, record)
 	return result, err
 }

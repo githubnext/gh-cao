@@ -9,7 +9,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	otelLog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 )
 
 func TestLocalOTLPExport(t *testing.T) {
@@ -33,11 +32,11 @@ func testLocalOTLPExport(t *testing.T, backend string) {
 	t.Helper()
 	previousTracer := otel.GetTracerProvider()
 	previousMeter := otel.GetMeterProvider()
-	previousLogger := global.GetLoggerProvider()
+	previousLogger := otel.GetLoggerProvider()
 	t.Cleanup(func() {
 		otel.SetTracerProvider(previousTracer)
 		otel.SetMeterProvider(previousMeter)
-		global.SetLoggerProvider(previousLogger)
+		otel.SetLoggerProvider(previousLogger)
 	})
 	for _, key := range []string{
 		"OTEL_EXPORTER_OTLP_HEADERS",
@@ -88,5 +87,5 @@ func testLocalOTLPExport(t *testing.T, backend string) {
 	record.SetTimestamp(time.Now())
 	record.SetSeverity(otelLog.SeverityInfo)
 	record.SetBody(attribute.StringValue("local OTLP integration test"))
-	global.GetLoggerProvider().Logger("cao:local-otlp-test").Emit(spanCtx, record)
+	otel.GetLoggerProvider().Logger("cao:local-otlp-test").Emit(spanCtx, record)
 }

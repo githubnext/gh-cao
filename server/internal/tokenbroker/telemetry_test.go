@@ -12,7 +12,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	otelLog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -39,14 +38,14 @@ func TestBrokerTelemetryCorrelatesSafeOperationOutcomes(t *testing.T) {
 	tracer := sdktrace.NewTracerProvider(sdktrace.WithSyncer(spans))
 	logs := &logExporter{}
 	provider := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewSimpleProcessor(logs)))
-	previousTracer, previousLogger := otel.GetTracerProvider(), global.GetLoggerProvider()
+	previousTracer, previousLogger := otel.GetTracerProvider(), otel.GetLoggerProvider()
 	otel.SetTracerProvider(tracer)
-	global.SetLoggerProvider(provider)
+	otel.SetLoggerProvider(provider)
 	t.Cleanup(func() {
 		_ = tracer.Shutdown(t.Context())
 		_ = provider.Shutdown(t.Context())
 		otel.SetTracerProvider(previousTracer)
-		global.SetLoggerProvider(previousLogger)
+		otel.SetLoggerProvider(previousLogger)
 	})
 	for _, test := range []struct {
 		name, body, outcome, lastOperation string

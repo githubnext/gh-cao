@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.opentelemetry.io/otel"
 	otelLog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/log/noop"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/trace"
@@ -96,12 +96,12 @@ func (*recordExporter) Shutdown(context.Context) error   { return nil }
 func TestOTelLogsRespectDebugCategoriesAndSlogContext(t *testing.T) {
 	originalDebug, originalColors := debugEnv, debugColors
 	debugEnv, debugColors = "cao:allowed,-cao:blocked", false
-	previousProvider := global.GetLoggerProvider()
+	previousProvider := otel.GetLoggerProvider()
 	exporter := &recordExporter{}
 	provider := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewSimpleProcessor(exporter)))
-	global.SetLoggerProvider(provider)
+	otel.SetLoggerProvider(provider)
 	t.Cleanup(func() {
-		global.SetLoggerProvider(previousProvider)
+		otel.SetLoggerProvider(previousProvider)
 		debugEnv, debugColors = originalDebug, originalColors
 		_ = provider.Shutdown(context.Background())
 	})
@@ -147,7 +147,7 @@ func TestOTelLogsRespectDebugCategoriesAndSlogContext(t *testing.T) {
 			t.Error("context-free logging inherited another call's trace context")
 		}
 	}
-	global.SetLoggerProvider(noop.NewLoggerProvider())
+	otel.SetLoggerProvider(noop.NewLoggerProvider())
 	captureStderr(t, func() { New("cao:allowed").Print("stderr only") })
 	if len(exporter.records) != 5 {
 		t.Fatal("disabled export must not forward records")
