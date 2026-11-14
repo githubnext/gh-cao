@@ -3,9 +3,14 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
+	"testing/iotest"
+
+	"github.com/githubnext/gh-cao/server/internal/collectnative"
 )
 
 func TestReadNativeInventoryValidatesBeforeProvisioning(t *testing.T) {
@@ -43,5 +48,42 @@ func TestReadNativeInventoryValidatesBeforeProvisioning(t *testing.T) {
 	sum = sha256.Sum256([]byte(unavailable))
 	if _, err := readNativeInventory(strings.NewReader(unavailable), hex.EncodeToString(sum[:])); err == nil {
 		t.Fatal("unavailable policy evidence was provisioned")
+	}
+}
+
+func TestReadBoundedInventoryEnforcesCapacity(t *testing.T) {
+	exact := strings.Repeat("x", collectnative.InventoryMaxBytes)
+	content, err := readBoundedInventory(strings.NewReader(exact))
+	if err != nil || len(content) != collectnative.InventoryMaxBytes {
+		t.Fatalf("input at capacity: len=%d err=%v", len(content), err)
+	}
+	if _, err := readBoundedInventory(strings.NewReader(exact + "x")); !errors.Is(err, collectnative.ErrCapacity) {
+		t.Fatalf("input over capacity error = %v, want ErrCapacity", err)
+	}
+	if _, err := readBoundedInventory(strings.NewReader("")); err != nil {
+		t.Fatalf("empty input must be left to snapshot validation: %v", err)
+	}
+}
+
+func TestReadBoundedInventoryPropagatesReadFailure(t *testing.T) {
+	failure := errors.New("read failed")
+	if _, err := readBoundedInventory(iotest.ErrReader(failure)); !errors.Is(err, failure) {
+		t.Fatalf("read failure error = %v, want %v", err, failure)
+	}
+	if _, err := readNativeInventory(io.MultiReader(strings.NewReader("{"), iotest.ErrReader(failure)), strings.Repeat("0", 64)); !errors.Is(err, failure) {
+		t.Fatalf("readNativeInventory read failure error = %v, want %v", err, failure)
+	}
+}
+
+func TestDecodeNativeInventoryRejectsInvalidDocuments(t *testing.T) {
+	digest := strings.Repeat("0", 64)
+	if _, err := decodeNativeInventory([]byte("not json"), digest); err == nil || err.Error() != "invalid native inventory document" {
+		t.Fatalf("malformed JSON error = %v", err)
+	}
+	if _, err := decodeNativeInventory([]byte(`{"version":1}`), digest); err == nil {
+		t.Fatal("incomplete document with a non-matching digest was accepted")
+	}
+	if _, err := readNativeInventory(strings.NewReader(strings.Repeat("x", collectnative.InventoryMaxBytes+1)), digest); !errors.Is(err, collectnative.ErrCapacity) {
+		t.Fatalf("oversized document error = %v, want ErrCapacity", err)
 	}
 }
