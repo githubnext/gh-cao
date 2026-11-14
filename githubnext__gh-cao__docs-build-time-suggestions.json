@@ -1,36 +1,7 @@
 {
  "source_sha": "7e620f31f2203d667021871b63861a18710fa543",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T02:24:00Z",
-   "worker_run_id": "43545677879",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43536796952",
-    "43536491714",
-    "43506161539",
-    "43505502149",
-    "43504143936",
-    "43504093917",
-    "43503897533",
-    "43503506778",
-    "43502660435",
-    "43502562196",
-    "43494667529",
-    "43484369040",
-    "43465706802",
-    "43447728981",
-    "43447111490",
-    "43440055797",
-    "43430232636",
-    "43430166810",
-    "43388781287",
-    "43380585034"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; unchanged from the 01:34Z and 01:53Z windows; no newer docs.yml run; source 2000a4e = HEAD = source_sha; compare 54e08aa...2000a4e touches no docs trigger path). Excluded and disclosed: 43506161539 failed at Install dependencies (cause unverified, logs not read); 0 cancelled; 0 schedule runs in window. n=19 successful push runs; 5-run gate met. Concurrency (documentation-pages, cancel-in-progress false), build job created minus run created: median 1 s, nearest-rank p90 42 s, max 68 s; 3 of 20 waited 42-68 s behind a predecessor deploy (43504143936 68 s, 43430232636 51 s, 43502660435 42 s); sum 174 s over 20 runs. Queue only; exec (build start to deploy end) median 83 s, p90 93 s, so median saving 0 s against the 15 percent gate (12.5 s) and the 60 s gate. Avoidable rebuilds: 17 pushes carried forward from the 00:38Z evaluation; 2 new pushes checked now: 54e08aa touches docs/components/ThemeToggle.astro; 2cb6d9c touches modernization/aw.yml (*/aw.yml trigger; docs/lib/catalog.ts reads the root aw.yml and its includes). 0 of 19 avoidable. Schedule duplicate case (43371878284 after push 5943848) is outside this window, single occurrence. Rejected again: cancel-in-progress true (cuts in-flight Pages publication); deploy-only or build-out-of-group concurrency (out-of-order publication). Open issue 20815 (blobless checkout, dependency category) still OPEN; not re-evaluated, not duplicated. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T02:34:33Z",
    "worker_run_id": "43546633806",
@@ -868,6 +839,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43593405440 created 2026-11-14T12:09:24Z back to 43430166810 created 2026-11-13T13:02:07Z; all within 14 days; none queued or in progress). Source: newest docs.yml head 7e620f3 (local checkout 215837f does not contain it; not used for timing). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies; build and deploy skipped); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Category = handoff (build end to deploy start) + Configure Pages + Upload Pages artifact + deploy-setup step: median 9 s, p90 10 s, max 10 s = 11.1 percent of median exec 81 s (p90 92 s). 15 percent gate 12.15 s and 60 s gate unreachable even with all removed. Deploy Pages (GitHub-managed) median 7 s not controllable. Merging deploy into build saves about 6 s (handoff 5 + setup 1) but needs id-token: write and the github-pages environment in the job that runs npm ci and Astro (least privilege, rejected again). Artifact about 8.3 MB; shrinking saves about 1 s. New run 43593405440 (exec 73 s) moved exec median 82 to 81 s; no new transfer-category evidence. Jobs API spot-check of 43561388555 matched stored rows. Open issue 20815 (checkout, OPEN, 0 comments) not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T12:36:41Z",
+   "worker_run_id": "43595227009",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); all within 14 days; none queued or in progress; source 7e620f3 = newest docs head; main HEAD 215837f (parent 7e620f3) changes only experiments/java-backend, not a docs trigger path. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Queue (run-created to build-created, jobs API re-read for all 20 runs): median 1 s, p90 51 s, max 68 s, sum 174 s; queue is not execution time (exec median 81 s, p90 92 s), so the 60 s and 15 percent (12.15 s) gates are unmet. Only docs.yml uses group documentation-pages (cancel-in-progress false). Avoidable rebuilds: new push 7e620f3 changed only docs/components/SiteFooter.astro (docs/** input), so 0 avoidable pushes; schedule 43561388555 has no same-SHA duplicate in window. Superseded in-progress builds (newer run created while an older build was running): 3 cases (37, 28, 52 s), upper bound 117 s of remaining build time over the window (about 6 s per run; median saving 0); cancelling them would need build-job cancellation touching deploy-group safety, and it cannot clear the per-run gate. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1189,11 +1189,6 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T09:33:48Z",
-   "source": "docs.yml dependency-install category (worker 43580745621)",
-   "note": "Checkout newest sample 37 s (43561388555) above the stored 24.5 s median and 31 s max; median unchanged. Same work as open issue 20815, so no new issue; not a dependency finding. Not a suggestion."
-  },
-  {
    "observed_at": "2026-11-14T07:52:28Z",
    "source": "docs.yml install category (worker 43572816768)",
    "note": "Post-7c8faf4 install samples n=3 (7, 9, 10 s; jobs API) median 9 s, superseding the earlier n=2 figure. Re-evaluate only if install median rises above about 12 s after at least 5 successful post-change runs; not a suggestion."
@@ -1237,6 +1232,11 @@
    "observed_at": "2026-11-14T07:20:30Z",
    "source": "docs.yml trigger check (worker 43570202694)",
    "note": "Push 4d25cbd changed docs.yml and shared/** yet produced no push-triggered docs run (only the 05:24Z schedule ran on it). Pages is current via the schedule. Cause not determined; freshness reliability, not a timing finding; not a suggestion."
+  },
+  {
+   "observed_at": "2026-11-14T12:36:41Z",
+   "source": "docs.yml scheduling (worker 43595227009)",
+   "note": "Six push runs within about 11 minutes (2026-11-13 20:32-20:44Z) all built and none were cancelled; queue waits 42, 51 and 68 s come from serialized docs-input pushes in one group. Time-to-publish only, not a timing finding; not a suggestion."
   }
  ],
  "checkout_probe": {
@@ -1270,34 +1270,45 @@
   }
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-14T09:18:54Z",
-  "window": "43388781287..43561388555 (07:51Z 2026-11-13 to 05:24Z 2026-11-14); unchanged at 09:18Z; no queued or in-progress docs.yml run",
+  "evaluated_at": "2026-11-14T12:36:41Z",
+  "window": "43430166810..43593405440 (2026-11-13T13:02Z to 2026-11-14T12:09Z); none queued or in progress; source 7e620f3 newest docs head",
   "n_success_push": 18,
   "n_success_schedule": 1,
   "failed": [
    "43506161539"
   ],
   "cancelled": [],
-  "avoidable_push_test": "compare API per push run (previous docs head to this head); classified against trigger paths and Pages build inputs; output-input trigger matches per push run: 43388781287:1 43430166810:1 43430232636:1 43440055797:3 43447111490:1 43447728981:1 43465706802:7 43484369040:1 43494667529:3 43502562196:13 43502660435:1 43503506778:1 43503897533:1 43504093917:1 43504143936:1 43505502149:1 43536491714:1 43536796952:1 (43506161539 failed: 33)",
+  "avoidable_push_test": "compare API 4d25cbd...7e620f3 for new push 43593405440: only docs/components/SiteFooter.astro (docs/** input) = not avoidable; prior 18 push runs remain 0 avoidable",
   "avoidable_pushes": 0,
   "build_inputs_verified": "docs/**, astro.config.mjs, public/**, package*.json, aw.yml and */aw.yml (docs/lib/catalog.ts glob and ?raw import), */README.md (catalog glob, not a trigger), dashboard/site/** excluding test, dashboard/report/**, scripts/simulate-dashboard-pages.mjs, scripts/dashboard-demo-data.mjs (not a trigger), .github/workflows/cao.json (dashboard build reads it, not a trigger), shared policy/authority/value-acquisition/actions-log (imported by dashboard build)",
   "concurrency_wait_s_successful_median_p90_max_sum": [
    1,
    51,
    68,
-   173
+   174
   ],
   "exec_s_median_p90": [
-   82,
+   81,
    92
   ],
+  "superseded_in_progress": {
+   "cases": 3,
+   "upper_bound_remaining_build_s": 117,
+   "largest_case_s": 52,
+   "pairs": [
+    "43430166810->43430232636 37s",
+    "43502562196->43502660435 28s",
+    "43504093917->43504143936 52s"
+   ],
+   "median_saving_s": 0
+  },
   "trigger_gaps": [
    "*/README.md (catalog glob)",
    "server/README.md, dashboard/README.md (catalog glob reads top-level READMEs)",
    ".github/workflows/cao.json (read by dashboard build; not a trigger)",
    "scripts/dashboard-demo-data.mjs (read by simulate-dashboard-pages.mjs; not a trigger)"
   ],
-  "trigger_observation": "Corrected 2026-11-14T10:52Z: 4d25cbd (05:11Z) changed only server/kubernetes/README.md, tests/integration/kubernetes-kind.test.mjs and .github/workflows/kubernetes-aspire.yml; no docs trigger path, so no push run is expected. Earlier note that it changed docs.yml or shared/** was wrong."
+  "trigger_observation": "Corrected 2026-11-14T10:52Z: 4d25cbd changed only server/kubernetes files; 215837f (main HEAD) changed only experiments/java-backend; no docs run expected for either."
  },
  "transfer_samples": {
   "evaluated_at": "2026-11-14T12:21:33Z",
