@@ -1,36 +1,7 @@
 {
   "source_sha": "b5a9b43c6cb966c90783bea5774d1ecb71b8089c",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T06:54:31Z",
-      "worker_run_id": "43568188985",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        43561388555,
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529,
-        43484369040,
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 created 2026-11-13T07:51:43Z to 43561388555 created 2026-11-14T05:24:33Z); none queued or in progress; source 4d25cbd = HEAD = source_sha; path-filtered commits API: docs.yml last changed 063cbe9 (2026-11-12T06:17:07Z), before every window run. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; deploy skipped; Pages not updated). n=19 successes (18 push + 1 schedule 43561388555); 0 cancelled. Jobs API step and job timings re-read for all 20 runs; logs not read. Medians (p90), n=19: exec 83 s (92); Configure Pages 0 s (1); Upload Pages artifact 2 s (3); build-end to deploy-start handoff 5 s (6); deploy Set up job 1 s (1); Deploy Pages 7 s (8, GitHub-managed). Removable transfer (configure+upload+handoff+deploy setup) median 9 s (p90 10, max 10) = 11 percent of median exec; 15 percent gate 12.5 s and 60 s gate unmet even at full removal. github-pages artifact 8.33 MB (43561388555, 43536796952); upload about 2 s, so a size cut saves under 2 s. Merging deploy into build saves about 6 s and stays rejected (id-token write and github-pages environment would move into the build job that runs npm ci). Open issue 20815 (blobless checkout, OPEN) is the checkout category and was not re-filed. Cache not re-evaluated this category. No suggestion; no issue; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T07:20:30Z",
       "worker_run_id": "43570202694",
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43447728981 (created 2026-11-13T14:57:34Z) to 43616204011 (push afe0ba0, created 2026-11-14T16:32:58Z); none queued or in progress; 0 cancelled; source b5a9b43 = HEAD (prior source_sha decb7ee; compare decb7ee...b5a9b43 changed dashboard/site/src/data/storage/shards.js and its test, a docs.yml trigger path, with no demo-step timing effect in window). Excluded and disclosed: 43506161539 FAILED (install), 43613020723 FAILED (Build documentation, 600b56a), 43616204011 FAILED (Build documentation 11 s, afe0ba0, deploy skipped). n=17 successes (16 push + schedule 43561388555); 5-run gate met. No separate dashboard job: dashboard generation is step Build synthetic enterprise demo inside build: median 4 s, p90 4 s, range 3-4 (7x3 s, 10x4 s) = 4.9 percent of median exec 82 s (p90 92). 15 percent gate 12.3 s and 60 s gate unreachable; full removal saves at most 4 s. Output caching stale-unsafe: scripts/simulate-dashboard-pages.mjs now defaults to Date.now() which flows into generatedAt (daily 05:23Z refresh by design). Reliability, not timing: two consecutive Build documentation failures; Pages not deployed since 04c9d9e (15:39Z); logged in observations_pending. No suggestion; no issue; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T17:17:38Z",
+      "worker_run_id": "43619826046",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        43616204011,
+        43613020723,
+        43611206032,
+        43608206381,
+        43593405440,
+        43561388555,
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533,
+        43503506778,
+        43502660435,
+        43502562196,
+        43494667529,
+        43484369040,
+        43465706802,
+        43447728981
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43447728981 (created 2026-11-13T14:57:34Z) to 43616204011 (2026-11-14T16:32:58Z); re-read 17:15Z: no newer docs.yml run; source b5a9b43 = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (Install dependencies, push 7c8faf4); 43613020723 and 43616204011 FAILED at Build documentation (push 600b56a, afe0ba0; deploy skipped; Pages last deployed by 43611206032, artifact created 15:38:56Z). Job-log probe for failed job 132511696153 returned HTTP 403 DIFC; cause unverified. 0 cancelled. n=17 successes (16 push + schedule 43561388555); 5-run gate met. Jobs API re-read for all 20 runs this run. Exec (build start to deploy end) median 82 s (p90 92). Removable transfer (handoff 5 + Configure Pages 0 + Upload 2 + deploy Set up job 1) median 9 s, p90 10, max 10 = 11.0 percent of median exec; 15 percent gate 12.3 s and 60 s gate unmet even at full removal. Deploy Pages 7 s is GitHub-managed. github-pages artifact 8,352,438 bytes (43611206032); shrinking saves about 1 s. Merging deploy into build saves about 6 s and stays rejected (id-token write and github-pages environment would move onto the job that runs npm ci). Checkout (median 24 s, p90 31) is outside this rotation and is represented by open issue 20815, not repeated. Queue (run created to build start) median 3 s, p90 45, not part of exec. No suggestion; no issue; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1196,46 +1196,6 @@
   },
   "observations_pending": [
     {
-      "observed_at": "2026-11-14T01:20:36Z",
-      "source": "docs.yml build log probe (worker 43539565633)",
-      "note": "Build job log read for 43536796952 still returns HTTP 403 DIFC policy violation (single probe). Astro-versus-validation timing split stays unmeasured; the whole Build documentation step is below the 15 percent gate, so no action is implied."
-    },
-    {
-      "observed_at": "2026-11-14T00:59:52Z",
-      "source": "docs.yml failure 43506161539 (worker 43537183263)",
-      "note": "Pages recovered: successes 2cb6d9c (00:47Z) and 54e08aa (00:50Z) deployed, ending a stale period from 20:53Z. The install failure cause is still unverified (logs not read this run). No maintainer action needed for timing."
-    },
-    {
-      "observed_at": "2026-11-14T00:59:52Z",
-      "source": "docs.yml cache-miss fragility (worker 43537183263)",
-      "note": "Exact-key restore means a root lock change makes the first docs run a cache miss, and a failed miss can leave Pages stale until the next docs-path push or the daily schedule. This is a reliability and maintainer decision, not a timing finding; not a suggestion."
-    },
-    {
-      "observed_at": "2026-11-14T00:38:55Z",
-      "source": "docs.yml path-filter review (worker 43534646046)",
-      "note": "Freshness gap, not a timing finding: triggers omit scripts/dashboard-demo-data.mjs, */README.md and .github/workflows/cao.json, which the Pages build reads. Staleness is bounded by the daily 05:23 UTC schedule."
-    },
-    {
-      "observed_at": "2026-11-14T06:28:07Z",
-      "source": "docs.yml local Astro split attempt (worker 43565938032)",
-      "note": "Local npm ci in the sandbox failed with DEPTH_ZERO_SELF_SIGNED_CERT on the package feed (after 87 s). Not bypassed. Astro-versus-validation split therefore remains unmeasured; do not retry npm ci in this sandbox unless the environment changes. Not a suggestion."
-    },
-    {
-      "observed_at": "2026-11-14T07:20:30Z",
-      "source": "docs.yml trigger check (worker 43570202694)",
-      "note": "Push 4d25cbd changed docs.yml and shared/** yet produced no push-triggered docs run (only the 05:24Z schedule ran on it). Pages is current via the schedule. Cause not determined; freshness reliability, not a timing finding; not a suggestion."
-    },
-    {
-      "observed_at": "2026-11-14T12:36:41Z",
-      "source": "docs.yml scheduling (worker 43595227009)",
-      "note": "Six push runs within about 11 minutes (2026-11-13 20:32-20:44Z) all built and none were cancelled; queue waits 42, 51 and 68 s come from serialized docs-input pushes in one group. Time-to-publish only, not a timing finding; not a suggestion."
-    },
-    {
-      "observed_at": "2026-11-14T12:53:13.171Z",
-      "source": "docs.yml install category (worker 43596636288)",
-      "note": "Post-7c8faf4 install n=4 (9, 7, 9, 10 s; 43593405440, 43536796952, 43536491714, schedule 43561388555) median 9 s. Re-evaluate only if install median rises above about 12 s after at least 5 successful post-change runs; not a suggestion."
-    },
-    {
       "observed_at": "2026-11-14T13:18:00Z",
       "source": "docs.yml Astro category (worker 43598671552)",
       "note": "Static-chain check: validate-agent-docs.mjs and tests/integration/agent-docs-discovery.test.mjs read dist/ and git ls-files and import dashboard modules; neither spawns astro or npm, so no duplicate build sits inside Build documentation. Full-step ceiling (14.8 percent of exec median) stays below the 15 percent gate; not a suggestion."
@@ -1269,6 +1229,11 @@
       "observed_at": "2026-11-14T16:54:01Z",
       "source": "docs.yml source compare (worker 43617701152)",
       "note": "compare decb7ee...b5a9b43 changed dashboard/site/src/data/storage/shards.js and its unit test (docs.yml trigger path dashboard/site/**); timing unaffected in this window. Local clone is shallow and lacks decb7ee; compare API used."
+    },
+    {
+      "observed_at": "2026-11-14T17:17:38Z",
+      "source": "docs.yml run list and jobs API (worker 43619826046)",
+      "note": "Last two push-triggered docs.yml runs failed at Build documentation (43613020723, 43616204011). Pages has not been republished since 43611206032. Not a timing finding; excluded from samples; job-log read returns HTTP 403 DIFC from this worker. Maintainers should check."
     }
   ],
   "checkout_probe": {
