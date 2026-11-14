@@ -1,36 +1,7 @@
 {
  "source_sha": "185fd262bc2f85c7f8a2cb7a7ae0c62840ffb414",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T09:33:48Z",
-   "worker_run_id": "43580745621",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "43561388555",
-    "43536796952",
-    "43536491714",
-    "43506161539",
-    "43505502149",
-    "43504143936",
-    "43504093917",
-    "43503897533",
-    "43503506778",
-    "43502660435",
-    "43502562196",
-    "43494667529",
-    "43484369040",
-    "43465706802",
-    "43447728981",
-    "43447111490",
-    "43440055797",
-    "43430232636",
-    "43430166810",
-    "43388781287"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; no docs.yml run since 05:24Z; source 4d25cbd = HEAD = source_sha; run list unchanged since the 07:52Z and 09:18Z evaluations). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies 17 s on a cache miss; job log HTTP 403, cause unverified). 0 cancelled, 0 in progress; comparable n=18 push successes plus 1 schedule (43561388555); 5-run gate met. Jobs API rows reused (completed runs immutable); spot-check of 43561388555 matched (install 10 s, checkout 37 s). Medians (p90, push n=18): exec 82 (92) s; Set up Node.js 3.5 (7); Install dependencies 15.5 (24) = 18.9 percent of exec median; 15 percent gate = 12.3 s. Post-change install 7 and 9 s (push), 10 s (schedule). Cache key verified: hashFiles(root package-lock.json) = sha256 of the file's sha256 digest, so 7808ecf8 matches HEAD root lock and the dashboard lock is outside the key; 19/19 successes restore exact key (Post Set up Node.js 0 to 1 s). Candidates, none clear the gate on current evidence: node_modules cache (saves install minus restore; post-change ceiling about 9 s; window median needs restore at or below 3.2 s versus 3.5 s setup median for the 251 MiB npm cache; restore unmeasured; #19689 CLOSED NOT_PLANNED 2026-11-07 for the same idea, not repeated); root --omit=dev (about 2.4 s est.); parallel or flag tweaks (seconds); root --ignore-scripts (correctness risk). Checkout (median 24.5 s, newest 37 s) is the largest removable step but is the same work as open issue 20815 (OPEN, 0 comments, checked 09:31Z), so no duplicate. Reliability caveat only: exact-key restore makes a root lock change a cache miss (20:56Z failure). No suggestion; no issue; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T09:52:43Z",
    "worker_run_id": "43582334509",
@@ -870,20 +841,49 @@
    ],
    "outcome": "complete, not actionable with partial verification: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z); gh run list re-read at 19:15Z: same 20 IDs, none in progress, no newer docs run; docs.yml queued = stale 37642403569 (workflow_run, 2026-10-07, still queued; not blocking, newer runs complete). Source 185fd26 = HEAD = source_sha. Excluded and disclosed: 5 failures = 43506161539 (install, 7c8faf4) and 43613020723, 43616204011, 43621919773, 43623754509 (Build documentation, log HTTP 403); 0 cancelled; n=15 successes (14 push + schedule 43561388555), 5-run gate met. Timing re-derived from stored rows (18:54Z Jobs API refresh): exec median 81 s, p90 92 s; gate 12.15 s (15 percent) and 60 s. Queue (run created to build start) carried from the 17:33Z sample on the prior window (median 3 s, p90 45 s, max 68 s); queue is not execution time, so it cannot meet the gate. Concurrency documentation-pages, cancel-in-progress false: cancel-in-progress true would cut queue only and could cancel a deploy mid-flight; rejected. Avoidable rebuilds: 0 verified (04c9d9e, 600b56a, afe0ba0, b5a9b43 touched real inputs per earlier compares); 185fd26 touches dashboard/site/src/data/storage/shards.js, a real input; 93c64ff (43621919773) NOT re-verified because the gh CLI proxy was unavailable 19:16-19:26Z (curl exit 7), so it is pending. Even if 93c64ff were avoidable, one occurrence is not repeated evidence and cannot meet the rule. Trigger breadth checked locally: dashboard/site/scripts/build.mjs imports .github/workflows/shared/policy.mjs and reads cao.json, so the shared trigger is input-backed. No suggestion; no issue; noop used. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T19:33:57Z",
+   "worker_run_id": "43632340041",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529",
+    "43484369040"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z); gh run list re-read at 19:32Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source 185fd26 = HEAD = source_sha. Excluded and disclosed: 43506161539 failed at Install dependencies (push 7c8faf4, 17 s on a cache miss; logs not read); 4 failures at Build documentation since 15:58Z (43613020723, 43616204011, 43621919773, 43623754509; Install passed in each). n=15 successes (14 push + schedule 43561388555); 5-run gate met. Jobs API spot-check: 43611206032 install 11 s and setup 5 s; 43623754509 install 10 s and setup 2 s; both match stored rows. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 present (263 MB, created 2026-11-13T20:57:12Z, lastAccessed 2026-11-14T19:28:48Z); post step 0 to 1 s in successful post-rollover runs (no save), so hit is inferred, not read from logs. Install post-rollover (current key, n=10 incl. 4 build-failed) median 9 s, p90 11; pre-rollover (n=9 successes) median 15 s, p90 24. Exec median 81 s, p90 92; 15 percent gate 12.15 s; full install removal saves at most 9 s (11.1 percent) and cannot reach 60 s; a node_modules cache saves at most install minus restore, so it cannot reach the gate. Setup-node median 4 s is required to provide Node. Checkout (median 24 s) is the only dependency-adjacent step above gate and is represented by open issue 20815 (OPEN, 0 comments, updated 2026-11-13T17:41:19Z); no duplicate. No suggestion; no issue; noop; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-14T17:55:16Z",
+  "verified_at": "2026-11-14T19:33:57Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) = sha256 of the file's sha256 digest; root lock only>",
   "restore": "exact key only; no restore-keys",
-  "head_key": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263 MB; refs/heads/main created 2026-11-13T20:57:12Z, lastAccessedAt 2026-11-14T17:52:24Z; caches API 17:52Z)",
+  "head_key": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263 MB; refs/heads/main created 2026-11-13T20:57:12Z, lastAccessedAt 2026-11-14T19:28:48Z; caches API 19:32Z)",
   "previous_key": "node-cache-Linux-x64-npm-e62f6006... (279 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T20:56:23Z) served 2026-11-12 to 2026-11-13 runs; compare API: no root lock change between 7c8faf4 and 54e08aa",
   "hits": "Post Set up Node.js 0 to 1 s in every successful run through 43593405440; setup restore 2 to 5 s post-rollover. 43621919773 Post step reported skipped (failed job); its setup 2 s and install 8 s are consistent with a restore but hit not directly confirmed.",
   "caches_listing": "2026-11-14T00:59Z: npm entries for other lock hashes (43bd5832 312 MB, aaf3a193 296 MB, 36b11d9f 58 MB, d6275959 7 MB) are not docs.yml inputs",
   "install_shape": "root npm ci: 765 entries; dashboard npm --prefix ci --omit=dev --ignore-scripts; both in the Install dependencies step, which cannot be split from job logs",
   "key_check": "Root package-lock.json unchanged since 7c8faf4 (commits API path filter, 2026-11-14); dashboard/site/package-lock.json last changed in 7c8faf4 too and is not in the key.",
-  "current_key_install": "post-rollover installs (install step succeeded; n=9, incl. 3 build-failed runs): median 9 s, p90 11, max 11 (7,8,8,8,9,9,10,11,11); setup median 4 s; per-run setup+install median 12 s; pre-rollover installs n=10 median 15.5 s, p90 20"
+  "current_key_install": "post-rollover installs (install step completed; n=10 incl. 4 build-failed runs): median 9 s, p90 11 (7,8,8,8,9,9,10,10,11,11); pre-rollover n=9 successes median 15 s, p90 24; setup median 4 s"
  },
  "run_samples": {
   "window_created": "2026-11-13T18:37:04Z..2026-11-14T17:55:52Z",
@@ -1189,34 +1189,24 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T18:20:32Z",
-   "source": "docs.yml run 43623754509 (worker 43625619773)",
-   "note": "Reliability, not timing: fourth consecutive docs-input push failure at Build documentation (43623754509 on 185fd26, 17:55Z; earlier 43613020723, 43616204011, 43621919773). Install passed; Build and deploy skipped; Pages last deployed by 43611206032 (15:37Z). Log read HTTP 403 DIFC again (job 132534943920, one attempt). Cause unverified; maintainer triage needed; not a suggestion."
+   "observed_at": "2026-11-14T19:33:57Z",
+   "source": "docs.yml run 43623754509 (worker 43632340041)",
+   "note": "Reliability, not timing: Build documentation failed on 4 consecutive push runs since 15:58Z (43613020723, 43616204011, 43621919773, 43623754509; Install passed). Last successful Pages deploy: 43611206032 (deploy completed 15:39Z). Job logs HTTP 403 to this token (not retried); cause unverified; maintainer triage needed. Open-issue search 19:32Z: no issue tracks these failures (20815 = checkout timing; 20440 and 20891 = gh-aw engine failure reports for this worker). Not a timing suggestion."
   },
   {
-   "observed_at": "2026-11-14T17:55:16Z",
-   "source": "docs.yml run 43621919773 and run list (worker 43623212234)",
-   "note": "Reliability, not timing: 3 consecutive docs-input push runs (43613020723 15:58Z, 43616204011 16:32Z, 43621919773 17:35Z) failed at Build documentation after Install passed; Build and deploy skipped; Pages last deployed by 43611206032 (15:37Z). Log read HTTP 403 DIFC (one attempt). Local static check: scripts/validate-agent-docs.mjs imports dashboard/report/agent-catalog.mjs, dashboard/site/src/agent/mcp-contract.json and dashboard/site/src/webmcp/manifest.js, so dashboard source is a docs-build input; cause unverified. Maintainer triage needed; not a suggestion."
+   "observed_at": "2026-11-14T19:33:57Z",
+   "source": "docs.yml cache scope (worker 43632340041)",
+   "note": "setup-node cache key is root package-lock.json only; dashboard/site/package-lock.json is not in the key. Re-evaluate if a dashboard-only lock change lands or post-rollover install median exceeds about 12 s over at least 5 successful runs."
   },
   {
-   "observed_at": "2026-11-14T17:55:16Z",
-   "source": "docs.yml run list (worker 43623212234)",
-   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07T15:12Z, still queued) is outside the window and excluded; maintainers may check whether it occupies the documentation-pages concurrency group."
+   "observed_at": "2026-11-14T19:33:57Z",
+   "source": "docs.yml run list (worker 43632340041)",
+   "note": "Stale queued run 37642403569 (workflow_run, headSha 6206962, created 2026-10-07T15:12Z) is outside the window and excluded; maintainers may check whether it occupies the documentation-pages concurrency group."
   },
   {
-   "observed_at": "2026-11-14T16:19:54Z",
-   "source": "docs.yml cache scope (worker 43614532796)",
-   "note": "setup-node cache key is the root lock only; dashboard/site/package-lock.json is not in the key. Re-evaluate if a dashboard-only lock change lands or if post-rollover install median exceeds about 12 s over at least 5 successful runs."
-  },
-  {
-   "observed_at": "2026-11-14T18:33:08Z",
-   "source": "docs.yml run 43623754509 (worker 43626850463)",
-   "note": "Reliability, not timing: open-issue search found no issue tracking the consecutive Build documentation failures on main (five failures in window, four since 15:58Z). Maintainer triage needed; not a suggestion."
-  },
-  {
-   "observed_at": "2026-11-14T19:26:08Z",
-   "source": "gh CLI proxy (worker 43630832269)",
-   "note": "Verification gap, not a docs finding: gh CLI proxy unavailable (curl exit 7) from about 19:16Z to 19:26Z. Next scheduling evaluation must re-fetch 93c64ff (43621919773) commit files for the avoidable-rebuild test and re-measure run-created-to-build-start queue for the current window."
+   "observed_at": "2026-11-14T19:33:57Z",
+   "source": "next scheduling evaluation",
+   "note": "Must re-fetch commit files for 93c64ff (43621919773) for the avoidable-rebuild test (gh proxy outage 19:16-19:26Z has ended; gh reachable 19:32Z) and re-measure run-created-to-build-start queue for the current window."
   }
  ],
  "checkout_probe": {
