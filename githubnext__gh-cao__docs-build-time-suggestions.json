@@ -1,36 +1,7 @@
 {
  "source_sha": "7e620f31f2203d667021871b63861a18710fa543",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T02:34:33Z",
-   "worker_run_id": "43546633806",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; none queued or in progress except stale 37642403569 from 2026-10-07; source 2000a4e = HEAD = source_sha; window identical to the 01:34Z to 02:24Z evaluations; no docs.yml run since 00:50:15Z). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies 17 s on cache miss for key 7808ecf8; Build and deploy skipped; log HTTP 403). n=19 successful push runs; 0 cancelled; no schedule run; 5-run gate met. Install dependencies median 16 s (p90 24) on pre-change cache-hit runs (n=17, key e62f6006). Post-change cache-hit runs 2cb6d9c (43536491714) and 54e08aa (43536796952) took 9 s and 7 s (jobs API re-read this run; n=2). Cause of the drop, verified via compare API for 7c8faf4 (title Remove Copilot canvas support #20818): root and dashboard lock files and manifests drop node-pty and node-addon-api (hasInstallScript native node-gyp build) and the postinstall prepare-terminal hooks. Timing was not the stated purpose; the attribution is inferred from n=2 and is unmeasured. Gate: 15 percent of median exec 83 s = 12.45 s; post-change install of 7 to 9 s cannot reach it even with full removal of the install step; node_modules caching was declined as #19689 (CLOSED NOT_PLANNED 2026-11-07) and its restore time is unmeasured; root --omit=dev and parallel dashboard install are seconds; root --ignore-scripts is a correctness risk. Open issue 20815 (checkout, OPEN, 0 comments) not repeated. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T02:52:16Z",
    "worker_run_id": "43548343149",
@@ -868,6 +839,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); all within 14 days; none queued or in progress; source 7e620f3 = newest docs head; main HEAD 215837f (parent 7e620f3) changes only experiments/java-backend, not a docs trigger path. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Queue (run-created to build-created, jobs API re-read for all 20 runs): median 1 s, p90 51 s, max 68 s, sum 174 s; queue is not execution time (exec median 81 s, p90 92 s), so the 60 s and 15 percent (12.15 s) gates are unmet. Only docs.yml uses group documentation-pages (cancel-in-progress false). Avoidable rebuilds: new push 7e620f3 changed only docs/components/SiteFooter.astro (docs/** input), so 0 avoidable pushes; schedule 43561388555 has no same-SHA duplicate in window. Superseded in-progress builds (newer run created while an older build was running): 3 cases (37, 28, 52 s), upper bound 117 s of remaining build time over the window (about 6 s per run; median saving 0); cancelling them would need build-job cancellation touching deploy-group safety, and it cannot clear the per-run gate. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T12:53:13.171Z",
+   "worker_run_id": "43596636288",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); all within 14 days; none queued or in progress; no docs.yml run since 12:09:24Z (run list re-read). Source 7e620f3 = newest docs head; workspace HEAD 215837f is 1 commit ahead and compare API lists only experiments/java-backend files, no docs trigger path. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies 17 s on cache miss; log HTTP 403, cause unverified); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Install median 15 s (p90 24) = 18.5 percent of exec median 81 s (15 percent gate 12.15 s). Current regime after 7c8faf4: n=4 (9, 7, 9, 10 s) median 9 s = 11 percent of exec; full removal saves at most 9 s, below gate; 60 s unreachable. Pre-change cache-hit runs (n=15, median 16 s) are not the current regime; attribution to 7c8faf4 stays inferred. node_modules caching: restore time unmeasured; saving at most about 7 s (9 s install minus 2 s best-case restore), below gate; #19689 decline unchanged. Checks: jobs API 43593405440 matches stored row (install 9, build 10, demo 4, upload 2, deploy 9); main cache key 7808ecf8 present (created 2026-11-13T20:57:12Z, last accessed 2026-11-14T12:43:47Z); local hashFiles of root package-lock.json alone reproduces 7808ecf8, so the dashboard lock is not in the key (correctness-neutral, untimed; not a suggestion). Open issue 20815 (checkout) not repeated. No suggestion; no issue created; noop used. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -879,7 +879,8 @@
   "previous_key": "node-cache-Linux-x64-npm-e62f6006... (279 MB, created 2026-11-12T06:18:07Z, last accessed 2026-11-13T20:56:23Z) served 2026-11-12 to 2026-11-13 runs; compare API: no root lock change between 7c8faf4 and 54e08aa",
   "hits": "Post Set up Node.js 0 to 1 s in 19/19 successful runs; setup restore 2 to 8 s; miss in 43506161539 (setup 1 s, no Post step)",
   "caches_listing": "2026-11-14T00:59Z: npm entries for other lock hashes (43bd5832 312 MB, aaf3a193 296 MB, 36b11d9f 58 MB, d6275959 7 MB) are not docs.yml inputs",
-  "install_shape": "root npm ci: 765 entries; dashboard npm --prefix ci --omit=dev --ignore-scripts; both in the Install dependencies step, which cannot be split from job logs"
+  "install_shape": "root npm ci: 765 entries; dashboard npm --prefix ci --omit=dev --ignore-scripts; both in the Install dependencies step, which cannot be split from job logs",
+  "key_check": "2026-11-14T12:53:13.171Z: local hashFiles of root package-lock.json alone reproduces 7808ecf8...; dashboard/site lock not in key. Main head key present, created 2026-11-13T20:57:12Z, last accessed 2026-11-14T12:43:47Z."
  },
  "run_samples": {
   "window_created": "2026-11-13T13:02:07Z..2026-11-14T12:09:24Z",
@@ -1189,11 +1190,6 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T07:52:28Z",
-   "source": "docs.yml install category (worker 43572816768)",
-   "note": "Post-7c8faf4 install samples n=3 (7, 9, 10 s; jobs API) median 9 s, superseding the earlier n=2 figure. Re-evaluate only if install median rises above about 12 s after at least 5 successful post-change runs; not a suggestion."
-  },
-  {
    "observed_at": "2026-11-14T02:34:33Z",
    "source": "docs.yml install category (worker 43546633806)",
    "note": "Install drop from median 16 s to 7 to 9 s on n=2 post-change cache-hit runs is attributed to 7c8faf4 removing node-pty (native node-gyp build, hasInstallScript) and its postinstall hooks from the root and dashboard lock files and manifests (compare API). Attribution inferred, not measured. Install is below the 15 percent gate even at full removal. Re-evaluate only if install median rises above about 12 s after at least 5 successful runs on key 7808ecf8 (currently n=2); not a suggestion."
@@ -1237,6 +1233,11 @@
    "observed_at": "2026-11-14T12:36:41Z",
    "source": "docs.yml scheduling (worker 43595227009)",
    "note": "Six push runs within about 11 minutes (2026-11-13 20:32-20:44Z) all built and none were cancelled; queue waits 42, 51 and 68 s come from serialized docs-input pushes in one group. Time-to-publish only, not a timing finding; not a suggestion."
+  },
+  {
+   "observed_at": "2026-11-14T12:53:13.171Z",
+   "source": "docs.yml install category (worker 43596636288)",
+   "note": "Post-7c8faf4 install n=4 (9, 7, 9, 10 s; 43593405440, 43536796952, 43536491714, schedule 43561388555) median 9 s. Re-evaluate only if install median rises above about 12 s after at least 5 successful post-change runs; not a suggestion."
   }
  ],
  "checkout_probe": {
