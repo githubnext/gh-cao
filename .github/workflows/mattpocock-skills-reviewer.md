@@ -7,6 +7,15 @@ max-ai-credits: 500
 max-daily-ai-credits: -1
 name: Matt Pocock Skills Reviewer
 on:
+  pull_request:
+    types: [ready_for_review]
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+      - "adr/**"
+      - "specs/**"
+      - ".github/workflows/*.lock.yml"
+      - "**/*.generated.*"
   reaction: none
   slash_command:
     events: [pull_request_comment, pull_request_review_comment]
