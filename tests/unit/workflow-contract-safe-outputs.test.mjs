@@ -539,6 +539,10 @@ test("comment-producing safe outputs expose one formatting contract", () => {
     ]],
     ["pr-sous-chef.md", ["add-comment"]],
     ["repo-assist-issue-triage.md", ["add-comment"]],
+    ["service-architecture-reviewer.md", [
+      "create-pull-request-review-comment",
+      "submit-pull-request-review",
+    ]],
     ["test-quality-sentinel.md", ["add-comment", "submit-pull-request-review"]],
   ]);
 });
