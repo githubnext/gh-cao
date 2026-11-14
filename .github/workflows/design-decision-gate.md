@@ -3,6 +3,17 @@ private: true
 name: Design Decision Gate
 description: Checks significant CAO pull requests for a complete architecture decision record and drafts one when the decision is inferable.
 on:
+  pull_request:
+    types: [ready_for_review]
+    paths:
+      - ".github/workflows/shared/**"
+      - "cmd/**"
+      - "internal/**"
+      - "runtime/**"
+      - "packages/**"
+      - "server/**"
+      - "dashboard/site/src/**"
+      - "adr/**"
   slash_command:
     strategy: centralized
     name: design-gate

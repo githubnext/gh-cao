@@ -3,6 +3,14 @@ private: true
 name: Test Quality Sentinel
 description: Reviews changed Go, Node, Vitest and Playwright tests for CAO behavioral contracts rather than test-count growth.
 on:
+  pull_request:
+    types: [ready_for_review]
+    paths:
+      - "**/*_test.go"
+      - "**/*.test.*"
+      - "**/*.spec.*"
+      - "tests/**"
+      - "dashboard/site/test/**"
   reaction: none
   slash_command:
     strategy: centralized

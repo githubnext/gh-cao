@@ -87,9 +87,9 @@ test("imported reviewers retain explicit local invocation and safe-output ceilin
   for (const [index, command] of ["matt", "test-quality", "design-gate"].entries()) {
     const source = workflow(`${reviewers[index]}.md`);
     const settings = config(source);
-    assert.deepEqual(Object.keys(settings.on).sort(), index === 0
-      ? ["pull_request", "reaction", "slash_command"]
-      : ["reaction", "slash_command"]);
+    assert.deepEqual(Object.keys(settings.on).sort(), ["pull_request", "reaction", "slash_command"]);
+    assert.deepEqual(settings.on.pull_request.types, ["ready_for_review"]);
+    assert.deepEqual(parse(workflow(`${reviewers[index]}.lock.yml`)).on.pull_request, settings.on.pull_request);
     assert.equal(settings.on.slash_command.name, command);
     assert.equal(settings.on.slash_command.strategy, "centralized");
     assert.deepEqual(settings.on.slash_command.events, ["pull_request_comment", "pull_request_review_comment"]);
