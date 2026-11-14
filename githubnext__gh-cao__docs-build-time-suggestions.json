@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T19:20:26Z",
-   "worker_run_id": "43490268561",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544,
-    43374719202,
-    43373049149,
-    43371878284,
-    43371269326,
-    43371217266,
-    43368963164,
-    43368845651,
-    43362224525,
-    43360893141
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43484369040 back to 43360893141; created 2026-11-13T03:43:58Z to 18:37:04Z; identical to the 18:53Z window; 20/20 success = 19 push + 1 schedule 43371878284; 0 cancelled, 0 failed, none in progress; 5-run gate met). Jobs API re-fetched for all 20 runs. Build-job queue median 3 s. Concurrency wait (run created to build created) median 1 s, p90 32 s, max 51 s; waits of 32/44/51 s (43368963164, 43371269326, 43430232636) end at predecessor deploy completion. Waits add wall time only: exec median 87.5 s, p90 98 s; median saving 0-1 s; 15% gate 13.1 s and 60 s unmet. Avoidable rebuilds: 0 of 19 push publications changed only trigger-only paths (compare API for each push; 3 compare 500s retried OK; pre-window base checked for 43360893141); each changed a docs/ or dashboard/site/src build input. Same-SHA duplicate: 1 (schedule 43371878284 republished 5943848 about 5 min after push 43371269326; daily synthetic-date refresh; skip unmeasured). HEAD 01e2e1c touched no docs.yml trigger path. Open issue 20815 (blobless checkout, 17:41Z) already represents the 17:38Z actionable finding: not repeated. Closed NOT_PLANNED 20131, 19765, 18158, 15029, 16054 not repeated; no new evidence. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T19:35:43Z",
    "worker_run_id": "43492778609",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 created 2026-11-14T00:50:15Z back to 43380585034 created 2026-11-13T06:42:40Z; all within 14 days; none queued or in progress; no docs.yml run since 00:50:15Z; window identical to the 01:53Z to 04:52Z evaluations). Source: workspace HEAD 4d25cbd is 1 commit ahead of source_sha 2000a4e; compare API lists 3 changed files, none on a docs.yml trigger path, so no run was expected for it. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies; Build and deploy skipped; log HTTP 403, cause unverified); 0 cancelled. n=19 successful push runs; 5-run gate met. Jobs API spot-check of 43536796952 matched the stored row (exec 75 s; Configure Pages 1; Upload 2; build-end to deploy-start 5; deploy setup 1; Deploy Pages 6). Window medians (p90) carried from the 01:53Z full jobs-API re-read of this identical window: exec 83 (93) s; Configure Pages 0 (1); Upload Pages artifact 2 (3); build-end to deploy-created 0 (1); deploy queue 5 (5); deploy setup 1 (1); Deploy Pages 7 (8, GitHub-managed). Controllable subset (upload + configure + handoff + queue + setup) about 8 s = about 10% of exec median; 15% gate 12.45 s and 60 s gate unreachable even at full removal. Merging deploy into build saves about 6 s but needs id-token and environment in the npm-ci job: rejected (least privilege). Artifact about 8.3 MB; shrinking saves about 1 s. Open issue 20815 (blobless checkout) OPEN, 0 comments, not re-filed. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T05:33:03Z",
+   "worker_run_id": "43561713579",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; advanced from the 05:18Z window by one scheduled run, which replaced push 43380585034). Source 4d25cbd = HEAD = source_sha. Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; logs HTTP 403, cause unverified); 0 cancelled; 0 in progress. Comparable n=18 push successes plus 1 schedule success (43561388555, exec 92 s); 5-run gate met. Push exec median 82 s, p90 92 s; 15 percent gate 12.3 s. Concurrency wait (run created to build created): median 1 s, p90 51 s, max 68 s; the three waits of 42 to 68 s each ended at a predecessor deploy; queue only, and removing serialization would allow out-of-order Pages publication (rejected). Scheduled run waited 1 s. Avoidable rebuilds: 0 of 18 push publications were trigger-only; compare 54e08aa...4d25cbd (3 commits) touches no docs trigger path, so no push run was expected; the 05:23Z daily schedule is by design (synthetic-date refresh) and has no same-SHA push duplicate. Best-case scheduling saving on median exec is 0 s; 60 s and 15 percent gates unmet. Open issue 20815 (blobless checkout, OPEN, 0 comments, updatedAt 2026-11-13T17:41Z) not repeated; schedule checkout 37 s is a single sample under that issue. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -883,20 +883,20 @@
   "install_shape": "root npm ci: 765 entries; dashboard npm --prefix ci --omit=dev --ignore-scripts; both in the Install dependencies step, which cannot be split from job logs"
  },
  "run_samples": {
-  "window_created": "2026-11-13T06:42:40Z..2026-11-14T00:50:15Z",
-  "evaluated_at": "2026-11-14T05:18:59Z",
-  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93). Re-verified at 2026-11-14T04:34:02Z (run list only: same 20 IDs, no queued or in-progress run; stored rows reused). Re-verified at 2026-11-14T04:52:40Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row; demo median recomputed as 3 s, p90 4 s). Re-verified at 2026-11-14T05:18:59Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row).",
+  "window_created": "2026-11-13T07:51:43Z..2026-11-14T05:24:33Z",
+  "evaluated_at": "2026-11-14T05:33:03Z",
+  "note": "window = latest 20 completed docs.yml runs; 19 successful push runs; 43506161539 failed (install) and excluded. exec = build job start to deploy end (s). Jobs API timings; logs not read. Re-verified at 2026-11-14T01:34:48Z against the same 20-run window (no newer docs.yml run); medians unchanged. Re-verified at 2026-11-14T03:20:00Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T03:34:50Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match. Re-verified at 2026-11-14T04:24:09Z against the same 20-run window (no newer docs.yml run); medians recomputed from rows match (install 16 p90 24; exec 83 p90 93). Re-verified at 2026-11-14T04:34:02Z (run list only: same 20 IDs, no queued or in-progress run; stored rows reused). Re-verified at 2026-11-14T04:52:40Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row; demo median recomputed as 3 s, p90 4 s). Re-verified at 2026-11-14T05:18:59Z (run list: same 20 IDs, no queued or in-progress run; jobs API spot-check of 43536796952 matches stored row). Re-verified at 2026-11-14T05:33:03Z (run list: window advanced by scheduled run 43561388555 on HEAD, replacing push 43380585034; its jobs were read once; other rows reused). Medians recomputed for push n=18 (schedule excluded from like-for-like).",
   "median_p90_s": {
    "Checkout": [
-    25,
-    31
+    24.5,
+    28
    ],
    "Set up Node.js": [
-    3,
+    3.5,
     7
    ],
    "Install dependencies": [
-    16,
+    15.5,
     24
    ],
    "Build documentation": [
@@ -912,8 +912,8 @@
     3
    ],
    "exec": [
-    83,
-    93
+    82,
+    92
    ],
    "build_queue": [
     3,
@@ -1174,14 +1174,14 @@
     9
    ],
    [
-    43380585034,
+    43561388555,
     "succ",
-    114,
-    56,
-    3,
+    92,
+    37,
+    4,
     0,
-    16,
-    15,
+    10,
+    14,
     4,
     3,
     8
@@ -1247,18 +1247,18 @@
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
    "comments": 0,
-   "checked_at": "2026-11-14T05:18:59Z"
+   "checked_at": "2026-11-14T05:33:03Z"
   }
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-14T03:52:43Z",
-  "window": "43380585034..43536796952 (06:42Z 2026-11-13 to 00:50Z 2026-11-14)",
-  "n_success_push": 19,
+  "evaluated_at": "2026-11-14T05:33:03Z",
+  "window": "43388781287..43561388555 (07:51Z 2026-11-13 to 05:24Z 2026-11-14)",
+  "n_success_push": 18,
   "failed": [
    "43506161539"
   ],
   "cancelled": [],
-  "schedule_in_window": 0,
+  "schedule_in_window": 1,
   "concurrency_wait_s_successful_median_p90_max_sum": [
    1,
    51,
@@ -1275,8 +1275,8 @@
    "43430232636"
   ],
   "exec_s_median_p90": [
-   83,
-   93
+   82,
+   92
   ],
   "avoidable_pushes": 0,
   "avoidable_pushes_source": "02:24Z evaluation, identical window",
@@ -1284,6 +1284,7 @@
    "scripts/dashboard-demo-data.mjs (imported by triggered scripts/simulate-dashboard-pages.mjs; not a docs.yml path)",
    "*/README.md",
    "workflows/cao.json"
-  ]
+  ],
+  "n_success_schedule": 1
  }
 }
