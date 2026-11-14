@@ -1,36 +1,7 @@
 {
  "source_sha": "6418dcd5506983390799b513a3ca01ca113ce788",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T11:53:43Z",
-   "worker_run_id": 43591874725,
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (schedule, 2026-11-14T05:24:33Z); run list re-read at this evaluation: same 20 IDs, all completed, none queued or in progress, no newer docs.yml run; workspace HEAD 4d25cbd = source_sha, and no docs-trigger or dashboard build input changed since source_sha. Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; docs and demo not reached); 0 cancelled. n=19 successes; 5-run gate met. Category reusable dashboard generation = step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 3 s, p90 4 s, range 3-5 s = 3.6 percent of median exec 83 s (p90 92 s). Jobs API spot-check of 43561388555 matched the stored row (demo 4 s). 15 percent gate 12.45 s and 60 s gate unreachable; full removal saves at most about 3-4 s. Reuse stays unsafe: scripts/dashboard-demo-data.mjs enterpriseSample(now) embeds generatedAt and observed_at, the daily 05:23Z cron exists to refresh synthetic dates, and AGENTS.md requires Pages samples to come from production normalization. buildDashboardSite has one caller (scripts/simulate-dashboard-pages.mjs), so no duplicate dashboard build. Closed #20380 (prepared-input cache for cao-dashboard.yml, CLOSED NOT_PLANNED 2026-11-12) concerns the separate producer, not docs.yml. Checkout (median 25 s, 30 percent of exec) remains covered by open issue 20815 (OPEN, 0 comments), not re-raised. No suggestion; no create_issue; noop used. next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T12:21:33Z",
    "worker_run_id": "43594043248",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); none queued or in progress (run list re-read 21:32Z); no docs.yml run after 20:51Z; source_sha 6418dcd = newest docs head. Samples: 14 successes (13 push + schedule 43561388555), 6 failures excluded and disclosed (Build documentation failed on 43613020723, 43616204011, 43621919773, 43623754509, 43639680929; Install dependencies failed on 43506161539), 0 cancelled; 5-run gate met. Category Astro documentation generation = step Build documentation: median 12.5 s, p90 15 s (nearest-rank), range 9-15 s = 15.3 percent of exec median 81.5 s (exec = build start to deploy end, n=14, p90 92 s). 15 percent gate = 12.2 s; only removing the whole step reaches it, which is impermissible (validation gate whose output deploy consumes); 60 s gate unreachable. Astro-internal split unmeasured (job log HTTP 403). docs.yml has no dashboard job; dashboard step Build synthetic enterprise demo median 4 s = 4.9 percent. Reliability, not timing (highest priority, unresolved at 21:34Z): Build documentation red on 5 consecutive push runs since 15:58Z; last green push 04c9d9e (run 43611206032, deployed 15:39Z); annotation only 'Process completed with exit code 1'; logs HTTP 403 (not bypassed); cause unverified. Open issue 20815 (checkout, OPEN) not re-raised; open-issue search 21:34Z found no issue for the failure streak. No suggestion; no create_issue; noop used (terminal decision limited to build-time improvements by mission). next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T21:52:36Z",
+   "worker_run_id": "43644771978",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "43639680929",
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); all within 14 days; run list and jobs re-read at this evaluation: same 20 IDs, all completed, none queued or in progress, no docs.yml run after 20:51Z. Source 6418dcd = newest docs head = source_sha. Excluded and disclosed: 6 failures (Build documentation on 43613020723, 43616204011, 43621919773, 43623754509, 43639680929; Install dependencies on 43506161539), 0 cancelled. n=14 successes (13 push + schedule 43561388555); 5-run gate met. Category reusable dashboard generation = step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 4 s, p90 4 s, range 3-4 s = 4.9 percent of exec median 81.0 s (p90 92 s). Exec median recomputed from stored rows: 81.0 (prior note 81.5 corrected; gate 12.15 s). Jobs API spot-check of 43611206032 and 43608206381 matched stored rows (demo 4 s each; exec 83 s and 82 s). 15 percent gate 12.15 s and 60 s gate unreachable; full removal saves at most 4 s. Cross-run reuse stays unsafe: demo output embeds run-clock generatedAt/observed_at and the 05:23Z refresh is by design (AGENTS.md: Pages samples come from production normalization). Reliability, not timing (unresolved): Build documentation red on 5 consecutive pushes since 15:58Z; open-issue search at this evaluation found no issue tracking the streak (20815 is checkout; 20934 is a workflow-contracts gate, relation unverified). No suggestion; no create_issue; noop used. next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -889,7 +889,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T19:42:08Z..2026-11-14T20:51:15Z",
-  "evaluated_at": "2026-11-14T21:34:40Z",
+  "evaluated_at": "2026-11-14T21:52:36Z",
   "note": "window = latest 20 completed docs.yml runs; 14 successful; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes). Build documentation failed on 5 push runs since 15:58Z.",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
@@ -1156,7 +1156,7 @@
   ],
   "median_p90_s": {
    "exec_ok14": [
-    81.5,
+    81.0,
     92
    ],
    "docs_ok14": [
@@ -1187,9 +1187,9 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T21:34:40Z",
-   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (worker 43643035690)",
-   "note": "Reliability, not timing (highest priority, unresolved at 21:34Z): Build documentation failed on 5 consecutive push runs since 15:58Z (heads 600b56a, afe0ba0, 93c64ff, 185fd26, 6418dcd). First red head 600b56a lies in the 12-commit compare 04c9d9e...6418dcd (compare API). Last green push 43611206032 (head 04c9d9e, deployed 15:39Z); Pages not redeployed since. No docs.yml run since 20:51Z. Check-run annotation only 'Process completed with exit code 1'; logs HTTP 403 (not bypassed). Open-issue search 21:34Z: no issue tracks the failure streak (20815 is checkout). Maintainer triage needed; excluded from timing samples."
+   "observed_at": "2026-11-14T21:52:36Z",
+   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929 (worker 43644771978)",
+   "note": "Reliability, not timing (highest priority, unresolved at 2026-11-14T21:52:36Z): Build documentation failed on 5 consecutive push runs since 15:58Z (heads 600b56a, afe0ba0, 93c64ff, 185fd26, 6418dcd). Newest run 43639680929 Jobs API: Build documentation failure after 14 s; Build synthetic demo, Configure Pages, Upload and Deploy skipped. Last green push 04c9d9e (run 43611206032, deployed 15:39Z); Pages not redeployed since. No docs.yml run since 20:51Z. Logs HTTP 403 (not bypassed). No open issue tracks the streak; open issue 20934 (cao-framework-health, workflow-contracts documentation gate at a2b14dd) shares only the documentation theme, relation unverified. Maintainer triage needed; excluded from timing samples."
   },
   {
    "observed_at": "2026-11-14T21:34:40Z",
