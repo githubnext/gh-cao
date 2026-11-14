@@ -1,36 +1,7 @@
 {
  "source_sha": "11a826aa3412479833cd2031bd37a6bed284735a",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T13:52:18Z",
-   "worker_run_id": 43601642830,
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43430166810 (created 2026-11-13T13:02Z) to 43593405440 (2026-11-14T12:09Z); unchanged since the 12:21Z evaluation (no newer docs.yml run; none queued or in progress; 0 cancelled). Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies). n=19 successes (18 push + 1 schedule 43561388555); 5-run gate met. Source: HEAD 215837f = source_sha; compare 7e620f3...215837f is 1 commit touching only experiments/java-backend, no docs.yml trigger path. Jobs API spot-check of 43593405440 matched the stored row (build 59, handoff 5, Configure Pages 1, Upload 2, deploy setup 1, Deploy Pages 5, exec 73). Removable transfer (handoff + configure + upload + deploy setup) median 9 s, p90 10 s = 11.1 percent of exec median 81 s (p90 92); 15 percent gate 12.15 s; 60 s gate unreachable. Deploy Pages (GitHub-managed, median 7 s) not removable; merging deploy into build saves about 6 s but needs id-token and environment in the npm-ci job (rejected, least privilege). Artifact about 8.3 MB; shrinking saves about 1 s. Checkout (median 24 s, 30 percent of exec) is outside this category and remains covered by open issue 20815 (OPEN, 0 comments), not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T14:16:29Z",
    "worker_run_id": "43603740474",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43639680929 (push 6418dcd, created 2026-11-14T20:51Z) back to 43494667529 (created 2026-11-13T19:42Z); re-read 23:35Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run. Excluded and disclosed: 6 failures (5 push runs failing at Build documentation since 15:58Z; 43506161539 failed in Install dependencies). n=14 successes (13 push + schedule 43561388555); 5-run gate met. Source: HEAD 11a826aa = source_sha; 11a826aa touches docs.yml trigger paths (dashboard/site, docs, public, shared control) yet no docs.yml run exists for its SHA at 23:35Z (freshness gap, see observations_pending). Category = step Build synthetic enterprise demo (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, then cp to dist/cao): success median 4 s, p90 4 s, range 3-4 s = 4.9 percent of exec median 81.5 s (p90 92). 15 percent gate 12.2 s and 60 s gate unreachable; full removal saves at most 4 s. Caching stale-unsafe and not net-positive: simulate script defaults now=Date.now() and embeds generatedAt (lines 78, 122, 128, 134), the 05:23Z refresh is by design, and cache restore of the output costs about the same as regenerating it. Overlapping with the docs build saves at most 4 s and adds ordering risk. No dashboard job exists (build and deploy only); dashboard statistics not applicable. Node cache key 7808ecf8 still present (263 MB, lastAccessed 23:28Z). Step logs not read; timings from Jobs API. No suggestion; no issue; noop. next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T23:53:59Z",
+   "worker_run_id": 43655065253,
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); none queued or in progress; 0 cancelled; source 11a826a = HEAD = source_sha. Excluded and disclosed: 6 FAILED runs (5 push runs failed at Build documentation 15:58Z to 20:51Z: 43613020723, 43616204011, 43621919773, 43623754509, 43639680929; 43506161539 failed at Install dependencies 2026-11-13). n=14 successes (13 push + schedule 43561388555); 5-run gate met. Jobs API timings; step logs HTTP 403 (DIFC), cause unverified. Successes: handoff (build end to deploy start) median 5 s p90 6; Configure Pages median 0.5 s; Upload Pages artifact median 2 s p90 3; deploy setup median 1 s; removable set median 9 s p90 10 = 11.0 percent of exec median 81.5 s (p90 92); 15 percent gate 12.2 s and 60 s gate unmet even with the set fully removed. Deploy Pages (GitHub-managed) median 7 s p90 8, not controllable; merging deploy into build saves about 6 s but needs id-token and github-pages environment in the build job (least privilege, rejected). Artifact github-pages 8,352,438 bytes (API, run 43611206032); shrinking saves about 1 s. Reliability, not timing: Pages not deployed since 04c9d9e (run 43611206032, 15:39Z); no open issue tracks the docs.yml streak (open 20934 covers a workflow-contracts docs gate). Correction: earlier observation that 11a826a touched docs.yml trigger paths is false (compare 6418dcd...11a826a: 4 commits, 23 files, 0 trigger-path hits). No suggestion; no create_issue; noop used. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -899,8 +899,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T19:42:08Z..2026-11-14T20:51:15Z",
-  "evaluated_at": "2026-11-14T23:18:27Z",
-  "note": "window = latest 20 completed docs.yml runs; 14 successful; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes). Build documentation failed on 5 push runs since 15:58Z.",
+  "evaluated_at": "2026-11-14T23:53:59Z",
+  "note": "window = latest 20 completed docs.yml runs; 14 successful; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes); 0 for skipped/unreached jobs.",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
    [
@@ -921,7 +921,7 @@
     "fail",
     3,
     54,
-    -1,
+    0,
     54,
     24,
     10,
@@ -934,7 +934,7 @@
     "fail",
     2,
     48,
-    -1,
+    0,
     48,
     24,
     8,
@@ -947,7 +947,7 @@
     "fail",
     3,
     60,
-    -1,
+    0,
     60,
     31,
     8,
@@ -961,7 +961,7 @@
     4,
     53,
     0,
-    53,
+    54,
     25,
     8,
     11,
@@ -1065,7 +1065,7 @@
     3,
     62,
     13,
-    80,
+    81,
     24,
     16,
     11,
@@ -1078,7 +1078,7 @@
     71,
     77,
     7,
-    89,
+    90,
     24,
     24,
     14,
@@ -1091,7 +1091,7 @@
     3,
     69,
     9,
-    83,
+    84,
     26,
     15,
     12,
@@ -1165,56 +1165,48 @@
    ]
   ],
   "median_p90_s": {
-   "exec_ok14": [
+   "exec": [
     81.5,
     92
    ],
-   "docs_ok14": [
-    12.5,
-    15
+   "build_job": [
+    64.5,
+    79
    ],
-   "install_ok14": [
-    12.5,
-    20
+   "removable_handoff_cfg_upload_deploy_setup": [
+    9,
+    10
    ],
-   "checkout_ok14": [
-    24,
-    31
+   "deploy_pages": [
+    7,
+    8
    ],
-   "demo_ok14": [
-    4,
-    4
-   ],
-   "upload_ok14": [
-    2,
-    3
-   ],
-   "queue_all20": [
+   "queue": [
     3,
-    4
+    45
    ]
   }
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T23:18:27Z",
+   "observed_at": "2026-11-14T23:53:59Z",
    "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929",
-   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on 5 consecutive push runs since 15:58Z (first red 600b56a; latest 6418dcd, 20:51Z). No docs.yml run since 20:51Z; HEAD 11a826aa has none. Pages last deployed 15:39Z (04c9d9e, run 43611206032). docs:build = astro build, validate-agent-docs, agent-docs-discovery test (package.json); check-file-sizes is in lint, not docs:build, so the earlier hypothesis is weakened. Cause unverified (job logs HTTP 403). Open issue 20934 tracks the workflow-contracts copy of docs:build; no issue tracks the docs.yml streak. Maintainer triage needed."
+   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on 5 consecutive push runs since 15:58Z (latest 6418dcd, 20:51Z). No docs.yml run since 20:51Z. Pages last deployed 15:39Z (04c9d9e, run 43611206032). docs:build = astro build, validate-agent-docs, agent-docs-discovery test. Cause unverified (job logs HTTP 403 DIFC). No open issue tracks the docs.yml streak; open 20934 classifies a workflow-contracts docs gate. Maintainer triage needed."
   },
   {
-   "observed_at": "2026-11-14T23:18:27Z",
+   "observed_at": "2026-11-14T23:53:59Z",
+   "source": "compare 6418dcd...11a826a",
+   "note": "Correction of prior observation: 11a826a (committed 2026-11-14T23:03:49Z) touches no docs.yml trigger path (4 commits, 23 files, 0 matches), so no Pages run was expected. Pages freshness is stale only because the last docs-path builds failed."
+  },
+  {
+   "observed_at": "2026-11-14T23:53:59Z",
    "source": "docs.yml path filter vs build closure",
    "note": "Freshness gap, not timing: scripts/dashboard-demo-data.mjs and .github/workflows/cao.json are outside docs.yml push paths; data-only changes wait for the 05:23Z daily schedule. Record for triage, not a suggestion."
   },
   {
    "observed_at": "2026-11-14T23:18:27Z",
    "source": "docs.yml run list",
-   "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued; no current trigger. Maintainer hygiene item; not a suggestion."
-  },
-  {
-   "observed_at": "2026-11-14T23:35:24Z",
-   "source": "docs.yml run list --commit 11a826aa",
-   "note": "Freshness gap: HEAD 11a826aa (committed 2026-11-14T23:03:49Z, touches docs.yml trigger paths incl. dashboard/site, docs, public, shared control) has no Documentation Pages run at 23:35Z; last Pages deploy 15:39Z (04c9d9e, run 43611206032). Record with the unresolved Build documentation failure streak; maintainer triage, not a timing suggestion."
+   "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z) last seen queued; no current trigger. Maintainer hygiene item; not a suggestion."
   }
  ],
  "checkout_probe": {
@@ -1243,7 +1235,8 @@
    "number": 20815,
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
-   "checked_at": "2026-11-14T21:34Z"
+   "checked_at": "2026-11-14T23:53:59Z",
+   "note": "only open issue for this worker; checkout category, not repeated"
   },
   "window_checkout_ok14_median_p90_s": [
    24,
