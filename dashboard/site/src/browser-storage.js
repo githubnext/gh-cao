@@ -13,7 +13,10 @@ export async function inspectBrowserStorage(storage) {
   const [persistence, estimate] = await Promise.allSettled([
     Promise.resolve().then(async () => {
       const persisted = await storage?.persisted?.() ?? null;
-      return persisted === false && storage?.persist ? storage.persist() : persisted;
+      if (persisted !== false || !storage?.persist) return persisted;
+      const granted = await storage.persist();
+      debugBrowserStorage({ operation: 'persist-request', granted: granted === true });
+      return granted;
     }),
     Promise.resolve().then(() => storage?.estimate?.() ?? null)
   ]);
