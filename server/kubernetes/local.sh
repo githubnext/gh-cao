@@ -118,7 +118,7 @@ prepare() {
     "$runtime" > "$state/runtime.env"
   printf 'CAO_SESSION_SECRET=%s\nCAO_GITHUB_WEBHOOK_SECRET=%s\n' \
     "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" > "$state/web-keys.env"
-  printf 'PGHOST=%s\nPGDATABASE=cao\nPGSSLMODE=verify-full\nPGSSLROOTCERT=/ca/ca.crt\nREDIS_NAMESPACE=local-kubernetes\nCAO_OPERATIONAL_NAMESPACE=local-kubernetes-operational\n' \
+  printf 'PGHOST=%s\nPGDATABASE=cao\nPGSSLMODE=verify-full\nPGSSLROOTCERT=/ca/ca.crt\nCAO_DATABASE_NAMESPACE=local-kubernetes\nCAO_OPERATIONAL_NAMESPACE=local-kubernetes-operational\n' \
     "$db_host" > "$state/database.env"
   printf 'Private local state: %s\n' "$state"
 }
@@ -177,8 +177,18 @@ load() {
     docker exec -i "$kind_node" ctr --namespace k8s.io images import -
 }
 
+# The server rejects the removed REDIS_NAMESPACE; rename it in state from older prepare runs.
+migrate_database_env() {
+  local file="$state/database.env"
+  grep -q '^REDIS_NAMESPACE=' "$file" || return 0
+  ! grep -q '^CAO_DATABASE_NAMESPACE=' "$file" || fail "database.env sets both REDIS_NAMESPACE and CAO_DATABASE_NAMESPACE."
+  sed 's/^REDIS_NAMESPACE=/CAO_DATABASE_NAMESPACE=/' "$file" > "$file.tmp"
+  mv "$file.tmp" "$file"
+}
+
 shared_config() {
   local ns=$1
+  migrate_database_env
   k -n "$ns" create configmap cao-database --from-env-file="$state/database.env" \
     --dry-run=client -o yaml | k apply -f -
   k -n "$ns" create configmap cao-postgres-ca --from-file=ca.crt="$state/ca.crt" \
@@ -243,7 +253,7 @@ serve() {
     END { if (count != 4) exit 1 }
   ' "$oauth" || fail "OAuth file must contain exactly CLIENT_ID, CLIENT_SECRET, ALLOWED_USERS and ADMIN_USERS (CAO_GITHUB_ prefix), with all placeholders replaced."
   check_namespaces
-  required_files "$state/web-keys.env" "$state/web.crt" "$state/web.key"
+  required_files "$state/web-keys.env" "$state/web.crt" "$state/web.key" "$state/database.env" "$state/ca.crt"
   read_images
   active_profile
   if test "$profile" = native; then
@@ -256,6 +266,7 @@ serve() {
   fi
   render web "$profile" "$native_config"
   namespace cao-local
+  shared_config cao-local
   secret cao-local cao-oauth "$oauth"
   secret cao-local cao-web-keys "$state/web-keys.env"
   k -n cao-local create secret tls cao-web-tls --cert="$state/web.crt" --key="$state/web.key" \
