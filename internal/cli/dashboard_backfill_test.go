@@ -359,3 +359,46 @@ func readDashboardCachedCollection(ctx context.Context, cache, collection string
 	batch, err := readDashboardArtifactBatch(ctx, cache)
 	return batch[collection], err
 }
+
+func TestDashboardArtifactQueueRetriesPendingRunsNewestFirst(t *testing.T) {
+	now := time.Now().UTC()
+	run := func(id, attempt int, age time.Duration) map[string]any {
+		return map[string]any{"databaseId": id, "attempt": attempt, "createdAt": now.Add(-age).Format(time.RFC3339)}
+	}
+	queue := dashboardArtifactQueue(
+		[]map[string]any{run(1, 1, time.Hour), run(2, 1, 9*24*time.Hour)},
+		[]map[string]any{run(3, 1, time.Minute), run(4, 2, time.Minute), run(1, 1, time.Hour)},
+		map[string]map[string]any{"3": {"run_attempt": "1"}, "4": {"run_attempt": "1"}},
+		now.Add(-7*24*time.Hour),
+	)
+	ids := []string{}
+	for _, run := range queue {
+		ids = append(ids, nativeScalar(run["databaseId"]))
+	}
+	if !reflect.DeepEqual(ids, []string{"4", "1"}) {
+		t.Fatalf("queue kept enriched, expired, or duplicate runs: %v", ids)
+	}
+}
+
+func TestDashboardArtifactBacklogSurvivesLimitedLogs(t *testing.T) {
+	now := time.Now().UTC().Add(-time.Second)
+	cache := t.TempDir()
+	options := dashboardOptions{window: dashboardMaximumDuration, count: 200}
+	limited := func(_ context.Context, request dashboardLogRequest) error {
+		*request.Limited = true
+		return nil
+	}
+	if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, dashboardTestGH(t, now), limited); err != nil {
+		t.Fatal(err)
+	}
+	backlog, err := readDashboardArtifactBacklog(cache, "octo/api")
+	if err != nil || len(backlog) != 1 || nativeScalar(backlog[0]["databaseId"]) != "123" {
+		t.Fatalf("limited artifact acquisition dropped its pending run: %v %v", backlog, err)
+	}
+	if _, err := collectDashboard(t.Context(), []string{"octo/api"}, cache, options, dashboardTestGH(t, now), dashboardTestLogs(t)); err != nil {
+		t.Fatal(err)
+	}
+	if backlog, err = readDashboardArtifactBacklog(cache, "octo/api"); err != nil || len(backlog) != 0 {
+		t.Fatalf("enriched run stayed in the artifact backlog: %v %v", backlog, err)
+	}
+}

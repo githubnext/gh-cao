@@ -215,16 +215,8 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				runs = append(runs, run)
 			}
 		}
-		richRuns := history
-		if len(richRuns) == 0 {
-			richRuns = runs
-		}
-		workflowIDs := dashboardObservedWorkflowIDs(workflows, richRuns)
-		eligible := make([]map[string]any, 0, len(richRuns))
-		for _, run := range richRuns {
-			if !slices.Contains(workflowIDs, nativeScalar(run["workflowDatabaseId"])) {
-				continue
-			}
+		eligible := make([]map[string]any, 0, len(runs))
+		for _, run := range runs {
 			created, createdErr := time.Parse(time.RFC3339, nativeText(run["createdAt"]))
 			id, idErr := strconv.ParseInt(nativeScalar(run["databaseId"]), 10, 64)
 			if createdErr != nil || idErr != nil || id < 1 || id == 1<<63-1 ||
@@ -235,8 +227,29 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				eligible = append(eligible, run)
 			}
 		}
-		richRuns = eligible
-		workflowIDs = dashboardObservedWorkflowIDs(workflows, richRuns)
+		eligible = slices.DeleteFunc(eligible, func(run map[string]any) bool {
+			return !slices.Contains(dashboardObservedWorkflowIDs(workflows, []map[string]any{run}), nativeScalar(run["workflowDatabaseId"]))
+		})
+		shard := filepath.Join(cache, dashboardCoordinate(repository)+".jsonl")
+		if info, err := os.Lstat(shard); err == nil && !info.Mode().IsRegular() {
+			return nil, errors.New("gh-aw cache must be a regular JSONL file")
+		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		prior, err := readDashboardLogCache(shard, repository)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		backlog, err := readDashboardArtifactBacklog(cache, repository)
+		if err != nil {
+			return nil, err
+		}
+		// Artifacts, and the issue safe outputs inside them, follow discovery
+		// through a persisted backlog so runs left by a time or quota ceiling
+		// are retried instead of being skipped once the history cursor moves.
+		queue := dashboardArtifactQueue(backlog, eligible, prior.Enriched, cutoff)
+		richRuns := queue[:min(len(queue), options.count)]
+		workflowIDs := dashboardObservedWorkflowIDs(workflows, richRuns)
 		directory := filepath.Join(cache, "logs", dashboardCoordinate(repository))
 		managedCache := true
 		if options.logs != "" {
@@ -258,15 +271,10 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		if err := os.MkdirAll(directory, 0o700); err != nil {
 			return nil, err
 		}
-		shard := filepath.Join(cache, dashboardCoordinate(repository)+".jsonl")
-		if info, err := os.Lstat(shard); err == nil && !info.Mode().IsRegular() {
-			return nil, errors.New("gh-aw cache must be a regular JSONL file")
-		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
 		streamed := map[string]map[string]any{}
+		attempted := map[string]bool{}
+		limited := false
 		if len(workflowIDs) > 0 {
-			limited := false
 			start, end := now, cutoff
 			before, after := int64(0), int64(1<<63-1)
 			workflowCounts := map[string]int{}
@@ -291,8 +299,20 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				rawIndex := slices.IndexFunc(richRuns, func(raw map[string]any) bool {
 					return nativeScalar(raw["databaseId"]) == id
 				})
-				if !strings.EqualFold(nativeText(record["repository"]), repository) || rawIndex < 0 {
+				if !strings.EqualFold(nativeText(record["repository"]), repository) {
 					return nil, errors.New("gh-aw streamed a run outside the selected observations")
+				}
+				// Runs in the requested ID span outside this batch already have
+				// artifacts or are not admitted; they are not new evidence.
+				if rawIndex < 0 {
+					runID, err := strconv.ParseInt(id, 10, 64)
+					known := slices.ContainsFunc(workflows, func(workflow dashboardWorkflow) bool {
+						return nativeText(record["workflow_path"]) == workflow.Path
+					})
+					if err != nil || runID < after || runID > before || !known {
+						return nil, errors.New("gh-aw streamed a run outside the selected observations")
+					}
+					return nil, nil
 				}
 				raw := richRuns[rawIndex]
 				workflowIndex := slices.IndexFunc(workflows, func(workflow dashboardWorkflow) bool {
@@ -313,6 +333,7 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 				}
 				for _, record := range records {
 					id := nativeScalar(record["run_id"])
+					attempted[id] = true
 					raw, err := selectedRun(record)
 					if err != nil {
 						return err
@@ -367,6 +388,17 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			if limited {
 				state.Message = "Artifact acquisition reached its time or quota ceiling; history discovery continues with partial artifact evidence."
 			}
+		}
+		// A completed, unlimited request has yielded every artifact this batch
+		// can provide; only a time or quota ceiling leaves runs for retry.
+		remaining := slices.DeleteFunc(slices.Clone(queue), func(run map[string]any) bool {
+			id := nativeScalar(run["databaseId"])
+			return attempted[id] || !limited && slices.ContainsFunc(richRuns, func(selected map[string]any) bool {
+				return nativeScalar(selected["databaseId"]) == id
+			})
+		})
+		if err := writeDashboardArtifactBacklog(cache, repository, remaining); err != nil {
+			return nil, err
 		}
 		cached, err := readDashboardLogCache(shard, repository)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {

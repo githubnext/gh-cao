@@ -176,6 +176,12 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	fail := func(context.Context, dashboardLogRequest) error { return errors.New("unavailable") }
+	// Enriched runs leave the artifact backlog; drop the shards so logs are requested again.
+	for _, repository := range repositories {
+		if err := os.Remove(filepath.Join(cache, dashboardCoordinate(repository)+".jsonl")); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), fail); err == nil {
 		t.Fatal("failed collection did not propagate")
 	}

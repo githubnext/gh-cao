@@ -995,6 +995,11 @@ Until discovery reaches the requested window, including on an empty database,
 the local server runs passes back to back; every request still rechecks the
 reserve, reserve exhaustion waits for the quota reset, and failed passes keep
 the normal refresh cadence.
+Discovered agentic runs without artifacts enter a persisted per-repository
+artifact backlog (newest first, at most 5000, pruned to the window). Each pass
+requests artifacts for up to `--count` backlog runs, so runs left by the
+two-minute or quota ceiling are retried and their safe outputs, including issue
+references, are ingested even after the history cursor has moved on.
 Its shared count and two-minute limits produce explicitly reported partial
 artifact coverage. Analyses and artifacts are reusable, but discovery lists are
 refreshed. Optional Node-based Markdown report parsing is disabled;

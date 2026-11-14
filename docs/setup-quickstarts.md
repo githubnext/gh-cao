@@ -70,7 +70,8 @@ cadence.
 The recent evidence window defaults to **seven days** (maximum `168h`), while
 server lifetime defaults to, and cannot exceed, **48 hours** per invocation.
 Each pass reads up to 1000 runs (ten 100-run pages). History checkpoints survive restarts, and admitted pages remain in PostgreSQL
-inside the selected window. The header's data-status tooltip shows ingestion progress, quota headroom,
+inside the selected window. Agentic runs still missing artifacts stay in a persisted backlog,
+so the issues and pull requests they reference are ingested in later passes. The header's data-status tooltip shows ingestion progress, quota headroom,
 pauses and errors. A shared 500-point core API pass ceiling, counting only the pass's own requests,
 reserves at least 1000 points or 20% of core quota for other work.
 For example, `gh cao dashboard --repo OWNER/REPOSITORY --window 12h --duration 2h`
