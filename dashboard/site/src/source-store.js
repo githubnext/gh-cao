@@ -5,9 +5,9 @@
  */
 
 import { batch, state, untracked } from './reactive.js';
-import { createDebug } from './debug.js';
+import { createDebug, diagnosticErrorName } from './debug.js';
 
-const debug = createDebug('data:source-store');
+const debug = createDebug('source-store');
 
 /** @typedef {import('./presenter.js').LogicalSourceInput} LogicalSourceInput */
 
@@ -127,16 +127,18 @@ async function loadRequestedSource(bindingKey) {
   }
   try {
     const source = await loader(name, requestOptions.get(bindingKey));
+    const stale = generations.get(bindingKey) !== generation;
+    debug({ event: 'resolved', source: name, status: source ? 'ready' : 'missing', rows: source?.rows?.length ?? 0, stale });
     // A later load already started, so this result is stale.
-    if (generations.get(bindingKey) !== generation) return;
+    if (stale) return;
     entry.set(source
       ? { status: 'ready', origin: 'query', source }
       : { status: 'missing', origin: 'query', source: null });
-    debug('resolved', { source: name, rows: source?.rows?.length ?? 0 });
   } catch (error) {
-    if (generations.get(bindingKey) !== generation) return;
+    const stale = generations.get(bindingKey) !== generation;
+    debug({ event: 'failed', source: name, errorName: diagnosticErrorName(error), stale });
+    if (stale) return;
     entry.set({ status: 'failed', origin: 'query', source: null });
-    debug('failed', { source: name, message: error instanceof Error ? error.message : String(error) });
   }
 }
 
