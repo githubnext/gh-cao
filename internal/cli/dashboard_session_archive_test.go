@@ -5,25 +5,70 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 )
 
-func TestDashboardSessionArchiveOptionsFailClosed(t *testing.T) {
-	for _, options := range []dashboardOptions{
-		{sessionArchivePolicy: "policy.json"},
-		{duckDB: "duckdb"},
-		{sessionArchive: true},
-		{sessionArchive: true, sessionArchivePolicy: "policy.json", duckDB: filepath.Join(t.TempDir(), "missing-duckdb")},
-	} {
-		if err := resolveDashboardSessionArchiveOptions(&options); err == nil {
-			t.Fatalf("options %+v accepted", options)
-		}
+func fakeDashboardDuckDB(t *testing.T, version string) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("fake DuckDB CLI is a shell script")
 	}
-	options := dashboardOptions{}
-	if err := resolveDashboardSessionArchiveOptions(&options); err != nil {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "duckdb")
+	if err := os.WriteFile(path, []byte("#!/bin/sh\necho '"+version+" (Test) abc123'\n"), 0o700); err != nil {
 		t.Fatal(err)
+	}
+	return directory
+}
+
+func TestDashboardSessionArchiveAutoDetection(t *testing.T) {
+	work := t.TempDir()
+	t.Chdir(work)
+	approved := `{"version":"v1","contentApproved":true,"rightsApproved":true,"events":{"user.message":["content"]}}`
+	resolve := func(options dashboardOptions) (dashboardOptions, string, error) {
+		var diagnostics strings.Builder
+		err := resolveDashboardSessionArchiveOptions(&options, &diagnostics)
+		return options, diagnostics.String(), err
+	}
+
+	t.Setenv("PATH", t.TempDir())
+	if options, diagnostics, err := resolve(dashboardOptions{}); err != nil || options.sessionArchive || diagnostics != "" {
+		t.Fatalf("missing DuckDB was not a quiet skip: %v %q", err, diagnostics)
+	}
+	if _, _, err := resolve(dashboardOptions{sessionArchive: true}); err == nil {
+		t.Fatal("--session-archive accepted a missing DuckDB")
+	}
+
+	t.Setenv("PATH", fakeDashboardDuckDB(t, "v2.0.0"))
+	if options, diagnostics, err := resolve(dashboardOptions{}); err != nil || options.sessionArchive ||
+		!strings.Contains(diagnostics, "requires exactly "+dashboardDuckDBVersion) {
+		t.Fatalf("unpinned DuckDB was not reported: %v %q", err, diagnostics)
+	}
+
+	t.Setenv("PATH", fakeDashboardDuckDB(t, dashboardDuckDBVersion))
+	if options, diagnostics, err := resolve(dashboardOptions{}); err != nil || options.sessionArchive ||
+		!strings.Contains(diagnostics, "no approved content policy") {
+		t.Fatalf("missing policy was not reported: %v %q", err, diagnostics)
+	}
+	if err := os.MkdirAll(filepath.Dir(dashboardSessionArchiveDefaultPolicy), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dashboardSessionArchiveDefaultPolicy, []byte(approved), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	options, diagnostics, err := resolve(dashboardOptions{})
+	if err != nil || !options.sessionArchive || diagnostics != "" || !filepath.IsAbs(options.duckDB) ||
+		options.sessionArchivePolicy != filepath.Join(work, dashboardSessionArchiveDefaultPolicy) {
+		t.Fatalf("archive was not enabled automatically: %+v %v %q", options, err, diagnostics)
+	}
+	if options, _, err := resolve(dashboardOptions{noSessionArchive: true}); err != nil || options.sessionArchive {
+		t.Fatalf("--no-session-archive did not disable the archive: %v", err)
+	}
+	if _, _, err := resolve(dashboardOptions{noSessionArchive: true, duckDB: "duckdb"}); err == nil {
+		t.Fatal("--no-session-archive accepted a conflicting --duckdb")
 	}
 }
 

@@ -60,8 +60,10 @@ metadata-only dashboard token.
 
 ### Local dashboard (`gh cao dashboard --session-archive`)
 
-`gh cao dashboard --session-archive --session-archive-policy <policy.json>`
-is the local producer. The CLI copies the approved policy to a private file,
+`gh cao dashboard` is the local producer. It enables the archive automatically
+when the pinned DuckDB CLI is on `PATH` and an approved policy exists at
+`.github/cao/session-archive-policy.json` (or `--session-archive-policy`);
+`--no-session-archive` disables it and `--session-archive` requires it. The CLI copies the approved policy to a private file,
 writes one identity-only run frame per completed run whose `gh aw logs`
 artifact directory exists, and configures only its serving child with
 `CAO_SESSION_ARCHIVE_*`. The serving process remains the sole archive owner and
