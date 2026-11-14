@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T21:34:40Z",
-   "worker_run_id": "43511136391",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 created 2026-11-13T20:56:37Z back to 43378369544 created 06:23:31Z); none queued or in progress; source 7cb5134 = HEAD = source_sha; window identical to the 21:24Z evaluation. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; build Install dependencies failed at 17 s; Build documentation and deploy skipped; log HTTP 403 DIFC re-probed, cause unverified). n=19 successful push runs; 5-run gate met; 43505502149 timings now readable and included. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15, range 9-15 s = 14.3% of median exec 84 s (p90 93). 15% gate 12.6 s: full removal would save at most 12 s and is blocked because deploy consumes its output; 60 s gate unreachable. Validation inside the step is a correctness gate and must stay on the publish path. Astro-internal split unmeasured (logs 403). Cache: Post Set up Node.js 0-1 s in 19/19 successes (exact-key hits). Checkout remains the largest step (median 25 s, 30% of exec); open issue 20815 (docs-checkout-blobless-history-v1, OPEN) covers it and was not re-filed. Critical status: site reflects last successful run 43505502149 (f695ad3); 7c8faf4 docs changes unpublished until a green docs.yml run. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T21:53:17Z",
    "worker_run_id": "43513988133",
@@ -869,6 +840,35 @@
     43388781287
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 to 43561388555 (created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z); unchanged since the 07:20Z evaluation; no docs.yml run queued or in progress; source 4d25cbd = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies failed at 17 s; log HTTP 403 not re-read). n=19 successes (18 push + schedule 43561388555); 0 cancelled; 5-run gate met. Category: window median Install dependencies 15 s (p90 24) of median exec 83 s (p90 92). Post-7c8faf4 successes (43536796952 7 s, 43536491714 9 s, 43561388555 10 s; jobs API re-read this run) median 9 s = 11 percent of post-change exec median 79 s. 15 percent gate 12.45 s is unmet even at full removal of install; 60 s gate unreachable. A node_modules cache saves at most install minus restore; the npm cache restore (Set up Node.js, 263 MB key 7808ecf8) took 4 s on 43561388555, so about 5 s net at best, below gate. Cache: caches API shows key 7808ecf8 created 20:57:12Z, last accessed 07:43:42Z. Open issue 20815 (blobless checkout) unchanged and not repeated; no install-category issue. No suggestion; no issue; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T08:19:00Z",
+   "worker_run_id": "43574967099",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (2026-11-14T05:24:33Z); run list re-read 08:18Z: unchanged, no queued or in-progress run; source 4d25cbd = HEAD = origin/main = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies failed at 17 s; not re-read this run). n=19 successes (18 push + schedule 43561388555); 0 cancelled; 5-run gate met; stored Jobs-API rows reused (completed-run timings immutable). Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15, range 9-15 = 14.5 percent of median exec 83 s (p90 92). 15 percent gate 12.45 s: full removal would save at most 12 s and is blocked because deploy consumes its output; 60 s gate unreachable. Validation is a correctness gate and stays on the publish path; splitting it into a parallel job would add checkout (median 25 s) and would not clear the gate. Astro-internal split not re-probed (logs previously HTTP 403 DIFC); not needed because the gate fails even at full removal. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
   }
  ],
