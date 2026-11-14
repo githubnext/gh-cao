@@ -216,6 +216,8 @@ test("SelfCare dashboard reviewer checks deployments through stakeholder persona
   assert.match(source, /dashboard-contract/);
   assert.doesNotMatch(dashboardArtifact, /sources\.json/);
   assert.match(dashboardArtifact, /npm --prefix dashboard\/site run build/);
+  // npm --prefix runs the script from dashboard/site, so the policy path must be absolute.
+  assert.match(dashboardArtifact, /"\$PWD\/\.github\/workflows\/cao\.json"/);
   assert.match(dashboardArtifact, /--dashboard "\$review_dir\/dashboard-contract\/dashboard\.json"/);
   assert.match(source, /normalized Shannon entropy/);
   assert.match(source, /Reject major page, navigation, information-architecture, or view redesigns/);

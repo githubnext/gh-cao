@@ -144,7 +144,7 @@ pre-agent-steps:
       set -euo pipefail
       review_dir=/tmp/gh-aw/agent/self-care-dashboard-review
       npm ci --prefix dashboard/site --ignore-scripts
-      npm --prefix dashboard/site run build -- "$review_dir/dashboard-contract" .github/workflows/cao.json
+      npm --prefix dashboard/site run build -- "$review_dir/dashboard-contract" "$PWD/.github/workflows/cao.json"
       node dashboard/grader/view-grader.mjs \
         --dashboard "$review_dir/dashboard-contract/dashboard.json" \
         --output "$review_dir/view-grades.json"
