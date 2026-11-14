@@ -91,7 +91,7 @@
     },
     "campaigns": {
       "modernization": {
-        "icon": "tools",
+        "icon": "workflow",
         "enabled": false,
         "mode": "review",
         "max-repositories": 6,

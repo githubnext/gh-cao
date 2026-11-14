@@ -3,6 +3,7 @@ import { access, glob, readFile } from "node:fs/promises";
 import test from "node:test";
 import { parse } from "yaml";
 
+import { parsePolicy } from "../../.github/workflows/shared/policy.mjs";
 import { parsePackageManifest } from "../../dashboard/report/package-manifest.mjs";
 
 const root = new URL("../../", import.meta.url);
@@ -38,7 +39,7 @@ test("every catalog package declares a supported marketplace Octicon", async () 
 });
 
 test("configured campaign icons are used by campaign dashboard menu entries when present", async () => {
-  const policy = JSON.parse(await readFile(new URL(".github/workflows/cao.json", root), "utf8"));
+  const policy = parsePolicy(await readFile(new URL(".github/workflows/cao.json", root), "utf8"));
   const campaigns = policy["control-plane"].campaigns;
 
   for (const [campaignName, campaignPolicy] of Object.entries(campaigns)) {
