@@ -272,7 +272,7 @@ func (a *Archive) Capture(ctx context.Context, repository, logs, shardPrefix str
 					return err
 				}
 			}
-			return fmt.Errorf("session archive acquisition gap: %s", reason)
+			return fmt.Errorf("%w: %s", ErrAcquisitionGap, reason)
 		}
 		p, err := FromEvidence(a.config.Namespace, e)
 		if err != nil {

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -279,6 +280,57 @@ func (archive *sessionArchiveService) PrepareCache(ctx context.Context, reposito
 
 func (archive *sessionArchiveService) Capture(ctx context.Context, repository, logs, prefix string) error {
 	return archive.backend.Capture(ctx, repository, logs, prefix)
+}
+
+// SessionArchiveCapture summarizes one owner-requested local capture pass.
+// Admitted includes frames whose evidence the archive already retains.
+type SessionArchiveCapture struct {
+	Frames, Admitted, Gaps int
+}
+
+const maxSessionArchiveCaptureFrames = 10000
+
+// CaptureSessionArchiveFrames admits the owning local CLI's completed-run frames
+// into the local archive. Each frame file names one run attempt and is captured
+// independently, so one recorded acquisition gap does not block other runs.
+// It never acquires GitHub evidence or widens the configured archive scope.
+func (a *App) CaptureSessionArchiveFrames(ctx context.Context, repository, logs, frames string) (SessionArchiveCapture, error) {
+	var result SessionArchiveCapture
+	archive := a.sessionArchive
+	if archive == nil {
+		return result, errors.New("session archive is not enabled")
+	}
+	if _, local := archive.backend.(*localSessionArchive); !local || a.oauth != nil {
+		return result, errors.New("owner-requested session archive capture requires the local archive")
+	}
+	if !slices.Contains(archive.repositories, repository) {
+		return result, errors.New("session archive capture repository is outside the configured scope")
+	}
+	if !filepath.IsAbs(logs) || !filepath.IsAbs(frames) {
+		return result, errors.New("session archive capture requires absolute logs and frame directories")
+	}
+	entries, err := os.ReadDir(frames)
+	if err != nil {
+		return result, err
+	}
+	for _, entry := range entries {
+		if !entry.Type().IsRegular() || !strings.HasPrefix(entry.Name(), "run-") || !strings.HasSuffix(entry.Name(), ".jsonl") {
+			continue
+		}
+		if result.Frames++; result.Frames > maxSessionArchiveCaptureFrames {
+			return result, sessionarchive.ErrCapacity
+		}
+		err := archive.Capture(ctx, repository, logs, filepath.Join(frames, entry.Name()))
+		switch {
+		case err == nil:
+			result.Admitted++
+		case errors.Is(err, sessionarchive.ErrAcquisitionGap):
+			result.Gaps++
+		default:
+			return result, err
+		}
+	}
+	return result, nil
 }
 
 // CaptureSession cannot infer a dispatch-time epoch from current enrollment.

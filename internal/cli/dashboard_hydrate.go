@@ -24,6 +24,11 @@ func publishDashboardEvidence(ctx context.Context, repositories []string, cache 
 	if err != nil {
 		return err
 	}
+	if options.onSessionArchiveRuns != nil {
+		for _, source := range evidence {
+			options.onSessionArchiveRuns(source, batch["runs"])
+		}
+	}
 	batch, err = hydrateDashboardEvidence(ctx, evidence, batch, now)
 	options.timings.record("normalization", start)
 	if err != nil {

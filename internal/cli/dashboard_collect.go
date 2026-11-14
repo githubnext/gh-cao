@@ -398,6 +398,12 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 	if err != nil {
 		return nil, err
 	}
+	// Cached and non-streamed runs reach the archive only through the merged pass.
+	if options.onSessionArchiveRuns != nil {
+		for _, source := range evidence {
+			options.onSessionArchiveRuns(source, batch["runs"])
+		}
+	}
 	batch, err = hydrateDashboardEvidence(ctx, evidence, batch, now)
 	options.timings.record("normalization", normalizationStart)
 	if err != nil {

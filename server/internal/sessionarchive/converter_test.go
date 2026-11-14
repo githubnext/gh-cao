@@ -180,3 +180,14 @@ func TestArchiveApprovalAndConfiguration(t *testing.T) {
 		t.Fatal("unimplemented sampled archive silently enabled")
 	}
 }
+
+func TestSupportedDuckDBVersion(t *testing.T) {
+	for version, supported := range map[string]bool{
+		"v2.0.0": true, "v2.0.1": true, "v2.10.0": true, "v10.0.0": true,
+		"v1.4.3": false, "v1.99.99": false, "2.0.0": false, "v2.0": false, "v2.0.0-dev1": false, "": false,
+	} {
+		if SupportedDuckDBVersion(version) != supported {
+			t.Errorf("SupportedDuckDBVersion(%q) != %v", version, supported)
+		}
+	}
+}

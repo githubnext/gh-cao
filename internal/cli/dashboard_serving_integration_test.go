@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -107,6 +108,7 @@ func TestDashboardServingIntegration(t *testing.T) {
 			} else {
 				t.Log("CAO_DASHBOARD_TEST_CLI not supplied: native gh-cao process smoke unavailable; synthetic collection uses dashboardCommand")
 			}
+			runDashboardServingSessionArchiveIfSelected(t, ctx, binary, builtSite, filepath.Join(directory, "session archive"), runtimeURL)
 		})
 	}
 	if managed {
@@ -139,8 +141,209 @@ func TestDashboardServingIntegration(t *testing.T) {
 			} else {
 				t.Log("CAO_DASHBOARD_TEST_CLI not supplied: native gh-cao process smoke unavailable")
 			}
+			runDashboardServingSessionArchiveIfSelected(t, ctx, binary, builtSite, filepath.Join(directory, "Docker session archive"), runtimeURL)
 			t.Log("Docker-backed explicit PostgreSQL exercised; automatic managed-cache portability is not established")
 		})
+	}
+}
+
+// runDashboardServingSessionArchiveIfSelected exercises the opt-in DuckDB
+// session archive end to end: CLI frames, the serving child as sole archive
+// owner, stdin capture requests, real DuckDB Parquet publication and the
+// authenticated archive query API.
+func runDashboardServingSessionArchiveIfSelected(t *testing.T, ctx context.Context, binary, builtSite, directory, postgresURL string) {
+	t.Helper()
+	duckdb := os.Getenv("CAO_DASHBOARD_TEST_DUCKDB")
+	if duckdb == "" {
+		t.Log("CAO_DASHBOARD_TEST_DUCKDB not supplied: DuckDB session archive serving unavailable")
+		return
+	}
+	t.Run("session-archive", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Fatal("the private session archive requires a POSIX host; do not select CAO_DASHBOARD_TEST_DUCKDB on Windows")
+		}
+		if !filepath.IsAbs(duckdb) {
+			t.Fatal("CAO_DASHBOARD_TEST_DUCKDB must name an absolute DuckDB v2.0.0-or-newer executable")
+		}
+		runDashboardServingSessionArchive(t, ctx, binary, builtSite, directory, postgresURL, duckdb)
+	})
+}
+
+func runDashboardServingSessionArchive(t *testing.T, parent context.Context, binary, builtSite, directory, postgresURL, duckdb string) {
+	t.Helper()
+	if err := os.Mkdir(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(directory)
+	policy := filepath.Join(directory, "approved session policy.json")
+	if err := os.WriteFile(policy, []byte(`{"version":"serving-test-approved","contentApproved":true,"rightsApproved":true,
+"events":{"session.format":["version"],"session.collection":["complete"],"user.message":["content"]}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Add(-time.Second)
+	baseGH := dashboardTestGH(t, now)
+	gh := func(ctx context.Context, args ...string) (string, string, error) {
+		stdout, stderr, err := baseGH(ctx, args...)
+		if err != nil || len(args) < 2 || args[0] != "run" || args[1] != "list" {
+			return stdout, stderr, err
+		}
+		var runs []map[string]any
+		if err := json.Unmarshal([]byte(stdout), &runs); err != nil {
+			return "", "", err
+		}
+		for _, run := range runs {
+			if run["databaseId"] == float64(123) {
+				run["status"], run["conclusion"] = "completed", "success"
+			}
+		}
+		content, err := json.Marshal(runs)
+		return string(content), stderr, err
+	}
+	baseLogs := dashboardTestLogs(t)
+	logs := func(ctx context.Context, request dashboardLogRequest) error {
+		if err := baseLogs(ctx, request); err != nil {
+			return err
+		}
+		usage := filepath.Join(request.Directory, "run-123", "usage")
+		if err := os.MkdirAll(usage, 0o700); err != nil {
+			return err
+		}
+		session := `{"type":"session.format","data":{"version":1}}
+{"type":"session.collection","data":{"complete":true}}
+{"type":"user.message","data":{"content":"approved serving archive message"}}
+`
+		if err := os.WriteFile(filepath.Join(usage, "aw_session.jsonl"), []byte(session), 0o600); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(usage, "aw_info.json"),
+			[]byte(`{"repository":"`+request.Repository+`","run_id":123,"run_attempt":1}`), 0o600)
+	}
+	ctx, stop := context.WithTimeout(parent, 3*time.Minute)
+	defer stop()
+	output := &dashboardServingOutput{ready: make(chan string, 1)}
+	cache := filepath.Join(directory, "private canonical cache")
+	command := dashboardCommand("integration", gh, logs)
+	command.SilenceUsage, command.SilenceErrors = true, true
+	command.SetOut(output)
+	command.SetErr(output)
+	command.SetArgs([]string{
+		"--repo", "octo/api", "--cache-dir", cache, "--server-executable", binary,
+		"--site", builtSite, "--listen", "127.0.0.1:0", "--postgres-url", postgresURL,
+		"--duration", "10m", "--refresh", "1m", "--count", "2",
+		"--session-archive", "--session-archive-policy", policy, "--duckdb", duckdb,
+	})
+	done := make(chan error, 1)
+	exited := make(chan struct{})
+	go func() {
+		done <- command.ExecuteContext(ctx)
+		close(exited)
+	}()
+	t.Cleanup(func() {
+		stop()
+		select {
+		case <-exited:
+		case <-time.After(20 * time.Second):
+			t.Error("session archive dashboard did not reap its native child after cancellation")
+		}
+	})
+	var address string
+	select {
+	case address = <-output.ready:
+	case err := <-done:
+		t.Fatalf("session archive dashboard exited before serving: %v\n%s", err, output.diagnostics())
+	case <-ctx.Done():
+		t.Fatalf("session archive dashboard startup deadline: %v\n%s", ctx.Err(), output.diagnostics())
+	}
+	capability, err := url.Parse(address)
+	if err != nil || capability.Query().Get("access_token") == "" {
+		t.Fatal("session archive dashboard did not announce its local access capability")
+	}
+	if !strings.Contains(output.diagnostics(), "Session archive: "+filepath.Join(cache, "session-archive")) {
+		t.Fatalf("ready message did not report the session archive:\n%s", output.diagnostics())
+	}
+	origin := capability.Scheme + "://" + capability.Host
+	transport := &http.Transport{Proxy: nil}
+	defer transport.CloseIdleConnections()
+	client := &http.Client{Transport: transport, Timeout: 10 * time.Second}
+	request := func(method, path, body, token string) (int, []byte, error) {
+		request, err := http.NewRequestWithContext(ctx, method, origin+path, strings.NewReader(body))
+		if err != nil {
+			return 0, nil, err
+		}
+		if token != "" {
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+		request.Header.Set("Content-Type", "application/json")
+		response, err := client.Do(request)
+		if err != nil {
+			return 0, nil, err
+		}
+		defer func() { _ = response.Body.Close() }()
+		content, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
+		return response.StatusCode, content, err
+	}
+	token := capability.Query().Get("access_token")
+	timeline := `{"kind":"timeline","repository":"octo/api","runId":"123","attempt":1}`
+	if status, _, err := request(http.MethodPost, "/api/v1/session-archive/query", timeline, ""); err != nil ||
+		status != http.StatusUnauthorized && status != http.StatusForbidden {
+		t.Fatalf("unauthenticated archive query was not rejected: status=%d error=%v", status, err)
+	}
+	deadline := time.Now().Add(2 * time.Minute)
+	for {
+		status, content, err := request(http.MethodPost, "/api/v1/session-archive/query", timeline, token)
+		var result struct {
+			Generation uint64 `json:"generation"`
+			Events     []struct {
+				Type        string `json:"type"`
+				RunID       string `json:"runId"`
+				PayloadJSON string `json:"payloadJson"`
+			} `json:"events"`
+		}
+		if err == nil && status == http.StatusOK && json.Unmarshal(content, &result) == nil && len(result.Events) == 3 {
+			if result.Generation < 1 || result.Events[2].RunID != "123" ||
+				!strings.Contains(result.Events[2].PayloadJSON, "approved serving archive message") {
+				t.Fatalf("archive returned the wrong approved session content: %s", content)
+			}
+			break
+		}
+		select {
+		case err := <-done:
+			t.Fatalf("session archive dashboard exited before capture: %v\n%s", err, output.diagnostics())
+		case <-ctx.Done():
+			t.Fatalf("session archive capture canceled: %v", ctx.Err())
+		case <-time.After(500 * time.Millisecond):
+		}
+		if time.Now().After(deadline) {
+			_, archiveStatus, _ := request(http.MethodGet, "/api/v1/session-archive/status", "", token)
+			var files []string
+			_ = filepath.WalkDir(filepath.Join(cache, "session-archive"), func(path string, entry os.DirEntry, err error) error {
+				if err == nil && !entry.IsDir() {
+					files = append(files, strings.TrimPrefix(path, cache))
+				}
+				return nil
+			})
+			t.Fatalf("DuckDB archive never published run 123: status=%d error=%v body=%s\narchive status=%s\narchive files=%v\n%s",
+				status, err, content, archiveStatus, files, output.diagnostics())
+		}
+	}
+	status, content, err := request(http.MethodGet, "/api/v1/session-archive/status", "", token)
+	if err != nil || status != http.StatusOK || !bytes.Contains(content, []byte(`"generation"`)) {
+		t.Fatalf("archive status unavailable: status=%d error=%v body=%s", status, err, content)
+	}
+	for _, path := range []string{"session-archive", "session-archive/store"} {
+		info, err := os.Stat(filepath.Join(cache, path))
+		if err != nil || info.Mode().Perm() != 0o700 {
+			t.Fatalf("%s is not a private archive directory: %v", path, err)
+		}
+	}
+	stop()
+	select {
+	case err := <-done:
+		if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("cancellation did not gracefully stop the archive dashboard: %v\n%s", err, output.diagnostics())
+		}
+	case <-time.After(20 * time.Second):
+		t.Fatal("cancellation did not reap the archive dashboard child")
 	}
 }
 

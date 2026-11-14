@@ -69,7 +69,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-      - name: Install checksum-verified DuckDB v1.4.3
+      - name: Install checksum-verified DuckDB v2.0.0
         shell: bash
         run: |
           set -euo pipefail
@@ -77,10 +77,10 @@ jobs:
           echo "DUCKDB_PATH=$DUCKDB_PATH" >> "$GITHUB_ENV"
           mkdir -p "$(dirname "$DUCKDB_PATH")"
           curl --fail --silent --show-error --location --proto '=https' \
-            https://github.com/duckdb/duckdb/releases/download/v1.4.3/duckdb_cli-linux-amd64.zip \
-            --output "$RUNNER_TEMP/cao-duckdb.zip"
-          echo "7a9e36141a71a353f54dfbeed607a5218c3425ce2d417610da08443259a12f7c  $RUNNER_TEMP/cao-duckdb.zip" | sha256sum --check
-          unzip -q "$RUNNER_TEMP/cao-duckdb.zip" -d "$(dirname "$DUCKDB_PATH")"
+            https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-amd64.tar.gz \
+            --output "$RUNNER_TEMP/cao-duckdb.tar.gz"
+          echo "c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc  $RUNNER_TEMP/cao-duckdb.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/cao-duckdb.tar.gz" -C "$(dirname "$DUCKDB_PATH")" duckdb
           "$DUCKDB_PATH" --version
       - name: Verify production capture, Parquet, publication, and authenticated queries
         shell: bash

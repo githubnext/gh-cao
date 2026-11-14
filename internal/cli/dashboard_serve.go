@@ -136,6 +136,14 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	if err != nil {
 		return err
 	}
+	var archive *dashboardSessionArchive
+	if options.sessionArchive {
+		archive, err = prepareDashboardSessionArchive(cache, options, cmd.ErrOrStderr())
+		if err != nil {
+			return err
+		}
+		options.onSessionArchiveRuns = archive.recordRuns
+	}
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
 	defer cancel()
 	ingestRequests := make(chan struct{}, 1)
@@ -144,15 +152,70 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		return err
 	}
 	defer stopActions()
-	child := exec.CommandContext(ctx, server, "serve", "--source", cache,
+	ingestor, err := startDashboardIngestor(ctx, server, site, cache, namespace, options.postgresURL, cmd.ErrOrStderr())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := ingestor.Close(); err != nil {
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+		}
+	}()
+	ingest := func() error {
+		if err := ingestor.Ingest(); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			err := errors.New("dashboard PostgreSQL ingestion failed; previous canonical revision retained")
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+			return err
+		}
+		return nil
+	}
+	// Publish the "collecting" status before the pass ends so the dashboard
+	// shows ingestion as running while GitHub evidence is acquired.
+	options.onCollecting = func() { _ = ingest() }
+	options.onPublished = ingest
+	options.onRunBundles = func() error {
+		if err := ingestor.IngestRunBundles(); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
+			return err
+		}
+		return nil
+	}
+	collect := func() {
+		if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
+		}
+		if ctx.Err() == nil {
+			_ = ingest()
+		}
+	}
+	serveArguments := []string{"serve", "--source", cache,
 		"--namespace", namespace,
 		"--site", site, "--listen", options.listen, "--exit-on-stdin-close",
 		"--operator-config", actionsConfig,
 		"--database-queries", filepath.Join(site, "src/data/queries/database.json"),
 		"--dashboard-queries", filepath.Join(site, "src/agent/queries.generated.json"),
 		"--agent-catalog", filepath.Join(site, "src/agent/catalog.generated.json"),
-		"--mcp-contract", filepath.Join(site, "src/agent/mcp-contract.json"))
-	child.Env = append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+options.postgresURL, "CAO_OPERATIONAL_NAMESPACE="+namespace)
+		"--mcp-contract", filepath.Join(site, "src/agent/mcp-contract.json")}
+	serveEnvironment := append(dashboardServerEnvironment(), "CAO_POSTGRES_URL="+options.postgresURL, "CAO_OPERATIONAL_NAMESPACE="+namespace)
+	if archive != nil {
+		// The server checks archive scope against the canonical repository
+		// inventory at startup, so collect it before the archive owner starts.
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Session archive enabled; collecting repository inventory before starting the server...")
+		collect()
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		serveArguments = append(serveArguments, "--session-archive-stdin")
+		serveEnvironment = append(serveEnvironment, archive.environment(namespace, repositories)...)
+	}
+	child := exec.CommandContext(ctx, server, serveArguments...)
+	child.Env = serveEnvironment
 	stdin, err := child.StdinPipe()
 	if err != nil {
 		return err
@@ -252,56 +315,23 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 		return nil
 	}
-	ingestor, err := startDashboardIngestor(ctx, server, site, cache, namespace, options.postgresURL, cmd.ErrOrStderr())
-	if err != nil {
-		if ctx.Err() != nil {
-			return finish(<-serverDone)
-		}
-		return err
-	}
-	defer func() {
-		if err := ingestor.Close(); err != nil {
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
-		}
-	}()
-	ingest := func() error {
-		if err := ingestor.Ingest(); err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			err := errors.New("dashboard PostgreSQL ingestion failed; previous canonical revision retained")
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
-			return err
-		}
-		return nil
-	}
-	// Publish the "collecting" status before the pass ends so the dashboard
-	// shows ingestion as running while GitHub evidence is acquired.
-	options.onCollecting = func() { _ = ingest() }
-	options.onPublished = ingest
-	options.onRunBundles = func() error {
-		if err := ingestor.IngestRunBundles(); err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err)
-			return err
-		}
-		return nil
-	}
 	// Initial ingestion must finish before collection can replace snapshot files.
 	// The server announces its listener only after ingesting the initial source.
 	ticker := time.NewTimer(options.refresh)
 	ticker.Stop()
 	defer ticker.Stop()
 	var waitingForServer <-chan struct{} = serverReady
+	captureSessions := func() {
+		if archive == nil {
+			return
+		}
+		if request, ok := archive.captureRequest(); ok {
+			_, _ = stdin.Write(request)
+		}
+	}
 	pass := func() {
-		if _, err := collectDashboard(ctx, repositories, cache, options, gh, logs); err != nil && ctx.Err() == nil {
-			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Dashboard refresh failed; previous snapshot retained: %v\n", err)
-		}
-		if ctx.Err() == nil {
-			_ = ingest()
-		}
+		collect()
+		captureSessions()
 		// Requests made during this pass are satisfied by it.
 		select {
 		case <-ingestRequests:
@@ -313,7 +343,13 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		select {
 		case <-waitingForServer:
 			waitingForServer = nil
-			ticker.Reset(0)
+			if archive != nil {
+				// The pre-start pass already collected; capture its frames now.
+				captureSessions()
+				ticker.Reset(dashboardRefreshInterval(cache, options.refresh))
+			} else {
+				ticker.Reset(0)
+			}
 		case result := <-serverDone:
 			return finish(result)
 		case <-ctx.Done():
@@ -397,6 +433,12 @@ func printDashboardReady(output io.Writer, address string, repositories []string
 			"  Coverage: partial recent activity; uncollected evidence is unavailable.\n\n",
 		address, strings.Join(repositories, ", "), cache,
 		options.refresh, options.duration, maintenance)
+	if options.sessionArchive {
+		_, _ = fmt.Fprintf(output,
+			"  Session archive: %s (DuckDB %s); query with POST /api/v1/session-archive/query\n"+
+				"    and the dashboard bearer token. Archived session content follows the approved policy.\n\n",
+			filepath.Join(cache, "session-archive"), options.duckDB)
+	}
 }
 
 func dashboardServerEnvironment() []string {

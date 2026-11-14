@@ -35,6 +35,12 @@ type dashboardOptions struct {
 	count            int
 	json             bool
 	exitOnStdinClose bool
+	// sessionArchive opts the local server into the private DuckDB/Parquet
+	// session archive under the explicitly approved content policy.
+	sessionArchive       bool
+	noSessionArchive     bool
+	sessionArchivePolicy string
+	duckDB               string
 	// localRepository is the lowercase github.com repository of the working
 	// checkout, when known; only that target may reuse .github/aw/logs.
 	localRepository string
@@ -43,8 +49,11 @@ type dashboardOptions struct {
 	onCollecting func()
 	onPublished  func() error
 	onRunBundles func() error
-	timings      *dashboardCollectionTimings
-	progress     *dashboardProgress
+	// onSessionArchiveRuns receives each published repository evidence slice
+	// so completed runs can be offered to the local session archive.
+	onSessionArchiveRuns func(source dashboardRepositoryEvidence, runs []map[string]any)
+	timings              *dashboardCollectionTimings
+	progress             *dashboardProgress
 }
 
 func dashboardCommand(version string, gh ghExecutor, logs dashboardLogsCollector) *cobra.Command {
@@ -66,7 +75,14 @@ gh-aw artifact caches are reused. The evidence window defaults to seven days;
 the server lifetime defaults to 48 hours. Bounded background passes resume
 historical discovery while reserving GitHub API quota for other work.
 Ctrl-C stops the server; the private local snapshot is retained for reuse.
-Collection never changes policy, workflows, or remote repository state.`,
+Collection never changes policy, workflows, or remote repository state.
+
+When DuckDB v2.0.0 or newer is on PATH and an approved, versioned closed content
+policy exists (--session-archive-policy, or ` + dashboardSessionArchiveDefaultPolicy + `),
+agentic session logs (aw_session.jsonl) from cached gh-aw run artifacts are also
+captured into a private Parquet archive. --no-session-archive disables it;
+--session-archive fails if a prerequisite is missing. Archive files stay under
+the dashboard cache; read them through the loopback session-archive API.`,
 	}
 	dashboardCollectionFlags(cmd, options)
 	cmd.Flags().StringVar(&options.listen, "listen", "127.0.0.1:0", "Numeric loopback listener; port 0 selects an available port")
@@ -74,6 +90,10 @@ Collection never changes policy, workflows, or remote repository state.`,
 	cmd.Flags().DurationVar(&options.refresh, "refresh", 5*time.Minute, "Refresh interval (at least 1m)")
 	cmd.Flags().BoolVar(&options.json, "json", false, "Emit a JSON readiness message on stdout; diagnostics stay on stderr")
 	cmd.Flags().BoolVar(&options.exitOnStdinClose, "exit-on-stdin-close", false, "Stop when the parent closes stdin")
+	cmd.Flags().BoolVar(&options.sessionArchive, "session-archive", false, "Require the private DuckDB/Parquet session archive (default: enabled when DuckDB and a policy are found)")
+	cmd.Flags().BoolVar(&options.noSessionArchive, "no-session-archive", false, "Disable the session archive even when DuckDB and a policy are found")
+	cmd.Flags().StringVar(&options.sessionArchivePolicy, "session-archive-policy", "", "Approved closed session archive content policy JSON (default "+dashboardSessionArchiveDefaultPolicy+")")
+	cmd.Flags().StringVar(&options.duckDB, "duckdb", "", "DuckDB "+dashboardDuckDBVersion+"+ CLI for the session archive (default: duckdb on PATH)")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if options.duration <= 0 || options.duration > dashboardMaximumDuration {
 			return errors.New("--duration must be positive and at most 48h")
@@ -85,6 +105,9 @@ Collection never changes policy, workflows, or remote repository state.`,
 			return err
 		}
 		if err := resolveDashboardStorageOptions(cmd, options); err != nil {
+			return err
+		}
+		if err := resolveDashboardSessionArchiveOptions(options, cmd.ErrOrStderr()); err != nil {
 			return err
 		}
 		repositories, cache, err := resolveDashboardOptions(cmd, options, gh)

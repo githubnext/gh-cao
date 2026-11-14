@@ -689,8 +689,13 @@ func newServeCommand() *cobra.Command {
 	mcpEnabled := cmd.Flags().Bool("mcp-enabled", false, "serve the read-only MCP endpoint at /mcp")
 	operatorConfigPath := cmd.Flags().String("operator-config", "", "private native maintenance adapter configuration")
 	exitOnStdinClose := cmd.Flags().Bool("exit-on-stdin-close", false, "stop local serving when the owning CLI closes stdin")
+	sessionArchiveStdin := cmd.Flags().Bool("session-archive-stdin", false,
+		"accept the owning CLI's local session archive capture requests as JSON lines on stdin (requires --exit-on-stdin-close)")
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
 		resolveServeResources(cmd, *siteDirectory)
+		if *sessionArchiveStdin && !*exitOnStdinClose {
+			return errors.New("--session-archive-stdin requires --exit-on-stdin-close")
+		}
 		if namespaceErr != nil {
 			return namespaceErr
 		}
@@ -714,7 +719,15 @@ func newServeCommand() *cobra.Command {
 		commandLog.Printf("serve flags parsed tls=%t source_ingestion=%t", *cert != "", *source != "")
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
-		if *exitOnStdinClose {
+		archiveLogger := log.New(os.Stderr, "cao-dashboard: ", log.LstdFlags)
+		var archiveRequests chan sessionArchiveCaptureRequest
+		if *sessionArchiveStdin {
+			archiveRequests = make(chan sessionArchiveCaptureRequest, 1)
+			go func() {
+				readSessionArchiveRequests(cmd.InOrStdin(), archiveRequests, archiveLogger)
+				stop()
+			}()
+		} else if *exitOnStdinClose {
 			go func() {
 				_, _ = io.Copy(io.Discard, cmd.InOrStdin())
 				stop()
@@ -792,6 +805,9 @@ func newServeCommand() *cobra.Command {
 		app, err := server.New(ctx, store, config)
 		if err != nil {
 			return err
+		}
+		if archiveRequests != nil {
+			go serveSessionArchiveRequests(ctx, app, archiveRequests, archiveLogger)
 		}
 		return app.Serve(ctx)
 	}

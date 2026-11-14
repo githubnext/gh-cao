@@ -58,6 +58,20 @@ installed collector, HTTP assets, and PostgreSQL queries.
 The command resolves the current repository when `--repo` is omitted and
 supports up to 20 explicitly named GitHub.com repositories.
 
+The private DuckDB/Parquet [session archive](https://github.com/githubnext/gh-cao/blob/main/server/SESSION-ARCHIVE.md)
+for agentic session logs is enabled automatically when DuckDB v2.0.0 or newer
+is on `PATH` and an explicitly approved, versioned content policy exists at
+`.github/cao/session-archive-policy.json` (or `--session-archive-policy`); the
+command never fabricates approval. If DuckDB is found but the version or policy
+does not match, startup explains why the archive is off. `--no-session-archive`
+disables it; `--session-archive` (or an explicit `--duckdb`/policy path) makes a
+missing prerequisite an error. When enabled, startup collects the
+repository inventory once before the server opens the archive. After each pass,
+completed runs with a cached `run-<id>` artifact directory are captured from
+`aw_session.jsonl`; runs without an approved session log are recorded as gaps.
+The archive lives under `.github/cao/dashboard/<scope>/session-archive/` and is
+queried with `POST /api/v1/session-archive/query` using the dashboard bearer token.
+
 The evidence window defaults to **seven days** (maximum `168h`); server lifetime
 defaults to **48 hours**, which remains its maximum per invocation. The command
 stays in the foreground, selects an available loopback port, prints the access

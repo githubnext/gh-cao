@@ -36,7 +36,7 @@ func NewConverter(c ConverterConfig) (*Converter, error) {
 	}
 	path, err := exec.LookPath(c.DuckDBPath)
 	if err != nil {
-		return nil, fmt.Errorf("pinned DuckDB %s is required: %w", DuckDBVersion, err)
+		return nil, fmt.Errorf("DuckDB %s or newer is required: %w", MinimumDuckDBVersion, err)
 	}
 	c.DuckDBPath, err = filepath.Abs(path)
 	if err != nil {
@@ -63,8 +63,8 @@ func NewConverter(c ConverterConfig) (*Converter, error) {
 	if err := converter.query(context.Background(), `SELECT version() AS Version`, &version); err != nil {
 		return nil, err
 	}
-	if len(version) != 1 || version[0].Version != DuckDBVersion {
-		return nil, fmt.Errorf("DuckDB runtime must be exactly %s", DuckDBVersion)
+	if len(version) != 1 || !SupportedDuckDBVersion(version[0].Version) {
+		return nil, fmt.Errorf("DuckDB runtime must be %s or newer", MinimumDuckDBVersion)
 	}
 	return converter, nil
 }
@@ -108,7 +108,7 @@ func (c *Converter) query(ctx context.Context, sql string, target any) error {
 		sql = "COPY (" + sql + ") TO '/dev/stdout' (FORMAT JSON, ARRAY true)"
 	}
 	// Only package-owned plans reach this subprocess. This is not an SQL sandbox.
-	// #nosec G204 -- operator-configured executable, pinned version checked by NewConverter; no caller arguments.
+	// #nosec G204 -- operator-configured executable, minimum version checked by NewConverter; no caller arguments.
 	cmd := exec.CommandContext(ctx, c.config.DuckDBPath, "-batch", "-bail", "-init", os.DevNull, "-json", ":memory:")
 	cmd.Stdin = strings.NewReader(settings + sql + ";\n")
 	stdout, stderr := &boundedOutput{limit: 32 << 20}, &boundedOutput{limit: 16 << 10}

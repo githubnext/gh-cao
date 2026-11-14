@@ -84,7 +84,7 @@ completion-day partitions. Missing completion time MUST remain explicitly
 undated. Publication membership, not a filename or global `DISTINCT`, selects at
 most one active approved projection for each canonical run attempt.
 
-Legacy local/POSIX conversion MUST use the pinned DuckDB v1.4.3 CLI with explicit generated types,
+Legacy local/POSIX conversion MUST use a DuckDB v2.0.0-or-newer CLI with explicit generated types,
 not inferred JSON schemas or an embedded DuckDB database. The converter verifies
 the runtime version. Installation MUST verify the release checksum. Subprocess
 memory, concurrency, threads, timeout, result, and temporary-disk budgets apply
