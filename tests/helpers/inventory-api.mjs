@@ -11,6 +11,7 @@ export async function inventoryApi({
   revokeFailure,
   outputPermission = "write",
   metadata = {},
+  readPermissions = { actions: "read", contents: "read" },
 } = {}) {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   const privatePem = privateKey.export({ type: "pkcs8", format: "pem" });
@@ -64,7 +65,7 @@ export async function inventoryApi({
     const mint = /^\/app\/installations\/(\d+)\/access_tokens$/.exec(url.pathname);
     if (request.method === "POST" && mint && jwt?.iss === "read-app") {
       assert.ok(Array.isArray(data.repositories) && data.repositories.length > 0 && data.repositories.length <= 500);
-      assert.deepEqual(data.permissions, { actions: "read", contents: "read" });
+      assert.deepEqual(data.permissions, readPermissions);
       const owner = owners[Number(mint[1]) - 1];
       const scope = data.repositories.map(name => `${owner}/${name}`);
       if (mintFailure) return send(mintFailure, { message: "never-disclose mint failure" });

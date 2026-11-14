@@ -1,0 +1,899 @@
+{
+  "schema": "squad-agent-provenance/v1",
+  "schema_version": 1,
+  "revision": 2,
+  "generated_at": "2026-11-12T12:16:49.071Z",
+  "agents": {
+    "assessor": {
+      "display_name": "assessor",
+      "persistent_name": "assessor",
+      "role": "Read-only static estate inventory and evidence gaps. No recommendations, fabricated metrics/estimates, mandatory build or execution.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "classifier": {
+      "display_name": "classifier",
+      "persistent_name": "classifier",
+      "role": "Six-R comparison, feasibility/trade-offs and sourced cost assumptions. User selects; does not execute or author the selected plan.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "planner": {
+      "display_name": "planner",
+      "persistent_name": "planner",
+      "role": "Selected-path plan, cross-repository dependencies, measurable phase criteria, integrated data/cutover/rollback plan and permissions. Does not authorize execution.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "execution-orchestrator": {
+      "display_name": "execution-orchestrator",
+      "persistent_name": "execution-orchestrator",
+      "role": "Bounded authorized execution through qualified experts; dependency order, scope and evidence. Separate from Squad routing, review, validation and human authorization.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "reviewer": {
+      "display_name": "reviewer",
+      "persistent_name": "reviewer",
+      "role": "Independent revision-bound artifact/diff quality verdict; neither implements reviewed work nor grants operational permission.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "validator": {
+      "display_name": "validator",
+      "persistent_name": "validator",
+      "role": "Pre-implementation acceptance-design/testability/evidence-sufficiency consultation; later independently measured outcomes, characterization/data/cutover/rollback verification under separate authorization. Planned tests are not results; never self-certifies its own contribution or execution.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "documentation": {
+      "display_name": "documentation",
+      "persistent_name": "documentation",
+      "role": "On-demand evidence-linked playbooks, technical writing, runbooks and diagrams. Phase owners retain technical decisions and phase accountability.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-sqlserver": {
+      "display_name": "db-sqlserver",
+      "persistent_name": "db-sqlserver",
+      "role": "T-SQL, procedures, SQL Agent, CLR, collations, transactions, HA/DR and Azure SQL/managed variants.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-postgresql": {
+      "display_name": "db-postgresql",
+      "persistent_name": "db-postgresql",
+      "role": "Extensions, PL/pgSQL, MVCC, indexing/partitioning, logical replication and Azure offering constraints.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-oracle": {
+      "display_name": "db-oracle",
+      "persistent_name": "db-oracle",
+      "role": "PL/SQL, data types, optimizer, tablespaces, RAC/Data Guard, security and licensing constraints.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-mysql": {
+      "display_name": "db-mysql",
+      "persistent_name": "db-mysql",
+      "role": "MySQL/MariaDB differences, storage engines, routines, replication and query semantics.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-mongodb": {
+      "display_name": "db-mongodb",
+      "persistent_name": "db-mongodb",
+      "role": "BSON, document models, aggregation, indexing/sharding, change streams and compatibility limits.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-cosmosdb": {
+      "display_name": "db-cosmosdb",
+      "persistent_name": "db-cosmosdb",
+      "role": "API selection, partition keys, RU/cost modeling, consistency, multi-region behavior and SDK contracts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-db2": {
+      "display_name": "db-db2",
+      "persistent_name": "db-db2",
+      "role": "Mainframe/distributed Db2 dialects, packages/host variables, utilities and replication; qualified operators required for actual operations.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-cassandra": {
+      "display_name": "db-cassandra",
+      "persistent_name": "db-cassandra",
+      "role": "CQL, partition/clustering design, consistency, repair/compaction and compatible-target limitations.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-dynamodb": {
+      "display_name": "db-dynamodb",
+      "persistent_name": "db-dynamodb",
+      "role": "Key/index design, single-table patterns, conditional writes, Streams/TTL and transition from an AWS source.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-redis": {
+      "display_name": "db-redis",
+      "persistent_name": "db-redis",
+      "role": "Authoritative primary-store structures, persistence, transactions/Lua, clustering and Streams; cache-only concerns belong to Cache.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-couchbase": {
+      "display_name": "db-couchbase",
+      "persistent_name": "db-couchbase",
+      "role": "Buckets/scopes/collections, KV/sub-documents, N1QL, indexing, eventing and XDCR.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "db-sybase": {
+      "display_name": "db-sybase",
+      "persistent_name": "db-sybase",
+      "role": "SAP ASE dialect, procedures/tempdb, locking, replication and migration compatibility.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-auth-identity": {
+      "display_name": "expert-auth-identity",
+      "persistent_name": "expert-auth-identity",
+      "role": "LDAP/AD/Entra, OAuth/OIDC/SAML, federation, claims, user/service identity and authorization flows; not credential lifecycle ownership.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-hosting": {
+      "display_name": "expert-hosting",
+      "persistent_name": "expert-hosting",
+      "role": "IIS, Windows Services, Tomcat/JBoss/WebLogic, VMs, Docker/Kubernetes/AKS, topology and runtime lifecycle/coexistence. Consumes Azure platform guardrails; does not own pipelines or select targets by preference.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-cicd": {
+      "display_name": "expert-cicd",
+      "persistent_name": "expert-cicd",
+      "role": "GitHub Actions, Azure DevOps, Jenkins, artifact provenance, promotion, release gates and delivery/rollback automation. Does not own platform policy, runtime topology or grant provisioning/publication/cutover permission.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-secrets": {
+      "display_name": "expert-secrets",
+      "persistent_name": "expert-secrets",
+      "role": "Credential/certificate inventory without disclosure, rotation, secret lifecycle, managed identity integration and Key Vault; collaborates with Identity on trust boundaries.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-messaging": {
+      "display_name": "expert-messaging",
+      "persistent_name": "expert-messaging",
+      "role": "JMS/ActiveMQ/RabbitMQ/Kafka/MSMQ/SQS/Service Bus/Event Hubs, delivery/order/retry/idempotency and event contracts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-storage": {
+      "display_name": "expert-storage",
+      "persistent_name": "expert-storage",
+      "role": "File/NAS/object/blob/S3, mounted volumes, retention, access and file semantics; not database engine behavior.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-cache": {
+      "display_name": "expert-cache",
+      "persistent_name": "expert-cache",
+      "role": "Redis/Memcached/NCache caching, invalidation, session state, eviction and cache transition; authoritative Redis data stays with `db-redis`.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-email": {
+      "display_name": "expert-email",
+      "persistent_name": "expert-email",
+      "role": "SMTP/service delivery, templates, authentication and deliverability; distinct message acceptance/delivery evidence.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-search": {
+      "display_name": "expert-search",
+      "persistent_name": "expert-search",
+      "role": "Solr/Lucene/Elasticsearch/Azure AI Search, analyzers, indexing/ranking/query contracts and rebuild/reconciliation.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-serverless": {
+      "display_name": "expert-serverless",
+      "persistent_name": "expert-serverless",
+      "role": "Functions/Lambda source contracts, event triggers, cold starts, state and scaling; Azure Platform/Hosting provide service and topology constraints.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-realtime": {
+      "display_name": "expert-realtime",
+      "persistent_name": "expert-realtime",
+      "role": "SignalR/WebSockets/SSE/long polling, connection state, reconnect, fan-out and client compatibility.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-reporting": {
+      "display_name": "expert-reporting",
+      "persistent_name": "expert-reporting",
+      "role": "Crystal/SSRS/Telerik rendering, extraction, layouts and report interactions; Scheduling owns job timing and desktop experts own application flows.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-scheduling": {
+      "display_name": "expert-scheduling",
+      "persistent_name": "expert-scheduling",
+      "role": "Hangfire/Quartz/Windows Scheduler/cron/durable jobs, calendars/timezones, retry/misfire and batch timing; not reporting semantics.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-frontend-legacy": {
+      "display_name": "expert-frontend-legacy",
+      "persistent_name": "expert-frontend-legacy",
+      "role": "jQuery/Knockout/AngularJS, DOM-driven UI, state and progressive/coexistence seams; modern framework experts own their respective implementations.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-struts": {
+      "display_name": "expert-struts",
+      "persistent_name": "expert-struts",
+      "role": "Actions/form beans/interceptors/validation, request flow and JSP integration.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-jsf": {
+      "display_name": "expert-jsf",
+      "persistent_name": "expert-jsf",
+      "role": "Facelets, component lifecycle, managed beans, navigation and server-side state.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-jsp-servlet": {
+      "display_name": "expert-jsp-servlet",
+      "persistent_name": "expert-jsp-servlet",
+      "role": "Servlet/filter lifecycle, JSP/taglibs, sessions and rendering contracts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-jvm-builds": {
+      "display_name": "expert-jvm-builds",
+      "persistent_name": "expert-jvm-builds",
+      "role": "Ant/Maven/Gradle, wrappers, packaging/plugins and dependency/build graphs; not release pipeline ownership.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-platform-java": {
+      "display_name": "expert-platform-java",
+      "persistent_name": "expert-platform-java",
+      "role": "JVM generations, runtime compatibility, javax/jakarta and EE; conditional Spring/Quarkus/Micronaut platform questions. Does not absorb framework/build/ORM/testing experts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-orm-java": {
+      "display_name": "expert-orm-java",
+      "persistent_name": "expert-orm-java",
+      "role": "Hibernate/JPA/JDBC/Spring Data/MyBatis mapping, generated queries and transaction behavior; consult engine owners.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-testing-java": {
+      "display_name": "expert-testing-java",
+      "persistent_name": "expert-testing-java",
+      "role": "JUnit/TestNG/Mockito/AssertJ, fixtures and characterization/integration test design; Validator independently judges outcomes.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-di-java": {
+      "display_name": "expert-di-java",
+      "persistent_name": "expert-di-java",
+      "role": "Spring/Guice/CDI/Dagger scopes, lifecycle and composition roots; separate from external configuration.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-config-java": {
+      "display_name": "expert-config-java",
+      "persistent_name": "expert-config-java",
+      "role": "XML/annotations/properties/Spring configuration, precedence, overlays and flags; separate from object lifetimes.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-security-java": {
+      "display_name": "expert-security-java",
+      "persistent_name": "expert-security-java",
+      "role": "Spring Security/JAAS/Shiro/filter/method security and framework enforcement; Identity owns cross-system identity contracts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-logging-java": {
+      "display_name": "expert-logging-java",
+      "persistent_name": "expert-logging-java",
+      "role": "Log4j/SLF4J/Logback/JUL appenders, structured logs and implementation compatibility; Reliability owns cross-stack SLOs and acceptance.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-webforms": {
+      "display_name": "expert-webforms",
+      "persistent_name": "expert-webforms",
+      "role": "Page lifecycle, ViewState, controls/postbacks, session and code-behind.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-wcf": {
+      "display_name": "expert-wcf",
+      "persistent_name": "expert-wcf",
+      "role": "WCF bindings/behaviors/contracts, hosting/security and supported coexistence.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-asmx": {
+      "display_name": "expert-asmx",
+      "persistent_name": "expert-asmx",
+      "role": "SOAP/WSDL, XML serialization, handlers and service references.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-remoting": {
+      "display_name": "expert-remoting",
+      "persistent_name": "expert-remoting",
+      "role": "Channels/sinks, MarshalByRefObject, lifetimes and binary/distributed-object contracts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-aspnet-mvc": {
+      "display_name": "expert-aspnet-mvc",
+      "persistent_name": "expert-aspnet-mvc",
+      "role": "Classic ASP.NET MVC/Razor/Areas/filters/model binding/routing; collaborates with ASP.NET Core/API rather than silently equating frameworks.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-winforms": {
+      "display_name": "expert-winforms",
+      "persistent_name": "expert-winforms",
+      "role": "Designer/events/bindings/threading, Windows/VB.NET desktop flows, printing, offline behavior and deployment/update.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-wpf": {
+      "display_name": "expert-wpf",
+      "persistent_name": "expert-wpf",
+      "role": "XAML/visual tree/MVVM/bindings/commands, Windows/VB.NET desktop flows, accessibility and OS integration.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-silverlight": {
+      "display_name": "expert-silverlight",
+      "persistent_name": "expert-silverlight",
+      "role": "Browser-hosted constraints/XAML/RIA services and client-service coupling; no assumed web rewrite.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-dotnet-builds": {
+      "display_name": "expert-dotnet-builds",
+      "persistent_name": "expert-dotnet-builds",
+      "role": "MSBuild/NuGet/project systems, packages.config, SDK-style transitions and compiler/build compatibility; CI/CD remains separate.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-platform-dotnet": {
+      "display_name": "expert-platform-dotnet",
+      "persistent_name": "expert-platform-dotnet",
+      "role": ".NET Framework and modern .NET, C#/VB.NET runtime/compiler compatibility and in-place upgrades; not a replacement for framework specialists.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-orm-dotnet": {
+      "display_name": "expert-orm-dotnet",
+      "persistent_name": "expert-orm-dotnet",
+      "role": "EF6/EF Core/NHibernate/Dapper/ADO.NET/LINQ to SQL mapping, query and transaction behavior; consult engine owners.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-testing-dotnet": {
+      "display_name": "expert-testing-dotnet",
+      "persistent_name": "expert-testing-dotnet",
+      "role": "MSTest/xUnit/NUnit/Moq/assertions/fixtures and characterization/integration tests; Validator retains independent outcome judgment.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-di-dotnet": {
+      "display_name": "expert-di-dotnet",
+      "persistent_name": "expert-di-dotnet",
+      "role": "Unity/Ninject/Autofac/built-in DI, service scopes/lifetimes and composition roots.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-config-dotnet": {
+      "display_name": "expert-config-dotnet",
+      "persistent_name": "expert-config-dotnet",
+      "role": "web.config/app.config/appsettings, transforms, Options, precedence and runtime overlays.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-logging-dotnet": {
+      "display_name": "expert-logging-dotnet",
+      "persistent_name": "expert-logging-dotnet",
+      "role": "NLog/Serilog/log4net/ILogger/OpenTelemetry sinks, structured logs and implementation continuity; Reliability owns cross-stack acceptance.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-serialization-dotnet": {
+      "display_name": "expert-serialization-dotnet",
+      "persistent_name": "expert-serialization-dotnet",
+      "role": "Binary/XML/Newtonsoft/System.Text.Json, stored payload/wire compatibility, defaults and converters; consult each service/framework owner.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-cobol": {
+      "display_name": "expert-cobol",
+      "persistent_name": "expert-cobol",
+      "role": "COBOL, copybooks, JCL, CICS, VSAM, batch/online transactions and mainframe integration. Remains a distinct accountable expert, not a .NET legacy-services skill; actual operations require qualified operators and authorization.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-classic-asp": {
+      "display_name": "expert-classic-asp",
+      "persistent_name": "expert-classic-asp",
+      "role": "Classic ASP/VBScript/includes/session/application state and IIS/COM dependencies; separate from ASP.NET.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-com-interop": {
+      "display_name": "expert-com-interop",
+      "persistent_name": "expert-com-interop",
+      "role": "Registration/interop assemblies/apartments/COM+/DCOM/binary contracts; collaborates with desktop, hosting and service experts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-react": {
+      "display_name": "expert-react",
+      "persistent_name": "expert-react",
+      "role": "React/Next.js components, routing/rendering/data flows and progressive transitions.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-blazor": {
+      "display_name": "expert-blazor",
+      "persistent_name": "expert-blazor",
+      "role": "Blazor UI/render modes, component/interaction lifecycle and client/server contracts; consult .NET runtime experts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-vue": {
+      "display_name": "expert-vue",
+      "persistent_name": "expert-vue",
+      "role": "Vue/Nuxt components, state, routing/rendering and compatibility.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-angular": {
+      "display_name": "expert-angular",
+      "persistent_name": "expert-angular",
+      "role": "Angular components/templates/DI, reactive flows, tooling and upgrade seams; distinct from AngularJS.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-svelte": {
+      "display_name": "expert-svelte",
+      "persistent_name": "expert-svelte",
+      "role": "Svelte/SvelteKit reactivity, rendering and client/server contracts.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-astro": {
+      "display_name": "expert-astro",
+      "persistent_name": "expert-astro",
+      "role": "Static/hybrid rendering, islands and integration boundaries.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-nodejs-typescript": {
+      "display_name": "expert-nodejs-typescript",
+      "persistent_name": "expert-nodejs-typescript",
+      "role": "Typed APIs, Node runtime/module/package/build and dependency compatibility.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-bun": {
+      "display_name": "expert-bun",
+      "persistent_name": "expert-bun",
+      "role": "Bun runtime/package/test/tooling differences and Node compatibility proof; kept distinct, not assumed interchangeable.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-go": {
+      "display_name": "expert-go",
+      "persistent_name": "expert-go",
+      "role": "Go services, module/build/runtime, goroutines/concurrency and interop constraints.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-rust": {
+      "display_name": "expert-rust",
+      "persistent_name": "expert-rust",
+      "role": "Rust services, ownership/async/build/FFI and native dependencies; distinct from Go.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-python": {
+      "display_name": "expert-python",
+      "persistent_name": "expert-python",
+      "role": "Broadened Python: FastAPI/Django/Flask, WSGI/ASGI, packaging/runtime, workers/batch and concurrency. Retains FastAPI expertise without mandating it.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-aspire": {
+      "display_name": "expert-aspire",
+      "persistent_name": "expert-aspire",
+      "role": "Aspire distributed-application modeling, orchestration, service integration and telemetry for **polyglot applications, not .NET-only applications**. Collaborates with each language/runtime expert; not automatic adoption or cloud authorization. Only aspire.dev and the official Aspire repository are authoritative.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-dapr": {
+      "display_name": "expert-dapr",
+      "persistent_name": "expert-dapr",
+      "role": "Sidecars/components, service invocation, state/pub-sub contracts, resilience and hosting integration; separate from Aspire orchestration and mandatory adoption.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-react-native": {
+      "display_name": "expert-react-native",
+      "persistent_name": "expert-react-native",
+      "role": "React Native device/platform interaction, native bridges, deployment and client/API contracts; distinct mobile expert, not a conditional web skill.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-flutter": {
+      "display_name": "expert-flutter",
+      "persistent_name": "expert-flutter",
+      "role": "Dart/Flutter device/web interactions, widgets/state, platform channels and backend contracts; distinct from React Native and web frameworks.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "product-analyst": {
+      "display_name": "product-analyst",
+      "persistent_name": "product-analyst",
+      "role": "Engagement framing, stakeholder discovery, problem/outcomes, business requirements and integrated PRD. Human customer owns decisions/acceptance; Documentation assists presentation; Planner owns technical delivery plan.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "security-privacy": {
+      "display_name": "security-privacy",
+      "persistent_name": "security-privacy",
+      "role": "Qualified security/privacy assurance, threat/control/data-privacy evidence and planning risk. Distinct from Identity, Secrets and Rai; customer legal/compliance obligations and waivers require authorized human owners, never invented certification.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "expert-aspnet-core-api": {
+      "display_name": "expert-aspnet-core-api",
+      "persistent_name": "expert-aspnet-core-api",
+      "role": "Modern ASP.NET Core/API endpoints, middleware, routing, binding, hosting integration and API compatibility. Distinct from classic ASP.NET MVC and general .NET runtime knowledge.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "azure-platform": {
+      "display_name": "azure-platform",
+      "persistent_name": "azure-platform",
+      "role": "Azure landing zones, subscription/management boundaries, policy, governance, region/service fit, network/DNS, quotas, resource organization and pricing/sizing assumptions. Not Hosting's application topology or CI/CD's delivery automation.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "reliability": {
+      "display_name": "reliability",
+      "persistent_name": "reliability",
+      "role": "Cross-stack reliability, performance, observability, load/capacity, availability/recovery, SLOs and measurement methods. Language-specific logging experts own implementation; Validator independently verifies outcomes.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "accessibility-ux": {
+      "display_name": "accessibility-ux",
+      "persistent_name": "accessibility-ux",
+      "role": "Web, desktop and mobile accessibility/UX assurance: keyboard/focus, assistive technology, interaction flows and regression criteria. Framework/client experts implement changes; does not duplicate their ownership.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "data-transition": {
+      "display_name": "data-transition",
+      "persistent_name": "data-transition",
+      "role": "Cross-engine reconciliation, authoritative write ownership, CDC/backfill, rehearsal, cutover and rollback/reverse-data assurance. Planner owns plan integration; DB/application experts supply semantics; Validator independently verifies.",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "scribe": {
+      "display_name": "Scribe",
+      "persistent_name": "Scribe",
+      "role": "Decision Merger",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "ralph": {
+      "display_name": "Ralph",
+      "persistent_name": "Ralph",
+      "role": "Work Monitor",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "rai": {
+      "display_name": "Rai",
+      "persistent_name": "Rai",
+      "role": "RAI Reviewer",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    },
+    "fact-checker": {
+      "display_name": "Fact Checker",
+      "persistent_name": "Fact Checker",
+      "role": "Devil's Advocate & Verification Agent",
+      "universe": "descriptive",
+      "status": "active",
+      "created_at": "2026-11-12T12:16:49.071Z",
+      "updated_at": "2026-11-12T12:16:49.071Z",
+      "legacy_named": false
+    }
+  },
+  "transaction_id": "534197b9-e6d0-481a-8c91-2b9bc1fcd0d5"
+}

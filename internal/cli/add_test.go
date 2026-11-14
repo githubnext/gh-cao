@@ -59,10 +59,12 @@ func TestAddCampaignNative(t *testing.T) {
 	writeTestFile(t, "other/preserve.txt", "must survive")
 	writeTestFile(t, "activity/preserve.txt", "runtime must survive")
 	archive := campaignArchive(t, map[string]string{
-		"catalog/demo/cao.json":          testCampaignDeclaration,
-		"catalog/demo/run.sh":            "#!/bin/sh\nexit 0\n",
-		"catalog/demo/intelligence.json": `{"campaign":"demo"}`,
-		"catalog/activity/preserve.txt":  "must not copy",
+		"catalog/demo/cao.json":                                testCampaignDeclaration,
+		"catalog/demo/run.sh":                                  "#!/bin/sh\nexit 0\n",
+		"catalog/demo/intelligence.json":                       `{"campaign":"demo"}`,
+		"catalog/demo/squad/.github/agents/squad.agent.md":     "native coordinator",
+		"catalog/demo/squad/.squad/agents/engineer/charter.md": "specialist",
+		"catalog/activity/preserve.txt":                        "must not copy",
 	})
 	var calls [][]string
 	root, stdout, stderr := testCommand(t, campaignGH(t, archive, &calls), nil)
@@ -114,10 +116,12 @@ func TestAddCampaignNative(t *testing.T) {
 		t.Fatalf("policy outside declared workers changed: %v", policy)
 	}
 	for file, want := range map[string]string{
-		"other/preserve.txt":                 "must survive",
-		"activity/preserve.txt":              "runtime must survive",
-		".github/cao/intelligence/demo.json": `{"campaign":"demo"}`,
-		"demo/run.sh":                        "#!/bin/sh\nexit 0\n",
+		"other/preserve.txt":                           "must survive",
+		"activity/preserve.txt":                        "runtime must survive",
+		".github/cao/intelligence/demo.json":           `{"campaign":"demo"}`,
+		"demo/run.sh":                                  "#!/bin/sh\nexit 0\n",
+		"demo/squad/.github/agents/squad.agent.md":     "native coordinator",
+		"demo/squad/.squad/agents/engineer/charter.md": "specialist",
 	} {
 		if content, err := os.ReadFile(file); err != nil || string(content) != want {
 			t.Fatalf("%s = %q, %v", file, content, err)
@@ -166,6 +170,8 @@ func TestAddLocalCampaignCopiesOnlyTrackedFiles(t *testing.T) {
 	catalog := t.TempDir()
 	writeTestFile(t, filepath.Join(catalog, "demo", "cao.json"), testCampaignDeclaration)
 	writeTestFile(t, filepath.Join(catalog, "demo", "tracked.mjs"), "export const tracked = true;\n")
+	writeTestFile(t, filepath.Join(catalog, "demo", "squad", ".github", "agents", "squad.agent.md"), "native coordinator")
+	writeTestFile(t, filepath.Join(catalog, "demo", "squad", ".squad", "agents", "engineer", "charter.md"), "specialist")
 	for _, args := range [][]string{{"init", "--quiet", catalog}, {"-C", catalog, "add", "demo"}} {
 		if output, err := exec.Command("git", args...).CombinedOutput(); err != nil {
 			t.Fatalf("git fixture: %v: %s", err, output)
@@ -199,6 +205,14 @@ func TestAddLocalCampaignCopiesOnlyTrackedFiles(t *testing.T) {
 	}
 	if content, err := os.ReadFile("demo/tracked.mjs"); err != nil || !strings.Contains(string(content), "tracked = true") {
 		t.Fatalf("tracked source not copied: %q %v", content, err)
+	}
+	for file, want := range map[string]string{
+		"demo/squad/.github/agents/squad.agent.md":     "native coordinator",
+		"demo/squad/.squad/agents/engineer/charter.md": "specialist",
+	} {
+		if content, err := os.ReadFile(file); err != nil || string(content) != want {
+			t.Fatalf("hidden team asset %s = %q, %v", file, content, err)
+		}
 	}
 }
 

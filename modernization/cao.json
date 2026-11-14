@@ -1,0 +1,8 @@
+{
+  "campaign": "modernization",
+  "orchestrator": "modernization",
+  "workers": {
+    "task": "modernization-task"
+  },
+  "standalone-workflows": ["modernization-system"]
+}

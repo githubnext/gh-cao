@@ -150,4 +150,16 @@ func mergeCampaignDeclaration(policy map[string]any, declaration *campaignDeclar
 		workers[worker.Name] = value
 	}
 	campaign["workers"] = workers
+	if len(declaration.StandaloneWorkflows) > 0 {
+		workflows, _ := control["workflows"].(map[string]any)
+		if workflows == nil {
+			workflows = map[string]any{}
+			control["workflows"] = workflows
+		}
+		for _, name := range declaration.StandaloneWorkflows {
+			if _, exists := workflows[name]; !exists {
+				workflows[name] = map[string]any{"enabled": false, "mode": "review", "max-mode": "review"}
+			}
+		}
+	}
 }
