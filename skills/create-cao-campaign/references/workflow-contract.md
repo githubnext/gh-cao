@@ -65,6 +65,14 @@ Use this checklist after the campaign outcome and worker split are stable.
 
 ## Shared requirements
 
+- A package descriptor MAY include `standalone-workflows`, a list of unique
+  kebab-case workflow slugs distinct from its orchestrator and workers. Each
+  must import shared control with `role: standalone` and its own exact workflow
+  identity, never a campaign/worker identity. Installation registers each
+  auxiliary workflow disabled with `mode: review` and `max-mode: review`,
+  preserving existing operator declarations. Campaign workflow enable/disable
+  inventory includes these files, but enabling a campaign does not enable their
+  standalone policy. See the optional `modernization` package for an example.
 - Declare the campaign and exact worker workflow slugs in
   `.github/workflows/cao.json`.
 - Put the optional

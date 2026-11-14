@@ -10,7 +10,7 @@ export const unitTestAreas = {
   activity: [/^activity-/, /^workflow-value-publication\./, /^workflow-values-recurring\./, /^actions-log\./, /^github-api-budget\./, /^github-telemetry\./],
   dashboard: [/^dashboard-/, /^cli-action-/, /^server-azure-/],
   workflows: [
-    /^workflow-contract-/, /^control-/, /^campaign-/, /^contoso-/,
+    /^workflow-contract-/, /^control-/, /^campaign-/, /^contoso-/, /^modernization\./,
     /^github-apps\./, /^gh-aw-version-/, /^release-workflow\./, /^release-schedule\./, /^build-release\./,
     /^add-operational-value-skill\./, /^token-intervention-lifecycle\./,
   ],

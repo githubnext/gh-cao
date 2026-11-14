@@ -67,6 +67,12 @@
       ]
     },
     "workflows": {
+      "modernization-system": {
+        "enabled": false,
+        "mode": "review",
+        "max-mode": "review",
+        "max-repositories": 6
+      },
       "cao-issue-handoff": {
         "mode": "review",
         "max-repositories": 1,
@@ -84,6 +90,19 @@
       }
     },
     "campaigns": {
+      "modernization": {
+        "icon": "workflow",
+        "enabled": false,
+        "mode": "review",
+        "max-repositories": 6,
+        "workers": {
+          "task": {
+            "workflow": "modernization-task",
+            "enabled": false,
+            "max-mode": "review"
+          }
+        }
+      },
       "continuous-architecture-review": {
         "icon": "code",
         "enabled": false,
