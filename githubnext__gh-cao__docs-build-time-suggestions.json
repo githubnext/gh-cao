@@ -1,36 +1,7 @@
 {
   "source_sha": "2000a4eaf72b334211dc7d95121855e76d840f40",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-13T17:20:18Z",
-      "worker_run_id": 43470744333,
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43465706802,
-        43447728981,
-        43447111490,
-        43440055797,
-        43430232636,
-        43430166810,
-        43388781287,
-        43380585034,
-        43378597209,
-        43378369544,
-        43374719202,
-        43373049149,
-        43371878284,
-        43371269326,
-        43371217266,
-        43368963164,
-        43368845651,
-        43362224525,
-        43360893141,
-        43347280419
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43465706802 back to 43347280419; created 2026-11-13T01:45:42Z to 16:44:14Z; all 20 success, 19 push + 1 schedule 43371878284; none queued or in progress; 0 failed, 0 cancelled; source 75c762e = HEAD = source_sha; window identical to the 16:55Z evaluation, jobs re-fetched this run). Concurrency: run creation to build start median 3 s; 3 runs waited directly behind a predecessor deploy (43368963164 34 s behind 43368845651; 43371269326 46 s behind 43371217266; 43430232636 54 s behind 43430166810), each build starting about 3 s after predecessor deploy end; sum 191 s over 20 runs. Queueing is pre-build, so it moves end-to-end latency only; execution (build start to deploy end) median 87.5 s (p90 98), 15% gate 13.1 s unreachable by scheduling. Rejected for safety, unchanged: cancel-in-progress true (cuts in-flight Pages publication); deploy-only or build-out-of-group concurrency (out-of-order publication). Avoidable rebuilds: commits API, 19 push heads; 0 of 19 touched only test or non-build paths (test files always co-changed with a src, docs, aw.yml, public or shared/policy.mjs input; dashboard/site/scripts/build.mjs imports .github/workflows/shared/policy.mjs), so path tightening would save 0 in this window. Schedule 43371878284 (cron 05:23) repeated SHA 5943848 about 5 min after push 43371269326: designed daily synthetic-date refresh, once per day, zero median effect. No suggestion; no issue created; no open issues with worker label. Carry-forward for dependency category: fetch-depth 0 is REQUIRED for published freshness.sourceCommittedAt (docs/plugins/starlight-agent/resource.ts resolveBuildProvenance runs git log -1 per source file; a shallow checkout would silently drop that field), so the shallow idea is rejected; only a blob-filtered partial clone remains, unmeasured (actions/checkout has no filter input). next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-13T17:38:10Z",
       "worker_run_id": "43473225781",
@@ -869,6 +840,35 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z); run list re-read at this evaluation: no docs.yml run since 00:50:15Z, none queued or in progress; source 2000a4e = HEAD = source_sha. Window unchanged, so stored run_samples were reused (completed-run timings immutable; no Jobs API calls). Excluded and disclosed: 43506161539 failed (push 7c8faf4, install step; docs and deploy skipped). 0 cancelled; 0 schedule runs. n=19 successful push runs; 5-run gate met. Recomputed from run_samples (median, p90): exec 83 (93) s; Upload Pages artifact 2 (3) s = 2.4 percent; deploy job 9 (12) s = 10.8 percent, which includes GitHub-managed Deploy Pages (about 7 s). Build-to-deploy queue about 5 s and Configure Pages 0 s carried from the 01:53Z jobs-API evaluation (same window). Removable transfer (configure, upload, handoff/queue, deploy setup) about 8 s; medians do not add exactly. That is about 10 percent of exec median; 15 percent gate 12.45 s and 60 s gate unreachable even with all of it removed. Merging deploy into build saves about 6 s (queue plus setup) but needs id-token: write and the github-pages environment in the job that runs npm ci and Astro; rejected again (least privilege). Artifact about 8.3 MB; shrinking saves about 1 s. Checkout (30 percent of exec) remains covered by open issue 20815 and was not re-raised. No new evidence; no suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-14T03:52:43Z",
+      "worker_run_id": 43553496776,
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533,
+        43503506778,
+        43502660435,
+        43502562196,
+        43494667529,
+        43484369040,
+        43465706802,
+        43447728981,
+        43447111490,
+        43440055797,
+        43430232636,
+        43430166810,
+        43388781287,
+        43380585034
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43536796952 back to 43380585034; created 2026-11-13T06:42:40Z to 2026-11-14T00:50:15Z; identical to the 03:34Z window; none queued or in progress; no docs.yml run since 00:50:15Z; source 2000a4e = HEAD = source_sha). Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; build and deploy skipped). 0 cancelled; 0 schedule runs in window. n=19 successful push runs; 5-run gate met. Concurrency wait (run created to build created, successful runs): median 1 s, p90 51 s (nearest rank), max 68 s (43504143936), sum 173 s. Jobs API spot-check: 43504143936 build created 20:44:24Z = predecessor 43504093917 deploy completed 20:44:23Z; 43430232636 build created 13:03:27Z = predecessor 43430166810 deploy completed 13:03:27Z. Waits are queue time: exec median 83 s (p90 93) from stored run_samples recomputed, so median execution saving 0 s; 15 percent gate 12.45 s and 60 s gate unmet even with all waits removed. Removing workflow-level serialization would allow out-of-order publication (rejected). Avoidable rebuilds: 0 of 19 push publications trigger-only (carried from the 02:24Z evaluation of this identical window). Schedule 05:23Z synthetic-date refresh is outside the window and designed; zero median effect. Trigger gap noted, not build time: scripts/dashboard-demo-data.mjs feeds triggered scripts/simulate-dashboard-pages.mjs but is not a docs.yml path; the daily cron bounds staleness to about 24 h. No suggestion; no issue created; open issue 20815 (checkout, OPEN, 0 comments) not repeated. next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1251,53 +1251,37 @@
     }
   },
   "scheduling_sample": {
-    "evaluated_at": "2026-11-14T02:24:00Z",
+    "evaluated_at": "2026-11-14T03:52:43Z",
     "window": "43380585034..43536796952 (06:42Z 2026-11-13 to 00:50Z 2026-11-14)",
     "n_success_push": 19,
     "failed": [
       "43506161539"
     ],
+    "cancelled": [],
     "schedule_in_window": 0,
-    "concurrency_wait_s_median_p90_max": [
+    "concurrency_wait_s_successful_median_p90_max_sum": [
       1,
-      42,
-      68
+      51,
+      68,
+      173
     ],
     "waits_ge_40s": [
       "43504143936:68",
       "43430232636:51",
       "43502660435:42"
     ],
-    "wait_sum_s": 174,
-    "wait_by_run_s": {
-      "43536796952": 1,
-      "43536491714": 1,
-      "43506161539": 1,
-      "43505502149": 1,
-      "43504143936": 68,
-      "43504093917": 1,
-      "43503897533": 1,
-      "43503506778": 0,
-      "43502660435": 42,
-      "43502562196": 1,
-      "43494667529": 1,
-      "43484369040": 1,
-      "43465706802": 1,
-      "43447728981": 1,
-      "43447111490": 1,
-      "43440055797": 0,
-      "43430232636": 51,
-      "43430166810": 1,
-      "43388781287": 0,
-      "43380585034": 0
-    },
+    "spot_checked_jobs_api": [
+      "43504143936",
+      "43430232636"
+    ],
     "exec_s_median_p90": [
       83,
       93
     ],
     "avoidable_pushes": 0,
+    "avoidable_pushes_source": "02:24Z evaluation, identical window",
     "trigger_gaps": [
-      "scripts/dashboard-demo-data.mjs",
+      "scripts/dashboard-demo-data.mjs (imported by triggered scripts/simulate-dashboard-pages.mjs; not a docs.yml path)",
       "*/README.md",
       "workflows/cao.json"
     ]
