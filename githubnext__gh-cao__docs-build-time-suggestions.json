@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T22:31:00Z",
-   "worker_run_id": "43519522791",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; no docs.yml run queued or in progress except stale 37642403569; source 7cb5134 = HEAD = source_sha; window identical to the 22:19Z evaluation, re-listed and job metadata re-read this run). Excluded and disclosed: 1 failed 43506161539 (push 7c8faf4; Install dependencies failed at 17 s; Build and deploy skipped; Pages still reflects f695ad3 deployed by 43505502149 at 20:53:41Z; job log HTTP 403 DIFC, cause unverified). n=19 successful push runs; no schedule or cancelled run in window; 5-run gate met. Exec (build start to deploy end) median 84 s, p90 93 s. Build job queue median 3 s; deploy queue median 5 s. Run-to-build wait behind concurrency group documentation-pages (cancel-in-progress false): median 1 s, p90 51 s, max 68 s; 3 of 19 waited 42, 51 and 68 s, each ending exactly when the predecessor run completed (queue, not execution). Median saving from any scheduling change 0 s; 15 percent gate 12.6 s and 60 s gate unmet. Avoidable rebuilds: 0 of 19 push runs; every push compare range (21 compares) contained at least one output-affecting trigger path (docs/**, dashboard/site/**, package files, docs.yml, or shared/actions-log consumed by configure-site). No same-SHA scheduled duplicate in window. Rejected as before: cancel-in-progress true (could cut an in-flight Pages deploy), deploy-only or split build concurrency (out-of-order publish), dropping the cron (synthetic-date freshness). No suggestion; no issue created; open issue 20815 (blobless checkout) unchanged and not repeated. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T22:55:05Z",
    "worker_run_id": "43522372012",
@@ -870,6 +841,34 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; within 14 days; none queued or in progress; source 4d25cbd = HEAD = source_sha; window unchanged since the 05:24Z schedule run). Excluded and disclosed: 43506161539 failed at Install dependencies (push 7c8faf4; Build, Pages and deploy skipped; logs not read). 0 cancelled. Comparable n=19 successes (18 push + 1 schedule 43561388555); 5-run gate met. Jobs API spot-check of 43561388555, 43536796952 and 43505502149 matched stored rows within 1 s (rounding); jobs endpoint returned no ETag. Medians (p90, nearest rank, n=19): exec 83 s (92); build job 67 (79); handoff 5 (6); Configure Pages 0 (1); Upload Pages artifact 2 (3); deploy Set up job 1 (1); Deploy Pages 7 (8, GitHub-managed). Removable transfer (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 10; with +1 s rounding bound median 10, max 11 = 13.3 percent of median exec at most. 15 percent gate 12.45 s and 60 s gate unreachable. Merging deploy into build saves about 6 s and stays rejected (id-token write and environment gate on the build job that runs npm ci). Artifact about 8.4 MB; shrinking saves about 1 s. Open issue 20815 (blobless checkout) unchanged, represented, not repeated. No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T09:18:54Z",
+   "worker_run_id": "43579716229",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529",
+    "43484369040",
+    "43465706802",
+    "43447728981",
+    "43447111490",
+    "43440055797",
+    "43430232636",
+    "43430166810",
+    "43388781287"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43388781287 created 2026-11-13T07:51:43Z to 43561388555 created 2026-11-14T05:24:33Z; within 14 days; run list re-read 09:18Z: unchanged, none queued or in progress; source 4d25cbd = HEAD = source_sha). 43506161539 failed (excluded from timing, kept as evidence). Avoidable-rebuild test: changed files per push run from the compare API (previous docs.yml head to this head), classified against the Pages build inputs read by docs:build and dashboard:pages:build. All 19 successful push runs matched at least one real build input (docs/**, dashboard/site/src, dashboard/report, package*.json, aw.yml or */aw.yml via catalog glob, shared policy/authority/value-acquisition/actions-log closure, cao.json), so avoidable pushes = 0; narrowing trigger paths would skip no run in this window. Non-input trigger matches (dashboard/site/test, shared files not in the closure) never produced a run alone. Schedule 43561388555 is the daily freshness refresh (about 82 s), not avoidable. Concurrency: 0 cancelled runs; queue wait median 1 s, p90 51 s is queue time, not execution, so it does not count toward the 60 s or 15 percent gate; cancel-in-progress true would risk deploy safety. Freshness gaps, not timing: docs inputs not in triggers (*/README.md read by catalog glob, cao.json, scripts/dashboard-demo-data.mjs). Checkout (median 24.5 s, largest step) is represented by open issue 20815 (0 comments, updated 2026-11-13T17:41Z), not re-filed. No suggestion; no issue created; next_category advanced to dependency installation and caching."
   }
  ],
  "docs_cache_model": {
@@ -1267,42 +1266,34 @@
   }
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-14T07:20:30Z",
-  "window": "43388781287..43561388555 (07:51Z 2026-11-13 to 05:24Z 2026-11-14); unchanged at 07:20Z; no queued or in-progress docs.yml run",
+  "evaluated_at": "2026-11-14T09:18:54Z",
+  "window": "43388781287..43561388555 (07:51Z 2026-11-13 to 05:24Z 2026-11-14); unchanged at 09:18Z; no queued or in-progress docs.yml run",
   "n_success_push": 18,
+  "n_success_schedule": 1,
   "failed": [
    "43506161539"
   ],
   "cancelled": [],
-  "schedule_in_window": 1,
-  "n_success_schedule": 1,
+  "avoidable_push_test": "compare API per push run (previous docs head to this head); classified against trigger paths and Pages build inputs; output-input trigger matches per push run: 43388781287:1 43430166810:1 43430232636:1 43440055797:3 43447111490:1 43447728981:1 43465706802:7 43484369040:1 43494667529:3 43502562196:13 43502660435:1 43503506778:1 43503897533:1 43504093917:1 43504143936:1 43505502149:1 43536491714:1 43536796952:1 (43506161539 failed: 33)",
+  "avoidable_pushes": 0,
+  "build_inputs_verified": "docs/**, astro.config.mjs, public/**, package*.json, aw.yml and */aw.yml (docs/lib/catalog.ts glob and ?raw import), */README.md (catalog glob, not a trigger), dashboard/site/** excluding test, dashboard/report/**, scripts/simulate-dashboard-pages.mjs, scripts/dashboard-demo-data.mjs (not a trigger), .github/workflows/cao.json (dashboard build reads it, not a trigger), shared policy/authority/value-acquisition/actions-log (imported by dashboard build)",
   "concurrency_wait_s_successful_median_p90_max_sum": [
    1,
    51,
    68,
    173
   ],
-  "waits_ge_40s": [
-   "43504143936:68",
-   "43430232636:51",
-   "43502660435:42"
-  ],
-  "spot_checked_jobs_api": [
-   "43504143936 re-verified 68 s at 07:20Z",
-   "43430232636 re-verified 51 s at 07:20Z"
-  ],
   "exec_s_median_p90": [
    82,
    92
   ],
-  "avoidable_pushes": 0,
-  "avoidable_pushes_source": "02:24Z evaluation, identical window; 07:20Z: 2cb6d9c touched .github/workflows/cao.json (read by dashboard/site/scripts/build.mjs lines 153, 170) so output-relevant; 54e08aa touched docs/components/ThemeToggle.astro",
   "trigger_gaps": [
-   "scripts/dashboard-demo-data.mjs (imported by triggered scripts/simulate-dashboard-pages.mjs; not a docs.yml path)",
-   "*/README.md",
-   "workflows/cao.json (read by Pages build; not a trigger)"
+   "*/README.md (catalog glob)",
+   "server/README.md, dashboard/README.md (catalog glob reads top-level READMEs)",
+   ".github/workflows/cao.json (read by dashboard build; not a trigger)",
+   "scripts/dashboard-demo-data.mjs (read by simulate-dashboard-pages.mjs; not a trigger)"
   ],
-  "trigger_observation": "4d25cbd (05:11Z, Kubernetes CI #20870) changed .github/workflows/docs.yml and shared/** but has no push-triggered docs.yml run; 05:24Z schedule 43561388555 rebuilt it successfully. Cause not determined from API evidence; freshness, not timing."
+  "trigger_observation": "4d25cbd (05:11Z) changed docs.yml and shared/** but has no push-triggered run; cause not determined from API evidence; freshness, not timing."
  },
  "transfer_samples": {
   "evaluated_at": "2026-11-14T08:53:17Z",
