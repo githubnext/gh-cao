@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-13T23:18:36Z",
-   "worker_run_id": "43525630597",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "43506161539",
-    "43505502149",
-    "43504143936",
-    "43504093917",
-    "43503897533",
-    "43503506778",
-    "43502660435",
-    "43502562196",
-    "43494667529",
-    "43484369040",
-    "43465706802",
-    "43447728981",
-    "43447111490",
-    "43440055797",
-    "43430232636",
-    "43430166810",
-    "43388781287",
-    "43380585034",
-    "43378597209",
-    "43378369544"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; within 14 days; none queued or in progress; source 7cb5134 = HEAD = source_sha; identical to the 22:31Z and 22:55Z windows; no docs.yml run since 20:56:37Z). Excluded and disclosed: 43506161539 failed (Install dependencies 17 s, cache-miss path, cause unverified; build and deploy skipped); no cancelled runs; no schedule run in window. n=19 push successes; 5-run gate met. Jobs API re-fetched for all 20 runs; medians match run_samples. Category step Build documentation (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 12 s, p90 15 s, range 9-15 s = 14.3 percent of median exec 84 s (p90 93 s). 15 percent gate = 12.6 s; the whole step is 12 s, so no Astro-internal change (caching, parallelism, validator split) can reach the gate, and removing it breaks deploy. Log read HTTP 403 difc_forbidden re-probed 23:18Z on build job 132161984137 (not retried); the astro versus validator split stays unmeasured and is not needed for the decision. Issue list call returned repository-disabled-issues while issue 20815 (blobless checkout, OPEN, unchanged) resolves by number; not repeated. No suggestion; no issue created; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-13T23:34:44Z",
    "worker_run_id": "43527589813",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z; no docs.yml run since 05:24Z; source 4d25cbd = HEAD = source_sha; run list unchanged since the 07:52Z and 09:18Z evaluations). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies 17 s on a cache miss; job log HTTP 403, cause unverified). 0 cancelled, 0 in progress; comparable n=18 push successes plus 1 schedule (43561388555); 5-run gate met. Jobs API rows reused (completed runs immutable); spot-check of 43561388555 matched (install 10 s, checkout 37 s). Medians (p90, push n=18): exec 82 (92) s; Set up Node.js 3.5 (7); Install dependencies 15.5 (24) = 18.9 percent of exec median; 15 percent gate = 12.3 s. Post-change install 7 and 9 s (push), 10 s (schedule). Cache key verified: hashFiles(root package-lock.json) = sha256 of the file's sha256 digest, so 7808ecf8 matches HEAD root lock and the dashboard lock is outside the key; 19/19 successes restore exact key (Post Set up Node.js 0 to 1 s). Candidates, none clear the gate on current evidence: node_modules cache (saves install minus restore; post-change ceiling about 9 s; window median needs restore at or below 3.2 s versus 3.5 s setup median for the 251 MiB npm cache; restore unmeasured; #19689 CLOSED NOT_PLANNED 2026-11-07 for the same idea, not repeated); root --omit=dev (about 2.4 s est.); parallel or flag tweaks (seconds); root --ignore-scripts (correctness risk). Checkout (median 24.5 s, newest 37 s) is the largest removable step but is the same work as open issue 20815 (OPEN, 0 comments, checked 09:31Z), so no duplicate. Reliability caveat only: exact-key restore makes a root lock change a cache miss (20:56Z failure). No suggestion; no issue; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T09:52:43Z",
+   "worker_run_id": "43582334509",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529",
+    "43484369040",
+    "43465706802",
+    "43447728981",
+    "43447111490",
+    "43440055797",
+    "43430232636",
+    "43430166810",
+    "43388781287"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z); run list unchanged at 09:52Z (no queued or in-progress run; source 4d25cbd = source_sha). Excluded and disclosed: 43506161539 FAILED (install, cache miss; build and deploy skipped); 0 cancelled. Comparable n=18 push + 1 schedule = 19 successes; 5-run gate met. Build documentation step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 12 s, p90 15 s, stored Jobs API rows reused (completed runs immutable); spot-check 43561388555 = 14 s and 43536796952 = 10 s matched. 15 percent gate = 12.3 s of exec median 82 s; the whole step is below it, and removing it would drop docs validation and the Pages build, so no Astro-internal change can reach the gate. Astro-vs-validator split unmeasured (job logs HTTP 403 in earlier runs; not needed because the step itself bounds any saving). No suggestion; no issue; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1539,5 +1539,17 @@
    4
   ],
   "note": "Jobs API spot-check matched run_samples rows; reuse rows by run ID"
+ },
+ "docs_step_check": {
+  "verified_at": "2026-11-14T09:52:43Z",
+  "runs": [
+   "43561388555",
+   "43536796952"
+  ],
+  "docs_s": [
+   14,
+   10
+  ],
+  "note": "Jobs API spot-check matched stored docs column; reuse rows by run ID"
  }
 }
