@@ -16,6 +16,7 @@
     <project.build.outputTimestamp>2026-01-01T00:00:00Z</project.build.outputTimestamp>
     <jackson.version>2.18.11</jackson.version>
     <junit.version>5.10.3</junit.version>
+    <postgresql.version>42.7.7</postgresql.version>
   </properties>
 
   <dependencies>
@@ -23,6 +24,11 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
