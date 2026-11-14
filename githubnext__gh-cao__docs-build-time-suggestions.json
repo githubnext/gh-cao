@@ -1,36 +1,7 @@
 {
  "source_sha": "185fd262bc2f85c7f8a2cb7a7ae0c62840ffb414",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T09:52:43Z",
-   "worker_run_id": "43582334509",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "43561388555",
-    "43536796952",
-    "43536491714",
-    "43506161539",
-    "43505502149",
-    "43504143936",
-    "43504093917",
-    "43503897533",
-    "43503506778",
-    "43502660435",
-    "43502562196",
-    "43494667529",
-    "43484369040",
-    "43465706802",
-    "43447728981",
-    "43447111490",
-    "43440055797",
-    "43430232636",
-    "43430166810",
-    "43388781287"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z); run list unchanged at 09:52Z (no queued or in-progress run; source 4d25cbd = source_sha). Excluded and disclosed: 43506161539 FAILED (install, cache miss; build and deploy skipped); 0 cancelled. Comparable n=18 push + 1 schedule = 19 successes; 5-run gate met. Build documentation step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 12 s, p90 15 s, stored Jobs API rows reused (completed runs immutable); spot-check 43561388555 = 14 s and 43536796952 = 10 s matched. 15 percent gate = 12.3 s of exec median 82 s; the whole step is below it, and removing it would drop docs validation and the Pages build, so no Astro-internal change can reach the gate. Astro-vs-validator split unmeasured (job logs HTTP 403 in earlier runs; not needed because the step itself bounds any saving). No suggestion; no issue; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T10:17:22Z",
    "worker_run_id": "43584266775",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z); gh run list re-read at 19:32Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source 185fd26 = HEAD = source_sha. Excluded and disclosed: 43506161539 failed at Install dependencies (push 7c8faf4, 17 s on a cache miss; logs not read); 4 failures at Build documentation since 15:58Z (43613020723, 43616204011, 43621919773, 43623754509; Install passed in each). n=15 successes (14 push + schedule 43561388555); 5-run gate met. Jobs API spot-check: 43611206032 install 11 s and setup 5 s; 43623754509 install 10 s and setup 2 s; both match stored rows. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 present (263 MB, created 2026-11-13T20:57:12Z, lastAccessed 2026-11-14T19:28:48Z); post step 0 to 1 s in successful post-rollover runs (no save), so hit is inferred, not read from logs. Install post-rollover (current key, n=10 incl. 4 build-failed) median 9 s, p90 11; pre-rollover (n=9 successes) median 15 s, p90 24. Exec median 81 s, p90 92; 15 percent gate 12.15 s; full install removal saves at most 9 s (11.1 percent) and cannot reach 60 s; a node_modules cache saves at most install minus restore, so it cannot reach the gate. Setup-node median 4 s is required to provide Node. Checkout (median 24 s) is the only dependency-adjacent step above gate and is represented by open issue 20815 (OPEN, 0 comments, updated 2026-11-13T17:41:19Z); no duplicate. No suggestion; no issue; noop; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T19:53:17Z",
+   "worker_run_id": "43634152477",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196",
+    "43494667529",
+    "43484369040"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z); gh run list re-read at 19:52Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source 185fd26 = HEAD = source_sha. Excluded and disclosed: 4 FAILED at Build documentation (43613020723, 43616204011, 43621919773, 43623754509; Install passed; docs step 10 to 15 s before failure; cause unverified, job logs unreadable) and 43506161539 FAILED at Install (docs not reached). n=15 successes (14 push + schedule 43561388555); 5-run gate met. Category step Build documentation (npm run docs:build, as recorded in earlier evaluations): median 12 s, p90 15, range 9-15 s = 14.8 percent of median exec 81 s (p90 92). 15 percent gate 12.15 s; removing the whole step saves at most 12 s and deploy consumes its output, so the gate is unreachable; 60 s gate unreachable. Astro-internal split unmeasured (logs unreadable) and not decision-relevant. Jobs API spot-checks: 43623754509 docs 15 s and 43608206381 docs 15 s matched stored rows. Reliability, not timing: 4 consecutive Build documentation failures since 15:58Z; last successful Pages deploy 43611206032 (15:39Z); open-issue search 19:52Z found no tracking issue; maintainer triage needed. No suggestion; no create_issue; noop used. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1189,9 +1189,9 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T19:33:57Z",
+   "observed_at": "2026-11-14T19:53:17Z",
    "source": "docs.yml run 43623754509 (worker 43632340041)",
-   "note": "Reliability, not timing: Build documentation failed on 4 consecutive push runs since 15:58Z (43613020723, 43616204011, 43621919773, 43623754509; Install passed). Last successful Pages deploy: 43611206032 (deploy completed 15:39Z). Job logs HTTP 403 to this token (not retried); cause unverified; maintainer triage needed. Open-issue search 19:32Z: no issue tracks these failures (20815 = checkout timing; 20440 and 20891 = gh-aw engine failure reports for this worker). Not a timing suggestion."
+   "note": "Reliability, not timing: Build documentation failed on 4 consecutive push runs since 15:58Z (43613020723, 43616204011, 43621919773, 43623754509; Install passed). Last successful Pages deploy: 43611206032 (deploy completed 15:39Z). Job logs unreadable to this token (not retried); cause unverified; maintainer triage needed. Open-issue search 19:52Z: no tracking issue (20815 = checkout timing). Not a timing suggestion."
   },
   {
    "observed_at": "2026-11-14T19:33:57Z",
@@ -1511,13 +1511,15 @@
   "spot_check": "43611206032 demo 4 s (15:38:50 to 15:38:54) via Jobs API at 2026-11-14T18:33:08Z"
  },
  "docs_step_check": {
-  "verified_at": "2026-11-14T18:20:32Z",
+  "verified_at": "2026-11-14T19:53:17Z",
   "runs": [
-   "43611206032"
+   "43623754509",
+   "43608206381"
   ],
   "docs_s": [
-   14
+   15,
+   15
   ],
-  "note": "Jobs API spot-check matched stored docs column (15:38:36 to 15:38:50). Window 43484369040..43623754509 docs median 12 p90 15 over 15 successes."
+  "note": "Jobs API spot-checks (19:52Z) matched stored docs column for both runs (43623754509 failed at 17:56:33 to 17:56:48; 43608206381 succeeded at 15:05:32 to 15:05:47). Window 43484369040..43623754509 docs median 12 p90 15 over 15 successes; failed-run docs steps 10-15 s. Workflow jobs are build and deploy only; there is no separate dashboard job (dashboard generation is a step in build)."
  }
 }
