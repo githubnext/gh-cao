@@ -63,16 +63,22 @@ acquisition or bypassing GitHub access controls.
 
 **Automatic, bounded refresh:** The server starts immediately; collection runs
 in background passes separated by **five minutes** while the command runs.
+Until history discovery reaches the requested window, including on an empty
+database, passes run back to back (two seconds apart) to backfill continuously.
+Reaching the quota reserve waits for the quota reset; failures keep the normal
+cadence.
 The recent evidence window defaults to **seven days** (maximum `168h`), while
 server lifetime defaults to, and cannot exceed, **48 hours** per invocation.
-History checkpoints survive restarts, and admitted pages remain in PostgreSQL
-inside the selected window. The header's data-status tooltip shows ingestion progress, quota headroom,
-pauses and errors. A shared 100-point core API pass ceiling reserves at least
-1000 points or 20% of core quota for other work.
+Each pass reads up to 1000 runs (ten 100-run pages). History checkpoints survive restarts, and admitted pages remain in PostgreSQL
+inside the selected window. Agentic runs still missing artifacts stay in a persisted backlog,
+so the issues and pull requests they reference are ingested in later passes. The header's data-status tooltip shows ingestion progress, quota headroom,
+pauses and errors. A shared 500-point core API pass ceiling, counting only the pass's own requests,
+reserves at least 1000 points or 20% of core quota for other work.
 For example, `gh cao dashboard --repo OWNER/REPOSITORY --window 12h --duration 2h`
 narrows both. The default count is **200** per repository for each of the
 recent-run lookup and cached usage sample, not a promise of complete history.
-Only agentic `.lock.yml` workflows are included. Acquisition budgets, API
+Only agentic `.lock.yml` workflows are included, and runs that never executed
+(skipped activations, runs awaiting approval) are excluded. Acquisition budgets, API
 access, and artifact availability can leave evidence partial or unavailable;
 ordinary Actions jobs and missing evidence must not look like healthy zeros.
 A failed refresh reports the error and retains the last accepted PostgreSQL revision.

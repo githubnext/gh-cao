@@ -984,11 +984,22 @@ release checks reject stale artifacts.
 Acquisition names exact remote workflow IDs from the observed Actions inventory,
 not local lock files. Background passes rotate through the selected repositories,
 persist fixed-interval page checkpoints, and split intervals exceeding GitHub's
-1000-result search ceiling. Incremental publication retains earlier pages inside
+1000-result search ceiling. Each pass reads a whole interval of up to 1000 runs
+(at most ten 100-run pages) unless quota pauses it. Incremental publication retains earlier pages inside
 the evidence window and commits the discovery checkpoint with the evidence.
-All discovery and embedded collectors share a 100-point core API pass ceiling,
-corrected from observed quota, and reserve at least 1000 points or 20% of the
+All discovery and embedded collectors share a 500-point core API pass ceiling
+counting only the pass's own requests, so other consumers of the same token
+cannot exhaust it, and reserve at least 1000 points or 20% of the
 core limit. Quota is required; exhausted headroom pauses acquisition.
+Until discovery reaches the requested window, including on an empty database,
+the local server runs passes back to back; every request still rechecks the
+reserve, reserve exhaustion waits for the quota reset, and failed passes keep
+the normal refresh cadence.
+Discovered agentic runs without artifacts enter a persisted per-repository
+artifact backlog (newest first, at most 5000, pruned to the window). Each pass
+requests artifacts for up to `--count` backlog runs, so runs left by the
+two-minute or quota ceiling are retried and their safe outputs, including issue
+references, are ingested even after the history cursor has moved on.
 Its shared count and two-minute limits produce explicitly reported partial
 artifact coverage. Analyses and artifacts are reusable, but discovery lists are
 refreshed. Optional Node-based Markdown report parsing is disabled;

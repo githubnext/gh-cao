@@ -373,11 +373,35 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 // so a new dashboard populates quickly. Quota pauses still bound each pass.
 const dashboardEmptyRefresh = 30 * time.Second
 
+// dashboardBackfillRefresh is the gap between passes until history discovery
+// reaches the requested window, so an empty database backfills continuously.
+// Every request still rechecks the live GitHub quota reserve; reserve
+// exhaustion waits for the quota reset and failures use the normal cadence.
+const dashboardBackfillRefresh = 2 * time.Second
+
 func dashboardRefreshInterval(cache string, refresh time.Duration) time.Duration {
-	if dashboardSnapshotHasRuns(cache) {
+	state, err := readDashboardIngestion(context.Background(), cache)
+	if err != nil || state.Status == "failed" {
+		if !dashboardSnapshotHasRuns(cache) {
+			return min(refresh, dashboardEmptyRefresh)
+		}
 		return refresh
 	}
-	return min(refresh, dashboardEmptyRefresh)
+	return dashboardNextRefresh(state, refresh, time.Now())
+}
+
+func dashboardNextRefresh(state dashboardIngestion, refresh time.Duration, now time.Time) time.Duration {
+	switch {
+	case state.Status == "watching" || state.Status == "failed":
+		return refresh
+	case state.Remaining != nil && *state.Remaining <= state.Reserve:
+		if reset, err := time.Parse(time.RFC3339, state.ResetAt); err == nil {
+			return min(refresh, max(dashboardBackfillRefresh, reset.Sub(now)))
+		}
+		return refresh
+	default:
+		return min(refresh, dashboardBackfillRefresh)
+	}
 }
 
 func dashboardSnapshotHasRuns(cache string) bool {

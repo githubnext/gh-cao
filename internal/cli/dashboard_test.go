@@ -176,6 +176,12 @@ func TestDashboardCollectionCanonicalQueriesAndRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	fail := func(context.Context, dashboardLogRequest) error { return errors.New("unavailable") }
+	// Enriched runs leave the artifact backlog; drop the shards so logs are requested again.
+	for _, repository := range repositories {
+		if err := os.Remove(filepath.Join(cache, dashboardCoordinate(repository)+".jsonl")); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if _, err := collectDashboard(t.Context(), repositories, cache, options, dashboardTestGH(t, now), fail); err == nil {
 		t.Fatal("failed collection did not propagate")
 	}
@@ -599,26 +605,46 @@ func TestDashboardOptionalLocalArtifactCache(t *testing.T) {
 	}
 }
 
-func TestDashboardRefreshIntervalIsAggressiveWhileEmpty(t *testing.T) {
-	cache := t.TempDir()
-	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != dashboardEmptyRefresh {
-		t.Fatalf("missing snapshot interval = %s", got)
+func TestDashboardRefreshIntervalBackfillsUntilHistoryCompletes(t *testing.T) {
+	if got := dashboardRefreshInterval(t.TempDir(), 5*time.Minute); got != dashboardBackfillRefresh {
+		t.Fatalf("empty cache interval = %s", got)
 	}
-	directory := filepath.Join(cache, "gh-aw-logs-runs")
-	if err := os.MkdirAll(directory, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	write := func(content string) {
-		if err := os.WriteFile(filepath.Join(directory, "local.jsonl"), []byte(content), 0o600); err != nil {
-			t.Fatal(err)
+	now := time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)
+	low, high := 3000, 9000
+	for name, test := range map[string]struct {
+		state dashboardIngestion
+		want  time.Duration
+	}{
+		"waiting":        {dashboardIngestion{Status: "waiting"}, dashboardBackfillRefresh},
+		"pass ceiling":   {dashboardIngestion{Status: "paused", Remaining: &high, Reserve: 3000}, dashboardBackfillRefresh},
+		"reserve":        {dashboardIngestion{Status: "paused", Remaining: &low, Reserve: 3000, ResetAt: now.Add(time.Minute).Format(time.RFC3339)}, time.Minute},
+		"reserve capped": {dashboardIngestion{Status: "paused", Remaining: &low, Reserve: 3000, ResetAt: now.Add(time.Hour).Format(time.RFC3339)}, 5 * time.Minute},
+		"failed":         {dashboardIngestion{Status: "failed"}, 5 * time.Minute},
+		"watching":       {dashboardIngestion{Status: "watching"}, 5 * time.Minute},
+	} {
+		if got := dashboardNextRefresh(test.state, 5*time.Minute, now); got != test.want {
+			t.Fatalf("%s interval = %s, want %s", name, got, test.want)
 		}
 	}
-	write(`{"kind":"record","collection":"repositories","record":{}}` + "\n")
-	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != dashboardEmptyRefresh {
-		t.Fatalf("snapshot without runs interval = %s", got)
-	}
-	write(`{"kind":"record","collection":"repositories","record":{}}` + "\n" + `{"kind":"record","collection":"runs","record":{}}` + "\n")
-	if got := dashboardRefreshInterval(cache, 5*time.Minute); got != 5*time.Minute {
-		t.Fatalf("populated snapshot interval = %s", got)
+}
+
+func TestDashboardRunNotExecutedExcludesSkippedAndApprovalRuns(t *testing.T) {
+	for _, test := range []struct {
+		status, conclusion string
+		excluded           bool
+	}{
+		{"completed", "skipped", true},
+		{"completed", "action_required", true},
+		{"waiting", "", true},
+		{"completed", "success", false},
+		{"completed", "failure", false},
+		{"completed", "cancelled", false},
+		{"in_progress", "", false},
+		{"queued", "", false},
+	} {
+		run := map[string]any{"status": test.status, "conclusion": test.conclusion}
+		if got := dashboardRunNotExecuted(run); got != test.excluded {
+			t.Fatalf("%s/%s excluded = %t", test.status, test.conclusion, got)
+		}
 	}
 }
