@@ -329,6 +329,30 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("health: %+v, %v", health, err)
 		}
 	})
+	t.Run("legacy-budget-rejects-noncanonical-values", func(t *testing.T) {
+		const unknown = 3
+		for field, value := range map[string]string{
+			"plus-sign":   "+5|0|0",
+			"whitespace":  " 5|0|0",
+			"extra-field": "5|0|0|0",
+			"missing":     "5|0",
+			"empty-part":  "5||0",
+		} {
+			if err := services.Collection.WriteAttribute(ctx, "legacy-noncanonical", field, value); err != nil {
+				t.Fatal(err)
+			}
+			result, err := services.RateLimits.ReserveRateLimit(ctx, "legacy-noncanonical", field, 0, 1, time.Now().Unix())
+			if err != nil || result != unknown {
+				t.Fatalf("%s: reserve %q = %d, %v", field, value, result, err)
+			}
+		}
+		if err := services.Collection.WriteAttribute(ctx, "legacy-noncanonical", "canonical", "5|0|0"); err != nil {
+			t.Fatal(err)
+		}
+		if result, err := services.RateLimits.ReserveRateLimit(ctx, "legacy-noncanonical", "canonical", 0, 1, time.Now().Unix()); err != nil || result != 0 {
+			t.Fatalf("canonical reserve = %d, %v", result, err)
+		}
+	})
 	t.Run("focused-delivery-reservations", func(t *testing.T) {
 		deliveries := services.Deliveries
 		reserved, err := deliveries.ReserveDelivery(ctx, "reserved-delivery", time.Hour)
