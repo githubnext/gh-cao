@@ -1,36 +1,7 @@
 {
  "source_sha": "4d25cbd668473d5ab9272e24ecfb22353262c12f",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T00:38:55Z",
-   "worker_run_id": "43534646046",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810,
-    43388781287,
-    43380585034,
-    43378597209,
-    43378369544
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43506161539 back to 43378369544; created 2026-11-13T06:23:31Z to 20:56:37Z; 14.5 h span so the 20-run cap binds; 19 success, 1 failure 43506161539 at Install dependencies (log HTTP 403, cause unverified), 0 cancelled, 0 queued or in progress; no schedule run in window; source 7cb5134 = HEAD = source_sha; same window as the 23:34Z and 23:52Z evaluations, no docs.yml run since 20:56Z). Comparable n=19 successful push runs. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 51 s, max 68 s; 3/19 waited 42-68 s and each ended at the predecessor updatedAt (43430232636 51 s after 43430166810 at 13:03:28; 43502660435 42 s after 43502562196 at 20:34:16; 43504143936 68 s after 43504093917 at 20:44:24). Queue only: build exec median 69 s (p90 79); build start to deploy end median 84 s (p90 93, max 114). Avoidable rebuilds: 0 of 19 pushes had only non-build trigger matches; test-only matches in 10 pushes always alongside build inputs; shared/** non-build matches in 2 pushes alongside build inputs. Median saving of any scheduling change = 0 s; 15 percent gate 12.6 s and 60 s gate unmet. Rejected: cancel-in-progress true (could cancel an in-flight Pages deploy), split or deploy-only groups (out-of-order publication), dropping schedule (synthetic-date freshness), skipping same-SHA schedule (one occurrence in the prior window, none in this one; needs actions read permission). Freshness gaps, not timing, no issue: docs.yml paths omit scripts/dashboard-demo-data.mjs (imported by simulate-dashboard-pages.mjs), */README.md (docs/lib/catalog.ts glob) and .github/workflows/cao.json (dashboard/site/scripts/build.mjs loadDashboardGhAwVersion); staleness bounded by the 05:23 UTC daily schedule. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T00:59:52Z",
    "worker_run_id": "43537183263",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs (43561388555 back to 43388781287; created 2026-11-13T07:51:43Z to 2026-11-14T05:24:33Z); live run list re-checked at 2026-11-14T10:33:50Z = same 20 IDs, all completed, none queued or in progress; source 4d25cbd = HEAD = source_sha; no docs.yml run since 05:24Z. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4; Install dependencies at 17 s; Build and deploy skipped; log not read); 0 cancelled. Comparable n=19 successes (18 push + schedule 43561388555); 5-run gate met. Jobs API re-derived all 20 runs from raw whole-second step timestamps: all 20 stored transfer_samples rows match exactly. Medians (p90, n=19): exec 83 (92) s; Configure Pages 0 (1); Upload Pages artifact 2 (3); build-end to deploy-start handoff 5 (6); deploy Set up job 1 (1); Deploy Pages 7 (8, GitHub-managed). Removable transfer (configure+upload+handoff+deploy setup) median 9 s, p90 10, max 10 = 10.8 percent of median exec; 15 percent gate 12.45 s and 60 s gate unreachable. Merging deploy into build saves about 6 s and stays rejected (environment github-pages and id-token write gate on the Pages deploy). Artifact about 8 MB; shrinking saves about 1 s. Checkout (median 25 s) is open issue 20815 (not repeated). No suggestion; no issue created; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-14T10:54:00Z",
+   "worker_run_id": "43587072572",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196,
+    43494667529,
+    43484369040,
+    43465706802,
+    43447728981,
+    43447111490,
+    43440055797,
+    43430232636,
+    43430166810,
+    43388781287
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43388781287 (created 2026-11-13T07:51:43Z) to 43561388555 (schedule, 2026-11-14T05:24:33Z); run list re-read 10:52Z: same 20 IDs, all completed, none queued or in progress; source 4d25cbd = main HEAD (only main commit since 04:50Z; touches kubernetes files only, no docs trigger path, so no push run is expected). Excluded and disclosed: 43506161539 failed at Install dependencies (logs not read). n=19 successful (18 push + 1 schedule); 5-run gate met. Concurrency (documentation-pages, cancel-in-progress false): run-created to build-created median 1 s, p90 51 s, max 68 s, sum 173 s; Jobs API spot-check of 43504143936 (68 s), 43430232636 (51 s), 43502660435 (42 s) matched stored values. Removing the wait saves 0 s median and at most 68 s on one run; cancel-in-progress true can cut an in-flight Pages publication; split or build-out-of-group concurrency allows out-of-order publication; neither is safe. Avoidable rebuilds: 0 of 18 successful push runs (each matched a build input; test-only matches always alongside build inputs). Schedule: 1 in window, no same-SHA duplicate in window (the 05:24 duplicate of push 5943848 is outside it, one occurrence); skipping schedules trades freshness for under one run per day. Correction: earlier trigger_observation claimed 4d25cbd changed docs.yml and shared/**; it did not. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1298,7 +1298,7 @@
    ".github/workflows/cao.json (read by dashboard build; not a trigger)",
    "scripts/dashboard-demo-data.mjs (read by simulate-dashboard-pages.mjs; not a trigger)"
   ],
-  "trigger_observation": "4d25cbd (05:11Z) changed docs.yml and shared/** but has no push-triggered run; cause not determined from API evidence; freshness, not timing."
+  "trigger_observation": "Corrected 2026-11-14T10:52Z: 4d25cbd (05:11Z) changed only server/kubernetes/README.md, tests/integration/kubernetes-kind.test.mjs and .github/workflows/kubernetes-aspire.yml; no docs trigger path, so no push run is expected. Earlier note that it changed docs.yml or shared/** was wrong."
  },
  "transfer_samples": {
   "evaluated_at": "2026-11-14T10:33:50Z",
