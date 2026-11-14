@@ -885,7 +885,7 @@ reclaims only bounded expired state. Sessions, accepted work, enrollment,
 checkpoints, and pending revocations survive process restart under the database's
 configured durability. Backend selection comes from reviewed host policy, with PostgreSQL as the
 selector-free default and Redis available only through the explicit
-`operational-store` selector. The former `host.redis` selector is rejected.
+`operational-store` selector.
 This is not an operational-state migration, fallback, or campaign rollout change.
 The read-only doctor opens existing
 operational state without initializing it.

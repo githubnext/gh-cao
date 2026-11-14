@@ -65,29 +65,6 @@ test("prepare creates a CA and valid server certificates", (t) => {
   const database = readFileSync(join(state, "database.env"), "utf8");
   assert.match(database, /^CAO_DATABASE_NAMESPACE=local-kubernetes$/m);
   assert.match(database, /^CAO_OPERATIONAL_NAMESPACE=local-kubernetes-operational$/m);
-  assert.doesNotMatch(database, /REDIS_NAMESPACE/);
-});
-
-test("serve migrates a legacy REDIS_NAMESPACE database configuration before applying it", (t) => {
-  const f = fixture(t, { foreign: "" });
-  const file = join(f.state, "database.env");
-  writeFileSync(file, "PGHOST=db\nREDIS_NAMESPACE=existing-dataset\nCAO_OPERATIONAL_NAMESPACE=ops\n");
-  const served = f.run();
-  assert.equal(served.status, 0, served.stderr);
-  assert.equal(readFileSync(file, "utf8"), "PGHOST=db\nCAO_DATABASE_NAMESPACE=existing-dataset\nCAO_OPERATIONAL_NAMESPACE=ops\n");
-  assert.ok(f.calls().some(({ args }) => args.includes("configmap") && args.includes("cao-database")
-    && args.includes(`--from-env-file=${file}`)));
-
-  writeFileSync(file, "REDIS_NAMESPACE=old\nCAO_DATABASE_NAMESPACE=new\n");
-  const conflicting = f.run();
-  assert.notEqual(conflicting.status, 0);
-  assert.match(conflicting.stderr, /both REDIS_NAMESPACE and CAO_DATABASE_NAMESPACE/);
-});
-
-test("Kubernetes manifests do not consume the removed REDIS_NAMESPACE setting", () => {
-  for (const file of ["web.yaml", "collector.yaml", "inventory.yaml", "ingest.yaml", "bootstrap.yaml", "maintenance.yaml"]) {
-    assert.doesNotMatch(readFileSync(join(assets, file), "utf8"), /REDIS_NAMESPACE/, file);
-  }
 });
 
 function fixture(t, options = {}) {

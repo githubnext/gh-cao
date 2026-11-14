@@ -98,7 +98,7 @@ func (s *Service) Usage(ctx context.Context) (_ UsageReport, err error) {
 
 // buildUsagePoints decodes each sample's storage key into a BucketID and
 // bounds its counters into UsagePoint, discarding samples whose bucket key
-// does not decode (for example a corrupted or legacy-format Redis field). It
+// does not decode (for example a corrupted field). It
 // returns the decoded points sorted by slot and then bucket, and how many
 // samples were skipped, so Usage can log that count without recomputing it.
 // It is a pure function extracted from Usage so decoding, bounding, and

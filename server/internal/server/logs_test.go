@@ -131,9 +131,6 @@ func TestServerLogsOnlyExportsSafeRedisCounters(t *testing.T) {
 			if snapshot.Logs == nil || snapshot.Operational.Status != test.status {
 				t.Fatalf("unexpected snapshot: %s", response.Body.String())
 			}
-			if strings.Contains(response.Body.String(), `"redis":`) {
-				t.Fatalf("legacy Redis response field was retained: %s", response.Body.String())
-			}
 			if strings.Contains(response.Body.String(), "private") ||
 				strings.Contains(response.Body.String(), "lastFailureCode") {
 				t.Fatalf("internal Redis data leaked: %s", response.Body.String())

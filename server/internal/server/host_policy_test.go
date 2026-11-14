@@ -267,8 +267,7 @@ func TestHostPolicyRejectsFlatHostFields(t *testing.T) {
 				"host": {
 					"name": "legacy",
 					"authentication": "github-oauth",
-					"listener": "process",
-					"redis": {"preset": "generic"}
+					"listener": "process"
 				}
 			}
 		}
@@ -279,34 +278,6 @@ func TestHostPolicyRejectsFlatHostFields(t *testing.T) {
 	t.Setenv("CAO_POLICY_PATH", path)
 	if _, err := loadHostPolicyFromEnv(); err == nil {
 		t.Fatal("flat host policy was accepted")
-	}
-}
-
-func TestHostPolicyRejectsLegacyRedisSelection(t *testing.T) {
-	for _, selection := range []string{
-		`"redis":{"module":"generic"}`,
-		`"redis":{},"operational-store":{"backend":"postgres"}`,
-		`"redis":null`,
-		`"operational-store":{"backend":"redis","redis":{"module":"generic","namespace-env":"CACHE_NAMESPACE"}}`,
-	} {
-		t.Run(selection, func(t *testing.T) {
-			path := filepath.Join(t.TempDir(), "cao.json")
-			document := `{"control-plane":{"web":{"host":{"target":{"module":"container"},` + selection + `}}}}`
-			if err := os.WriteFile(path, []byte(document), 0o600); err != nil {
-				t.Fatal(err)
-			}
-			t.Setenv("CAO_POLICY_PATH", path)
-			t.Setenv("REDIS_URL", "rediss://cache.example")
-			t.Setenv("CAO_POSTGRES_URL", "postgres://127.0.0.1/db?sslmode=disable")
-			if _, err := loadHostPolicyFromEnv(); err == nil {
-				t.Fatal("legacy Redis selection was accepted")
-			}
-			if strings.HasPrefix(selection, `"redis":`) {
-				if _, err := OperationalPolicySelectedFromEnv(); err == nil {
-					t.Fatal("local CLI selection ignored a legacy Redis policy")
-				}
-			}
-		})
 	}
 }
 

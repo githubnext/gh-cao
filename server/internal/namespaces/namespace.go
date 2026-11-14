@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -52,14 +51,8 @@ func DefaultNamespace(workingDirectory string) (string, error) {
 	return NormalizeNamespace("checkout-" + hex.EncodeToString(sum[:12]))
 }
 
-// Environment rejects removed selectors rather than silently opening a
-// different dataset under the default namespace.
+// Environment returns the explicit canonical dataset namespace, if any.
 func Environment(lookup func(string) (string, bool)) (string, error) {
-	for _, name := range []string{"REDIS_NAMESPACE", "CAO_REDIS_NAMESPACE"} {
-		if value, _ := lookup(name); strings.TrimSpace(value) != "" {
-			return "", fmt.Errorf("%s is no longer supported; use CAO_DATABASE_NAMESPACE and CAO_OPERATIONAL_NAMESPACE", name)
-		}
-	}
 	value, _ := lookup("CAO_DATABASE_NAMESPACE")
 	return strings.TrimSpace(value), nil
 }

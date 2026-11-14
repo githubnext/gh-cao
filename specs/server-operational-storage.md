@@ -57,8 +57,8 @@ it MUST NOT add backend branches to request, OAuth, quota, or collection logic.
 only `cao_operational_*` tables, not canonical entities or query execution.
 Reviewed `operational-store.backend: "postgres"` selects it explicitly, and a
 reviewed host without a selector defaults to PostgreSQL. Redis MUST be selected
-through `operational-store.backend: "redis"`; the former `host.redis` selector
-MUST be rejected. Credentials alone MUST NOT change selection.
+through `operational-store.backend: "redis"`. Credentials alone MUST NOT change
+selection.
 `postgres.url-env` MAY reference a server-side connection secret; omission uses
 `CAO_POSTGRES_URL`. Redis configuration and volatile-memory options MUST NOT
 be combined with this backend. Non-loopback PostgreSQL TCP transport and all
@@ -76,12 +76,8 @@ automatic fallback, or dual-write.
 the canonical namespace. Redis provider configuration MUST NOT contain
 `namespace-env`. Hosted canonical identity defaults to `hosted-dashboard`;
 local commands retain the checkout-derived default and accept `--namespace`.
-The former `REDIS_NAMESPACE`, `CAO_REDIS_NAMESPACE`, and `--redis-namespace`
-selectors MUST be rejected rather than silently selecting a different dataset.
-Operators MUST retain existing namespace values when updating configuration;
-renaming a selector MUST NOT rename, migrate, or erase stored data.
-Canonical `ingest` MUST reject `--redis-url`; local `serve` and `doctor` MAY
-still explicitly select the Redis adapter with that option.
+Canonical `ingest` has no Redis option; local `serve` and `doctor` MAY
+explicitly select the Redis adapter with `--redis-url`.
 
 Transactions MUST use database time and serialize multi-record transitions and
 accounting through the namespace row. Protected records and disposable caches
@@ -391,8 +387,7 @@ The selector MUST NOT rewrite, synthesize, or override rollout policy. The
 requested backend MUST match the backend resolved by the production Go policy
 loader, including deployment-profile imports. A mismatch, invalid backend,
 missing policy, invalid topology, or missing required credentials MUST fail
-closed. The former `host.redis` selector is rejected;
-neither Redis nor memory may become an
+closed. Neither Redis nor memory may become an
 automatic fallback. PostgreSQL is the default for selector-free reviewed hosts.
 
 Hosted policy is selected through `CAO_POLICY_PATH` or the supported
@@ -454,7 +449,7 @@ automatic fallback, dual writing, or hidden PostgreSQL persistence.
 
 Public health/readiness exposes provider-neutral connectivity, capabilities and
 bootstrap readiness under `operational`, never keys, record values, credentials,
-or endpoints. The legacy `redis.connected` alias MUST NOT be returned.
+or endpoints.
 Server log snapshots expose safe ingestion counters under `operational`, not
 `redis`, regardless of the selected adapter.
 

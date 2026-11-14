@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -98,9 +97,6 @@ func OperationalPolicySelectedFromEnv() (bool, error) {
 	control, _ := document["control-plane"].(map[string]any)
 	web, _ := control["web"].(map[string]any)
 	host, _ := web["host"].(map[string]any)
-	if _, legacy := host["redis"]; legacy {
-		return false, errors.New("host.redis is no longer supported; use host.operational-store")
-	}
 	_, selected := host["operational-store"]
 	return selected, nil
 }
