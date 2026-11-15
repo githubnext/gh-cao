@@ -133,24 +133,49 @@ func deploymentParameters(input Requirements, source string, secretNames []strin
 	return template.Parameters, parameters, defaults, nil
 }
 
+// GitHub.com usernames are at most 39 characters; managed accounts append a
+// 3-8 character alphanumeric shortcode.
+const (
+	githubUsernamePattern  = `^[A-Za-z0-9](?:[A-Za-z0-9]|-[A-Za-z0-9])*$`
+	githubShortcodePattern = `^[A-Za-z0-9]{3,8}$`
+	githubLoginMaxLength   = 39
+)
+
+func validGitHubOrganizationLogin(login string) bool {
+	return len(login) <= githubLoginMaxLength && match(githubUsernamePattern, login)
+}
+
+func validGitHubUserLogin(login string) bool {
+	if len(login) > githubLoginMaxLength {
+		return false
+	}
+	if match(githubUsernamePattern, login) {
+		return true
+	}
+	username, shortcode, hasShortcode := strings.Cut(login, "_")
+	return hasShortcode && match(githubUsernamePattern, username) && match(githubShortcodePattern, shortcode)
+}
+
 func validateHostedParameters(input Requirements, value func(string) any) error {
 	if !nonempty(value("githubClientId")) {
 		return fmt.Errorf("hosted OAuth requires githubClientId")
 	}
 	authorized := false
-	loginPatterns := map[string]string{
-		"githubAllowedOrganizations": `^[A-Za-z0-9][A-Za-z0-9-]{0,38}$`,
-		"githubAllowedUsers":         `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`,
-		"githubAdminUsers":           `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`,
-	}
 	for _, field := range []string{"githubAllowedOrganizations", "githubAllowedTeams", "githubAllowedUsers", "githubAdminUsers"} {
 		users, ok := list(value(field))
 		if !ok || slices.ContainsFunc(users, func(user string) bool { return strings.TrimSpace(user) == "" }) {
 			return fmt.Errorf("%s must contain nonempty strings", field)
 		}
-		if pattern, validateLogins := loginPatterns[field]; validateLogins {
+		var validLogin func(string) bool
+		switch field {
+		case "githubAllowedOrganizations":
+			validLogin = validGitHubOrganizationLogin
+		case "githubAllowedUsers", "githubAdminUsers":
+			validLogin = validGitHubUserLogin
+		}
+		if validLogin != nil {
 			for index, login := range users {
-				if !match(pattern, login) {
+				if !validLogin(login) {
 					return fmt.Errorf("%s[%d] must be a valid GitHub login", field, index)
 				}
 			}
