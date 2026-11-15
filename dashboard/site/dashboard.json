@@ -109,7 +109,8 @@
         "timing": [
           { "field": "value-captured", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence captured", "icon": "clock" },
           { "field": "value-cutoff", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence through", "icon": "calendar" }
-        ]
+        ],
+        "drill": { "type": "external", "field": "value-href" }
       },
       {
         "id": "workflow-value-overview",
