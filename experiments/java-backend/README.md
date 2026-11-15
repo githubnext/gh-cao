@@ -17,6 +17,11 @@ The fail-closed policy/authority kernel for the control-plane subset of
   default, exact-target and worker-ceiling narrowing, and narrowing-only dispatch
   requests (widening throws `PolicyException`; expected denials return stable reasons).
 
+- `StandaloneResolver`: standalone workflow admission (CAO-EXE-005, §6.3) over `control-plane.workflows` and
+  `control-plane.inventory`. Pure and offline: repository inventory and destination-privacy arrive as caller-supplied
+  evidence (`InventoryEvidence`, `StandaloneRequest`); missing/invalid evidence, identity mismatch, widening and
+  out-of-scope targets throw `PolicyException`; undeclared/disabled workflows return a denial record.
+
 - `operational` package: PostgreSQL adapter for the operational `AuditLog`
   (`specs/server-operational-storage.md`): tamper-evident SHA-256 hash chain compatible with the Go
   canonical record bytes, anchors, namespace isolation, runtime-versus-owner separation

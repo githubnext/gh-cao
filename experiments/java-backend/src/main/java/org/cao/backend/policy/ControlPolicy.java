@@ -8,7 +8,23 @@ public record ControlPolicy(
         String digest,
         Scope scope,
         Defaults defaults,
-        Map<String, Campaign> campaigns) {
+        Inventory inventory,
+        Map<String, Campaign> campaigns,
+        Map<String, Workflow> workflows) {
+
+    /** Bounded scan, cell and batch ceilings (§5.3); absent declarations take the schema defaults. */
+    public record Inventory(int maxScanRepositories, int cellCount, int cellIndex, int batchSize, int batchIndex) {
+        public static final Inventory DEFAULTS = new Inventory(1000, 1, 0, 100_000, 0);
+    }
+
+    /** Standalone workflow declaration keyed by exact compiled workflow slug (§5.3). */
+    public record Workflow(
+            boolean enabled,
+            Mode mode,
+            Mode maxMode,
+            Integer maxRepositories,
+            Integer rolloutPercent,
+            Map<String, Mode> targets) { }
 
     /** Owner and repository allow-lists; empty means "not restricted by this list". */
     public record Scope(List<String> owners, List<String> repositories) { }

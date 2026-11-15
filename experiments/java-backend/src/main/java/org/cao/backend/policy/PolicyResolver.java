@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  */
 public final class PolicyResolver {
     private static final Pattern REPOSITORY = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$");
-    private static final Pattern SLUG = Pattern.compile("^[a-z0-9]+(?:-[a-z0-9]+)*$");
+    static final Pattern SLUG = Pattern.compile("^[a-z0-9]+(?:-[a-z0-9]+)*$");
 
     private PolicyResolver() { }
 
@@ -97,7 +97,7 @@ public final class PolicyResolver {
         }
     }
 
-    private static int narrow(int limit, Integer requested, String name, int maximum) {
+    static int narrow(int limit, Integer requested, String name, int maximum) {
         if (requested == null) {
             return limit;
         }
@@ -110,14 +110,14 @@ public final class PolicyResolver {
         return requested;
     }
 
-    private static void requireRepository(String value, String name) {
+    static void requireRepository(String value, String name) {
         if (value == null || !REPOSITORY.matcher(value).matches()) {
             throw new PolicyException(name + " must use owner/repository form");
         }
     }
 
     @SafeVarargs
-    private static <T> T first(T... values) {
+    static <T> T first(T... values) {
         for (T value : values) {
             if (value != null) {
                 return value;
