@@ -1,36 +1,7 @@
 {
   "source_sha": "c0bfef8505154233dc70d3268beaa19085d8031c",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T06:54:08Z",
-      "worker_run_id": "43687168278",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "43682264332",
-        "43681861583",
-        "43680980929",
-        "43655786695",
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917",
-        "43503897533"
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z) back to 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z); gh run list and jobs API re-read at evaluation: same 20 IDs, all completed, none queued or in progress; source 29e63d1 = main HEAD = source_sha. Excluded and disclosed: 10 failures (Build documentation on 9 consecutive runs 43613020723..43682264332; Install dependencies on 43506161539), 0 cancelled. n=10 successes (9 push + schedule 43561388555); 5-run gate met. Category reusable dashboard generation = step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp): median 4 s, p90 4 s, range 3-4 s = 4.9 percent of exec median 81.5 s (exec = build start to deploy end, p90 90 s). 15 percent gate 12.2 s and 60 s gate unreachable; removing the step saves at most 4 s; overlapping it with Build documentation saves at most 4 s. Reuse unsafe: scripts/simulate-dashboard-pages.mjs defaults now to Date.now() and writes generatedAt into the output, and the 05:23Z daily cron refreshes synthetic dates by design. Open issue 20815 (checkout) not re-raised. Reliability, not timing (critical, unresolved, maintainer triage): Pages not deployed since 43611206032 (15:39Z Nov 14); no open docs.yml failure tracker found by search; logs HTTP 403 (not bypassed). No suggestion; no create_issue; noop used. next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T07:19:14Z",
       "worker_run_id": "43689051708",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable; reliability streak ended. Window: latest 20 completed docs.yml runs 43536796952 (push 54e08aa, created 2026-11-14T00:50Z) to 43731625055 (push 88f046c, created 2026-11-15T15:45Z); 0 cancelled, 0 queued or in progress; gh run list re-read 16:30Z: no newer docs run; source c0bfef8 = HEAD = source_sha. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (Build documentation, 43613020723..43721157324). Category step 'Build documentation' (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): success median 11.5 s, p90 15 s, range 8-15 s = 14.9 percent of exec median 77 s (p90 92); 15 percent gate 11.55 s. Removing the entire step saves at most 11.5 s, and removal is invalid (deploy consumes dist; validation gates correctness), so no Astro-internal change can clear the gate; 60 s gate unreachable. Astro vs validation split unmeasurable (step logs HTTP 403 DIFC, not bypassed). docs.yml has no Astro output cache (only setup-node cache npm, line 48). Checkout median 24.5 s remains OPEN 20815 (0 comments, unchanged since 2026-11-13T17:41:19Z), not repeated. Reliability, not timing: Build documentation green on 43721484176, 43724243400, 43731625055; no schedule green since 43561388555; 2026-11-16 schedule unverified. No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T16:51:00Z",
+      "worker_run_id": "43737576461",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "43731625055",
+        "43724243400",
+        "43721484176",
+        "43721157324",
+        "43706435376",
+        "43698271571",
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032",
+        "43608206381",
+        "43593405440",
+        "43561388555",
+        "43536796952"
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43536796952 (push 54e08aa, created 2026-11-14T00:50:15Z) to 43731625055 (push 88f046c, created 2026-11-15T15:45:14Z); run list re-read 16:50Z: same 20 IDs, all completed, none queued, 0 cancelled, no docs run after 15:45Z. Source: 88f046c is the latest docs run source; main HEAD c0bfef8 is 1 commit ahead touching only internal/topology Go files (no docs.yml trigger path). Excluded and disclosed: 12 failures (demo_s 0, deploy skipped; Build documentation ended in failure, 43613020723..43721157324). n=8 successes (7 push + schedule 43561388555) meet the 5-run gate. Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp -R): median 4 s, p90 4 s, range 3-4 s = 5.2 percent of exec median 77 s (p90 92); 15 percent gate 11.55 s and 60 s gate unreachable; whole-step removal saves at most 4 s and is not valid. Reuse unsafe: scripts/simulate-dashboard-pages.mjs defaults now = Date.now() and writes generatedAt; docs.yml requires daily synthetic date refresh. Spot check run 43731625055 jobs API: demo 15:46:12-15:46:16. Workflow has build and deploy jobs only; no dashboard job exists, so dashboard generation is a build-job step. Open 20815 (checkout, OPEN, 0 comments) is the largest component (median 24.5 s, 32 percent of exec) and is not repeated. Reliability (not timing): 12-run failure streak ended with green 43721484176, 43724243400, 43731625055; no schedule green since 43561388555; cause unverified (logs HTTP 403). No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -995,8 +995,8 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-15T16:19:50Z",
-    "status": "Build documentation green on three consecutive pushes: 43721484176 (13:54Z), 43724243400 (14:25Z), 43731625055 (15:45Z, 88f046c). The 12-run failure streak 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) has ended. No docs.yml run since 15:45Z.",
+    "observed_at": "2026-11-15T16:51:00Z",
+    "status": "Build documentation green on three consecutive pushes: 43721484176 (13:54Z), 43724243400 (14:25Z), 43731625055 (15:45Z). The 12-run failure streak 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) has ended. No docs.yml run since 15:45Z.",
     "note": "Reliability, not timing; no create_issue under the timing rule. Cause of the streak was not verified (step logs HTTP 403)."
   },
   "etag_note": "2026-11-15: gh api conditional requests not used; completed-run job timings are stored in run_timings and need no re-fetch. Only run 43731625055 jobs were fetched new (Jobs API); compare 88f046c vs aa73dc6 via GitHub compare API.",
