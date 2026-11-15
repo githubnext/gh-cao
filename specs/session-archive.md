@@ -451,7 +451,10 @@ applied only after the metric.
 
 Rows expose value, availability, reason, chosen family and exact trace/projection
 identity; policy digest qualifies configuration. Query metadata adds a query
-digest and compiler implementation/profile provenance. These are recomputed
+digest and compiler implementation/profile provenance. Its `language-version`
+reports the implementing analytical profile (`0.2.0`), not an echo of the request:
+count-only compatibility requests using `0.1.0` also receive `0.2.0` metadata.
+These are recomputed
 scalar observations, distinct from recorded `grader.result`, threshold
 assessment and acquisition proof. Upstream v2 emits unavailable status but no
 reason codes; query reason labels are explicitly separate qualifications
