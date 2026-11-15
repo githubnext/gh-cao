@@ -118,7 +118,8 @@ be replaced. Go `serve-pages` serves those bytes unchanged on loopback, includin
 repository base paths, with no hosted bootstrap, bearer authentication, query
 API, or fallback. Use `--site ../.tmp/OTHER` to select other prepared output.
 
-The declarative **Synthetic enterprise demo** callout identifies the sample.
+The declarative **Synthetic enterprise demo** callout on Overview identifies the
+sample without a site-wide notification.
 Data URLs live under `demo-data/`; browser storage keys use
 `synthetic-demo` and service-worker caches use `demo`. Old same-origin
 real-data responses cannot be selected through the changed data URLs.

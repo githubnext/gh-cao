@@ -225,7 +225,7 @@ same Go handler, PostgreSQL adapters and declarative views. Pages is only a
 synthetic enterprise demo: generated raw samples pass
 through production normalization, canonical ingestion, worker queries, and the
 same views. It has no real-data input option, SQLite download, agent summary, or
-live services. Its declarative **Synthetic enterprise demo** callout identifies
+live services. Its declarative **Synthetic enterprise demo** Overview callout identifies
 the evidence. Browser download, ingestion, persistence, and queries run in a
 dedicated Web Worker. Demo data URLs are under `demo-data/`, not the former
 root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
