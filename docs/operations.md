@@ -389,7 +389,9 @@ hosted export API.
 In the catalog, **Documentation Pages** (`docs.yml`) rebuilds documentation and
 the synthetic demo daily, independently of operational collection or Dashboard
 artifact freshness. Its build generates raw enterprise samples through the
-production normalizer, canonical ingestion, queries, and shared views. Preview:
+production normalizer, canonical ingestion, queries, and shared views. The
+sample includes 21 days of runs so the factory's weekly rhythm can compare
+this week with last week. Preview:
 
 ```bash
 npm run dashboard:pages:build

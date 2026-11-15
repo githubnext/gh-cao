@@ -8,6 +8,7 @@ import { VALUE_COLLECTION_REASONS, workflowValueCollectionId } from "../dashboar
 const owner = "sample-enterprise";
 const catalog = `${owner}/automation-catalog`;
 const dayMs = 86_400_000;
+const runHistoryDays = 21;
 const sha = value => createHash("sha256").update(value).digest("hex");
 const revision = sha("synthetic-enterprise-catalog-v2").slice(0, 40);
 const previousRevision = sha("synthetic-enterprise-catalog-v1").slice(0, 40);
@@ -431,14 +432,14 @@ export function enterpriseSample(now) {
       }
       for (const [index, workflow] of workflows.entries()) {
         const behavior = workflowProfile(repository, workflow, profile);
-        for (let day = 0; day < 14; day++) {
+        for (let day = 0; day < runHistoryDays; day++) {
           const sample = distributionFor(`${repository}:${workflow.id}:${day}:cadence`);
           const date = Math.floor(now / dayMs) * dayMs - day * dayMs;
           const weekday = new Date(date).getUTCDay();
           const weekdayWeight = weekday === 0 || weekday === 6 ? 0.3 : 1.2;
           const partialDay = day === 0 ? (now - date) / dayMs : 1;
           const rate = behavior.activity * Math.min(3, sample.lognormal(1, 0.5)) * weekdayWeight
-            * (0.85 + (13 - day) / 40) * partialDay;
+            * (0.85 + (runHistoryDays - 1 - day) / 40) * partialDay;
           const count = sample.poisson(rate);
           for (let ordinal = 0; ordinal < count; ordinal++) {
             const run = runSample(repository, workflow, index, ++runId, day, ordinal, now, behavior);
