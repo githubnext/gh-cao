@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T17:55:16Z",
-   "worker_run_id": "43623212234",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43465706802 (created 2026-11-13T16:44:14Z) to 43621919773 (push 93c64ff, 2026-11-14T17:35:16Z); 16 successes, 4 failures (43506161539 install; 43613020723, 43616204011, 43621919773 Build documentation), 0 cancelled; no docs run queued or in progress in the window; stale queued 37642403569 (workflow_run, 2026-10-07) excluded. Gate n=16 >= 5 met. Successful exec median 81.5 s (p90 92). Post-rollover installs (key 7808ecf8, created 2026-11-13T20:57Z; install step succeeded, n=9 incl. 3 build-failed runs): median 9 s, p90 11; setup restore median 4 s; per-run setup+install median 12 s = best-case ceiling below the 12.3 s gate even at zero replacement cost; any node_modules replacement costs restore time, so gate unreachable; 60 s unreachable. Pre-rollover install median 15.5 s (n=10): key rollover already realized about 6 s. Root package-lock unchanged since 7c8faf4; no key change. Duplicates: 20815 open (blobless checkout, median 24.5 s) not repeated; 19689 closed NOT_PLANNED. No suggestion; no issue; next_category advanced to Astro documentation generation. Reliability (not timing) recorded in observations_pending.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T18:20:32Z",
    "worker_run_id": "43625619773",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (2026-11-13T20:32Z) to 43655786695 (d55c91b, 2026-11-14T23:57Z); re-listed at 03:52Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. 13 successes (12 push + schedule 43561388555) = 5-run gate met; 7 failures excluded and disclosed (43506161539 Install; 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 Build documentation; logs HTTP 403 DIFC). Exec (build start to deploy end) median 81 s, p90 90 nearest-rank; 15 percent gate 12.15 s and 60 s gate unmet. Queue (run created to build start) median 2 s, p90 3 s; two concurrency waits behind predecessor deploys (43502660435 45 s, 43504143936 71 s); queue is not execution time; cancel-in-progress true rejected (could cancel a deploy mid-flight). Avoidable rebuilds: 0 verified of 19 push runs (compare API between consecutive docs-run heads, mapped to docs.yml paths). Every push touched a real build input: docs/** Markdown or Astro components, dashboard/site/src modules, or modernization/aw.yml (docs/lib/catalog.ts globs */aw.yml and lists experimental campaigns). Freshness gap (not timing): */README.md is rendered by docs/pages/catalog/[slug].astro but is outside the docs.yml paths. Reliability (not timing): six consecutive Build documentation failures, no tracking issue; maintainer triage. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T04:20:27Z",
+   "worker_run_id": "43675975539",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196
+   ],
+   "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); gh run list and Jobs API re-read about 04:17Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, 17 s) and six push failures at Build documentation 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 (10-15 s; logs not read). n=13 successes (12 push + schedule 43561388555) meets the 5-run gate. Install dependencies median 11 s (p90 20, n=13) = 13.6 percent of exec median 81 s; setup-node median 4 s; Post Set up Node.js 0-1 s in all 13 successes (exact-key hit inferred from step timing; cache 7808ecf8 263 MB, last accessed 04:17Z). Post-rollover successes (runs after 43506161539, n=6) install median 9.5 s. 15 percent gate 12.15 s: the install step alone (median 11 s) cannot clear it even if fully removed; setup plus install (median 16 s) would clear it only if a replacement restored in at most about 3 s, while the current 263 MB npm-cache restore alone is median 4 s; node_modules caching therefore cannot reach the gate. 60 s gate unreachable. Observations, not suggestions: production-only dashboard/site lock entries (about 8, 6 not identical to root lock) sit outside the root-only key; their cache coverage and cost are unmeasured and bounded by the install step. Cache 7808ecf8 was created 20:57:12Z, about 35 s after failed run 43506161539 started, so the failed install's post step seeded it; contents unverified. No suggestion; no issue; noop used. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -901,8 +901,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T20:32:55Z..2026-11-14T23:57:34Z",
-  "evaluated_at": "2026-11-15T03:21:24Z",
-  "note": "window = latest 20 completed docs.yml runs; 13 successful, 7 failed, 0 cancelled; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes), build job duration for failed runs; 0 for skipped/unreached jobs. Re-read at 2026-11-15T03:21:24Z (worker 43671668975): same 20 IDs, unchanged.",
+  "evaluated_at": "2026-11-15T04:20:27Z",
+  "note": "window = latest 20 completed docs.yml runs; 13 successful, 7 failed, 0 cancelled; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes), build job duration for failed runs; 0 for skipped/unreached jobs. Re-read at 2026-11-15T03:21:24Z (worker 43671668975): same 20 IDs, unchanged. Re-read at 2026-11-15T04:20:27Z (worker 43675975539): same 20 IDs, unchanged; medians unchanged.",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
    [
@@ -1212,6 +1212,11 @@
    "observed_at": "2026-11-15T03:54:16Z",
    "source": "docs.yml path filter vs docs/pages/catalog/[slug].astro and docs/lib/catalog.ts",
    "note": "Freshness gap, not timing: */README.md (campaign READMEs rendered as catalog content via import.meta.glob) is outside docs.yml push paths, so README-only edits wait for the daily 05:23Z schedule. Record for triage, not a suggestion. Reliability re-check 03:54Z: still six consecutive Build documentation push failures (600b56a..d55c91b); no tracking issue; maintainer triage."
+  },
+  {
+   "observed_at": "2026-11-15T04:20:27Z",
+   "source": "docs.yml runs 43613020723..43655786695 (6 consecutive push failures at Build documentation); Pages last deployed by 43611206032 (2026-11-14T15:39Z)",
+   "note": "Reliability, not timing (highest priority, unresolved): still six consecutive Build documentation push failures; no newer docs.yml run; no open issue tracks this streak in the window search (open 20934 is cao-framework-health, a2b14dd workflow-contracts; relation unverified). Maintainer triage needed."
   }
  ],
  "checkout_probe": {
