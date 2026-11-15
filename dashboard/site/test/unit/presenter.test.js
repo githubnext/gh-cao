@@ -2932,6 +2932,107 @@ describe('presenter built-in and custom pages', () => {
 
   });
 
+  it('defaults workflow Value to Chart and preserves its result cards and table', async () => {
+    const workflowRoute = 'octo/example:.github/workflows/value.md';
+    window.history.replaceState(null, '', `/#page-workflow-value?workflow=${encodeURIComponent(workflowRoute)}`);
+    const metadata = /** @type {const} */ ({
+      'source-kind': 'fixture',
+      'as-of': '2026-11-15T02:00:00Z',
+      'retrieved-at': '2026-11-15T02:01:00Z',
+      completeness: 'complete',
+      freshness: 'fresh'
+    });
+    /** @param {string} name @param {Array<Record<string, unknown>>} rows */
+    const source = (name, rows) => ({
+      source: name,
+      rows,
+      metadata: {
+        ...metadata,
+        'source-id': name,
+        availability: /** @type {'available'|'empty'} */ (rows.length > 0 ? 'available' : 'empty')
+      }
+    });
+    const rendered = renderDashboard({
+      document: authoritativeDashboardDocument,
+      sources: {
+        'value-workflow-results': source('value-workflow-results', [{
+          'workflow-route': workflowRoute,
+          'report-id': 'report-better',
+          movement: 'Better',
+          'delta-label': '↓ 2 bugs',
+          'workflow-context': 'octo/example · Value',
+          'snapshot-name': 'Open bugs',
+          'direction-label': '↓ Lower is better',
+          'comparison-label': 'Since 2026-10-18 · Everyone\'s work',
+          'observed-at': '2026-11-15T01:00:00Z',
+          'report-href': '#page-value-report?report=report-better'
+        }, {
+          'workflow-route': workflowRoute,
+          'report-id': 'report-worse',
+          movement: 'Worse',
+          'delta-label': '↑ +3 findings',
+          'workflow-context': 'octo/example · Value',
+          'snapshot-name': 'Open findings',
+          'direction-label': '↓ Lower is better',
+          'comparison-label': 'Since 2026-10-18 · Everyone\'s work',
+          'observed-at': '2026-11-15T02:00:00Z',
+          'report-href': '#page-value-report?report=report-worse'
+        }]),
+        'value-collection-health': source('value-collection-health', []),
+        'value-current-measurements': source('value-current-measurements', [])
+      }
+    });
+    document.body.append(rendered);
+    try {
+      await vi.waitFor(() => expect(rendered.querySelector('[data-page-id="workflow-value"]'))
+        .not.toBeNull());
+      const page = rendered.querySelector('[data-page-id="workflow-value"]');
+      const buttons = [...page?.querySelectorAll(':scope > .page-chrome [data-view-mode-value]') ?? []];
+      expect(buttons.map(button => button.textContent)).toEqual(['Chart', 'Cards', 'Table']);
+      expect(buttons.map(button => button.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
+      expect(page?.getAttribute('data-view-mode')).toBe('chart');
+      expect(page?.querySelector('[data-view-id="workflow-value-movement"]')
+        ?.getAttribute('data-view-mode-content')).toBe('chart');
+      expect(page?.querySelector('[data-view-id="workflow-value-results"]')
+        ?.getAttribute('data-view-mode-content')).toBe('table');
+      expect(page?.querySelector('[data-view-id="workflow-value-collection-health"]')
+        ?.getAttribute('data-disclosure')).toBe('supplemental');
+      expect(page?.querySelector('[data-view-id="workflow-native-measurements"]')
+        ?.getAttribute('data-disclosure')).toBe('supplemental');
+
+      const chart = page?.querySelector('[data-view-id="workflow-value-movement"]');
+      expect(chart?.textContent).toContain('Better');
+      expect(chart?.textContent).toContain('Worse');
+
+      const table = page?.querySelector('[data-view-id="workflow-value-results"]');
+      const headers = [...table?.querySelectorAll('thead th') ?? []].map(header => header.textContent?.trim());
+      for (const label of ['Observed change', 'Workflow', 'Measure', 'Goal', 'Reference', 'Evidence captured']) {
+        expect(headers).toContain(label);
+      }
+      expect(headers.some(header => header?.startsWith('Compared with goal'))).toBe(true);
+      const card = table?.querySelector('[data-mobile-card-list] .entity-card-list-card');
+      expect(card?.textContent).toContain('↓ 2 bugs');
+      expect(card?.textContent).toContain('octo/example · Value');
+      expect(card?.querySelector('[data-card-drill="query"]')?.getAttribute('href'))
+        .toBe('#page-value-report?query=value-report-summary&title=Open+bugs&report=report-better');
+
+      /** @type {unknown[]} */
+      const contexts = [];
+      rendered.addEventListener('dashboard-query-context-change', event => {
+        if (event instanceof CustomEvent) contexts.push(event.detail);
+      });
+      /** @type {HTMLButtonElement} */ (buttons[1]).click();
+      expect(contexts.at(-1)).toMatchObject({
+        pageId: 'workflow-value',
+        queryContext: { viewMode: 'card' }
+      });
+    } finally {
+      disposeDashboard(rendered);
+      rendered.remove();
+      window.history.replaceState(null, '', '/');
+    }
+  });
+
   it('keeps the default presentation without view-mode controls when disabled', async () => {
     const rendered = renderDashboard({
       document: {

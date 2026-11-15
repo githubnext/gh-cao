@@ -4,9 +4,9 @@ import fragment from '../../dashboard-fragments/workflow-value.json' with { type
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
 import { executeDashboardQueries } from '../../src/data/queries/declarative.js';
 
-/** @typedef {{ id: string, data?: { source?: string }, list?: { card?: string, drill?: { field?: string } }, "lazy-list"?: boolean }} View */
+/** @typedef {{ id: string, mark?: string, chart?: string, data?: { source?: string }, list?: { card?: string, drill?: { field?: string } }, "card-drill"?: Record<string, unknown>, "lazy-list"?: boolean, disclosure?: string, layout?: string, encoding?: { card?: string, x?: { field?: string }, y?: { field?: string, aggregate?: string }, href?: { field?: string }, columns?: Array<{ field?: string }> } }} View */
 /** @typedef {{ id: string, route?: unknown, sections?: unknown, views?: View[] }} Page */
-/** @typedef {{ id: string, "icon-field"?: string, title?: { field?: string }, status?: { field?: string } }} CardTemplate */
+/** @typedef {{ id: string, "icon-field"?: string, title?: { field?: string }, subtitle?: { field?: string }, status?: { field?: string }, labels?: Array<{ field?: string }>, details?: Array<{ field?: string }>, timing?: Array<{ field?: string }> }} CardTemplate */
 
 /** @type {import('../../src/presenter.js').SourceMetadata} */
 const metadata = {
@@ -143,5 +143,52 @@ describe('unified Value view contract', () => {
       'value-href': '#page-workflow-value?workflow=octo%2Fsolo'
     });
     expect(rows.some(row => row['workflow-role'] === 'worker' || row['workflow-role'] === 'orchestrator')).toBe(false);
+  });
+
+  it('declares chart, inferred cards and a useful table for workflow Value results', () => {
+    const page = /** @type {Page | undefined} */ (
+      fragment.pages.find(candidate => candidate.id === contract.page)
+    );
+    const chart = page?.views?.find(view => view.id === contract.chartView);
+    const table = page?.views?.find(view => view.id === contract.view);
+    expect(page?.views?.find(view => view.id === contract.collectionView)?.disclosure).toBe('supplemental');
+    expect(page?.views?.find(view => view.id === 'workflow-native-measurements')?.disclosure).toBe('supplemental');
+    expect(chart).toMatchObject({
+      mark: 'chart',
+      chart: 'bar',
+      data: { source: contract.query },
+      encoding: {
+        x: { field: 'movement' },
+        y: { field: 'report-id', aggregate: 'count' }
+      }
+    });
+    expect(table).toMatchObject({
+      mark: 'table',
+      data: { source: contract.query },
+      'lazy-list': true,
+      layout: 'full-view',
+      'card-drill': {
+        type: 'query',
+        page: contract.reportPage,
+        query: 'value-report-summary',
+        'title-field': 'snapshot-name',
+        arguments: [{ name: 'report', field: 'report-id' }]
+      }
+    });
+    expect(table?.encoding?.card).toBeUndefined();
+
+    const card = /** @type {CardTemplate | undefined} */ (
+      dashboard.dashboard['card-templates'].find(template => template.id === contract.card)
+    );
+    const cardFields = [
+      card?.title, card?.subtitle, card?.status,
+      ...(card?.labels ?? []), ...(card?.details ?? []), ...(card?.timing ?? [])
+    ].flatMap(field => field?.field ? [field.field] : []);
+    const columns = new Set(table?.encoding?.columns?.flatMap(column => column.field ? [column.field] : []) ?? []);
+    expect(cardFields).toEqual([
+      'delta-label', 'workflow-context', 'movement', 'snapshot-name',
+      'direction-label', 'comparison-label', 'observed-at'
+    ]);
+    expect(cardFields.every(field => columns.has(field))).toBe(true);
   });
 });
