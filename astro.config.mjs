@@ -70,6 +70,7 @@ export default defineConfig({
             "authority-envelopes",
             "author-*",
             "cao-cli",
+            "computation-*",
             "configuration",
             "control-*",
             "dashboard*",
