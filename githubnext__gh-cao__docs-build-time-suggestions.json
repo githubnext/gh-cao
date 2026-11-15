@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T19:26:08Z",
-   "worker_run_id": "43630832269",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43623754509",
-    "43621919773",
-    "43616204011",
-    "43613020723",
-    "43611206032",
-    "43608206381",
-    "43593405440",
-    "43561388555",
-    "43536796952",
-    "43536491714",
-    "43506161539",
-    "43505502149",
-    "43504143936",
-    "43504093917",
-    "43503897533",
-    "43503506778",
-    "43502660435",
-    "43502562196",
-    "43494667529",
-    "43484369040"
-   ],
-   "outcome": "complete, not actionable with partial verification: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z); gh run list re-read at 19:15Z: same 20 IDs, none in progress, no newer docs run; docs.yml queued = stale 37642403569 (workflow_run, 2026-10-07, still queued; not blocking, newer runs complete). Source 185fd26 = HEAD = source_sha. Excluded and disclosed: 5 failures = 43506161539 (install, 7c8faf4) and 43613020723, 43616204011, 43621919773, 43623754509 (Build documentation, log HTTP 403); 0 cancelled; n=15 successes (14 push + schedule 43561388555), 5-run gate met. Timing re-derived from stored rows (18:54Z Jobs API refresh): exec median 81 s, p90 92 s; gate 12.15 s (15 percent) and 60 s. Queue (run created to build start) carried from the 17:33Z sample on the prior window (median 3 s, p90 45 s, max 68 s); queue is not execution time, so it cannot meet the gate. Concurrency documentation-pages, cancel-in-progress false: cancel-in-progress true would cut queue only and could cancel a deploy mid-flight; rejected. Avoidable rebuilds: 0 verified (04c9d9e, 600b56a, afe0ba0, b5a9b43 touched real inputs per earlier compares); 185fd26 touches dashboard/site/src/data/storage/shards.js, a real input; 93c64ff (43621919773) NOT re-verified because the gh CLI proxy was unavailable 19:16-19:26Z (curl exit 7), so it is pending. Even if 93c64ff were avoidable, one occurrence is not repeated evidence and cannot meet the rule. Trigger breadth checked locally: dashboard/site/scripts/build.mjs imports .github/workflows/shared/policy.mjs and reads cao.json, so the shared trigger is input-backed. No suggestion; no issue; noop used. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T19:33:57Z",
    "worker_run_id": "43632340041",
@@ -871,10 +842,39 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (push 79129a5, created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); gh run list re-read 05:17Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Jobs API re-fetched for all 20 runs. Excluded and disclosed: 7 failures (43506161539 Install dependencies at 7c8faf4; 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 Build documentation; step logs HTTP 403 DIFC again, not bypassed). n=13 successes (12 push + schedule 43561388555); 5-run gate met. Category artifact transfer and Pages packaging: removable transfer (handoff 5 + Configure Pages 1 + Upload 2 + deploy Set up job 1) median 9, p90 10, max 10 s = 11.1 percent of median exec 81 s (p90 90); 15 percent gate 12.15 s not reached; 60 s gate unreachable even at full removal. Deploy Pages (GitHub-managed) median 7 s, not controllable. Artifact github-pages 8,352,438 bytes (43611206032, not expired); upload median 2 s, shrinking saves about 1 s. Merging deploy into build still rejected (id-token and github-pages environment would move into the npm ci job). Checkout median 24 s p90 28 (about 30 percent of exec) remains represented by OPEN issue 20815 (0 comments, updated 2026-11-13T17:41:19Z); not repeated, no material evidence change. Reliability, not timing: Build documentation failed on 6 consecutive pushes since 15:58Z; last green deploy 43611206032 (15:39Z); cause unverified (logs 403). Open 20934 is an adjacent workflow-contracts docs-gate classification, relation unverified. No create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T05:34:38Z",
+   "worker_run_id": "43681292593",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "43680980929",
+    "43655786695",
+    "43639680929",
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502660435 (push b406d93, created 2026-11-13T20:33:34Z) to 43680980929 (schedule d55c91b, created 2026-11-15T05:24:54Z); none queued or in progress; 0 cancelled. Samples: 12 successes (11 push + schedule 43561388555), 8 failures excluded and disclosed (Build documentation on 43680980929, 43655786695, 43639680929, 43623754509, 43621919773, 43616204011, 43613020723; Install on 43506161539); 5-run gate met. Exec (build start to deploy end, n=12) median 81.5 s, p90 90 s; 15 percent gate 12.2 s; 60 s gate. Queue (run created to build start, n=20) median 3 s, p90 4 s, max 71 s; queue is not execution time. Concurrency waits (documentation-pages, cancel-in-progress false): 43504143936 71 s behind in-flight 43504093917; 43502660435 45 s behind 43502562196 (outside window); cancel-in-progress true would cancel in-flight Pages publication and split groups risk out-of-order publication, both rejected. Avoidable rebuilds: 0 of 18 push runs (no new push head since d55c91b; earlier verifications stand); schedule 43680980929 is the by-design synthetic date refresh. Candidate execution saving 0 s, below gate. No suggestion; no create_issue; noop used. Reliability, not timing (unresolved): Build documentation red on 7 consecutive runs since 15:58Z incl. scheduled 43680980929 at 05:24Z; step logs HTTP 403 DIFC (one retry at 05:33Z, same); annotation only exit code 1; no open issue tracks it. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-15T02:38:44Z",
+  "verified_at": "2026-11-15T05:34:38Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) = sha256 of the file's sha256 digest; root lock only>",
   "restore": "exact key only; no restore-keys",
@@ -897,18 +897,19 @@
    "pre_rollover_install_median_s": 15,
    "note": "Install median fell from 15 to 9.5 s across the 7c8faf4 lock change (commit title: remove Copilot canvas support). The lock diff was not inspected, so the drop is not attributed to the cache key; the earlier 'key rollover realized about 6 s' wording is withdrawn."
   },
-  "etag_note": "gh api -i for repos/githubnext/gh-cao/actions/workflows/docs.yml/runs returned no ETag header in this environment (2026-11-15); conditional requests not used; completed-run timings are persisted in run_samples instead."
+  "etag_note": "gh api -i for repos/githubnext/gh-cao/actions/workflows/docs.yml/runs returned no ETag header in this environment (2026-11-15); conditional requests not used; completed-run timings are persisted in run_samples instead.",
+  "hits_recheck": "2026-11-15T05:34:38Z: Post Set up Node.js 0-1 s in all 12 successes (exact-key hit, save skipped); setup 3-5 s; key node-cache-Linux-x64-npm-7808ecf8 lastAccessedAt 2026-11-15T05:28:43Z, 263412733 bytes, created 2026-11-13T20:57:12Z"
  },
  "run_samples": {
-  "window_created": "2026-11-13T20:32:55Z..2026-11-14T23:57:34Z",
-  "evaluated_at": "2026-11-15T05:19:20Z",
-  "note": "window = latest 20 completed docs.yml runs (43502562196..43655786695); 13 successful, 7 failed, 0 cancelled; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes). Re-read at 05:17Z (worker 43680208990): same 20 IDs. Successes n=13: exec median 81, p90 90 (nearest-rank), range 68-92; build job median 64; checkout median 24 (p90 28, range 20-37); setup median 4; install median 11 (post-rollover median 9); Build documentation median 12 (p90 14); demo median 4; queue median 3 (p90 45, max 71). Failures: checkout 24-33, build docs 10-15 before failure."
+  "window_created": "2026-11-13T20:33:34Z..2026-11-15T05:24:54Z",
+  "evaluated_at": "2026-11-15T05:34:38Z",
+  "note": "window = latest 20 completed docs.yml runs (43502660435..43680980929); 12 successful, 8 failed, 0 cancelled; Jobs API timings (step logs HTTP 403 DIFC). queue = run created to build job start; exec = build start to deploy end (successes). Successes n=12: exec median 81.5, p90 90 (nearest-rank), range 68-92; build job median 64.5 (p90 77); checkout median 24 (p90 28); setup median 3.5 (p90 5); install median 11 (p90 16); Build documentation median 12.5 (p90 14); demo median 4 (p90 4); upload median 2 (p90 3); deploy job median 10.5 (p90 13). Queue all 20: median 3, p90 4, max 71. Failures: Build documentation fails 10-15 s into the step; install failure 43506161539 at 17 s."
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-15T05:19:20Z",
-   "source": "docs.yml runs 43613020723..43655786695",
-   "note": "Reliability, not timing (unresolved, maintainer triage): Build documentation failed on six consecutive push runs since 600b56a (15:58Z Nov 14); latest d55c91b failed at 23:57Z; Pages not redeployed since 43611206032 (15:39Z). Failure is 10-15 s into the step, after install passes. Cause unverified: step logs HTTP 403 DIFC; annotations say exit code 1 only. Open 20934 (workflow-contracts documentation gate at a2b14dd, 'Build and validate documentation' runs npm run check:svg and npm run docs:build) is adjacent; relation unverified. No docs.yml failure tracking issue found (search 05:17Z)."
+   "observed_at": "2026-11-15T05:34:38Z",
+   "source": "docs.yml runs 43613020723..43680980929",
+   "note": "Reliability, not timing (unresolved, maintainer triage): Build documentation failed on 7 consecutive runs since 15:58Z Nov 14 (heads 600b56a..d55c91b, incl. scheduled 43680980929 at 05:24Z Nov 15). Pages not redeployed since 43611206032 (04c9d9e, deployed 15:39Z). Failure 10-15 s into the step, after install passes. Cause unverified: step logs HTTP 403 DIFC (retried once at 05:33Z); annotation only Process completed with exit code 1. Open-issue search 05:33Z: no docs.yml failure tracker (20815 checkout; 20440 and 20891 worker failures). Reported in noop only; create_issue scope is build-time improvements."
   },
   {
    "observed_at": "2026-11-15T03:54:16Z",
@@ -955,9 +956,9 @@
   ]
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-15T03:54:16Z",
-  "window": "43502562196 (2026-11-13T20:32:55Z) .. 43655786695 (2026-11-14T23:57:34Z); unchanged at 03:52Z",
-  "n_success": 13,
+  "evaluated_at": "2026-11-15T05:34:38Z",
+  "window": "43502660435 (2026-11-13T20:33:34Z) .. 43680980929 (2026-11-15T05:24:54Z)",
+  "n_success": 12,
   "failed": [
    "43506161539 (install, push 7c8faf4)",
    "43613020723",
@@ -965,32 +966,33 @@
    "43621919773",
    "43623754509",
    "43639680929",
-   "43655786695 (Build documentation)"
+   "43655786695 (Build documentation, push d55c91b)",
+   "43680980929 (schedule, Build documentation, d55c91b)"
   ],
   "cancelled": [],
   "queued_or_in_progress_in_window": [],
   "queue_run_created_to_build_start_all20_median_p90_max_s": [
-   2,
    3,
-   4
+   4,
+   71
   ],
   "concurrency_waits_run_created_to_build_start_s": {
    "43502660435": 45,
    "43504143936": 71
   },
   "exec_success_median_p90_nearest_rank_s": [
-   81,
+   81.5,
    90
   ],
   "exec_success_min_max_s": [
    68,
    92
   ],
-  "gate_s": 12.15,
+  "gate_s": 12.2,
   "avoidable_push_runs_verified": [],
-  "avoidable_push_runs_checked": 19,
-  "avoidable_candidates_resolved": "43536491714 (2cb6d9c) is NOT avoidable: modernization/aw.yml is globbed and listed by docs/lib/catalog.ts (experimental, not private)",
-  "conclusion": "no scheduling, concurrency, or avoidable-rebuild change meets the 15 percent or 60 s gate; queue waits are not execution time"
+  "avoidable_push_runs_checked": 18,
+  "avoidable_candidates_resolved": "43536491714 (2cb6d9c) NOT avoidable (modernization/aw.yml globbed by docs/lib/catalog.ts); no new push head since d55c91b; schedule 43680980929 is by design (synthetic date refresh)",
+  "conclusion": "no scheduling, concurrency, or avoidable-rebuild change meets the 15 percent (12.2 s) or 60 s gate; queue waits are not execution time"
  },
  "transfer_sample": {
   "evaluated_at": "2026-11-15T05:19:20Z",
