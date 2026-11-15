@@ -10,16 +10,28 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
+	debuglogger "github.com/githubnext/gh-cao/server/internal/logger"
 )
 
-func readNativeInventory(input io.Reader, digest string) (collectnative.InventorySnapshot, error) {
+var inventoryLog = debuglogger.New("cao:dashboard:inventory")
+
+// readBoundedInventory reads at most collectnative.InventoryMaxBytes and fails
+// with collectnative.ErrCapacity when the input is larger.
+func readBoundedInventory(input io.Reader) ([]byte, error) {
 	content, err := io.ReadAll(io.LimitReader(input, collectnative.InventoryMaxBytes+1))
 	if err != nil {
-		return collectnative.InventorySnapshot{}, err
+		return nil, err
 	}
 	if len(content) > collectnative.InventoryMaxBytes {
-		return collectnative.InventorySnapshot{}, collectnative.ErrCapacity
+		inventoryLog.Printf("native inventory rejected: reason=capacity limit=%d", collectnative.InventoryMaxBytes)
+		return nil, collectnative.ErrCapacity
 	}
+	return content, nil
+}
+
+// buildNativeInventory parses and validates reviewed inventory bytes against
+// their independently reviewed digest.
+func buildNativeInventory(content []byte, digest string) (collectnative.InventorySnapshot, error) {
 	var provenance collectnative.InventoryProvenance
 	if err := json.Unmarshal(content, &provenance); err != nil {
 		return collectnative.InventorySnapshot{}, errors.New("invalid native inventory document")
@@ -29,6 +41,20 @@ func readNativeInventory(input io.Reader, digest string) (collectnative.Inventor
 		return collectnative.InventorySnapshot{}, err
 	}
 	return snapshot, snapshot.Validate()
+}
+
+func readNativeInventory(input io.Reader, digest string) (collectnative.InventorySnapshot, error) {
+	content, err := readBoundedInventory(input)
+	if err != nil {
+		return collectnative.InventorySnapshot{}, err
+	}
+	snapshot, err := buildNativeInventory(content, digest)
+	if err != nil {
+		inventoryLog.Printf("native inventory rejected: reason=invalid bytes=%d", len(content))
+		return snapshot, err
+	}
+	inventoryLog.Printf("native inventory validated: bytes=%d", len(content))
+	return snapshot, nil
 }
 
 func newProvisionInventoryCommand() *cobra.Command {
