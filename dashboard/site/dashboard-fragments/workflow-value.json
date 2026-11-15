@@ -751,6 +751,18 @@
       "order-by": [{ "field": "value-title", "direction": "asc" }]
     },
     {
+      "name": "value-overview-by-kind",
+      "subject": "Counts of top-level campaign rollups and standalone workflow entries.",
+      "objective": "Compare the canonical entry inventory without combining native Value outcomes.",
+      "acceptance": "Count unified entries by canonical type only; do not aggregate or compare their native outcome values.",
+      "from": "value-overview",
+      "aggregate": {
+        "by": ["value-kind"],
+        "values": [{ "field": "value-kind", "as": "value-entries", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "value-kind", "direction": "asc" }]
+    },
+    {
       "name": "value-intent-sources",
       "subject": "Immutable extracted workflow intent sources.",
       "objective": "Let readers inspect the original goal and requirements.",
@@ -960,26 +972,52 @@
     },
     {
       "id": "value", "kind": "custom", "title": "Value", "icon": "trophy",
-      "description": "Review one Value entry per campaign worker rollup or standalone workflow.",
-      "intent": "Find which campaign or standalone workflow needs attention without splitting Value by entity type or review state.",
+      "description": "Review one Value entry per campaign worker rollup or standalone workflow, keeping native outcomes separate.",
+      "intent": "Review the unified campaign and standalone workflow inventory without combining native Value outcomes.",
       "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
-      "objective": "Open the campaign worker rollup or exact standalone workflow from one unified list.",
-      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once, and missing or unknown evidence remains explicit.",
-      "view-mode-control": false,
-      "views": [{
-        "id": "value-overview", "title": "Value", "show-title": false,
-        "description": "Campaign entries roll up only their canonical workers. Standalone workflows retain their own native evidence.",
-        "subject": "One campaign worker rollup or one standalone workflow per Value entry.",
-        "objective": "Open the relevant campaign or standalone workflow while keeping evidence gaps visible.",
-        "acceptance": "Never count a campaign worker twice, include an orchestrator in campaign Value, or turn missing evidence into zero.",
-        "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy",
-          "drill": { "type": "external", "field": "value-href" } },
-        "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
-        "layout": "full",
-        "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
-      }]
+      "objective": "Review entry-type counts, inspect complete Value cards, or compare the same entries in a table.",
+      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Counts describe entry types only; missing and unknown evidence remains explicit, and no incompatible native values are combined.",
+      "view-mode-control": true,
+      "views": [
+        {
+          "id": "value-overview-chart", "title": "Value entries by type",
+          "subject": "Counts of campaign rollups and standalone workflows in the unified Value inventory.",
+          "objective": "Compare inventory composition without treating entry counts as measured outcomes.",
+          "acceptance": "Each bar counts top-level entries of one canonical type. Native outcome values are not combined.",
+          "data": { "source": "value-overview-by-kind", "query-context": false, "time": { "range": "all" } },
+          "mark": "chart", "chart": "bar", "layout": "full",
+          "encoding": {
+            "x": { "field": "value-kind", "type": "nominal", "title": "Value entry type" },
+            "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" }
+          },
+          "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
+        },
+        {
+          "id": "value-overview-table", "title": "Value entries",
+          "description": "The same campaign rollups and standalone workflows, shown as a table or reusable Value cards.",
+          "subject": "Unified campaign and standalone workflow Value entries with their separate evidence fields.",
+          "objective": "Compare entry coverage and evidence without combining native outcomes.",
+          "acceptance": "Each row is one top-level campaign rollup or standalone workflow. Cards retain direct entry navigation; no worker is counted twice.",
+          "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
+          "mark": "table", "lazy-list": true, "layout": "full",
+          "encoding": {
+            "card": "value-overview",
+            "columns": [
+              { "field": "value-title", "type": "nominal", "title": "Value entry" },
+              { "field": "value-kind", "type": "nominal", "title": "Type" },
+              { "field": "value-status", "type": "nominal", "title": "Value status" },
+              { "field": "value-context", "type": "nominal", "title": "Scope" },
+              { "field": "value-collection", "type": "nominal", "title": "Collection" },
+              { "field": "value-evidence", "type": "nominal", "title": "Evidence" },
+              { "field": "value-measure", "type": "nominal", "title": "Observed value" },
+              { "field": "value-attention", "type": "nominal", "title": "Review basis" },
+              { "field": "value-captured", "type": "temporal", "title": "Evidence captured", "format": "human-friendly-timestamp" },
+              { "field": "value-cutoff", "type": "temporal", "title": "Evidence through", "format": "human-friendly-timestamp" }
+            ]
+          },
+          "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
+        }
+      ]
     },
     {
       "id": "campaign-value", "kind": "custom", "title": "Campaign Value", "icon": "goal",

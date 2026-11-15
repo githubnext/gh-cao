@@ -1,8 +1,10 @@
 {
   "overviewPage": "value",
-  "overviewView": "value-overview",
   "overviewQuery": "value-overview",
   "overviewCard": "value-overview",
+  "overviewChartView": "value-overview-chart",
+  "overviewChartQuery": "value-overview-by-kind",
+  "overviewTableView": "value-overview-table",
   "overviewKinds": ["Campaign", "Standalone workflow"],
   "removedPages": ["value-campaigns", "value-standalone", "value-review"],
   "campaignMemberRole": "worker",
