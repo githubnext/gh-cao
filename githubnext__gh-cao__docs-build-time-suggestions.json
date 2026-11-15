@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T18:20:32Z",
-   "worker_run_id": "43625619773",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z), all within 14 days; none queued or in progress; 0 cancelled; source 185fd26 = HEAD = source_sha. Excluded and disclosed: failures 43506161539 (Install dependencies, 2026-11-13) and 43613020723, 43616204011, 43621919773, 43623754509 (Build documentation, consecutive since 15:58Z; log read HTTP 403 DIFC, one attempt). n=15 successes (14 push + schedule 43561388555); 5-run gate met. Category step Build documentation (npm run docs:build = astro build && node scripts/validate-agent-docs.mjs && node --test tests/integration/agent-docs-discovery.test.mjs): median 12 s, p90 15, range 9-15 = 14.8 percent of median exec 81 s (p90 92). Gate 12.15 s. Full removal saves about 12 s (13 s with 1 s timestamp rounding, 16 percent) and is blocked: validation is a correctness gate and deploy consumes its output. Every Astro-internal change is bounded by this same step total, so only whole-step removal could clear the gate; 60 s gate unreachable. Jobs API spot-check 43611206032 Build documentation 14 s matched stored row. Reliability (not timing) recorded in observations_pending. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T18:33:08Z",
    "worker_run_id": "43626850463",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); gh run list and Jobs API re-read about 04:17Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, 17 s) and six push failures at Build documentation 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 (10-15 s; logs not read). n=13 successes (12 push + schedule 43561388555) meets the 5-run gate. Install dependencies median 11 s (p90 20, n=13) = 13.6 percent of exec median 81 s; setup-node median 4 s; Post Set up Node.js 0-1 s in all 13 successes (exact-key hit inferred from step timing; cache 7808ecf8 263 MB, last accessed 04:17Z). Post-rollover successes (runs after 43506161539, n=6) install median 9.5 s. 15 percent gate 12.15 s: the install step alone (median 11 s) cannot clear it even if fully removed; setup plus install (median 16 s) would clear it only if a replacement restored in at most about 3 s, while the current 263 MB npm-cache restore alone is median 4 s; node_modules caching therefore cannot reach the gate. 60 s gate unreachable. Observations, not suggestions: production-only dashboard/site lock entries (about 8, 6 not identical to root lock) sit outside the root-only key; their cache coverage and cost are unmeasured and bounded by the install step. Cache 7808ecf8 was created 20:57:12Z, about 35 s after failed run 43506161539 started, so the failed install's post step seeded it; contents unverified. No suggestion; no issue; noop used. next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T04:33:18Z",
+   "worker_run_id": "43677020035",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); gh run list re-read 04:33Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Jobs API re-fetched for all 20 runs (stored rows confirmed). Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, 17 s) and six push failures at Build documentation 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 (10-15 s; step logs HTTP 403 DIFC again). n=13 successes (12 push + schedule 43561388555) meets 5-run gate. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 14, range 9-15 = 14.8 percent of median exec 81 s (p90 90). 15 percent gate 12.15 s; whole-step removal (blocked: validation gate, deploy consumes output) saves at most 12 s, so no Astro-internal change can clear the gate; 60 s gate unreachable. Astro-internal split unmeasured (logs unreadable) and not decision-relevant. Reliability, not timing: six consecutive Build documentation failures since 600b56a; no tracking issue (20934 = workflow-contracts gate, relation unverified; 20815 = checkout). Maintainer triage needed. No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -901,8 +901,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T20:32:55Z..2026-11-14T23:57:34Z",
-  "evaluated_at": "2026-11-15T04:20:27Z",
-  "note": "window = latest 20 completed docs.yml runs; 13 successful, 7 failed, 0 cancelled; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes), build job duration for failed runs; 0 for skipped/unreached jobs. Re-read at 2026-11-15T03:21:24Z (worker 43671668975): same 20 IDs, unchanged. Re-read at 2026-11-15T04:20:27Z (worker 43675975539): same 20 IDs, unchanged; medians unchanged.",
+  "evaluated_at": "2026-11-15T04:33:18Z",
+  "note": "window = latest 20 completed docs.yml runs; 13 successful, 7 failed, 0 cancelled; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes), build job duration for failed runs; 0 for skipped/unreached jobs. Re-read at 2026-11-15T03:21:24Z (worker 43671668975): same 20 IDs, unchanged. Re-read at 2026-11-15T04:20:27Z (worker 43675975539): same 20 IDs, unchanged; medians unchanged. Re-read at 2026-11-15T04:33:18Z (worker 43677020035): same 20 IDs, unchanged; Jobs API re-fetched; medians unchanged (docs 12, exec 81, p90 90).",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
    [
@@ -1217,6 +1217,11 @@
    "observed_at": "2026-11-15T04:20:27Z",
    "source": "docs.yml runs 43613020723..43655786695 (6 consecutive push failures at Build documentation); Pages last deployed by 43611206032 (2026-11-14T15:39Z)",
    "note": "Reliability, not timing (highest priority, unresolved): still six consecutive Build documentation push failures; no newer docs.yml run; no open issue tracks this streak in the window search (open 20934 is cao-framework-health, a2b14dd workflow-contracts; relation unverified). Maintainer triage needed."
+  },
+  {
+   "observed_at": "2026-11-15T04:33:18Z",
+   "source": "docs.yml runs 43613020723..43655786695; open-issue search",
+   "note": "Reliability, not timing (highest priority, unresolved): still six consecutive Build documentation push failures (600b56a..d55c91b). Open-issue search 04:33Z: no issue tracks this streak (20934 is cao-framework-health workflow-contracts classification; 20815 is checkout). Step logs HTTP 403 DIFC again. Maintainer triage needed."
   }
  ],
  "checkout_probe": {
