@@ -1,36 +1,7 @@
 {
   "source_sha": "f8da6f2224c011c7deeb8a47aace4fb168a927436",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T23:18:27Z",
-      "worker_run_id": "43652146055",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        43639680929,
-        43623754509,
-        43621919773,
-        43616204011,
-        43613020723,
-        43611206032,
-        43608206381,
-        43593405440,
-        43561388555,
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43639680929 (push 6418dcd, created 2026-11-14T20:51Z) back to 43494667529 (created 2026-11-13T19:42Z); no docs.yml run since 20:51Z; HEAD 11a826aa has no docs.yml run. Excluded and disclosed: [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T23:35:24Z",
       "worker_run_id": 43653530430,
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43698271571 (push f8da6f2, created 2026-11-15T09:14:26Z) back to 43504093917 (push a7d5ebf, created 2026-11-13T20:42:56Z), all within 14 days; 0 cancelled, none queued; source f8da6f2 = HEAD = source_sha. Samples: 9 successes (8 push + schedule 43561388555) meet the 5-run gate; 11 failures disclosed: 10 Build documentation failures since 43613020723 (15:58Z Nov 14), including 43681861583 which earlier windows omitted, plus 43506161539 at Install dependencies. Install dependencies (successes) median 11 s, p90 nearest-rank 24 (pre-rollover 43504143936); post-rollover n=6 median 9.5 s (7-11). Exec build-start to deploy-end median 82 s (p90 92): 15 percent gate 12.3 s, install share 13.4 percent; whole-step removal (11 s) stays below the gate; setup+install median 16 s would need a replacement costing at most 3.7 s, while the npm restore alone is median 4 s. Cache: Post Set up Node.js 0-1 s in all 9 successes (exact-key hit, save skipped); key 7808ecf8 (263 MB) last accessed 09:29Z. Correction: failed run 43506161539 Post Set up Node.js was skipped, so it did not seed 7808ecf8; creator not attributable from caches API. Dashboard prod install (6 of 34 entries differ from root lock) sits outside the root-only key and is unmeasurable (job logs HTTP 403 DIFC, not bypassed). Checkout median 24 s stays with open issue 20815 (OPEN, 0 comments), not repeated. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T09:53:18Z",
+      "worker_run_id": "43701093070",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "43698271571",
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032",
+        "43608206381",
+        "43593405440",
+        "43561388555",
+        "43536796952",
+        "43536491714",
+        "43506161539",
+        "43505502149",
+        "43504143936",
+        "43504093917"
+      ],
+      "outcome": "complete, not actionable; reliability blocker unresolved. Window = latest 20 completed docs.yml runs 43504093917 (push a7d5ebf, created 2026-11-13T20:42:56Z) to 43698271571 (push f8da6f2, created 2026-11-15T09:14:26Z), all within 14 days; gh run list re-read 09:52Z: same 20 IDs as the 09:35Z window, all completed, none queued or in progress, 0 cancelled, no docs run after 09:14Z; source f8da6f2 = HEAD = source_sha. Jobs timings reused from the 09:31Z fetch (identical window; no new completed run). Excluded and disclosed: 11 failures (43506161539 at Install dependencies; 10 Build documentation failures 43613020723..43698271571, 9-15 s into the step). n=9 successes (8 push + schedule 43561388555) meets the 5-run gate. Category step Build documentation (npm run docs:build): median 13 s, range 10-15 s = about 15.9 percent of build-start-to-deploy-end median 82 s (p90 92). 15 percent gate 12.3 s: the whole step is about 13 s, so no Astro-internal change can save 12.3 s (it would need the step at under 1 s); only whole-step removal clears the gate and is invalid because the step produces the Pages artifact and gates validation. 60 s gate unreachable. Internal split unmeasurable: step-log read re-tried 09:52Z returned HTTP 403 DIFC (not bypassed). Reliability, not timing (critical, unresolved, maintainer triage): Build documentation red on 10 consecutive runs since 15:58Z Nov 14 (latest 43698271571 at 09:14Z); Pages not deployed since 43611206032 (15:37Z Nov 14). Search 09:53Z found no open docs.yml failure tracker (20934 classifies the workflow-contracts docs gate, relation unverified; 20815 checkout, not repeated). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1232,11 +1232,11 @@
     "conclusion": "not actionable: max saving 4 s; output is Date.now()-synthetic, so caching the rendered demo is not freshness-safe"
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-15T09:35:10Z",
+    "observed_at": "2026-11-15T09:53:18Z",
     "consecutive_build_documentation_failures": 10,
     "first_failure_run": "43613020723 (push 600b56a, 2026-11-14T15:58:23Z)",
     "last_successful_run_and_pages_deploy": "43611206032 (2026-11-14T15:37:50Z; deploy success)",
-    "latest_failure_run": "43698271571 (2026-11-15T09:14:26Z)",
-    "note": "Reliability, not timing; cause unverified (logs HTTP 403 DIFC); maintainer triage. Not filed as an issue (outside timing threshold)."
+    "latest_failure_run": "43698271571 (2026-11-15T09:14:26Z); still latest completed docs.yml run as of 09:52Z",
+    "note": "Reliability, not timing; cause unverified (step logs HTTP 403 DIFC re-checked 09:52Z, not bypassed); maintainer triage. No open docs.yml failure tracker found by search at 09:53Z. Not filed as an issue (outside timing threshold)."
   }
 }
