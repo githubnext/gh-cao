@@ -1,36 +1,7 @@
 {
   "source_sha": "29e63d1eba9e5a9cfe180fcda863161d1c5fb026",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T21:52:36Z",
-      "worker_run_id": "43644771978",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917",
-        "43503897533",
-        "43503506778",
-        "43502660435",
-        "43502562196",
-        "43494667529"
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); all within 14 days; run list and jobs re-read at this evaluation: same 20 [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T22:18:26Z",
       "worker_run_id": "43646940636",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; run list re-read 08:19Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Jobs API re-fetched for all 20 runs. Excluded and disclosed: 10 failures (43506161539 at Install dependencies 17 s; 9 Build documentation failures 43613020723..43682264332, 9-15 s into the step). n=10 successes (9 push + schedule 43561388555) meets the 5-run gate. Category step Build documentation (npm run docs:build): successes median 12.5 s, p90 14 (nearest-rank), range 9-15 = 15.3 percent of build-to-deploy median 81.5 s (p90 90). 15 percent gate 12.2 s; only whole-step removal clears it, which is invalid (the step produces the Pages artifact and gates the validation). Astro-internal changes save a fraction of 12.5 s and cannot reach 12.2 s; docs output embeds PUBLIC_PAGES_BUILD_COMMIT, so dist caching is not valid across commits. Internal split unmeasurable: job logs API returns 403 difc_forbidden (re-checked 08:20Z, not bypassed); no local node_modules; npm ci blocked by sandbox TLS as before. Reliability, not timing (critical, unresolved, maintainer triage): Build documentation red on 9 consecutive runs since 15:58Z Nov 14; Pages not deployed since 43611206032 (15:39Z Nov 14). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T08:34:00Z",
+      "worker_run_id": "43694783700",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032",
+        "43608206381",
+        "43593405440",
+        "43561388555",
+        "43536796952",
+        "43536491714",
+        "43506161539",
+        "43505502149",
+        "43504143936",
+        "43504093917",
+        "43503897533"
+      ],
+      "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; run list re-read 08:33Z unchanged, none queued or in progress, 0 cancelled, no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Excluded and disclosed: 10 failures (43506161539 at Install dependencies; 9 Build documentation failures 43613020723..43682264332). n=10 successes meets the 5-run gate. Category step Build synthetic enterprise demo (npm run dashboard:pages:build; cp -R): successes median 4 s, p90 4, range 3-4 = 4.9 percent of build-to-deploy median 81.5 s; 12.2 s and 60 s gates unreachable even if the step were removed. Sample is generated from Date.now() (scripts/simulate-dashboard-pages.mjs), so caching rendered output would carry stale synthetic dates; workflow comment requires date refresh. Build-job exec median 64.5 s p90 77; deploy exec median 9.5 p90 13. Check-run annotations for build job 132715223669 are generic (Process completed with exit code 1); logs HTTP 403 DIFC, not bypassed; cause unverified. Open 20934 (related docs gate) and 20815 (blobless checkout, not repeated). No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1193,5 +1193,33 @@
     "share_of_exec_median_pct": 15.3,
     "gate_s": 12.2,
     "conclusion": "whole-step removal is the only change that clears the 15 percent gate and it is not valid; Astro-internal change cannot reach 12.2 s; 60 s gate unreachable"
+  },
+  "demo_step_sample": {
+    "evaluated_at": "2026-11-15T08:34:00Z",
+    "window": "43503897533 (2026-11-13T20:41:39Z) .. 43682264332 (2026-11-15T05:43:01Z); latest 20 completed docs.yml runs",
+    "n_success": 10,
+    "step": "Build synthetic enterprise demo (npm run dashboard:pages:build; cp -R .tmp/dashboard-pages dist/cao)",
+    "step_seconds_by_success_run": {
+      "43611206032": 4,
+      "43608206381": 4,
+      "43593405440": 4,
+      "43561388555": 4,
+      "43536796952": 3,
+      "43536491714": 3,
+      "43505502149": 3,
+      "43504143936": 4,
+      "43504093917": 3,
+      "43503897533": 4
+    },
+    "median_p90_range_s": [
+      4,
+      4,
+      [
+        3,
+        4
+      ]
+    ],
+    "share_of_build_to_deploy_median_pct": 4.9,
+    "conclusion": "not actionable: max saving 4 s; output is Date.now()-synthetic, so caching the rendered demo is not freshness-safe"
   }
 }
