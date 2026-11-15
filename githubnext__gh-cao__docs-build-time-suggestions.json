@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T15:54:45Z",
-   "worker_run_id": "43612213407",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43440055797 (created 2026-11-13T14:09:27Z) to 43611206032 (push 04c9d9e, created 2026-11-14T15:37:50Z); source 04c9d9e = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, install; logs unread); 0 cancelled; none queued or in progress. n=19 successes (18 push, 1 schedule 43561388555); 5-run gate met. Concurrency wait (run created to build created): median 1 s, p90 42 s (nearest rank), max 68 s, sum 124 s; the two waits (43502660435 42 s, 43504143936 68 s) ended at the predecessor deploy (cancel-in-progress false, by design). Queue time, not execution time: exec median 82 s, p90 92 s; 15 percent gate 12.3 s and 60 s gate unmet because the median run saves 0 s. Avoidable rebuilds: 0 of 18 push publications; 54faceef (docs/configuration.md) and 04c9d9e (docs/cao-cli.md) are docs/** inputs. Rejected: cancelling in-flight builds or relaxing serialization needs new cancellation/ordering logic (out-of-order Pages risk) for 2 of 19 runs. Open issue 20815 (checkout, other category) not repeated. No suggestion; no issue created; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T16:19:54.203Z",
    "worker_run_id": "43614532796",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (push 79129a5, created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); gh run list re-read 01:50Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = workspace HEAD = source_sha. Excluded and disclosed: 43506161539 failed at Install (7c8faf4) and 6 push runs failed at Build documentation (43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695; annotation exit code 1; logs HTTP 403). n=13 successes (12 push + schedule 43561388555); 5-run gate met. Jobs API re-fetched for all 13 successes (26 job records): handoff (build complete to deploy start) median 5 s p90 6; Configure Pages median 1 s; Upload Pages artifact median 2 s p90 3; deploy job setup median 1 s p90 2; removable set median 9 s p90 10 max 10 = 11.1 percent of exec median 81 s (p90 90); 15 percent gate 12.15 s and 60 s gate unmet even at full removal. Deploy Pages (GitHub-managed) median 7 s p90 8, not controllable; merging deploy into build saves about 6 s but needs id-token and github-pages environment in build (least privilege, rejected). Upload of an 8.35 MB artifact is about 2 s, so shrinking saves about 1 s. Checkout median 24 s remains open issue 20815 (OPEN, 0 comments), not repeated. Reliability, not timing: Build documentation failed on 6 consecutive pushes since 15:58Z; open issue 20934 (workflow-contracts, a2b14dd) reports the same npm run docs:build command failing; relation unverified. No suggestion; no create_issue; noop used. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T02:24:24Z",
+   "worker_run_id": "43667142573",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z), all within 14 days; re-read 02:20Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Jobs API re-fetched for all 20 runs. Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, push 7c8faf4) and six consecutive Build documentation failures 43613020723 to 43655786695 (push 600b56a onward; logs HTTP 403 again not read). n=13 successes (12 push + schedule 43561388555); 5-run gate met. Queue (run created to build start) successes median 3 s, p90 45, max 71; two concurrency waits behind predecessor deploy (43502660435 41 s, 43504143936 67 s; cancel-in-progress false by design), i.e. queue, not execution. Exec (build start to deploy end) successes median 81 s, p90 90, max 92 (push-only median 80 s). 15 percent gate 12.15 s and 60 s gate unmet: a queue-only change saves 0 s at median exec. Cancel-in-progress true would cut queue only and could cancel a mid-flight Pages deploy (rejected). Avoidable rebuilds: 0 demonstrated. Candidate 43536491714 (2cb6d9c) was earlier logged as shared-only; the head commit actually includes modernization/aw.yml, which matches the */aw.yml trigger, so it is an unverified single occurrence (1 of 19 push runs), not repeated evidence. Checkout (median 24 s, outside this rotation) stays with open issue 20815 (OPEN, unchanged since 2026-11-13T17:41Z); not repeated, and no comment or update safe output is configured. No suggestion; no issue; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1200,6 +1200,11 @@
    "observed_at": "2026-11-15T01:02:51Z",
    "source": "gh-aw failure reports",
    "note": "Open [aw] issues 20440 (Failed jobs: SelfCare / Docs Build Time, 2026-11-08) and 20891 (engine driver crashed, 2026-11-14) exist for this worker; not docs build-time evidence, not repeated."
+  },
+  {
+   "observed_at": "2026-11-15T02:24:24Z",
+   "source": "docs.yml runs 43613020723..43655786695 (6 consecutive push failures at Build documentation); latest 43655786695 failed 2026-11-14T23:58Z",
+   "note": "Reliability, not timing (highest priority, unresolved): still six consecutive Build documentation failures; no successful deploy since 43611206032 (2026-11-14T15:39Z). Open issue 20934 (cao-framework-health, a2b14dd workflow-contracts) reports a failing npm run check:svg && npm run docs:build step with logs HTTP 403; relation to docs.yml unverified. Maintainer triage needed; reported in terminal message, not a timing suggestion."
   }
  ],
  "checkout_probe": {
@@ -1228,8 +1233,8 @@
    "number": 20815,
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
-   "checked_at": "2026-11-15T00:42:07Z",
-   "note": "only open issue for this worker; checkout category, not repeated"
+   "checked_at": "2026-11-15T02:24:24Z",
+   "note": "re-read 02:20Z: still the only open issue for this worker (OPEN, updated 2026-11-13T17:41:19Z); not repeated"
   },
   "window_checkout_ok14_median_p90_s": [
    24,
@@ -1237,40 +1242,41 @@
   ]
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-15T00:42:07Z",
-  "window": "43502562196..43655786695 (2026-11-13T20:32:55Z to 2026-11-14T23:57:34Z)",
+  "evaluated_at": "2026-11-15T02:24:24Z",
+  "window": "43502562196 (2026-11-13T20:32:55Z) .. 43655786695 (2026-11-14T23:57:34Z); unchanged at 02:20Z",
   "n_success_push": 12,
   "n_success_schedule": 1,
   "failed": [
-   "43506161539 (install)",
+   "43506161539 (install, push 7c8faf4)",
    "43613020723",
    "43616204011",
    "43621919773",
    "43623754509",
    "43639680929",
-   "43655786695 (Build documentation)"
+   "43655786695 (Build documentation, pushes 600b56a..d55c91b)"
   ],
   "cancelled": [],
   "queued_or_in_progress_in_window": [],
-  "stale_queued_outside_window": "37642403569 (workflow_run, created 2026-10-07T15:12Z)",
-  "queue_s_median_p90_max": [
+  "queue_success_median_p90_max_s": [
    3,
-   4,
+   45,
    71
   ],
-  "queue_waits_behind_deploy_s": {
-   "43502660435": 42,
-   "43504143936": 68
+  "queue_waits_behind_predecessor_deploy_s": {
+   "43502660435": 41,
+   "43504143936": 67
   },
-  "exec_s_median_p90": [
+  "exec_success_median_p90_max_s": [
    81,
-   90
+   90,
+   92
   ],
-  "gate_s": 12.2,
-  "avoidable_push_runs": [
-   "43536491714 (.github/workflows/shared/** only, 4 files)"
+  "exec_push_only_median_s": 80,
+  "gate_s": 12.15,
+  "avoidable_push_runs_demonstrated": [],
+  "avoidable_candidates_unverified": [
+   "43536491714 (head 2cb6d9c): trigger matched */aw.yml via modernization/aw.yml plus .github/workflows/shared/** and many non-docs files; closure for modernization/aw.yml not verified; corrects earlier shared-only note"
   ],
-  "push_comparisons": 18,
-  "build_side_zero": 1
+  "conclusion": "no scheduling, concurrency, or avoidable-rebuild change meets the 15 percent or 60 s gate; queue waits are not execution time"
  }
 }
