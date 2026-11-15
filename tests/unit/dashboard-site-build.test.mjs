@@ -202,6 +202,31 @@ test("server build ignores legacy campaign bundles and preserves the standard da
   }
 });
 
+test("Pages demo labels Overview without showing a site-wide demo notification", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "dashboard-demo-callout-"));
+  try {
+    await buildDashboardSite({
+      destination: path.join(root, "output"),
+      controlSettings: { campaigns: {} },
+      profile: "demo",
+    });
+    const dashboard = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
+    assert.ok(!dashboard.dashboard.callouts?.some((callout) => callout.id === "synthetic-demo"));
+    const overview = dashboard.dashboard.pages.find((page) => page.id === "overview");
+    const chunk = JSON.parse(await readFile(path.join(root, "output", overview.chunk), "utf8"));
+    assert.deepEqual(chunk.page.views[0], {
+      id: "synthetic-demo",
+      title: "Synthetic enterprise demo",
+      description: "Fictional enterprise activity, not operational evidence. No live services or commands.",
+      mark: "callout",
+      callout: { label: "Demo data", icon: "info" },
+      layout: "full",
+    });
+  } finally {
+    await rm(root, { force: true, recursive: true });
+  }
+});
+
 test("dashboard build accepts resolved settings and extracts composed policy settings", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "dashboard-control-settings-"));
   try {

@@ -74,12 +74,16 @@ export async function buildDashboardSite({
   dashboard = filterExperimentalDashboardViews(dashboard, controlSettings.web?.experimental === true);
   if (profile === "demo") {
     dashboard.dashboard.title = "CAO synthetic enterprise demo";
-    dashboard.dashboard.callouts = [{
+    const overview = dashboard.dashboard.pages.find((page) => page.id === "overview");
+    if (!overview || !Array.isArray(overview.views)) throw new Error("demo overview page is missing");
+    overview.views.unshift({
       id: "synthetic-demo",
       title: "Synthetic enterprise demo",
       description: "Fictional enterprise activity, not operational evidence. No live services or commands.",
-      icon: "info",
-    }, ...(dashboard.dashboard.callouts ?? [])];
+      mark: "callout",
+      callout: { label: "Demo data", icon: "info" },
+      layout: "full",
+    });
     await writeFile(join(destinationPath, "src/deployment-profile.js"), "export const DEMO_MODE = true;\n");
     const html = await readFile(indexPath, "utf8");
     await writeFile(indexPath, html.replace("<head>", `<head>\n<meta name="dashboard-deployment" content="synthetic-demo">\n<meta http-equiv="Content-Security-Policy" content="connect-src 'self'; worker-src 'self';">`)
