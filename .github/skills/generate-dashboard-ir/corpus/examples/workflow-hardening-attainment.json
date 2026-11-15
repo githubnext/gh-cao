@@ -12,7 +12,7 @@
     ],
     "requiredEffects": [
       "Each retained high-severity workflow-smells observation for the workflow appears in the remediation queue with its smell name, category, summary, evidence, recommendation, observation time, and a link to the workflow.",
-      "Each published workflow-hardening-attainment observation appears once per observed day with its native value and maturity status, so interim and matured values remain distinguishable.",
+      "Each published workflow-hardening-attainment observation appears once with its native value and maturity status, so interim and matured values remain distinguishable.",
       "The high-severity smell count is a count of retained smell observations and is not presented as a run count, a failure count, or the attainment metric."
     ],
     "noopConditions": [
@@ -40,31 +40,7 @@
         "direction": "higher_is_better"
       }
     ],
-    "preservation": "Preserve the upstream metric identity, order, native finite value or null, ratio unit, higher-is-better direction, and maturity status. The high-severity smell count is a separate deterministic count and must never replace or be combined with the attainment metric.",
-    "contract": {
-      "opportunity": "One stable design-time opportunity per workflow path and compiled workflow revision in githubnext/gh-cao; every hypothetical inspection run is bound to that opportunity.",
-      "acceptedEvidence": [
-        "workflow-smells observations for the same organization, repository, and workflow path at the bound compiled revision.",
-        "A complete gh-aw operational-value inspection of the same bound revision, identified by its workflow-hardening-attainment observation."
-      ],
-      "repositories": [
-        "githubnext/gh-cao"
-      ],
-      "metric": {
-        "id": "workflow-hardening-attainment",
-        "kind": "direct",
-        "range": [0, 1],
-        "intent": "Native gh-aw ratio of hardening checks satisfied to hardening checks evaluated for the bound revision. The dashboard consumes the published value and never recomputes it."
-      },
-      "maturation": "An observation is mature only after gh-aw publishes a complete inspection of the bound revision. Interim observations stay distinct and are not final attainment.",
-      "zeroRule": "Zero is valid only when a complete inspection evaluated at least one hardening check and every evaluated check failed. No smell row, missing inspection, partial inspection, or unavailable source is zero.",
-      "missingEvidenceRule": "A missing, partial, or unavailable inspection, or one that evaluated zero checks, yields a null value with a missing reason. Null is never converted to zero and is never inferred from workflow run success.",
-      "baseline": {
-        "kind": "attainment-only",
-        "value": null,
-        "cutoff": null
-      }
-    }
+    "preservation": "Preserve the upstream metric identity, order, native finite value or null, ratio unit, higher-is-better direction, and maturity status. The high-severity smell count is a separate deterministic count and must never replace or be combined with the attainment metric."
   },
   "logicalSources": {
     "workflow-smells": {

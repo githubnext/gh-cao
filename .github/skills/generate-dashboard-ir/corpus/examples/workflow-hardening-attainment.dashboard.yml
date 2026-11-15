@@ -47,17 +47,17 @@ dashboard:
               title: High-severity smells
         - id: hardening-attainment-trend
           title: Hardening attainment
-          description: Native workflow-hardening attainment observed per day, with interim and matured values kept distinct and unavailable inspections left as gaps.
+          description: Exact workflow-hardening attainment observations, with interim and matured values kept distinct and unavailable inspections left as gaps.
           subject: Published workflow-hardening-attainment observations for the dependency update planner workflow.
           objective: Show whether hardening attainment is rising, flat, or unavailable without treating an incomplete inspection as zero.
-          acceptance: Plots one native ratio per observed day for the selected workflow definition; null observations remain gaps and maturity status remains visible.
+          acceptance: Plots each native ratio observation without averaging across maturity states; null observations remain gaps and maturity status remains visible.
           data:
             source: operational-values
             filters:
               workflow: .github/workflows/dependency-update-planner.md
               operational-value-definition: workflow-hardening-attainment
           mark: chart
-          chart: line
+          chart: dot
           layout: half
           disclosure: essential
           encoding:
@@ -69,7 +69,6 @@ dashboard:
             y:
               field: operational-value
               type: quantitative
-              aggregate: mean
               title: Attainment
             color:
               field: maturity-status
