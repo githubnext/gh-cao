@@ -1147,6 +1147,7 @@ test('clean navigation preserves the Overview decision hierarchy across desktop 
   const maintenanceSection = page.locator('.nav-section').filter({
     has: page.locator('summary', { hasText: /^Maintenance$/ })
   });
+  const updatesSection = page.locator('[data-nav-section="Updates"]');
   await expect(cleanNavigation).toHaveText(['Overview', 'Marketplace']);
   await expect(data.locator('summary')).toHaveText('Data');
   await data.locator('summary').click();
@@ -1174,7 +1175,10 @@ test('clean navigation preserves the Overview decision hierarchy across desktop 
   await expect(page).toHaveURL(/#page-memory$/);
   await expect(memoryView.getByRole('link')).toHaveCount(0);
   await expect(maintenanceSection.locator('summary')).toHaveText('Maintenance');
-  await expect(maintenanceSection.getByRole('link')).toHaveText(['Updates', 'Ingestion', 'Settings']);
+  await expect(updatesSection.locator('summary')).toHaveText('Updates');
+  await updatesSection.locator('summary').click();
+  await expect(updatesSection.getByRole('link')).toHaveText(['Repositories', 'Workflows', 'Campaigns']);
+  await expect(maintenanceSection.getByRole('link')).toHaveText(['Ingestion', 'Settings']);
   await expect(maintenanceSection).toHaveClass(/nav-section-bottom/);
   await expect.poll(async () => {
     const [navBox, manageBox] = await Promise.all([
@@ -1310,7 +1314,11 @@ test('clean navigation preserves the Overview decision hierarchy across desktop 
   await expect(overviewPage.locator(':scope > .custom-view-grid')).toBeVisible();
   await expect(overviewPage.locator('.factory-station')).toHaveCount(4);
   await page.locator('.mobile-nav-menu > summary').click();
-  await expect(page.locator('.mobile-nav-section-label')).toHaveText(['Data', 'Evolution', 'Experimental', 'Maintenance']);
+  await expect(page.locator('.mobile-nav-section-label')).toHaveText(['Data', 'Evolution', 'Updates', 'Experimental', 'Maintenance']);
+  for (const id of ['maintenance', 'maintenance-workflows', 'maintenance-campaigns']) {
+    const link = page.locator(`[data-mobile-nav-page-id="${id}"]`);
+    await expect(link.locator('xpath=preceding-sibling::span[contains(@class, "mobile-nav-section-label")][1]')).toHaveText('Updates');
+  }
   const valueLink = page.locator('[data-mobile-nav-page-id="value"]');
   await expect(valueLink).toHaveAttribute('aria-label', 'Value');
   await expect(valueLink.locator('xpath=preceding-sibling::span[contains(@class, "mobile-nav-section-label")][1]')).toHaveText('Data');

@@ -12,8 +12,61 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
+
+func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
+	catalog, err := hostedcli.LoadCatalog(filepath.Join("..", "..", "..", "dashboard", "site", "dashboard.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := &App{hostedCLI: &hostedCLI{catalog: catalog, local: &LocalOperatorActionsConfig{Repositories: []string{"octo/service", "octo/other"}}}}
+	for _, id := range []string{"update-repository-sources", "disable-repository-workflows", "update-workflow-source", "update-workflows", "disable-workflow"} {
+		values := map[string]string{"repository": "octo/service"}
+		if id == "update-workflow-source" || id == "update-workflows" || id == "disable-workflow" {
+			values = map[string]string{"workflow": ".github/workflows/review.md", "repository-coordinate": "octo/service"}
+		}
+		invocation, err := app.admitOperatorAction(hostedcli.Request{ID: id, Values: values})
+		if err != nil || invocation.Repository != "octo/service" {
+			t.Fatalf("production maintenance %s failed admission: %v", id, err)
+		}
+		for key := range values {
+			if strings.Contains(key, "repository") {
+				values[key] = "octo/outside"
+			}
+		}
+		if _, err := app.admitOperatorAction(hostedcli.Request{ID: id, Values: values}); err == nil {
+			t.Fatalf("production maintenance %s widened scope", id)
+		}
+	}
+	if _, err := app.admitOperatorAction(hostedcli.Request{ID: "disable-workflow", Values: map[string]string{"workflow": "review*", "repository-coordinate": "octo/service"}}); err == nil {
+		t.Fatal("wildcard workflow admitted")
+	}
+}
+
+func TestOperatorExecutionRechecksCurrentScopeWithoutQueueState(t *testing.T) {
+	adapter := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("unapproved maintenance reached the native adapter")
+	}))
+	defer adapter.Close()
+	for _, scope := range []*LocalOperatorActionsConfig{
+		nil,
+		{Repositories: []string{"octo/other"}},
+	} {
+		app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
+			AdapterURL: adapter.URL, OperatorActions: scope,
+		}}}
+		code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
+			ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
+				Command: "gh aw disable review.md --repo octo/service", Repository: "octo/service",
+			},
+		}, func(string, []byte) {})
+		if code != nil || err == nil {
+			t.Fatal("missing or changed scope did not fail closed")
+		}
+	}
+}
 
 func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	app, _ := newLocalPostgresTestApp(t, false)
@@ -137,7 +190,9 @@ func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
 		}
 	}))
 	defer adapter.Close()
-	app.config.OperatorActions = &LocalOperatorConfig{AdapterURL: adapter.URL}
+	app.config.OperatorActions = &LocalOperatorConfig{
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
+	}
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	type result struct {
@@ -189,7 +244,9 @@ func TestOperatorDisconnectDoesNotConfirmNativeExit(t *testing.T) {
 		_, _ = w.Write([]byte("{\"stream\":\"stderr\",\"data\":\"interrupted\\n\"}\n"))
 	}))
 	defer adapter.Close()
-	app.config.OperatorActions = &LocalOperatorConfig{AdapterURL: adapter.URL}
+	app.config.OperatorActions = &LocalOperatorConfig{
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
+	}
 	code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
 		ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
 			Command: "gh aw upgrade --repo github/gh-aw --create-pull-request", Repository: "github/gh-aw",

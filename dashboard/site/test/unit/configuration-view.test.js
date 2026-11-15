@@ -4,6 +4,7 @@ import { authoritativeDashboard } from '../authoritative-dashboard.js';
 import maintenanceNavigationContract from '../fixtures/maintenance-navigation-contract.json' with { type: 'json' };
 import { processDataRequest } from '../../src/data-worker.js';
 import { compileDashboardViewPayloadQueries } from '../../src/data/queries/view-payload-compiler.js';
+import { renderDashboardNavigation, syncDashboardNavigationIndicators } from '../../src/components/dashboard-navigation.js';
 
 const queryCanonicalDatabaseDiagnostics = vi.hoisted(() => vi.fn().mockResolvedValue({
   schemaVersion: 13,
@@ -71,6 +72,143 @@ function context(row) {
 }
 
 describe('Configuration dashboard view', () => {
+  it('renders three independent Updates navigation entries with scoped worker-backed indicators', () => {
+    const dashboard = authoritativeDashboard.dashboard;
+    const root = renderDashboardNavigation(dashboard.pages, dashboard.title, dashboard.navigation);
+    document.body.append(root);
+    try {
+      const section = root.querySelector('[data-nav-section="Updates"]');
+      if (!section) throw new Error('Missing Updates navigation section');
+      const pages = maintenanceNavigationContract.navigation.pages.map((id) =>
+        dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === id));
+      expect([...section.querySelectorAll('a')].map((link) => link.textContent?.trim()))
+        .toEqual(maintenanceNavigationContract.labels);
+      for (const [index, page] of pages.entries()) {
+        expect(page.route).toBeUndefined();
+        expect(root.querySelector(`[data-mobile-nav-page-id="${page.id}"]`)?.textContent?.trim())
+          .toBe(maintenanceNavigationContract.labels[index]);
+      }
+      const sourceNames = pages.flatMap((page) => page['navigation-indicator'].any);
+      for (const [index, sources] of [
+        { workflows: { source: 'workflows', rows: maintenanceNavigationContract['repository-workflows'], metadata } },
+        { workflows: { source: 'workflows', rows: maintenanceNavigationContract['standalone-workflows'], metadata } },
+        { campaigns: { source: 'campaigns', rows: maintenanceNavigationContract.campaigns, metadata } }
+      ].entries()) {
+        const results = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
+          processDataRequest({ operation: 'execute-dashboard-queries', queries: dashboard.queries, sourceNames, sources })
+        );
+        syncDashboardNavigationIndicators(root, dashboard.pages, results);
+        for (const [pageIndex, page] of pages.entries()) {
+          const label = maintenanceNavigationContract.labels[pageIndex] + (pageIndex === index ? ', updates available' : '');
+          expect(root.querySelector(`[data-nav-page-id="${page.id}"]`)?.getAttribute('aria-label')).toBe(label);
+          expect(root.querySelector(`[data-mobile-nav-page-id="${page.id}"]`)?.getAttribute('aria-label')).toBe(label);
+        }
+      }
+    } finally {
+      root.remove();
+    }
+  });
+
+  it('resolves full sweep targets through worker queries and disables sweeps without canonical evidence', () => {
+    const dashboard = authoritativeDashboard.dashboard;
+    const context = {
+      'cao-repository': 'acme/control',
+      'cao-repository-url': 'https://github.com/acme/control',
+      'cao-url': 'https://ops.example.com/'
+    };
+    vi.stubGlobal('__CLI_QUEUE__', true);
+    setDeclaredCliActions(dashboard['cli-actions'], { context });
+    try {
+      for (const [pageId, viewId, expectedCommands] of [
+        ['maintenance', 'maintenance-repositories', ['gh aw upgrade --repo acme/control', 'gh aw upgrade --repo octo/first', 'gh aw upgrade --repo octo/unknown', 'gh aw upgrade --repo octo/unreleased', 'gh aw upgrade --repo other/second']],
+        ['maintenance-workflows', 'maintenance-workflow-sweep', ['gh aw update .github/workflows/incomplete.md --repo acme/control', 'gh aw update .github/workflows/review.md --repo acme/control']],
+        ['maintenance-campaigns', 'maintenance-campaign-sweep', ['gh aw update https://github.com/acme/catalog/operations --repo acme/control']]
+      ]) {
+        const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === pageId);
+        const view = page.views.find((/** @type {{ id: string }} */ candidate) => candidate.id === viewId);
+        const payload = compileDashboardViewPayloadQueries(page, page.id, {
+          viewId: view.id, sourceNames: [view.data.source], queries: dashboard.queries
+        });
+        for (const available of [true, false]) {
+          const results = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
+            processDataRequest({
+              operation: 'execute-dashboard-queries', queries: payload.queries, sourceNames: payload.aliases,
+              sources: available ? {
+                campaigns: { source: 'campaigns', rows: maintenanceNavigationContract.campaigns, metadata },
+                workflows: { source: 'workflows', rows: [...maintenanceNavigationContract['repository-workflows'], ...maintenanceNavigationContract['standalone-workflows']], metadata }
+              } : {}
+            })
+          );
+          const result = results[payload.aliases[0]];
+          const rendered = renderDataView('list', {
+            pageId: page.id, title: view.title, view, sourceName: view.data.source,
+            rows: result.rows, metadata: result.metadata, contextDetails: [], headingTag: 'h3',
+            cardTemplates: Object.fromEntries(dashboard['card-templates'].map(
+              (/** @type {{ id: string }} */ template) => [template.id, template]
+            )),
+            prepareTableRows: (rows) => rows, buildChartPoints: () => [],
+            prepareChartPoints: () => [], toText: String
+          });
+          if (!rendered) throw new Error('Missing maintenance sweep view');
+          document.body.append(rendered);
+          try {
+            const action = rendered.querySelector('.document-list-actions .declared-cli-action');
+            const trigger = action?.querySelector('.cli-action-trigger');
+            if (!action || !trigger) throw new Error('Missing maintenance sweep control');
+            trigger.dispatchEvent(new MouseEvent('click'));
+            const command = action.querySelector('.cli-action-command')?.textContent ?? '';
+            if (available) {
+              for (const expected of expectedCommands) expect(command).toContain(expected);
+              expect(command.match(/--create-pull-request/g)).toHaveLength(expectedCommands.length);
+              expect(action.querySelector('.cli-action-confirm')).toHaveProperty('disabled', false);
+              if (pageId === 'maintenance-workflows') expect(command).not.toContain('/local.md');
+              if (pageId === 'maintenance-campaigns') expect(command).not.toContain('Local package');
+            } else {
+              expect(action.querySelector('.cli-action-confirm')).toHaveProperty('disabled', true);
+              expect(command).toContain('complete target list is unavailable');
+            }
+          } finally {
+            rendered.remove();
+          }
+        }
+      }
+    } finally {
+      setDeclaredCliActions([]);
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('keeps exact campaign-owned workflow source updates actionable and reflected in the Updates indicator', () => {
+    const dashboard = authoritativeDashboard.dashboard;
+    const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance-workflows');
+    const payload = compileDashboardViewPayloadQueries(page, page.id, {
+      viewId: 'maintenance-standalone-workflows', sourceNames: ['maintenance-workflows'], queries: dashboard.queries
+    });
+    const rows = [
+      { organization: 'octo', repository: 'target', workflow: 'review.md', 'workflow-name': 'Review', campaign: 'operations', 'workflow-role': 'worker',
+        'workflow-source-kind': 'source-managed', 'workflow-source': 'acme/workflows/review', 'workflow-source-version': 'v1',
+        'workflow-source-current-version': 'v2', 'workflow-source-update-state': 'update-available' },
+      { organization: 'octo', repository: 'target', workflow: 'review-extended.md', 'workflow-name': 'Review extended',
+        'workflow-source-kind': 'source-managed', 'workflow-source': '', 'workflow-source-version': 'v1',
+        'workflow-source-current-version': 'v2', 'workflow-source-update-state': 'update-available' },
+      { organization: 'octo', repository: 'target', workflow: 'misleading.md.yml', 'workflow-name': 'Registry',
+        'workflow-source-kind': 'registry' }
+    ];
+    const results = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+      operation: 'execute-dashboard-queries', queries: payload.queries, sourceNames: payload.aliases,
+      sources: { workflows: { source: 'workflows', rows, metadata } }
+    }));
+    expect(results[payload.aliases[0]].rows).toEqual([
+      expect.objectContaining({ workflow: 'review-extended.md', 'repository-coordinate': 'octo/target', 'workflow-update-action-visible': false }),
+      expect.objectContaining({ workflow: 'review.md', 'repository-coordinate': 'octo/target', 'workflow-source-kind': 'source-managed', 'workflow-update-action-visible': true })
+    ]);
+    const indicator = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+      operation: 'execute-dashboard-queries', queries: dashboard.queries, sourceNames: ['maintenance-standalone-updates'],
+      sources: { workflows: { source: 'workflows', rows, metadata } }
+    }));
+    expect(indicator['maintenance-standalone-updates'].rows).toEqual([{ 'workflow-update-action-visible': true }]);
+  });
+
   it('resolves repository home drills through the worker view-payload boundary and fails closed without evidence', () => {
     const dashboard = authoritativeDashboard.dashboard;
     const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance');
@@ -109,7 +247,7 @@ describe('Configuration dashboard view', () => {
           const cards = [...(rendered?.querySelectorAll('.entity-card-list-card') ?? [])];
           expect(cards).toHaveLength(maintenanceNavigationContract['repository-homes'].length);
           expect(cards.map((card) => card.querySelectorAll('.entity-card-list-actions .cli-action-trigger').length))
-            .toEqual([0, 0, 0, 1]);
+            .toEqual([2, 2, 2, 3]);
         } finally {
           setDeclaredCliActions([]);
           vi.unstubAllGlobals();
@@ -124,6 +262,8 @@ describe('Configuration dashboard view', () => {
     const dashboard = authoritativeDashboard.dashboard;
     const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) =>
       candidate.id === 'maintenance-campaigns');
+    const workflowPage = dashboard.pages.find((/** @type {{ id: string }} */ candidate) =>
+      candidate.id === 'maintenance-workflows');
     const templates = Object.fromEntries(dashboard['card-templates'].map(
       (/** @type {{ id: string }} */ template) => [template.id, template]
     ));
@@ -133,10 +273,11 @@ describe('Configuration dashboard view', () => {
       /** @type {Record<string, number[]>} */
       const expectedActions = {
         'maintenance-campaigns': [1, 2],
-        'maintenance-standalone-workflows': [1, 0, 0]
+        'maintenance-standalone-workflows': [1, 1, 2]
       };
-      for (const view of page.views) {
-        const payload = compileDashboardViewPayloadQueries(page, page.id, {
+      for (const owner of [page, workflowPage]) for (const view of owner.views.filter(
+        (/** @type {{ list: { style: string } }} */ view) => view.list.style === 'entity-cards')) {
+        const payload = compileDashboardViewPayloadQueries(owner, owner.id, {
           viewId: view.id, sourceNames: [view.data.source], queries: dashboard.queries
         });
         const results = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
@@ -164,9 +305,9 @@ describe('Configuration dashboard view', () => {
           .toEqual(expectedActions[view.id]);
       }
 
-      const standalonePayload = compileDashboardViewPayloadQueries(page, page.id, {
+      const standalonePayload = compileDashboardViewPayloadQueries(workflowPage, workflowPage.id, {
         viewId: 'maintenance-standalone-workflows',
-        sourceNames: ['maintenance-standalone-workflows'],
+        sourceNames: ['maintenance-workflows'],
         queries: dashboard.queries
       });
       const standalone = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
@@ -181,27 +322,27 @@ describe('Configuration dashboard view', () => {
       )[standalonePayload.aliases[0]].rows;
       expect(standalone.map((row) => ({
         workflow: row['workflow-name'],
-        state: row['workflow-update-state'],
-        reason: row['workflow-update-status-reason'],
+        kind: row['workflow-source-kind'],
+        repository: row['repository-coordinate'],
         action: row['workflow-update-action-visible']
       }))).toEqual([
         {
-          workflow: 'Review',
-          state: 'Update available',
-          reason: 'Installed and upstream source revisions are available.',
-          action: true
-        },
-        {
           workflow: 'Incomplete',
-          state: 'Update status unavailable',
-          reason: 'Latest upstream source revision unavailable.',
+          kind: 'source-managed',
+          repository: 'acme/control',
           action: false
         },
         {
           workflow: 'Local',
-          state: 'Local workflow',
-          reason: 'No upstream source coordinate was retained; update manually.',
+          kind: 'local',
+          repository: 'acme/control',
           action: false
+        },
+        {
+          workflow: 'Review',
+          kind: 'source-managed',
+          repository: 'acme/control',
+          action: true
         }
       ]);
     } finally {
@@ -400,33 +541,38 @@ describe('Configuration dashboard view', () => {
       action.id === 'upgrade-target-repository')?.label).toBe('Upgrade');
     const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance');
     const campaigns = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance-campaigns');
-    const views = [...campaigns.views, ...page.views];
+    const workflows = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance-workflows');
+    const views = [...campaigns.views, ...workflows.views, ...page.views].filter(
+      (/** @type {{ list: { style: string } }} */ view) => view.list.style === 'entity-cards');
     const manageNavigation = dashboard.navigation.find((/** @type {{ label?: string }} */ candidate) => candidate.label === 'Maintenance');
 
-    expect(page.title).toBe('Compiler upgrades');
-    expect(campaigns.title).toBe('Workflow updates');
-    expect(page.route).toEqual({ tab: 'repositories', tabs: maintenanceNavigationContract.tabs });
-    expect(campaigns.route).toEqual({
-      'navigation-page': 'maintenance', tab: 'campaigns', tabs: maintenanceNavigationContract.tabs
-    });
+    expect(page.title).toBe('Repository maintenance');
+    expect(campaigns.title).toBe('Campaign maintenance');
+    expect(workflows.title).toBe('Workflow maintenance');
+    const updatesNavigation = dashboard.navigation.find((/** @type {{ label?: string }} */ candidate) => candidate.label === 'Updates');
+    expect(updatesNavigation).toEqual(maintenanceNavigationContract.navigation);
+    expect(page.route).toBeUndefined();
+    expect(campaigns.route).toBeUndefined();
     expect(page.views).toHaveLength(1);
     expect(campaigns.views).toHaveLength(2);
-    expect([page.views[0].data.source, ...campaigns.views.map((/** @type {{ data: { source: string } }} */ view) => view.data.source)])
+    expect(workflows.views).toHaveLength(2);
+    expect(workflows.route).toBeUndefined();
+    expect([page.views[0].data.source, campaigns.views.at(-1).data.source, workflows.views.at(-1).data.source])
       .toEqual(maintenanceNavigationContract.sources);
-    expect(manageNavigation.pages).toContain('maintenance');
+    expect(manageNavigation.pages).not.toContain('maintenance');
     expect(manageNavigation.pages).not.toContain('maintenance-campaigns');
-    expect(page.description).toBe('Review retained gh-aw compiler evidence by repository before applying upgrades.');
-    expect(page.acceptance).toContain('diagnostic reason');
+    expect(page.description).toContain('exact repository');
+    expect(page.acceptance).toContain('unknown compiler evidence');
     expect(page.acceptance).toContain('known outdated evidence');
     expect(page['filter-bar']).toBeUndefined();
     expect(views.map((/** @type {{ data: { source: string } }} */ view) => view.data.source))
-      .toEqual(['maintenance-campaign-packages', 'maintenance-standalone-workflows', 'maintenance-repositories']);
+      .toEqual(['maintenance-campaign-packages', 'maintenance-workflows', 'maintenance-repositories']);
     expect(views.map((/** @type {{ mark: string }} */ view) => view.mark)).toEqual(['list', 'list', 'list']);
     expect(views.map((/** @type {{ list: { style: string, card: string } }} */ view) => view.list))
       .toEqual([
         { style: 'entity-cards', card: 'maintenance-campaign', icon: 'workflow' },
         { style: 'entity-cards', card: 'maintenance-standalone-workflow', icon: 'workflow' },
-        { style: 'entity-cards', card: 'maintenance-repository', icon: 'repo', actions: ['add-repository'] }
+        { style: 'entity-cards', card: 'maintenance-repository', icon: 'repo', action: 'upgrade-repository', 'action-context': ['repository'], actions: ['add-repository'] }
       ]);
     expect(views[0].encoding.columns.map((/** @type {{ field: string }} */ column) => column.field))
       .toEqual([
@@ -442,7 +588,7 @@ describe('Configuration dashboard view', () => {
         'workflow-source',
         'workflow-source-version',
         'workflow-source-current-version',
-        'workflow-update-state',
+        'repository-coordinate',
         'workflow-update-status-reason'
       ]);
     expect(views[2].encoding.columns.map((/** @type {{ field: string }} */ column) => column.field))
@@ -454,7 +600,7 @@ describe('Configuration dashboard view', () => {
         'upgrade-status-reason'
       ]);
     expect(views.map((/** @type {{ title?: string }} */ view) => view.title))
-      .toEqual(['Campaign packages', 'Standalone workflows', 'Repository compiler status']);
+      .toEqual(['Campaign packages', 'Individual workflows', 'Repository compiler status']);
     expect(views.some((/** @type {{ disclosure?: string }} */ view) => view.disclosure !== undefined)).toBe(false);
     const templates = new Map(dashboard['card-templates'].map((/** @type {{ id: string }} */ template) => [template.id, template]));
     expect(templates.get('maintenance-campaign')['detail-labels']).toBe('visible');
@@ -495,13 +641,15 @@ describe('Configuration dashboard view', () => {
       }
     ]);
     expect(templates.get('maintenance-repository').actions).toEqual([
+      { action: 'update-repository-sources', context: ['repository'] },
+      { action: 'disable-repository-workflows', context: ['repository'] },
       maintenanceNavigationContract['repository-upgrade-action']
     ]);
     expect(templates.get('maintenance-standalone-workflow').actions).toEqual([{
       action: 'update-workflow-source',
-      context: ['workflow-source', 'workflow-name'],
+      context: ['workflow', 'repository-coordinate'],
       when: { field: 'workflow-update-action-visible', equals: true }
-    }]);
+    }, { action: 'disable-workflow', context: ['workflow', 'repository-coordinate'] }]);
     const compilerVersions = dashboard.pages.find((/** @type {{ id: string }} */ candidate) =>
       candidate.id === 'repository-settings').views[0];
     expect(compilerVersions.encoding.actions[0].when)
@@ -514,7 +662,7 @@ describe('Configuration dashboard view', () => {
       .command).toMatch(/^gh aw update https:\/\/github\.com\/\{\{campaign-source\}\} --repo \{\{cao-repository\}\} --pr-message '/);
     expect(dashboard['cli-actions']
       .find((/** @type {{ id: string }} */ action) => action.id === 'update-workflow-source')
-      .command).toMatch(/^gh aw update https:\/\/github\.com\/\{\{workflow-source\}\} --repo \{\{cao-repository\}\} --pr-message '/);
+      .command).toBe('gh aw update {{workflow}} --repo {{repository-coordinate}}');
     expect(dashboard['cli-actions']
       .find((/** @type {{ id: string }} */ action) => action.id === 'update-campaign')
       .label).toBe('Update');
@@ -522,7 +670,7 @@ describe('Configuration dashboard view', () => {
       .find((/** @type {{ id: string }} */ action) => action.id === 'disable-campaign')
       .label).toBe('Deactivate');
     expect(manageNavigation.placement).toBe('bottom');
-    expect(manageNavigation.pages).toContain('maintenance');
+    expect(updatesNavigation.pages).toContain('maintenance');
   });
 
   it('wires the Settings view to a supported UI element', async () => {

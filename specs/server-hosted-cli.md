@@ -367,8 +367,16 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    them into shell source. This bootstrap grants no host execution or
    repository-discovery authority. A campaign-package or standalone-workflow
    source update MUST be translated to a native `gh-aw update` command scoped to
-   the configured control repository and the exact retained GitHub source
-   coordinate selected from canonical maintenance evidence. The executor MUST
+   the configured control repository and the exact retained GitHub package source
+   coordinate or Markdown workflow identity selected from canonical maintenance
+   evidence. The command SHALL retain the exact workflow operand rather than
+   substitute a package URL. Approval SHALL disclose gh-aw's additional
+   package-manifest sibling workflow/assets/ownership reconciliation and
+   potential replacement of sibling sources/local edits in the proposed pull request,
+   repository-wide shared reference, container-pin, and generated-file maintenance;
+   an exact operand does not imply exclusive source selection or single-file mutation.
+   Foreign repository workflow updates and disable commands remain local-only.
+   The executor MUST
    NOT discover, substitute, or widen that source coordinate. The container
    image reference MUST be recorded in the audit
    event for command start.

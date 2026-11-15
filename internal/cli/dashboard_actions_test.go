@@ -17,6 +17,12 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 		{"upgrade", "--repo", "github/gh-aw", "--create-pull-request"},
 		{"upgrade", "--repo", "github/gh-aw", "--create-pull-request", "--pre-releases"},
 		{"update", "https://github.com/octo/source/workflow", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"update", ".github/workflows/review.md", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"update", "review.v2.md", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"disable", "review.v2", "--repo", "github/gh-aw"},
+		{"update", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"disable", "review", "--repo", "github/gh-aw"},
+		{"disable", "--repo", "github/gh-aw"},
 	} {
 		if err := dashboardActionArgs(args, scope); err != nil {
 			t.Fatalf("valid maintenance rejected: %v", err)
@@ -28,14 +34,47 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 		{"upgrade", "--repo", "github/gh-aw", "--repo", "octo/other", "--create-pull-request"},
 		{"upgrade", "--org", "github", "--create-pull-request"},
 		{"upgrade", "--repo", "github/gh-aw", "--create-pull-request", "--auto-merge"},
+		{"update", "review.md", "--repo", "github/gh-aw", "--pr-message", "Reviewed update", "--create-pull-request"},
 		{"update", "https://evil.example/source", "--repo", "github/gh-aw", "--create-pull-request"},
 		{"update", "https://github.com/octo/source/../other", "--repo", "github/gh-aw", "--create-pull-request"},
 		{"update", "https://github.com/octo/source", "--repo", "github/gh-aw", "--create-pull-request", "--pre-releases"},
 		{"workflow", "run", "agent.yml", "--repo", "github/gh-aw"},
+		{"disable"},
+		{"disable", "review* ", "--repo", "github/gh-aw"},
+		{"disable", "review..v2", "--repo", "github/gh-aw"},
+		{"disable", "review", "review-more", "--repo", "github/gh-aw"},
+		{"disable", "review", "--repo", "octo/other"},
+		{"disable", "review", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"update", "../review.md", "--repo", "github/gh-aw", "--create-pull-request"},
 	} {
 		if dashboardActionArgs(args, scope) == nil {
 			t.Fatalf("unscoped or unsupported maintenance accepted: %v", args)
 		}
+	}
+}
+
+func TestDashboardDisableEnvironmentConfinesAmbientRepository(t *testing.T) {
+	environment := dashboardDisableEnvironment([]string{
+		"GH_TOKEN=test-credential", "GH_CONFIG_DIR=config", "PATH=bin",
+		"GH_REPO=octo/other", "GH_HOST=evil.example",
+		"GH_AW_WORKFLOWS_DIR=other/workflows",
+		"GIT_DIR=other/.git", "GIT_WORK_TREE=other", "GIT_COMMON_DIR=other",
+		"GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=remote.origin.url", "GIT_CONFIG_VALUE_0=other",
+	})
+	joined := strings.Join(environment, "\n")
+	for _, name := range []string{"GH_REPO=", "GH_AW_WORKFLOWS_DIR=", "GIT_DIR=", "GIT_WORK_TREE=", "GIT_COMMON_DIR=", "GIT_CONFIG_"} {
+		if strings.Contains(joined, name) {
+			t.Fatalf("ambient repository override retained: %s", name)
+		}
+	}
+	for _, entry := range []string{"GH_TOKEN=test-credential", "GH_CONFIG_DIR=config", "GH_HOST=github.com", "GIT_TERMINAL_PROMPT=0"} {
+		if !strings.Contains(joined, entry) {
+			t.Fatalf("required authentication or confinement missing: %s", entry)
+		}
+	}
+	command, _, err := dashboardActionCommand().Find([]string{"disable"})
+	if err != nil || command.Name() != "disable" || command.Flags().Lookup("repo") == nil {
+		t.Fatal("native disable command is not registered")
 	}
 }
 

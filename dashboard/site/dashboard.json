@@ -949,6 +949,8 @@
         },
         "detail-labels": "visible",
         "details": [
+          { "field": "repository-coordinate", "title": "Repository" },
+          { "field": "workflow", "title": "Exact workflow" },
           {
             "field": "workflow-source",
             "title": "Source"
@@ -970,19 +972,20 @@
           {
             "action": "update-workflow-source",
             "context": [
-              "workflow-source",
-              "workflow-name"
+              "workflow",
+              "repository-coordinate"
             ],
             "when": {
               "field": "workflow-update-action-visible",
               "equals": true
             }
-          }
+          },
+          { "action": "disable-workflow", "context": ["workflow", "repository-coordinate"] }
         ],
         "labels": [
           {
-            "field": "workflow-update-state",
-            "title": "Update",
+            "field": "workflow-source-kind",
+            "title": "Source kind",
             "display": "status"
           }
         ]
@@ -1014,6 +1017,8 @@
           }
         ],
         "actions": [
+          { "action": "update-repository-sources", "context": ["repository"] },
+          { "action": "disable-repository-workflows", "context": ["repository"] },
           {
             "action": "upgrade-target-repository",
             "when": {
@@ -1038,8 +1043,8 @@
       {
         "id": "update-repository",
         "level": "operate",
-        "label": "Update selected sources",
-        "description": "Queue an individual update from each row's retained source coordinate, then open Commands.",
+        "label": "Update all campaigns",
+        "description": "Sweep every campaign package with a retained source coordinate using gh aw update, publishing a pull request for each command. Local packages without source provenance are not updated.",
         "icon": "sync",
         "command": "gh aw update https://github.com/{{campaign-source}} --repo {{cao-repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to update the {{campaign-name}} campaign package from its retained upstream source. Return to the [CAO dashboard]({{cao-url}}#page-maintenance-campaigns).'",
         "preview-command": "gh aw update https://github.com/{{campaign-source}} --repo {{cao-repository}}",
@@ -1066,8 +1071,8 @@
       {
         "id": "upgrade-repository",
         "level": "operate",
-        "label": "Upgrade selected repositories",
-        "description": "Queue an individual Agentic Workflows upgrade for each selected repository, then open Commands.",
+        "label": "Upgrade all repositories",
+        "description": "Sweep every listed repository using gh aw upgrade and publish pull requests. This refreshes repository tooling, action versions, codemods and compiled workflows, independently of retained version evidence.",
         "icon": "download",
         "command": "gh aw upgrade --repo {{repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to upgrade GitHub Agentic Workflows in {{repository}}, refreshing workflow tooling, action versions, and generated lock files. Return to the [CAO dashboard]({{cao-url}}#page-maintenance).'",
         "preview-command": "gh aw upgrade --repo {{repository}}",
@@ -1162,12 +1167,59 @@
         ]
       },
       {
+        "id": "update-workflows",
+        "level": "operate",
+        "label": "Update all workflows",
+        "description": "Sweep all listed source-managed Markdown workflows using their exact workflow and repository identities. Publish pull requests; gh-aw may also reconcile package siblings/assets and shared repository files. Local or unknown-source workflows are not updated.",
+        "icon": "sync",
+        "command": "gh aw update {{workflow}} --repo {{repository-coordinate}}",
+        "preview-command": "gh aw update {{workflow}} --repo {{repository-coordinate}}",
+        "placement": "view",
+        "arguments": [
+          {
+            "id": "create-pull-request",
+            "label": "Create pull request",
+            "description": "Publish workflow source updates as pull requests.",
+            "type": "boolean",
+            "flag": "--create-pull-request",
+            "default": true
+          }
+        ]
+      },
+      {
+        "id": "update-repository-sources",
+        "level": "operate",
+        "label": "Update",
+        "description": "Update all workflows with retained source declarations in this exact repository and publish a pull request. Workflows without source declarations are not updated.",
+        "icon": "sync",
+        "command": "gh aw update --repo {{repository}} --create-pull-request",
+        "placement": "row"
+      },
+      {
+        "id": "disable-repository-workflows",
+        "level": "operate",
+        "label": "Disable",
+        "description": "Cancel in-progress Agentic Workflow runs before disabling all Agentic Workflows in this exact repository. This is the break operation; future runs stop until re-enabled.",
+        "icon": "pause",
+        "command": "gh aw disable --repo {{repository}}",
+        "placement": "row"
+      },
+      {
+        "id": "disable-workflow",
+        "level": "operate",
+        "label": "Disable",
+        "description": "Cancel in-progress runs before disabling this exact workflow in its repository. This is the break operation; future runs stop until re-enabled.",
+        "icon": "pause",
+        "command": "gh aw disable {{workflow}} --repo {{repository-coordinate}}",
+        "placement": "row"
+      },
+      {
         "id": "update-workflow-source",
         "level": "operate",
         "label": "Update",
-        "description": "Update this standalone workflow from its retained source coordinate.",
+        "description": "Update the selected workflow source and publish a pull request in its canonical repository. gh-aw may replace package-manifest sibling workflow sources, overwriting local sibling edits in the proposed PR, reconcile package assets/ownership, and refresh shared action references, container pins and generated files across the repository.",
         "icon": "sync",
-        "command": "gh aw update https://github.com/{{workflow-source}} --repo {{cao-repository}} --pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]({{cao-repository-url}}) to update the {{workflow-name}} standalone workflow from its retained upstream source. Return to the [CAO dashboard]({{cao-url}}#page-maintenance-campaigns).'",
+        "command": "gh aw update {{workflow}} --repo {{repository-coordinate}}",
         "placement": "row",
         "arguments": [
           {
@@ -1176,15 +1228,7 @@
             "description": "Create a pull request with the standalone workflow update.",
             "type": "boolean",
             "flag": "--create-pull-request",
-            "default": false
-          },
-          {
-            "id": "auto-merge",
-            "label": "Auto merge",
-            "description": "Enable auto-merge on the created pull request. Requires Create pull request.",
-            "type": "boolean",
-            "flag": "--auto-merge",
-            "default": false
+            "default": true
           }
         ]
       },
@@ -1404,10 +1448,17 @@
         ]
       },
       {
+        "label": "Updates",
+        "pages": [
+          "maintenance",
+          "maintenance-workflows",
+          "maintenance-campaigns"
+        ]
+      },
+      {
         "label": "Maintenance",
         "placement": "bottom",
         "pages": [
-          "maintenance",
           "governance",
           "commands",
           "indexing",
