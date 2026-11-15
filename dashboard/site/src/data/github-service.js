@@ -2,6 +2,7 @@ import { readTransaction, recordTransaction } from './storage/indexeddb.js';
 import { createDebug } from '../debug.js';
 
 const debug = createDebug('data:github');
+const debugGitHubService = createDebug('github-service');
 
 class GitHubStorageError extends Error {
   constructor() { super('storage-unavailable'); }
@@ -277,6 +278,10 @@ export function createGitHubDataService(dependencies = {}) {
             current.attempts = 0;
             snapshot(current, 'network', staleResponse ? 'stale-response' : null, limit.until > now() ? limit.until : null);
             schedule(Math.max(staleResponse ? 30_000 : 1000, freshMs, limit.until - now()));
+            debugGitHubService({
+              event: 'refresh-succeeded', status: response.status, notModified: response.status === 304,
+              staleResponse, rateLimited: limit.until > now()
+            });
           } catch (error) {
             if (signal.aborted) return;
             current.attempts++;
@@ -289,6 +294,7 @@ export function createGitHubDataService(dependencies = {}) {
             const delay = Math.max(limit.until - now(), backoff);
             snapshot(current, 'cache', message, retryable ? now() + delay : null);
             if (retryable) schedule(delay);
+            debugGitHubService({ event: 'refresh-failed', reason: message, attempt: current.attempts, retryable, retryDelayMs: retryable ? delay : 0 });
           } finally {
             clearTimeout(timeout);
             signal.removeEventListener('abort', abort);
@@ -304,6 +310,7 @@ export function createGitHubDataService(dependencies = {}) {
   }
   function invalidateAuthentication() {
     authenticationGeneration++;
+    debugGitHubService({ event: 'authentication-invalidated', generation: authenticationGeneration, subscriptionCount: entries.size });
     for (const entry of entries.values()) {
       if (entry.cached) void recordTransaction(database, {
         id: entry.cached.id, kind: 'github-resource-invalidated', createdAt: new Date(now()).toISOString()
