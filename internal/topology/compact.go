@@ -138,10 +138,22 @@ func validateHostedParameters(input Requirements, value func(string) any) error 
 		return fmt.Errorf("hosted OAuth requires githubClientId")
 	}
 	authorized := false
+	loginPatterns := map[string]string{
+		"githubAllowedOrganizations": `^[A-Za-z0-9][A-Za-z0-9-]{0,38}$`,
+		"githubAllowedUsers":         `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`,
+		"githubAdminUsers":           `^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`,
+	}
 	for _, field := range []string{"githubAllowedOrganizations", "githubAllowedTeams", "githubAllowedUsers", "githubAdminUsers"} {
 		users, ok := list(value(field))
 		if !ok || slices.ContainsFunc(users, func(user string) bool { return strings.TrimSpace(user) == "" }) {
 			return fmt.Errorf("%s must contain nonempty strings", field)
+		}
+		if pattern, validateLogins := loginPatterns[field]; validateLogins {
+			for index, login := range users {
+				if !match(pattern, login) {
+					return fmt.Errorf("%s[%d] must be a valid GitHub login", field, index)
+				}
+			}
 		}
 		if field == "githubAdminUsers" && len(users) == 0 {
 			return fmt.Errorf("hosted service requires githubAdminUsers")

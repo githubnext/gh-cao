@@ -54,6 +54,10 @@ func TestContainerAppsValidation(t *testing.T) {
 		{"overbroad-proxy", func(r *Requirements) { r.Azure.Parameters["trustedProxyCidrs"] = []string{"10.0.0.0/7"} }, "private IPv4 or loopback"},
 		{"malformed-proxy", func(r *Requirements) { r.Azure.Parameters["trustedProxyCidrs"] = []string{"not-a-cidr"} }, "private IPv4 or loopback"},
 		{"no-oauth-allowlist", func(r *Requirements) { r.Azure.Parameters["githubAllowedOrganizations"] = []string{} }, "at least one allowed"},
+		{"invalid-user-login-whitespace", func(r *Requirements) { r.Azure.Parameters["githubAllowedUsers"] = []string{"operator enterprise"} }, "githubAllowedUsers[0]"},
+		{"invalid-user-login-path", func(r *Requirements) { r.Azure.Parameters["githubAllowedUsers"] = []string{"operator/enterprise"} }, "githubAllowedUsers[0]"},
+		{"invalid-user-login-length", func(r *Requirements) { r.Azure.Parameters["githubAllowedUsers"] = []string{strings.Repeat("a", 101)} }, "githubAllowedUsers[0]"},
+		{"organization-login-underscore", func(r *Requirements) { r.Azure.Parameters["githubAllowedOrganizations"] = []string{"example_org"} }, "githubAllowedOrganizations[0]"},
 		{"missing-retention", func(r *Requirements) { delete(r.Azure.Parameters, "postgresRunRetentionDays") }, "explicit postgresRunRetentionDays"},
 		{"invalid-retention", func(r *Requirements) { r.Azure.Parameters["postgresRunRetentionDays"] = 1 }, "minValue"},
 		{"collector", func(r *Requirements) { r.Features.Acquisition = "collector" }, "Actions snapshots only"},
@@ -72,6 +76,34 @@ func TestContainerAppsValidation(t *testing.T) {
 				t.Fatalf("wanted %q, got %v", test.want, err)
 			}
 		})
+	}
+}
+
+func TestContainerAppsGitHubLoginsPreserveEMUUsers(t *testing.T) {
+	input := containerAppsRequirements(t)
+	wantUsers := []string{"ordinary-user", "operator_enterprise"}
+	input.Azure.Parameters["githubAllowedUsers"] = wantUsers
+	input.Azure.Parameters["githubAdminUsers"] = []string{"operator_enterprise"}
+
+	content, err := yaml.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, err = Parse(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	solution, err := Solve(context.Background(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := list(solution.Parameters.Parameters["githubAllowedUsers"].Value)
+	if !ok || !reflect.DeepEqual(got, wantUsers) {
+		t.Fatalf("githubAllowedUsers = %#v, want %#v", solution.Parameters.Parameters["githubAllowedUsers"].Value, wantUsers)
+	}
+	gotAdmins, ok := list(solution.Parameters.Parameters["githubAdminUsers"].Value)
+	if !ok || !reflect.DeepEqual(gotAdmins, []string{"operator_enterprise"}) {
+		t.Fatalf("githubAdminUsers = %#v, want EMU login preserved", solution.Parameters.Parameters["githubAdminUsers"].Value)
 	}
 }
 
