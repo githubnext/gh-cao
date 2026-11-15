@@ -1,36 +1,7 @@
 {
-  "source_sha": "29e63d1ba9e5a9cfe180fcda863161d1c5fb026",
-  "next_category": "Astro documentation generation",
+  "source_sha": "29e63d1eba9e5a9cfe180fcda863161d1c5fb026",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T19:53:17Z",
-      "worker_run_id": "43634152477",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917",
-        "43503897533",
-        "43503506778",
-        "43502660435",
-        "43502562196",
-        "43494667529",
-        "43484369040"
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43484369040 (created 2026-11-13T18:37:04Z) to 43623754509 (push 185fd26, created 2026-11-14T17:55:52Z); gh run list re-read at 19:52Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source 185fd26 = HEAD = source_sha. Excluded and disclosed: 4 FAILED at Build documentation (43613020723, 43616204011, 43621919773, 43623754509; Install passed; docs step 10 to 15 s before failure; cause unverified, job logs unreadable) and 43506161539 FAILED at Install (docs not reached). n=15 successes (14 push + schedule 43561388555); 5-run gate met. Category step Build documentation (npm run docs:build, as recorded in earlier evaluations): median 12 s, p90 15, range 9-15 s = 14.8 percent of median exec 81 s (p90 92). 15 percent gate 12.15 s; removing the whole step saves at most 12 s and deploy consumes its output, so the gate is unreachable; 60 s gate unreachable. Astro-internal split unmeasured (logs unreadable) and not decision-relevant. Jobs API spot-checks: 43623754509 docs 15 s and 43608206381 docs 15 s matched stored rows. Reliability, not timing: 4 consecutive Build documentation failures since 15:58Z; last successful Pages deploy 43611206032 (15:39Z); open-issue search 19:52Z found no tracking issue; maintainer triage needed. No suggestion; no create_issue; noop used. next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T20:17:58Z",
       "worker_run_id": "43636381992",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43503897533 (created 2026-11-13T20:41:39Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:02Z), all within 14 days; none queued or in progress; 0 cancelled; source 29e63d1 = HEAD = source_sha (prior 6-sample source d55c91b). Jobs API re-fetched for all 20 runs. Excluded and disclosed: 10 failures = 43506161539 (Install dependencies, 17 s, 7c8faf4) and 9 Build documentation failures 43613020723..43682264332 (incl. scheduled 43680980929 and pushes 4193d93, 29e63d1; step logs HTTP 403 DIFC). n=10 successes (9 push + schedule 43561388555) meets 5-run gate. Category step Install dependencies: successes median 11 s p90 16 = 13.5 percent of exec median 81.5 s; post-rollover current key node-cache-Linux-x64-npm-7808ecf8 (root lock re-hashed at HEAD reproduces 7808ecf8; live cache 263 MB; Post Set up Node.js 0-1 s in all 10 successes = exact-key hit) install n=15 median 9 p90 12 = 11 percent. 15 percent gate 12.2 s: full removal of install saves at most 9-11 s; setup+install+post median 15 s cannot be removed (deps required) and a node_modules substitute must restore a comparable 263 MB cache (setup restore median 4 s), so net saving is bounded below the gate; 60 s gate unreachable. Checkout (median 24 s, 29 percent of exec) is outside this category and represented by open issue 20815 (OPEN, 0 comments, unchanged since 2026-11-13T17:41Z): not repeated. Reliability (not timing): Build documentation red on 9 consecutive runs since 15:58Z Nov 14; Pages not deployed since 43611206032 (15:39Z); no open tracker. No suggestion; no create_issue; noop used. next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T06:30:00Z",
+      "worker_run_id": "43685019752",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43682264332,
+        43681861583,
+        43680980929,
+        43655786695,
+        43639680929,
+        43623754509,
+        43621919773,
+        43616204011,
+        43613020723,
+        43611206032,
+        43608206381,
+        43593405440,
+        43561388555,
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533
+      ],
+      "outcome": "complete, not actionable; reliability blocker unresolved. Window = latest 20 completed docs.yml runs 43503897533 (created 2026-11-13T20:41:39Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:02Z), all within 14 days; none queued or in progress; 0 cancelled. Source 29e63d1 = HEAD = source_sha (unchanged since the 05:53Z evaluation; same 20 IDs). Jobs API re-fetched for all 20 runs this evaluation. Excluded and disclosed: 10 failures (43506161539 at Install dependencies 17 s; 9 consecutive Build documentation failures 43613020723..43682264332, 9-15 s into the step). n=10 successes (9 push + schedule 43561388555) meets the 5-run gate. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12.5 s, p90 14 s (nearest-rank), range 9-15 s = 15.3 percent of median exec 81.5 s (p90 90). The 15 percent gate is 12.2 s; only removing the whole docs build would clear it arithmetically, and that step produces the artifact deploy consumes, so it is not a valid change. Any Astro-internal change saves a fraction of 12.5 s and cannot reach 12.2 s; 60 s gate unreachable. Internal split unmeasurable from CI (single step; step logs HTTP 403 DIFC). Local reproduction blocked: npm ci fails with DEPTH_ZERO_SELF_SIGNED_CERT from the sandbox feed; one NODE_USE_SYSTEM_CA=1 retry failed identically; no further TLS or registry workaround attempted. Reliability, not timing (unresolved, maintainer triage): Build documentation failed on 9 consecutive runs since 15:58Z Nov 14 (incl. schedule 43680980929 and pushes 4193d93, 29e63d1); Pages not deployed since 43611206032 (15:39Z Nov 14). Open issue 20934 (OPEN, 0 comments) reports the same npm run docs:build command failing in the workflow-contracts docs step at a2b14dd (run 43640982076, log HTTP 403); relation to docs.yml unverified. No open tracker for docs.yml failures (20815 checkout only). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -907,9 +907,9 @@
   },
   "observations_pending": [
     {
-      "observed_at": "2026-11-15T05:53:11Z",
-      "source": "docs.yml runs 43613020723..43682264332",
-      "note": "Reliability, not timing (unresolved, maintainer triage): Build documentation failed on 9 consecutive runs since 15:58Z Nov 14, incl. scheduled 43680980929 (05:24Z Nov 15) and pushes 43681861583 (4193d93) and 43682264332 (29e63d1). Pages not redeployed since 43611206032 (04c9d9e, 15:39Z Nov 14). Failure 9-15 s into the step after install passes. Cause unverified: step logs HTTP 403 DIFC. Open-issue search 05:52Z: no docs.yml failure tracker (20815 checkout only for this worker; 20934 workflow-contracts docs-gate classification, relation unverified). Reported in noop only."
+      "observed_at": "2026-11-15T06:30:00Z",
+      "source": "docs.yml runs 43613020723..43682264332; open issue 20934",
+      "note": "Reliability, not timing (unresolved, maintainer triage): Build documentation failed on 9 consecutive runs since 15:58Z Nov 14 (9-15 s into the step, after install passes); Pages not deployed since 43611206032 (15:39Z Nov 14). Open 20934 (workflow-contracts docs step, same npm run docs:build, a2b14dd, run 43640982076) may share the cause; unverified. Local repro blocked by sandbox TLS (DEPTH_ZERO_SELF_SIGNED_CERT, NODE_USE_SYSTEM_CA retry failed). Reported in noop only; no docs.yml failure tracker open."
     },
     {
       "observed_at": "2026-11-15T03:54:16Z",
@@ -1119,5 +1119,25 @@
       ]
     ],
     "summary": "removable transfer (handoff+configPages+upload+deploySetup) median 9 p90 10 max 10 = 11.1 pct of exec median 81; gate 12.15 s not reached; merge-build-deploy saves about 6 s (rejected); artifact github-pages 8352438 bytes"
+  },
+  "astro_step_sample": {
+    "evaluated_at": "2026-11-15T06:30:00Z",
+    "window": "43503897533 (2026-11-13T20:41:39Z) .. 43682264332 (2026-11-15T05:43:02Z)",
+    "n_success": 10,
+    "build_documentation_median_p90_range_s": [
+      12.5,
+      14,
+      [
+        9,
+        15
+      ]
+    ],
+    "exec_median_p90_s": [
+      81.5,
+      90
+    ],
+    "share_of_exec_median_pct": 15.3,
+    "gate_s": 12.2,
+    "conclusion": "whole-step removal is the only change that clears the 15 percent gate and it is not valid; Astro-internal change cannot reach 12.2 s; 60 s gate unreachable"
   }
 }
