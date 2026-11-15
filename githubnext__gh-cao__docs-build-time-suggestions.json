@@ -1,36 +1,7 @@
 {
-  "source_sha": "29e63d1eba9e5a9cfe180fcda863161d1c5fb026",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "f8da6f2224c011c7deeb8a47aace4fb168a927436",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T22:35:08Z",
-      "worker_run_id": "43648232592",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43639680929,
-        43623754509,
-        43621919773,
-        43616204011,
-        43613020723,
-        43611206032,
-        43608206381,
-        43593405440,
-        43561388555,
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917,
-        43503897533,
-        43503506778,
-        43502660435,
-        43502562196,
-        43494667529
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); re-read at evaluation: same 20 IDs, none queued or in progress, 0 cancelled, no newer d [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T22:52:45Z",
       "worker_run_id": "43649938721",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z) back to 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z), all within 14 days; run list re-read 08:50Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Excluded and disclosed: 10 failures (43506161539 at Install dependencies; 9 Build documentation failures 43613020723..43682264332, logs HTTP 403 DIFC, not bypassed). Gate n=10 successes (9 push + schedule 43561388555) met. Jobs API re-verified for all 10 successes with exact timestamps: removable transfer = build-complete-to-deploy-queued (median 0 s) + deploy queue (median 5 s) + deploy Set up job (median 1 s) + Configure Pages (median 1 s) + Upload Pages artifact (median 2 s, p90 3) = median 9 s, p90 10, max 10 = 11.0 percent of build-start-to-deploy-end median 81.5 s (p90 90). 15 percent gate 12.2 s and 60 s gate unmet. Merging build and deploy saves about 6 s (7.4 percent) and would move id-token write and the github-pages environment onto the job running npm ci: rejected. Deploy Pages step median 6.5 s is GitHub-managed; github-pages artifact 8,352,438 bytes (43611206032); shrinking saves about 1 s. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T09:19:35Z",
+      "worker_run_id": "43698257820",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "43698271571",
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032",
+        "43608206381",
+        "43593405440",
+        "43561388555",
+        "43536796952",
+        "43536491714",
+        "43506161539",
+        "43505502149",
+        "43504143936",
+        "43504093917"
+      ],
+      "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43698271571 (push f8da6f2, created 2026-11-15T09:14:26Z) back to 43504093917 (push a7d5ebf, 2026-11-13T20:42:56Z); 0 cancelled, none queued or in progress. Samples: 9 successes (8 push + schedule 43561388555) meet the 5-run gate; 11 failures excluded and disclosed (10 Build documentation failures, consecutive since 15:58Z Nov 14, incl. schedule 43680980929; 43506161539 Install dependencies). Queue run_created->build_started median 3 s, p90 4 s (all 20), one 68 s hold (43504143936 behind 43504093917). Exec build_start->deploy_end (successes) median 82.0 s, p90 90.4 s. Avoidable push runs 0 of 18: each touched a build-consumed path (docs/, dashboard/site/src, shared/modernization aw.yml); no test-only push. Schedule runs needed for synthetic-date refresh. Rejected: narrow path filter (0 s saving in window), cancel-in-progress true (could cancel Pages deploy), skip schedule (freshness). Stale queued run 37642403569 (event workflow_run, created 2026-10-07) is outside window and did not hold new runs.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -999,6 +999,11 @@
       "observed_at": "2026-11-15T08:21:06Z",
       "source": "docs.yml build job logs API for run 43682264332 (job 132715223669)",
       "note": "Still HTTP 403 difc_forbidden (not bypassed). Build documentation fails 9 consecutive runs since 15:58Z Nov 14; no docs.yml run after 05:43Z Nov 15 as of 08:19Z. Reliability, not timing; maintainer triage. Astro internal split remains unmeasured."
+    },
+    {
+      "observed_at": "2026-11-15T09:19:35Z",
+      "source": "docs.yml run list 09:17Z; jobs API; open issues 20934, 20815",
+      "note": "Reliability, not timing: 10 consecutive Build documentation failures since 15:58Z Nov 14 (latest 43698271571 at 09:15Z). Logs HTTP 403 DIFC (not bypassed). 20934 open (framework-health) may share cause; unverified."
     }
   ],
   "checkout_probe": {
@@ -1040,30 +1045,32 @@
     ]
   },
   "scheduling_sample": {
-    "evaluated_at": "2026-11-15T07:35:31Z",
-    "window": "43503897533 (2026-11-13T20:41:38Z) .. 43682264332 (2026-11-15T05:43:01Z); latest 20 completed docs.yml runs",
-    "n_success": 10,
-    "n_failed": 10,
+    "evaluated_at": "2026-11-15T09:19:35Z",
+    "window": "43698271571 (2026-11-15T09:14:26Z) .. 43504093917 (2026-11-13T20:42:56Z); latest 20 completed docs.yml runs",
+    "n_success": 9,
+    "n_failed": 11,
     "n_cancelled": 0,
-    "queue_run_created_to_build_started_median_p90_max_s": [
+    "queue_run_created_to_build_started_all20_median_p90_max_s": [
       3,
       4,
       71
     ],
-    "concurrency_hold_run_created_to_build_created_s": {
+    "concurrency_hold": {
       "43504143936": 68,
-      "all_other_19_runs_max_s": 1
+      "other_19_max_s": 1
     },
-    "build_job_created_to_started_median_p90_s": [
-      2.5,
-      3
+    "overlapping_run_pairs": 1,
+    "build_start_to_deploy_end_success_median_p90_s": [
+      82.0,
+      90.4
     ],
-    "exec_build_start_to_deploy_end_success_median_p90_s": [
-      81.5,
-      90
-    ],
-    "avoidable_push_runs": "0 of 18 (every push touched a build input; no test-only or shared-only pushes)",
-    "note": "Next evaluation: dependency installation and caching. Reliability blocker still open; re-check run list before timing analysis."
+    "avoidable_push_runs": "0 of 18",
+    "schedule_runs": {
+      "43561388555": "success 2026-11-14T05:24Z",
+      "43680980929": "failure 2026-11-15T05:24Z"
+    },
+    "stale_queued": "37642403569 event=workflow_run created 2026-10-07T15:12Z status=queued; outside window",
+    "note": "Next evaluation: dependency installation and caching. Reliability blocker still open (10 consecutive Build documentation failures; no Pages deploy since 43611206032 2026-11-14T15:39Z)."
   },
   "transfer_sample": {
     "evaluated_at": "2026-11-15T08:51:47Z",
