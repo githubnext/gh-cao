@@ -15,6 +15,11 @@
       "id": "workflow-cost-inventory",
       "metadata": "examples/workflow-cost-inventory.json",
       "dashboard": "examples/workflow-cost-inventory.dashboard.yml"
+    },
+    {
+      "id": "workflow-hardening-attainment",
+      "metadata": "examples/workflow-hardening-attainment.json",
+      "dashboard": "examples/workflow-hardening-attainment.dashboard.yml"
     }
   ]
 }
