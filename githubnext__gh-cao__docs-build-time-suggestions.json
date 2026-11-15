@@ -1,36 +1,7 @@
 {
-  "source_sha": "de1fbfc47f2ce0044b79ec49dac0524adf298161",
-  "next_category": "reusable dashboard generation",
+  "source_sha": "8c2dd687b85525edc4973f37a44ea74246820f7f",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T10:18:59Z",
-      "worker_run_id": "43703094919",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43698271571,
-        43682264332,
-        43681861583,
-        43680980929,
-        43655786695,
-        43639680929,
-        43623754509,
-        43621919773,
-        43616204011,
-        43613020723,
-        43611206032,
-        43608206381,
-        43593405440,
-        43561388555,
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43504093917 (push a7d5ebf, created 2026-11-13T20:42:56Z) to 43698271571 (push f8da6f2, created 2026-11-15T09:14:26Z); 0 cancelled; 9 successes (8 push, 1 schedule 43561388555); 11 failures (10 Build documentation failures since 43613020723 at 2026-11-14T15:58Z, plus 43506161539 Install dependencies); re-listed 10:17Z: no newer docs run. Category measured on 9 successes: 'Build synthetic enterprise demo' median 4 s, p90 4 s, range 3-4 s = 4.9% of exec median 82 s (p90 90.4 s); upper-bound saving 4 s vs gates 60 s or 15% (12.3 s); astro.config.mjs has no dashboard generation; demo output uses Date.now() (scripts/simulate-dashboard-pages.mjs:78), so rendered caching is not freshness-safe. Step logs HTTP 403 difc_forbidden (not bypassed); the conclusion is bounded by step-level Jobs API metadata, which logs cannot increase. Reliability, not timing, cause unverified: 10 consecutive Build documentation failures; no Pages deploy since 43611206032 (2026-11-14T15:39Z); no open title-search tracker at 10:18Z.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T10:31:45Z",
       "worker_run_id": "43704165594",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43611206032 (push 04c9d9e, created 2026-11-14T15:37Z) to 43753233809 (push de1fbfc, created 2026-11-15T19:35Z); all completed, 0 cancelled, none queued or in progress; source de1fbfc = HEAD, touching only docs/local-debugging.md (build-consumed via docs/**). Excluded and disclosed: 12 failures, all in Build documentation (43613020723..43721157324; step logs HTTP 403 DIFC, not bypassed). n=8 successes meets the 5-run gate. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15 s, range 8-15 s = 15.4 percent of exec median 78 s (p90 111). Only whole-step removal reaches 15 percent, and that is invalid (deploy consumes dist; validation gates correctness). Validation and test steps do not re-run astro (they read dist and git ls-files), so no avoidable Astro rebuild. Astro vs validation split unmeasurable (403); any Astro-internal change or split saves less than the whole step, below the 11.7 s gate. No docs.yml .astro or Astro output cache; a cache can save only part of the 12 s step, unmeasured, not repeated. Reliability, not timing: no failures since 43721484176; no schedule success in window (43680980929 failed). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T20:20:58Z",
+      "worker_run_id": "43757059462",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43756384109,
+        43756218347,
+        43753233809,
+        43752704784,
+        43752194225,
+        43746617494,
+        43731625055,
+        43724243400,
+        43721484176,
+        43721157324,
+        43706435376,
+        43698271571,
+        43682264332,
+        43681861583,
+        43680980929,
+        43655786695,
+        43639680929,
+        43623754509,
+        43621919773,
+        43616204011
+      ],
+      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43616204011 (push afe0ba0, created 2026-11-14T16:32:58Z) to 43756384109 (push 8c2dd68, created 2026-11-15T20:08:48Z); all completed, 0 cancelled, none queued or in progress. Two runs added since the last evaluation (43756218347 push 10f5e57; 43756384109 push 8c2dd68); other rows reused from run_timings. 9 successes meet the 5-run gate; 11 failures excluded and disclosed (all at Build documentation, install completed, demo skipped). Category measured on 9 successes: Build synthetic enterprise demo median 5 s, p90 6 s, range 3-6 s = 6.5 percent of exec median 77 s (p90 111 s); best-case saving 5 s (p90 6 s) versus gates 60 s or 15 percent (11.5 s). docs.yml has no dashboard-generation cache (no actions/cache step; setup-node npm cache only, line 48). Demo output uses Date.now() (scripts/simulate-dashboard-pages.mjs:78) and the daily 05:23Z schedule exists for synthetic-date refresh, so reuse is not freshness-safe. cao-dashboard.yml is absent at 8c2dd68; closed #20380, #18929, #16825 concerned the retired restored-dashboard producer path and were not reopened. Reliability (not timing): the 12-run streak ended at 43721484176 (13:54Z); 9 consecutive docs.yml runs since then are success; the 2026-11-15 05:24Z schedule 43680980929 failed (no schedule success since 43561388555). Open #20815 (checkout) not repeated. Terminal: noop; no create_issue. Next category: artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -897,64 +897,65 @@
     }
   },
   "run_samples": {
-    "evaluated_at": "2026-11-15T19:53:46Z",
-    "window": "43611206032 (2026-11-14T15:37Z) .. 43753233809 (2026-11-15T19:35Z)",
-    "n_success": 8,
-    "n_failed": 12,
+    "evaluated_at": "2026-11-15T20:20:58Z",
+    "window": "43616204011 (2026-11-14T16:32:58Z) .. 43756384109 (2026-11-15T20:08:48Z)",
+    "n_success": 9,
+    "n_failed": 11,
     "n_cancelled": 0,
     "success_ids": [
+      "43756384109",
+      "43756218347",
       "43753233809",
       "43752704784",
       "43752194225",
       "43746617494",
       "43731625055",
       "43724243400",
-      "43721484176",
-      "43611206032"
+      "43721484176"
     ],
     "success_metrics_median_p90_s": {
       "queue": [
-        3.0,
+        3,
         4
       ],
       "build_job": [
-        62.5,
+        62,
         95
       ],
       "checkout": [
-        25.5,
+        25,
         51
       ],
       "setup_node": [
-        3.5,
+        3,
         6
       ],
       "install": [
-        8.5,
+        8,
         11
       ],
       "postetup_node": [
-        0.0,
+        0,
         1
       ],
       "build_docs": [
-        12.0,
+        11,
         15
       ],
       "demo": [
-        4.5,
+        5,
         6
       ],
       "upload": [
-        2.5,
+        2,
         4
       ],
       "deploy_job": [
-        10.5,
-        13
+        10,
+        12
       ],
       "exec": [
-        78.0,
+        77,
         111
       ]
     },
@@ -999,10 +1000,10 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-15T19:53:46Z",
-    "status": "Build documentation green on seven consecutive pushes: 43721484176 (13:54Z, fix f02efd0), 43724243400, 43731625055, 43746617494, 43752194225, 43752704784, 43753233809 (19:35Z, de1fbfc). The 12-run failure streak 43613020723..43721157324 has ended. Only in-window schedule 43680980929 failed (2026-11-15T05:24Z); no schedule success since 43561388555 (2026-11-14T05:24Z). Root cause of the streak not verified (step logs HTTP 403 DIFC)."
+    "observed_at": "2026-11-15T20:20:58Z",
+    "status": "Build documentation green on nine consecutive docs.yml runs since fix f02efd0 (43721484176, 13:54Z): 43724243400, 43731625055, 43746617494, 43752194225, 43752704784, 43753233809 (19:35Z), 43756218347 (20:07Z), 43756384109 (20:08Z). The 12-run failure streak 43613020723..43721157324 has ended. Only in-window schedule 43680980929 failed (2026-11-15T05:24Z); no schedule success since 43561388555 (2026-11-14T05:24Z). Root cause of the streak not verified (step logs HTTP 403 DIFC). Confirm the 2026-11-16 ~05:23Z schedule succeeds."
   },
-  "etag_note": "2026-11-15 19:53Z: Jobs API fetched only for 43753233809; file list fetched only for de1fbfc. gh api used without If-None-Match and no ETag captured. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43753233809.",
+  "etag_note": "2026-11-15T20:20:58Z: gh api responses in this sandbox returned no ETag header (observed: Link, X-Ratelimit-*); the earlier Jobs and file-list reads were not conditional. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43756384109.",
   "observations_pending": [
     {
       "observed_at": "2026-11-15T19:33:46Z",
@@ -1014,16 +1015,20 @@
     },
     {
       "observed_at": "2026-11-15T19:33:46Z",
-      "note": "Confirm the 2026-11-16 ~05:23Z schedule succeeds at Build documentation (no schedule green since 43561388555)."
+      "note": "Open #20815 (checkout blobless fetch, OPEN, 0 comments, updated 2026-11-13T17:41:19Z) is the checkout suggestion; window checkout median 26 s, p90 51 s. Not repeated: suggestion evidence has no material change."
     },
     {
-      "observed_at": "2026-11-15T19:33:46Z",
-      "note": "Open #20815 (checkout blobless fetch, OPEN, 0 comments, updated 2026-11-13T17:41:19Z) is the checkout suggestion; window checkout median 26 s, p90 51 s. Not repeated: suggestion evidence has no material change."
+      "observed_at": "2026-11-15T20:20:58Z",
+      "note": "Retired-path guard: docs.yml has no restored dashboard artifact; cao-dashboard.yml is absent at 8c2dd68. Do not re-propose restored-dashboard caches from closed #20380, #18929, #16825 without new evidence of a live producer."
+    },
+    {
+      "observed_at": "2026-11-15T20:20:58Z",
+      "note": "Confirm the 2026-11-16 ~05:23Z schedule succeeds at Build documentation (no schedule green since 43561388555)."
     }
   ],
   "run_timings": {
     "evaluated_at": "2026-11-15T19:53:46Z",
-    "window": "43611206032..43753233809 (latest 20 completed docs.yml runs)",
+    "window": "43616204011 (2026-11-14T16:32:58Z) .. 43756384109 (2026-11-15T20:08:48Z)",
     "columns": [
       "run",
       "event",
@@ -1043,6 +1048,40 @@
     ],
     "note": "Durations from Jobs API step timestamps (completed runs are immutable; reuse rows and fetch only new runs). Failed runs have deploy skipped and post-step skipped.",
     "rows": [
+      [
+        43756384109,
+        "push",
+        "success",
+        "8c2dd68",
+        2,
+        52,
+        22,
+        2,
+        7,
+        1,
+        10,
+        4,
+        2,
+        9,
+        65
+      ],
+      [
+        43756218347,
+        "push",
+        "success",
+        "10f5e57",
+        3,
+        65,
+        25,
+        4,
+        11,
+        0,
+        14,
+        6,
+        2,
+        8,
+        78
+      ],
       [
         43753233809,
         "push",
@@ -1348,40 +1387,6 @@
         0,
         null,
         null
-      ],
-      [
-        43613020723,
-        "push",
-        "failure",
-        "600b56a",
-        4,
-        53,
-        25,
-        4,
-        8,
-        0,
-        11,
-        0,
-        0,
-        null,
-        null
-      ],
-      [
-        43611206032,
-        "push",
-        "success",
-        "04c9d9e",
-        4,
-        65,
-        24,
-        5,
-        11,
-        1,
-        14,
-        4,
-        2,
-        13,
-        83
       ]
     ]
   },
@@ -1500,9 +1505,9 @@
       ]
     ],
     "summary": {
-      "removable_median_s": 8.0,
+      "removable_median_s": 8,
       "removable_p90_s": 10,
-      "exec_median_s": 78.0,
+      "exec_median_s": 78,
       "exec_p90_s": 111
     },
     "note": "Completed-run timings are immutable; reuse rows and fetch only runs newer than 43752704784.",
