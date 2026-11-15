@@ -214,7 +214,7 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 	if err != nil {
 		return nil, err
 	}
-	if !strings.EqualFold(plan.Repository, command.Repository) || !a.hostedCLI.local.allows(plan.Repository) {
+	if !strings.EqualFold(plan.Repository, command.Repository) || connection.OperatorActions == nil || !connection.OperatorActions.allows(plan.Repository) {
 		return nil, errors.New("queued maintenance target is outside the approved repository scope")
 	}
 	content, err := json.Marshal(plan.Args)

@@ -45,6 +45,29 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 	}
 }
 
+func TestOperatorExecutionRechecksCurrentScopeWithoutQueueState(t *testing.T) {
+	adapter := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("unapproved maintenance reached the native adapter")
+	}))
+	defer adapter.Close()
+	for _, scope := range []*LocalOperatorActionsConfig{
+		nil,
+		{Repositories: []string{"octo/other"}},
+	} {
+		app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
+			AdapterURL: adapter.URL, OperatorActions: scope,
+		}}}
+		code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
+			ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
+				Command: "gh aw disable review.md --repo octo/service", Repository: "octo/service",
+			},
+		}, func(string, []byte) {})
+		if code != nil || err == nil {
+			t.Fatal("missing or changed scope did not fail closed")
+		}
+	}
+}
+
 func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	app, _ := newLocalPostgresTestApp(t, false)
 	adapterPrefix := "/" + strings.Repeat("b", 48)
@@ -167,7 +190,9 @@ func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
 		}
 	}))
 	defer adapter.Close()
-	app.config.OperatorActions = &LocalOperatorConfig{AdapterURL: adapter.URL}
+	app.config.OperatorActions = &LocalOperatorConfig{
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
+	}
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	type result struct {
@@ -219,7 +244,9 @@ func TestOperatorDisconnectDoesNotConfirmNativeExit(t *testing.T) {
 		_, _ = w.Write([]byte("{\"stream\":\"stderr\",\"data\":\"interrupted\\n\"}\n"))
 	}))
 	defer adapter.Close()
-	app.config.OperatorActions = &LocalOperatorConfig{AdapterURL: adapter.URL}
+	app.config.OperatorActions = &LocalOperatorConfig{
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
+	}
 	code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
 		ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
 			Command: "gh aw upgrade --repo github/gh-aw --create-pull-request", Repository: "github/gh-aw",
