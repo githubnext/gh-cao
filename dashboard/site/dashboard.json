@@ -90,6 +90,28 @@
         ]
       },
       {
+        "id": "value-overview",
+        "icon": "trophy",
+        "icon-field": "value-icon",
+        "title": { "field": "value-title", "title": "Value entry" },
+        "status": { "field": "value-status", "title": "Value status" },
+        "detail-labels": "visible",
+        "labels": [
+          { "field": "value-kind", "title": "Type" },
+          { "field": "value-context", "title": "Scope" },
+          { "field": "value-collection", "title": "Collection" },
+          { "field": "value-evidence", "title": "Evidence" }
+        ],
+        "details": [
+          { "field": "value-measure", "title": "Observed value" },
+          { "field": "value-attention", "title": "Review basis" }
+        ],
+        "timing": [
+          { "field": "value-captured", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence captured", "icon": "clock" },
+          { "field": "value-cutoff", "type": "temporal", "format": "human-friendly-timestamp", "title": "Evidence through", "icon": "calendar" }
+        ]
+      },
+      {
         "id": "workflow-value-overview",
         "icon": "trophy",
         "title": { "field": "overview-title", "title": "Workflow" },
