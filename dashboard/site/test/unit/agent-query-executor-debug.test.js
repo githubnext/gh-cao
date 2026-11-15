@@ -86,6 +86,7 @@ describe('query executor debug logging', () => {
 
     await executeNamedQuery({ indexedDB, document, queryId: 'all-runs' });
     await expect(executeNamedQuery({ indexedDB, document, queryId: 'not-a-real-query' })).rejects.toThrow();
+    await expect(executeNamedQuery({ indexedDB, document, queryId: 'all-runs', limit: 0 })).rejects.toThrow();
     await executeNamedQuery({ indexedDB, document, queryId: 'browser-only' });
 
     expect(output.debug).not.toHaveBeenCalled();
@@ -153,5 +154,38 @@ describe('query executor debug logging', () => {
       }
       expect(JSON.stringify(payload)).not.toContain('work-items');
     }
+  });
+
+  it('logs only a stable reason when a request is rejected, never parameter names or values', async () => {
+    const output = { debug: vi.fn() };
+    vi.doMock('../../src/debug.js', async () => {
+      const actual = /** @type {typeof import('../../src/debug.js')} */ (
+        await vi.importActual('../../src/debug.js')
+      );
+      return {
+        ...actual,
+        createDebug: (/** @type {string} */ category) =>
+          actual.createDebug(category, { search: () => '?debug=query-executor', output })
+      };
+    });
+    vi.resetModules();
+    const { executeNamedQuery } = await import('../../src/agent/query-executor.js');
+
+    await expect(executeNamedQuery({ indexedDB, document, queryId: '  ' })).rejects.toThrow();
+    await expect(executeNamedQuery({ indexedDB, document, queryId: 'all-runs', limit: 0 })).rejects.toThrow();
+    await expect(executeNamedQuery({
+      indexedDB, document, queryId: 'all-runs', parameters: { 'secret-parameter-name': 'secret-value' }
+    })).rejects.toThrow();
+    await expect(executeNamedQuery({
+      indexedDB, document, queryId: 'all-runs', parameters: { 'secret-parameter-name': { nested: 'secret-value' } }
+    })).rejects.toThrow();
+
+    expect(output.debug.mock.calls.map(([, payload]) => payload)).toEqual([
+      { outcome: 'rejected', reason: 'missing-query-id' },
+      { outcome: 'rejected', reason: 'invalid-limit' },
+      { outcome: 'rejected', reason: 'unknown-parameter' },
+      { outcome: 'rejected', reason: 'unknown-parameter' }
+    ]);
+    expect(JSON.stringify(output.debug.mock.calls)).not.toContain('secret');
   });
 });
