@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T15:17:59Z",
-   "worker_run_id": "43608993871",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43608206381 (push 54faceef, created 2026-11-14T15:04:46Z) back to 43430232636 (created 2026-11-13T13:02:36Z); none queued or in progress; 0 cancelled. Replaces 43430166810 versus the 14:52Z window. Excluded and disclosed: 43506161539 failed (install; logs not read). n=19 successes (18 push + 1 schedule 43561388555); 5-run gate met. Category reusable dashboard generation = step 'Build synthetic enterprise demo' (npm run dashboard:pages:build plus cp to dist/cao): median 4 s, p90 4 s, range 3-5 s = 4.9 percent of median exec 82 s (p90 92). 15 percent gate 12.3 s and 60 s gate unreachable; full removal saves about 4 s. Caching stale-unsafe: scripts/simulate-dashboard-pages.mjs defaults now = Date.now() and generatedAt flows into the output (daily 05:23Z refresh is by design). Parallel split would need a second checkout plus npm ci (median 24 s and 15 s) to save at most 4 s: rejected. Cross-workflow reuse of cid.yml dashboard output rejected for the same reason. Jobs API timings for 43608206381: build 65 s, checkout 25, install 11, docs 15, demo 4, upload 2, deploy job 12. Open issue 20815 (checkout) not repeated. No suggestion; no issue created; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T15:33:51Z",
    "worker_run_id": "43610402042",
@@ -870,6 +841,35 @@
     43502562196
    ],
    "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z) back to 43502562196 (created 2026-11-13T20:32:55Z), all within 14 days; re-read 01:17Z: no newer docs run, none queued or in progress, 0 cancelled; source d55c91b = HEAD = source_sha. Excluded and disclosed: 43506161539 failed at Install (docs not reached); 6 push runs failed at Build documentation (43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695; step 10-15 s, similar to success durations; job logs HTTP 403 DIFC, cause unverified). n=13 successes (12 push + schedule 43561388555); 5-run gate met. Category Astro documentation generation = step Build documentation (npm run docs:build = astro build && validate-agent-docs && agent-docs-discovery test). Success stats: docs median 12 s, p90 14 s (nearest rank), range 9-15 s = 14.8 percent of exec median 81 s (p90 90). 15 percent gate 12.15 s is not reachable: even a zero-second step saves 12 s, and removing the step is impossible because deploy consumes its output. Moving the validation/test tail out of docs.yml would be unmeasured and weakens the pre-deploy gate: rejected. Validators read dist/ produced by astro build, so they cannot run locally without node_modules. Lead, unverified: compare 04c9d9e...600b56a (commits 8684835, 600b56a) changes ARCHITECTURE.md, docs/setup-quickstarts.md, internal/cli/dashboard_*.go, and scripts/check-file-sizes.mjs (outside the docs.yml build closure). No suggestion; no issue created; noop used. next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T01:32:11Z",
+   "worker_run_id": "43663261126",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196
+   ],
+   "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z) back to 43502562196 (created 2026-11-13T20:32:55Z); gh run list re-read 01:31Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Excluded and disclosed: 43506161539 failed at Install (7c8faf4; demo not reached); 6 push runs failed at Build documentation (43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695), so the demo step never ran for them. n=13 successes (12 push + schedule 43561388555); 5-run gate met. Category step 'Build synthetic enterprise demo' (npm run dashboard:pages:build = scripts/simulate-dashboard-pages.mjs, plus cp to dist/cao), Jobs API re-read for all 13 successes: median 4 s, p90 4 s, range 3-4 s (5x3 s, 8x4 s) = 4.9 percent of median exec 81 s (p90 90). 15 percent gate 12.15 s and 60 s gate unreachable; full removal saves at most 4 s. Output caching stale-unsafe: generatedAt = Date.now() flows into demo output and the daily 05:23Z refresh is by design. Parallel split needs a second checkout plus npm ci (median 24 s and 9-11 s) to save at most 4 s: rejected. No suggestion; no issue; noop used. next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
   }
  ],
