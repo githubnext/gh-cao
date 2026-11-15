@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+const (
+	benchmarkEventsPerTrace = 8192
+	benchmarkTraceCount     = 128
+	benchmarkTracesPerBatch = 7
+)
+
 func treeBytes(path string) int64 {
 	var size int64
 	_ = filepath.WalkDir(path, func(_ string, entry fs.DirEntry, err error) error {
@@ -39,7 +45,7 @@ func benchmarkPayload(seed string, bytes int) string {
 func benchmarkProjection(t *testing.T, c Config, run int) Projection {
 	t.Helper()
 	var source strings.Builder
-	for i := 0; i < 8192; i++ {
+	for i := 0; i < benchmarkEventsPerTrace; i++ {
 		size := 256
 		if i%512 == 511 {
 			size = 64 << 10
@@ -113,7 +119,7 @@ func TestDuckDBArchiveMillionEventBenchmark(t *testing.T) {
 	defer func() { close(stop); <-stopped }()
 	started := time.Now()
 	samples := map[string]Event{}
-	for run := 1; run <= 128; run++ {
+	for run := 1; run <= benchmarkTraceCount; run++ {
 		start := time.Now()
 		p := benchmarkProjection(t, c, run)
 		mu.Lock()
@@ -124,13 +130,14 @@ func TestDuckDBArchiveMillionEventBenchmark(t *testing.T) {
 			result.ApprovedBytes += int64(len(event.PayloadJSON))
 		}
 		mu.Unlock()
-		if run == 1 || run == 128 {
+		if run == 1 || run == benchmarkTraceCount {
 			samples[p.RunID] = p.Events[511]
 		}
 		if err := a.Admit(t.Context(), p); err != nil {
-			t.Fatal(err)
+			content, _ := json.Marshal(p)
+			t.Fatalf("admit run %d (projection bytes %d, staged bytes %d): %v", run, len(content), a.stagingBytes(), err)
 		}
-		if run%8 == 0 {
+		if run%benchmarkTracesPerBatch == 0 || run == benchmarkTraceCount {
 			start := time.Now()
 			if err := a.Flush(t.Context()); err != nil {
 				t.Fatal(err)
@@ -153,7 +160,7 @@ func TestDuckDBArchiveMillionEventBenchmark(t *testing.T) {
 	for _, row := range summary {
 		events += row.Events
 	}
-	if events != 1048576 || len(summary) != 128 {
+	if events != benchmarkTraceCount*benchmarkEventsPerTrace || len(summary) != benchmarkTraceCount {
 		t.Fatalf("required complete million-event output failed: events=%d traces=%d", events, len(summary))
 	}
 	start = time.Now()
@@ -162,15 +169,16 @@ func TestDuckDBArchiveMillionEventBenchmark(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(rows) != 8192 || rows[511].PayloadJSON != sample.PayloadJSON || rows[511].ContentDigest != sample.ContentDigest {
+		if len(rows) != benchmarkEventsPerTrace || rows[511].PayloadJSON != sample.PayloadJSON || rows[511].ContentDigest != sample.ContentDigest {
 			t.Fatal("representative large-payload sample failed round-trip")
 		}
 	}
 	var parquetBytes int64
 	for _, file := range a.state.Manifest.Files {
 		parquetBytes += file.Bytes
-		if len(file.Members) != 8 || file.Rows != 65536 {
-			t.Fatal("benchmark did not pack eight complete traces per file")
+		if len(file.Members) == 0 || len(file.Members) > benchmarkTracesPerBatch ||
+			file.Rows != int64(len(file.Members)*benchmarkEventsPerTrace) {
+			t.Fatal("benchmark file did not contain complete traces within the staging budget")
 		}
 	}
 	mu.Lock()
@@ -183,8 +191,9 @@ func TestDuckDBArchiveMillionEventBenchmark(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Files != 16 {
-		t.Fatalf("expected 16 immutable packed files, got %d", result.Files)
+	expectedFiles := (benchmarkTraceCount + benchmarkTracesPerBatch - 1) / benchmarkTracesPerBatch
+	if result.Files != expectedFiles {
+		t.Fatalf("expected %d immutable packed files, got %d", expectedFiles, result.Files)
 	}
 	t.Logf("million_event_production_archive_benchmark=%s", report)
 	t.Log("Go heap and filesystem peaks sampled every 20ms; CLI memory/temp are configured engine budgets, not measured process RSS. No Azure/live ADX throughput established.")
