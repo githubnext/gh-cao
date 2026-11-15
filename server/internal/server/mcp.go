@@ -118,10 +118,11 @@ func (a *App) newMCPHandler() (http.Handler, error) {
 		return nil, fmt.Errorf("read agent catalog payload: %w", err)
 	}
 	runtime := &mcpRuntime{app: a, contract: contract, catalog: catalog, catalogRaw: catalogRaw}
+	instructions := contract.Instructions + "\n\nWhen separately available, the hosted cao_session_query tool queries the private session data lake instead of the dashboard database."
 	server := mcp.NewServer(&mcp.Implementation{
 		Name: contract.ServerInfo.Name, Title: contract.ServerInfo.Title, Version: contract.ServerInfo.Version,
 	}, &mcp.ServerOptions{
-		Instructions:              contract.Instructions,
+		Instructions:              instructions,
 		SupportedProtocolVersions: []string{contract.ProtocolVersion},
 	})
 	server.AddReceivingMiddleware(mcpServerTelemetry())

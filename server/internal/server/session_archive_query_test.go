@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
+	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
 )
 
 const analyticalArchiveRequest = `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0",
@@ -37,6 +39,28 @@ func TestSessionArchiveAnalyticalCapabilitiesHTTP(t *testing.T) {
 			len(decoded.Fields) == 0 || decoded.Source != "archive-events" {
 			t.Fatal("backend capability vocabulary is missing or unversioned")
 		}
+	}
+}
+
+type sessionArchiveAvailabilityProbe struct {
+	hostedArchivePublisher
+	available bool
+}
+
+func (probe *sessionArchiveAvailabilityProbe) AnalyticalAvailable() bool {
+	return probe.available
+}
+
+func TestSessionArchiveQueryKindsReflectAnalyticalAvailability(t *testing.T) {
+	for _, available := range []bool{false, true} {
+		backend := &hostedSessionArchive{publisher: &sessionArchiveAvailabilityProbe{available: available}}
+		if got := slices.Contains(backend.QueryKinds(), "session-query"); got != available {
+			t.Fatalf("hosted analytical availability=%t advertised session-query=%t", available, got)
+		}
+	}
+	native := &nativeSessionArchive{Native: &sessionarchiveblob.Native{}}
+	if slices.Contains(native.QueryKinds(), "session-query") {
+		t.Fatal("native archive advertised session-query without analytical acceptance")
 	}
 }
 
@@ -91,7 +115,7 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 	if response := archiveRequest(t, app, strings.Replace(analyticalArchiveRequest, "octo/one", "octo/two", 1), true); response.Code != http.StatusForbidden {
 		t.Fatalf("analytical query escaped repository scope: %d", response.Code)
 	}
-	probe.kinds = []string{"timeline", "summary"}
+	probe.kinds = (&hostedSessionArchive{}).QueryKinds()
 	if response := archiveRequest(t, app, analyticalArchiveRequest, true); response.Code != http.StatusUnprocessableEntity ||
 		!strings.Contains(response.Body.String(), "unavailable on this archive backend") {
 		t.Fatalf("hosted unsupported profile did not fail explicitly: %d %s", response.Code, response.Body.String())
