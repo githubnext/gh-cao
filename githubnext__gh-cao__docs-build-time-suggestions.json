@@ -1,36 +1,7 @@
 {
  "source_sha": "aa73dc69f242b84a98feb7bda682feff1906abb4",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T04:33:18Z",
-   "worker_run_id": "43677020035",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43655786695,
-    43639680929,
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); gh run list re-read 04:33Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Jobs API re-fetched for all 20 runs (stored rows confirmed). Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, 17 s) and six push failures at Build documentation 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 (10-15 s; step logs HTTP 403 DIFC again). n=13 successes (12 push + schedule 43561388555) meets 5-run gate. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 14, range 9-15 = 14.8 percent of median exec 81 s (p90 90). 15 percent gate 12.15 s; whole-step removal (blocked: validation gate, deploy consumes output) saves at most 12 s, so no Astro-internal change can clear the gate; 60 s gate unreachable. Astro-internal split unmeasured (logs unreadable) and not decision-relevant. Reliability, not timing: six consecutive Build documentation failures since 600b56a; no tracking issue (20934 = workflow-contracts gate, relation unverified; 20815 = checkout). Maintainer triage needed. No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T04:52:00Z",
    "worker_run_id": "43678398681",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43536491714 (push 2cb6d9c, 2026-11-14T00:47Z) to 43724243400 (push aa73dc6, 2026-11-15T14:25Z); none queued or in progress; 0 cancelled. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (all at Build documentation; Install completed in all 12). Source aa73dc6 = HEAD; prior source_sha f02efd0 differs by a dashboard-only change. Root package-lock.json last changed in 7c8faf4 (2026-11-13T20:56:33Z, commits API path check), so all 20 runs share key node-cache-Linux-x64-npm-7808ecf8 (root-only hash reproduced locally at HEAD). Cache: one repo cache entry 7808ecf8 (263412733 B, created 2026-11-13T20:57:12Z, ref main) present at 14:28Z; successes' Post Set up Node.js 0-1 s (exact-key hit, save skipped; inferred from step timing; logs HTTP 403 DIFC, not bypassed). Success medians n=8: setup-node restore 4.5 s (p90 6); Install dependencies 9.0 s (p90 11); setup+install+post per run median 12.5 s; exec (build start to deploy end) median 77.0 s, p90 92 (push-only median 75). 15 percent gate 11.55 s: full removal of the install step (9 s; deps required by build) cannot clear it; a node_modules replacement would need its restore to take about 1 s or less, while the current 263 MB npm-cache restore takes 4.5 s median. 60 s gate unreachable. dashboard/site/package-lock.json (last changed 7c8faf4) is outside the key; its share of install is unmeasured (logs unavailable) and bounded by the 9 s install median. Open 20815 (checkout; same worker campaign; OPEN, 0 comments) is another category: not repeated. Reliability, not timing: 12 Build documentation failures 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) ended by green pushes 43721484176 (f02efd0, 13:54Z) and 43724243400 (aa73dc6, 14:25Z); cause unverified. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T14:52:24Z",
+   "worker_run_id": "43726371276",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "43724243400",
+    "43721484176",
+    "43721157324",
+    "43706435376",
+    "43698271571",
+    "43682264332",
+    "43681861583",
+    "43680980929",
+    "43655786695",
+    "43639680929",
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952",
+    "43536491714"
+   ],
+   "outcome": "complete, not actionable; reliability blocker status unchanged. Window: latest 20 completed docs.yml runs 43536491714 (push 2cb6d9c, created 2026-11-14T00:47:23Z) to 43724243400 (push aa73dc6, created 2026-11-15T14:25:07Z), all within 14 days; gh run list re-read 14:50Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source aa73dc6 = HEAD = source_sha. Jobs API spot-checked for 43724243400 (Build documentation 10 s) and 43536491714 (13 s): both match stored run_timings rows; other rows reused (completed runs immutable). Excluded and disclosed: 12 failures, all at Build documentation (Install completed; step logs HTTP 403 DIFC, not bypassed). n=8 successes (7 push + schedule 43561388555) meets the 5-run gate. There is no dashboard job: docs.yml has build and deploy jobs; dashboard generation is the Build synthetic enterprise demo step. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 11.5 s, p90 15 s (nearest-rank), range 8-15 s = 14.9 percent of median exec 77 s (p90 92). 15 percent gate = 11.55 s; the entire step, the only Astro-related work, saves at most 11.5 s even if removed (removal invalid: deploy consumes dist and validation gates it), so no Astro change clears either gate; 60 s gate unreachable. Validation scripts read built dist and spawn no second Astro build (static check), so no duplicate build to remove. Astro-internal vs validation split unmeasurable (logs HTTP 403 DIFC); local reproduction blocked (no node_modules; npm ci TLS failure in sandbox). Context: full-workflow medians: build job 61.5 s (p90 79), deploy 10 s (p90 13), checkout 24.5 s (p90 37; open issue 20815, unchanged, not repeated), install 9 s, demo 3.5 s, upload 2 s, queue 3 s. Reliability, not timing: 12 consecutive Build documentation failures 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) ended by green pushes 43721484176 (13:54Z) and 43724243400 (14:25Z); no open tracker for docs.yml failures (20934 relation unverified; 20815 checkout only). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -994,15 +994,15 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-15T14:34:12Z",
-  "status": "ended; two consecutive green pushes (f02efd0 13:54Z, aa73dc6 14:25Z); next scheduled run and pushes should confirm",
+  "observed_at": "2026-11-15T14:52:24Z",
+  "status": "ended; two consecutive green pushes (f02efd0 13:54Z, aa73dc6 14:25Z); no docs.yml run since 14:25Z",
   "prior_streak": "12 consecutive Build documentation failures 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z)",
   "note": "Reliability, not timing; no create_issue under the timing rule"
  },
  "etag_note": "2026-11-15: gh api conditional requests not used; completed-run job timings are stored in run_timings and need no re-fetch.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-15T14:34:12Z",
+   "observed_at": "2026-11-15T14:52:24Z",
    "note": "Confirm the 2026-11-16 ~05:23Z schedule and next push succeed at Build documentation (streak has two green samples)."
   },
   {
@@ -1011,7 +1011,7 @@
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-15T14:34:12Z",
+  "evaluated_at": "2026-11-15T14:52:24Z",
   "window": "43536491714..43724243400 (latest 20 completed docs.yml runs)",
   "columns": [
    "run",
