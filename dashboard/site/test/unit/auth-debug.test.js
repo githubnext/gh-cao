@@ -134,4 +134,37 @@ describe('auth debug logging', () => {
     expect(payload).toEqual({ event: 'session-renewal-failed', errorName: 'TypeError', durationMs: expect.any(Number) });
     expect(JSON.stringify(payload)).not.toContain('Failed to fetch');
   });
+
+  it('does not log principal or invalidation transitions by default', async () => {
+    const { setGitHubResourcePrincipal, invalidateGitHubResourceAuthentication, output } = await loadAuthWithDebug('');
+
+    setGitHubResourcePrincipal('octocat');
+    invalidateGitHubResourceAuthentication();
+
+    expect(output.debug).not.toHaveBeenCalled();
+  });
+
+  it('logs principal changes and invalidations without the principal identity', async () => {
+    const { setGitHubResourcePrincipal, invalidateGitHubResourceAuthentication, githubResourcePrincipal, output } = await loadAuthWithDebug('?debug=auth');
+
+    setGitHubResourcePrincipal('private-login-name');
+    setGitHubResourcePrincipal('private-login-name');
+    invalidateGitHubResourceAuthentication();
+
+    expect(githubResourcePrincipal()).toBe('private-login-name');
+    expect(output.debug.mock.calls.map(([category, payload]) => [category, payload])).toEqual([
+      ['[cao:auth]', { event: 'resource-principal-changed', hadPrincipal: false, hasPrincipal: true }],
+      ['[cao:auth]', { event: 'resource-authentication-invalidated', resume: true }],
+      ['[cao:auth]', { event: 'resource-authentication-invalidated', resume: false }]
+    ]);
+    expect(JSON.stringify(output.debug.mock.calls)).not.toContain('private-login-name');
+  });
+
+  it('can be filtered to exclude auth logging', async () => {
+    const { invalidateGitHubResourceAuthentication, output } = await loadAuthWithDebug('?debug=*,-auth');
+
+    invalidateGitHubResourceAuthentication();
+
+    expect(output.debug).not.toHaveBeenCalled();
+  });
 });
