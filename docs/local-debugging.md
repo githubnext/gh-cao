@@ -179,3 +179,22 @@ After the debug loop, follow the normal reviewed workflow/policy change
 process. A staged proposal cannot promote or authorize a later live run.
 See [Admission Gates](admission.md) for gate diagnostics and
 [Execution and Safety](execution-and-safety.md) for the execution boundary.
+
+## Inspect server telemetry locally
+
+For development diagnostics, the repository provides loopback-only Docker Compose
+backends for the Go server's OTLP/HTTP exports. They are not part of any deployment.
+
+| Command | Backend |
+| --- | --- |
+| `npm run dashboard:server:aspire-up` / `aspire-down` | Standalone Aspire dashboard on `http://127.0.0.1:18888`, OTLP/HTTP on port `4318` |
+| `npm run dashboard:server:lgtm-up` / `lgtm-down` | Grafana LGTM (Grafana, Loki, Tempo, Prometheus) on `http://127.0.0.1:3000`, OTLP/HTTP on port `4318` |
+
+Both publish port `4318`, so stop one before starting the other. Their receivers
+are unauthenticated and keep data only until the container is removed. Before
+`npm run dashboard:local`, clear inherited signal-specific `OTEL_EXPORTER_OTLP_*`
+endpoints and headers, then set `OTEL_SDK_DISABLED=false` and
+`OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318`. Add `CAO_OTEL_LOGS_ENABLED=true`
+and a `DEBUG` namespace such as `cao:server,cao:telemetry` to export logs. See the
+[local telemetry guide](https://github.com/githubnext/gh-cao/blob/main/server/LOCAL-TELEMETRY.md)
+for the full procedure and opt-in export tests.
