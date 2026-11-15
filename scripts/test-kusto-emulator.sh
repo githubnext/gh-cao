@@ -80,6 +80,8 @@ CAO_KUSTO_EMULATOR_URL="$endpoint" go -C "$root/server" test -race ./internal/ad
   -run '^TestKustoEmulator' -count=1 -timeout=15m -v
 go -C "$root/server" test ./internal/sessionarchiveblob -list '^TestKustoArchiveMembership$' \
   | grep -Fx TestKustoArchiveMembership
+go -C "$root/server" test ./internal/sessionarchiveblob -list '^TestKustoAnalyticalCorpus$' \
+  | grep -Fx TestKustoAnalyticalCorpus
 CAO_KUSTO_EMULATOR_URL="$endpoint" CAO_SESSION_ARCHIVE_REQUIRE_KUSTO=1 \
   go -C "$root/server" test -race ./internal/sessionarchiveblob \
-  -run '^TestKustoArchiveMembership$' -count=1 -timeout=5m -v
+  -run '^TestKusto(ArchiveMembership|AnalyticalCorpus)$' -count=1 -timeout=5m -v

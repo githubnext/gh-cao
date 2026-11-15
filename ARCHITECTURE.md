@@ -561,7 +561,22 @@ and real Azure conformance bound to the destination; simulated protocol success
 does not authorize query activation. Existing HTTP authentication is necessary
 but insufficient: explicit full-trace-read approval and an exact hosted-reader
 allowlist with fresh existing strong-authentication assurance gate the private
-timeline/summary endpoints. Responses recheck authorization, are bounded to
+timeline/summary and analytical `session-query` endpoints. The shared JSON
+analytical profile validates to a typed backend-neutral plan, with separate
+DuckDB SQL and ADX KQL lowerers and generated field/capability discovery.
+Exact counting, deterministic ordering and disclosed top-N selection have
+shared semantics; ADX retains its tighter 4096-row output ceiling and source
+privacy fences. Unsupported operators, unavailable exact engine functions, and
+resource failures are explicit, never cross-backend fallbacks. Real destination
+acceptance independently binds the additional analytical plan version, without
+changing capture acceptance or native privacy-ledger destination identity.
+The server-only `cao_session_query` MCP tool uses this archive contract,
+separately from `cao_query` and the canonical dashboard catalog. It preserves
+the additional trace-read grant, backend acceptance, exact repository scope,
+and withdrawal-aware reader through SDK serialization and final HTTP delivery.
+Actions or administrator access alone cannot authorize it. The standalone
+canonical-snapshot MCP server and browser tool manifests do not expose it.
+Responses recheck authorization, are bounded to
 8 MiB/10000 rows and 30 seconds, and never expose arbitrary SQL/KQL, paths,
 credentials, or caller-selected generations. Existing dashboard query backends,
 frontend and native ADX profiles are unchanged. Persistent single-owner hosts

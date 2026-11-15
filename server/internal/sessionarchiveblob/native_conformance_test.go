@@ -27,6 +27,7 @@ func TestAzureNativeArchiveConformance(t *testing.T) {
 		t.Fatal("requires empty dedicated conformance-* Blob destination, provisioned ADX table, one synthetic repository and 5m retirement grace")
 	}
 	destination.Acceptance = destination.NativeAcceptanceBinding()
+	destination.AnalyticalAcceptance = destination.AnalyticalAcceptanceBinding()
 	capture := nativeCaptureConfig(t)
 	capture.Namespace, capture.Repositories = destination.Namespace, destination.RepositoryIDs
 	n, err := NewNative(t.Context(), capture, destination)
@@ -85,6 +86,7 @@ func TestAzureNativeArchiveConformance(t *testing.T) {
 	if err != nil || len(summaries) != 1 || summaries[0].Events != 3 || summaries[0].Attempt != 2 {
 		t.Fatal("real native external-table membership inflated or changed attempt identity")
 	}
+	verifyLiveAnalytical(t, n.Archive, scope, repository, 1)
 	withdrawCtx, _, _, _, reader, err := n.pin(t.Context(), scope, repository, "123", 2)
 	if err != nil {
 		t.Fatal(err)
@@ -129,4 +131,5 @@ func TestAzureNativeArchiveConformance(t *testing.T) {
 		t.Fatal("native eligible object was not physically retired")
 	}
 	t.Log("Native Azure destination conformance passed; explicit runtime acceptance binding:", destination.Acceptance)
+	t.Log("Analytical plan acceptance binding:", destination.AnalyticalAcceptance)
 }

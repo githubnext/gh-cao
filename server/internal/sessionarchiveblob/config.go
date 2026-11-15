@@ -63,6 +63,9 @@ type Config struct {
 	// assertion of Azure semantics. It must equal AcceptanceBinding after the
 	// environment-dependent conformance test has passed at this destination.
 	Acceptance string
+	// AnalyticalAcceptance independently enables the shared analytical profile
+	// without changing capture acceptance or native privacy-ledger identity.
+	AnalyticalAcceptance string
 	// ExternalPropertiesDigest is the reviewed SHA-256 of the exact Properties
 	// string returned by ".show external table". It binds all storage paths,
 	// managed identity, partition and format settings without guessing the
@@ -91,7 +94,8 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		Namespace: value("NAMESPACE"), RepositoryIDs: strings.Split(value("REPOSITORY_IDS"), ","),
 		TenantID: value("TENANT_ID"), ClientID: value("CLIENT_ID"), ClientSecret: value("CLIENT_SECRET"),
 		DataApproved: value("DATA_APPROVED") == "true", SingleReplica: value("SINGLE_REPLICA") == "true",
-		Acceptance: value("ACCEPTANCE"), ExternalPropertiesDigest: value("EXTERNAL_PROPERTIES_DIGEST")}
+		Acceptance: value("ACCEPTANCE"), AnalyticalAcceptance: value("ANALYTICAL_ACCEPTANCE"),
+		ExternalPropertiesDigest: value("EXTERNAL_PROPERTIES_DIGEST")}
 	for i := range c.RepositoryIDs {
 		c.RepositoryIDs[i] = strings.TrimSpace(c.RepositoryIDs[i])
 	}
@@ -201,6 +205,10 @@ func (c Config) AcceptanceBinding() string {
 		c.ExternalPropertiesDigest, c.MaxFileBytes, c.MaxQueryBytes, c.MaxFiles, c.MaxMembers, c.MaxStateBytes, c.QueryTimeout, c.RetirementGrace})
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
+}
+
+func (c Config) AnalyticalAcceptanceBinding() string {
+	return digest([]byte("cao-archive-analytical-v1\x00" + c.AcceptanceBinding()))
 }
 
 func (c Config) authorized(namespace, repository string) bool {

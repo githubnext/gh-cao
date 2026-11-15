@@ -72,13 +72,32 @@ type sessionArchiveBackend interface {
 	Close() error
 	Status() sessionarchive.Status
 	QueryKinds() []string
+	AnalyticalCapabilities() sessionarchive.Capabilities
 	Query(context.Context, sessionArchiveQuery) (sessionArchiveResult, error)
 }
 
 func (*localSessionArchive) QueryKinds() []string {
 	return []string{"timeline", "summary", "session-query"}
 }
-func (*hostedSessionArchive) QueryKinds() []string { return []string{"timeline", "summary"} }
+func (archive *hostedSessionArchive) QueryKinds() []string {
+	kinds := []string{"timeline", "summary"}
+	if archive.publisher != nil && archive.publisher.AnalyticalAvailable() {
+		kinds = append(kinds, "session-query")
+	}
+	return kinds
+}
+
+func (*localSessionArchive) AnalyticalCapabilities() sessionarchive.Capabilities {
+	return sessionarchive.AnalyticalCapabilities(10000)
+}
+
+func (*hostedSessionArchive) AnalyticalCapabilities() sessionarchive.Capabilities {
+	return sessionarchive.AnalyticalCapabilities(4096)
+}
+
+func (*nativeSessionArchive) AnalyticalCapabilities() sessionarchive.Capabilities {
+	return sessionarchive.AnalyticalCapabilities(4096)
+}
 
 type localSessionArchive struct {
 	*sessionarchive.Archive
@@ -94,6 +113,8 @@ type hostedSessionArchive struct {
 type hostedArchiveReader interface {
 	ReadTimeline(context.Context, sessionarchive.Scope, sessionarchive.TimelineRequest) (uint64, []sessionarchive.Event, *sessionarchiveblob.Reader, error)
 	ReadSummaries(context.Context, sessionarchive.Scope, string, int) (uint64, []sessionarchive.Summary, *sessionarchiveblob.Reader, error)
+	ReadAnalytical(context.Context, sessionarchive.Scope, string, sessionarchive.Definition) (uint64, sessionarchive.AnalyticalResult, *sessionarchiveblob.Reader, error)
+	AnalyticalAvailable() bool
 }
 
 type hostedArchivePublisher interface {
@@ -105,7 +126,12 @@ type hostedArchivePublisher interface {
 }
 
 func (archive *hostedSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
-	return hostedArchiveQuery(ctx, archive.publisher, archive.namespace, input)
+	gaps := archive.AdmissionGaps(input.Repository)
+	result, err := hostedArchiveQuery(ctx, archive.publisher, archive.namespace, input)
+	if result.Metadata != nil {
+		result.Metadata.AdmissionGaps = gaps
+	}
+	return result, err
 }
 
 type nativeSessionArchive struct {
@@ -115,7 +141,13 @@ type nativeSessionArchive struct {
 	authority   sessionarchive.NativeAuthority
 }
 
-func (*nativeSessionArchive) QueryKinds() []string { return []string{"timeline", "summary"} }
+func (archive *nativeSessionArchive) QueryKinds() []string {
+	kinds := []string{"timeline", "summary"}
+	if archive.Native != nil && archive.AnalyticalAvailable() {
+		kinds = append(kinds, "session-query")
+	}
+	return kinds
+}
 
 func (archive *nativeSessionArchive) Query(ctx context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
 	if archive.authority == nil {
@@ -140,6 +172,10 @@ func (archive *nativeSessionArchive) Query(ctx context.Context, input sessionArc
 			sessionarchive.TimelineRequest{Repository: input.Repository, RunID: *input.RunID, Attempt: *input.Attempt, Limit: min(input.rowLimit(), 4096)})
 	case "summary":
 		result.Generation, result.Summary, reader, err = archive.ReadSummariesAt(ctx, scope, source, input.Repository, min(input.rowLimit(), 4096))
+	case "session-query":
+		var analytical sessionarchive.AnalyticalResult
+		result.Generation, analytical, reader, err = archive.ReadAnalyticalAt(ctx, scope, source, *input.Query)
+		result.Columns, result.Rows, result.Metadata = analytical.Columns, &analytical.Rows, &analytical.Metadata
 	default:
 		return result, sessionarchive.ErrQuery
 	}
@@ -212,6 +248,10 @@ func hostedArchiveQuery(ctx context.Context, publisher hostedArchiveReader, name
 		})
 	case "summary":
 		result.Generation, result.Summary, reader, err = publisher.ReadSummaries(ctx, scope, input.Repository, min(input.rowLimit(), 4096))
+	case "session-query":
+		var analytical sessionarchive.AnalyticalResult
+		result.Generation, analytical, reader, err = publisher.ReadAnalytical(ctx, scope, input.Repository, *input.Query)
+		result.Columns, result.Rows, result.Metadata = analytical.Columns, &analytical.Rows, &analytical.Metadata
 	default:
 		return sessionArchiveResult{}, sessionarchive.ErrQuery
 	}
@@ -684,10 +724,14 @@ func (a *App) sessionArchiveStatus(response http.ResponseWriter, request *http.R
 	if retrying {
 		stage = "retrying"
 	}
-	writeJSON(response, http.StatusOK, map[string]any{
+	status := map[string]any{
 		"enabled": true, "stage": stage, "archive": a.sessionArchive.backend.Status(),
 		"queryKinds": a.sessionArchive.backend.QueryKinds(),
-	})
+	}
+	if slices.Contains(a.sessionArchive.backend.QueryKinds(), "session-query") {
+		status["analytical"] = a.sessionArchive.backend.AnalyticalCapabilities()
+	}
+	writeJSON(response, http.StatusOK, status)
 }
 
 func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Request) {
@@ -727,6 +771,13 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 	if !slices.Contains(a.sessionArchive.backend.QueryKinds(), input.Kind) {
 		writeError(request.Context(), response, http.StatusUnprocessableEntity, "analytical query profile is unavailable on this archive backend")
 		return
+	}
+	if input.Query != nil {
+		plan, err := input.Query.Plan()
+		if err != nil || plan.Require(a.sessionArchive.backend.AnalyticalCapabilities()) != nil {
+			writeError(request.Context(), response, http.StatusUnprocessableEntity, "analytical operators or limit are unavailable on this archive backend")
+			return
+		}
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), 30*time.Second)
 	defer cancel()

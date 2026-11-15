@@ -2,7 +2,6 @@ package sessionarchive
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -10,75 +9,115 @@ import (
 	"strings"
 )
 
-func analyticalLiteral(raw json.RawMessage, kind string) (string, error) {
-	switch kind {
+func identifier(name string) string { return `"` + strings.ReplaceAll(name, `"`, `""`) + `"` }
+
+func analyticalLiteral(value Scalar) string {
+	switch value.Type {
 	case "string":
-		var value string
-		if len(raw) == 0 || raw[0] != '"' || json.Unmarshal(raw, &value) != nil || strings.ContainsRune(value, 0) {
-			return "", ErrQuery
-		}
-		return literal(value), nil
+		return literal(value.String)
 	case "integer":
-		value, err := strconv.ParseInt(string(raw), 10, 64)
-		if err != nil || strconv.FormatInt(value, 10) != string(raw) {
-			return "", ErrQuery
-		}
-		return strconv.FormatInt(value, 10), nil
+		return strconv.FormatInt(value.Integer, 10)
 	default:
-		return "", ErrQuery
+		panic("unvalidated analytical scalar")
 	}
 }
 
-func (p AnalyticalPredicate) compile(field, kind string) (string, error) {
-	modes := 0
-	for _, present := range []bool{p.Equals != nil, p.In != nil, p.GTE != nil || p.LT != nil} {
-		if present {
-			modes++
-		}
-	}
-	if modes != 1 {
-		return "", ErrQuery
-	}
+func (p PlannedPredicate) sql() string {
+	field := identifier(p.Field.Name)
 	if p.Equals != nil {
-		value, err := analyticalLiteral(p.Equals, kind)
-		if err != nil {
-			return "", err
-		}
-		return field + "=" + value, nil
+		return field + "=" + analyticalLiteral(*p.Equals)
 	}
 	if p.In != nil {
-		var alternatives []json.RawMessage
-		if err := json.Unmarshal(p.In, &alternatives); err != nil || len(alternatives) < 1 || len(alternatives) > 32 {
-			return "", ErrQuery
+		var values []string
+		for _, value := range p.In {
+			values = append(values, analyticalLiteral(value))
 		}
-		values := make([]string, 0, len(alternatives))
-		for _, raw := range alternatives {
-			value, err := analyticalLiteral(raw, kind)
-			if err != nil {
-				return "", err
-			}
-			values = append(values, value)
-		}
-		return field + " IN (" + strings.Join(values, ",") + ")", nil
+		return field + " IN (" + strings.Join(values, ",") + ")"
 	}
 	parts := []string{field + " IS NOT NULL"}
-	if kind == "string" {
+	if p.Field.Type == "string" {
 		parts = append(parts, field+"<>''")
 	}
 	for _, bound := range []struct {
-		raw      json.RawMessage
+		value    *Scalar
 		operator string
 	}{{p.GTE, ">="}, {p.LT, "<"}} {
-		if bound.raw == nil {
+		if bound.value == nil {
 			continue
 		}
-		value, err := analyticalLiteral(bound.raw, kind)
-		if err != nil {
-			return "", err
-		}
-		parts = append(parts, field+bound.operator+value)
+		parts = append(parts, field+bound.operator+analyticalLiteral(*bound.value))
 	}
-	return "(" + strings.Join(parts, " AND ") + ")", nil
+	return "(" + strings.Join(parts, " AND ") + ")"
+}
+
+func sqlOrder(field Column, direction string) string {
+	expression := identifier(field.Name)
+	if field.Type == "string" {
+		expression = "nullif(" + expression + ",'')"
+	}
+	return expression + " " + direction + " NULLS LAST"
+}
+
+func (p Plan) sql(source string) string {
+	filter := "true"
+	predicates := make([]string, 0, len(p.Predicates))
+	groups := make([]string, 0, len(p.By))
+	projections := make([]string, 0, len(p.Selections)+len(p.Ties))
+	orders := make([]string, 0, len(p.Orders)+len(p.Ties))
+	columns := make([]string, 0, len(p.Columns))
+	packed := make([]string, 0, len(p.Columns))
+	for _, predicate := range p.Predicates {
+		predicates = append(predicates, predicate.sql())
+	}
+	if len(predicates) > 0 {
+		filter = strings.Join(predicates, " AND ")
+	}
+	expressions := map[string]string{}
+	for _, name := range p.Inputs {
+		expressions[name] = identifier(name)
+	}
+	for _, value := range p.Values {
+		expression := identifier(value.Field.Name)
+		if value.Field.Type == "string" {
+			expression = "nullif(" + expression + ",'')"
+		}
+		if value.Reducer == "distinct-count" {
+			expression = "DISTINCT " + expression
+		}
+		expressions[value.As] = "count(" + expression + ")"
+	}
+	for _, selection := range p.Selections {
+		projections = append(projections, expressions[selection.Field.Name]+" AS "+identifier(selection.As))
+	}
+	for _, order := range p.Orders {
+		orders = append(orders, sqlOrder(order.Field, order.Direction))
+	}
+	for i, tie := range p.Ties {
+		hidden := Column{Name: "__archive_tie_" + strconv.Itoa(i), Type: tie.Type}
+		projections = append(projections, identifier(tie.Name)+" AS "+identifier(hidden.Name))
+		orders = append(orders, sqlOrder(hidden, "asc"))
+	}
+	for _, field := range p.By {
+		groups = append(groups, identifier(field.Name))
+	}
+	group, order := "", ""
+	if len(groups) > 0 {
+		group = " GROUP BY " + strings.Join(groups, ",")
+	}
+	if len(orders) > 0 {
+		order = " ORDER BY " + strings.Join(orders, ",")
+	}
+	for _, column := range p.Columns {
+		columns = append(columns, identifier(column.Name))
+		packed = append(packed, identifier(column.Name)+":=r."+identifier(column.Name))
+	}
+	return `WITH source AS MATERIALIZED (` + source + `),
+filtered AS (SELECT * FROM source WHERE ` + filter + `),
+reduced AS (SELECT ` + strings.Join(projections, ",") + ` FROM filtered` + group + `),
+page AS (SELECT ` + strings.Join(columns, ",") + `,row_number() OVER (` + order + `) AS __archive_order FROM reduced` + order +
+		` LIMIT ` + strconv.Itoa(p.Limit+1) + `)
+SELECT coalesce((SELECT list(struct_pack(` + strings.Join(packed, ",") + `) ORDER BY r.__archive_order) FROM page r), []) AS rows,
+(SELECT count(DISTINCT TraceId) FROM source WHERE len(Gaps)>0) AS tracesWithGaps`
 }
 
 // sourceSQL resolves only server-owned files and exact pinned membership.
@@ -146,8 +185,11 @@ INNER JOIN active a USING(Namespace,Repository,RunId,RunAttempt,TraceId,Projecti
 }
 
 func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (AnalyticalResult, error) {
-	plan, err := definition.compile()
+	plan, err := definition.Plan()
 	if err != nil {
+		return AnalyticalResult{}, err
+	}
+	if err := plan.Require(AnalyticalCapabilities(10000)); err != nil {
 		return AnalyticalResult{}, err
 	}
 	if err := s.check(); err != nil {
@@ -157,34 +199,18 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	//nolint:contextcheck // Independent snapshot revocation must cancel verification and the caller-scoped subprocess.
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer func() { stop(); cancel() }()
-	source, err := s.sourceSQL(combined, plan.inputs)
+	source, err := s.sourceSQL(combined, plan.Inputs)
 	if err != nil {
 		if accessErr := s.check(); accessErr != nil {
 			return AnalyticalResult{}, accessErr
 		}
 		return AnalyticalResult{}, err
 	}
-	var columns, packed []string
-	for _, column := range plan.columns {
-		columns = append(columns, identifier(column.Name))
-		packed = append(packed, identifier(column.Name)+":=r."+identifier(column.Name))
-	}
-	order := ""
-	if plan.order != "" {
-		order = " ORDER BY " + plan.order
-	}
-	sql := `WITH source AS MATERIALIZED (` + source + `),
-filtered AS (SELECT * FROM source WHERE ` + plan.filter + `),
-reduced AS (SELECT ` + plan.projection + ` FROM filtered` + plan.group + `),
-page AS (SELECT ` + strings.Join(columns, ",") + `,row_number() OVER (` + order + `) AS __archive_order FROM reduced` + order +
-		` LIMIT ` + strconv.Itoa(plan.limit+1) + `)
-SELECT coalesce((SELECT list(struct_pack(` + strings.Join(packed, ",") + `) ORDER BY r.__archive_order) FROM page r), []) AS rows,
-(SELECT count(DISTINCT TraceId) FROM source WHERE len(Gaps)>0) AS tracesWithGaps`
 	var result []struct {
 		Rows           []map[string]any `json:"rows"`
 		TracesWithGaps int              `json:"tracesWithGaps"`
 	}
-	if err := s.archive.converter.query(combined, sql, &result); err != nil {
+	if err := s.archive.converter.query(combined, plan.sql(source), &result); err != nil {
 		if accessErr := s.check(); accessErr != nil {
 			return AnalyticalResult{}, accessErr
 		}
@@ -197,15 +223,15 @@ SELECT coalesce((SELECT list(struct_pack(` + strings.Join(packed, ",") + `) ORDE
 		return AnalyticalResult{}, ErrIntegrity
 	}
 	rows := result[0].Rows
-	limited := len(rows) > plan.limit
-	if limited && definition.Limit == nil {
+	limited := len(rows) > plan.Limit
+	if limited && !plan.ExplicitLimit {
 		return AnalyticalResult{}, ErrLimit
 	}
 	if limited {
-		rows = rows[:plan.limit]
+		rows = rows[:plan.Limit]
 	}
 	return AnalyticalResult{
-		Columns: plan.columns, Rows: rows,
+		Columns: plan.Columns, Rows: rows,
 		Metadata: QueryMetadata{Limited: limited, UpstreamCoverage: "unknown",
 			AdmissionGaps: s.admissionGaps, TracesWithGaps: result[0].TracesWithGaps},
 	}, nil

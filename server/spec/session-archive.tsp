@@ -14,7 +14,7 @@ model SessionArchivePredicate {
   lt?: string | int64;
 }
 
-/** Local DuckDB analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. */
+/** Shared DuckDB/ADX analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. Counts exclude empty strings and null integers; distinct-count is exact, never approximate. */
 @jsonSchema
 model SessionArchiveDefinition {
   @pattern("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$") @maxLength(128) name: string;
@@ -50,7 +50,7 @@ model SessionArchiveQuery {
   attempt?: int64;
   /** Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace. */
   @minValue(1) @maxValue(10000) limit?: int32;
-  /** Required only for kind=session-query. Hosted ADX does not support this analytical profile. */
+  /** Required only for kind=session-query on both DuckDB and ADX. */
   `language-version`?: "0.1.0";
   /** Required only for kind=session-query; runId, attempt and envelope limit are forbidden. */
   query?: SessionArchiveDefinition;
@@ -104,14 +104,26 @@ model SessionArchiveCounters {
   stagingBytes: int64;
 }
 
+model SessionArchiveCapabilities {
+  `language-version`: "0.1.0";
+  source: "archive-events";
+  fields: SessionArchiveColumn[];
+  predicates: string[];
+  reducers: string[];
+  /** Independent complete-result budget; an explicit limit must not exceed it. */
+  maxRows: int32;
+}
+
 @jsonSchema
 model SessionArchiveStatus {
   enabled: boolean;
   /** Active is a running lifecycle, not proof that pending evidence is published or that Azure acceptance gates passed. */
   stage: "disabled" | "active" | "retrying";
   archive?: SessionArchiveCounters;
-  /** Enabled local archives advertise timeline, summary, session-query; hosted archives advertise timeline and summary only. */
+  /** Local archives advertise timeline, summary, and session-query. Hosted archives advertise session-query only after separate analytical-plan destination acceptance. No backend fallback is implied. */
   queryKinds?: string[];
+  /** Present only when session-query is supported. Generated scalar vocabulary and supported operators. ADX has a tighter 4096-row budget than DuckDB's 10000. */
+  analytical?: SessionArchiveCapabilities;
 }
 
 @tag("Private session archive")
@@ -121,7 +133,7 @@ namespace SessionArchive {
   @route("/api/v1/session-archive/status")
   @get op status(): SessionArchiveStatus | Unauthorized | Forbidden | TooManyRequests | Unavailable;
 
-  /** Execute timeline, summary, or the local-only session-query Dashboard Language profile for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; backend budgets may be tighter. Hosted session-query requests fail explicitly with 422, never fall back. Authorization is rechecked inside withdrawal-aware result delivery through the final response write. Corrections use active projection membership before any analytical operation; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. An explicit query.limit is intentional selection, reported separately from evidence coverage. Ordinary dashboard queries remain on PostgreSQL. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence. */
+  /** Execute timeline, summary, or the shared session-query Dashboard Language profile for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; ADX is limited to 4096 output rows. Hosted session-query additionally requires separate analytical-plan destination acceptance; existing capture acceptance and native privacy identity remain unchanged. Unsupported operators and backend budget failures are explicit errors, never fallbacks. Authorization is rechecked inside withdrawal-aware result delivery through the final response write. Corrections use active projection membership before any analytical operation; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. An explicit query.limit is intentional selection, reported separately from evidence coverage. Ordinary dashboard queries remain on PostgreSQL. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence. */
   @route("/api/v1/session-archive/query")
   @post op query(
     @header("X-CSRF-Token") csrfToken?: string,

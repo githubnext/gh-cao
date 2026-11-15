@@ -157,10 +157,16 @@ test('private archive queries preserve explicit full-content authority and the s
     'acceptance', 'aggregate', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'select', 'subject'
   ])
   assert.match(definition.description, /UTF-8 lexical string order/)
-  assert.match(query.description, /local-only/)
+  assert.match(query.description, /shared session-query/)
   assert.match(query.description, /session-query/)
   assert.match(query.description, /final response write/)
   assert.ok(openapi.components.schemas.SessionArchiveStatus.properties.queryKinds)
+  assert.equal(openapi.components.schemas.SessionArchiveStatus.properties.analytical.$ref, '#/components/schemas/SessionArchiveCapabilities')
+  const capabilities = openapi.components.schemas.SessionArchiveCapabilities
+  assert.deepEqual(capabilities.properties['language-version'].enum, ['0.1.0'])
+  assert.deepEqual(capabilities.properties.source.enum, ['archive-events'])
+  assert.equal(capabilities.properties.fields.items.$ref, '#/components/schemas/SessionArchiveColumn')
+  assert.deepEqual(capabilities.required, ['language-version', 'source', 'fields', 'predicates', 'reducers', 'maxRows'])
   const result = openapi.components.schemas.SessionArchiveResult
   assert.equal(result.properties.events.items.$ref, '#/components/schemas/Trace.Archive.Event')
   assert.equal(openapi.components.schemas['Trace.Archive.Event'].properties.PayloadJSON.type, 'string')
@@ -415,9 +421,10 @@ test('server log records preserve reserved wire names and date-time examples', (
 
 test('the server-only MCP logs tool matches the HTTP snapshot contract', () => {
   const contract = JSON.parse(readFileSync(join(directory, '../../dashboard/site/src/agent/mcp-contract.json'), 'utf8'))
+  assert.doesNotMatch(contract.instructions, /cao_session_query|session data lake/)
   assert.deepEqual(contract.tools.map(tool => tool.name), ['cao_catalog', 'cao_query'])
-  assert.deepEqual(contract.serverTools.map(tool => tool.name), ['cao_logs'])
-  const logs = contract.serverTools[0]
+  assert.deepEqual(contract.serverTools.map(tool => tool.name), ['cao_session_query', 'cao_logs'])
+  const logs = contract.serverTools.find(tool => tool.name === 'cao_logs')
   assert.deepEqual(logs.inputSchema, { type: 'object', properties: {}, additionalProperties: false })
   assert.equal(logs.annotations.readOnlyHint, true)
   assert.equal(logs.annotations.untrustedContentHint, true)
@@ -435,6 +442,26 @@ test('the server-only MCP logs tool matches the HTTP snapshot contract', () => {
     logs.outputSchema.properties.operational.properties.status.enum.slice().sort(),
     schemas.ServerLogOperational.properties.status.enum.slice().sort()
   )
+})
+
+test('the separate server-only session data lake tool preserves the analytical contract', () => {
+  const contract = JSON.parse(readFileSync(join(directory, '../../dashboard/site/src/agent/mcp-contract.json'), 'utf8'))
+  const tool = contract.serverTools.find(tool => tool.name === 'cao_session_query')
+  assert.ok(tool)
+  assert.equal(contract.tools.some(tool => tool.name === 'cao_session_query'), false)
+  assert.deepEqual(tool.inputSchema.required, ['repository', 'language-version', 'query'])
+  assert.deepEqual(tool.inputSchema.properties['language-version'].enum, ['0.1.0'])
+  assert.equal(tool.inputSchema.additionalProperties, false)
+  const definition = tool.inputSchema.properties.query
+  assert.deepEqual(Object.keys(definition.properties).sort(), Object.keys(openapi.components.schemas.SessionArchiveDefinition.properties).sort())
+  assert.deepEqual(definition.properties.from.enum, ['archive-events'])
+  assert.deepEqual(definition.properties.aggregate.properties.values.items.properties.reducer.enum, ['count', 'distinct-count'])
+  assert.deepEqual(definition.properties.filter.properties.predicates.items.properties.equals.type, ['string', 'integer'])
+  assert.equal(definition.properties.limit.maximum, 10000)
+  assert.deepEqual(tool.outputSchema.required, ['generation', 'kind', 'columns', 'rows', 'metadata'])
+  assert.deepEqual(tool.outputSchema.properties.metadata.required, openapi.components.schemas.SessionArchiveQueryMetadata.required)
+  assert.equal(tool.annotations.readOnlyHint, true)
+  assert.equal(tool.annotations.untrustedContentHint, true)
 })
 
 test('selected JSON Schemas and nullable responses are emitted', () => {

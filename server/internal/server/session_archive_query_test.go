@@ -2,16 +2,67 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
+	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
 )
 
 const analyticalArchiveRequest = `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0",
 "query":{"name":"event-counts","subject":"Count approved retained events.","from":"archive-events",
 "aggregate":{"by":["Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]}}}`
+
+func TestSessionArchiveAnalyticalCapabilitiesHTTP(t *testing.T) {
+	app, _ := newLocalPostgresTestApp(t, false)
+	capabilities := (&hostedSessionArchive{}).AnalyticalCapabilities()
+	probe := &sessionArchiveProbe{kinds: []string{"timeline", "summary", "session-query"}, capabilities: &capabilities}
+	app.sessionArchive = &sessionArchiveService{
+		backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{Approved: true},
+	}
+	request := archiveRequest(t, app, strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"limit":4097,"aggregate":`, 1), true)
+	if request.Code != http.StatusUnprocessableEntity || probe.called != 0 {
+		t.Fatal("hosted capabilities did not reject an unsupported limit before execution")
+	}
+	capabilities.Reducers = nil
+	request = archiveRequest(t, app, analyticalArchiveRequest, true)
+	if request.Code != http.StatusUnprocessableEntity || probe.called != 0 {
+		t.Fatal("unsupported reducer was executed or silently emulated")
+	}
+	for _, backend := range []sessionArchiveBackend{&localSessionArchive{}, &hostedSessionArchive{}, &nativeSessionArchive{}} {
+		var decoded sessionarchive.Capabilities
+		content, err := json.Marshal(backend.AnalyticalCapabilities())
+		if err != nil || json.Unmarshal(content, &decoded) != nil || decoded.LanguageVersion != "0.1.0" ||
+			len(decoded.Fields) == 0 || decoded.Source != "archive-events" {
+			t.Fatal("backend capability vocabulary is missing or unversioned")
+		}
+	}
+}
+
+type sessionArchiveAvailabilityProbe struct {
+	hostedArchivePublisher
+	available bool
+}
+
+func (probe *sessionArchiveAvailabilityProbe) AnalyticalAvailable() bool {
+	return probe.available
+}
+
+func TestSessionArchiveQueryKindsReflectAnalyticalAvailability(t *testing.T) {
+	for _, available := range []bool{false, true} {
+		backend := &hostedSessionArchive{publisher: &sessionArchiveAvailabilityProbe{available: available}}
+		if got := slices.Contains(backend.QueryKinds(), "session-query"); got != available {
+			t.Fatalf("hosted analytical availability=%t advertised session-query=%t", available, got)
+		}
+	}
+	native := &nativeSessionArchive{Native: &sessionarchiveblob.Native{}}
+	if slices.Contains(native.QueryKinds(), "session-query") {
+		t.Fatal("native archive advertised session-query without analytical acceptance")
+	}
+}
 
 func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 	app, _ := newLocalPostgresTestApp(t, false)

@@ -218,7 +218,7 @@ Send a trusted query to `POST /api/v1/session-archive/query`:
 {"kind":"summary","repository":"octo/api","limit":10000}
 ```
 
-For local analytical session queries, use the explicit `session-query` kind:
+For analytical session queries on DuckDB or ADX, use the explicit `session-query` kind:
 
 ```json
 {
@@ -239,12 +239,43 @@ For local analytical session queries, use the explicit `session-query` kind:
 }
 ```
 
-Status advertises supported `queryKinds`. `session-query` currently runs only
-on DuckDB; hosted ADX rejects it explicitly without fallback. Results include
+Status advertises supported `queryKinds` and `analytical` capabilities, including
+the generated scalar field vocabulary, predicates, exact reducers, and output
+budget (10000 rows on DuckDB, 4096 on ADX). Both backends execute the same
+versioned JSON profile through a typed plan and their own trusted SQL/KQL
+lowerers. Unsupported operators or explicit limits fail without fallback.
+Results include
 typed columns, rows, and metadata separating intentional top-N selection from
 known evidence gaps and unknown upstream coverage. These counts are event
 records, not tool calls or sessions. Full approved payloads remain available
 through `timeline`, not the analytical projection.
+
+Exact distinct counting on ADX uses `count_distinctif`; an engine lacking it
+reports failure rather than substituting an approximate count. Column pruning
+excludes full payloads, and gap metadata is assessed before user filtering.
+Hosted `session-query` is independently default-off. A successful dedicated live
+Azure conformance run emits `Config.AnalyticalAcceptanceBinding()` separately;
+review it and configure `CAO_SESSION_ARCHIVE_BLOB_ANALYTICAL_ACCEPTANCE` to
+enable the analytical profile. Existing capture acceptance, timeline/summary
+access and native privacy-ledger destination identity remain unchanged.
+No archive, reader grant, or rollout policy is enabled by this implementation.
+
+When MCP is enabled on the Go server, `cao_session_query` is a separate
+read-only tool for this private session data lake. `cao_query` continues to run
+named dashboard queries; there is no cross-source fallback. Discovery exposes
+the session tool only when the analytical backend and the caller's separate
+full-trace-read grant are available. Hosted MCP retains its existing OAuth,
+administrator and CSRF gates; administrator or Actions access alone does not
+grant archive reads. The standalone `gh cao mcp` canonical-snapshot server does
+not expose the session tool.
+
+Call `cao_session_query` with the `repository`, `language-version`, and `query`
+fields from the JSON example above, omitting `kind`. Responses include the
+same generation, columns, rows and coverage metadata as HTTP, in both MCP text
+and structured content. Argument and complete-response budgets remain
+4096 bytes and 8 MiB. The reader survives SDK serialization through the actual
+HTTP response write, with withdrawal and caller authorization rechecked before
+delivery; source-epoch fencing remains in the hosted archive adapter.
 
 Results bind one pinned generation. Timeline events use the shared trace
 contract and carry approved payload JSON; full approved content is not

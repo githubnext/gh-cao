@@ -40,6 +40,10 @@ func realConverter(t *testing.T) *sessionarchive.Converter {
 }
 
 func approvedProjection(t *testing.T, namespace, repository, runID, body string) sessionarchive.Projection {
+	return approvedProjectionAt(t, namespace, repository, runID, body, 1)
+}
+
+func approvedProjectionAt(t *testing.T, namespace, repository, runID, body string, attempt int64) sessionarchive.Projection {
 	t.Helper()
 	c := adxtrace.Config{Enabled: true, DurableStorage: true, Directory: t.TempDir(), Repositories: []string{repository}, Mode: "full",
 		Policy: adxtrace.Policy{Version: "synthetic-approved-v1", ContentApproved: true, RightsApproved: true,
@@ -47,11 +51,37 @@ func approvedProjection(t *testing.T, namespace, repository, runID, body string)
 	artifact := `{"type":"session.format","data":{"version":1}}` + "\n" +
 		`{"type":"session.collection","data":{"complete":true}}` + "\n" +
 		`{"type":"user.message","data":{"content":` + literal(body) + "}}\n"
-	p, err := sessionarchive.Project(c, namespace, repository, runID, "2026-10-25", 1, []byte(artifact), time.Now().UTC())
+	p, err := sessionarchive.Project(c, namespace, repository, runID, "2026-10-25", attempt, []byte(artifact), time.Now().UTC())
 	if err != nil {
 		t.Fatal(err)
 	}
 	return p
+}
+
+func verifyLiveAnalytical(t *testing.T, a *Archive, scope sessionarchive.Scope, repository string, traces int64) {
+	t.Helper()
+	definition := archiveDefinition(t, `"aggregate":{"values":[{"field":"Sequence","as":"events","reducer":"count"},{"field":"RunId","as":"traces","reducer":"distinct-count"},{"field":"Timestamp","as":"timed","reducer":"distinct-count"}]}`)
+	_, result, reader, err := a.ReadAnalytical(t.Context(), scope, repository, definition)
+	if reader != nil {
+		defer func(r *Reader) { _ = r.Close() }(reader)
+	}
+	if err != nil || len(result.Rows) != 1 || result.Rows[0]["events"] != json.Number(fmt.Sprint(3*traces)) ||
+		result.Rows[0]["traces"] != json.Number(fmt.Sprint(traces)) || result.Rows[0]["timed"] != json.Number("0") ||
+		result.Metadata.Limited || result.Metadata.UpstreamCoverage != "unknown" {
+		t.Fatalf("live ADX analytical parity/active membership failed: %#v %v", result, err)
+	}
+	if err := reader.Close(); err != nil {
+		t.Fatal(err)
+	}
+	definition = archiveDefinition(t, `"aggregate":{"by":["Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]},"order-by":[{"field":"Type"}],"limit":1`)
+	_, result, reader, err = a.ReadAnalytical(t.Context(), scope, repository, definition)
+	if reader != nil {
+		defer func(r *Reader) { _ = r.Close() }(reader)
+	}
+	if err != nil || !result.Metadata.Limited || len(result.Rows) != 1 ||
+		result.Rows[0]["Type"] != "session.collection" || result.Rows[0]["events"] != json.Number(fmt.Sprint(traces)) {
+		t.Fatalf("live ADX analytical ordering/top-N failed: %#v %v", result, err)
+	}
 }
 
 type interruptedPublisher struct {
@@ -244,7 +274,8 @@ func TestDuckDBBlobPublicationIntegration(t *testing.T) {
 // TestKustoArchiveMembership executes the production membership/join template
 // in Microsoft's real engine. Synthetic datatable input isolates KQL semantics;
 // this does not assert Azure external storage authentication or pruning.
-func TestKustoArchiveMembership(t *testing.T) {
+func kustoArchiveEngine(t *testing.T) *simulator.Kusto {
+	t.Helper()
 	endpoint := os.Getenv("CAO_KUSTO_EMULATOR_URL")
 	if endpoint == "" {
 		if os.Getenv("CAO_SESSION_ARCHIVE_REQUIRE_KUSTO") == "1" {
@@ -257,7 +288,7 @@ func TestKustoArchiveMembership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer engine.Close()
+	t.Cleanup(engine.Close)
 	if _, err := engine.Execute(t.Context(), "/v1/rest/mgmt",
 		".create database "+database+` persist (@"/kustodata/`+database+`/md",@"/kustodata/`+database+`/data")`); err != nil {
 		t.Fatal(err)
@@ -269,6 +300,11 @@ func TestKustoArchiveMembership(t *testing.T) {
 			t.Error(err)
 		}
 	})
+	return engine
+}
+
+func TestKustoArchiveMembership(t *testing.T) {
+	engine := kustoArchiveEngine(t)
 	manifest := fixture(t, 1, "selected")
 	member, file := manifest.Members[0], manifest.Files[0]
 	rows := make([]string, 0, 7)
@@ -377,6 +413,7 @@ func TestAzureArchiveConformance(t *testing.T) {
 	// This test is the explicit destination acceptance procedure, not runtime
 	// self-certification. The resulting binding is emitted only after all cases.
 	config.Acceptance = config.AcceptanceBinding()
+	config.AnalyticalAcceptance = config.AnalyticalAcceptanceBinding()
 	converter := realConverter(t)
 	a, err := New(t.Context(), config, converter)
 	if err != nil {
@@ -442,6 +479,7 @@ func TestAzureArchiveConformance(t *testing.T) {
 			t.Fatal("live ADX selected an unapproved projection or duplicated events")
 		}
 	}
+	verifyLiveAnalytical(t, a, scope, repository, 2)
 	stale := first
 	stale.Generation = 3
 	if !errors.Is(a.Publish(t.Context(), stale), ErrWithdrawn) {
@@ -502,4 +540,5 @@ func TestAzureArchiveConformance(t *testing.T) {
 		t.Fatal("live retirement deleted a currently selected packed file")
 	}
 	t.Log("Azure destination conformance passed; explicit runtime acceptance binding:", config.Acceptance)
+	t.Log("Analytical plan acceptance binding:", config.AnalyticalAcceptance)
 }

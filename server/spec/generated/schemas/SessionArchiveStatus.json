@@ -31,7 +31,11 @@
             "items": {
                 "type": "string"
             },
-            "description": "Enabled local archives advertise timeline, summary, session-query; hosted archives advertise timeline and summary only."
+            "description": "Local archives advertise timeline, summary, and session-query. Hosted archives advertise session-query only after separate analytical-plan destination acceptance. No backend fallback is implied."
+        },
+        "analytical": {
+            "$ref": "#/$defs/SessionArchiveCapabilities",
+            "description": "Present only when session-query is supported. Generated scalar vocabulary and supported operators. ADX has a tighter 4096-row budget than DuckDB's 10000."
         }
     },
     "required": [
@@ -79,6 +83,75 @@
                 "gaps",
                 "archiveBytes",
                 "stagingBytes"
+            ]
+        },
+        "SessionArchiveCapabilities": {
+            "type": "object",
+            "properties": {
+                "language-version": {
+                    "type": "string",
+                    "const": "0.1.0"
+                },
+                "source": {
+                    "type": "string",
+                    "const": "archive-events"
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/SessionArchiveColumn"
+                    }
+                },
+                "predicates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "reducers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "maxRows": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Independent complete-result budget; an explicit limit must not exceed it."
+                }
+            },
+            "required": [
+                "language-version",
+                "source",
+                "fields",
+                "predicates",
+                "reducers",
+                "maxRows"
+            ]
+        },
+        "SessionArchiveColumn": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "string"
+                        },
+                        {
+                            "type": "string",
+                            "const": "integer"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "name",
+                "type"
             ]
         }
     }
