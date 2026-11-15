@@ -1,36 +1,7 @@
 {
   "source_sha": "29e63d1eba9e5a9cfe180fcda863161d1c5fb026",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T21:34:40Z",
-      "worker_run_id": "43643035690",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917",
-        "43503897533",
-        "43503506778",
-        "43502660435",
-        "43502562196",
-        "43494667529"
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); none queued or in progress (run list re-read 21:32Z); no docs.yml run aft [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T21:52:36Z",
       "worker_run_id": "43644771978",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable; reliability blocker unresolved. Window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; none queued or in progress; 0 cancelled; no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Excluded and disclosed: 10 failures (43506161539 at Install dependencies 17 s; 9 Build documentation failures 43613020723..43682264332, 9-15 s into the step; step logs HTTP 403 DIFC, not bypassed). n=10 successes (9 push + schedule 43561388555) meets the 5-run gate. Install dependencies successes median 11 s p90 16 (n=10) = 13.5 percent of exec median 81.5 s (p90 90); all runs reaching install (n=20) median 10 p90 16; post-rollover (after 7c8faf4, n=15) median 9 p90 12. Set up Node.js median 4 s; Post Set up Node.js 0-1 s in all 10 successes (exact-key hit inferred from step timing; logs unreadable). Live key node-cache-Linux-x64-npm-7808ecf8 present (263 MB, created 2026-11-13T20:57:12Z, last accessed 07:43:52Z); sha256 of root package-lock.json at HEAD reproduces 7808ecf8; commits API: root lock last changed in 7c8faf4 (2026-11-13T20:56:33Z). Gate 15 percent = 12.2 s: full install removal (not valid) saves at most 11 s; node_modules caching estimated about 7 s (about 9 percent) at a 5 s restore, unmeasured; npm audit/fund flags unmeasured, expected under 2 s. No suggestion; no create_issue; noop used. Reliability, not timing (unresolved, maintainer triage): Build documentation red on 9 consecutive runs since 15:58Z Nov 14; Pages not deployed since 43611206032 (15:39Z Nov 14); open 20934 (docs:build gate in workflow-contracts, relation unverified); no open docs.yml tracker; checkout issue 20815 unchanged, not repeated. next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T08:21:06Z",
+      "worker_run_id": "43693759559",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        43682264332,
+        43681861583,
+        43680980929,
+        43655786695,
+        43639680929,
+        43623754509,
+        43621919773,
+        43616204011,
+        43613020723,
+        43611206032,
+        43608206381,
+        43593405440,
+        43561388555,
+        43536796952,
+        43536491714,
+        43506161539,
+        43505502149,
+        43504143936,
+        43504093917,
+        43503897533
+      ],
+      "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; run list re-read 08:19Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Jobs API re-fetched for all 20 runs. Excluded and disclosed: 10 failures (43506161539 at Install dependencies 17 s; 9 Build documentation failures 43613020723..43682264332, 9-15 s into the step). n=10 successes (9 push + schedule 43561388555) meets the 5-run gate. Category step Build documentation (npm run docs:build): successes median 12.5 s, p90 14 (nearest-rank), range 9-15 = 15.3 percent of build-to-deploy median 81.5 s (p90 90). 15 percent gate 12.2 s; only whole-step removal clears it, which is invalid (the step produces the Pages artifact and gates the validation). Astro-internal changes save a fraction of 12.5 s and cannot reach 12.2 s; docs output embeds PUBLIC_PAGES_BUILD_COMMIT, so dist caching is not valid across commits. Internal split unmeasurable: job logs API returns 403 difc_forbidden (re-checked 08:20Z, not bypassed); no local node_modules; npm ci blocked by sandbox TLS as before. Reliability, not timing (critical, unresolved, maintainer triage): Build documentation red on 9 consecutive runs since 15:58Z Nov 14; Pages not deployed since 43611206032 (15:39Z Nov 14). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -994,6 +994,11 @@
       "observed_at": "2026-11-15T07:35:31Z",
       "source": "docs.yml run list 07:31Z; jobs API; open issues 20934, 20815",
       "note": "Reliability, not timing (critical, unresolved): Build documentation failed on 9 consecutive runs since 15:58Z Nov 14; no docs.yml run after 05:43Z Nov 15 as of 07:31Z. Pages not deployed since 43611206032 (15:39Z Nov 14). Logs HTTP 403 DIFC, so cause unverified; first failing push 600b56a touched docs/setup-quickstarts.md among 9 files. Open 20934 (framework-health, workflow-contracts docs gate) may share the cause. 20815 (checkout blobless) still OPEN, not repeated."
+    },
+    {
+      "observed_at": "2026-11-15T08:21:06Z",
+      "source": "docs.yml build job logs API for run 43682264332 (job 132715223669)",
+      "note": "Still HTTP 403 difc_forbidden (not bypassed). Build documentation fails 9 consecutive runs since 15:58Z Nov 14; no docs.yml run after 05:43Z Nov 15 as of 08:19Z. Reliability, not timing; maintainer triage. Astro internal split remains unmeasured."
     }
   ],
   "checkout_probe": {
@@ -1170,8 +1175,8 @@
     "summary": "removable transfer (handoff+configPages+upload+deploySetup) median 10 p90 10 max 11 = 12.3 pct of build-to-deploy median 81.5; gate 12.2 s not reached; deploy setup = deploy job started to Deploy Pages step started"
   },
   "astro_step_sample": {
-    "evaluated_at": "2026-11-15T06:30:00Z",
-    "window": "43503897533 (2026-11-13T20:41:39Z) .. 43682264332 (2026-11-15T05:43:02Z)",
+    "evaluated_at": "2026-11-15T08:21:06Z",
+    "window": "43503897533 (2026-11-13T20:41:39Z) .. 43682264332 (2026-11-15T05:43:02Z); re-verified 08:19Z, unchanged",
     "n_success": 10,
     "build_documentation_median_p90_range_s": [
       12.5,
