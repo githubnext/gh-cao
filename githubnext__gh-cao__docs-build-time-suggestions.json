@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T16:34:24Z",
-   "worker_run_id": "43615888648",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43447111490 (created 2026-11-13T14:53:45Z) to 43613020723 (push 600b56a, created 2026-11-14T15:58:23Z); run list re-read 16:32Z: unchanged, none queued or in progress, 0 cancelled; source decb7ee = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (install, 7c8faf4) and 43613020723 FAILED (Build documentation, 600b56a; log read HTTP 403). n=18 successes (17 push + schedule 43561388555); 5-run gate met. Jobs API spot check 43611206032: Build documentation 15:38:36-15:38:50 = 14 s, matches stored row. Category step Build documentation (npm run docs:build = astro build, validate-agent-docs, agent-docs-discovery test): median 12 s, p90 15 s, range 9-15 = 14.7 percent of median exec 81.5 s (p90 92). 15 percent gate 12.2 s: full removal (12 s) misses it and is blocked because deploy consumes the output; 60 s gate unreachable. Astro-internal split unmeasured (logs 403) and not needed. Observation: main has two later commits (f56aa3d, decb7ee) with no docs inputs; Pages has not been updated since the 04c9d9e deploy (15:39Z). Reliability finding, not timing. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T16:54:01Z",
    "worker_run_id": "43617701152",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43655786695 (created 2026-11-14T23:57:34Z) back to 43502562196 (created 2026-11-13T20:32:55Z); all 20 completed, 0 cancelled, none queued; source d55c91b = HEAD = source_sha. Excluded and disclosed: 7 failures = 43506161539 (Install, push 7c8faf4) and six consecutive Build documentation failures 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 (logs HTTP 403). n=13 successes (12 push + schedule 43561388555) meets the 5-run gate. Install median 11 s (p90 20), setup median 4 s, Post Set up Node.js 0-1 s in all 13 successes (cache save skipped = exact-key hit). Key recomputed from root lock at HEAD: sha256(sha256(package-lock.json)) = 7808ecf8, equal to the live main key. Post-rollover n=6: install median 9.5 s, setup+install+post median 13 s; exec median 80.5 s, 15 percent gate 12.1 s. Full removal of setup+install clears the gate only if a node_modules substitute restores in under about 1 s; the current npm cache restore already takes 2-5 s, so the gate is unreachable; 60 s unreachable. npm flags (--no-audit --no-fund) unmeasured and below the gate. Checkout median 24 s (p90 28) is the largest removable step, tracked by open issue 20815, not repeated. No suggestion; no issue; next_category advanced to Astro documentation generation. Reliability (not timing) recorded in observations_pending.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T02:53:53Z",
+   "worker_run_id": "43669549050",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z), all within 14 days; none queued or in progress; 0 cancelled; source d55c91b = HEAD = source_sha. Jobs API re-read for all 20 runs this evaluation. Excluded and disclosed: 43506161539 FAILED (Install dependencies, 7c8faf4) and six consecutive push FAILURES at Build documentation since 600b56a (43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695; 10-15 s; log read HTTP 403 DIFC). n=13 successes (12 push + schedule 43561388555); 5-run gate met. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && agent-docs-discovery test): median 12 s, p90 14 (nearest rank), range 9-15 = 14.8 percent of median exec 81 s (p90 90). Gate 12.15 s. Full removal (12 s) stays below the gate and is blocked (correctness gate; deploy consumes dist). Validators read dist and git ls-files, not astro build (no duplicate build). Astro-internal changes are bounded by the same 12 s total, so 15 percent and 60 s gates are unreachable. No suggestion; no issue; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -901,8 +901,8 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T20:32:55Z..2026-11-14T23:57:34Z",
-  "evaluated_at": "2026-11-15T02:38:44Z",
-  "note": "window = latest 20 completed docs.yml runs; 13 successful, 7 failed, 0 cancelled; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes), build job duration for failed runs; 0 for skipped/unreached jobs.",
+  "evaluated_at": "2026-11-15T02:53:53Z",
+  "note": "window = latest 20 completed docs.yml runs; 13 successful, 7 failed, 0 cancelled; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes), build job duration for failed runs; 0 for skipped/unreached jobs. Re-read at 2026-11-15T02:53:53Z (worker 43669549050): same 20 IDs, unchanged.",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
    [
@@ -1186,7 +1186,7 @@
   {
    "observed_at": "2026-11-15T01:52:57Z",
    "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695",
-   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails on six consecutive push runs (re-checked 01:50Z: still six) since 600b56a (15:58Z; latest d55c91b, 23:57Z); failures take 10-15 s, like successes, so the failure is not an early install or config error. Pages last deployed by 43611206032 (15:39Z, 04c9d9e), so published docs are stale. Cause unverified: job logs HTTP 403 DIFC even for successful jobs; annotations say only exit code 1; validators need dist/ from astro build, so they cannot be reproduced without node_modules. Lead, unverified: compare 04c9d9e...600b56a (commits 8684835, 600b56a) changes ARCHITECTURE.md, docs/setup-quickstarts.md, internal/cli/dashboard_*.go, scripts/check-file-sizes.mjs (outside docs.yml build closure). Open issue 20934 (workflow-contracts, a2b14dd) reports the same npm run docs:build command failing in the documentation contract gate; relation unverified. Open 20815 is checkout only. Maintainer triage needed."
+   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails on six consecutive push runs (re-checked 01:50Z: still six) since 600b56a (15:58Z; latest d55c91b, 23:57Z); failures take 10-15 s, like successes, so the failure is not an early install or config error. Pages last deployed by 43611206032 (15:39Z, 04c9d9e), so published docs are stale. Cause unverified: job logs HTTP 403 DIFC even for successful jobs; annotations say only exit code 1; validators need dist/ from astro build, so they cannot be reproduced without node_modules. Lead, unverified: compare 04c9d9e...600b56a (commits 8684835, 600b56a) changes ARCHITECTURE.md, docs/setup-quickstarts.md, internal/cli/dashboard_*.go, scripts/check-file-sizes.mjs (outside docs.yml build closure). Open issue 20934 (workflow-contracts, a2b14dd) reports the same npm run docs:build command failing in the documentation contract gate; relation unverified. Open 20815 is checkout only. Maintainer triage needed. Re-checked 2026-11-15T02:53:53Z: still six consecutive push failures at Build documentation; no newer docs.yml run; failed-log read HTTP 403 DIFC again."
   },
   {
    "observed_at": "2026-11-15T00:42:07Z",
