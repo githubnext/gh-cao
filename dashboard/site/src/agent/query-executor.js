@@ -34,6 +34,16 @@ export const MAX_NAMED_QUERY_PARAMETER_LENGTH = mcpContract.limits.maxParameterL
 export class NamedQueryError extends Error {}
 
 /**
+ * Logs a stable rejection reason only; parameter names, values, and messages stay out of diagnostics.
+ * @param {string} reason
+ * @param {string} message
+ */
+function rejectedQuery(reason, message) {
+  debugQueryExecutor({ outcome: 'rejected', reason });
+  return new NamedQueryError(message);
+}
+
+/**
  * @param {unknown} value
  * @returns {value is Record<string, unknown>}
  */
@@ -52,31 +62,31 @@ function isPlainObject(value) {
  */
 export function resolveNamedQueryParameters(document, queryId, parameters) {
   if (parameters !== undefined && parameters !== null && !isPlainObject(parameters)) {
-    throw new NamedQueryError('Query parameters must be an object of name/value pairs');
+    throw rejectedQuery('parameters-not-object', 'Query parameters must be an object of name/value pairs');
   }
   const entries = Object.entries(parameters ?? {});
   if (entries.length > MAX_NAMED_QUERY_PARAMETERS) {
-    throw new NamedQueryError(`At most ${MAX_NAMED_QUERY_PARAMETERS} query parameters are accepted`);
+    throw rejectedQuery('too-many-parameters', `At most ${MAX_NAMED_QUERY_PARAMETERS} query parameters are accepted`);
   }
   const declared = new Map(queryParameters(document, queryId).map((parameter) => [parameter.name, parameter]));
   const supplied = new Set(entries.map(([name]) => name));
   for (const parameter of declared.values()) {
     if (parameter.required && !supplied.has(parameter.name)) {
-      throw new NamedQueryError(`Query ${queryId} requires parameter "${parameter.name}"`);
+      throw rejectedQuery('missing-required-parameter', `Query ${queryId} requires parameter "${parameter.name}"`);
     }
   }
   return entries.map(([name, value]) => {
     const parameter = declared.get(name);
     if (!parameter) {
       const known = [...declared.keys()].toSorted().join(', ') || 'none';
-      throw new NamedQueryError(`Unknown parameter "${name}" for query ${queryId}; declared parameters: ${known}`);
+      throw rejectedQuery('unknown-parameter', `Unknown parameter "${name}" for query ${queryId}; declared parameters: ${known}`);
     }
     if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-      throw new NamedQueryError(`Parameter "${name}" must be a string, number, or boolean`);
+      throw rejectedQuery('invalid-parameter-type', `Parameter "${name}" must be a string, number, or boolean`);
     }
     const input = String(value);
     if (input.length > MAX_NAMED_QUERY_PARAMETER_LENGTH) {
-      throw new NamedQueryError(`Parameter "${name}" exceeds ${MAX_NAMED_QUERY_PARAMETER_LENGTH} characters`);
+      throw rejectedQuery('parameter-too-long', `Parameter "${name}" exceeds ${MAX_NAMED_QUERY_PARAMETER_LENGTH} characters`);
     }
     if (!parameter.type) return { name: parameter.name, field: parameter.field, value: input };
     const typed = value;
@@ -87,7 +97,7 @@ export function resolveNamedQueryParameters(document, queryId, parameters) {
           || typeof schema.maximum === 'number' && typed > schema.maximum
           || typeof schema.multipleOf === 'number' && Math.abs(typed / schema.multipleOf - Math.round(typed / schema.multipleOf)) > 1e-9))
         || (Array.isArray(schema.enum) && !schema.enum.includes(typed))) {
-      throw new NamedQueryError(`Invalid value for query parameter "${name}"`);
+      throw rejectedQuery('invalid-parameter-value', `Invalid value for query parameter "${name}"`);
     }
     return { name: parameter.name, type: parameter.type, value: typed };
   });
@@ -101,7 +111,7 @@ function resolveLimit(limit) {
   if (limit === undefined || limit === null) return DEFAULT_NAMED_QUERY_LIMIT;
   const value = typeof limit === 'number' ? limit : Number(limit);
   if (!Number.isInteger(value) || value < 1) {
-    throw new NamedQueryError('Query limit must be a positive integer');
+    throw rejectedQuery('invalid-limit', 'Query limit must be a positive integer');
   }
   return Math.min(value, MAX_NAMED_QUERY_LIMIT);
 }
@@ -156,7 +166,7 @@ function compileBoundedQueries(queryId, queries, filters, maxRows) {
  */
 export async function executeNamedQuery({ indexedDB, document, queryId, parameters, limit, signal, statisticalCapacity }) {
   const id = typeof queryId === 'string' ? queryId.trim() : '';
-  if (!id) throw new NamedQueryError('A dashboard query identifier is required');
+  if (!id) throw rejectedQuery('missing-query-id', 'A dashboard query identifier is required');
   const definition = describeQuery(document, id);
   if (!definition) {
     debugQueryExecutor({ query: id, outcome: 'unknown-query' });
