@@ -42,6 +42,10 @@ The reasoning component that interprets an agentic workflow's instructions, uses
 
 An evidence-backed warning that a workflow may be harder to control, secure, operate, or justify than necessary; a reason to investigate, not proof of a defect. The dashboard classifies each observation as an agent smell, workflow smell, security finding, or control-plane smell based on what the evidence describes, and normalizes all four into unified Home attention signals.
 
+## Artifact backlog
+
+The persisted, per-repository queue of discovered agentic runs whose artifacts have not yet been collected, kept newest first, capped at 5,000 runs, and pruned to the collection window. Each collection pass requests artifacts for up to `--count` backlog runs, so runs deferred by the two-minute or quota ceiling still have their safe outputs, including issue references, ingested after the history cursor has moved on. See the [Architecture](https://github.com/githubnext/gh-cao/blob/main/ARCHITECTURE.md) local dashboard collection notes.
+
 ## Automation
 
 A general description for work performed with limited manual intervention. Automation is not a distinct CAO entity or workflow role. Prefer the specific term **campaign**, **coordinator**, **worker**, or **run** when naming something in the product or documentation.
@@ -153,6 +157,10 @@ A bounded page of a declarative query output, selected by an ordered stable key 
 ## Live authority
 
 The control repository's exclusive right to admit a `live` worker for a campaign and target, decided solely from `.github/workflows/cao.json` at the exact workflow SHA. A target repository's files cannot widen, narrow, or veto this decision.
+
+## Local disable
+
+An explicit, locally approved maintenance action in `gh cao dashboard` that disables a repository's or one exact workflow's future agentic runs. Unlike update and upgrade, it publishes no pull request. It first cancels in-progress gh-aw runs, reads the Markdown inventory and cancellation scope from a private checkout of the approved repository, and requires fresh trusted terminal approval. Hosted disable is unsupported, and campaign disable remains a policy deactivation that does not cancel active runs. See the [dashboard data specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md) and [ADR 20949](https://github.com/githubnext/gh-cao/blob/main/adr/20949-local-disable-without-publication.md).
 
 ## Local PostgreSQL namespace
 
