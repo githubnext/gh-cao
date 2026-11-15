@@ -13,12 +13,14 @@ export function githubResourcePrincipal() {
 /** Clears worker-owned private resource results at an authentication boundary. */
 /** @param {boolean} [resume] */
 export function invalidateGitHubResourceAuthentication(resume = false) {
+  debugAuth({ event: 'resource-authentication-invalidated', resume });
   globalThis.dispatchEvent?.(new CustomEvent('cao-authentication-change', { detail: { resume } }));
 }
 
 /** @param {string} principal */
 export function setGitHubResourcePrincipal(principal) {
   if (resourcePrincipal === principal) return;
+  debugAuth({ event: 'resource-principal-changed', hadPrincipal: resourcePrincipal !== '', hasPrincipal: principal !== '' });
   resourcePrincipal = principal;
   invalidateGitHubResourceAuthentication(true);
 }
