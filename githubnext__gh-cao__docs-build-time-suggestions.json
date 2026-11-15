@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T17:17:38Z",
-   "worker_run_id": "43619826046",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43447728981 (created 2026-11-13T14:57:34Z) to 43616204011 (2026-11-14T16:32:58Z); re-read 17:15Z: no newer docs.yml run; source b5a9b43 = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (Install dependencies, push 7c8faf4); 43613020723 and 43616204011 FAILED at Build documentation (push 600b56a, afe0ba0; deploy skipped; Pages last deployed by 43611206032, artifact created 15:38:56Z). Job-log probe for failed job 132511696153 returned HTTP 403 DIFC; cause unverified. 0 cancelled. n=17 successes (16 push + schedule 43561388555); 5-run gate met. Jobs API re-read for all 20 runs this run. Exec (build start to deploy end) median 82 s (p90 92). Removable transfer (handoff 5 + Configure Pages 0 + Upload 2 + deploy Set up job 1) median 9 s, p90 10, max 10 = 11.0 percent of median exec; 15 percent gate 12.3 s and 60 s gate unmet even at full removal. Deploy Pages 7 s is GitHub-managed. github-pages artifact 8,352,438 bytes (43611206032); shrinking saves about 1 s. Merging deploy into build saves about 6 s and stays rejected (id-token write and github-pages environment would move onto the job that runs npm ci). Checkout (median 24 s, p90 31) is outside this rotation and is represented by open issue 20815, not repeated. Queue (run created to build start) median 3 s, p90 45, not part of exec. No suggestion; no issue; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T17:33:32Z",
    "worker_run_id": "43621350804",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); run list and per-run jobs API re-read 03:20Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, 7c8faf4) and 6 consecutive push failures at Build documentation (600b56a..d55c91b; the demo step never runs for them; log read HTTP 403 DIFC, one attempt). Gate n=13 successes (12 push + schedule 43561388555) >= 5. No dashboard job exists; dashboard generation = step Build synthetic enterprise demo inside build (node scripts/simulate-dashboard-pages.mjs): median 4 s, p90 4 s, range 3-4 s = 4.9 percent of median exec 81 s (p90 nearest-rank 90 s). 15 percent gate 12.15 s and 60 s gate unreachable; full removal saves at most 4 s. Output caching stale-unsafe (prepareDashboardPages uses now = Date.now() for generatedAt and synthetic dates; daily cron refreshes them) and a restore costs about as much as the step (setup-node restore median 4 s). Separate job rejected (checkout median 24 s plus handoff). Reliability, not timing: unchanged, see observations_pending; open 20934 OPEN, 0 comments. No suggestion; no issue; noop. next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T03:35:16Z",
+   "worker_run_id": "43672709477",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); run list re-read 03:35Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, 7c8faf4) and six consecutive push failures at Build documentation (600b56a..d55c91b; logs not read, HTTP 403 DIFC). Gate n=13 successes (12 push + schedule 43561388555) >= 5. Transfer per successful run = handoff (build completed to deploy started) median 5 (p90 6) + Configure Pages median 1 + Upload Pages artifact median 2 (p90 3) + deploy job Set up job median 1: removable transfer median 9 s, p90 10, max 10 = 11.1 percent of median exec 81 s (p90 nearest-rank 90). 15 percent gate 12.15 s and 60 s gate unmet. Deploy Pages step median 7 s (p90 8) is GitHub-managed. Merging build and deploy saves handoff plus deploy setup median 6 s (7.4 percent), stays rejected (id-token write and github-pages environment would move onto the npm ci job). Removing upload and deploy entirely (median 15 s, 18.5 percent) requires replacing the Pages publication mechanism, which weakens deployment safety; not recommended. github-pages artifact 8,352,438 bytes (43611206032); shrinking saves about 1 s. Only four recent github-pages artifacts are listed; older ones not listed. Checkout median 24 s remains represented by open issue 20815 (OPEN, updated 2026-11-13T17:41:19Z), not repeated. No suggestion; no issue; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1186,7 +1186,7 @@
   {
    "observed_at": "2026-11-15T01:52:57Z",
    "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695",
-   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails on six consecutive push runs (re-checked 01:50Z: still six) since 600b56a (15:58Z; latest d55c91b, 23:57Z); failures take 10-15 s, like successes, so the failure is not an early install or config error. Pages last deployed by 43611206032 (15:39Z, 04c9d9e), so published docs are stale. Cause unverified: job logs HTTP 403 DIFC even for successful jobs; annotations say only exit code 1; validators need dist/ from astro build, so they cannot be reproduced without node_modules. Lead, unverified: compare 04c9d9e...600b56a (commits 8684835, 600b56a) changes ARCHITECTURE.md, docs/setup-quickstarts.md, internal/cli/dashboard_*.go, scripts/check-file-sizes.mjs (outside docs.yml build closure). Open issue 20934 (workflow-contracts, a2b14dd) reports the same npm run docs:build command failing in the documentation contract gate; relation unverified. Open 20815 is checkout only. Maintainer triage needed. Re-checked 2026-11-15T03:21Z: still six consecutive push failures at Build documentation; no newer docs.yml run; failed-log read HTTP 403 DIFC again. Open 20934 re-read 03:21Z: OPEN, 0 comments, updated 2026-11-14T21:34:48Z; relation still unverified."
+   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails on six consecutive push runs (re-checked 01:50Z: still six) since 600b56a (15:58Z; latest d55c91b, 23:57Z); failures take 10-15 s, like successes, so the failure is not an early install or config error. Pages last deployed by 43611206032 (15:39Z, 04c9d9e), so published docs are stale. Cause unverified: job logs HTTP 403 DIFC even for successful jobs; annotations say only exit code 1; validators need dist/ from astro build, so they cannot be reproduced without node_modules. Lead, unverified: compare 04c9d9e...600b56a (commits 8684835, 600b56a) changes ARCHITECTURE.md, docs/setup-quickstarts.md, internal/cli/dashboard_*.go, scripts/check-file-sizes.mjs (outside docs.yml build closure). Open issue 20934 (workflow-contracts, a2b14dd) reports the same npm run docs:build command failing in the documentation contract gate; relation unverified. Open 20815 is checkout only. Maintainer triage needed. Re-checked 2026-11-15T03:21Z: still six consecutive push failures at Build documentation; no newer docs.yml run; failed-log read HTTP 403 DIFC again. Open 20934 re-read 03:21Z: OPEN, 0 comments, updated 2026-11-14T21:34:48Z; relation still unverified. Re-checked 2026-11-15T03:35Z: still six consecutive Build documentation push failures (600b56a..d55c91b); no newer docs.yml run; 20815 OPEN."
   },
   {
    "observed_at": "2026-11-15T00:42:07Z",
@@ -1280,5 +1280,131 @@
    "43536491714 (head 2cb6d9c): trigger matched */aw.yml via modernization/aw.yml plus .github/workflows/shared/** and many non-docs files; closure for modernization/aw.yml not verified; corrects earlier shared-only note"
   ],
   "conclusion": "no scheduling, concurrency, or avoidable-rebuild change meets the 15 percent or 60 s gate; queue waits are not execution time"
+ },
+ "transfer_sample": {
+  "evaluated_at": "2026-11-15T03:35:16Z",
+  "window": "43502562196..43655786695 (unchanged)",
+  "n_success": 13,
+  "columns": "run,handoff_s,configPages_s,upload_s,deploySetup_s,deployPages_s,deployJob_s",
+  "rows": [
+   [
+    43611206032,
+    5,
+    0,
+    2,
+    1,
+    9,
+    13
+   ],
+   [
+    43608206381,
+    5,
+    0,
+    2,
+    1,
+    8,
+    12
+   ],
+   [
+    43593405440,
+    5,
+    1,
+    2,
+    1,
+    5,
+    9
+   ],
+   [
+    43561388555,
+    5,
+    1,
+    3,
+    0,
+    6,
+    8
+   ],
+   [
+    43536796952,
+    5,
+    1,
+    2,
+    1,
+    6,
+    12
+   ],
+   [
+    43536491714,
+    5,
+    1,
+    2,
+    1,
+    6,
+    10
+   ],
+   [
+    43505502149,
+    6,
+    1,
+    1,
+    2,
+    8,
+    13
+   ],
+   [
+    43504143936,
+    6,
+    1,
+    2,
+    1,
+    5,
+    7
+   ],
+   [
+    43504093917,
+    6,
+    1,
+    3,
+    0,
+    7,
+    9
+   ],
+   [
+    43503897533,
+    5,
+    0,
+    3,
+    0,
+    7,
+    9
+   ],
+   [
+    43503506778,
+    5,
+    1,
+    2,
+    1,
+    8,
+    12
+   ],
+   [
+    43502660435,
+    5,
+    0,
+    3,
+    0,
+    7,
+    11
+   ],
+   [
+    43502562196,
+    5,
+    0,
+    1,
+    0,
+    6,
+    8
+   ]
+  ],
+  "summary": "removable transfer (handoff+configPages+upload+deploySetup) median 9 p90 10 max 10 (11.1 pct of exec median 81); merge-build-deploy saves median 6 (7.4 pct); transfer+deployPages median 15 p90 17 (18.5 pct, needs publication mechanism change, rejected); artifact github-pages 8352438 bytes"
  }
 }
