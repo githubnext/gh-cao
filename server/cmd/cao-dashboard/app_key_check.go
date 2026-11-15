@@ -27,13 +27,8 @@ func newAppKeyCheckCommand() *cobra.Command {
 		if err := cmd.Context().Err(); err != nil {
 			return err
 		}
-		if *path == "" {
-			return errors.New("app key check requires --key-file")
-		}
-		for _, name := range []string{"expected-public-key-sha256", "previous-public-key-sha256"} {
-			if cmd.Flags().Changed(name) && cmd.Flags().Lookup(name).Value.String() == "" {
-				return errors.New("app key fingerprint checks must not be empty when explicitly requested")
-			}
+		if err := validateAppKeyCheckFlags(cmd, *path); err != nil {
+			return err
 		}
 		result, err := checkAppKeyFile(*path, *expected, *previous)
 		if err != nil {
@@ -45,6 +40,23 @@ func newAppKeyCheckCommand() *cobra.Command {
 		return json.NewEncoder(cmd.OutOrStdout()).Encode(result)
 	}
 	return cmd
+}
+
+// validateAppKeyCheckFlags requires an explicit key file and rejects a
+// fingerprint flag that was set to an empty value, which would otherwise
+// silently skip the pin it was meant to enforce.
+func validateAppKeyCheckFlags(cmd *cobra.Command, path string) error {
+	if path == "" {
+		appKeyCheckLog.Printf("app key check rejected: reason=missing_key_file")
+		return errors.New("app key check requires --key-file")
+	}
+	for _, name := range []string{"expected-public-key-sha256", "previous-public-key-sha256"} {
+		if cmd.Flags().Changed(name) && cmd.Flags().Lookup(name).Value.String() == "" {
+			appKeyCheckLog.Printf("app key check rejected: reason=empty_fingerprint flag=%s", name)
+			return errors.New("app key fingerprint checks must not be empty when explicitly requested")
+		}
+	}
+	return nil
 }
 
 // checkAppKeyFile reads the bounded key file, validates it, and wipes the key
