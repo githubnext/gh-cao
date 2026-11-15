@@ -98,6 +98,7 @@ func TestPostgresBackfillIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		backfillReadiness(t, ctx, local, http.StatusOK)
 		state, err := backfill.Run(ctx)
 		if err != nil {
 			t.Fatal(err)

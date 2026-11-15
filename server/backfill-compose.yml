@@ -10,6 +10,8 @@ services:
       retries: 30
   postgres:
     image: docker.io/library/postgres:16-alpine
+    # Enterprise reconciliation retains temporary-table locks until publication commits.
+    command: ["postgres", "-c", "max_locks_per_transaction=1024"]
     environment:
       POSTGRES_DB: cao_backfill
       POSTGRES_USER: cao_backfill
