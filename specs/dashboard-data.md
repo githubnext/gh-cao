@@ -3336,6 +3336,21 @@ execution. Missing inputs SHALL propagate unavailable states through the
 production query boundary. Active views SHALL requery on database changes within
 their abort-scoped subscription lifetime.
 
+The built-in Value page SHALL present one unified subject list rather than
+separate campaign, standalone, or review-state sections and routes. Each
+top-level entry SHALL represent exactly one canonical standalone Workflow or one
+Campaign rollup computed solely from that Campaign's canonical worker Workflows.
+Orchestrators SHALL NOT contribute to Campaign Value. A worker represented by
+its Campaign SHALL NOT also appear as a top-level Workflow entry; exact worker
+evidence remains available through the Campaign drill-down. Campaign rollups
+MUST preserve unavailable and unknown worker evidence explicitly and MUST NOT
+replace missing worker values with zero or combine incompatible native measures.
+Review state remains evidence on the unified entry, not a separate population.
+The mixed top-level rollup SHALL aggregate its complete campaign-worker
+population before presentation and SHALL report unavailable when query budgets
+are exceeded rather than page workers into partial campaign totals. The
+Workflow paging rule below applies to exact workflow drill-down lists.
+
 Value workflow lists SHALL page the canonical Workflow subject population
 before collection-health, native-measurement, or rich-evidence enrichment.
 The stable key is the exact stored `(repositoryId, path, id)` tuple under the

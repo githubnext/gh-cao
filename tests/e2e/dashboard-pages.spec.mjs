@@ -36,13 +36,13 @@ test("enterprise sample populates analytical pages and supports real drill-downs
     ["repositories", "repository-"],
     ["workflows", "workflow-"],
     ["campaigns", "campaign-"],
-    ["value", "value-report"],
+    ["value", "campaign-value"],
     ["firewall", "domain-"],
     ["mcps", "tool-"],
     ["marketplace", "marketplace-package"],
   ]);
   for (const id of ["campaigns", "repositories", "workflows", "runs", "issues", "firewall", "mcps",
-    "skills", "friction", "engines-models", "value", "value-campaigns", "value-standalone", "value-review",
+    "skills", "friction", "engines-models", "value",
     "cost", "marketplace", "maintenance", "maintenance-campaigns"]) {
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-${id}`);
     await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
