@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T17:33:32Z",
-   "worker_run_id": "43621350804",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43447728981 (created 2026-11-13T14:57:34Z) to 43616204011 (2026-11-14T16:32:58Z); run list re-read 17:31Z: none queued or in progress, 0 cancelled; window unchanged since the 17:17Z evaluation; source b5a9b43 = HEAD = source_sha. Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install); 43613020723 and 43616204011 FAILED at Build documentation 11-12 s after install (deploy skipped; Pages last deployed by 43611206032 at 15:38Z; logs not read, earlier probes HTTP 403). n=17 successes (16 push + schedule 43561388555). Avoidable-rebuild test: compare 04c9d9e...600b56a changed docs/setup-quickstarts.md (docs/** input); compare 600b56a...afe0ba0 changed dashboard/site/src/data/storage/shards.js, imported by src/data-worker.js (esbuild entry in dashboard/site/scripts/build.mjs); both real inputs; avoidable pushes 0. Schedule 43561388555 is the daily synthetic-date refresh, not avoidable. Concurrency: group documentation-pages, cancel-in-progress false, only docs.yml uses the group; queue (run created to build start) median 3 s, p90 45 s, max 68 s carried from the 17:17Z same-window evaluation, new runs 4 s and 3 s; queue is not execution time and is outside the gate. Exec median 82 s, p90 92 s; 60 s and 15 percent (12.3 s) gates unmet; cancel-in-progress true would cut queue only and could cancel a deploy mid-flight. No suggestion; no issue; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T17:55:16Z",
    "worker_run_id": "43623212234",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); run list re-read 03:35Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. Excluded and disclosed: 7 failures = 43506161539 (Install dependencies, 7c8faf4) and six consecutive push failures at Build documentation (600b56a..d55c91b; logs not read, HTTP 403 DIFC). Gate n=13 successes (12 push + schedule 43561388555) >= 5. Transfer per successful run = handoff (build completed to deploy started) median 5 (p90 6) + Configure Pages median 1 + Upload Pages artifact median 2 (p90 3) + deploy job Set up job median 1: removable transfer median 9 s, p90 10, max 10 = 11.1 percent of median exec 81 s (p90 nearest-rank 90). 15 percent gate 12.15 s and 60 s gate unmet. Deploy Pages step median 7 s (p90 8) is GitHub-managed. Merging build and deploy saves handoff plus deploy setup median 6 s (7.4 percent), stays rejected (id-token write and github-pages environment would move onto the npm ci job). Removing upload and deploy entirely (median 15 s, 18.5 percent) requires replacing the Pages publication mechanism, which weakens deployment safety; not recommended. github-pages artifact 8,352,438 bytes (43611206032); shrinking saves about 1 s. Only four recent github-pages artifacts are listed; older ones not listed. Checkout median 24 s remains represented by open issue 20815 (OPEN, updated 2026-11-13T17:41:19Z), not repeated. No suggestion; no issue; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T03:54:16Z",
+   "worker_run_id": "43674039562",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43502562196,
+    43502660435,
+    43503506778,
+    43503897533,
+    43504093917,
+    43504143936,
+    43505502149,
+    43506161539,
+    43536491714,
+    43536796952,
+    43561388555,
+    43593405440,
+    43608206381,
+    43611206032,
+    43613020723,
+    43616204011,
+    43621919773,
+    43623754509,
+    43639680929,
+    43655786695
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (2026-11-13T20:32Z) to 43655786695 (d55c91b, 2026-11-14T23:57Z); re-listed at 03:52Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run; source d55c91b = HEAD = source_sha. 13 successes (12 push + schedule 43561388555) = 5-run gate met; 7 failures excluded and disclosed (43506161539 Install; 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695 Build documentation; logs HTTP 403 DIFC). Exec (build start to deploy end) median 81 s, p90 90 nearest-rank; 15 percent gate 12.15 s and 60 s gate unmet. Queue (run created to build start) median 2 s, p90 3 s; two concurrency waits behind predecessor deploys (43502660435 45 s, 43504143936 71 s); queue is not execution time; cancel-in-progress true rejected (could cancel a deploy mid-flight). Avoidable rebuilds: 0 verified of 19 push runs (compare API between consecutive docs-run heads, mapped to docs.yml paths). Every push touched a real build input: docs/** Markdown or Astro components, dashboard/site/src modules, or modernization/aw.yml (docs/lib/catalog.ts globs */aw.yml and lists experimental campaigns). Freshness gap (not timing): */README.md is rendered by docs/pages/catalog/[slug].astro but is outside the docs.yml paths. Reliability (not timing): six consecutive Build documentation failures, no tracking issue; maintainer triage. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1207,6 +1207,11 @@
    "observed_at": "2026-11-15T02:38:44Z",
    "source": "docs.yml runs 43613020723..43655786695 (6 consecutive push failures at Build documentation); latest 43655786695 failed 2026-11-14T23:58Z",
    "note": "Reliability, not timing (highest priority, unresolved): still six consecutive Build documentation failures; no successful deploy since 43611206032 (2026-11-14T15:39Z). Open issue 20934 (cao-framework-health, a2b14dd workflow-contracts) reports a failing npm run check:svg && npm run docs:build step with logs HTTP 403; relation to docs.yml unverified. Maintainer triage needed; reported in terminal message, not a timing suggestion. Re-checked at this evaluation: still six consecutive Build documentation failures; window unchanged."
+  },
+  {
+   "observed_at": "2026-11-15T03:54:16Z",
+   "source": "docs.yml path filter vs docs/pages/catalog/[slug].astro and docs/lib/catalog.ts",
+   "note": "Freshness gap, not timing: */README.md (campaign READMEs rendered as catalog content via import.meta.glob) is outside docs.yml push paths, so README-only edits wait for the daily 05:23Z schedule. Record for triage, not a suggestion. Reliability re-check 03:54Z: still six consecutive Build documentation push failures (600b56a..d55c91b); no tracking issue; maintainer triage."
   }
  ],
  "checkout_probe": {
@@ -1244,10 +1249,9 @@
   ]
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-15T02:24:24Z",
-  "window": "43502562196 (2026-11-13T20:32:55Z) .. 43655786695 (2026-11-14T23:57:34Z); unchanged at 02:20Z",
-  "n_success_push": 12,
-  "n_success_schedule": 1,
+  "evaluated_at": "2026-11-15T03:54:16Z",
+  "window": "43502562196 (2026-11-13T20:32:55Z) .. 43655786695 (2026-11-14T23:57:34Z); unchanged at 03:52Z",
+  "n_success": 13,
   "failed": [
    "43506161539 (install, push 7c8faf4)",
    "43613020723",
@@ -1255,30 +1259,31 @@
    "43621919773",
    "43623754509",
    "43639680929",
-   "43655786695 (Build documentation, pushes 600b56a..d55c91b)"
+   "43655786695 (Build documentation)"
   ],
   "cancelled": [],
   "queued_or_in_progress_in_window": [],
-  "queue_success_median_p90_max_s": [
+  "queue_run_created_to_build_start_all20_median_p90_max_s": [
+   2,
    3,
-   45,
-   71
+   4
   ],
-  "queue_waits_behind_predecessor_deploy_s": {
-   "43502660435": 41,
-   "43504143936": 67
+  "concurrency_waits_run_created_to_build_start_s": {
+   "43502660435": 45,
+   "43504143936": 71
   },
-  "exec_success_median_p90_max_s": [
+  "exec_success_median_p90_nearest_rank_s": [
    81,
-   90,
+   90
+  ],
+  "exec_success_min_max_s": [
+   68,
    92
   ],
-  "exec_push_only_median_s": 80,
   "gate_s": 12.15,
-  "avoidable_push_runs_demonstrated": [],
-  "avoidable_candidates_unverified": [
-   "43536491714 (head 2cb6d9c): trigger matched */aw.yml via modernization/aw.yml plus .github/workflows/shared/** and many non-docs files; closure for modernization/aw.yml not verified; corrects earlier shared-only note"
-  ],
+  "avoidable_push_runs_verified": [],
+  "avoidable_push_runs_checked": 19,
+  "avoidable_candidates_resolved": "43536491714 (2cb6d9c) is NOT avoidable: modernization/aw.yml is globbed and listed by docs/lib/catalog.ts (experimental, not private)",
   "conclusion": "no scheduling, concurrency, or avoidable-rebuild change meets the 15 percent or 60 s gate; queue waits are not execution time"
  },
  "transfer_sample": {
