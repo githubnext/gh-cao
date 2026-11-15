@@ -1,36 +1,7 @@
 {
-  "source_sha": "88f652f435798bedd8415b26078eedbe8b037615",
-  "next_category": "Astro documentation generation",
+  "source_sha": "de1fbfc47f2ce0044b79ec49dac0524adf298161",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T09:53:18Z",
-      "worker_run_id": "43701093070",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "43698271571",
-        "43682264332",
-        "43681861583",
-        "43680980929",
-        "43655786695",
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917"
-      ],
-      "outcome": "complete, not actionable; reliability blocker unresolved. Window = latest 20 completed docs.yml runs 43504093917 (push a7d5ebf, created 2026-11-13T20:42:56Z) to 43698271571 (push f8da6f2, created 2026-11-15T09:14:26Z), all within 14 days; gh run list re-read 09:52Z: same 20 IDs as the 09:35Z window, all completed, none queued or in progress, 0 cancelled, no docs run after 09:14Z; source f8da6f2 = HEAD = source_sha. Jobs timings reused from the 09:31Z fetch (identical window; no new completed run). Excluded and disclosed: 11 failures (43506161539 at Install dependencies; 10 Build documentation failures 43613020723..43698271571, 9-15 s into the step). n=9 successes (8 push + schedule 43561388555) meets the 5-run gate. Category step Build documentation (npm run docs:build): median 13 s, range 10-15 s = about 15.9 percent of build-start-to-deploy-end median 82 s (p90 92). 15 percent gate 12.3 s: the whole step is about 13 s, so no Astro-internal change can save 12.3 s (it would need the step at under 1 s); only whole-step removal clears the gate and is invalid because the step produces the Pages artifact and gates validation. 60 s gate unreachable. Internal split unmeasurable: step-log read re-tried 09:52Z returned HTTP 403 DIFC (not bypassed). Reliability, not timing (critical, unresolved, maintainer triage): Build documentation red on 10 consecutive runs since 15:58Z Nov 14 (latest 43698271571 at 09:14Z); Pages not deployed since 43611206032 (15:37Z Nov 14). Search 09:53Z found no open docs.yml failure tracker (20934 classifies the workflow-contracts docs gate, relation unverified; 20815 checkout, not repeated). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T10:18:59Z",
       "worker_run_id": "43703094919",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable. Window = latest 20 completed docs.yml runs 43608206381 (push 54facee, created 2026-11-14T15:04Z) to 43752704784 (push 88f652f4, created 2026-11-15T19:29Z), all within 14 days; 0 cancelled; none queued. Samples: 8 successes, all push, meet the 5-run gate; 12 failures disclosed (the Build documentation streak 43613020723 to 43721157324, ended 13:51Z). Dependency phase on the 8 successes: Set up Node.js median 4 s (p90 6), Install dependencies median 8.5 s (p90 11), post Set up Node.js median 0 s (p90 1); setup+install+post median 12 s (p90 17) = 15.4 percent of exec median 78 s (p90 111, driven by a 51 s checkout in 43752194225). 15 percent gate 11.7 s: only removing the entire phase clears it, and Astro needs node_modules, so no realistic change does; 60 s gate unreachable. Cache: node-cache-Linux-x64-npm-7808ecf8 exists (263,412,733 B, created 2026-11-13T20:57:12Z, last accessed 19:30:18Z); root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z), so the key is stable across the window; post-step 0-1 s on every success implies exact-key hits and no misses. Logs HTTP 403 DIFC (not bypassed), so the root vs dashboard install split stays unmeasured. Checkout median 26 s (p90 51) is the blobless suggestion already tracked by OPEN issue 20815 (0 comments, unchanged since 2026-11-13T17:41:19Z); not repeated and outside this category. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T19:53:46Z",
+      "worker_run_id": "43754490327",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "43753233809",
+        "43752704784",
+        "43752194225",
+        "43746617494",
+        "43731625055",
+        "43724243400",
+        "43721484176",
+        "43721157324",
+        "43706435376",
+        "43698271571",
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43611206032 (push 04c9d9e, created 2026-11-14T15:37Z) to 43753233809 (push de1fbfc, created 2026-11-15T19:35Z); all completed, 0 cancelled, none queued or in progress; source de1fbfc = HEAD, touching only docs/local-debugging.md (build-consumed via docs/**). Excluded and disclosed: 12 failures, all in Build documentation (43613020723..43721157324; step logs HTTP 403 DIFC, not bypassed). n=8 successes meets the 5-run gate. Category step Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): median 12 s, p90 15 s, range 8-15 s = 15.4 percent of exec median 78 s (p90 111). Only whole-step removal reaches 15 percent, and that is invalid (deploy consumes dist; validation gates correctness). Validation and test steps do not re-run astro (they read dist and git ls-files), so no avoidable Astro rebuild. Astro vs validation split unmeasurable (403); any Astro-internal change or split saves less than the whole step, below the 11.7 s gate. No docs.yml .astro or Astro output cache; a cache can save only part of the 12 s step, unmeasured, not repeated. Reliability, not timing: no failures since 43721484176; no schedule success in window (43680980929 failed). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -897,72 +897,68 @@
     }
   },
   "run_samples": {
-    "evaluated_at": "2026-11-15T19:33:46Z",
-    "window": "43608206381 (2026-11-14T15:04Z) .. 43752704784 (2026-11-15T19:29Z)",
+    "evaluated_at": "2026-11-15T19:53:46Z",
+    "window": "43611206032 (2026-11-14T15:37Z) .. 43753233809 (2026-11-15T19:35Z)",
     "n_success": 8,
     "n_failed": 12,
     "n_cancelled": 0,
     "success_ids": [
+      "43753233809",
       "43752704784",
       "43752194225",
       "43746617494",
       "43731625055",
       "43724243400",
       "43721484176",
-      "43611206032",
-      "43608206381"
+      "43611206032"
     ],
     "success_metrics_median_p90_s": {
-      "queue_run_created_to_build_start": [
-        3.5,
+      "queue": [
+        3.0,
         4
       ],
       "build_job": [
         62.5,
         95
       ],
-      "deploy_job": [
-        10.5,
-        13
-      ],
-      "exec_build_start_to_deploy_end": [
-        78,
-        111
-      ],
       "checkout": [
-        26,
+        25.5,
         51
       ],
-      "set_up_node": [
-        4,
+      "setup_node": [
+        3.5,
         6
-      ],
-      "post_setup_node": [
-        0,
-        1
       ],
       "install": [
         8.5,
         11
       ],
-      "setup_install_post": [
-        12,
-        17
+      "postetup_node": [
+        0.0,
+        1
       ],
-      "build_documentation": [
-        12,
+      "build_docs": [
+        12.0,
         15
       ],
       "demo": [
-        4,
+        4.5,
         6
       ],
-      "upload_pages_artifact": [
-        2,
+      "upload": [
+        2.5,
         4
+      ],
+      "deploy_job": [
+        10.5,
+        13
+      ],
+      "exec": [
+        78.0,
+        111
       ]
     },
-    "note": "Jobs API step timings; step logs unavailable (403). Nearest-rank p90. All 8 successes are push runs (schedule success 43561388555 left the window). Build and deploy jobs only; no dashboard job."
+    "note": "Jobs API step timings; step logs unavailable (403). Nearest-rank p90. Build and deploy jobs only; no dashboard job."
   },
   "checkout_probe": {
     "measured_at": "2026-11-13T17:38:10Z",
@@ -1003,11 +999,10 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-15T19:33:46Z",
-    "status": "Resolved for the current window: Build documentation green on six consecutive pushes: 43721484176 (13:54Z, fix f02efd0), 43724243400 (14:25Z), 43731625055 (15:45Z), 43746617494 (18:24Z, d62125be), 43752194225 (19:23Z, e3b3b9c), 43752704784 (19:29Z, 88f652f4). The 12-run failure streak 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) has ended. No schedule run has succeeded since 43561388555 (2026-11-14T05:24Z); 43680980929 failed 2026-11-15T05:24Z.",
-    "note": "Root cause of the 12-run streak not verified (step logs HTTP 403 DIFC)."
+    "observed_at": "2026-11-15T19:53:46Z",
+    "status": "Build documentation green on seven consecutive pushes: 43721484176 (13:54Z, fix f02efd0), 43724243400, 43731625055, 43746617494, 43752194225, 43752704784, 43753233809 (19:35Z, de1fbfc). The 12-run failure streak 43613020723..43721157324 has ended. Only in-window schedule 43680980929 failed (2026-11-15T05:24Z); no schedule success since 43561388555 (2026-11-14T05:24Z). Root cause of the streak not verified (step logs HTTP 403 DIFC)."
   },
-  "etag_note": "2026-11-15 19:33Z: Jobs API fetched only for the two runs newer than 43746617494 (43752194225, 43752704784); file lists fetched only for e3b3b9cd and 88f652f4. gh api used without If-None-Match and no ETag captured. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43752704784.",
+  "etag_note": "2026-11-15 19:53Z: Jobs API fetched only for 43753233809; file list fetched only for de1fbfc. gh api used without If-None-Match and no ETag captured. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43753233809.",
   "observations_pending": [
     {
       "observed_at": "2026-11-15T19:33:46Z",
@@ -1027,8 +1022,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-15T19:33:46Z",
-    "window": "43608206381..43752704784 (latest 20 completed docs.yml runs)",
+    "evaluated_at": "2026-11-15T19:53:46Z",
+    "window": "43611206032..43753233809 (latest 20 completed docs.yml runs)",
     "columns": [
       "run",
       "event",
@@ -1048,6 +1043,23 @@
     ],
     "note": "Durations from Jobs API step timestamps (completed runs are immutable; reuse rows and fetch only new runs). Failed runs have deploy skipped and post-step skipped.",
     "rows": [
+      [
+        43753233809,
+        "push",
+        "success",
+        "de1fbfc",
+        3,
+        64,
+        24,
+        3,
+        10,
+        0,
+        15,
+        6,
+        3,
+        11,
+        80
+      ],
       [
         43752704784,
         "push",
@@ -1370,29 +1382,12 @@
         2,
         13,
         83
-      ],
-      [
-        43608206381,
-        "push",
-        "success",
-        "54facee",
-        4,
-        65,
-        25,
-        5,
-        11,
-        0,
-        15,
-        4,
-        2,
-        12,
-        82
       ]
     ]
   },
   "transfer_model": {
     "verified_at": "2026-11-15T18:33:32Z",
-    "window": "43608206381..43752704784 (8 successes; 12 failures excluded)",
+    "window": "43611206032..43753233809 (8 successes; 12 failures excluded)",
     "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
     "columns": [
       "run",
@@ -1407,6 +1402,18 @@
       "exec_s"
     ],
     "rows": [
+      [
+        "43753233809",
+        "push",
+        5,
+        0,
+        3,
+        1,
+        7,
+        11,
+        9,
+        80
+      ],
       [
         "43752704784",
         "push",
@@ -1490,34 +1497,20 @@
         13,
         8,
         83
-      ],
-      [
-        "43608206381",
-        "push",
-        5,
-        0,
-        2,
-        1,
-        8,
-        12,
-        8,
-        82
       ]
     ],
     "summary": {
-      "removable_median_s": 8,
+      "removable_median_s": 8.0,
       "removable_p90_s": 10,
-      "removable_share_of_exec_median_pct": 10.3,
-      "exec_median_s": 78,
-      "exec_p90_s": 111,
-      "deploy_pages_median_s": 7
+      "exec_median_s": 78.0,
+      "exec_p90_s": 111
     },
     "note": "Completed-run timings are immutable; reuse rows and fetch only runs newer than 43752704784.",
-    "reverified_at": "2026-11-15T19:33:46Z",
-    "reverified_note": "19:33Z: added 43752194225 and 43752704784 from Jobs API; dropped 43593405440 and 43561388555 from the window."
+    "reverified_at": "2026-11-15T19:53:46Z",
+    "reverified_note": "19:35Z: added 43753233809 (Jobs API), dropped 43608206381 from the 20-run window."
   },
   "commit_paths": {
-    "verified_at": "2026-11-15T19:33:46Z",
+    "verified_at": "2026-11-15T19:53:46Z",
     "method": "gh api repos/githubnext/gh-cao/commits/<sha> file lists; commits are immutable, so reuse this map and do not refetch; no ETag captured",
     "push_commits_checked": 20,
     "test_only_pushes": 0,
@@ -1543,7 +1536,8 @@
       "54e08aa": "docs/components/ThemeToggle.astro",
       "d62125be": "dashboard-fragments/workflow-value.json, dashboard.json, generated agent catalog/queries, test fixtures and unit (build-consumed)",
       "e3b3b9cd": "docs/operations.md, scripts/dashboard-demo-data.mjs, dashboard-pages-simulation unit test (build-consumed via docs/**)",
-      "88f652f4": "ARCHITECTURE.md, dashboard/README.md, dashboard/site/README.md, dashboard/site/scripts/build.mjs, dashboard-site-build unit test (build-consumed via dashboard/site/**)"
+      "88f652f4": "ARCHITECTURE.md, dashboard/README.md, dashboard/site/README.md, dashboard/site/scripts/build.mjs, dashboard-site-build unit test (build-consumed via dashboard/site/**)",
+      "de1fbfc": "docs/local-debugging.md (build-consumed via docs/**)"
     }
   }
 }
