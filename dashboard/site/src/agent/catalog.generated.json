@@ -535,25 +535,25 @@
     {
       "id": "value",
       "title": "Value",
-      "description": "Review every known campaign and standalone Value deployment through one evidence contract.",
-      "intent": "Find which workflow deployment needs attention and distinguish measured outcome movement from evidence availability.",
-      "subject": "Canonical workflow inventory, reviewed Value collection decisions and latest retained native or rich evidence.",
-      "objective": "Open the exact workflow result or collection state without separating campaign and standalone evidence systems.",
-      "acceptance": "Keep repository/workflow identity, topology, native result, collection state, dates and unknowns visible. No campaign score, causal credit or GitHub acquisition.",
+      "description": "Review one Value entry per campaign worker rollup or standalone workflow.",
+      "intent": "Find which campaign or standalone workflow needs attention without splitting Value by entity type or review state.",
+      "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
+      "objective": "Open the campaign worker rollup or exact standalone workflow from one unified list.",
+      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once, and missing or unknown evidence remains explicit.",
       "experimental": false,
       "parameters": [],
       "queries": [
-        "value-workflow-overview"
+        "value-overview"
       ]
     },
     {
       "id": "campaign-value",
       "title": "Campaign Value",
-      "description": "Inspect one campaign's Value coverage and exact worker deployments.",
-      "intent": "Understand why the selected campaign needs review and open the responsible workflow evidence.",
-      "subject": "The selected campaign's deployment coverage and repository/workflow Value cards.",
-      "objective": "Move from campaign coverage to exact worker evidence without changing measurement semantics.",
-      "acceptance": "Reuse universal cards and original evidence routes. Do not synthesize a campaign score or attribute worker outcomes to orchestration.",
+      "description": "Inspect one campaign's worker Value rollup and exact worker deployments.",
+      "intent": "Understand the selected campaign only through its workers and open the responsible workflow evidence.",
+      "subject": "The selected campaign's canonical worker rollup and repository/workflow Value cards.",
+      "objective": "Move from the worker rollup to exact worker evidence without changing measurement semantics.",
+      "acceptance": "Campaign Value contains only canonical worker results. Reuse original evidence routes; do not include orchestrators, synthesize a separate campaign score or attribute worker outcomes to orchestration.",
       "experimental": false,
       "parameters": [
         {
@@ -4286,9 +4286,7 @@
         "value-headlines",
         "value-workflow-topology"
       ],
-      "used-by-pages": [
-        "value"
-      ],
+      "used-by-pages": [],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -4302,9 +4300,9 @@
     },
     {
       "id": "value-campaign-complete-topology",
-      "subject": "Complete canonical campaign workflow topology.",
-      "objective": "Provide unpaged workflow routes for complete campaign coverage aggregation.",
-      "acceptance": "Every canonical workflow remains at its exact repository and workflow identity.",
+      "subject": "Complete canonical workflow topology for campaign worker aggregation.",
+      "objective": "Provide unpaged worker routes for complete campaign coverage aggregation.",
+      "acceptance": "Every canonical worker remains at its exact repository and workflow identity; orchestrators and standalone workflows are not campaign Value members.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4321,9 +4319,9 @@
     },
     {
       "id": "value-campaign-complete-deployments",
-      "subject": "Complete canonical campaign workflow deployment population with collection and current evidence state.",
-      "objective": "Keep campaign coverage aggregates complete while workflow card lists use request-scoped subject pages.",
-      "acceptance": "Every declared campaign workflow is included once. Missing health or evidence remains explicit and no paged cohort is used.",
+      "subject": "Complete canonical campaign worker deployment population with collection and current evidence state.",
+      "objective": "Keep campaign worker aggregates complete while workflow drill-down lists use request-scoped subject pages.",
+      "acceptance": "Every declared campaign worker is included once. Orchestrators are excluded; missing health or evidence remains explicit and no paged cohort is used.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4345,9 +4343,9 @@
     },
     {
       "id": "value-campaign-coverage-deployments",
-      "subject": "Universal Value deployments grouped under a declared campaign.",
-      "objective": "Support complete campaign coverage without creating a separate evidence system.",
-      "acceptance": "Only rows with canonical campaign context are included. Unclassified deployments remain visible in All and Needs review.",
+      "subject": "Canonical worker Value deployments grouped under their declared campaign.",
+      "objective": "Support complete campaign worker coverage without creating a separate evidence system.",
+      "acceptance": "Only canonical workers with canonical campaign context are included. They are represented once by their campaign at the top level and remain available in campaign drill-down.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4420,7 +4418,7 @@
       "id": "value-campaign-deployments",
       "subject": "Paged exact Value deployments for one declared campaign.",
       "objective": "Support campaign workflow drilldown through the bounded universal workflow card path.",
-      "acceptance": "Only rows with canonical campaign context are included. Every row preserves its exact collection and evidence state.",
+      "acceptance": "Only canonical campaign workers are included. Every row preserves its exact collection and evidence state.",
       "description": "",
       "parameters": [
         {
@@ -4446,10 +4444,10 @@
       }
     },
     {
-      "id": "value-standalone-overview",
-      "subject": "Standalone workflow Value deployments.",
-      "objective": "Inspect standalone workflows through the same collection, outcome and evidence contract as campaign workers.",
-      "acceptance": "Standalone is a canonical workflow role, not inferred from missing campaign evidence.",
+      "id": "value-standalone-entries",
+      "subject": "Standalone workflow entries normalized for the unified Value view.",
+      "objective": "Present each standalone workflow once beside campaign groups without changing its native evidence.",
+      "acceptance": "Standalone is a canonical workflow role, not inferred from missing campaign evidence. Missing collection or result evidence remains explicit.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4468,16 +4466,19 @@
       }
     },
     {
-      "id": "value-review-overview",
-      "subject": "Value deployments with measured deterioration or incomplete collection/evidence state.",
-      "objective": "Prioritize exact deployments needing outcome or evidence investigation.",
-      "acceptance": "Each row preserves its explicit reason. Missing evidence, failed collection and worsening outcome are not interchangeable.",
+      "id": "value-overview",
+      "subject": "Unified Value entries for canonical campaigns and standalone workflows.",
+      "objective": "Review one campaign group or one standalone workflow per row without separate entity or review-state sections.",
+      "acceptance": "Campaign workers appear only through their campaign entry at the top level. Standalone workflows appear once. Missing and unknown evidence remains explicit and no incompatible native values are combined.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-workflow-overview"
+        "value-campaign-overview",
+        "value-standalone-entries"
       ],
-      "used-by-pages": [],
+      "used-by-pages": [
+        "value"
+      ],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -4485,7 +4486,8 @@
           "operational-value-evidence",
           "workflow-subject-topology",
           "workflow-value-collections",
-          "workflow-value-measurements"
+          "workflow-value-measurements",
+          "workflows"
         ]
       }
     },

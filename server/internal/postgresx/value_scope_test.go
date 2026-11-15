@@ -28,7 +28,7 @@ func valueViewDefinitions(t *testing.T) []query.Definition {
 
 func TestValueViewsExecuteAgainstHostedEvidence(t *testing.T) {
 	definitions := valueViewDefinitions(t)
-	names := []string{"value-workflow-overview", "value-collection-health", "value-report-summary", "value-review-overview"}
+	names := []string{"value-workflow-overview", "value-overview", "value-collection-health", "value-report-summary"}
 	reader := &readTransaction{store: &Store{namespace: "value-views"}}
 	if _, err := query.CompileSQL(definitions, names, reader.entitySQLSource); err != nil {
 		t.Fatal(err)
@@ -72,6 +72,14 @@ func TestValueViewsExecuteAgainstHostedEvidence(t *testing.T) {
 		overview["overview-state"] != "deferred" || overview["trend-movement"] != "Better" {
 		t.Fatalf("hosted Value card lost the canonical evidence and collection state: %+v", overview)
 	}
+	if overview["needs-review"] != true {
+		t.Fatalf("deferred collection with a retained result must still need review: %+v", overview)
+	}
+	unified := sources["value-overview"].Rows
+	if len(unified) != 1 || unified[0]["value-kind"] != "Standalone workflow" ||
+		unified[0]["workflow-route"] != route || unified[0]["value-href"] != href {
+		t.Fatalf("unified Value view did not preserve the standalone workflow result: %+v", unified)
+	}
 	healthRows := sources["value-collection-health"].Rows
 	if len(healthRows) != 1 || healthRows[0]["workflow-route"] != route ||
 		healthRows[0]["collection-state"] != "deferred" ||
@@ -99,10 +107,6 @@ func TestValueViewsExecuteAgainstHostedEvidence(t *testing.T) {
 	if len(report) != 1 || report[0]["movement"] != "Better" ||
 		report[0]["report-href"] != overview["overview-href"] {
 		t.Fatalf("hosted report differs from the Value card: %+v", report)
-	}
-	review := sources["value-review-overview"].Rows
-	if !slices.ContainsFunc(review, func(row model.Row) bool { return row["workflow-route"] == route }) {
-		t.Fatal("deferred collection with a retained result must still need review")
 	}
 }
 
