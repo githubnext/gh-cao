@@ -35,7 +35,7 @@ func TestSessionArchiveAnalyticalCapabilitiesHTTP(t *testing.T) {
 	for _, backend := range []sessionArchiveBackend{&localSessionArchive{}, &hostedSessionArchive{}, &nativeSessionArchive{}} {
 		var decoded sessionarchive.Capabilities
 		content, err := json.Marshal(backend.AnalyticalCapabilities())
-		if err != nil || json.Unmarshal(content, &decoded) != nil || decoded.LanguageVersion != "0.1.0" ||
+		if err != nil || json.Unmarshal(content, &decoded) != nil || decoded.LanguageVersion != "0.2.0" ||
 			len(decoded.Fields) == 0 || decoded.Source != "archive-events" {
 			t.Fatal("backend capability vocabulary is missing or unversioned")
 		}
@@ -97,13 +97,14 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 			`"kind":"summary"`, 1),
 		"query-on-timeline": strings.Replace(analyticalArchiveRequest, `"kind":"session-query"`,
 			`"kind":"timeline","runId":"123","attempt":1`, 1),
-		"version-on-summary": `{"kind":"summary","repository":"octo/one","language-version":"0.1.0"}`,
-		"payload-field":      strings.Replace(analyticalArchiveRequest, `"Sequence"`, `"PayloadJSON"`, 1),
-		"file-source":        strings.Replace(analyticalArchiveRequest, `"archive-events"`, `"/private/data.parquet"`, 1),
-		"unknown-key":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"joins":[],"aggregate":`, 1),
-		"malformed-filter":   strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":{"predicates":[]},"aggregate":`, 1),
-		"null-filter":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":null,"aggregate":`, 1),
-		"body-budget":        strings.Replace(analyticalArchiveRequest, `"subject":`, `"description":"`+strings.Repeat("x", 4096)+`","subject":`, 1),
+		"version-on-summary":      `{"kind":"summary","repository":"octo/one","language-version":"0.1.0"}`,
+		"payload-field":           strings.Replace(analyticalArchiveRequest, `"Sequence"`, `"PayloadJSON"`, 1),
+		"file-source":             strings.Replace(analyticalArchiveRequest, `"archive-events"`, `"/private/data.parquet"`, 1),
+		"unknown-key":             strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"joins":[],"aggregate":`, 1),
+		"malformed-filter":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":{"predicates":[]},"aggregate":`, 1),
+		"null-filter":             strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":null,"aggregate":`, 1),
+		"new-reducer-old-profile": strings.Replace(analyticalArchiveRequest, `"reducer":"count"`, `"reducer":"sum"`, 1),
+		"body-budget":             strings.Replace(analyticalArchiveRequest, `"subject":`, `"description":"`+strings.Repeat("x", 4096)+`","subject":`, 1),
 	} {
 		t.Run(name, func(t *testing.T) {
 			response := archiveRequest(t, app, body, true)

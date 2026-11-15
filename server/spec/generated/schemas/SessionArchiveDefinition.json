@@ -69,8 +69,43 @@
                                     {
                                         "type": "string",
                                         "const": "distinct-count"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "const": "sum"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "const": "max"
+                                    },
+                                    {
+                                        "type": "string",
+                                        "const": "first"
                                     }
                                 ]
+                            },
+                            "filter": {
+                                "type": "object",
+                                "properties": {
+                                    "predicates": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/$defs/SessionArchivePredicate"
+                                        },
+                                        "minItems": 1,
+                                        "maxItems": 64
+                                    }
+                                },
+                                "required": [
+                                    "predicates"
+                                ]
+                            },
+                            "orderBy": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/$defs/OrderField"
+                                },
+                                "description": "first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic."
                             }
                         },
                         "required": [
@@ -86,6 +121,71 @@
             "required": [
                 "values"
             ]
+        },
+        "postAggregate": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "as": {
+                        "type": "string"
+                    },
+                    "function": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "const": "if"
+                            },
+                            {
+                                "type": "string",
+                                "const": "equals"
+                            },
+                            {
+                                "type": "string",
+                                "const": "gt"
+                            },
+                            {
+                                "type": "string",
+                                "const": "lte"
+                            },
+                            {
+                                "type": "string",
+                                "const": "sum"
+                            },
+                            {
+                                "type": "string",
+                                "const": "quotient"
+                            },
+                            {
+                                "type": "string",
+                                "const": "coalesce"
+                            },
+                            {
+                                "type": "string",
+                                "const": "is-null"
+                            },
+                            {
+                                "type": "string",
+                                "const": "and"
+                            }
+                        ]
+                    },
+                    "args": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/$defs/SessionArchiveExpression"
+                        },
+                        "maxItems": 3
+                    }
+                },
+                "required": [
+                    "as",
+                    "function",
+                    "args"
+                ]
+            },
+            "maxItems": 32,
+            "description": "Explicit bounded phase after aggregation, before selection/order/limit. Computations can reference groups, aggregates and preceding computations, never source rows."
         },
         "select": {
             "type": "array",
@@ -185,20 +285,39 @@
                             "type": "number"
                         }
                     ]
-                }
-            },
-            "required": [
-                "field"
-            ]
-        },
-        "SelectedField": {
-            "type": "object",
-            "properties": {
-                "field": {
-                    "type": "string"
                 },
-                "as": {
-                    "type": "string"
+                "state": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "present"
+                        },
+                        {
+                            "type": "string",
+                            "const": "absent"
+                        },
+                        {
+                            "type": "string",
+                            "const": "null"
+                        },
+                        {
+                            "type": "string",
+                            "const": "invalid"
+                        },
+                        {
+                            "type": "string",
+                            "const": "excluded"
+                        },
+                        {
+                            "type": "string",
+                            "const": "redacted"
+                        },
+                        {
+                            "type": "string",
+                            "const": "valid"
+                        }
+                    ],
+                    "description": "State of a declared promoted field, inspected through generated evidence metadata only. Exclusive with comparison operands."
                 }
             },
             "required": [
@@ -217,6 +336,172 @@
             },
             "required": [
                 "field"
+            ]
+        },
+        "SessionArchiveExpression": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/SessionArchiveFieldArgument"
+                },
+                {
+                    "$ref": "#/$defs/SessionArchiveValueArgument"
+                },
+                {
+                    "$ref": "#/$defs/SessionArchiveNullArgument"
+                },
+                {
+                    "$ref": "#/$defs/SessionArchiveFunctionArgument"
+                }
+            ]
+        },
+        "SelectedField": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "as": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "field"
+            ]
+        },
+        "SessionArchiveFieldArgument": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "field"
+            ]
+        },
+        "SessionArchiveValueArgument": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                "type": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "string"
+                        },
+                        {
+                            "type": "string",
+                            "const": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "const": "number"
+                        },
+                        {
+                            "type": "string",
+                            "const": "boolean"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "value"
+            ]
+        },
+        "SessionArchiveNullArgument": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "type": "null"
+                },
+                "type": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "const": "number"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "value",
+                "type"
+            ],
+            "description": "Null is allowed only as an explicitly typed numeric computation literal."
+        },
+        "SessionArchiveFunctionArgument": {
+            "type": "object",
+            "properties": {
+                "function": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "if"
+                        },
+                        {
+                            "type": "string",
+                            "const": "equals"
+                        },
+                        {
+                            "type": "string",
+                            "const": "gt"
+                        },
+                        {
+                            "type": "string",
+                            "const": "lte"
+                        },
+                        {
+                            "type": "string",
+                            "const": "sum"
+                        },
+                        {
+                            "type": "string",
+                            "const": "quotient"
+                        },
+                        {
+                            "type": "string",
+                            "const": "coalesce"
+                        },
+                        {
+                            "type": "string",
+                            "const": "is-null"
+                        },
+                        {
+                            "type": "string",
+                            "const": "and"
+                        }
+                    ]
+                },
+                "args": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/SessionArchiveExpression"
+                    },
+                    "maxItems": 3
+                }
+            },
+            "required": [
+                "function",
+                "args"
             ]
         }
     }

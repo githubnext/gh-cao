@@ -325,9 +325,12 @@ func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
 				!reflect.DeepEqual(result.Columns, example.columns) || result.Rows == nil || !reflect.DeepEqual(*result.Rows, rows) {
 				t.Fatalf("unexpected session-query result: %#v; expected columns %#v and rows %#v", result, example.columns, rows)
 			}
-			if result.Metadata == nil || *result.Metadata != (sessionarchive.QueryMetadata{
-				Limited: example.limited, UpstreamCoverage: "unknown",
-			}) || len(result.Events) != 0 || len(result.Summary) != 0 {
+			var input sessionArchiveQuery
+			if err := json.Unmarshal([]byte(example.body), &input); err != nil {
+				t.Fatal(err)
+			}
+			if result.Metadata == nil || *result.Metadata != input.Query.Metadata(example.limited, 0, 0) ||
+				len(result.Events) != 0 || len(result.Summary) != 0 {
 				t.Fatalf("selection, coverage, or payload separation changed: %#v", result)
 			}
 		})

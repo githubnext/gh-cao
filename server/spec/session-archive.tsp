@@ -12,6 +12,32 @@ model SessionArchivePredicate {
   @minItems(1) @maxItems(32) in?: (string | int64 | float64 | boolean)[];
   gte?: string | int64 | float64;
   lt?: string | int64 | float64;
+  /** State of a declared promoted field, inspected through generated evidence metadata only. Exclusive with comparison operands. */
+  state?: "present" | "absent" | "null" | "invalid" | "excluded" | "redacted" | "valid";
+}
+
+alias SessionArchiveFunction = "if" | "equals" | "gt" | "lte" | "sum" | "quotient" | "coalesce" | "is-null" | "and";
+model SessionArchiveFieldArgument {
+  field: string;
+}
+model SessionArchiveValueArgument {
+  value: string | int64 | float64 | boolean;
+  type?: "string" | "integer" | "number" | "boolean";
+}
+/** Null is allowed only as an explicitly typed numeric computation literal. */
+model SessionArchiveNullArgument {
+  value: null;
+  type: "integer" | "number";
+}
+model SessionArchiveFunctionArgument {
+  function: SessionArchiveFunction;
+  @maxItems(3) args: SessionArchiveExpression[];
+}
+union SessionArchiveExpression {
+  field: SessionArchiveFieldArgument,
+  value: SessionArchiveValueArgument,
+  missing: SessionArchiveNullArgument,
+  function: SessionArchiveFunctionArgument
 }
 
 /** Shared DuckDB/ADX analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range; boolean ranges are forbidden. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. Counts exclude empty strings and null scalars, but retain false and zero; distinct-count is exact, never approximate. */
@@ -28,9 +54,15 @@ model SessionArchiveDefinition {
     @minItems(1) @maxItems(16) values: {
       field: string;
       as: string;
-      reducer: "count" | "distinct-count";
+      reducer: "count" | "distinct-count" | "sum" | "max" | "first";
+      filter?: { @minItems(1) @maxItems(64) predicates: SessionArchivePredicate[] };
+      /** first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic. */
+      @encodedName("application/json", "order-by") orderBy?: OrderField[];
     }[];
   };
+  /** Explicit bounded phase after aggregation, before selection/order/limit. Computations can reference groups, aggregates and preceding computations, never source rows. */
+  @encodedName("application/json", "post-aggregate") @maxItems(32)
+  postAggregate?: { as: string; function: SessionArchiveFunction; @maxItems(3) args: SessionArchiveExpression[] }[];
   /** Required for non-aggregate queries. Only generated scalar event columns are allowed; PayloadJSON and Gaps are not query fields. */
   @minItems(1) @maxItems(32) select?: SelectedField[];
   @encodedName("application/json", "order-by") @maxItems(16) orderBy?: OrderField[];
@@ -51,7 +83,7 @@ model SessionArchiveQuery {
   /** Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace. */
   @minValue(1) @maxValue(10000) limit?: int32;
   /** Required only for kind=session-query on both DuckDB and ADX. */
-  `language-version`?: "0.1.0";
+  `language-version`?: "0.1.0" | "0.2.0";
   /** Required only for kind=session-query; runId, attempt and envelope limit are forbidden. */
   query?: SessionArchiveDefinition;
 }
@@ -70,6 +102,9 @@ model SessionArchiveQueryMetadata {
   admissionGaps: int32;
   /** Retained active traces with recorded omissions, before user filtering; distinct from admission gaps. */
   tracesWithGaps: int32;
+  queryDigest: string;
+  implementation: string;
+  `language-version`: "0.2.0";
 }
 
 model SessionArchiveSummary {
@@ -105,11 +140,13 @@ model SessionArchiveCounters {
 }
 
 model SessionArchiveCapabilities {
-  `language-version`: "0.1.0";
+  `language-version`: "0.2.0";
   source: "archive-events";
   fields: SessionArchiveColumn[];
   predicates: string[];
   reducers: string[];
+  functions: string[];
+  fieldStates: string[];
   /** Independent complete-result budget; an explicit limit must not exceed it. */
   maxRows: int32;
 }

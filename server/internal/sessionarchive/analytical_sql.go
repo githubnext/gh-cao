@@ -28,6 +28,28 @@ func analyticalLiteral(value Scalar) string {
 
 func (p PlannedPredicate) sql() string {
 	field := identifier(p.Field.Name)
+	if p.State != "" {
+		present := "list_contains(PresentFields," + literal(p.Field.Name) + ")"
+		null := "list_contains(NullFields," + literal(p.Field.Name) + ")"
+		invalid := "list_contains(InvalidFields," + literal(p.Field.Name) + ")"
+		excluded, redacted := p.omissionSQL("excluded"), p.omissionSQL("redacted")
+		switch p.State {
+		case "present":
+			return present
+		case "absent":
+			return "(NOT " + present + " AND NOT " + excluded + " AND NOT " + redacted + ")"
+		case "null":
+			return null
+		case "invalid":
+			return invalid
+		case "excluded":
+			return excluded
+		case "redacted":
+			return redacted
+		case "valid":
+			return "(" + present + " AND NOT " + null + " AND NOT " + invalid + " AND NOT " + excluded + " AND NOT " + redacted + ")"
+		}
+	}
 	if p.Equals != nil {
 		return field + "=" + analyticalLiteral(*p.Equals)
 	}
@@ -52,6 +74,78 @@ func (p PlannedPredicate) sql() string {
 		parts = append(parts, field+bound.operator+analyticalLiteral(*bound.value))
 	}
 	return "(" + strings.Join(parts, " AND ") + ")"
+}
+
+// Omission ancestors are generated paths, never user-selected JSON traversal.
+func (p PlannedPredicate) OmissionPaths(kind string) []string {
+	paths := []string{p.Path + ":" + kind}
+	if kind == "excluded" {
+		for path, _, ok := strings.Cut(p.Path, "."); ok; {
+			paths = append(paths, path+":"+kind)
+			remaining := strings.TrimPrefix(p.Path, path+".")
+			child, _, more := strings.Cut(remaining, ".")
+			if !more {
+				break
+			}
+			path += "." + child
+		}
+	}
+	return paths
+}
+
+func (p PlannedPredicate) omissionSQL(kind string) string {
+	paths := p.OmissionPaths(kind)
+	terms := make([]string, 0, len(paths))
+	for _, path := range paths {
+		terms = append(terms, "list_contains(OmissionReasons,"+literal(path)+")")
+	}
+	return "(" + strings.Join(terms, " OR ") + ")"
+}
+
+func predicatesSQL(predicates []PlannedPredicate) string {
+	parts := make([]string, 0, len(predicates))
+	for _, predicate := range predicates {
+		parts = append(parts, predicate.sql())
+	}
+	if len(parts) == 0 {
+		return "true"
+	}
+	return strings.Join(parts, " AND ")
+}
+
+func (e PlannedExpression) sql() string {
+	if e.Field != "" {
+		return identifier(e.Field)
+	}
+	if e.Function == "" {
+		if e.Literal == nil {
+			kind := map[string]string{"number": "DOUBLE", "integer": "BIGINT", "boolean": "BOOLEAN", "string": "VARCHAR"}[e.Type]
+			return "CAST(NULL AS " + kind + ")"
+		}
+		return analyticalLiteral(*e.Literal)
+	}
+	var args []string
+	for _, arg := range e.Args {
+		args = append(args, arg.sql())
+	}
+	switch e.Function {
+	case "and":
+		return "(coalesce(" + args[0] + ",false) AND coalesce(" + args[1] + ",false))"
+	case "if":
+		return "(CASE WHEN " + args[0] + " THEN " + args[1] + " ELSE " + args[2] + " END)"
+	case "is-null":
+		return "(" + args[0] + " IS NULL)"
+	case "equals", "gt", "lte":
+		op := map[string]string{"equals": "=", "gt": ">", "lte": "<="}[e.Function]
+		return "coalesce((" + args[0] + op + args[1] + "),false)"
+	case "coalesce":
+		return "coalesce(" + strings.Join(args, ",") + ")"
+	case "sum":
+		return "(CAST(" + args[0] + " AS DOUBLE)+CAST(" + args[1] + " AS DOUBLE))"
+	case "quotient":
+		return "(CAST(" + args[0] + " AS DOUBLE)/nullif(CAST(" + args[1] + " AS DOUBLE),0))"
+	}
+	panic("unvalidated analytical expression")
 }
 
 func sqlOrder(field Column, direction string) string {
@@ -85,10 +179,43 @@ func (p Plan) sql(source string) string {
 		if value.Field.Type == "string" {
 			expression = "nullif(" + expression + ",'')"
 		}
-		if value.Reducer == "distinct-count" {
-			expression = "DISTINCT " + expression
+		filter := " FILTER (WHERE " + predicatesSQL(value.Predicates) + ")"
+		switch value.Reducer {
+		case "count":
+			expression = "count(" + expression + ")" + filter
+		case "distinct-count":
+			expression = "count(DISTINCT " + expression + ")" + filter
+		case "max":
+			expression = "max(" + expression + ")" + filter
+		case "first":
+			expression = "list_extract(list(" + expression + " ORDER BY Sequence)" + filter + ",1)"
+		case "sum":
+			if value.Field.Type == "integer" {
+				// sum(BIGINT) is wide integer arithmetic; convert once like upstream BigInt -> Number.
+				expression = "CAST(sum(" + expression + ")" + filter + " AS DOUBLE)"
+			} else {
+				valid := predicatesSQL(value.Predicates) + " AND " + expression + " IS NOT NULL"
+				expression = "(CASE WHEN count(" + expression + ")" + filter + ">0 THEN list_reduce(list(" +
+					expression + " ORDER BY Sequence) FILTER (WHERE " + valid + "),lambda a,b: a+b,0::DOUBLE) ELSE NULL END)"
+			}
 		}
-		expressions[value.As] = "count(" + expression + ")"
+		expressions[value.As] = expression
+	}
+	base := make([]string, 0, len(p.By)+len(p.Values))
+	for _, field := range p.By {
+		base = append(base, identifier(field.Name))
+	}
+	for _, value := range p.Values {
+		base = append(base, expressions[value.As]+" AS "+identifier(value.As))
+	}
+	// Select after the explicit post-aggregate phase, including computed fields.
+	if len(p.Values) > 0 {
+		for _, value := range p.Values {
+			expressions[value.As] = identifier(value.As)
+		}
+	}
+	for _, computed := range p.Computations {
+		expressions[computed.As] = identifier(computed.As)
 	}
 	for _, selection := range p.Selections {
 		projections = append(projections, expressions[selection.Field.Name]+" AS "+identifier(selection.As))
@@ -115,10 +242,22 @@ func (p Plan) sql(source string) string {
 		columns = append(columns, identifier(column.Name))
 		packed = append(packed, identifier(column.Name)+":=r."+identifier(column.Name))
 	}
+	reduced := "SELECT * FROM filtered"
+	if len(p.Values) > 0 {
+		reduced = "SELECT " + strings.Join(base, ",") + " FROM filtered" + group
+	}
+	computations := ""
+	last := "reduced"
+	for i, computed := range p.Computations {
+		next := "computed_" + strconv.Itoa(i)
+		computations += ",\n" + next + " AS (SELECT *," + computed.Expression.sql() + " AS " + identifier(computed.As) + " FROM " + last + ")"
+		last = next
+	}
 	return `WITH source AS MATERIALIZED (` + source + `),
 filtered AS (SELECT * FROM source WHERE ` + filter + `),
-reduced AS (SELECT ` + strings.Join(projections, ",") + ` FROM filtered` + group + `),
-page AS (SELECT ` + strings.Join(columns, ",") + `,row_number() OVER (` + order + `) AS __archive_order FROM reduced` + order +
+reduced AS (` + reduced + `)` + computations + `,
+projected AS (SELECT ` + strings.Join(projections, ",") + ` FROM ` + last + `),
+page AS (SELECT ` + strings.Join(columns, ",") + `,row_number() OVER (` + order + `) AS __archive_order FROM projected` + order +
 		` LIMIT ` + strconv.Itoa(p.Limit+1) + `)
 SELECT coalesce((SELECT list(struct_pack(` + strings.Join(packed, ",") + `) ORDER BY r.__archive_order) FROM page r), []) AS rows,
 (SELECT count(DISTINCT TraceId) FROM source WHERE len(Gaps)>0) AS tracesWithGaps`
@@ -236,7 +375,6 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	}
 	return AnalyticalResult{
 		Columns: plan.Columns, Rows: rows,
-		Metadata: QueryMetadata{Limited: limited, UpstreamCoverage: "unknown",
-			AdmissionGaps: s.admissionGaps, TracesWithGaps: result[0].TracesWithGaps},
+		Metadata: definition.Metadata(limited, s.admissionGaps, result[0].TracesWithGaps),
 	}, nil
 }

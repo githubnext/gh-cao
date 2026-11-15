@@ -389,10 +389,13 @@ Exceeding a complete-result budget returns an error, not partial success.
 An unknown trace is distinct from a complete empty trace.
 
 The analytical operation is explicitly named `session-query`, not the generic
-`query`. It accepts `language-version: "0.1.0"` and one Dashboard Language
+`query`. It accepts `language-version: "0.2.0"` and one Dashboard Language
 `query` definition over `archive-events`, with generated scalar event columns,
 typed conjunctive predicates, explicit projection, grouping, exact `count` and
-`distinct-count`, deterministic ordering, and optional top-N selection.
+`distinct-count`, numeric `sum`/`max`, filtered measures, ordered `first`,
+bounded `post-aggregate` scalar computation, deterministic ordering, and optional
+top-N selection. The count-only `0.1.0` request subset remains supported;
+it MUST reject the additional operators rather than implicitly grant them.
 `PayloadJSON`, arbitrary JSON paths, joins, scripts, and caller-selected storage
 are not supported. An explicit `query.limit` reports omitted matching rows with
 `metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
@@ -403,6 +406,57 @@ separate default-off analytical acceptance gate below. Status then exposes `anal
 the language version, generated scalar fields, source, predicates, exact
 reducers, and maximum output rows (10000 for DuckDB, 4096 for ADX). Unsupported
 operators or explicit limits MUST fail rather than silently emulate or clamp.
+
+The additional vocabulary is deliberately bounded: at most 16 measures, 64
+predicates across source and measure filters, 32 post-aggregate computations,
+256 expression nodes and nesting depth 8. Functions use the existing
+`function`/`args` and `field`/`value` vocabulary: `if`, `equals`, `gt`, `lte`,
+`and`, `sum`, `quotient`, `coalesce`, and `is-null`. Computations read only group
+keys, aggregate results and preceding computations. Null is allowed only in a
+typed numeric literal such as `{"value":null,"type":"number"}`, never as a
+missing filter, predicate, selector or argument. Division by zero produces
+typed null; comparisons with null are false.
+
+`first` is numeric and requires ascending original `Sequence` and the complete
+`Namespace`, `Repository`, `RunId`, `RunAttempt`, `TraceId`, `ProjectionId`
+group binding. It preserves the first selected row's null value. Real-valued
+`sum` requires the same binding/order and sequential IEEE arithmetic; integer
+`sum` accumulates widely before one Number/real conversion. Empty/all-null sums
+are null, not zero. Native DuckDB uses ordered lists and explicit reduction;
+ADX uses sorted, serialized, scan-bounded lists, typed conditional aggregates
+and scalar `extend`. No approximate cardinality or unordered `take_any`
+is permitted. ADX's million-row scan fence bounds those internal lists.
+These lowerers are not a universal compiler or a new canonical resolver.
+
+The `state` predicate accepts only generated promoted scalar names and inspects
+`PresentFields`, `NullFields`, `InvalidFields` and `OmissionReasons` using
+generated source paths. Supported states are present, absent, null, invalid,
+excluded, redacted and valid. Absent excludes known exclusions/redactions;
+valid requires presence without null, invalid or omission. Metadata arrays are
+not public scalar fields, and MUST NOT be stringified or traversed arbitrarily.
+
+Four separate reviewed definitions under
+`server/internal/sessionarchive/testdata/graders/` recompute execution step
+count, execution duration, working-set rebuild factor and context growth.
+Every definition retains all active trace rows before counting agent-phase
+proxy/report observations separately. Any proxy presence selects proxy for all
+counts, completeness, totals and first values, regardless of validity.
+Headers-only traces remain represented with unavailable steps. Duration uses
+complete nonnegative selected observations within the upstream safe sum bound,
+then the first valid agent execution result as fallback. Rebuild accepts only
+complete valid input observations with nonzero peak, including wide cumulative
+totals; context independently requires complete input AND output, safe
+per-direction totals and nonzero original first-record tokens. Limit/order is
+applied only after the metric.
+
+Rows expose value, availability, reason, chosen family and exact trace/projection
+identity; policy digest qualifies configuration. Query metadata adds a query
+digest and compiler implementation/profile provenance. These are recomputed
+scalar observations, distinct from recorded `grader.result`, threshold
+assessment and acquisition proof. Upstream v2 emits unavailable status but no
+reason codes; query reason labels are explicitly separate qualifications
+checked against upstream lookup state. Gaps and upstream coverage remain
+independent. Backend failure MUST be an error, not a null grading result.
 
 Validation produces one backend-neutral typed plan; separate trusted SQL and
 KQL lowerers implement it. Neither translates caller SQL nor exposes storage
@@ -421,6 +475,11 @@ run emits that binding for operator review and
 queries MUST remain unavailable. Existing capture acceptance and native
 privacy-ledger destination identity MUST remain unchanged. Native analytical readers retain
 the same dispatch-source membership and authoritative final-delivery fencing.
+The `0.2.0` analytical binding invalidates previous analytical acceptance only,
+not capture/native acceptance. Real destination acceptance additionally requires
+the pinned upstream replay artifact and execution of all four current definitions
+on the destination's actual Kusto engine before a binding can be emitted.
+No operator flag, emulator result or protocol mock substitutes for that evidence.
 
 Archive queries MUST NOT route through, replace, or fall back to ordinary
 SQLite/PostgreSQL dashboard queries. Query failures return explicit unavailable
@@ -483,6 +542,14 @@ top-N disclosure, and empty results. Protocol tests separately exercise
 reader lifetime, source fencing, malformed responses and resource rejection.
 The emulator proves functional KQL behavior,
 not live Blob/external-table access, authentication, retention, or performance.
+The same opt-in harness runs the four full usage definitions against real DuckDB
+and real Kusto using identical synthetic approved events. Without an approved
+real engine endpoint, the replay reports Kusto unavailable; it MUST NOT claim
+backend parity. The ordinary DuckDB gate runs all 15 pinned upstream replays and
+compares the four implemented full metric values, unavailable states and separate
+reason labels. An intentionally malformed envelope fixture retains its upstream
+lookup error and cannot establish metric parity; a separate explicit valid
+envelope scenario is compared without normalizing the original.
 Live Azure conformance remains separately required in an approved dedicated
 empty `conformance-*` namespace; missing required-mode evidence MUST fail.
 

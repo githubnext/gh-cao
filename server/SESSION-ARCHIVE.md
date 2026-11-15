@@ -29,7 +29,8 @@ The generated scalar columns are qualified by `PresentFields`, `NullFields`,
 for original structured evidence. Physical empty strings are not proof of source
 absence, and nullable/invalid measurements are not zero. The
 [fresh evidence contract](../specs/session-archive.md#21-fresh-original-evidence-contract)
-defines the 15 conditional grader-evidence families, not implemented formulas.
+defines the 15 conditional grader-evidence families. Four scalar usage formulas
+are reviewed declarative queries; the remaining eleven are unsupported.
 It preserves every original observation rather than reconciling invocations,
 usage totals, receipts or trajectory visits.
 
@@ -148,11 +149,31 @@ Parquet reconstructions. The focused Go regression is
 `CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1`.
 
 Reports separate approved-input preservation, pinned-grader replay, and attempted
-full public JSON query support. Successful scalar component queries are not
-complete metrics. Missing provenance, invalid measurements, missing/null inputs,
+full public JSON query support. The four definitions in
+`internal/sessionarchive/testdata/graders/` execute in real DuckDB and compare
+step count, duration, rebuild factor and context growth to the pinned upstream
+values and unavailable states. Reason codes are query qualifications; upstream
+v2 provides status but no reason codes. Successful scalar component queries for
+the remaining eleven are not complete metrics. Missing provenance, invalid measurements, missing/null inputs,
 excluded fields and redacted descriptions are not normalized to make replay
 succeed. Reports are private ignored test artifacts, not persisted archive
 scores, dashboard sources, live collection or Kusto/Azure acceptance evidence.
+The original preservation fixture intentionally lacks required upstream envelope
+provenance; its lookup error is retained, not counted as metric parity. A
+separate valid-envelope fixture tests the same measurement edge cases.
+Each scenario also includes another exact run attempt selecting aggregate usage
+to guard against cross-trace family/measurement leakage.
+
+With an explicitly approved real `CAO_KUSTO_EMULATOR_URL`, the same runner also
+executes `TestKustoUsageGraderReplay` against that engine. Without it, Kusto
+parity is unavailable. Never accept an emulator license or start an engine
+implicitly. The existing opt-in `scripts/test-kusto-emulator.sh` includes paired
+replay and retains its separate EULA approval gate.
+For separately approved live destination acceptance, set
+`CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR` to the retained replay directory containing
+`evidence.json`; the live gate executes all four current definitions on real
+Kusto before emitting the new analytical binding. This is not production
+ingestion, persisted grading or proof of complete acquired evidence.
 
 ## Queries and operations
 
@@ -265,7 +286,7 @@ For analytical session queries on DuckDB or ADX, use the explicit `session-query
 ```json
 {
   "kind": "session-query",
-  "language-version": "0.1.0",
+  "language-version": "0.2.0",
   "repository": "octo/api",
   "query": {
     "name": "session-event-counts",
@@ -285,10 +306,17 @@ Status advertises supported `queryKinds` and `analytical` capabilities, includin
 the generated scalar field vocabulary, predicates, exact reducers, and output
 budget (10000 rows on DuckDB, 4096 on ADX). Both backends execute the same
 versioned JSON profile through a typed plan and their own trusted SQL/KQL
-lowerers. Unsupported operators or explicit limits fail without fallback.
+lowerers. The count-only `0.1.0` request subset remains supported but does not
+grant filtered reducers or computation. Unsupported operators or explicit limits
+fail without fallback. See the [analytical contract](../specs/session-archive.md#5-authenticated-analytical-access)
+for filtered aggregates, generated field-state predicates, numeric ordered
+`first`, wide versus sequential sums and the explicit bounded post-aggregate
+phase. No reducer reads `PayloadJSON`; null first values are retained.
 Results include
 typed columns, rows, and metadata separating intentional top-N selection from
-known evidence gaps and unknown upstream coverage. These counts are event
+known evidence gaps and unknown upstream coverage, plus query digest and compiler
+implementation/profile identity. The reviewed grader rows retain policy digest,
+chosen usage family and explicit measurement qualification. These counts are event
 records, not tool calls or sessions. Full approved payloads remain available
 through `timeline`, not the analytical projection.
 
@@ -300,6 +328,8 @@ Azure conformance run emits `Config.AnalyticalAcceptanceBinding()` separately;
 review it and configure `CAO_SESSION_ARCHIVE_BLOB_ANALYTICAL_ACCEPTANCE` to
 enable the analytical profile. Existing capture acceptance, timeline/summary
 access and native privacy-ledger destination identity remain unchanged.
+Previous analytical bindings do not enable `0.2.0`. No real Kusto or Azure
+acceptance is claimed by a local DuckDB run.
 No archive, reader grant, or rollout policy is enabled by this implementation.
 
 When MCP is enabled on the Go server, `cao_session_query` is a separate

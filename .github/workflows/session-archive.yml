@@ -19,6 +19,8 @@ on:
       - specs/session-archive.md
       - adr/parquet-unified-session-storage.md
       - tests/unit/workflow-contract-session-archive.test.mjs
+      - scripts/replay-session-archive-graders.mjs
+      - tests/unit/session-archive-grader-source-pins.test.mjs
   push:
     branches: [main]
     paths: *archive-paths
@@ -112,12 +114,18 @@ jobs:
             echo "The fixed-cardinality archive benchmark must not skip" >&2
             exit 1
           fi
+      - name: Compare four full usage queries to pinned upstream graders
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/replay-session-archive-graders.mjs "$RUNNER_TEMP/session-archive-grader-replay"
       - name: Retain archive conformance results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: session-archive-conformance
-          path: ${{ runner.temp }}/session-archive-tests.jsonl
+          path: |
+            ${{ runner.temp }}/session-archive-tests.jsonl
+            ${{ runner.temp }}/session-archive-grader-replay/
           if-no-files-found: error
           retention-days: 14
 
@@ -136,10 +144,24 @@ jobs:
           cache-dependency-path: |
             server/go.sum
             internal/dashboardquery/go.sum
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install checksum-verified DuckDB for paired scalar replay
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/cao-duckdb"
+          curl --fail --silent --show-error --location --proto '=https' \
+            https://github.com/duckdb/duckdb/releases/download/v2.0.0/duckdb-cli-linux-amd64.tar.gz \
+            --output "$RUNNER_TEMP/cao-duckdb.tar.gz"
+          echo "c6507206baf7793c6013dbd82368469a45f20dc0e17a6f92f204602f652ed2bc  $RUNNER_TEMP/cao-duckdb.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/cao-duckdb.tar.gz" -C "$RUNNER_TEMP/cao-duckdb" duckdb
+          echo "DUCKDB_PATH=$RUNNER_TEMP/cao-duckdb/duckdb" >> "$GITHUB_ENV"
       - name: Required functional membership conformance against the official engine
         shell: bash
         env:
           ACCEPT_EULA: "Y"
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           scripts/test-kusto-emulator.sh 2>&1 | tee "$RUNNER_TEMP/session-archive-kusto.log"

@@ -258,11 +258,14 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 					if err := decoder.Decode(&want); err != nil {
 						t.Fatal(err)
 					}
+					var input sessionArchiveQuery
+					if err := json.Unmarshal([]byte(test.body), &input); err != nil {
+						t.Fatal(err)
+					}
 					if result.Kind != "session-query" || result.Generation != 1 || result.Rows == nil ||
 						!reflect.DeepEqual(*result.Rows, want) || !reflect.DeepEqual(result.Columns, test.columns) ||
-						result.Metadata == nil || *result.Metadata != (sessionarchive.QueryMetadata{
-						Limited: test.limited, UpstreamCoverage: "unknown",
-					}) || len(result.Events) != 0 || len(result.Summary) != 0 {
+						result.Metadata == nil || *result.Metadata != input.Query.Metadata(test.limited, 0, 0) ||
+						len(result.Events) != 0 || len(result.Summary) != 0 {
 						t.Fatalf("synthetic DuckDB query result mismatch: %+v; expected %+v", result, want)
 					}
 					encoded, err := json.Marshal(result)

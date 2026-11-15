@@ -1,0 +1,28 @@
+{
+  "name": "execution-duration",
+  "subject": "Recompute gh-aw v2 duration from selected usage or first valid execution result.",
+  "from": "archive-events",
+  "aggregate": {
+    "by": ["Namespace", "Repository", "RunId", "RunAttempt", "TraceId", "ProjectionId", "PolicyDigest", "EvidenceVersion"],
+    "values": [
+      {"field":"Sequence","as":"p","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"Sequence","as":"r","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"DurationMs","as":"pc","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"DurationMs","as":"rc","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"DurationMs","as":"ps","reducer":"sum","order-by":[{"field":"Sequence"}],"filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"DurationMs","as":"rs","reducer":"sum","order-by":[{"field":"Sequence"}],"filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"DurationMs","as":"fallback","reducer":"first","order-by":[{"field":"Sequence"}],"filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"execution.result"},{"field":"DurationMs","state":"valid"}]}}
+    ]
+  },
+  "post-aggregate": [
+    {"as":"requests","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"p"},{"field":"r"}]},
+    {"as":"counted","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"pc"},{"field":"rc"}]},
+    {"as":"total","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"ps"},{"field":"rs"}]},
+    {"as":"usage","function":"if","args":[{"function":"equals","args":[{"field":"requests"},{"field":"counted"}]},{"function":"if","args":[{"function":"lte","args":[{"field":"total"},{"value":9007199254740991}]},{"field":"total"},{"value":null,"type":"number"}]},{"value":null,"type":"number"}]},
+    {"as":"value","function":"coalesce","args":[{"field":"usage"},{"field":"fallback"}]},
+    {"as":"family","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"value":"firewall.token_usage"},{"value":"usage.report"}]},
+    {"as":"availability","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"unavailable"},{"value":"measured"}]},
+    {"as":"reason","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"duration-unavailable"},{"function":"if","args":[{"function":"is-null","args":[{"field":"usage"}]},{"value":"execution-result-fallback"},{"value":"measured"}]}]}
+  ],
+  "select": [{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"EvidenceVersion"},{"field":"family"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

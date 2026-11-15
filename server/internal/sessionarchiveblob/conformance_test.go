@@ -60,6 +60,13 @@ func approvedProjectionAt(t *testing.T, namespace, repository, runID, body strin
 
 func verifyLiveAnalytical(t *testing.T, a *Archive, scope sessionarchive.Scope, repository string, traces int64) {
 	t.Helper()
+	verifyUsageGraderReplay(t, func(ctx context.Context, kql string) queryTable {
+		table, err := a.query(ctx, "/v1/rest/query", kql)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return table
+	})
 	definition := archiveDefinition(t, `"aggregate":{"values":[{"field":"Sequence","as":"events","reducer":"count"},{"field":"RunId","as":"traces","reducer":"distinct-count"},{"field":"Timestamp","as":"timed","reducer":"distinct-count"}]}`)
 	_, result, reader, err := a.ReadAnalytical(t.Context(), scope, repository, definition)
 	if reader != nil {

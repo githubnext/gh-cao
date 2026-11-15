@@ -38,8 +38,16 @@
             "description": "Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace."
         },
         "language-version": {
-            "type": "string",
-            "const": "0.1.0",
+            "anyOf": [
+                {
+                    "type": "string",
+                    "const": "0.1.0"
+                },
+                {
+                    "type": "string",
+                    "const": "0.2.0"
+                }
+            ],
             "description": "Required only for kind=session-query on both DuckDB and ADX."
         },
         "query": {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -100,6 +101,146 @@ func TestAnalyticalPlanCapabilities(t *testing.T) {
 	}
 }
 
+func TestAnalyticalScalarValidation(t *testing.T) {
+	base := `"aggregate":{"values":[{"field":"InputTokens","as":"n","reducer":"sum"}]}`
+	for _, expression := range []string{
+		`{"as":"score","function":"coalesce","args":[{"field":"n"},{"value":null,"type":"number"}]}`,
+		`{"as":"score","function":"quotient","args":[{"field":"n"},{"value":0}]}`,
+	} {
+		definition := analyticalDefinition(t, base+`,"post-aggregate":[`+expression+`]`)
+		if definition.BaseProfile() {
+			t.Fatal("new computation granted through old profile")
+		}
+		plan, err := definition.Plan()
+		if err != nil {
+			t.Fatal(err)
+		}
+		capabilities := AnalyticalCapabilities(4096)
+		capabilities.Functions = nil
+		if !errors.Is(plan.Require(capabilities), ErrQuery) {
+			t.Fatal("missing computation capability silently accepted")
+		}
+	}
+	for _, clauses := range []string{
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"DurationMs"},{"value":1}]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"later"},{"value":1}]},{"as":"later","function":"sum","args":[{"field":"n"},{"value":1}]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"if","args":[{"field":"n"},{"value":1},{"value":0}]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"n","value":1},{"value":0}]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"" ,"value":1},{"value":0}]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"n"},{"value":null}]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"n"},{"value":null,"type":"string"}]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"n"},null]}]`,
+		base + `,"post-aggregate":[{"as":"score","function":"coalesce","args":[{"field":"n"},{"value":0,"payload":"$.x"}]}]`,
+		`"aggregate":{"values":[{"field":"InputTokens","as":"n","reducer":"count","filter":null}]}`,
+		`"aggregate":{"values":[{"field":"InputTokens","as":"n","reducer":"first","order-by":[{"field":"Timestamp"}]}]}`,
+		`"aggregate":{"values":[{"field":"DurationMs","as":"n","reducer":"sum"}]}`,
+		`"filter":{"predicates":[{"field":"PayloadJSON","state":"present"}]},"select":[{"field":"Sequence"}]`,
+		`"filter":{"predicates":[{"field":"Sequence","state":"valid"}]},"select":[{"field":"Sequence"}]`,
+		`"filter":{"predicates":[{"field":"InputTokens","state":"valid","equals":1}]},"select":[{"field":"Sequence"}]`,
+	} {
+		var definition Definition
+		content := `{"name":"invalid","subject":"Invalid analytical operation.","from":"archive-events",` + clauses + `}`
+		if err := json.Unmarshal([]byte(content), &definition); err == nil && definition.Validate() == nil {
+			t.Fatalf("invalid scalar operation accepted: %s", clauses)
+		}
+	}
+}
+
+func TestDuckDBScalarStatesIntegration(t *testing.T) {
+	c := testConfig(t)
+	content, err := os.ReadFile("testdata/evidence-policy.json")
+	if err != nil || decode(content, &c.Policy) != nil {
+		t.Fatal("missing evidence policy")
+	}
+	c.Policy.RedactPatterns = append(c.Policy.RedactPatterns, "token-secret")
+	a := openTestArchive(t, c, nil)
+	raw := usageEvent("firewall.token_usage", `null`, `1`, `0`) +
+		usageEvent("firewall.token_usage", `1.5`, `1`, `0`) +
+		usageEvent("firewall.token_usage", `"token-secret"`, `1`, `0`) +
+		usageEvent("firewall.token_usage", `0`, `1`, `0`) +
+		`{"type":"firewall.token_usage","provenance":{"phase":"agent"},"data":{"usage":{"outputTokens":1},"durationMs":0}}` + "\n"
+	p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", "2026-11-15", 1, []byte(raw), time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Admit(t.Context(), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	s := pinTestArchive(t, a)
+	for state, want := range map[string]int{"present": 4, "absent": 1, "null": 1, "invalid": 1, "redacted": 1, "excluded": 0, "valid": 1} {
+		definition := analyticalDefinition(t, `"filter":{"predicates":[{"field":"InputTokens","state":"`+state+`"}]},"aggregate":{"values":[{"field":"Sequence","as":"n","reducer":"count"}]}`)
+		out, err := s.Analytical(t.Context(), definition)
+		if err != nil || out.Rows[0]["n"] != json.Number(strconv.Itoa(want)) {
+			t.Fatalf("%s field state differs: %#v %v", state, out, err)
+		}
+	}
+	definition := analyticalDefinition(t, `"aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"values":[{"field":"InputTokens","as":"first","reducer":"first","order-by":[{"field":"Sequence"}]}]}`)
+	out, err := s.Analytical(t.Context(), definition)
+	if err != nil || out.Rows[0]["first"] != nil {
+		t.Fatalf("null first was skipped: %#v %v", out, err)
+	}
+}
+
+func TestDuckDBUsageCorrectionIntegration(t *testing.T) {
+	c := testConfig(t)
+	policy, err := os.ReadFile("testdata/evidence-policy.json")
+	if err != nil || decode(policy, &c.Policy) != nil {
+		t.Fatal("missing evidence policy")
+	}
+	a := openTestArchive(t, c, nil)
+	admit := func(raw string) {
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", "2026-11-15", 1, []byte(raw), time.Now().UTC())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Flush(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	admit(usageEvent("usage.report", `10`, `5`, `1`))
+	old := pinTestArchive(t, a)
+	admit(usageEvent("firewall.token_usage", `100`, `20`, `0.5`) + usageEvent("firewall.token_usage", `200`, `30`, `1.25`))
+	current := pinTestArchive(t, a)
+	for _, name := range []string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"} {
+		// #nosec G304 -- Fixed reviewed grader names, never request input.
+		content, err := os.ReadFile("testdata/graders/" + name + ".json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var definition Definition
+		if err := json.Unmarshal(content, &definition); err != nil {
+			t.Fatal(err)
+		}
+		for _, s := range []*Snapshot{old, current} {
+			out, err := s.Analytical(t.Context(), definition)
+			if err != nil || len(out.Rows) != 1 {
+				t.Fatalf("correction merged projections: %#v %v", out, err)
+			}
+			wantFamily := "usage.report"
+			if s == current {
+				wantFamily = "firewall.token_usage"
+			}
+			if out.Rows[0]["family"] != wantFamily {
+				t.Fatalf("incorrect active/pinned family: %#v", out)
+			}
+		}
+	}
+	if err := a.Withdraw(t.Context(), "octo/api", "123", 1); err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []*Snapshot{old, current} {
+		if !errors.Is(s.Deliver(func() error { t.Fatal("withdrawn scalar result delivered"); return nil }), ErrWithdrawn) {
+			t.Fatal("scalar delivery bypassed withdrawal")
+		}
+	}
+}
+
 func analyticalDefinition(t *testing.T, clauses string) Definition {
 	t.Helper()
 	var definition Definition
@@ -149,7 +290,7 @@ func TestSessionArchiveAnalyticalValidation(t *testing.T) {
 			`"order-by":[{"field":"Sequence","direction":"asc; SELECT 1"}],"select":`, 1),
 		"unknown-select-key": strings.Replace(valid, `"Sequence"`, `"Sequence","expression":"1"`, 1),
 		"reducer": `{"name":"test","subject":"Inspect events.","from":"archive-events",
-"aggregate":{"values":[{"field":"Sequence","as":"events","reducer":"sum"}]}}`,
+"aggregate":{"values":[{"field":"Type","as":"events","reducer":"sum"}]}}`,
 		"group-field": `{"name":"test","subject":"Inspect events.","from":"archive-events",
 "aggregate":{"by":["PayloadJSON"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]}}`,
 		"group-duplicate": `{"name":"test","subject":"Inspect events.","from":"archive-events",

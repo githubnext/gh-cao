@@ -592,6 +592,16 @@ privacy fences. Unsupported operators, unavailable exact engine functions, and
 resource failures are explicit, never cross-backend fallbacks. Real destination
 acceptance independently binds the additional analytical plan version, without
 changing capture acceptance or native privacy-ledger destination identity.
+The `0.2.0` analytical profile adds filtered numeric reducers, original-sequence
+first selection, generated field-state predicates and bounded post-aggregate
+scalar expressions. Four separate reviewed usage queries preserve per-trace
+proxy-presence precedence, completeness, duration fallback, and distinct rebuild
+versus context overflow behavior. They produce qualified recomputed values,
+not persisted scores, recorded grader observations or acquisition proof.
+Only typed promoted fields and generated state metadata are reducer inputs.
+Pinned upstream comparison runs the complete definitions on real DuckDB;
+real Kusto replay and live external-table acceptance remain explicit separate
+gates. Previous analytical acceptance cannot grant the new profile.
 The server-only `cao_session_query` MCP tool uses this archive contract,
 separately from `cao_query` and the canonical dashboard catalog. It preserves
 the additional trace-read grant, backend acceptance, exact repository scope,

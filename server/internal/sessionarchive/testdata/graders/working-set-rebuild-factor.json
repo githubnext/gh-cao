@@ -1,0 +1,29 @@
+{
+  "name": "working-set-rebuild-factor",
+  "subject": "Recompute gh-aw v2 rebuild factor with wide accumulation and one Number conversion.",
+  "from": "archive-events",
+  "aggregate": {
+    "by": ["Namespace", "Repository", "RunId", "RunAttempt", "TraceId", "ProjectionId", "PolicyDigest", "EvidenceVersion"],
+    "values": [
+      {"field":"Sequence","as":"p","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"Sequence","as":"r","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"InputTokens","as":"pc","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"InputTokens","as":"rc","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"InputTokens","as":"ps","reducer":"sum","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"InputTokens","as":"rs","reducer":"sum","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"InputTokens","as":"pm","reducer":"max","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"InputTokens","as":"rm","reducer":"max","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}}
+    ]
+  },
+  "post-aggregate": [
+    {"as":"requests","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"p"},{"field":"r"}]},
+    {"as":"counted","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"pc"},{"field":"rc"}]},
+    {"as":"total","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"ps"},{"field":"rs"}]},
+    {"as":"peak","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"pm"},{"field":"rm"}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"requests"},{"field":"counted"}]},{"function":"quotient","args":[{"field":"total"},{"field":"peak"}]},{"value":null,"type":"number"}]},
+    {"as":"family","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"value":"firewall.token_usage"},{"value":"usage.report"}]},
+    {"as":"availability","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"unavailable"},{"value":"measured"}]},
+    {"as":"reason","function":"if","args":[{"function":"equals","args":[{"field":"requests"},{"value":0}]},{"value":"no-requests"},{"function":"if","args":[{"function":"equals","args":[{"field":"requests"},{"field":"counted"}]},{"function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"zero-peak"},{"value":"measured"}]},{"value":"incomplete-input"}]}]}
+  ],
+  "select": [{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"EvidenceVersion"},{"field":"family"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

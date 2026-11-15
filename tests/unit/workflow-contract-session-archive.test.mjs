@@ -88,6 +88,10 @@ test("Parquet CI requires real DuckDB, independent local capture, and the millio
     assert.match(step.run, /if grep -q '"Action":"skip"'[\s\S]*exit 1/);
   }
   const results = job.steps.find(step => step.name === "Retain archive conformance results");
+  const replay = job.steps.find(step => step.name === "Compare four full usage queries to pinned upstream graders");
+  assert.equal(replay.env.GH_TOKEN, "${{ github.token }}");
+  assert.match(replay.run, /node scripts\/replay-session-archive-graders\.mjs/);
+  assert.equal(replay["continue-on-error"], undefined);
   assert.equal(results.if, "always()");
   assert.equal(results.with["if-no-files-found"], "error");
   assert.equal(results.with.name, "session-archive-conformance");
@@ -101,7 +105,7 @@ test("real Kusto archive CI keeps explicit default-false EULA acceptance separat
   const job = archive.jobs["session-archive-kusto"];
   assert.equal(job.if, "github.event_name == 'workflow_dispatch' && inputs.accept_kusto_emulator_eula");
   const run = job.steps.find(step => step.name === "Required functional membership conformance against the official engine");
-  assert.deepEqual(run.env, { ACCEPT_EULA: "Y" });
+  assert.deepEqual(run.env, { ACCEPT_EULA: "Y", GH_TOKEN: "${{ github.token }}" });
   assert.match(run.run, /scripts\/test-kusto-emulator\.sh/);
   assert.equal(run["continue-on-error"], undefined);
 });
