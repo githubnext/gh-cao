@@ -1,36 +1,7 @@
 {
- "source_sha": "aa73dc69f242b84a98feb7bda682feff1906abb4",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "source_sha": "88f046c2c910e43f1a6eaaa3e8a67b4762496ed9",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T05:34:38Z",
-   "worker_run_id": "43681292593",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43680980929",
-    "43655786695",
-    "43639680929",
-    "43623754509",
-    "43621919773",
-    "43616204011",
-    "43613020723",
-    "43611206032",
-    "43608206381",
-    "43593405440",
-    "43561388555",
-    "43536796952",
-    "43536491714",
-    "43506161539",
-    "43505502149",
-    "43504143936",
-    "43504093917",
-    "43503897533",
-    "43503506778",
-    "43502660435"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502660435 (push b406d93, created 2026-11-13T20:33:34Z) to 43680980929 (schedule d55c91b, created 2026-11-15T05:24:54Z); none queued or in progress; 0 cancelled. Samples: 12 successes (11 push + schedule 43561388555), 8 failures excluded and disclosed (Build documentation on 43680980929, 43655786695, 43639680929, 43623754509, 43621919773, 43616204011, 43613020723; Install on 43506161539); 5-run gate met. Exec (build start to deploy end, n=12) median 81.5 s, p90 90 s; 15 percent gate 12.2 s; 60 s gate. Queue (run created to build start, n=20) median 3 s, p90 4 s, max 71 s; queue is not execution time. Concurrency waits (documentation-pages, cancel-in-progress false): 43504143936 71 s behind in-flight 43504093917; 43502660435 45 s behind 43502562196 (outside window); cancel-in-progress true would cancel in-flight Pages publication and split groups risk out-of-order publication, both rejected. Avoidable rebuilds: 0 of 18 push runs (no new push head since d55c91b; earlier verifications stand); schedule 43680980929 is the by-design synthetic date refresh. Candidate execution saving 0 s, below gate. No suggestion; no create_issue; noop used. Reliability, not timing (unresolved): Build documentation red on 7 consecutive runs since 15:58Z incl. scheduled 43680980929 at 05:24Z; step logs HTTP 403 DIFC (one retry at 05:33Z, same); annotation only exit code 1; no open issue tracks it. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T05:53:11Z",
    "worker_run_id": "43682662970",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43536491714 (push 2cb6d9c, created 2026-11-14T00:47:23Z) to 43724243400 (push aa73dc6, created 2026-11-15T14:25:07Z), all within 14 days; gh run list re-read 15:32Z: same 20 IDs, none queued or in progress, 0 cancelled, no docs.yml run after 14:25Z; source aa73dc6 = HEAD = source_sha. Excluded and disclosed: 12 failures (stored step timings: Build documentation). n=8 successes (7 push + schedule 43561388555); 5-run gate met. Step timestamps re-fetched for the 8 successes: handoff (build completed to deploy started) 5 s; Configure Pages 0.5 s median; Upload Pages artifact 2 s median (p90 3); deploy Set up job 1 s. Removable transfer median 9 s, p90 9 s = 11.7 percent of median exec 77 s (p90 92); 15 percent gate 11.55 s not reached; 60 s gate unreachable. Deploy Pages (GitHub-managed) median 6 s, not controllable. Only change clearing the gate is merging deploy into build (about 6 s saved), rejected: id-token write and the github-pages environment gate would move into the build job that runs npm ci. Reliability, not timing: Build documentation failed on 12 consecutive runs 15:58Z Nov 14 to 13:51Z Nov 15; two green pushes since (13:54Z, 14:25Z); the 2026-11-16 schedule is unverified. Checkout (median 24 s) remains OPEN issue 20815 (0 comments, updated 2026-11-13T17:41:19Z), not repeated. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T15:53:10Z",
+   "worker_run_id": "43731956471",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "43731625055",
+    "43724243400",
+    "43721484176",
+    "43721157324",
+    "43706435376",
+    "43698271571",
+    "43682264332",
+    "43681861583",
+    "43680980929",
+    "43655786695",
+    "43639680929",
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952"
+   ],
+   "outcome": "complete, not actionable; reliability recovered. Window = latest 20 completed docs.yml runs 43536796952 (push 54e08aa, created 2026-11-14T00:50:15Z) to 43731625055 (push 88f046c, created 2026-11-15T15:45:14Z), all within 14 days; none queued or in progress; 0 cancelled; no docs.yml run after 15:46Z. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (Build documentation streak 43613020723..43721157324 incl. schedule 43680980929). Queue (run created to build start, n=20) median 3 s, p90 4 s, max 4 s; run intervals do not overlap, so no concurrency hold in window (43504143936 68 s hold is outside it). Execution (build start to deploy end, successes) median 77 s, p90 92 s; 15 percent gate 11.6 s and 60 s gate unmet; removable transfer median 8.5 s (11 percent). Avoidable rebuilds: 0 of 18 push runs. 88f046c touched dashboard/site/dashboard-fragments/workflow-value.json, which build.mjs copies (line 51), so it is a real build input; the test-only files it also touched are not copied. Latent watch item: docs.yml trigger dashboard/site/** matches dashboard/site/test/**, which the build never copies; no test-only docs run observed in window, so not repeated evidence. Schedule 05:23 UTC is by-design synthetic-date refresh (runs 05:24Z on time). No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -897,61 +897,61 @@
   "live_entry_last_accessed": "2026-11-15T15:14:19Z (entry still present; created 2026-11-13T20:57:12Z)"
  },
  "run_samples": {
-  "evaluated_at": "2026-11-15T15:16:45Z",
-  "window": "43536491714 (2026-11-14T00:47Z) .. 43724243400 (2026-11-15T14:25Z)",
+  "evaluated_at": "2026-11-15T15:53:10Z",
+  "window": "43536796952 (2026-11-14T00:50Z) .. 43731625055 (2026-11-15T15:45Z)",
   "n_success": 8,
   "n_failed": 12,
   "n_cancelled": 0,
   "success_ids": [
+   "43731625055",
    "43724243400",
    "43721484176",
    "43611206032",
    "43608206381",
    "43593405440",
    "43561388555",
-   "43536796952",
-   "43536491714"
+   "43536796952"
   ],
   "success_metrics_median_p90_s": {
    "queue_run_created_to_build_start": [
-    3,
-    4
+    3.0,
+    4.0
    ],
    "build_job": [
-    61.5,
-    79
+    60.5,
+    79.0
    ],
    "deploy_job": [
-    10,
-    13
+    11.0,
+    13.0
    ],
    "exec_build_start_to_deploy_end": [
-    77,
-    92
+    77.0,
+    92.0
    ],
    "checkout": [
     24.5,
-    37
+    37.0
    ],
    "set_up_node": [
     4.5,
-    6
+    6.0
    ],
    "install": [
-    9,
-    11
+    9.0,
+    11.0
    ],
    "build_documentation": [
     11.5,
-    15
+    15.0
    ],
    "demo": [
-    3.5,
-    4
+    4.0,
+    4.0
    ],
    "upload_pages_artifact": [
-    2,
-    3
+    2.0,
+    3.0
    ]
   },
   "note": "Jobs API step timings; step logs unavailable (403). Nearest-rank p90. The docs.yml workflow has build and deploy jobs only; there is no dashboard job."
@@ -995,16 +995,19 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-15T15:33:52Z",
-  "status": "no docs.yml run since 14:25Z; two consecutive green pushes (f02efd0 13:54Z, aa73dc6 14:25Z)",
-  "prior_streak": "12 consecutive Build documentation failures 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z)",
-  "note": "Reliability, not timing; no create_issue under the timing rule"
+  "observed_at": "2026-11-15T15:53:10Z",
+  "status": "Build documentation green on three consecutive pushes: 43721484176 (13:54Z), 43724243400 (14:25Z), 43731625055 (15:45Z, 88f046c). The 12-run streak 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) has ended; the 05:24Z schedule 43680980929 is part of that streak.",
+  "note": "Reliability, not timing; no create_issue under the timing rule. Cause of the streak was not verified (step logs HTTP 403)."
  },
- "etag_note": "2026-11-15: gh api conditional requests not used; completed-run job timings are stored in run_timings and need no re-fetch.",
+ "etag_note": "2026-11-15: gh api conditional requests not used; completed-run job timings are stored in run_timings and need no re-fetch. Only run 43731625055 jobs were fetched new (Jobs API); compare 88f046c vs aa73dc6 via GitHub compare API.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-15T14:52:24Z",
-   "note": "Confirm the 2026-11-16 ~05:23Z schedule and next push succeed at Build documentation (streak has two green samples)."
+   "observed_at": "2026-11-15T15:53:10Z",
+   "note": "Confirm the 2026-11-16 ~05:23Z schedule succeeds at Build documentation (current streak is three green pushes, no schedule green since 43561388555)."
+  },
+  {
+   "observed_at": "2026-11-15T15:53:10Z",
+   "note": "Latent avoidable-rebuild path: docs.yml paths dashboard/site/** matches dashboard/site/test/**, which build.mjs never copies. Re-check on each scheduling evaluation for test-only docs runs; act only on repeated evidence."
   },
   {
    "observed_at": "2026-11-15T14:34:12Z",
@@ -1012,8 +1015,8 @@
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-15T15:33:52Z",
-  "window": "43536491714..43724243400 (latest 20 completed docs.yml runs)",
+  "evaluated_at": "2026-11-15T15:53:10Z",
+  "window": "43536796952..43731625055 (latest 20 completed docs.yml runs)",
   "columns": [
    "run",
    "event",
@@ -1033,6 +1036,23 @@
   ],
   "note": "Durations from Jobs API step timestamps (completed runs are immutable; reuse rows and fetch only new runs). Failed runs have deploy skipped and post-step skipped.",
   "rows": [
+   [
+    43731625055,
+    "push",
+    "success",
+    "88f046c",
+    4.0,
+    62.0,
+    28.0,
+    2.0,
+    9.0,
+    0.0,
+    13.0,
+    4.0,
+    2.0,
+    12.0,
+    79.0
+   ],
    [
     43724243400,
     "push",
@@ -1355,29 +1375,12 @@
     2.0,
     12.0,
     75.0
-   ],
-   [
-    43536491714,
-    "push",
-    "success",
-    "2cb6d9c",
-    4.0,
-    64.0,
-    28.0,
-    3.0,
-    9.0,
-    0.0,
-    13.0,
-    3.0,
-    2.0,
-    10.0,
-    79.0
    ]
   ]
  },
  "transfer_model": {
-  "verified_at": "2026-11-15T15:33:52Z",
-  "window": "43536491714..43724243400 (8 successes; 12 failures excluded)",
+  "verified_at": "2026-11-15T15:53:10Z",
+  "window": "43536796952..43731625055 (8 successes; 12 failures excluded)",
   "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
   "columns": [
    "run",
@@ -1392,6 +1395,18 @@
    "exec_s"
   ],
   "rows": [
+   [
+    "43731625055",
+    "push",
+    5,
+    0,
+    2,
+    1,
+    8,
+    12,
+    8,
+    79
+   ],
    [
     "43724243400",
     "push",
@@ -1475,28 +1490,16 @@
     12,
     9,
     75
-   ],
-   [
-    "43536491714",
-    "push",
-    5,
-    1,
-    2,
-    1,
-    6,
-    10,
-    9,
-    79
    ]
   ],
   "summary": {
-   "removable_median_s": 9,
+   "removable_median_s": 8.5,
    "removable_p90_s": 9,
-   "removable_share_of_exec_median_pct": 11.7,
+   "removable_share_of_exec_median_pct": 11.0,
    "exec_median_s": 77,
    "exec_p90_s": 92,
-   "deploy_pages_median_s": 6
+   "deploy_pages_median_s": 6.5
   },
-  "note": "Completed-run timings are immutable; reuse rows and fetch only runs newer than 43724243400."
+  "note": "Completed-run timings are immutable; reuse rows and fetch only runs newer than 43731625055."
  }
 }
