@@ -1,4 +1,5 @@
 import "./trace-emitter.mjs";
+using TypeSpec.Reflection;
 
 /** Approved, immutable trace evidence; independent of destination capacity. */
 namespace Cao.Trace;
@@ -157,18 +158,89 @@ model TraceMiningManifest extends Identity {
 
 /** Archive rows retain logical events, not native ADX transport fragments. */
 namespace Archive {
+  /** Original approved JSON path and scalar validation; never a derived value. */
+  extern dec evidence(target: ModelProperty, path: valueof string, validation?: valueof string);
+
   model Event {
-    ...OmitProperties<Cao.Trace.TraceEvents, "PartCount" | "RowDigest">;
+    Namespace: string;
     Repository: string;
-    /** Canonical RunId above is distinct from this hashed native trace identity. */
+    /** Exact GitHub execution identity; not a harness or enrollment attempt. */
+    RunId: string;
+    RunAttempt: int64;
     TraceId: string;
+    ProjectionId: string;
+    ContractVersion: 2;
+    /** Shared approval/preservation transformation, independently versioned. */
+    EvidenceVersion: string;
+    Sequence: int64;
+    Type: string;
+    ContentDigest: string;
     /** Empty means undated, never a fabricated source clock. */
     CompletionDay: string;
     ArtifactDigest: string;
     PolicyDigest: string;
     Gaps: string[];
     CapturedAt: string;
+    /** Generated source binding names, including structured families. Not inferred source state. */
+    PresentFields: string[];
+    NullFields: string[];
+    InvalidFields: string[];
+    /** Bounded known-field/family reasons; contains no excluded values. */
+    OmissionReasons: string[];
+
+    /** Strings use empty physical values plus state metadata, also on ADX. */
+    @evidence("id") EventId: string;
+    @evidence("parentId") ParentId: string;
+    @evidence("timestamp") Timestamp: string;
+    @evidence("provenance.component") Component: string;
+    @evidence("provenance.phase") Phase: string;
+    @evidence("provenance.path") ProvenancePath: string;
+    @evidence("provenance.index", "count") ProvenanceIndex?: int64 | null;
+    @evidence("provenance.timestampMs", "duration") ProvenanceTimestampMs?: float64 | null;
+    @evidence("provenance.attemptId") ProvenanceAttemptId: string;
+    @evidence("provenance.startupAttemptId") ProvenanceStartupAttemptId: string;
+    @evidence("data.sessionId") SessionId: string;
+    @evidence("data.agentId") AgentId: string;
+    @evidence("data.toolCallId") ToolCallId: string;
+    @evidence("data.toolName") ToolName: string;
+    @evidence("data.success") Success?: boolean | null;
+    @evidence("data.status") Status: string;
+    @evidence("data.isError") IsError?: boolean | null;
+    @evidence("data.method") Method: string;
+    @evidence("data.serverName") ServerName: string;
+    @evidence("data.rpcId", "identifier-string") RpcIdString: string;
+    @evidence("data.rpcId", "identifier-number") RpcIdNumber?: int64 | null;
+    @evidence("data.requestId", "identifier-string") RequestIdString: string;
+    @evidence("data.requestId", "identifier-number") RequestIdNumber?: int64 | null;
+    @evidence("data.usage.inputTokens", "count") InputTokens?: int64 | null;
+    @evidence("data.usage.outputTokens", "count") OutputTokens?: int64 | null;
+    @evidence("data.durationMs", "duration") DurationMs?: float64 | null;
+    @evidence("data.event") DataEvent: string;
+    @evidence("data.message") Message: string;
+    @evidence("data.layer") Layer: string;
+    @evidence("data.attempt", "count") DataAttempt?: int64 | null;
+    @evidence("data.attemptId") DataAttemptId: string;
+    @evidence("data.startupAttemptId") DataStartupAttemptId: string;
+    @evidence("data.strategy") Strategy: string;
+    @evidence("data.startedAt", "duration") StartedAt?: float64 | null;
+    @evidence("data.type") DataType: string;
+    @evidence("data.version", "identifier-number") ProducerVersion?: int64 | null;
+    @evidence("data.version", "identifier-string") ProducerVersionString: string;
     /** Full approved event as UTF-8 JSON; absent and explicit null remain distinct. */
     PayloadJSON: string;
+  }
+
+  /** State metadata only. Structured content lives once, on its original event. */
+  model EvidenceFamilies {
+    @evidence("provenance", "object") Provenance: unknown;
+    @evidence("data.usage", "object") Usage: unknown;
+    @evidence("data.error", "any") Error: unknown;
+    @evidence("data.retryHint", "any") RetryHint: unknown;
+    @evidence("data.attemptResults", "array") AttemptResults: unknown;
+    @evidence("data.startupAttemptResults", "array") StartupAttemptResults: unknown;
+    @evidence("data.objectives", "array") Objectives: unknown;
+    @evidence("data.actions", "array") Actions: unknown;
+    @evidence("data.states", "array") States: unknown;
+    @evidence("data.events", "array") Events: unknown;
   }
 }

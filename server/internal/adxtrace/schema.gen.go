@@ -23,3 +23,6 @@ var schema string
 
 // Schema returns the operator-applied trace KQL; runtime never provisions ADX.
 func Schema() string { return schema }
+
+// EvidencePaths bounds omission metadata to the generated original-evidence contract.
+var EvidencePaths = []string{"id", "parentId", "timestamp", "provenance.component", "provenance.phase", "provenance.path", "provenance.index", "provenance.timestampMs", "provenance.attemptId", "provenance.startupAttemptId", "data.sessionId", "data.agentId", "data.toolCallId", "data.toolName", "data.success", "data.status", "data.isError", "data.method", "data.serverName", "data.rpcId", "data.requestId", "data.usage.inputTokens", "data.usage.outputTokens", "data.durationMs", "data.event", "data.message", "data.layer", "data.attempt", "data.attemptId", "data.startupAttemptId", "data.strategy", "data.startedAt", "data.type", "data.version", "provenance", "data.usage", "data.error", "data.retryHint", "data.attemptResults", "data.startupAttemptResults", "data.objectives", "data.actions", "data.states", "data.events"}

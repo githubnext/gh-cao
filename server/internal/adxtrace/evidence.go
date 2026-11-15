@@ -45,6 +45,27 @@ type Evidence struct {
 	CapturedAt                                                        time.Time
 	Gaps                                                              []string
 	Tables                                                            map[string][]model.Row
+	EventOmissions                                                    [][]string
+	EvidenceVersion                                                   string
+}
+
+const PreservationVersion = "cao-approved-events-v2"
+
+// EvidenceValue reads only an original JSON path. A malformed parent is not
+// coerced into a missing child or a fabricated measurement.
+func EvidenceValue(event map[string]any, path string) (value any, present, invalidParent bool) {
+	value = event
+	for _, key := range strings.Split(path, ".") {
+		parent, ok := value.(map[string]any)
+		if !ok {
+			return nil, false, true
+		}
+		value, present = parent[key]
+		if !present {
+			return nil, false, false
+		}
+	}
+	return value, true, false
 }
 
 var secretKeys = regexp.MustCompile(`(?i)^(authorization|cookie|set-cookie|password|passwd|secret|token|access_token|api_key|private_key|client_secret)$`)
@@ -130,7 +151,8 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 		return Evidence{}, errors.New("trace source exceeds eligibility budget or has invalid identity")
 	}
 	e := Evidence{Repository: repository, RunID: runID, Attempt: attempt, Day: day, CapturedAt: now.UTC(),
-		ArtifactDigest: digest(artifact), PolicyDigest: policyDigest(c.Policy), Tables: map[string][]model.Row{}, Gaps: []string{}}
+		ArtifactDigest: digest(artifact), PolicyDigest: policyDigest(c.Policy), Tables: map[string][]model.Row{}, Gaps: []string{},
+		EvidenceVersion: PreservationVersion}
 	e.ID = digest([]byte(repository + "\x00" + runID + fmt.Sprintf("\x00%d", attempt)))
 	patterns, err := redactionPatterns(c.Policy.RedactPatterns)
 	if err != nil {
@@ -168,27 +190,43 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 			e.Gaps = append(e.Gaps, "unapproved-event")
 		}
 		approved := map[string]any{"type": kind, "data": map[string]any{}}
+		omissions := []string{}
+		excluded := func(path string) {
+			if slices.Contains(EvidencePaths, path) {
+				omissions = append(omissions, path+":excluded")
+			}
+		}
 		for key, value := range event {
 			switch key {
 			case "id", "parentId", "timestamp":
-				if value != nil && scalar(value) == "" && value != "" {
-					return Evidence{}, errors.New("invalid native event identity or timestamp")
+				switch value.(type) {
+				case nil, string, json.Number, bool:
+				default:
+					return Evidence{}, errors.New("invalid structured event identity or timestamp")
 				}
 				approved[key] = value
 			case "provenance":
 				provenance, ok := value.(map[string]any)
 				if !ok {
+					if value == nil {
+						approved[key] = nil
+						continue
+					}
 					return Evidence{}, errors.New("invalid trace provenance")
 				}
 				filtered := map[string]any{}
 				for name, field := range provenance {
-					if slices.Contains([]string{"component", "phase", "path", "index", "timestampMs"}, name) {
-						if scalar(field) == "" && field != "" {
-							return Evidence{}, errors.New("invalid trace provenance field")
+					if slices.Contains([]string{"component", "phase", "path", "index", "timestampMs"}, name) ||
+						slices.Contains(c.Policy.ProvenanceFields, name) {
+						switch field.(type) {
+						case nil, string, json.Number, bool:
+						default:
+							return Evidence{}, errors.New("invalid structured trace provenance field")
 						}
 						filtered[name] = field
 					} else {
 						e.Gaps = append(e.Gaps, "unapproved-provenance-field")
+						excluded("provenance." + name)
 					}
 				}
 				approved[key] = filtered
@@ -203,6 +241,17 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 				filtered[key] = value
 			} else {
 				e.Gaps = append(e.Gaps, "unapproved-data-field")
+				excluded("data." + key)
+			}
+		}
+		before := map[string]string{}
+		for _, path := range EvidencePaths {
+			if value, present, _ := EvidenceValue(approved, path); present {
+				content, err := json.Marshal(value)
+				if err != nil {
+					return Evidence{}, err
+				}
+				before[path] = digest(content)
 			}
 		}
 		changed := false
@@ -210,6 +259,18 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 		if changed {
 			e.Gaps = append(e.Gaps, "redacted")
 		}
+		for path, previous := range before {
+			value, _, _ := EvidenceValue(approved, path)
+			content, err := json.Marshal(value)
+			if err != nil {
+				return Evidence{}, err
+			}
+			if digest(content) != previous {
+				omissions = append(omissions, path+":redacted")
+			}
+		}
+		slices.Sort(omissions)
+		e.EventOmissions = append(e.EventOmissions, slices.Compact(omissions))
 		indexed := func(value any) string {
 			result := scalar(value)
 			if len(result) > 4096 {
@@ -265,7 +326,11 @@ func Project(c Config, repository, runID, day string, attempt int64, artifact []
 	if err != nil {
 		return Evidence{}, err
 	}
-	e.Version = digest([]byte(e.ArtifactDigest + e.PolicyDigest + digest(content)))
+	omissionContent, err := json.Marshal(e.EventOmissions)
+	if err != nil {
+		return Evidence{}, err
+	}
+	e.Version = digest([]byte(PreservationVersion + e.ArtifactDigest + e.PolicyDigest + digest(content) + digest(omissionContent)))
 	evidenceLog.Printf("projected trace evidence: events=%d parts=%d gaps=%d", sequence, parts, len(e.Gaps))
 	e.Tables["TraceManifest"] = []model.Row{{
 		"Repository": repository, "ArtifactDigest": e.ArtifactDigest, "PolicyDigest": e.PolicyDigest,

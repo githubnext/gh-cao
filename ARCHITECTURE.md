@@ -517,6 +517,24 @@ further narrows those visits. Multiple enabled destinations intersect admitted
 metadata-cache membership and fan out capture/withdrawal without another
 collector. Failed admission cannot commit an acquisition-cache skip.
 
+The fresh archive event contract is version 2, independently of native ADX
+trace version 1. TypeSpec owns original scalar bindings, nullable bool/real/
+integer columns, physical string values and presence/null/invalid metadata;
+approved structured evidence remains on its original event in `PayloadJSON`.
+Projection occurs after closed approval/redaction and binds the preservation
+transform and Parquet version into immutable identity. Explicit approval can
+retain provenance `attemptId`/`startupAttemptId`, but grants neither additional
+content scope nor collection authority. Whole top-level data-subtree approvals
+retain their actual nested privacy scope. Original tool, usage, retry, receipt
+and trajectory observations remain separate and ordered; no scores,
+reconciliation, guard labels or inferred state identities are stored.
+
+There are no old-schema readers, legacy adapters or in-place migrations.
+Fresh schema/destination provisioning requires new reviewed acceptance because
+`EventSchema()` binds both legacy and native acceptance. Old contents,
+registrations, withdrawal obligations and source-epoch fences are not erased
+or bypassed by that contract change; storage retirement is separately scoped.
+
 One private durable owner stages approved complete traces, converts explicit
 TypeSpec-generated logical rows through the DuckDB v2.0.0-or-newer CLI (CI-pinned by checksum)
 into packed immutable Zstandard Parquet, verifies counts/order/integrity, and
@@ -552,7 +570,8 @@ pending cleanup cannot authorize old content after reenrollment.
 The boundary does not activate the distributed collector or permit multiple ADX
 exporters. Native collector selection remains fail-closed pending real PG
 enrollment/read-lock/outbox composition, Azure acceptance, and the complete
-integration gates. The separately selected legacy archive is unchanged.
+integration gates. Native ADX trace tables remain an independently selected
+unchanged physical contract.
 
 Local trusted queries read authorized Parquet directly without persistent
 DuckDB event tables. Hosted trusted ADX queries require verified external-table

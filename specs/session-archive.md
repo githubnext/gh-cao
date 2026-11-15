@@ -74,6 +74,80 @@ coverage, or pre-redaction bytes. Reasoning is included only where the closed
 content policy specifically approves it. Unknown or incompatible schema versions
 MUST fail explicitly.
 
+### 2.1 Fresh original-evidence contract
+
+Archive `ContractVersion` is **2**, independent of the native ADX trace tables'
+unchanged version 1. There is no backward-compatible reader, old-schema adapter
+or in-place migration. Provision a fresh archive directory and a fresh reviewed
+Blob prefix/external table. `EventSchema()` changes both `AcceptanceBinding()`
+and `NativeAcceptanceBinding()`; analytical activation also requires its newly
+bound acceptance. Old destination acceptance MUST NOT activate this layout.
+Rejection MUST NOT erase old objects, privacy registrations, pending withdrawals
+or source-epoch fences. Retiring previous data is a separate explicitly scoped
+operator operation; fresh provisioning is not permission to delete those
+records or bypass cleanup obligations.
+
+The TypeSpec `@evidence` annotations generate scalar bindings, Go/Parquet/SQL/KQL
+types and structured-family metadata. Typed projection runs only on the approved,
+redacted original event. The shared preservation transform is
+`cao-approved-events-v2`; it participates in policy/evidence identity, and archive
+projection identity additionally binds the Parquet contract version. Replay MUST
+NOT reuse a projection produced under previous preservation semantics.
+
+Every promoted field and declared family has generated-name entries in
+`PresentFields`, `NullFields` and `InvalidFields`. Invalid includes incompatible
+types, invalid numeric measurements or an unusable parent; it never converts
+such measurements to zero. Counts require a nonnegative safe integer; durations
+retain finite nonnegative fractional values as `DOUBLE`/`real`. Original numeric
+lexemes, including invalid or unrepresentable measurements, remain in approved
+`PayloadJSON`. Scalar numeric/boolean columns are nullable. Physical strings
+use `""` on both engines because Kusto strings cannot be null; metadata
+distinguishes missing, explicit null, invalid, redacted and originally empty
+strings. String/number alternatives for RPC/request IDs and producer versions
+have separate typed columns, with their original JSON type retained in payload.
+`OmissionReasons` records only bounded generated paths with `excluded` or
+`redacted`, never excluded values. Excluded evidence does not reveal its nullness.
+Redacting one family member MUST NOT discard an unaffected sibling's typed value.
+
+The evidence-only fixtures are anchored to `github/gh-aw`
+`5ac122295e5e839aa15a727ecf4762f3e680cc24`, specifically
+`actions/setup/js/grader_session.cjs`, `trace_graders.cjs` and
+`trajectory_graders.cjs`. They support the following 15 candidates **only when
+the original evidence was supplied and explicitly approved without relevant
+redaction**:
+
+| Candidates | Preserved original evidence |
+| --- | --- |
+| `tool-failure-count`, `tool-success-rate`, `trajectory-efficiency` | Separate agent-phase native starts/completions and gateway RPC/tool observations, tool/session/subagent identity, success/status/isError and approved error state, provenance and harness attempt scopes |
+| `execution-step-count`, `execution-duration`, `working-set-rebuild-factor`, `context-growth` | Every proxy usage, aggregate usage and execution-result observation in recorded order; original input/output tokens, duration, phase, validity and source state |
+| `retries` | MCP event/retryHint and approved message; separate harness attempt/retry observations, startup/harness identity, layer, strategy, startedAt and supplied compatibility histories |
+| `artifact-production` | Separate safe-output dispatch and applied results, including failed applied receipts and missing/null status, with original phase/path |
+| `objective-coverage`, `premature-termination-gap`, `policy-near-miss` | Every supplied trajectory objectives/events collection, descriptions and original satisfaction/event indices, including zero and IR safe-output observations |
+| `grounding-accuracy` | Supplied actions and their original identity/index/explicit validAtIssueTime |
+| `state-revisit-probability-rep`, `recurrence-rate` | Every supplied state visit, repeated ID, representation, firstEventIndex and original IR event mapping |
+
+No capture-time invocation reconciliation, usage precedence choice, native retry
+inclusion decision, objective matching, guard classification, inferred state
+identity or score is persisted. Compatibility histories remain distinguishable
+from canonical harness events. Native `engine.retry` is not automatically
+included in the reviewed retries candidate. Harness/startup attempts, GitHub
+attempts and enrollment epochs remain distinct. No arguments, tool output
+bodies, models, cache counters or safe-output titles/URLs are newly approved
+merely to support these candidates.
+
+Approval remains a closed event policy selecting entire **top-level data
+subtrees**, not arbitrary nested paths. Approving `usage`, `objectives`,
+`actions`, `states`, `events`, `attemptResults` or `startupAttemptResults` can
+retain extra nested values; operators MUST explicitly review that actual privacy
+scope. Textual retry messages/objective descriptions and original errors need
+specific event-field approval and retain redaction qualification.
+`provenanceFields: ["attemptId", "startupAttemptId"]` separately and explicitly
+admits only those two provenance names. Its default is empty, and other names,
+duplicates and nested-path approvals fail. This grants no content beyond the
+named provenance or collection authority. Unsupplied, excluded or materially
+redacted required evidence remains unavailable; it MUST NOT be inferred or
+fetched from repository files.
+
 The initial profile admits complete approved traces. It MUST NOT silently
 subsample events. Sampling requires the existing frozen whole-trace membership
 semantics; an unsupported sampled profile MUST fail closed, not invent new

@@ -1,0 +1,24 @@
+{
+  "version": "synthetic-grader-evidence-v2",
+  "contentApproved": true,
+  "rightsApproved": true,
+  "provenanceFields": ["attemptId", "startupAttemptId"],
+  "redactPatterns": ["secret-text", "token=private"],
+  "events": {
+    "session.format": ["version"],
+    "session.collection": ["complete"],
+    "tool.execution_start": ["toolCallId", "toolName", "sessionId", "agentId"],
+    "tool.execution_complete": ["toolCallId", "toolName", "sessionId", "agentId", "success", "status", "isError", "error"],
+    "mcp.rpc.request": ["method", "serverName", "toolCallId", "rpcId", "requestId", "toolName", "sessionId", "agentId"],
+    "mcp.rpc.response": ["method", "serverName", "toolCallId", "rpcId", "requestId", "toolName", "sessionId", "agentId", "success", "error"],
+    "mcp.tool_call": ["method", "serverName", "requestId", "toolName", "success", "event", "retryHint", "message"],
+    "harness.attempt": ["layer", "attempt", "attemptId", "startupAttemptId", "strategy", "startedAt"],
+    "harness.retry": ["attemptResults", "startupAttemptResults"],
+    "engine.retry": [],
+    "firewall.token_usage": ["usage", "durationMs"],
+    "usage.report": ["usage", "durationMs"],
+    "execution.result": ["durationMs"],
+    "safe_output.result": ["type", "status"],
+    "trajectory.ir": ["objectives", "actions", "states", "events"]
+  }
+}

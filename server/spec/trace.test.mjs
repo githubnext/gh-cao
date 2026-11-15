@@ -128,7 +128,7 @@ test('archive projection derives explicit Parquet/Go columns from the shared Typ
     const go = execFileSync('gofmt', [`${directory}/sessionarchive/schema.gen.go`], { encoding: 'utf8' });
     assert.equal(go, readFileSync(new URL('../internal/sessionarchive/schema.gen.go', import.meta.url), 'utf8'));
     const schema = JSON.parse(generated);
-    assert.equal(schema.version, 1);
+    assert.equal(schema.version, 2);
     const columns = Object.fromEntries(schema.columns.map(({ name, type }) => [name, type]));
     assert.equal(columns.PayloadJSON, 'VARCHAR');
     assert.equal(columns.Gaps, 'VARCHAR[]');
@@ -138,6 +138,17 @@ test('archive projection derives explicit Parquet/Go columns from the shared Typ
     assert.equal(columns.TraceId, 'VARCHAR');
     assert.equal(columns.PartCount, undefined);
     assert.equal(columns.RowDigest, undefined);
+    assert.equal(columns.Success, 'BOOLEAN');
+    assert.equal(columns.DurationMs, 'DOUBLE');
+    assert.equal(columns.InputTokens, 'BIGINT');
+    for (const field of ['PresentFields', 'NullFields', 'InvalidFields', 'OmissionReasons']) assert.equal(columns[field], 'VARCHAR[]');
+    assert.equal(schema.columns.find(({ name }) => name === 'DurationMs').path, 'data.durationMs');
+    assert.equal(schema.columns.find(({ name }) => name === 'DurationMs').nullable, true);
+    assert.equal(schema.columns.find(({ name }) => name === 'EventId').nullable, false);
+    assert.deepEqual(schema.families.find(({ name }) => name === 'States'), {
+      name: 'States', kind: 'array', path: 'data.states', validation: 'array'
+    });
+    assert.doesNotMatch(go, /EpisodeID|ParentHopID|FailureVerdict|Score|CanonicalState/);
     for (const key of ['ArtifactDigest', 'PolicyDigest', 'CompletionDay', 'CapturedAt', 'ContentDigest']) {
       assert.equal(columns[key], 'VARCHAR');
     }

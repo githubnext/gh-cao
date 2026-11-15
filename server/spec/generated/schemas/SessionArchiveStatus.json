@@ -145,6 +145,14 @@
                         {
                             "type": "string",
                             "const": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "const": "number"
+                        },
+                        {
+                            "type": "string",
+                            "const": "boolean"
                         }
                     ]
                 }

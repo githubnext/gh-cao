@@ -2,20 +2,36 @@ import { createTypeSpecLibrary, emitFile, getNamespaceFullName, navigateProgram 
 
 export const $lib = createTypeSpecLibrary({ name: 'cao-trace', diagnostics: {} });
 
-const namespace = 'Cao.Trace';
+export const namespace = 'Cao.Trace.Archive';
+const traceNamespace = 'Cao.Trace';
+const evidenceKey = Symbol.for('cao-trace.evidence');
+
+export function $evidence(context, target, path, validation = '') {
+  if (!/^(id|parentId|timestamp|provenance(?:\.[A-Za-z][A-Za-z0-9]*)?|data\.[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)?)$/.test(path)
+    || !['', 'count', 'duration', 'identifier-string', 'identifier-number', 'object', 'array', 'any'].includes(validation)) {
+    throw new Error('Invalid original evidence binding');
+  }
+  context.program.stateMap(evidenceKey).set(target, { path, validation });
+}
 const tableNames = [
   'TraceEvents', 'TraceContentParts', 'TraceManifest',
   'TraceSampleFrames', 'TraceSampleMembership', 'TraceDatasets',
   'TraceEpisodes', 'TraceOutcomes', 'TraceMiningManifest'
 ];
 const kinds = new Map([
-  ['string', 'string'], ['int64', 'long'], ['float64', 'real'], ['utcDateTime', 'datetime']
+  ['string', 'string'], ['int64', 'long'], ['float64', 'real'], ['boolean', 'bool'], ['utcDateTime', 'datetime']
 ]);
 
-function kind(property) {
-  const type = property.type;
-  if (property.optional) throw new Error(`Trace fields must be required: ${property.name}`);
-  if (property.name === 'ContractVersion' && type.kind === 'Number' && type.value === 1) return 'long';
+function kind(property, archive = false) {
+  let type = property.type;
+  if (property.optional && !archive) throw new Error(`Trace fields must be required: ${property.name}`);
+  if (archive && type.kind === 'Union') {
+    const variants = [...type.variants.values()].map(({ type }) => type)
+      .filter((type) => !(type.kind === 'Intrinsic' && type.name === 'null'));
+    if (variants.length !== 1) throw new Error(`Archive fields require a single nullable type: ${property.name}`);
+    [type] = variants;
+  }
+  if (property.name === 'ContractVersion' && type.kind === 'Number' && type.value === (archive ? 2 : 1)) return 'long';
   if (type.kind === 'Scalar' && getNamespaceFullName(type.namespace) === 'TypeSpec' && kinds.has(type.name)) {
     return kinds.get(type.name);
   }
@@ -32,11 +48,12 @@ function properties(model) {
 
 export async function $onEmit(context) {
   const models = new Map();
-  let archive;
+  let archive, families;
   navigateProgram(context.program, {
     model(model) {
-      if (getNamespaceFullName(model.namespace) === namespace) models.set(model.name, model);
-      if (getNamespaceFullName(model.namespace) === `${namespace}.Archive` && model.name === 'Event') archive = model;
+      if (getNamespaceFullName(model.namespace) === traceNamespace) models.set(model.name, model);
+      if (getNamespaceFullName(model.namespace) === namespace && model.name === 'Event') archive = model;
+      if (getNamespaceFullName(model.namespace) === namespace && model.name === 'EvidenceFamilies') families = model;
     }
   });
   const identity = models.get('Identity');
@@ -299,26 +316,52 @@ export async function $onEmit(context) {
     | extend Candidate = "repeated-tool-candidate"
     | order by ObservedStarts desc, ToolName asc
 };`);
-  await emitFile(context.program, { path: `${context.emitterOutputDir}/schema.gen.go`, content: go.join('\n') });
   await emitFile(context.program, { path: `${context.emitterOutputDir}/schema.gen.kql`, content: kql.join('\n') + '\n' });
   if (!archive || archive.baseModel || archive.indexer) throw new Error('Archive requires a closed Event model');
-  const archiveColumns = properties(archive).map((property) => ({ name: property.name, kind: kind(property) }));
-  const sqlTypes = { string: 'VARCHAR', long: 'BIGINT', real: 'DOUBLE', datetime: 'TIMESTAMPTZ', dynamic: 'VARCHAR[]' };
-  const goTypes = { string: 'string', long: 'int64', real: 'float64', datetime: 'string', dynamic: '[]string' };
+  if (!families || archive.properties.get('ContractVersion')?.type.value !== 2) throw new Error('Archive requires fresh contract version 2 and evidence families');
+  const bindings = context.program.stateMap(evidenceKey);
+  const archiveColumns = properties(archive).map((property) => {
+    const binding = bindings.get(property);
+    if (property.optional && !binding) throw new Error(`Only original evidence scalars may be nullable: ${property.name}`);
+    if (binding && !property.optional && kind(property, true) !== 'string') throw new Error(`Original non-string evidence must be nullable: ${property.name}`);
+    return { name: property.name, kind: kind(property, true), nullable: property.optional, ...binding };
+  });
+  const familyFields = properties(families).map((property) => {
+    const binding = bindings.get(property);
+    if (!binding || !['object', 'array', 'any'].includes(binding.validation) || property.type.kind !== 'Intrinsic' || property.type.name !== 'unknown') {
+      throw new Error(`Invalid evidence family: ${property.name}`);
+    }
+    return { name: property.name, kind: binding.validation, ...binding };
+  });
+  const evidencePaths = [...new Set([...archiveColumns, ...familyFields].flatMap(({ path }) => path ? [path] : []))];
+  go.splice(-1, 0, '', '// EvidencePaths bounds omission metadata to the generated original-evidence contract.',
+    `var EvidencePaths = []string{${evidencePaths.map((path) => JSON.stringify(path)).join(', ')}}`);
+  await emitFile(context.program, { path: `${context.emitterOutputDir}/schema.gen.go`, content: go.join('\n') });
+  const sqlTypes = { string: 'VARCHAR', long: 'BIGINT', real: 'DOUBLE', bool: 'BOOLEAN', datetime: 'TIMESTAMPTZ', dynamic: 'VARCHAR[]' };
+  const goTypes = { string: 'string', long: 'int64', real: 'float64', bool: 'bool', datetime: 'string', dynamic: '[]string' };
   const archiveGo = [
     '// Code generated from server/spec/trace.tsp. DO NOT EDIT.', '', 'package sessionarchive', '',
-    'const ContractVersion = 1', '', 'type Event struct {',
-    ...archiveColumns.map(({ name, kind }) => `\t${name.replace(/Id$/g, 'ID')} ${goTypes[kind]} \`json:"${name}"\``),
+    'const ContractVersion = 2', '', 'type Event struct {',
+    ...archiveColumns.map(({ name, kind, nullable }) => `\t${name.replace(/Id$/g, 'ID')} ${nullable ? '*' : ''}${goTypes[kind]} \`json:"${name}"\``),
     '}', '', 'var eventColumns = []string{',
     ...archiveColumns.map(({ name }) => `\t${JSON.stringify(name)},`), '}', '',
     `const eventJSONColumns = ${JSON.stringify('{' + archiveColumns.map(({ name, kind }) => `'${name}': '${sqlTypes[kind]}'`).join(', ') + '}')}`,
     '', `const eventSelect = ${JSON.stringify(archiveColumns.map(({ name }) => `"${name}"`).join(', '))}`,
     '', 'var eventSQLTypes = []string{',
-    ...archiveColumns.map(({ kind }) => `\t${JSON.stringify(sqlTypes[kind])},`), '}', ''
+    ...archiveColumns.map(({ kind }) => `\t${JSON.stringify(sqlTypes[kind])},`), '}', '',
+    `const EventKQLSchema = ${JSON.stringify(archiveColumns.map(({ name, kind }) => `${name}:${kind}`).join(','))}`, '',
+    'type evidenceField struct { Name, Path, Kind, Validation string; Index int }', '',
+    'var evidenceFields = []evidenceField{',
+    ...archiveColumns.flatMap(({ name, path, kind, validation }, index) => path
+      ? [`\t{${[name, path, kind, validation].map((s) => JSON.stringify(s)).join(', ')}, ${index}},`] : []),
+    ...familyFields.map(({ name, path, kind, validation }) =>
+      `\t{${[name, path, kind, validation].map((s) => JSON.stringify(s)).join(', ')}, -1},`),
+    '}', ''
   ].join('\n');
   await emitFile(context.program, { path: `${context.emitterOutputDir}/../sessionarchive/schema.gen.go`, content: archiveGo });
   await emitFile(context.program, {
     path: `${context.emitterOutputDir}/../sessionarchive/schema.gen.json`,
-    content: JSON.stringify({ version: 1, columns: archiveColumns.map(({ name, kind }) => ({ name, type: sqlTypes[kind] })) }, null, 2) + '\n'
+    content: JSON.stringify({ version: 2, columns: archiveColumns.map(({ name, kind, nullable, path, validation }) =>
+      ({ name, type: sqlTypes[kind], nullable, ...(path ? { path, validation } : {}) })), families: familyFields }, null, 2) + '\n'
   });
 }

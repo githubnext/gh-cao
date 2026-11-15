@@ -16,6 +16,31 @@ rename, and durability semantics. Do not use a public shard directory, ephemeral
 container filesystem, per-request host, or a shared multi-replica mount.
 Archive configuration never authorizes new GitHub acquisition.
 
+The original-evidence Parquet contract is **version 2**. Use fresh archive
+storage and a freshly provisioned, reviewed external table/prefix; there is no
+old-schema reader or migration. Regenerate destination-bound legacy/native and
+analytical acceptance after real conformance. Do not copy old acceptance,
+relabel old enrollment epochs, erase privacy registrations, or discard pending
+withdrawals while replacing data. Old storage retirement requires a separately
+scoped operator action; no automatic storage deletion occurs on schema rejection.
+
+The generated scalar columns are qualified by `PresentFields`, `NullFields`,
+`InvalidFields` and bounded `OmissionReasons`; consult approved `PayloadJSON`
+for original structured evidence. Physical empty strings are not proof of source
+absence, and nullable/invalid measurements are not zero. The
+[fresh evidence contract](../specs/session-archive.md#21-fresh-original-evidence-contract)
+defines the 15 conditional grader-evidence families, not implemented formulas.
+It preserves every original observation rather than reconciling invocations,
+usage totals, receipts or trajectory visits.
+
+Explicit policy `provenanceFields: ["attemptId", "startupAttemptId"]` may retain
+those otherwise excluded harness provenance identifiers. It defaults to empty
+and does not authorize other provenance or new collection. `events` still
+approves whole selected top-level data subtrees: approving a trajectory
+collection, usage or attempt history can retain extra nested values. Review
+that scope and text/error redaction explicitly; there is no nested-path
+allowlist. Typed values are projected only after approval and redaction.
+
 The supplied standard Alpine images do not imply DuckDB compatibility or
 provision a private archive volume. Use a reviewed persistent native host or
 explicitly prepared image with a compatible pinned converter. Missing runtime

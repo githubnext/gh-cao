@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,10 +15,16 @@ import (
 func kqlIdentifier(name string) string { return "[" + literal(name) + "]" }
 
 func kqlScalar(value sessionarchive.Scalar) string {
-	if value.Type == "string" {
+	switch value.Type {
+	case "string":
 		return literal(value.String)
+	case "number":
+		return "real(" + strconv.FormatFloat(value.Number, 'g', -1, 64) + ")"
+	case "boolean":
+		return strconv.FormatBool(value.Boolean)
+	default:
+		return "long(" + strconv.FormatInt(value.Integer, 10) + ")"
 	}
-	return "long(" + strconv.FormatInt(value.Integer, 10) + ")"
 }
 
 func kqlPredicate(p sessionarchive.PlannedPredicate) string {
@@ -208,17 +215,30 @@ func (a *Archive) readAnalyticalSource(ctx context.Context, scope sessionarchive
 			if !ok {
 				return generation, sessionarchive.AnalyticalResult{}, nil, ErrIntegrity
 			}
-			if column.Type == "string" {
+			switch {
+			case column.Type == "string":
 				if _, ok := value.(string); !ok {
 					return generation, sessionarchive.AnalyticalResult{}, nil, ErrIntegrity
 				}
-			} else if value != nil {
+			case value == nil:
+			case column.Type == "boolean":
+				if _, ok := value.(bool); !ok {
+					return generation, sessionarchive.AnalyticalResult{}, nil, ErrIntegrity
+				}
+			default:
 				n, ok := value.(json.Number)
 				if !ok {
 					return generation, sessionarchive.AnalyticalResult{}, nil, ErrIntegrity
 				}
-				if _, err := n.Int64(); err != nil {
-					return generation, sessionarchive.AnalyticalResult{}, nil, ErrIntegrity
+				if column.Type == "integer" {
+					if _, err := n.Int64(); err != nil {
+						return generation, sessionarchive.AnalyticalResult{}, nil, ErrIntegrity
+					}
+				} else {
+					number, err := n.Float64()
+					if err != nil || math.IsInf(number, 0) || math.IsNaN(number) {
+						return generation, sessionarchive.AnalyticalResult{}, nil, ErrIntegrity
+					}
 				}
 			}
 		}

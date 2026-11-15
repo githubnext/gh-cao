@@ -8,13 +8,13 @@ namespace Cao;
 
 model SessionArchivePredicate {
   field: string;
-  equals?: string | int64;
-  @minItems(1) @maxItems(32) in?: (string | int64)[];
-  gte?: string | int64;
-  lt?: string | int64;
+  equals?: string | int64 | float64 | boolean;
+  @minItems(1) @maxItems(32) in?: (string | int64 | float64 | boolean)[];
+  gte?: string | int64 | float64;
+  lt?: string | int64 | float64;
 }
 
-/** Shared DuckDB/ADX analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. Counts exclude empty strings and null integers; distinct-count is exact, never approximate. */
+/** Shared DuckDB/ADX analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range; boolean ranges are forbidden. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. Counts exclude empty strings and null scalars, but retain false and zero; distinct-count is exact, never approximate. */
 @jsonSchema
 model SessionArchiveDefinition {
   @pattern("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$") @maxLength(128) name: string;
@@ -58,7 +58,7 @@ model SessionArchiveQuery {
 
 model SessionArchiveColumn {
   name: string;
-  type: "string" | "integer";
+  type: "string" | "integer" | "number" | "boolean";
 }
 
 model SessionArchiveQueryMetadata {

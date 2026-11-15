@@ -153,34 +153,9 @@ func literal(value string) string {
 	return string(content)
 }
 
-// EventSchema derives the physical external schema from the generated shared
-// Go event contract, never from a parallel maintained KQL field list.
+// EventSchema is generated with the shared Go/Parquet contract by TypeSpec.
 func EventSchema() string {
-	t := reflect.TypeFor[sessionarchive.Event]()
-	columns := make([]string, 0, t.NumField())
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		name := strings.Split(field.Tag.Get("json"), ",")[0]
-		if name == "" {
-			name = field.Name
-		}
-		var kind string
-		switch field.Type.Kind() {
-		case reflect.String:
-			kind = "string"
-		case reflect.Int, reflect.Int64:
-			kind = "long"
-		case reflect.Slice:
-			if field.Type.Elem().Kind() != reflect.String {
-				return ""
-			}
-			kind = "dynamic"
-		default:
-			return ""
-		}
-		columns = append(columns, name+":"+kind)
-	}
-	return strings.Join(columns, ",")
+	return sessionarchive.EventKQLSchema
 }
 
 // ExternalTableDDL is a setup-only contract. Runtime never executes this DDL.
@@ -303,7 +278,7 @@ func membershipSourceKQL(table string, files []sessionarchive.File, members []se
 
 func fileVerificationKQL(table string, file sessionarchive.File) string {
 	return membershipKQL(table, []sessionarchive.File{file}, file.Members) +
-		"| summarize Copies=count(),Invalid=countif(ContractVersion!=1 or hash_sha256(PayloadJSON)!=ContentDigest or CompletionDay!=" + literal(file.Day) + ")\n" +
+		"| summarize Copies=count(),Invalid=countif(ContractVersion!=" + strconv.Itoa(sessionarchive.ContractVersion) + " or hash_sha256(PayloadJSON)!=ContentDigest or CompletionDay!=" + literal(file.Day) + ")\n" +
 		"  by Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId,Sequence\n" +
 		"| summarize Events=sum(Copies),Unique=count(),First=min(Sequence),Last=max(Sequence),Invalid=sum(Invalid)\n" +
 		"  by Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId\n" +
@@ -559,6 +534,9 @@ func (a *Archive) readTimelineSource(ctx context.Context, scope sessionarchive.S
 			event.ProjectionID != members[0].Version || event.TraceID != members[0].ID ||
 			event.Sequence != int64(i) || event.ContractVersion != sessionarchive.ContractVersion ||
 			!json.Valid([]byte(event.PayloadJSON)) || digest([]byte(event.PayloadJSON)) != event.ContentDigest {
+			return generation, nil, nil, ErrIntegrity
+		}
+		if err := sessionarchive.ValidateEvent(event); err != nil {
 			return generation, nil, nil, ErrIntegrity
 		}
 		events = append(events, event)

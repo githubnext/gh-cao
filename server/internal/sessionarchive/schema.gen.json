@@ -1,101 +1,431 @@
 {
-  "version": 1,
+  "version": 2,
   "columns": [
     {
-      "name": "Sequence",
-      "type": "BIGINT"
-    },
-    {
-      "name": "Type",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "EventId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "ParentId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "EpisodeId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "HopId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "ParentHopId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "ToolCallId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "SessionId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "Timestamp",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "ContentDigest",
-      "type": "VARCHAR"
-    },
-    {
       "name": "Namespace",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "RunId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "RunAttempt",
-      "type": "BIGINT"
-    },
-    {
-      "name": "ProjectionId",
-      "type": "VARCHAR"
-    },
-    {
-      "name": "ContractVersion",
-      "type": "BIGINT"
+      "type": "VARCHAR",
+      "nullable": false
     },
     {
       "name": "Repository",
-      "type": "VARCHAR"
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "RunId",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "RunAttempt",
+      "type": "BIGINT",
+      "nullable": false
     },
     {
       "name": "TraceId",
-      "type": "VARCHAR"
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "ProjectionId",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "ContractVersion",
+      "type": "BIGINT",
+      "nullable": false
+    },
+    {
+      "name": "EvidenceVersion",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "Sequence",
+      "type": "BIGINT",
+      "nullable": false
+    },
+    {
+      "name": "Type",
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "ContentDigest",
+      "type": "VARCHAR",
+      "nullable": false
     },
     {
       "name": "CompletionDay",
-      "type": "VARCHAR"
+      "type": "VARCHAR",
+      "nullable": false
     },
     {
       "name": "ArtifactDigest",
-      "type": "VARCHAR"
+      "type": "VARCHAR",
+      "nullable": false
     },
     {
       "name": "PolicyDigest",
-      "type": "VARCHAR"
+      "type": "VARCHAR",
+      "nullable": false
     },
     {
       "name": "Gaps",
-      "type": "VARCHAR[]"
+      "type": "VARCHAR[]",
+      "nullable": false
     },
     {
       "name": "CapturedAt",
-      "type": "VARCHAR"
+      "type": "VARCHAR",
+      "nullable": false
+    },
+    {
+      "name": "PresentFields",
+      "type": "VARCHAR[]",
+      "nullable": false
+    },
+    {
+      "name": "NullFields",
+      "type": "VARCHAR[]",
+      "nullable": false
+    },
+    {
+      "name": "InvalidFields",
+      "type": "VARCHAR[]",
+      "nullable": false
+    },
+    {
+      "name": "OmissionReasons",
+      "type": "VARCHAR[]",
+      "nullable": false
+    },
+    {
+      "name": "EventId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "id",
+      "validation": ""
+    },
+    {
+      "name": "ParentId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "parentId",
+      "validation": ""
+    },
+    {
+      "name": "Timestamp",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "timestamp",
+      "validation": ""
+    },
+    {
+      "name": "Component",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "provenance.component",
+      "validation": ""
+    },
+    {
+      "name": "Phase",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "provenance.phase",
+      "validation": ""
+    },
+    {
+      "name": "ProvenancePath",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "provenance.path",
+      "validation": ""
+    },
+    {
+      "name": "ProvenanceIndex",
+      "type": "BIGINT",
+      "nullable": true,
+      "path": "provenance.index",
+      "validation": "count"
+    },
+    {
+      "name": "ProvenanceTimestampMs",
+      "type": "DOUBLE",
+      "nullable": true,
+      "path": "provenance.timestampMs",
+      "validation": "duration"
+    },
+    {
+      "name": "ProvenanceAttemptId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "provenance.attemptId",
+      "validation": ""
+    },
+    {
+      "name": "ProvenanceStartupAttemptId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "provenance.startupAttemptId",
+      "validation": ""
+    },
+    {
+      "name": "SessionId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.sessionId",
+      "validation": ""
+    },
+    {
+      "name": "AgentId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.agentId",
+      "validation": ""
+    },
+    {
+      "name": "ToolCallId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.toolCallId",
+      "validation": ""
+    },
+    {
+      "name": "ToolName",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.toolName",
+      "validation": ""
+    },
+    {
+      "name": "Success",
+      "type": "BOOLEAN",
+      "nullable": true,
+      "path": "data.success",
+      "validation": ""
+    },
+    {
+      "name": "Status",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.status",
+      "validation": ""
+    },
+    {
+      "name": "IsError",
+      "type": "BOOLEAN",
+      "nullable": true,
+      "path": "data.isError",
+      "validation": ""
+    },
+    {
+      "name": "Method",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.method",
+      "validation": ""
+    },
+    {
+      "name": "ServerName",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.serverName",
+      "validation": ""
+    },
+    {
+      "name": "RpcIdString",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.rpcId",
+      "validation": "identifier-string"
+    },
+    {
+      "name": "RpcIdNumber",
+      "type": "BIGINT",
+      "nullable": true,
+      "path": "data.rpcId",
+      "validation": "identifier-number"
+    },
+    {
+      "name": "RequestIdString",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.requestId",
+      "validation": "identifier-string"
+    },
+    {
+      "name": "RequestIdNumber",
+      "type": "BIGINT",
+      "nullable": true,
+      "path": "data.requestId",
+      "validation": "identifier-number"
+    },
+    {
+      "name": "InputTokens",
+      "type": "BIGINT",
+      "nullable": true,
+      "path": "data.usage.inputTokens",
+      "validation": "count"
+    },
+    {
+      "name": "OutputTokens",
+      "type": "BIGINT",
+      "nullable": true,
+      "path": "data.usage.outputTokens",
+      "validation": "count"
+    },
+    {
+      "name": "DurationMs",
+      "type": "DOUBLE",
+      "nullable": true,
+      "path": "data.durationMs",
+      "validation": "duration"
+    },
+    {
+      "name": "DataEvent",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.event",
+      "validation": ""
+    },
+    {
+      "name": "Message",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.message",
+      "validation": ""
+    },
+    {
+      "name": "Layer",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.layer",
+      "validation": ""
+    },
+    {
+      "name": "DataAttempt",
+      "type": "BIGINT",
+      "nullable": true,
+      "path": "data.attempt",
+      "validation": "count"
+    },
+    {
+      "name": "DataAttemptId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.attemptId",
+      "validation": ""
+    },
+    {
+      "name": "DataStartupAttemptId",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.startupAttemptId",
+      "validation": ""
+    },
+    {
+      "name": "Strategy",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.strategy",
+      "validation": ""
+    },
+    {
+      "name": "StartedAt",
+      "type": "DOUBLE",
+      "nullable": true,
+      "path": "data.startedAt",
+      "validation": "duration"
+    },
+    {
+      "name": "DataType",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.type",
+      "validation": ""
+    },
+    {
+      "name": "ProducerVersion",
+      "type": "BIGINT",
+      "nullable": true,
+      "path": "data.version",
+      "validation": "identifier-number"
+    },
+    {
+      "name": "ProducerVersionString",
+      "type": "VARCHAR",
+      "nullable": false,
+      "path": "data.version",
+      "validation": "identifier-string"
     },
     {
       "name": "PayloadJSON",
-      "type": "VARCHAR"
+      "type": "VARCHAR",
+      "nullable": false
+    }
+  ],
+  "families": [
+    {
+      "name": "Provenance",
+      "kind": "object",
+      "path": "provenance",
+      "validation": "object"
+    },
+    {
+      "name": "Usage",
+      "kind": "object",
+      "path": "data.usage",
+      "validation": "object"
+    },
+    {
+      "name": "Error",
+      "kind": "any",
+      "path": "data.error",
+      "validation": "any"
+    },
+    {
+      "name": "RetryHint",
+      "kind": "any",
+      "path": "data.retryHint",
+      "validation": "any"
+    },
+    {
+      "name": "AttemptResults",
+      "kind": "array",
+      "path": "data.attemptResults",
+      "validation": "array"
+    },
+    {
+      "name": "StartupAttemptResults",
+      "kind": "array",
+      "path": "data.startupAttemptResults",
+      "validation": "array"
+    },
+    {
+      "name": "Objectives",
+      "kind": "array",
+      "path": "data.objectives",
+      "validation": "array"
+    },
+    {
+      "name": "Actions",
+      "kind": "array",
+      "path": "data.actions",
+      "validation": "array"
+    },
+    {
+      "name": "States",
+      "kind": "array",
+      "path": "data.states",
+      "validation": "array"
+    },
+    {
+      "name": "Events",
+      "kind": "array",
+      "path": "data.events",
+      "validation": "array"
     }
   ]
 }

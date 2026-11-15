@@ -257,7 +257,7 @@ func fixture(t *testing.T, generation uint64, version string) sessionarchive.Man
 	m := sessionarchive.Member{Namespace: "private", Repository: "octo/api", RunID: "123", Attempt: 1,
 		ID: digest([]byte("stable trace")), Version: digest([]byte(version)), Events: 2}
 	f := sessionarchive.File{Path: path, Digest: digest(content), Bytes: int64(len(content)), Rows: 2, Members: []sessionarchive.Member{m}}
-	return sessionarchive.Manifest{Version: 1, Generation: generation, CreatedAt: time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC),
+	return sessionarchive.Manifest{Version: sessionarchive.ContractVersion, Generation: generation, CreatedAt: time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC),
 		Files: []sessionarchive.File{f}, Members: []sessionarchive.Member{m}}
 }
 
@@ -358,7 +358,7 @@ func TestBlobCorrectionWithdrawalAndRetirement(t *testing.T) {
 	if err := a.Publish(t.Context(), stale); !errors.Is(err, ErrWithdrawn) {
 		t.Fatalf("superseded projection resurrected: %v", err)
 	}
-	withdraw := sessionarchive.Manifest{Version: 1, Generation: 3, CreatedAt: second.CreatedAt.Add(time.Second)}
+	withdraw := sessionarchive.Manifest{Version: sessionarchive.ContractVersion, Generation: 3, CreatedAt: second.CreatedAt.Add(time.Second)}
 	if err := a.Publish(t.Context(), withdraw); err != nil {
 		t.Fatal(err)
 	}

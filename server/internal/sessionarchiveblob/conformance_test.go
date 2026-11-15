@@ -202,7 +202,7 @@ func TestDuckDBBlobPublicationIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest := sessionarchive.Manifest{Version: 1, Generation: 1, CreatedAt: time.Now().UTC(),
+	manifest := sessionarchive.Manifest{Version: sessionarchive.ContractVersion, Generation: 1, CreatedAt: time.Now().UTC(),
 		Files: []sessionarchive.File{file}, Members: []sessionarchive.Member{first.Member(), other.Member()}}
 	if err := a.Publish(t.Context(), manifest); err != nil {
 		t.Fatal(err)
@@ -349,7 +349,7 @@ func TestKustoArchiveMembership(t *testing.T) {
 		t.Fatal("real Kusto did not enforce exact selected generation/projection membership")
 	}
 	verification := strings.Replace(fileVerificationKQL("Events", file), `external_table("Events")`,
-		kustoEventSource(fixtureEvents(member), file), 1)
+		kustoEventSource(fixtureEvents(t, member), file), 1)
 	content, err = engine.Execute(t.Context(), "/v1/rest/query", verification)
 	if err != nil {
 		t.Fatal(err)
@@ -440,7 +440,7 @@ func TestAzureArchiveConformance(t *testing.T) {
 		return file
 	}
 	original := write(p, q)
-	first := sessionarchive.Manifest{Version: 1, Generation: 1, CreatedAt: time.Now().UTC(),
+	first := sessionarchive.Manifest{Version: sessionarchive.ContractVersion, Generation: 1, CreatedAt: time.Now().UTC(),
 		Files: []sessionarchive.File{original}, Members: []sessionarchive.Member{p.Member(), q.Member()}}
 	if err := a.Publish(t.Context(), first); err != nil {
 		t.Fatal(err)
@@ -455,7 +455,7 @@ func TestAzureArchiveConformance(t *testing.T) {
 	}
 	correction := approvedProjection(t, config.Namespace, repository, "123", "synthetic corrected")
 	corrected := write(correction)
-	second := sessionarchive.Manifest{Version: 1, Generation: 2, CreatedAt: time.Now().UTC(),
+	second := sessionarchive.Manifest{Version: sessionarchive.ContractVersion, Generation: 2, CreatedAt: time.Now().UTC(),
 		Files: []sessionarchive.File{original, corrected}, Members: []sessionarchive.Member{correction.Member(), q.Member()}}
 	oldCtx, _, _, _, oldReader, err := a.pin(t.Context(), scope, repository, "123", 1)
 	if err != nil {
@@ -485,7 +485,7 @@ func TestAzureArchiveConformance(t *testing.T) {
 	if !errors.Is(a.Publish(t.Context(), stale), ErrWithdrawn) {
 		t.Fatal("live supersession fence failed")
 	}
-	third := sessionarchive.Manifest{Version: 1, Generation: 3, CreatedAt: time.Now().UTC(),
+	third := sessionarchive.Manifest{Version: sessionarchive.ContractVersion, Generation: 3, CreatedAt: time.Now().UTC(),
 		Files: []sessionarchive.File{original}, Members: []sessionarchive.Member{q.Member()}}
 	withdrawCtx, _, _, _, withdrawReader, err := a.pin(t.Context(), scope, repository, "123", 1)
 	if err != nil {
@@ -512,7 +512,7 @@ func TestAzureArchiveConformance(t *testing.T) {
 	}
 	defer func() { _ = a.Close() }()
 	if a.Status().Generation != 3 || !errors.Is(a.Publish(t.Context(), sessionarchive.Manifest{
-		Version: 1, Generation: 4, CreatedAt: time.Now().UTC(), Files: []sessionarchive.File{corrected},
+		Version: sessionarchive.ContractVersion, Generation: 4, CreatedAt: time.Now().UTC(), Files: []sessionarchive.File{corrected},
 		Members: []sessionarchive.Member{correction.Member()}}), ErrWithdrawn) {
 		t.Fatal("live restart lost withdrawal fence")
 	}
