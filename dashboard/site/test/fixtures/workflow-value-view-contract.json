@@ -4,6 +4,8 @@
   "overviewCard": "value-overview",
   "overviewChartView": "value-overview-chart",
   "overviewChartQuery": "value-overview-by-kind",
+  "overviewStatusChartView": "value-overview-status-chart",
+  "overviewStatusChartQuery": "value-overview-by-status",
   "overviewTableView": "value-overview-table",
   "overviewCardsView": "value-overview-cards",
   "overviewKinds": ["Campaign", "Standalone workflow"],

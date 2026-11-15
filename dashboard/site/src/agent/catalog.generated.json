@@ -537,13 +537,14 @@
       "description": "Review one Value entry per campaign worker rollup or standalone workflow, keeping native outcomes separate.",
       "intent": "Review the unified campaign and standalone workflow inventory without combining native Value outcomes.",
       "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
-      "objective": "Review entry-type counts, inspect complete Value cards, or compare the same entries in a table.",
-      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Counts describe entry types only; missing and unknown evidence remains explicit, and no incompatible native values are combined.",
+      "objective": "Review entry-type and status counts, inspect complete Value cards, or compare the same entries in a table.",
+      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Plot counts describe entries by type or by type-specific status, not combined native outcomes; missing and unknown evidence remains explicit.",
       "experimental": false,
       "parameters": [],
       "queries": [
         "value-overview",
-        "value-overview-by-kind"
+        "value-overview-by-kind",
+        "value-overview-by-status"
       ]
     },
     {
@@ -4491,6 +4492,31 @@
       "subject": "Counts of top-level campaign rollups and standalone workflow entries.",
       "objective": "Compare the canonical entry inventory without combining native Value outcomes.",
       "acceptance": "Count unified entries by canonical type only; do not aggregate or compare their native outcome values.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-overview"
+      ],
+      "used-by-pages": [
+        "value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-subject-topology",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-overview-by-status",
+      "subject": "Status counts for top-level campaign rollups and standalone workflows.",
+      "objective": "Compare campaign review state and standalone workflow outcome movement without merging their meanings.",
+      "acceptance": "Count each top-level entry once by its own type and categorical status. Campaign worker review counts are not categories or native outcome values; missing standalone status remains explicit.",
       "description": "",
       "parameters": [],
       "sources": [

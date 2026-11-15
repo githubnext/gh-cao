@@ -3,6 +3,62 @@ import { assert, authoritativeDashboard, buildPresenterModuleUrl, expect, expect
 registerSmokeRoutes();
 
 for (const width of [1440, 390]) {
+  test(`Value graph mode shows entry type and status plots at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const names = new Set([
+      'value-campaign-overview', 'value-standalone-entries', 'value-overview',
+      'value-overview-by-kind', 'value-overview-by-status'
+    ]);
+    const queries = authoritativeDashboard.dashboard.queries.filter(
+      (/** @type {{ name: string }} */ query) => names.has(query.name)
+    );
+    await page.setContent(`
+    <div id="root"></div>
+    <script type="module">
+      import { processDataRequest } from 'http://dashboard.test/src/data-worker.js';
+      import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+      const metadata = {
+        'source-id': 'value-plot-fixture', 'source-kind': 'fixture',
+        'as-of': '2026-11-15T00:00:00Z', 'retrieved-at': '2026-11-15T00:00:00Z',
+        completeness: 'complete', freshness: 'fresh', availability: 'available'
+      };
+      const sources = processDataRequest({
+        operation: 'execute-dashboard-queries',
+        queries: ${JSON.stringify(queries)},
+        sourceNames: ['value-overview-by-kind', 'value-overview-by-status', 'value-overview'],
+        sources: {
+          'value-campaign-totals': { source: 'value-campaign-totals', metadata, rows: [
+            { campaign: 'alpha', 'campaign-name': 'Alpha', 'review-deployments': 2 }
+          ] },
+          'value-workflow-overview': { source: 'value-workflow-overview', metadata, rows: [
+            { 'workflow-role': 'standalone', 'overview-title': 'Solo', 'trend-movement': 'Better' }
+          ] }
+        }
+      });
+      window.location.hash = '#page-value';
+      document.querySelector('#root').append(renderDashboard({
+        document: ${JSON.stringify(authoritativeDashboard)},
+        sources
+      }));
+    </script>
+    `);
+    const value = page.locator('[data-page-id="value"]');
+    const types = value.locator('[data-view-id="value-overview-chart"]');
+    const statuses = value.locator('[data-view-id="value-overview-status-chart"]');
+    await expect(types.locator('.bar-chart-bar')).toHaveCount(2);
+    await expect(statuses.locator('.bar-chart-bar')).toHaveCount(2);
+    await expect(statuses).toContainText('Needs review');
+    await expect(statuses).toContainText('Better');
+    if (width > 600) {
+      await expect(value.locator('[data-view-id="value-overview-table"]')).toBeHidden();
+      await value.getByRole('button', { name: 'Table' }).click();
+      await expect(statuses).toBeHidden();
+      await expect(value.locator('[data-view-id="value-overview-table"]')).toBeVisible();
+    }
+  });
+}
+
+for (const width of [1440, 390]) {
   test(`Skills is a non-experimental Data destination at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.setContent(`

@@ -4,7 +4,9 @@ import dashboard from '../../dashboard.json' with { type: 'json' };
 import fragment from '../../dashboard-fragments/workflow-value.json' with { type: 'json' };
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
 import { renderDataView } from '../../src/components/data-view.js';
+import { buildChartPoints, prepareChartPoints } from '../../src/components/view-data.js';
 import { executeDashboardQueries } from '../../src/data/queries/declarative.js';
+import { processDataRequest } from '../../src/data-worker.js';
 
 /** @typedef {{ id: string, mark?: string, chart?: string, data?: { source?: string }, list?: { style?: string, card?: string, drill?: Record<string, unknown> }, "card-drill"?: Record<string, unknown>, "lazy-list"?: boolean, disclosure?: string, layout?: string, encoding?: { card?: string, x?: { field?: string }, y?: { field?: string, aggregate?: string }, href?: { field?: string }, columns?: Array<{ field?: string, title?: string }> } }} View */
 /** @typedef {{ id: string, route?: unknown, sections?: unknown, "view-mode-control"?: boolean, views?: View[] }} Page */
@@ -29,7 +31,7 @@ const metadata = {
 const source = (name, rows) => ({ source: name, rows, metadata: { ...metadata, 'source-id': name } });
 
 describe('unified Value view contract', () => {
-  it('declares unified Chart, Cards, and Table views for top-level Value', () => {
+  it('declares type and status plots alongside Cards and Table views for top-level Value', () => {
     const pages = new Map(fragment.pages.map(raw => {
       const page = /** @type {Page} */ (raw);
       return [page.id, page];
@@ -38,8 +40,8 @@ describe('unified Value view contract', () => {
     expect(page?.route).toBeUndefined();
     expect(page?.sections).toBeUndefined();
     expect(page?.['view-mode-control']).toBe(true);
-    expect(page?.views).toHaveLength(3);
-    const [chart, table, cardView] = page?.views ?? [];
+    expect(page?.views).toHaveLength(4);
+    const [chart, statusChart, table, cardView] = page?.views ?? [];
     expect(chart).toMatchObject({
       id: contract.overviewChartView,
       mark: 'chart',
@@ -48,6 +50,17 @@ describe('unified Value view contract', () => {
       encoding: {
         x: { field: 'value-kind' },
         y: { field: 'value-entries' }
+      }
+    });
+    expect(statusChart).toMatchObject({
+      id: contract.overviewStatusChartView,
+      mark: 'chart',
+      chart: 'bar',
+      data: { source: contract.overviewStatusChartQuery },
+      encoding: {
+        x: { field: 'value-plot-status' },
+        y: { field: 'value-entries' },
+        color: { field: 'value-kind' }
       }
     });
     expect(table).toMatchObject({
@@ -212,6 +225,66 @@ describe('unified Value view contract', () => {
       'value-href': '#page-workflow-value?workflow=octo%2Fsolo'
     });
     expect(rows.some(row => row['workflow-role'] === 'worker' || row['workflow-role'] === 'orchestrator')).toBe(false);
+  });
+
+  it('plots entry statuses without splitting campaigns by their worker review count', () => {
+    const page = fragment.pages.find(candidate => candidate.id === contract.overviewPage);
+    const names = new Set([
+      'value-campaign-overview', 'value-standalone-entries', 'value-overview', contract.overviewStatusChartQuery
+    ]);
+    const queries = fragment.queries.filter(query => names.has(query.name));
+    const result = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+      operation: 'execute-dashboard-queries',
+      queries,
+      sourceNames: [contract.overviewStatusChartQuery],
+      sources: {
+        'value-campaign-totals': source('value-campaign-totals', [
+          { campaign: 'alpha', 'campaign-name': 'Alpha', 'review-deployments': 1 },
+          { campaign: 'beta', 'campaign-name': 'Beta', 'review-deployments': 4 },
+          { campaign: 'gamma', 'campaign-name': 'Gamma', 'review-deployments': 0 }
+        ]),
+        'value-workflow-overview': source('value-workflow-overview', [
+          { 'workflow-role': 'standalone', 'overview-title': 'First', 'trend-movement': 'Better' },
+          { 'workflow-role': 'standalone', 'overview-title': 'Second', 'trend-movement': 'No result to compare' },
+          { 'workflow-role': 'standalone', 'overview-title': 'Third', 'trend-movement': null },
+          { 'workflow-role': 'worker', 'overview-title': 'Not a top-level entry', 'trend-movement': 'Worse' }
+        ])
+      }
+    }));
+    const rows = result[contract.overviewStatusChartQuery].rows;
+    expect(result[contract.overviewStatusChartQuery].metadata.availability).toBe('available');
+    expect(rows).toEqual([
+      { 'value-kind': 'Campaign', 'value-plot-status': 'Needs review', 'value-entries': 2 },
+      { 'value-kind': 'Campaign', 'value-plot-status': 'No review triggered', 'value-entries': 1 },
+      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Better', 'value-entries': 1 },
+      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'No result to compare', 'value-entries': 1 },
+      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Status unavailable', 'value-entries': 1 }
+    ]);
+
+    const view = page?.views.find(candidate => candidate.id === contract.overviewStatusChartView);
+    const rendered = renderDataView('chart', {
+      pageId: contract.overviewPage,
+      title: 'Value entries by status',
+      sourceName: contract.overviewStatusChartQuery,
+      view: view ?? {},
+      rows,
+      metadata: result[contract.overviewStatusChartQuery].metadata,
+      contextDetails: [],
+      headingTag: 'h2',
+      prepareTableRows: () => { throw new Error('Chart must not query rows'); },
+      buildChartPoints,
+      prepareChartPoints,
+      toText: String
+    });
+    expect(rendered?.querySelectorAll('.bar-chart-bar')).toHaveLength(5);
+    expect(rendered?.textContent).toContain('Status unavailable');
+
+    const unavailable = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+      operation: 'execute-dashboard-queries', queries,
+      sourceNames: [contract.overviewStatusChartQuery], sources: {}
+    }));
+    expect(unavailable[contract.overviewStatusChartQuery].metadata.availability).toBe('unavailable');
+    expect(unavailable[contract.overviewStatusChartQuery].rows).toEqual([]);
   });
 
   it('declares chart, inferred cards and a useful table for workflow Value results', () => {
