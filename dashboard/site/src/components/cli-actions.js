@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { octicon } from '../octicons.js';
 import { cliActionTemplateFields, renderCliActionCommand } from '../cli-action-template.js';
 import { createCopyControl, createModalDialog, renderCloseButton, renderLiveRegion } from './ui-primitives.js';
-import { createDebug } from '../debug.js';
+import { createDebug, diagnosticErrorName } from '../debug.js';
 import { createFactoryScope } from './factory-elements.js';
 import { effect, state } from '../reactive.js';
 import { assertActionLevel, normalizeAction, actionPresentation } from '../action-model.js';
@@ -129,10 +129,12 @@ export function createPromptCliActionControl(actionId, getPrompt, options = {}) 
           output.scrollTop = output.scrollHeight;
         }, getPrompt(), scope.signal);
         if (scope.signal.aborted) return;
+        debugCliActions({ event: 'agent-task-finished', actionId: action.id, status: result.ok ? 'started' : 'rejected' });
         statusText.set(result.ok ? 'Agent task started.' : (result.error || 'Could not start agent task.'));
         if (!outputText.get()) outputText.set(resultText(result));
       } catch (error) {
         if (scope.signal.aborted) return;
+        debugCliActions({ event: 'agent-task-finished', actionId: action.id, status: 'failed', errorName: diagnosticErrorName(error) });
         statusText.set(error instanceof Error ? error.message : 'Could not start agent task.');
       } finally {
         if (!scope.signal.aborted) busy.set(false);
@@ -304,6 +306,7 @@ function renderCliActionControl(action, options = {}) {
       if (scope.signal.aborted) return;
       const admitted = results.filter((result) => result.status === 'fulfilled').length;
       const failed = results.length - admitted;
+      debugCliActions({ event: 'batch-enqueued', actionId: action.id, targetCount: results.length, admittedCount: admitted, failedCount: failed });
       publishNotification({
         message: failed
           ? `${action.label}: ${admitted} commands queued; ${failed} could not be queued.`
