@@ -5,6 +5,7 @@
   "overviewChartView": "value-overview-chart",
   "overviewChartQuery": "value-overview-by-kind",
   "overviewTableView": "value-overview-table",
+  "overviewCardsView": "value-overview-cards",
   "overviewKinds": ["Campaign", "Standalone workflow"],
   "removedPages": ["value-campaigns", "value-standalone", "value-review"],
   "campaignMemberRole": "worker",

@@ -994,14 +994,13 @@
         },
         {
           "id": "value-overview-table", "title": "Value entries",
-          "description": "The same campaign rollups and standalone workflows, shown as a table or reusable Value cards.",
+          "description": "The same campaign rollups and standalone workflows, shown in a table.",
           "subject": "Unified campaign and standalone workflow Value entries with their separate evidence fields.",
           "objective": "Compare entry coverage and evidence without combining native outcomes.",
-          "acceptance": "Each row is one top-level campaign rollup or standalone workflow. Cards retain direct entry navigation; no worker is counted twice.",
+          "acceptance": "Each row is one top-level campaign rollup or standalone workflow; no worker is counted twice.",
           "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
           "mark": "table", "lazy-list": true, "layout": "full",
           "encoding": {
-            "card": "value-overview",
             "columns": [
               { "field": "value-title", "type": "nominal", "title": "Value entry" },
               { "field": "value-kind", "type": "nominal", "title": "Type" },
@@ -1015,6 +1014,19 @@
               { "field": "value-cutoff", "type": "temporal", "title": "Evidence through", "format": "human-friendly-timestamp" }
             ]
           },
+          "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
+        },
+        {
+          "id": "value-overview-cards", "title": "Value cards",
+          "description": "Complete Value cards with navigation to their campaign or workflow.",
+          "subject": "Unified campaign and standalone workflow Value entries with their separate evidence fields.",
+          "objective": "Inspect each entry's evidence and open its campaign or workflow.",
+          "acceptance": "Each card is one top-level campaign rollup or standalone workflow. Workers do not appear as separate entries.",
+          "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
+          "mark": "list",
+          "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy" },
+          "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
+          "layout": "full",
           "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
         }
       ]

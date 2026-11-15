@@ -1,10 +1,12 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import dashboard from '../../dashboard.json' with { type: 'json' };
 import fragment from '../../dashboard-fragments/workflow-value.json' with { type: 'json' };
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
+import { renderDataView } from '../../src/components/data-view.js';
 import { executeDashboardQueries } from '../../src/data/queries/declarative.js';
 
-/** @typedef {{ id: string, mark?: string, chart?: string, data?: { source?: string }, list?: { card?: string, drill?: { field?: string } }, "card-drill"?: Record<string, unknown>, "lazy-list"?: boolean, disclosure?: string, layout?: string, encoding?: { card?: string, x?: { field?: string }, y?: { field?: string, aggregate?: string }, href?: { field?: string }, columns?: Array<{ field?: string }> } }} View */
+/** @typedef {{ id: string, mark?: string, chart?: string, data?: { source?: string }, list?: { style?: string, card?: string, drill?: Record<string, unknown> }, "card-drill"?: Record<string, unknown>, "lazy-list"?: boolean, disclosure?: string, layout?: string, encoding?: { card?: string, x?: { field?: string }, y?: { field?: string, aggregate?: string }, href?: { field?: string }, columns?: Array<{ field?: string, title?: string }> } }} View */
 /** @typedef {{ id: string, route?: unknown, sections?: unknown, "view-mode-control"?: boolean, views?: View[] }} Page */
 /** @typedef {{ id: string, "icon-field"?: string, title?: { field?: string }, subtitle?: { field?: string }, status?: { field?: string }, labels?: Array<{ field?: string }>, details?: Array<{ field?: string }>, timing?: Array<{ field?: string }>, drill?: Record<string, unknown> }} CardTemplate */
 
@@ -36,8 +38,8 @@ describe('unified Value view contract', () => {
     expect(page?.route).toBeUndefined();
     expect(page?.sections).toBeUndefined();
     expect(page?.['view-mode-control']).toBe(true);
-    expect(page?.views).toHaveLength(2);
-    const [chart, table] = page?.views ?? [];
+    expect(page?.views).toHaveLength(3);
+    const [chart, table, cardView] = page?.views ?? [];
     expect(chart).toMatchObject({
       id: contract.overviewChartView,
       mark: 'chart',
@@ -52,8 +54,18 @@ describe('unified Value view contract', () => {
       id: contract.overviewTableView,
       mark: 'table',
       data: { source: contract.overviewQuery },
-      'lazy-list': true,
-      encoding: { card: contract.overviewCard }
+      'lazy-list': true
+    });
+    expect(table?.encoding?.card).toBeUndefined();
+    expect(table?.encoding?.columns?.map(column => column.title)).toEqual([
+      'Value entry', 'Type', 'Value status', 'Scope', 'Collection', 'Evidence',
+      'Observed value', 'Review basis', 'Evidence captured', 'Evidence through'
+    ]);
+    expect(cardView).toMatchObject({
+      id: contract.overviewCardsView,
+      mark: 'list',
+      data: { source: contract.overviewQuery },
+      list: { style: 'entity-cards', card: contract.overviewCard }
     });
     for (const removed of contract.removedPages) expect(pages.has(removed)).toBe(false);
 
@@ -65,6 +77,44 @@ describe('unified Value view contract', () => {
       status: { field: 'value-status' },
       drill: { type: 'external', field: 'value-href' }
     });
+  });
+
+  it('renders the Value table with its declared columns', () => {
+    const pages = new Map(fragment.pages.map(raw => {
+      const page = /** @type {Page} */ (raw);
+      return [page.id, page];
+    }));
+    const table = pages.get(contract.overviewPage)?.views?.find(view => view.id === contract.overviewTableView);
+    const columns = table?.encoding?.columns ?? [];
+    const rendered = renderDataView('table', {
+      pageId: contract.overviewPage,
+      title: 'Value entries',
+      sourceName: contract.overviewQuery,
+      view: table ?? {},
+      rows: [{
+        'value-title': 'Alpha campaign',
+        'value-kind': 'Campaign',
+        'value-status': 'Available',
+        'value-context': 'octo/alpha',
+        'value-collection': 'Campaign',
+        'value-evidence': 'Retained result',
+        'value-measure': '12 files',
+        'value-attention': 'Current evidence',
+        'value-captured': '2026-11-15T00:00:00Z',
+        'value-cutoff': '2026-11-14T00:00:00Z'
+      }],
+      metadata,
+      contextDetails: [],
+      headingTag: 'h2',
+      prepareTableRows: rows => rows,
+      buildChartPoints: () => [],
+      prepareChartPoints: () => [],
+      toText: String
+    });
+
+    expect(rendered?.querySelector('[data-custom-view-mark="table"]')).not.toBeNull();
+    expect([...rendered?.querySelectorAll('thead tr:first-child th') ?? []].map(header => header.textContent?.trim()))
+      .toEqual(columns.map(column => column.title));
   });
 
   it('rolls campaign Value up only from workers and keeps standalone workflows separate', () => {
