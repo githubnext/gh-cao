@@ -1,36 +1,7 @@
 {
  "source_sha": "14a39d44d377f565f1f6dc8aa8e12d03100125fe",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T13:16:58Z",
-   "worker_run_id": "43717787401",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695,
-    43639680929,
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936
-   ],
-   "outcome": "complete, not actionable; reliability blocker unresolved. Window = latest 20 completed docs.yml runs 43504143936 (created 2026-11-13T20:43Z) to 43706435376 (push 7b092ad, 2026-11-15T10:55Z); no newer docs run; 0 cancelled; source cedb45b1 = HEAD = source_sha. Excluded and disclosed: 12 failures = 11 Build documentation (incl. schedule 43680980929) + 43506161539 (Install dependencies); logs HTTP 403 DIFC (re-probed once 13:16Z, not bypassed). n=8 successes (7 push + schedule 43561388555) meets the 5-run gate. Build documentation median 13.5 s p90 15 = 16.6 percent of exec median 81.5 s (p90 92). 15 percent gate 12.2 s needs about 90 percent of the step removed; validation and tests are required gates, so no Astro-internal change can clear it; 60 s gate unreachable. Checkout median 24 s is covered by OPEN issue 20815 (0 comments, unchanged since 2026-11-13T17:41Z); not repeated. No suggestion; no create_issue; noop used. next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T13:32:39Z",
    "worker_run_id": "43719206848",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16Z); gh run list re-read 22:51Z: no newer run, none queued or in progress, 0 cancelled; source 14a39d4 = HEAD = source_sha; docs.yml last changed 063cbe9 (2026-11-12) per commits API. Gate: 13 successes (all push) >= 5. Excluded and disclosed: 7 failures (6 push + schedule 43680980929), all at Build documentation; step/job logs HTTP 403 DIFC re-probed 22:52Z, not bypassed. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 (263412733 B, created 2026-11-13T20:57:12Z, refs/heads/main) present; lastAccessedAt 22:45Z. Hit inferred from exact key (logs unreadable). Install dependencies n=13 median 8 s p90 11; setup restore median 3 s p90 6; post 0 s p90 1; setup+install+post median 11 s p90 15 = 14.3 percent of exec median 77 s (p90 90). 15 percent gate 11.55 s needs the whole phase removed, which is not viable (Node and both installs are build inputs); node_modules caching, audit/fund off and dashboard-lock key coverage are bounded to a few seconds per prior evaluations. 60 s gate unmet. No suggestion; no create_issue; noop used. next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T23:18:00Z",
+   "worker_run_id": "43773722096",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109,
+    43756218347,
+    43753233809,
+    43752704784,
+    43752194225,
+    43746617494,
+    43731625055,
+    43724243400,
+    43721484176,
+    43721157324,
+    43706435376,
+    43698271571,
+    43682264332,
+    43681861583,
+    43680980929,
+    43655786695
+   ],
+   "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 43655786695 (push d55c91b, 2026-11-14T23:57Z) to 43768376457 (push 14a39d4, 2026-11-15T22:16Z); no queued or in-progress docs run; 0 cancelled; source 14a39d4 = HEAD = source_sha. Gate: 13 successes >= 5. Jobs API re-read for all 20 at 23:17Z matched stored run_timings rows. Build documentation (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery) median 12 s, p90 15, range 8-15 = 15.6 percent of exec median 77 s (p90 90); 15 percent gate 11.55 s. Removing the whole step is invalid (deploy consumes dist; validation gates the build), and Astro-internal vs validation split is unmeasurable (logs API 403 DIFC re-probed 23:18Z, not bypassed). No Astro-internal change can be shown to save >=11.55 s; 60 s gate unreachable. Checkout median 25 s (32.5 percent of exec) remains covered by OPEN issue 20815 (0 comments, updated 2026-11-13T17:41Z); not repeated. Excluded and disclosed: 7 failures (6 push + schedule 43680980929 at Build documentation). No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -883,7 +883,7 @@
   "hashing": "hashFiles = sha256 over concatenated binary per-file sha256 digests; root-only reproduces 7808ecf8; root+dashboard reproduces aaf3a193 (not used by docs.yml)",
   "hits": "success runs: Post Set up Node.js 0-1 s (exact-key hit inferred); failed runs: post step skipped, so cannot be classified",
   "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
-  "log_access": "step logs and job logs return HTTP 403 DIFC (re-probed 22:52Z); not bypassed",
+  "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
   "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
   "live_entry_last_accessed": "2026-11-15T22:45:22Z (Actions caches API read at 22:51Z)",
   "window_2026_11_15T1930Z": {
@@ -1012,34 +1012,18 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-15T22:53:17Z",
-  "status": "Build documentation green on 13 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z; latest 43768376457, 22:16Z). Last schedule success 43561388555 (2026-11-14T05:24Z); schedule 43680980929 (2026-11-15T05:24Z) failed. Root cause not verified (logs HTTP 403 DIFC). Confirm the 2026-11-16 ~05:23Z schedule succeeds."
+  "observed_at": "2026-11-15T23:17:00Z",
+  "status": "Build documentation green on 13 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z; latest 43768376457, 22:16Z). Last schedule failure 43680980929 (2026-11-15T05:24Z). Root cause not verified (logs HTTP 403 DIFC). Confirm the 2026-11-16 ~05:23Z schedule succeeds."
  },
- "etag_note": "2026-11-15T20:20:58Z: gh api responses in this sandbox returned no ETag header (observed: Link, X-Ratelimit-*); the earlier Jobs and file-list reads were not conditional. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43756384109. 22:52Z: this evaluation's gh api reads were not conditional; only job rows for 43768376457 were re-read; other rows reused from run_timings.",
+ "etag_note": "23:17Z: gh api -i returned no ETag header; the 20 jobs reads were not conditional. Completed-run rows are immutable: reuse run_timings.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-15T22:34:13Z",
-   "note": "Stale queued run 37642403569 (path .github/workflows/docs.yml, event workflow_run, headSha 6206962, created 2026-10-07) still queued at 22:32Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker. It did not delay any window run."
-  },
-  {
-   "observed_at": "2026-11-15T22:34:13Z",
-   "note": "Scheduling re-evaluated: 0 of 19 window push runs avoidable; queue all 20 runs median 3 s, p90 4 s, max 4 s (no concurrency holds). Schedule 05:23Z kept for synthetic-date freshness."
-  },
-  {
-   "observed_at": "2026-11-15T20:53:51Z",
-   "note": "Latent path: docs.yml paths dashboard/site/** matches dashboard/site/test/**, which build.mjs never copies. Zero test-only pushes in window; act only on repeated evidence."
-  },
-  {
-   "observed_at": "2026-11-15T20:53:51Z",
-   "note": "Open #20815 (checkout blobless fetch) is the only open worker issue; window checkout median 25 s, p90 34 s. Not repeated."
-  },
-  {
-   "observed_at": "2026-11-15T20:53:51Z",
-   "note": "Retired-path guard: docs.yml has no restored dashboard artifact; do not re-propose restored-dashboard caches from closed #20380, #18929, #16825 without new evidence of a live producer."
+   "observed_at": "2026-11-15T23:17:00Z",
+   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07) still queued at 23:17Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker."
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-15T22:34:13Z",
+  "evaluated_at": "2026-11-15T23:17:00Z",
   "window": "43655786695 (push d55c91b, 2026-11-14T23:57Z) .. 43768376457 (push 14a39d4, 2026-11-15T22:16Z); 20 completed runs",
   "columns": [
    "run",
@@ -1058,7 +1042,7 @@
    "deploy_job_s",
    "exec_s"
   ],
-  "note": "Jobs API step timestamps; completed runs are immutable, so reuse rows and fetch only newer runs. Failed runs have deploy skipped.",
+  "note": "Jobs API step timestamps re-read 23:17Z for all 20 window runs; matched stored rows. Completed runs are immutable; fetch only runs newer than 43768376457.",
   "rows": [
    [
     43768376457,
