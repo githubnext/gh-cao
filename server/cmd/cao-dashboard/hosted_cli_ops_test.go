@@ -164,3 +164,44 @@ func TestHostedCLIQueueFilter(t *testing.T) {
 		}
 	}
 }
+
+func TestParseHostedCLIOperatorLogin(t *testing.T) {
+	for _, tc := range []struct{ raw, want string }{
+		{"ops-user", "ops-user"},
+		{"  ops-user\t", "ops-user"},
+		{"a", "a"},
+		{"dependabot[bot]", "dependabot[bot]"},
+		{strings.Repeat("a", 39), strings.Repeat("a", 39)},
+	} {
+		got, err := parseHostedCLIOperatorLogin(tc.raw)
+		if err != nil || got != tc.want {
+			t.Errorf("parseHostedCLIOperatorLogin(%q) = %q, %v; want %q", tc.raw, got, err, tc.want)
+		}
+	}
+	for name, raw := range map[string]string{
+		"empty":             "",
+		"blank":             "   ",
+		"leading hyphen":    "-ops",
+		"space inside":      "ops user",
+		"slash":             "ops/user",
+		"too long":          strings.Repeat("a", 40),
+		"bot in the middle": "ops[bot]user",
+	} {
+		got, err := parseHostedCLIOperatorLogin(raw)
+		if err == nil || got != "" || err.Error() != "--actor must be a valid GitHub login" {
+			t.Errorf("%s: parseHostedCLIOperatorLogin(%q) = %q, %v; want rejection", name, raw, got, err)
+		}
+	}
+}
+
+func TestHostedCLIQueueCancelRejectsInvalidActorBeforeStoreAccess(t *testing.T) {
+	for _, args := range [][]string{
+		{"cancel", "1", "--actor", "not a login"},
+		{"cancel", "1", "--actor", "   "},
+	} {
+		_, err := runHostedCLIQueueTestCommand(t, args...)
+		if err == nil || err.Error() != "--actor must be a valid GitHub login" {
+			t.Errorf("%v: error = %v, want invalid actor rejection", args, err)
+		}
+	}
+}

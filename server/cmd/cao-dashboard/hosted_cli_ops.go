@@ -145,9 +145,9 @@ func newHostedCLIQueueCancelCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		login := strings.TrimSpace(*operator)
-		if !hostedCLOperatorLogin.MatchString(login) {
-			return errors.New("--actor must be a valid GitHub login")
+		login, err := parseHostedCLIOperatorLogin(*operator)
+		if err != nil {
+			return err
 		}
 		return runHostedCLIQueueCommand(func(ctx context.Context, session hostedCLIQueueSession) error {
 			if err := session.audit.Record(ctx, "cli_command.operator_cancel_requested", audit.Success,
@@ -211,6 +211,17 @@ func runHostedCLIQueueCommand(run func(context.Context, hostedCLIQueueSession) e
 		return errors.New("hosted CLI queue operations require a durable audit store")
 	}
 	return run(ctx, hostedCLIQueueSession{queue: queue, audit: auditLog})
+}
+
+// parseHostedCLIOperatorLogin trims and validates the self-reported operator
+// login recorded in the audit trail before any queue or audit I/O happens.
+func parseHostedCLIOperatorLogin(raw string) (string, error) {
+	login := strings.TrimSpace(raw)
+	if !hostedCLOperatorLogin.MatchString(login) {
+		hostedCLILog.Printf("queue cancel rejected: reason=invalid_actor length=%d", len(login))
+		return "", errors.New("--actor must be a valid GitHub login")
+	}
+	return login, nil
 }
 
 func parseHostedCLICommandID(raw string) (int64, error) {
