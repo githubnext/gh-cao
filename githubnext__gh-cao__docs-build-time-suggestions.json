@@ -1,36 +1,7 @@
 {
-  "source_sha": "d62125be3d6df1b26ceb1c213df9d9ecee69c6ed",
-  "next_category": "dependency installation and caching",
+  "source_sha": "88f652f435798bedd8415b26078eedbe8b037615",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T09:35:10Z",
-      "worker_run_id": "43699437824",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "43698271571",
-        "43682264332",
-        "43681861583",
-        "43680980929",
-        "43655786695",
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917"
-      ],
-      "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43698271571 (push f8da6f2, created 2026-11-15T09:14:26Z) back to 43504093917 (push a7d5ebf, created 2026-11-13T20:42:56Z), all within 14 days; 0 cancelled, none queued; source f8da6f2 = HEAD = source_sha. Samples: 9 successes (8 push + schedule 43561388555) meet the 5-run gate; 11 failures disclosed: 10 Build documentation failures since 43613020723 (15:58Z Nov 14), including 43681861583 which earlier windows omitted, plus 43506161539 at Install dependencies. Install dependencies (successes) median 11 s, p90 nearest-rank 24 (pre-rollover 43504143936); post-rollover n=6 median 9.5 s (7-11). Exec build-start to deploy-end median 82 s (p90 92): 15 percent gate 12.3 s, install share 13.4 percent; whole-step removal (11 s) stays below the gate; setup+install median 16 s would need a replacement costing at most 3.7 s, while the npm restore alone is median 4 s. Cache: Post Set up Node.js 0-1 s in all 9 successes (exact-key hit, save skipped); key 7808ecf8 (263 MB) last accessed 09:29Z. Correction: failed run 43506161539 Post Set up Node.js was skipped, so it did not seed 7808ecf8; creator not attributable from caches API. Dashboard prod install (6 of 34 entries differ from root lock) sits outside the root-only key and is unmeasurable (job logs HTTP 403 DIFC, not bypassed). Checkout median 24 s stays with open issue 20815 (OPEN, 0 comments), not repeated. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T09:53:18Z",
       "worker_run_id": "43701093070",
@@ -871,75 +842,112 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43561388555 (schedule, 2026-11-14T05:24Z) to 43746617494 (push d62125be, 2026-11-15T18:24Z); unchanged since the 18:52Z evaluation; 0 cancelled, 0 in progress; re-listed 19:15Z. Samples: 8 successes (7 push, 1 schedule) meet the 5-run gate; 12 failures excluded and disclosed (11 push + schedule 43680980929; deploy skipped; Build documentation step for the two verified via Jobs API). Failure streak ended at 13:54Z with fix commit f02efd0 (greens 43721484176, 43724243400, 43731625055, 43746617494). Queue run-created to build-start across all 20 runs: 2-4 s, median 3 s; no concurrency hold in window (68 s hold on 43504143936 is out of window). Exec build-start to deploy-end successes: median 76.5 s, p90 92 s; 15 percent gate 11.5 s; 60 s gate unmet. Concurrency group documentation-pages with cancel-in-progress false retained (cancellation could interrupt Pages publication). Avoidable rebuilds: 0 of 18 push runs (each touched build-consumed paths per commit_paths). Schedule runs kept for daily synthetic-date refresh; skipping a same-day-prior-deploy scheduled run would save at most one run per day, not median execution time, and would weaken freshness: rejected. Caveat: single successful schedule sample (92 s, checkout 37 s) is not a comparable distribution. Stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) still queued in documentation-pages; it did not delay any in-window run; maintainer should verify and cancel. Checkout median 24.5 s remains under OPEN #20815 (updated 2026-11-13T17:41:19Z, unchanged evidence); not repeated. No suggestion; no create_issue; noop used; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T19:33:46Z",
+      "worker_run_id": "43752611505",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "43752704784",
+        "43752194225",
+        "43746617494",
+        "43731625055",
+        "43724243400",
+        "43721484176",
+        "43721157324",
+        "43706435376",
+        "43698271571",
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032",
+        "43608206381"
+      ],
+      "outcome": "complete, not actionable. Window = latest 20 completed docs.yml runs 43608206381 (push 54facee, created 2026-11-14T15:04Z) to 43752704784 (push 88f652f4, created 2026-11-15T19:29Z), all within 14 days; 0 cancelled; none queued. Samples: 8 successes, all push, meet the 5-run gate; 12 failures disclosed (the Build documentation streak 43613020723 to 43721157324, ended 13:51Z). Dependency phase on the 8 successes: Set up Node.js median 4 s (p90 6), Install dependencies median 8.5 s (p90 11), post Set up Node.js median 0 s (p90 1); setup+install+post median 12 s (p90 17) = 15.4 percent of exec median 78 s (p90 111, driven by a 51 s checkout in 43752194225). 15 percent gate 11.7 s: only removing the entire phase clears it, and Astro needs node_modules, so no realistic change does; 60 s gate unreachable. Cache: node-cache-Linux-x64-npm-7808ecf8 exists (263,412,733 B, created 2026-11-13T20:57:12Z, last accessed 19:30:18Z); root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z), so the key is stable across the window; post-step 0-1 s on every success implies exact-key hits and no misses. Logs HTTP 403 DIFC (not bypassed), so the root vs dashboard install split stays unmeasured. Checkout median 26 s (p90 51) is the blobless suggestion already tracked by OPEN issue 20815 (0 comments, unchanged since 2026-11-13T17:41:19Z); not repeated and outside this category. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
-    "verified_at": "2026-11-15T17:53:47Z",
+    "verified_at": "2026-11-15T19:33:46Z",
     "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
     "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) root only>",
     "restore": "exact key only; no restore-keys",
-    "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263412733 B; created 2026-11-13T20:57:12Z; ref refs/heads/main; repo total_count 1 at 14:28Z)",
-    "root_lock_history": "last changed 7c8faf4 (2026-11-13T20:56:33Z); unchanged through HEAD aa73dc6; hashFiles-style root hash at HEAD reproduces 7808ecf8",
+    "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263412733 B; created 2026-11-13T20:57:12Z; ref refs/heads/main; listed 19:31Z)",
+    "root_lock_history": "root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z); no lock commit through 88f652f4",
     "hashing": "hashFiles = sha256 over concatenated binary per-file sha256 digests; root-only reproduces 7808ecf8; root+dashboard reproduces aaf3a193 (not used by docs.yml)",
     "hits": "success runs: Post Set up Node.js 0-1 s (exact-key hit inferred); failed runs: post step skipped, so cannot be classified",
     "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
     "log_access": "step logs and job logs return HTTP 403 DIFC; not bypassed",
     "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-    "window_2026_11_15T1430Z": {
+    "live_entry_last_accessed": "2026-11-15T19:30:18Z (Actions caches API read at 19:31Z)",
+    "window_2026_11_15T1930Z": {
       "n_success": 8,
-      "setup_node_median_s": 4.5,
-      "install_median_s": 9,
+      "setup_node_median_s": 4,
+      "install_median_s": 8.5,
       "install_p90_s": 11,
-      "setup_install_post_median_s": 12.5,
-      "exec_median_s": 77,
-      "exec_p90_s": 92
-    },
-    "live_entry_last_accessed": "2026-11-15T17:43:49Z (Actions cache API read at 17:52Z)"
+      "setup_install_post_median_s": 12,
+      "exec_median_s": 78,
+      "exec_p90_s": 111
+    }
   },
   "run_samples": {
-    "evaluated_at": "2026-11-15T18:33:32Z",
-    "window": "43561388555 (2026-11-14T05:24Z) .. 43746617494 (2026-11-15T18:24Z)",
+    "evaluated_at": "2026-11-15T19:33:46Z",
+    "window": "43608206381 (2026-11-14T15:04Z) .. 43752704784 (2026-11-15T19:29Z)",
     "n_success": 8,
     "n_failed": 12,
     "n_cancelled": 0,
     "success_ids": [
+      "43752704784",
+      "43752194225",
       "43746617494",
       "43731625055",
       "43724243400",
       "43721484176",
       "43611206032",
-      "43608206381",
-      "43593405440",
-      "43561388555"
+      "43608206381"
     ],
     "success_metrics_median_p90_s": {
       "queue_run_created_to_build_start": [
-        3,
+        3.5,
         4
       ],
       "build_job": [
-        60.5,
-        79
+        62.5,
+        95
       ],
       "deploy_job": [
-        10,
+        10.5,
         13
       ],
       "exec_build_start_to_deploy_end": [
-        76.5,
-        92
+        78,
+        111
       ],
       "checkout": [
-        24.5,
-        37
+        26,
+        51
       ],
       "set_up_node": [
-        3.5,
+        4,
         6
       ],
+      "post_setup_node": [
+        0,
+        1
+      ],
       "install": [
-        9,
+        8.5,
         11
+      ],
+      "setup_install_post": [
+        12,
+        17
       ],
       "build_documentation": [
         12,
@@ -947,14 +955,14 @@
       ],
       "demo": [
         4,
-        5
+        6
       ],
       "upload_pages_artifact": [
         2,
-        3
+        4
       ]
     },
-    "note": "Jobs API step timings; step logs unavailable (403). Nearest-rank p90. Build and deploy jobs only; no dashboard job."
+    "note": "Jobs API step timings; step logs unavailable (403). Nearest-rank p90. All 8 successes are push runs (schedule success 43561388555 left the window). Build and deploy jobs only; no dashboard job."
   },
   "checkout_probe": {
     "measured_at": "2026-11-13T17:38:10Z",
@@ -982,12 +990,12 @@
       "number": 20815,
       "state": "OPEN",
       "fingerprint": "docs-checkout-blobless-history-v1",
-      "checked_at": "2026-11-15T11:57:00Z",
-      "note": "re-read 18:33Z: 20815 still OPEN, 0 comments, updated 2026-11-13T17:41:19Z; window checkout median 24.5 p90 37 (n=8); not repeated, no material change"
+      "checked_at": "2026-11-15T19:33:46Z",
+      "note": "re-read 19:33Z: 20815 still OPEN, 0 comments, updated 2026-11-13T17:41:19Z; window (n=8) checkout median 26 p90 51 (one 51 s sample in 43752194225); suggestion unchanged, not repeated"
     },
     "window_checkout_ok14_median_p90_s": [
-      24.5,
-      37
+      26,
+      51
     ],
     "window_checkout_ok13_median_p90_s": [
       24,
@@ -995,32 +1003,32 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-15T19:18:00Z",
-    "status": "Resolved for the current window: Build documentation green on four consecutive pushes (43721484176 13:54Z with fix f02efd0, 43724243400 14:25Z, 43731625055 15:45Z, 43746617494 d62125be 18:24Z). The 12-run failure streak 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) has ended. No schedule run has succeeded since 43561388555; 43680980929 failed 2026-11-15T05:24Z.",
-    "note": "Root cause of the 12-run streak not verified (step logs HTTP 403 DIFC). Latest run list 19:15Z: no docs run after 18:24Z."
+    "observed_at": "2026-11-15T19:33:46Z",
+    "status": "Resolved for the current window: Build documentation green on six consecutive pushes: 43721484176 (13:54Z, fix f02efd0), 43724243400 (14:25Z), 43731625055 (15:45Z), 43746617494 (18:24Z, d62125be), 43752194225 (19:23Z, e3b3b9c), 43752704784 (19:29Z, 88f652f4). The 12-run failure streak 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) has ended. No schedule run has succeeded since 43561388555 (2026-11-14T05:24Z); 43680980929 failed 2026-11-15T05:24Z.",
+    "note": "Root cause of the 12-run streak not verified (step logs HTTP 403 DIFC)."
   },
-  "etag_note": "2026-11-15 19:15Z: gh api -i on the run jobs endpoint returned no ETag header in captured output; gh run list used for listing. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43746617494.",
+  "etag_note": "2026-11-15 19:33Z: Jobs API fetched only for the two runs newer than 43746617494 (43752194225, 43752704784); file lists fetched only for e3b3b9cd and 88f652f4. gh api used without If-None-Match and no ETag captured. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43752704784.",
   "observations_pending": [
     {
-      "observed_at": "2026-11-15T19:18:00Z",
-      "note": "Stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) remains queued in documentation-pages; no effect on window queue times. Maintainer should verify and cancel it; a dispatch would build an old commit."
+      "observed_at": "2026-11-15T19:33:46Z",
+      "note": "Stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) is still queued in documentation-pages; no effect on window queue times (3-4 s). Maintainer should verify and cancel it; a dispatch would build an old commit."
     },
     {
-      "observed_at": "2026-11-15T19:18:00Z",
-      "note": "Latent avoidable-rebuild path: docs.yml paths dashboard/site/** matches dashboard/site/test/**, which build.mjs never copies. No test-only push in the window (18 of 18 push commits build-consumed). Act only on repeated evidence."
+      "observed_at": "2026-11-15T19:33:46Z",
+      "note": "Latent avoidable-rebuild path: docs.yml paths dashboard/site/** matches dashboard/site/test/**, which build.mjs never copies. No test-only push in the window (all push commits build-consumed; 88f652f4 also changed dashboard/site/scripts/build.mjs). Act only on repeated evidence."
     },
     {
-      "observed_at": "2026-11-15T19:18:00Z",
+      "observed_at": "2026-11-15T19:33:46Z",
       "note": "Confirm the 2026-11-16 ~05:23Z schedule succeeds at Build documentation (no schedule green since 43561388555)."
     },
     {
-      "observed_at": "2026-11-15T19:18:00Z",
-      "note": "Open #20815 (checkout blobless fetch, OPEN, updated 2026-11-13T17:41:19Z) is the checkout suggestion; not repeated in any category evaluation."
+      "observed_at": "2026-11-15T19:33:46Z",
+      "note": "Open #20815 (checkout blobless fetch, OPEN, 0 comments, updated 2026-11-13T17:41:19Z) is the checkout suggestion; window checkout median 26 s, p90 51 s. Not repeated: suggestion evidence has no material change."
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-15T18:33:32Z",
-    "window": "43561388555..43746617494 (latest 20 completed docs.yml runs)",
+    "evaluated_at": "2026-11-15T19:33:46Z",
+    "window": "43608206381..43752704784 (latest 20 completed docs.yml runs)",
     "columns": [
       "run",
       "event",
@@ -1040,6 +1048,40 @@
     ],
     "note": "Durations from Jobs API step timestamps (completed runs are immutable; reuse rows and fetch only new runs). Failed runs have deploy skipped and post-step skipped.",
     "rows": [
+      [
+        43752704784,
+        "push",
+        "success",
+        "88f652f4",
+        4,
+        63,
+        28,
+        4,
+        7,
+        0,
+        11,
+        5,
+        3,
+        9,
+        77
+      ],
+      [
+        43752194225,
+        "push",
+        "success",
+        "e3b3b9cd",
+        3,
+        95,
+        51,
+        4,
+        10,
+        0,
+        14,
+        6,
+        4,
+        11,
+        111
+      ],
       [
         43746617494,
         "push",
@@ -1345,46 +1387,12 @@
         2,
         12,
         82
-      ],
-      [
-        43593405440,
-        "push",
-        "success",
-        "7e620f3",
-        3,
-        59,
-        24,
-        3,
-        9,
-        0,
-        10,
-        4,
-        2,
-        9,
-        73
-      ],
-      [
-        43561388555,
-        "schedule",
-        "success",
-        "4d25cbd",
-        3,
-        79,
-        37,
-        4,
-        10,
-        0,
-        14,
-        4,
-        3,
-        8,
-        92
       ]
     ]
   },
   "transfer_model": {
     "verified_at": "2026-11-15T18:33:32Z",
-    "window": "43561388555..43746617494 (8 successes; 12 failures excluded)",
+    "window": "43608206381..43752704784 (8 successes; 12 failures excluded)",
     "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
     "columns": [
       "run",
@@ -1399,6 +1407,30 @@
       "exec_s"
     ],
     "rows": [
+      [
+        "43752704784",
+        "push",
+        5,
+        0,
+        3,
+        0,
+        6,
+        9,
+        8,
+        77
+      ],
+      [
+        "43752194225",
+        "push",
+        5,
+        0,
+        4,
+        1,
+        7,
+        11,
+        10,
+        111
+      ],
       [
         "43746617494",
         "push",
@@ -1470,50 +1502,26 @@
         12,
         8,
         82
-      ],
-      [
-        "43593405440",
-        "push",
-        5,
-        1,
-        2,
-        1,
-        5,
-        9,
-        9,
-        73
-      ],
-      [
-        "43561388555",
-        "schedule",
-        5,
-        1,
-        3,
-        0,
-        6,
-        8,
-        9,
-        92
       ]
     ],
     "summary": {
       "removable_median_s": 8,
-      "removable_p90_s": 9,
-      "removable_share_of_exec_median_pct": 10.5,
-      "exec_median_s": 76.5,
-      "exec_p90_s": 92,
+      "removable_p90_s": 10,
+      "removable_share_of_exec_median_pct": 10.3,
+      "exec_median_s": 78,
+      "exec_p90_s": 111,
       "deploy_pages_median_s": 7
     },
-    "note": "Completed-run timings are immutable; reuse rows and fetch only runs newer than 43731625055.",
-    "reverified_at": "2026-11-15T18:33:32Z",
-    "reverified_note": "18:33Z: added 43746617494 from its Jobs API (handoff 5, configure 1, upload 1, deploy setup 1, deploy pages 7); 43536796952 dropped from window."
+    "note": "Completed-run timings are immutable; reuse rows and fetch only runs newer than 43752704784.",
+    "reverified_at": "2026-11-15T19:33:46Z",
+    "reverified_note": "19:33Z: added 43752194225 and 43752704784 from Jobs API; dropped 43593405440 and 43561388555 from the window."
   },
   "commit_paths": {
-    "verified_at": "2026-11-15T17:33:19Z",
+    "verified_at": "2026-11-15T19:33:46Z",
     "method": "gh api repos/githubnext/gh-cao/commits/<sha> file lists; commits are immutable, so reuse this map and do not refetch; no ETag captured",
-    "push_commits_checked": 18,
+    "push_commits_checked": 20,
     "test_only_pushes": 0,
-    "build_consumed_pushes": 18,
+    "build_consumed_pushes": 20,
     "examples": {
       "88f046c": "dashboard-fragments/workflow-value.json, test fixtures, test units",
       "aa73dc6": "dashboard-fragments, dashboard.json, src/agent generated, specs, e2e",
@@ -1533,7 +1541,9 @@
       "54faceef": "docs/configuration.md, ARCHITECTURE.md, server",
       "7e620f3": "docs/components/SiteFooter.astro",
       "54e08aa": "docs/components/ThemeToggle.astro",
-      "d62125be": "dashboard-fragments/workflow-value.json, dashboard.json, generated agent catalog/queries, test fixtures and unit (build-consumed)"
+      "d62125be": "dashboard-fragments/workflow-value.json, dashboard.json, generated agent catalog/queries, test fixtures and unit (build-consumed)",
+      "e3b3b9cd": "docs/operations.md, scripts/dashboard-demo-data.mjs, dashboard-pages-simulation unit test (build-consumed via docs/**)",
+      "88f652f4": "ARCHITECTURE.md, dashboard/README.md, dashboard/site/README.md, dashboard/site/scripts/build.mjs, dashboard-site-build unit test (build-consumed via dashboard/site/**)"
     }
   }
 }
