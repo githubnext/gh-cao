@@ -1,36 +1,7 @@
 {
  "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T14:32:37Z",
-   "worker_run_id": "43605075299",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529,
-    43484369040,
-    43465706802,
-    43447728981,
-    43447111490,
-    43440055797,
-    43430232636,
-    43430166810
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); run list re-read 14:32Z: same 20 IDs, none queued or in progress, 0 cancelled, no newer docs run; source 215837f = workspace HEAD = source_sha. Excluded and disclosed: 43506161539 failed (push 7c8faf4, Install dependencies; logs 403, cause unverified). n=19 successes (18 push + schedule 43561388555); 5-run gate met. Window medians (p90), n=19: exec 81 s (92); install 15 s (24) = 18.5 percent of exec median. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 present on refs/heads/main (263 MB, lastAccessedAt 14:28:59Z); Set up Node.js 3 s and Post step 0 s on 43593405440 and 43561388555 (hit). Current-key install n=4 (43536491714 9 s, 43536796952 7 s, 43561388555 10 s, 43593405440 9 s): median 9 s, max 10 s = 11 percent of exec median 81 s; full removal stays under the 15 percent gate (12.2 s); 60 s gate unreachable. Older-key runs before the 2026-11-13 20:57Z key rollover (n=15) had install median 16 s, so the window median overstates the forward saving; that gain is already realized and is not a suggestion. node_modules caching saves at most install minus restore, unmeasured and under gate. Checkout (median 24 s) is outside this category and is represented by open issue 20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41Z), not repeated. No suggestion; no issue created; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T14:52:32Z",
    "worker_run_id": "43606754422",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (push 79129a5, created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); 0 cancelled; none queued or in progress in window; source d55c91b = HEAD = source_sha. n=13 successes (12 push + schedule 43561388555); 7 failures: 43506161539 (install, 7c8faf4) and six consecutive push failures at Build documentation (43613020723 to 43655786695). Queue (run created to build start) median 3 s, p90 4 s, max 71 s; concurrency waits (run created to build job created) 68 s (43504143936) and 42 s (43502660435), both behind the predecessor deploy (cancel-in-progress false, by design); median wait 0 s. Exec (build start to deploy end, successes) median 81 s, p90 90 s; 15 percent gate 12.2 s and 60 s gate unmet because the median run saves 0 s from queue removal. Avoidable rebuilds: 18 push comparisons via compare API (consecutive docs run heads); 17 of 18 changed docs or dashboard build inputs; only 43536491714 (2cb6d9c, 4 files, all .github/workflows/shared/**) was trigger-only. Expected saving from removing that path = about 1/18 x 81 s = 4.5 s per push run, and not repeated; rejected. Schedule 43561388555 is the daily synthetic-date refresh by design. Cancelling in-flight builds or relaxing serialization stays rejected (Pages publication order). Open issue 20815 (checkout, OPEN, 0 comments) not repeated. Reliability (not timing, critical): Build documentation failed on six consecutive push runs since 15:58Z; Pages last deployed by 43611206032 (15:39Z); job logs HTTP 403 DIFC, cause unverified; no open issue tracks it. Surfaced to maintainers via noop message and observations_pending. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T01:02:51Z",
+   "worker_run_id": "43660710390",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936,
+    43504093917,
+    43503897533,
+    43503506778,
+    43502660435,
+    43502562196
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z) back to 43502562196 (created 2026-11-13T20:32:55Z); re-read 01:00Z: no newer docs run, none queued or in progress, 0 cancelled; source d55c91b = HEAD = source_sha. Excluded and disclosed: 7 failures = 6 push runs failing at Build documentation after install (43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695; logs HTTP 403 DIFC, cause unverified) and 43506161539 failed at Install. n=13 successes (12 push + schedule 43561388555); 5-run gate met. Jobs API window medians: Install dependencies 11 s (p90 20; pre-key-rollover runs inflate p90), exec 81 s (p90 90), so install = 13.6 percent. Cache: key node-cache-Linux-x64-npm-7808ecf8 on refs/heads/main (created 2026-11-13T20:57:12Z, 251 MB, lastAccessedAt 2026-11-15T00:59:33Z) served all 6 current-key successes: Set up Node.js 3 to 5 s and Post step 0 to 1 s (save skipped = hit, inferred from step timing and caches API; step logs 403 even for successful jobs). Current-key install median 9.5 s (7 to 11 s, n=6) = 11.7 percent of exec median; removing the whole step would still miss the 15 percent gate (12.15 s), and it is impossible because deps are required. node_modules caching: net saving unmeasured, a few seconds at most; rejected. setup-node key covers root lock only; dashboard/site/package-lock.json last changed in 7c8faf4 (observation, not a suggestion). Checkout (median 24 s) is outside this category and represented by open issue 20815 (OPEN, 0 comments), not repeated. No suggestion; no issue; noop used. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -899,7 +899,7 @@
  },
  "run_samples": {
   "window_created": "2026-11-13T20:32:55Z..2026-11-14T23:57:34Z",
-  "evaluated_at": "2026-11-15T00:42:07Z",
+  "evaluated_at": "2026-11-15T01:02:51Z",
   "note": "window = latest 20 completed docs.yml runs; 13 successful; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes); 0 for skipped/unreached jobs.",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
@@ -1167,20 +1167,24 @@
   "medians": {
    "exec_success_s": 81,
    "exec_success_p90_s": 90,
-   "queue_s": 3,
-   "queue_p90_s": 4,
-   "checkout_s": 24,
-   "install_s": 11,
-   "docs_s": 12,
-   "demo_s": 4,
-   "upload_s": 2
+   "queue_success_s": 2,
+   "queue_success_p90_s": 3,
+   "checkout_success_s": 24,
+   "install_success_s": 11,
+   "install_success_p90_s": 20,
+   "install_current_key_median_s": 9.5,
+   "setup_node_success_s": 4,
+   "docs_success_s": 12,
+   "demo_success_s": 4,
+   "upload_success_s": 2,
+   "note": "recomputed 01:00Z from jobs API over 13 successes; queue = run-created to build-start"
   }
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-15T00:42:07Z",
+   "observed_at": "2026-11-15T01:02:51Z",
    "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695",
-   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on six consecutive push runs since 15:58Z (latest d55c91b, 23:57Z). Pages last deployed by 43611206032 (15:39Z, 04c9d9e), so published docs are stale. Cause unverified (job logs HTTP 403 DIFC; annotations only say exit code 1). No open issue tracks this streak. Maintainer triage needed."
+   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on six consecutive push runs since 600b56a (15:58Z; latest d55c91b, 23:57Z). Pages last deployed by 43611206032 (15:39Z, 04c9d9e), so published docs are stale. Cause unverified (job logs HTTP 403 DIFC even for successful jobs; annotations say only exit code 1). Lead, unverified: compare 04c9d9e...600b56a touches docs/setup-quickstarts.md, ARCHITECTURE.md, and Go CLI files. No open issue tracks this streak. Maintainer triage needed."
   },
   {
    "observed_at": "2026-11-15T00:42:07Z",
@@ -1191,6 +1195,11 @@
    "observed_at": "2026-11-15T00:42:07Z",
    "source": "docs.yml run list",
    "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z, headSha 6206962) still queued at evaluation; no current trigger; maintainer hygiene item."
+  },
+  {
+   "observed_at": "2026-11-15T01:02:51Z",
+   "source": "gh-aw failure reports",
+   "note": "Open [aw] issues 20440 (Failed jobs: SelfCare / Docs Build Time, 2026-11-08) and 20891 (engine driver crashed, 2026-11-14) exist for this worker; not docs build-time evidence, not repeated."
   }
  ],
  "checkout_probe": {
