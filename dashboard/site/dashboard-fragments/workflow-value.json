@@ -884,23 +884,46 @@
         "objective": "Separate acquisition health from retained repository outcomes.",
         "acceptance": "Show actual reasons and separate clocks. Absent collection facts are unknown, not proof of absent registration.",
         "data": { "source": "value-collection-health", "arguments": [{ "name": "workflow", "field": "workflow-route" }], "query-context": false, "time": { "range": "all" } },
+        "disclosure": "supplemental",
         "mark": "list", "list": { "style": "entity-cards", "card": "workflow-value-collection", "icon": "pulse" },
         "encoding": { "columns": [{ "field": "workflow-context", "type": "nominal", "title": "Workflow" }] },
         "layout": "full", "empty-message": "Collection status has not been published for this workflow. Missing status does not prove that collection is unconfigured."
       }, {
-        "id": "workflow-value-cards", "title": "Repository outcomes",
+        "id": "workflow-value-movement", "title": "Repository outcome movement",
         "subject": "Direction-aware native changes for this workflow's measured repository problems.",
-        "objective": "Open the evidence behind one compact result card.",
-        "acceptance": "A card is a first-to-last snapshot comparison, not an alert, causal rating or conversion rate. Missing evidence is not zero.",
+        "objective": "Compare how many retained results improved, worsened, stayed unchanged or lack a comparison.",
+        "acceptance": "Count categorical movement only; never compare or aggregate heterogeneous native values.",
         "data": { "source": "value-workflow-results", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "list": { "style": "entity-cards", "card": "workflow-value-result", "icon": "trophy",
-          "drill": { "type": "query", "page": "value-report", "query": "value-report-summary", "title-field": "snapshot-name", "arguments": [{ "name": "report", "field": "report-id" }] } },
-        "encoding": { "columns": [{ "field": "change-label", "type": "nominal", "title": "Observed change" }] },
+        "mark": "chart", "chart": "bar",
+        "encoding": {
+          "x": { "field": "movement", "type": "nominal", "title": "Movement" },
+          "y": { "field": "report-id", "type": "quantitative", "aggregate": "count", "title": "Results" }
+        },
         "layout": "full", "empty-message": "No accepted Value evidence is retained for this workflow. See collection health above; missing evidence is not zero value."
+      }, {
+        "id": "workflow-value-results", "title": "Repository outcomes",
+        "subject": "Direction-aware native changes for this workflow's measured repository problems.",
+        "objective": "Open the evidence behind one compact result card or inspect the same result fields in a table.",
+        "acceptance": "Cards and table rows are first-to-last snapshot comparisons, not alerts, causal ratings or conversion rates. Missing evidence is not zero.",
+        "data": { "source": "value-workflow-results", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
+        "mark": "table", "controls": "interactive", "lazy-list": true,
+        "card-drill": { "type": "query", "page": "value-report", "query": "value-report-summary", "title-field": "snapshot-name", "arguments": [{ "name": "report", "field": "report-id" }] },
+        "encoding": {
+          "columns": [
+            { "field": "delta-label", "type": "nominal", "title": "Observed change" },
+            { "field": "workflow-context", "type": "nominal", "title": "Workflow" },
+            { "field": "movement", "type": "nominal", "title": "Compared with goal", "display": "status" },
+            { "field": "snapshot-name", "type": "nominal", "title": "Measure" },
+            { "field": "direction-label", "type": "nominal", "title": "Goal" },
+            { "field": "comparison-label", "type": "nominal", "title": "Reference" },
+            { "field": "observed-at", "type": "temporal", "title": "Evidence captured", "format": "human-friendly-timestamp" }
+          ]
+        },
+        "layout": "full-view", "empty-message": "No accepted Value evidence is retained for this workflow. See collection health above; missing evidence is not zero value."
       }, {
         "id": "workflow-native-measurements", "title": "Native measurements",
         "data": { "source": "value-current-measurements", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
+        "disclosure": "supplemental",
         "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph",
           "drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] } },
         "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] },
