@@ -1,36 +1,7 @@
 {
  "source_sha": "14a39d44d377f565f1f6dc8aa8e12d03100125fe",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T13:54:15Z",
-   "worker_run_id": "43721043643",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43721157324,
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695,
-    43639680929,
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43505502149 (push f695ad3, created 2026-11-13T20:52:16Z) to 43721157324 (push ac6789f, created 2026-11-15T13:51:09Z), all within 14 days; 0 cancelled, none queued or in progress at 13:55Z. Checkout source 42f29ae; docs.yml unchanged since 42f29ae; latest docs-input head ac6789f touches dashboard/site/src/data/adapters/grader-evidence.js only. Gate: n=7 successes (6 push + schedule 43561388555) >= 5. Excluded and disclosed: 43506161539 (Install dependencies, 7c8faf4) and 12 consecutive Build documentation failures 43613020723..43721157324 (logs HTTP 403 DIFC, not read). Transfer per success (Jobs API): handoff median 5 (p90 6) + deploy job Set up median 1 (p90 2) + Configure Pages median 1 (p90 1) + Upload Pages artifact median 2 (p90 3) = removable median 9 s (p90 10, max 10) = 11.1 percent of exec median 81 s (p90 92). 15 percent gate 12.15 s and 60 s gate unmet. Deploy Pages median 6 (p90 9) is GitHub-managed. Merging build and deploy saves about 6 s (7.4 percent); still rejected because id-token write and github-pages environment would move onto the npm ci job. Removing upload and deploy (median 15 s) weakens deployment safety; not recommended. github-pages artifact 8,352,438 bytes (43611206032, unchanged); shrinking saves about 1 s. Reliability (not timing): 12 consecutive Build documentation failures since 43611206032 (deploy 15:39Z Nov 14); Pages not redeployed since then; maintainer triage needed; not a create_issue candidate under the timing rule. No suggestion; no issue; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T14:18:58Z",
    "worker_run_id": "43723189934",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16:39Z), all within 14 days; 0 cancelled; window unchanged from 23:18Z evaluation; source 14a39d4 = HEAD = source_sha. Stale docs.yml run 37642403569 (workflow_run, created 2026-10-07) still queued at 23:35Z, outside the completed-run window. Gate: 13 successes >= 5; 7 failures excluded and disclosed. Jobs API re-read for 43768376457 matches stored rows (demo 6 s, build docs 15 s, exec 82 s). Category step Build synthetic enterprise demo (dashboard:pages:build plus cp): median 4 s, p90 6 s = 5.2 percent of exec median 77 s (p90 90). Max saving 4 s, below the 11.55 s (15 percent) and 60 s gates. Generation runs once: astro.config.mjs does not invoke buildDashboardSite; no dashboard job exists. Reuse unsafe: scripts/simulate-dashboard-pages.mjs defaults now to Date.now() and publishes generatedAt; daily 05:23Z refresh is by design. Checkout (median 25 s) is the largest removable phase, already tracked by open issue 20815 (OPEN, 0 comments, unchanged since 2026-11-13T17:41Z); not repeated. No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T23:53:27Z",
+   "worker_run_id": "43776883092",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109,
+    43756218347,
+    43753233809,
+    43752704784,
+    43752194225,
+    43746617494,
+    43731625055,
+    43724243400,
+    43721484176,
+    43721157324,
+    43706435376,
+    43698271571,
+    43682264332,
+    43681861583,
+    43680980929,
+    43655786695
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16:39Z), all within 14 days; 0 cancelled; gh run list at 23:52Z shows no completed run newer than 43768376457; source 14a39d4 = HEAD = source_sha. Gate: 13 successes >= 5; 7 failures excluded and disclosed. Stored Jobs-API transfer rows (completed runs are immutable; no re-fetch) recomputed: removable (handoff + Configure Pages + Upload Pages artifact + deploy Set up) median 8 s (p90 9, max 10) = 10.4 percent of exec median 77 s (p90 90). 15 percent gate 11.55 s and 60 s gate unmet; best-case p90 saving 9 s. Deploy Pages median 7 s is GitHub-managed and excluded. Merging build and deploy saves about 6 s but moves id-token write and the github-pages environment onto the npm ci job; rejected. Removing upload or deploy weakens deployment safety. Pages artifact median 9.15 MB; shrinking saves about 1 s. Observation unchanged: stale queued run 37642403569 (workflow_run, headSha 6206962, created 2026-10-07) still queued at 23:52Z; maintainer should verify and cancel. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1012,14 +1012,14 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-15T23:17:00Z",
-  "status": "Build documentation green on 13 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z; latest 43768376457, 22:16Z). Last schedule failure 43680980929 (2026-11-15T05:24Z). Root cause not verified (logs HTTP 403 DIFC). Confirm the 2026-11-16 ~05:23Z schedule succeeds."
+  "observed_at": "2026-11-15T23:53:27Z",
+  "status": "Build documentation green on 13 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z; latest 43768376457, 22:16Z). No newer docs.yml run at 23:52Z. Last schedule failure 43680980929 (2026-11-15T05:24Z). Root cause not verified (logs HTTP 403 DIFC). Confirm the 2026-11-16 ~05:23Z schedule succeeds."
  },
- "etag_note": "23:17Z: gh api -i returned no ETag header; the 20 jobs reads were not conditional. Completed-run rows are immutable: reuse run_timings.",
+ "etag_note": "23:52Z: gh api -i (docs.yml runs endpoint, per_page=1) returned no ETag header; reads not conditional. Completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-15T23:35:11Z",
-   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07) still queued at 23:35Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker."
+   "observed_at": "2026-11-15T23:53:27Z",
+   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07) still queued at 23:52Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker."
   }
  ],
  "run_timings": {
@@ -1387,7 +1387,7 @@
   ]
  },
  "transfer_model": {
-  "verified_at": "2026-11-15T22:34:13Z",
+  "verified_at": "2026-11-15T23:53:27Z",
   "window": "43721484176..43768376457 (13 successes; 7 failures excluded)",
   "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
   "columns": [
