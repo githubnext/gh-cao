@@ -287,6 +287,7 @@ function renderCliActionControl(action, options = {}) {
       } catch (error) {
         delete templateValues[target];
         selectionReady.set(false);
+        debugCliActions({ event: 'selection-rejected', actionId: action.id });
         statusText.set(error instanceof Error ? error.message : 'Invalid selection.');
         commandPreviewText.set(preview());
       }
@@ -519,7 +520,10 @@ export function renderRowCliAction(actionId, templateValues, options = {}) {
  */
 export function renderDeclaredCliAction(actionId, templateValues = {}, binding) {
   const action = declaredCliActions.find((candidate) => candidate.id === actionId);
-  if (!action || action.selector && !declaredCliActionsCanExecute) return null;
+  if (!action || action.selector && !declaredCliActionsCanExecute) {
+    debugCliActions({ event: 'action-unavailable', scope: 'declared', reason: action ? 'selector-requires-execution' : 'unknown-action' });
+    return null;
+  }
   /** @type {{ targets: Array<Record<string, string>>, error?: string, warning?: string } | undefined} */
   let batch;
   if (binding) {
@@ -541,6 +545,13 @@ export function renderDeclaredCliAction(actionId, templateValues = {}, binding) 
       batch.error = error instanceof Error ? error.message : 'The command target list is invalid.';
       batch.targets = [];
     }
+    debugCliActions({
+      event: 'batch-resolved',
+      actionId: action.id,
+      status: batch.error ? 'rejected' : 'ready',
+      targetCount: batch.targets.length,
+      available: binding.available
+    });
   }
   const rendered = renderCliActionControl(action, {
     templateValues: { ...declaredCliActionTemplateValues, ...templateValues },
