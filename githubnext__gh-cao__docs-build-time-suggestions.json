@@ -1,36 +1,7 @@
 {
   "source_sha": "c0bfef8505154233dc70d3268beaa19085d8031c",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T07:53:52Z",
-      "worker_run_id": "43691643328",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "43682264332",
-        "43681861583",
-        "43680980929",
-        "43655786695",
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917",
-        "43503897533"
-      ],
-      "outcome": "complete, not actionable; reliability blocker unresolved. Window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; none queued or in progress; 0 cancelled; no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Excluded and disclosed: 10 failures (43506161539 at Install dependencies 17 s; 9 Build documentation failures 43613020723..43682264332, 9-15 s into the step; step logs HTTP 403 DIFC, not bypassed). n=10 successes (9 push + schedule 43561388555) meets the 5-run gate. Install dependencies successes median 11 s p90 16 (n=10) = 13.5 percent of exec median 81.5 s (p90 90); all runs reaching install (n=20) median 10 p90 16; post-rollover (after 7c8faf4, n=15) median 9 p90 12. Set up Node.js median 4 s; Post Set up Node.js 0-1 s in all 10 successes (exact-key hit inferred from step timing; logs unreadable). Live key node-cache-Linux-x64-npm-7808ecf8 present (263 MB, created 2026-11-13T20:57:12Z, last accessed 07:43:52Z); sha256 of root package-lock.json at HEAD reproduces 7808ecf8; commits API: root lock last changed in 7c8faf4 (2026-11-13T20:56:33Z). Gate 15 percent = 12.2 s: full install removal (not valid) saves at most 11 s; node_modules caching estimated about 7 s (about 9 percent) at a 5 s restore, unmeasured; npm audit/fund flags unmeasured, expected under 2 s. No suggestion; no create_issue; noop used. Reliability, not timing (unresolved, maintainer triage): Build documentation red on 9 consecutive runs since 15:58Z Nov 14; Pages not deployed since 43611206032 (15:39Z Nov 14); open 20934 (docs:build gate in workflow-contracts, relation unverified); no open docs.yml tracker; checkout issue 20815 unchanged, not repeated. next_category advanced to Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T08:21:06Z",
       "worker_run_id": "43693759559",
@@ -871,10 +842,39 @@
       ],
       "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43536796952 (push 54e08aa, created 2026-11-14T00:50:15Z) to 43731625055 (push 88f046c, created 2026-11-15T15:45:14Z), all within 14 days; gh run list re-read 17:30Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no docs run after 15:45Z; source c0bfef8 = HEAD = source_sha. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (Build documentation 43613020723..43721157324, 9-15 s into the step; step logs HTTP 403 DIFC, not bypassed). Queue run created to build start, all 20 runs: median 3 s, p90 4 s, max 4 s; no concurrency hold in window (the 68 s hold at 43504143936 is outside it). Group documentation-pages with cancel-in-progress false; cancel-in-progress true rejected (could cancel a Pages deploy). Avoidable rebuilds: 0 of 18 push runs. Commits API file lists for all 18 push SHAs (stored in commit_paths) each touched a build-consumed path; no push touched only dashboard/site/test/**. Latent path re-checked: dashboard/site/** matches dashboard/site/test/**, which build.mjs never copies (it copies src, dashboard-fragments, and entry files); zero window saving, not repeated. Schedule 05:23Z is required for synthetic-date refresh (simulate-dashboard-pages uses Date.now()); skipping it weakens freshness. Gate: queue and hold saving at most 4 s, below 15 percent of exec median 77 s (11.55 s); 60 s gate unmet. No suggestion; no create_issue; noop used; open 20815 (blobless checkout) unchanged since 2026-11-13T17:41:19Z, not repeated. Reliability, not timing: Build documentation green on the last 3 pushes; no schedule green since 43561388555; 2026-11-16 schedule unverified. next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T17:53:47Z",
+      "worker_run_id": "43743239744",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "43731625055",
+        "43724243400",
+        "43721484176",
+        "43721157324",
+        "43706435376",
+        "43698271571",
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032",
+        "43608206381",
+        "43593405440",
+        "43561388555",
+        "43536796952"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43536796952 (push 54e08aa, 2026-11-14T00:50Z) to 43731625055 (push 88f046c, 2026-11-15T15:45Z); re-listed 17:52Z: no newer docs run, none queued or in progress, 0 cancelled. Source c0bfef8 = HEAD; its 2 changed files are outside docs.yml triggers (no run owed). Excluded and disclosed: 12 failures, all reached Install dependencies (install median 8.5 s). n=8 successes (7 push + schedule 43561388555) meets the 5-run gate. Install median 9 s, p90 11 (nearest-rank) = 11.7 percent of exec median 77 s; 15 percent gate = 11.55 s. Set up Node.js median 4.5 s; post-step median 0 s, so exact-key hits inferred. Live entry node-cache-Linux-x64-npm-7808ecf8 (263 MB, created 2026-11-13T20:57:12Z) last accessed 17:43:49Z. Both lockfiles last changed in 7c8faf4 (20:56:33Z) and unchanged since, so the root-only cache key has no current staleness effect. Best case: one node_modules restore replacing setup-node plus install (est. 5 s restore, unmeasured) saves about 8.5 s (about 11 percent), below gate; full install removal saves at most 9 s and is invalid. No suggestion; no create_issue (checkout issue 20815 still OPEN, 0 comments, not repeated). next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
-    "verified_at": "2026-11-15T15:16:45Z",
+    "verified_at": "2026-11-15T17:53:47Z",
     "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
     "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) root only>",
     "restore": "exact key only; no restore-keys",
@@ -894,7 +894,7 @@
       "exec_median_s": 77,
       "exec_p90_s": 92
     },
-    "live_entry_last_accessed": "2026-11-15T16:15:27Z (entry present; Actions cache API read at 16:19Z)"
+    "live_entry_last_accessed": "2026-11-15T17:43:49Z (Actions cache API read at 17:52Z)"
   },
   "run_samples": {
     "evaluated_at": "2026-11-15T15:53:10Z",
@@ -995,9 +995,9 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-15T16:51:00Z",
+    "observed_at": "2026-11-15T17:53:47Z",
     "status": "Build documentation green on three consecutive pushes: 43721484176 (13:54Z), 43724243400 (14:25Z), 43731625055 (15:45Z). The 12-run failure streak 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) has ended. No docs.yml run since 15:45Z.",
-    "note": "Reliability, not timing; no create_issue under the timing rule. Cause of the streak was not verified (step logs HTTP 403)."
+    "note": "Still green: no docs.yml run since 15:45Z (re-listed 17:52Z). Cause of the 12-run streak not verified (step logs HTTP 403)."
   },
   "etag_note": "2026-11-15 17:30Z: direct gh api commit fetches were made for immutable SHAs and stored in commit_paths; ETag was not captured. gh run list uses the gh CLI; re-fetch only new runs, and reuse run_timings rows and commit_paths.",
   "observations_pending": [
