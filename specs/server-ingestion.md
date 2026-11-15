@@ -469,6 +469,20 @@ The implementation MUST receive events on the existing CAO webhook endpoint.
   `X-GitHub-Delivery` and `X-GitHub-Event`, bound the request body, deduplicate
   deliveries, and respond `202` before performing work. These obligations are
   unchanged by this profile.
+- After authenticating a delivery, the endpoint MUST dispatch it to a
+  pluggable webhook service and MUST NOT expose unauthenticated input to any
+  listener. The configured reconciler or collector MUST be one registered
+  listener, and additional listeners MAY be registered under unique names.
+  Every registered listener MUST receive every verified delivery, in
+  registration order, even when an earlier listener fails. A listener failure
+  MUST fail the response, using the listener's specific status when it supplies
+  one and otherwise `503`, after the remaining listeners have run, so that GitHub
+  redelivers the delivery. Listeners MUST therefore be idempotent by delivery
+  identifier. The acknowledgement MUST report `duplicate` only when every
+  listener reports a duplicate. With no registered listener, the endpoint MUST
+  respond `503` and webhook status MUST report that webhooks are not configured.
+  Registering a listener MUST NOT grant it credentials, policy, or write
+  authority.
 - A delivery whose signature is invalid, whose installation is unknown, or whose
   repository is not enrolled MUST be rejected. An implementation MUST NOT infer
   enrollment from the payload.

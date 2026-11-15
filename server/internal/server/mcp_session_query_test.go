@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
 
@@ -90,6 +92,22 @@ func TestMCPSessionDataLakeDiscoveryAndValidation(t *testing.T) {
 	app := newMCPTestApp(t, true)
 	probe := &sessionArchiveProbe{}
 	app.sessionArchive = &sessionArchiveService{backend: probe, repositories: []string{"octo/one"}}
+	httpServer := httptest.NewServer(app.Handler())
+	defer httpServer.Close()
+	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "1"}, nil)
+	session, err := client.Connect(t.Context(), &mcp.StreamableClientTransport{
+		Endpoint: httpServer.URL + "/mcp",
+		HTTPClient: &http.Client{Transport: bearerTransport{
+			token: testAccessToken, base: http.DefaultTransport,
+		}},
+	}, &mcp.ClientSessionOptions{ProtocolVersion: "2026-07-28"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = session.Close() }()
+	if strings.Count(session.InitializeResult().Instructions, "cao_session_query") != 1 {
+		t.Fatal("hosted MCP instructions omitted or duplicated the session data lake boundary")
+	}
 	for _, approved := range []bool{false, true} {
 		app.sessionArchive.read.Approved = approved
 		request := mcpLogsRequest(t, "tools/list", map[string]any{})

@@ -1,9 +1,10 @@
 {
-  "tabs": [
-    { "id": "repositories", "label": "Compiler upgrades", "icon": "repo", "page": "maintenance" },
-    { "id": "campaigns", "label": "Workflow updates", "icon": "workflow", "page": "maintenance-campaigns" }
-  ],
-  "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-standalone-workflows"],
+  "navigation": {
+    "label": "Updates",
+    "pages": ["maintenance", "maintenance-workflows", "maintenance-campaigns"]
+  },
+  "labels": ["Repositories", "Workflows", "Campaigns"],
+  "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-workflows"],
   "repository-drill": { "type": "external", "field": "repository-url" },
   "repository-upgrade-action": {
     "action": "upgrade-target-repository",

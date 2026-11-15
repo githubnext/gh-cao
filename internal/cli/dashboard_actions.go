@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -27,18 +29,28 @@ func dashboardActionCommand() *cobra.Command {
 	cmd := &cobra.Command{Use: "__dashboard_aw", Hidden: true}
 	validateEngine := func(string) error { return nil }
 	cmd.AddCommand(ghaw.NewUpgradeCommand(validateEngine), ghaw.NewUpdateCommand(validateEngine))
+	disable := &cobra.Command{Use: "disable [workflow]", Args: cobra.MaximumNArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		repository, _ := cmd.Flags().GetString("repo")
+		return ghaw.DisableWorkflowsByNames(cmd.Context(), args, repository)
+	}}
+	disable.Flags().String("repo", "", "Exact target repository")
+	cmd.AddCommand(disable)
 	return cmd
 }
 
+var dashboardWorkflowTarget = regexp.MustCompile(`^(?:\.github/workflows/)?[A-Za-z0-9][A-Za-z0-9_.-]*(?:\.md)?$`)
+var dashboardSourceTarget = regexp.MustCompile(`^https://github\.com/[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$`)
+
 func dashboardActionArgs(args, repositories []string) error {
-	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update"}, args[0]) {
+	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable"}, args[0]) {
 		return errors.New("only gh-aw maintenance commands are supported")
 	}
 	options := args[1:]
-	if args[0] == "update" {
-		if len(options) == 0 || !strings.HasPrefix(options[0], "https://github.com/") ||
-			strings.Contains(options[0], "..") || strings.ContainsAny(options[0], "?#\\ \r\n\x00") {
-			return errors.New("updates require an exact GitHub source")
+	if args[0] != "upgrade" && len(options) > 0 && !strings.HasPrefix(options[0], "--") {
+		target := options[0]
+		if strings.Contains(target, "..") || !dashboardWorkflowTarget.MatchString(target) &&
+			(args[0] != "update" || !dashboardSourceTarget.MatchString(target)) {
+			return errors.New("maintenance requires an exact workflow or GitHub update source")
 		}
 		options = options[1:]
 	}
@@ -58,6 +70,9 @@ func dashboardActionArgs(args, repositories []string) error {
 			index++
 			repository = strings.ToLower(options[index])
 		case "--create-pull-request":
+			if args[0] == "disable" {
+				return errors.New("disable does not publish a pull request")
+			}
 			publish = true
 		case "--pre-releases":
 			if args[0] != "upgrade" {
@@ -67,7 +82,7 @@ func dashboardActionArgs(args, repositories []string) error {
 			return errors.New("unsupported maintenance option")
 		}
 	}
-	if !publish || !slices.Contains(repositories, repository) {
+	if (args[0] != "disable" && !publish) || !slices.Contains(repositories, repository) || repository == "" {
 		return errors.New("maintenance requires pull-request publication within the selected repository scope")
 	}
 	return nil
@@ -263,8 +278,21 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 			return
 		}
 		child := exec.CommandContext(executionCtx, executable, append([]string{"__dashboard_aw"}, args...)...)
+		if args[0] == "disable" {
+			directory, prepareErr := prepareDashboardDisableCheckout(executionCtx, cache, args)
+			if prepareErr != nil {
+				_ = send(dashboardActionEvent{Stream: "stderr", Data: "Exact target checkout could not be prepared; no workflows were disabled.\n"})
+				_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
+				return
+			}
+			defer func() { _ = os.RemoveAll(directory) }()
+			child.Dir = filepath.Join(directory, "repository")
+		}
 		configureDashboardProcess(child)
 		child.Env = append(os.Environ(), "GH_HOST=github.com")
+		if args[0] == "disable" {
+			child.Env = dashboardDisableEnvironment(os.Environ())
+		}
 		child.WaitDelay = 5 * time.Second
 		secrets := []string{}
 		for _, name := range []string{"GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"} {
@@ -334,6 +362,41 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		return "", nil, err
 	}
 	return config.Name(), cleanup, nil
+}
+
+// gh-aw disable reads local Markdown inventory and cancels using the ambient
+// Git repository. Both must belong to the approved target, never this checkout.
+func prepareDashboardDisableCheckout(ctx context.Context, cache string, args []string) (string, error) {
+	repository := args[len(args)-1]
+	directory, err := os.MkdirTemp(cache, ".disable-checkout-")
+	if err != nil {
+		return "", err
+	}
+	target := filepath.Join(directory, "repository")
+	command := exec.CommandContext(ctx, "gh", "repo", "clone", repository, target, "--", "--depth=1", "--template=", "--config", "core.hooksPath=/dev/null")
+	configureDashboardProcess(command)
+	command.WaitDelay = 5 * time.Second
+	command.Env = dashboardDisableEnvironment(os.Environ())
+	if err := command.Run(); err != nil {
+		_ = os.RemoveAll(directory)
+		return "", err
+	}
+	return directory, nil
+}
+
+func dashboardDisableEnvironment(environment []string) []string {
+	result := make([]string, 0, len(environment)+3)
+	for _, entry := range environment {
+		name, _, _ := strings.Cut(entry, "=")
+		// Preserve CLI authentication/configuration, not ambient repository or
+		// injected Git configuration that can redirect the approved checkout.
+		if name == "GH_REPO" || name == "GH_HOST" || name == "GH_AW_WORKFLOWS_DIR" || name == "GH_PROMPT_DISABLED" || name == "GIT_TERMINAL_PROMPT" ||
+			strings.HasPrefix(name, "GIT_") {
+			continue
+		}
+		result = append(result, entry)
+	}
+	return append(result, "GH_HOST=github.com", "GH_PROMPT_DISABLED=1", "GIT_TERMINAL_PROMPT=0")
 }
 
 var _ io.Writer = (*dashboardActionWriter)(nil)

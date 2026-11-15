@@ -2565,30 +2565,21 @@
     {
       "id": "maintenance",
       "kind": "custom",
-      "intent": "Identify repositories whose gh-aw compiler provenance warrants maintenance review.",
+      "intent": "Maintain workflow sources and compiler tooling or disable Agentic Workflows in an exact repository.",
       "subject": "Repository workflow compiler versions and retained upgrade-confidence evidence.",
       "objective": "Prioritize safe compiler upgrades using known version provenance and explain incomplete evidence.",
-      "acceptance": "Distinguish observed installed and latest-stable versions, preserve unknown provenance with a diagnostic reason, and expose upgrade actions only for known outdated evidence. Do not infer outdatedness from missing data or execute upgrades without approval.",
-      "title": "Compiler upgrades",
-      "navigation-label": "Updates",
+      "acceptance": "Preserve unknown compiler evidence and expose recommended upgrades only for known outdated evidence. Exact repository identities support source updates and disabling independently of compiler evidence. Disable cancels in-progress runs before disabling all Agentic Workflows in that repository. Every execution requires approval.",
+      "title": "Repository maintenance",
+      "navigation-label": "Repositories",
       "navigation-indicator": {
         "label": "updates available",
         "any": [
-          "maintenance-campaign-updates",
-          "maintenance-standalone-updates",
           "maintenance-repository-upgrades"
         ]
       },
-      "icon": "tools",
+      "icon": "repo",
       "class-name": "maintenance-page",
-      "description": "Review retained gh-aw compiler evidence by repository before applying upgrades.",
-      "route": {
-        "tab": "repositories",
-        "tabs": [
-          { "id": "repositories", "label": "Compiler upgrades", "icon": "repo", "page": "maintenance" },
-          { "id": "campaigns", "label": "Workflow updates", "icon": "workflow", "page": "maintenance-campaigns" }
-        ]
-      },
+      "description": "Review exact repository source updates, compiler upgrades, or disabling that cancels in-progress runs before stopping future runs.",
       "views": [
         {
           "id": "maintenance-repositories",
@@ -2634,6 +2625,8 @@
             "style": "entity-cards",
             "card": "maintenance-repository",
             "icon": "repo",
+            "action": "upgrade-repository",
+            "action-context": ["repository"],
             "actions": ["add-repository"]
           }
         }
@@ -2642,23 +2635,41 @@
     {
       "id": "maintenance-campaigns",
       "kind": "custom",
-      "intent": "Identify campaign packages and standalone workflow sources requiring a version and provenance review.",
-      "subject": "Campaign package and standalone workflow source coordinates, revisions and update-confidence evidence.",
+      "intent": "Review installed campaign packages for source updates or disabling.",
+      "subject": "Campaign package coordinates, revisions, registration and update-confidence evidence.",
       "objective": "Choose evidence-backed workflow-source maintenance without inventing campaign membership or expanding rollout.",
-      "acceptance": "Keep campaign packages and standalone workflows separate, retain exact source coordinates, and report local or unknown provenance without an executable action. Every update requires explicit operational approval.",
-      "title": "Workflow updates",
-      "description": "Review campaign packages and standalone workflow sources without inventing campaign membership.",
-      "icon": "tools",
-      "class-name": "maintenance-page",
-      "route": {
-        "navigation-page": "maintenance",
-        "tab": "campaigns",
-        "tabs": [
-          { "id": "repositories", "label": "Compiler upgrades", "icon": "repo", "page": "maintenance" },
-          { "id": "campaigns", "label": "Workflow updates", "icon": "workflow", "page": "maintenance-campaigns" }
-        ]
+      "acceptance": "Retain exact package coordinates and gate updates on source evidence. Keep existing campaign activation and disabling semantics and approval; disabling future campaign runs does not cancel active runs. Individual workflows are maintained on Workflows.",
+      "title": "Campaign maintenance",
+      "navigation-label": "Campaigns",
+      "navigation-indicator": {
+        "label": "updates available",
+        "any": ["maintenance-campaign-updates"]
       },
+      "description": "Review campaign package updates or disabling future campaign runs without canceling active runs, and maintain individual workflows on Workflows.",
+      "icon": "workflow",
+      "class-name": "maintenance-page",
       "views": [
+        {
+          "id": "maintenance-campaign-sweep",
+          "title": "Update all campaign sources",
+          "description": "Run gh aw update for every retained campaign source below, including sources whose latest revision is unknown. Packages without source provenance are excluded. Review all commands before approval.",
+          "data": { "source": "maintenance-campaign-sweep" },
+          "mark": "list",
+          "empty-message": "No campaign packages with retained source provenance are available to update.",
+          "encoding": {
+            "columns": [
+              { "field": "campaign-name", "type": "nominal", "title": "Campaign" },
+              { "field": "campaign-source", "type": "nominal", "title": "Source" }
+            ]
+          },
+          "layout": "full",
+          "list": {
+            "style": "cards",
+            "icon": "sync",
+            "action": "update-repository",
+            "action-context": ["campaign-source", "campaign-name"]
+          }
+        },
         {
           "id": "maintenance-campaigns",
           "title": "Campaign packages",
@@ -2705,16 +2716,56 @@
             "card": "maintenance-campaign",
             "icon": "workflow"
           }
+        }
+      ]
+    },
+    {
+      "id": "maintenance-workflows",
+      "kind": "custom",
+      "intent": "Maintain an individual workflow in its exact canonical repository.",
+      "subject": "Campaign-owned and standalone Markdown workflow identities and retained source evidence.",
+      "objective": "Review an exact upstream source target or disable a workflow without substituting a package or foreign repository.",
+      "acceptance": "Source updates require known provenance and revisions; approval discloses gh-aw package sibling/assets reconciliation and shared repository maintenance. Local or unknown workflows remain disableable. Disable cancels in-progress runs first. Every execution requires existing approval.",
+      "title": "Workflow maintenance",
+      "navigation-label": "Workflows",
+      "navigation-indicator": {
+        "label": "updates available",
+        "any": ["maintenance-standalone-updates"]
+      },
+      "description": "Select a workflow source update or disabling, with approval disclosing package sibling source replacement and shared repository maintenance.",
+      "icon": "workflow",
+      "class-name": "maintenance-page",
+      "views": [
+        {
+          "id": "maintenance-workflow-sweep",
+          "title": "Update all workflow sources",
+          "description": "Run gh aw update for every source-managed Markdown workflow below, including sources whose latest revision is unknown. Local and unknown-source workflows are excluded. gh-aw may reconcile package siblings/assets and shared repository files.",
+          "data": { "source": "maintenance-workflow-sweep" },
+          "mark": "list",
+          "empty-message": "No Markdown workflows with retained source provenance are available to update.",
+          "encoding": {
+            "columns": [
+              { "field": "workflow", "type": "nominal", "title": "Workflow" },
+              { "field": "repository-coordinate", "type": "nominal", "title": "Repository" }
+            ]
+          },
+          "layout": "full",
+          "list": {
+            "style": "cards",
+            "icon": "sync",
+            "action": "update-workflows",
+            "action-context": ["workflow", "repository-coordinate"]
+          }
         },
         {
           "id": "maintenance-standalone-workflows",
-          "title": "Standalone workflows",
-          "description": "Source-managed standalone workflows can update from their exact retained source. Local workflows remain visible and non-actionable.",
+          "title": "Individual workflows",
+          "description": "The command selects an exact workflow; gh-aw may also reconcile package-manifest siblings/assets and shared repository references/generated files. Disable cancels in-progress runs before disabling future runs, including for local or unknown-source workflows.",
           "data": {
-            "source": "maintenance-standalone-workflows"
+            "source": "maintenance-workflows"
           },
           "mark": "list",
-          "empty-message": "No standalone workflow sources were observed.",
+          "empty-message": "No Markdown workflows were observed.",
           "encoding": {
             "columns": [
               {
@@ -2737,12 +2788,7 @@
                 "type": "nominal",
                 "title": "Latest"
               },
-              {
-                "field": "workflow-update-state",
-                "type": "nominal",
-                "title": "Update",
-                "display": "status"
-              },
+              { "field": "repository-coordinate", "type": "nominal", "title": "Repository" },
               {
                 "field": "workflow-update-status-reason",
                 "type": "nominal",

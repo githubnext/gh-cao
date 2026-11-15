@@ -27,7 +27,7 @@ export const CLI_ACTION_KEYS = ['id', 'level', 'verb', 'label', 'description', '
 export const CLI_ACTION_PLACEMENT_VALUES = ['toolbar', 'settings', 'view', 'row'];
 export const CLI_ACTION_ARGUMENT_KEYS = ['id', 'label', 'description', 'type', 'flag', 'default'];
 export const CLI_ACTION_ARGUMENT_TYPE_VALUES = ['boolean'];
-export const MAX_CLI_ACTIONS = 20;
+export const MAX_CLI_ACTIONS = 24;
 export const MAX_CLI_ACTION_ARGUMENTS = 10;
 export const MAX_CLI_ACTION_COMMAND_LENGTH = 1000;
 

@@ -82,7 +82,7 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 
 func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
-	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-repository":
+	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow":
 	default:
 		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared repository maintenance actions are available.")
 	}
@@ -90,13 +90,9 @@ func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICom
 	if err != nil {
 		return invocation, err
 	}
-	control := ""
-	if len(a.hostedCLI.local.Repositories) == 1 {
-		control = a.hostedCLI.local.Repositories[0]
-	}
-	plan, err := hostedcli.PlanCommand(invocation.Command, control)
-	if err != nil || plan.Kind != hostedcli.KindGhAwUpgrade && plan.Kind != hostedcli.KindGhAwUpdate {
-		return invocation, cliFailure(http.StatusUnprocessableEntity, "Maintenance must publish a pull request with supported gh-aw options.")
+	plan, err := hostedcli.PlanLocalMaintenance(invocation.Command)
+	if err != nil {
+		return invocation, cliFailure(http.StatusUnprocessableEntity, "Maintenance requires an exact target and supported options; updates and upgrades must publish a pull request.")
 	}
 	if !a.hostedCLI.local.allows(plan.Repository) {
 		return invocation, cliFailure(http.StatusForbidden, "The command is outside the selected repository scope.")
@@ -214,9 +210,12 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 	if connection == nil {
 		return nil, errors.New("native operator adapter is unavailable")
 	}
-	plan, err := hostedcli.PlanCommand(command.Command, command.Repository)
+	plan, err := hostedcli.PlanLocalMaintenance(command.Command)
 	if err != nil {
 		return nil, err
+	}
+	if !strings.EqualFold(plan.Repository, command.Repository) || connection.OperatorActions == nil || !connection.OperatorActions.allows(plan.Repository) {
+		return nil, errors.New("queued maintenance target is outside the approved repository scope")
 	}
 	content, err := json.Marshal(plan.Args)
 	if err != nil {

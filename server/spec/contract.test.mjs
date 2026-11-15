@@ -421,6 +421,7 @@ test('server log records preserve reserved wire names and date-time examples', (
 
 test('the server-only MCP logs tool matches the HTTP snapshot contract', () => {
   const contract = JSON.parse(readFileSync(join(directory, '../../dashboard/site/src/agent/mcp-contract.json'), 'utf8'))
+  assert.match(contract.instructions, /cao_session_query.*private session data lake/)
   assert.deepEqual(contract.tools.map(tool => tool.name), ['cao_catalog', 'cao_query'])
   assert.deepEqual(contract.serverTools.map(tool => tool.name), ['cao_session_query', 'cao_logs'])
   const logs = contract.serverTools.find(tool => tool.name === 'cao_logs')

@@ -1184,6 +1184,7 @@
         { "field": "campaign-current-version" },
         { "field": "campaign-update-state" },
         { "field": "campaign-registration" },
+        { "field": "campaign-source-unavailable" },
         { "field": "campaign-update-action-visible" }
       ],
       "order-by": [
@@ -1191,17 +1192,21 @@
       ]
     },
     {
+      "name": "maintenance-campaign-sweep",
+      "subject": "All installed campaign packages with exact retained upstream coordinates.",
+      "objective": "Let gh-aw refresh every sourced package without requiring cached update or revision evidence.",
+      "acceptance": "Exclude absent or unknown source coordinates, preserve package identities, and return the complete ordered target set without pagination or limits.",
+      "from": "maintenance-campaign-packages",
+      "filter": { "predicates": [{ "field": "campaign-source-unavailable", "equals": false }] },
+      "select": [{ "field": "campaign-source" }, { "field": "campaign-name" }],
+      "order-by": [{ "field": "campaign-name", "direction": "asc" }, { "field": "campaign-source", "direction": "asc" }]
+    },
+    {
       "name": "maintenance-standalone-workflows",
-      "subject": "Standalone workflows with retained upstream provenance and update evidence.",
-      "objective": "Represent source-managed and local workflows without synthetic campaign membership.",
-      "acceptance": "Retain exact coordinates and revisions for source-managed rows; keep local or incomplete rows visible and non-actionable with an explicit reason.",
+      "subject": "Canonical workflow provenance retained under the legacy standalone query identifier.",
+      "objective": "Supply campaign-owned and standalone identities to the maintenance eligibility query without synthetic membership.",
+      "acceptance": "Preserve exact identity, source kind, coordinates and revisions; the consuming maintenance query must gate actions on complete provenance.",
       "from": "workflows",
-      "filter": {
-        "predicates": [
-          { "field": "workflow-role", "equals": "standalone" },
-          { "field": "workflow-source-kind", "in": ["source-managed", "local"] }
-        ]
-      },
       "compute": [
         {
           "as": "workflow-source-installed-unavailable",
@@ -1337,6 +1342,57 @@
         { "field": "workflow-update-action-visible", "direction": "desc" },
         { "field": "workflow-name", "direction": "asc" }
       ]
+    },
+    {
+      "name": "maintenance-workflow-identities",
+      "subject": "Individual declared Markdown workflows in their canonical repositories.",
+      "objective": "Offer exact workflow source updates and disable operations without substituting the control repository.",
+      "acceptance": "Keep campaign and standalone Markdown workflows visible. Updates require source-managed provenance, known revisions and update-available evidence. Local and unknown workflows remain disableable by exact identity but cannot update.",
+      "from": "maintenance-standalone-workflows",
+      "compute": [
+        { "as": "maintenance-source-kind", "function": "coalesce", "args": [{ "field": "workflow-source-kind" }, { "value": "unknown" }] },
+        { "as": "workflow-without-extension", "function": "replace-suffix", "args": [{ "field": "workflow" }, { "value": ".md" }, { "value": "" }] },
+        { "as": "workflow-is-not-markdown", "function": "equals-any", "args": [{ "field": "workflow" }, { "field": "workflow-without-extension" }] },
+        { "as": "workflow-is-markdown", "function": "if", "args": [{ "field": "workflow-is-not-markdown" }, { "value": false }, { "value": true }] },
+        { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "source-unavailable", "function": "equals-any", "args": [{ "field": "workflow-source" }, { "value": "" }, { "value": "unknown" }, { "value": null }] },
+        { "as": "installed-unavailable", "function": "equals-any", "args": [{ "field": "workflow-source-version" }, { "value": "" }, { "value": "unknown" }, { "value": null }] },
+        { "as": "latest-unavailable", "function": "equals-any", "args": [{ "field": "workflow-source-current-version" }, { "value": "" }, { "value": "unknown" }, { "value": null }] },
+        { "as": "source-managed", "function": "equals-any", "args": [{ "field": "workflow-source-kind" }, { "value": "source-managed" }] },
+        { "as": "update-available", "function": "equals-any", "args": [{ "field": "workflow-source-update-state" }, { "value": "update-available" }] },
+        { "as": "revision-action-visible", "function": "if", "args": [{ "field": "latest-unavailable" }, { "value": false }, { "field": "update-available" }] },
+        { "as": "installed-action-visible", "function": "if", "args": [{ "field": "installed-unavailable" }, { "value": false }, { "field": "revision-action-visible" }] },
+        { "as": "source-action-visible", "function": "if", "args": [{ "field": "source-unavailable" }, { "value": false }, { "field": "installed-action-visible" }] },
+        { "as": "maintenance-update-action-visible", "function": "if", "args": [{ "field": "source-managed" }, { "field": "source-action-visible" }, { "value": false }] },
+        { "as": "maintenance-update-status-reason", "function": "if", "args": [{ "field": "maintenance-update-action-visible" }, { "value": "Retained source and revisions support a workflow-targeted command; gh-aw may reconcile package siblings/assets and shared repository files." }, { "value": "Source update unavailable; compiler upgrades apply to the whole repository." }] }
+      ],
+      "select": [
+        { "field": "workflow-is-markdown" },
+        { "field": "repository-coordinate" }, { "field": "workflow" }, { "field": "workflow-name" },
+        { "field": "maintenance-source-kind", "as": "workflow-source-kind" }, { "field": "workflow-source" }, { "field": "workflow-source-version" }, { "field": "workflow-source-current-version" },
+        { "field": "source-unavailable", "as": "workflow-source-unavailable" },
+        { "field": "maintenance-update-action-visible", "as": "workflow-update-action-visible" }, { "field": "maintenance-update-status-reason", "as": "workflow-update-status-reason" }
+      ],
+      "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-workflows",
+      "subject": "Exact Markdown workflow maintenance targets.",
+      "objective": "Exclude registry YAML and misleading .md substrings from gh-aw operations.",
+      "acceptance": "Return only exact .md suffix identities from canonical workflow evidence.",
+      "from": "maintenance-workflow-identities",
+      "filter": { "predicates": [{ "field": "workflow-is-markdown", "equals": true }] },
+      "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-workflow-sweep",
+      "subject": "All source-managed Markdown workflows with retained upstream coordinates.",
+      "objective": "Let gh-aw refresh exact workflow targets without requiring cached update or revision evidence.",
+      "acceptance": "Exclude local, registry and unknown-source workflows, preserve exact canonical repository and workflow identities, and return every target without pagination or limits.",
+      "from": "maintenance-workflows",
+      "filter": { "predicates": [{ "field": "workflow-source-kind", "equals": "source-managed" }, { "field": "workflow-source-unavailable", "equals": false }] },
+      "select": [{ "field": "workflow" }, { "field": "repository-coordinate" }],
+      "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
     },
     {
       "name": "maintenance-repository-versions",
@@ -1773,10 +1829,10 @@
     },
     {
       "name": "maintenance-standalone-updates",
-      "subject": "Expose at most one standalone workflow source update row for the Updates navigation indicator.",
-      "objective": "Determine whether retained source-managed standalone workflow metadata contains an actionable update signal for the Updates indicator.",
+      "subject": "Expose at most one exact workflow source update row for the Updates navigation indicator.",
+      "objective": "Determine whether retained source-managed campaign-owned or standalone workflow metadata contains an actionable update signal for the Updates indicator.",
       "acceptance": "Return zero or one workflow-update-action-visible row only when it is true; unmanaged local workflows and incomplete source evidence do not activate the indicator.",
-      "from": "maintenance-standalone-workflows",
+      "from": "maintenance-workflows",
       "filter": {
         "predicates": [
           {

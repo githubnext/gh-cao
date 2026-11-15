@@ -12,9 +12,12 @@ import (
 	"github.com/githubnext/gh-cao/internal/dashboardquery"
 
 	"github.com/githubnext/gh-cao/server/internal/dashboardstore"
+	debuglogger "github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 	"github.com/githubnext/gh-cao/server/internal/query"
 )
+
+var readLog = debuglogger.New("cao:dashboard:read")
 
 func newReadCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -55,15 +58,17 @@ func newReadCommand() *cobra.Command {
 	return cmd
 }
 
-func readCanonical(ctx context.Context, reader dashboardstore.Reader, request dashboardquery.CanonicalReadRequest) (dashboardquery.CanonicalReadResult, error) {
+// canonicalReadDefinition validates a native read request and translates it
+// into the query definition executed against the canonical store.
+func canonicalReadDefinition(request dashboardquery.CanonicalReadRequest) (query.Definition, error) {
 	source := "$" + request.Collection
 	switch request.Kind {
 	case "collection", "evidence", "measurements", "statistical-runs":
 		if !postgresx.IsCanonicalCollection(request.Collection) && request.Collection != "transactions" {
-			return dashboardquery.CanonicalReadResult{}, fmt.Errorf("unknown canonical collection: %s", request.Collection)
+			return query.Definition{}, fmt.Errorf("unknown canonical collection: %s", request.Collection)
 		}
 		if request.Collection == "operationalValueEvidence" {
-			return dashboardquery.CanonicalReadResult{}, errors.New("raw evidence packet reads are unsupported; use a named Value query")
+			return query.Definition{}, errors.New("raw evidence packet reads are unsupported; use a named Value query")
 		}
 	case "evidence-facts":
 		source = "$operationalValueEvidence"
@@ -71,13 +76,12 @@ func readCanonical(ctx context.Context, reader dashboardstore.Reader, request da
 		source = "daily-run-counts"
 	case "daily-run-count-records":
 		source = "$dailyRunCounts"
-	case "local-metadata":
-		return dashboardquery.CanonicalReadResult{Available: false}, nil
 	default:
-		return dashboardquery.CanonicalReadResult{}, errors.New("unsupported canonical read kind")
+		return query.Definition{}, errors.New("unsupported canonical read kind")
 	}
 	if request.MaxRows < 0 || request.MaxRows > 500_000 || request.MaxBytes < 0 || request.MaxBytes > 1<<30 {
-		return dashboardquery.CanonicalReadResult{}, errors.New("invalid canonical read budget")
+		readLog.Printf("canonical read rejected: kind=%s reason=invalid_budget", request.Kind)
+		return query.Definition{}, errors.New("invalid canonical read budget")
 	}
 	definition := query.Definition{Name: "native-read", From: source}
 	if request.Kind == "daily-run-count-metadata" {
@@ -100,18 +104,31 @@ func readCanonical(ctx context.Context, reader dashboardstore.Reader, request da
 		supported := request.Kind == "evidence-facts" && (field == "report-id" || field == "workflow-route") ||
 			request.Kind == "measurements" && (field == "id" || field == "workflow-route")
 		if !supported {
-			return dashboardquery.CanonicalReadResult{}, errors.New("unsupported canonical selection")
+			readLog.Printf("canonical read rejected: kind=%s reason=unsupported_selection", request.Kind)
+			return query.Definition{}, errors.New("unsupported canonical selection")
 		}
 		predicates = append(predicates, query.Predicate{Field: field, Equals: value})
 	}
 	if len(predicates) > 0 {
 		definition.Filter = &query.Filter{Predicates: predicates}
 	}
+	return definition, nil
+}
+
+func readCanonical(ctx context.Context, reader dashboardstore.Reader, request dashboardquery.CanonicalReadRequest) (dashboardquery.CanonicalReadResult, error) {
+	if request.Kind == "local-metadata" {
+		return dashboardquery.CanonicalReadResult{Available: false}, nil
+	}
+	definition, err := canonicalReadDefinition(request)
+	if err != nil {
+		return dashboardquery.CanonicalReadResult{}, err
+	}
 	sources, _, err := reader.ExecuteSQLPlan(ctx, []query.Definition{definition}, []string{definition.Name})
 	if err != nil {
 		return dashboardquery.CanonicalReadResult{}, err
 	}
 	value := sources[definition.Name]
+	readLog.Printf("canonical read executed: kind=%s rows=%d", request.Kind, len(value.Rows))
 	result := dashboardquery.CanonicalReadResult{Rows: make([]map[string]any, len(value.Rows)), Metadata: map[string]any(value.Metadata),
 		Available: value.Metadata["availability"] != "unavailable"}
 	if result.Available && (request.Kind == "daily-run-counts" || request.Kind == "daily-run-count-records") {

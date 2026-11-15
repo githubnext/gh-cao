@@ -470,7 +470,6 @@
         "value-collection-health",
         "value-current-measurements",
         "value-measurement-facts",
-        "value-report-summary",
         "value-workflow-results"
       ]
     },
@@ -535,25 +534,26 @@
     {
       "id": "value",
       "title": "Value",
-      "description": "Review every known campaign and standalone Value deployment through one evidence contract.",
-      "intent": "Find which workflow deployment needs attention and distinguish measured outcome movement from evidence availability.",
-      "subject": "Canonical workflow inventory, reviewed Value collection decisions and latest retained native or rich evidence.",
-      "objective": "Open the exact workflow result or collection state without separating campaign and standalone evidence systems.",
-      "acceptance": "Keep repository/workflow identity, topology, native result, collection state, dates and unknowns visible. No campaign score, causal credit or GitHub acquisition.",
+      "description": "Review one Value entry per campaign worker rollup or standalone workflow, keeping native outcomes separate.",
+      "intent": "Review the unified campaign and standalone workflow inventory without combining native Value outcomes.",
+      "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
+      "objective": "Review entry-type counts, inspect complete Value cards, or compare the same entries in a table.",
+      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Counts describe entry types only; missing and unknown evidence remains explicit, and no incompatible native values are combined.",
       "experimental": false,
       "parameters": [],
       "queries": [
-        "value-workflow-overview"
+        "value-overview",
+        "value-overview-by-kind"
       ]
     },
     {
       "id": "campaign-value",
       "title": "Campaign Value",
-      "description": "Inspect one campaign's Value coverage and exact worker deployments.",
-      "intent": "Understand why the selected campaign needs review and open the responsible workflow evidence.",
-      "subject": "The selected campaign's deployment coverage and repository/workflow Value cards.",
-      "objective": "Move from campaign coverage to exact worker evidence without changing measurement semantics.",
-      "acceptance": "Reuse universal cards and original evidence routes. Do not synthesize a campaign score or attribute worker outcomes to orchestration.",
+      "description": "Inspect one campaign's worker Value rollup and exact worker deployments.",
+      "intent": "Understand the selected campaign only through its workers and open the responsible workflow evidence.",
+      "subject": "The selected campaign's canonical worker rollup and repository/workflow Value cards.",
+      "objective": "Move from the worker rollup to exact worker evidence without changing measurement semantics.",
+      "acceptance": "Campaign Value contains only canonical worker results. Reuse original evidence routes; do not include orchestrators, synthesize a separate campaign score or attribute worker outcomes to orchestration.",
       "experimental": false,
       "parameters": [
         {
@@ -1048,16 +1048,46 @@
     },
     {
       "id": "maintenance",
-      "title": "Compiler upgrades",
-      "description": "Review retained gh-aw compiler evidence by repository before applying upgrades.",
-      "intent": "Identify repositories whose gh-aw compiler provenance warrants maintenance review.",
+      "title": "Repository maintenance",
+      "description": "Review exact repository source updates, compiler upgrades, or disabling that cancels in-progress runs before stopping future runs.",
+      "intent": "Maintain workflow sources and compiler tooling or disable Agentic Workflows in an exact repository.",
       "subject": "Repository workflow compiler versions and retained upgrade-confidence evidence.",
       "objective": "Prioritize safe compiler upgrades using known version provenance and explain incomplete evidence.",
-      "acceptance": "Distinguish observed installed and latest-stable versions, preserve unknown provenance with a diagnostic reason, and expose upgrade actions only for known outdated evidence. Do not infer outdatedness from missing data or execute upgrades without approval.",
+      "acceptance": "Preserve unknown compiler evidence and expose recommended upgrades only for known outdated evidence. Exact repository identities support source updates and disabling independently of compiler evidence. Disable cancels in-progress runs before disabling all Agentic Workflows in that repository. Every execution requires approval.",
       "experimental": false,
       "parameters": [],
       "queries": [
         "maintenance-repositories"
+      ]
+    },
+    {
+      "id": "maintenance-campaigns",
+      "title": "Campaign maintenance",
+      "description": "Review campaign package updates or disabling future campaign runs without canceling active runs, and maintain individual workflows on Workflows.",
+      "intent": "Review installed campaign packages for source updates or disabling.",
+      "subject": "Campaign package coordinates, revisions, registration and update-confidence evidence.",
+      "objective": "Choose evidence-backed workflow-source maintenance without inventing campaign membership or expanding rollout.",
+      "acceptance": "Retain exact package coordinates and gate updates on source evidence. Keep existing campaign activation and disabling semantics and approval; disabling future campaign runs does not cancel active runs. Individual workflows are maintained on Workflows.",
+      "experimental": false,
+      "parameters": [],
+      "queries": [
+        "maintenance-campaign-packages",
+        "maintenance-campaign-sweep"
+      ]
+    },
+    {
+      "id": "maintenance-workflows",
+      "title": "Workflow maintenance",
+      "description": "Select a workflow source update or disabling, with approval disclosing package sibling source replacement and shared repository maintenance.",
+      "intent": "Maintain an individual workflow in its exact canonical repository.",
+      "subject": "Campaign-owned and standalone Markdown workflow identities and retained source evidence.",
+      "objective": "Review an exact upstream source target or disable a workflow without substituting a package or foreign repository.",
+      "acceptance": "Source updates require known provenance and revisions; approval discloses gh-aw package sibling/assets reconciliation and shared repository maintenance. Local or unknown workflows remain disableable. Disable cancels in-progress runs first. Every execution requires existing approval.",
+      "experimental": false,
+      "parameters": [],
+      "queries": [
+        "maintenance-workflow-sweep",
+        "maintenance-workflows"
       ]
     },
     {
@@ -2253,7 +2283,30 @@
       "sources": [
         "campaigns"
       ],
-      "used-by-pages": [],
+      "used-by-pages": [
+        "maintenance-campaigns"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-campaign-sweep",
+      "subject": "All installed campaign packages with exact retained upstream coordinates.",
+      "objective": "Let gh-aw refresh every sourced package without requiring cached update or revision evidence.",
+      "acceptance": "Exclude absent or unknown source coordinates, preserve package identities, and return the complete ordered target set without pagination or limits.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-campaign-packages"
+      ],
+      "used-by-pages": [
+        "maintenance-campaigns"
+      ],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -2264,15 +2317,76 @@
     },
     {
       "id": "maintenance-standalone-workflows",
-      "subject": "Standalone workflows with retained upstream provenance and update evidence.",
-      "objective": "Represent source-managed and local workflows without synthetic campaign membership.",
-      "acceptance": "Retain exact coordinates and revisions for source-managed rows; keep local or incomplete rows visible and non-actionable with an explicit reason.",
+      "subject": "Canonical workflow provenance retained under the legacy standalone query identifier.",
+      "objective": "Supply campaign-owned and standalone identities to the maintenance eligibility query without synthetic membership.",
+      "acceptance": "Preserve exact identity, source kind, coordinates and revisions; the consuming maintenance query must gate actions on complete provenance.",
       "description": "",
       "parameters": [],
       "sources": [
         "workflows"
       ],
       "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-workflow-identities",
+      "subject": "Individual declared Markdown workflows in their canonical repositories.",
+      "objective": "Offer exact workflow source updates and disable operations without substituting the control repository.",
+      "acceptance": "Keep campaign and standalone Markdown workflows visible. Updates require source-managed provenance, known revisions and update-available evidence. Local and unknown workflows remain disableable by exact identity but cannot update.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-standalone-workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-workflows",
+      "subject": "Exact Markdown workflow maintenance targets.",
+      "objective": "Exclude registry YAML and misleading .md substrings from gh-aw operations.",
+      "acceptance": "Return only exact .md suffix identities from canonical workflow evidence.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflow-identities"
+      ],
+      "used-by-pages": [
+        "maintenance-workflows"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-workflow-sweep",
+      "subject": "All source-managed Markdown workflows with retained upstream coordinates.",
+      "objective": "Let gh-aw refresh exact workflow targets without requiring cached update or revision evidence.",
+      "acceptance": "Exclude local, registry and unknown-source workflows, preserve exact canonical repository and workflow identities, and return every target without pagination or limits.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflows"
+      ],
+      "used-by-pages": [
+        "maintenance-workflows"
+      ],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -2348,13 +2462,13 @@
     },
     {
       "id": "maintenance-standalone-updates",
-      "subject": "Expose at most one standalone workflow source update row for the Updates navigation indicator.",
-      "objective": "Determine whether retained source-managed standalone workflow metadata contains an actionable update signal for the Updates indicator.",
+      "subject": "Expose at most one exact workflow source update row for the Updates navigation indicator.",
+      "objective": "Determine whether retained source-managed campaign-owned or standalone workflow metadata contains an actionable update signal for the Updates indicator.",
       "acceptance": "Return zero or one workflow-update-action-visible row only when it is true; unmanaged local workflows and incomplete source evidence do not activate the indicator.",
       "description": "",
       "parameters": [],
       "sources": [
-        "maintenance-standalone-workflows"
+        "maintenance-workflows"
       ],
       "used-by-pages": [],
       "execution": {
@@ -3898,10 +4012,6 @@
         {
           "name": "report",
           "field": "report-id"
-        },
-        {
-          "name": "workflow",
-          "field": "workflow-route"
         }
       ],
       "sources": [
@@ -3910,8 +4020,7 @@
         "value-report-delivery"
       ],
       "used-by-pages": [
-        "value-report",
-        "workflow-value"
+        "value-report"
       ],
       "execution": {
         "local": true,
@@ -4172,9 +4281,7 @@
         "value-headlines",
         "value-workflow-topology"
       ],
-      "used-by-pages": [
-        "value"
-      ],
+      "used-by-pages": [],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -4188,9 +4295,9 @@
     },
     {
       "id": "value-campaign-complete-topology",
-      "subject": "Complete canonical campaign workflow topology.",
-      "objective": "Provide unpaged workflow routes for complete campaign coverage aggregation.",
-      "acceptance": "Every canonical workflow remains at its exact repository and workflow identity.",
+      "subject": "Complete canonical workflow topology for campaign worker aggregation.",
+      "objective": "Provide unpaged worker routes for complete campaign coverage aggregation.",
+      "acceptance": "Every canonical worker remains at its exact repository and workflow identity; orchestrators and standalone workflows are not campaign Value members.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4207,9 +4314,9 @@
     },
     {
       "id": "value-campaign-complete-deployments",
-      "subject": "Complete canonical campaign workflow deployment population with collection and current evidence state.",
-      "objective": "Keep campaign coverage aggregates complete while workflow card lists use request-scoped subject pages.",
-      "acceptance": "Every declared campaign workflow is included once. Missing health or evidence remains explicit and no paged cohort is used.",
+      "subject": "Complete canonical campaign worker deployment population with collection and current evidence state.",
+      "objective": "Keep campaign worker aggregates complete while workflow drill-down lists use request-scoped subject pages.",
+      "acceptance": "Every declared campaign worker is included once. Orchestrators are excluded; missing health or evidence remains explicit and no paged cohort is used.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4231,9 +4338,9 @@
     },
     {
       "id": "value-campaign-coverage-deployments",
-      "subject": "Universal Value deployments grouped under a declared campaign.",
-      "objective": "Support complete campaign coverage without creating a separate evidence system.",
-      "acceptance": "Only rows with canonical campaign context are included. Unclassified deployments remain visible in All and Needs review.",
+      "subject": "Canonical worker Value deployments grouped under their declared campaign.",
+      "objective": "Support complete campaign worker coverage without creating a separate evidence system.",
+      "acceptance": "Only canonical workers with canonical campaign context are included. They are represented once by their campaign at the top level and remain available in campaign drill-down.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4306,7 +4413,7 @@
       "id": "value-campaign-deployments",
       "subject": "Paged exact Value deployments for one declared campaign.",
       "objective": "Support campaign workflow drilldown through the bounded universal workflow card path.",
-      "acceptance": "Only rows with canonical campaign context are included. Every row preserves its exact collection and evidence state.",
+      "acceptance": "Only canonical campaign workers are included. Every row preserves its exact collection and evidence state.",
       "description": "",
       "parameters": [
         {
@@ -4332,10 +4439,10 @@
       }
     },
     {
-      "id": "value-standalone-overview",
-      "subject": "Standalone workflow Value deployments.",
-      "objective": "Inspect standalone workflows through the same collection, outcome and evidence contract as campaign workers.",
-      "acceptance": "Standalone is a canonical workflow role, not inferred from missing campaign evidence.",
+      "id": "value-standalone-entries",
+      "subject": "Standalone workflow entries normalized for the unified Value view.",
+      "objective": "Present each standalone workflow once beside campaign groups without changing its native evidence.",
+      "acceptance": "Standalone is a canonical workflow role, not inferred from missing campaign evidence. Missing collection or result evidence remains explicit.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4354,16 +4461,19 @@
       }
     },
     {
-      "id": "value-review-overview",
-      "subject": "Value deployments with measured deterioration or incomplete collection/evidence state.",
-      "objective": "Prioritize exact deployments needing outcome or evidence investigation.",
-      "acceptance": "Each row preserves its explicit reason. Missing evidence, failed collection and worsening outcome are not interchangeable.",
+      "id": "value-overview",
+      "subject": "Unified Value entries for canonical campaigns and standalone workflows.",
+      "objective": "Review one campaign group or one standalone workflow per row without separate entity or review-state sections.",
+      "acceptance": "Campaign workers appear only through their campaign entry at the top level. Standalone workflows appear once. Missing and unknown evidence remains explicit and no incompatible native values are combined.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-workflow-overview"
+        "value-campaign-overview",
+        "value-standalone-entries"
       ],
-      "used-by-pages": [],
+      "used-by-pages": [
+        "value"
+      ],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -4371,7 +4481,33 @@
           "operational-value-evidence",
           "workflow-subject-topology",
           "workflow-value-collections",
-          "workflow-value-measurements"
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-overview-by-kind",
+      "subject": "Counts of top-level campaign rollups and standalone workflow entries.",
+      "objective": "Compare the canonical entry inventory without combining native Value outcomes.",
+      "acceptance": "Count unified entries by canonical type only; do not aggregate or compare their native outcome values.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-overview"
+      ],
+      "used-by-pages": [
+        "value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-subject-topology",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
         ]
       }
     },

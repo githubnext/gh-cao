@@ -1082,7 +1082,13 @@ Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
 NOT grant local rollout, dispatch or hosted execution authority. Separately,
 declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
-pull-request publication, and fresh trusted terminal approval per command.
+fresh trusted terminal approval per command, and pull-request publication for
+updates and upgrades. Explicit local disable commands MAY omit publication:
+they SHALL cancel in-progress runs before disabling future runs and SHALL use
+the approved repository's checkout for both Markdown inventory and ambient
+GitHub cancellation scope. An individual workflow target MUST be exact, never a
+substring, wildcard, package update, or implicit repository-wide operation.
+This exception MUST NOT extend hosted execution authority.
 The native maintenance adapter SHALL be independent of presentation and
 require ordinary server bearer authentication plus same-origin mutation checks.
 Credentials and subprocesses MUST remain in the owning CLI, not the read-only
@@ -1337,6 +1343,33 @@ MUST rebuild these derived records; compatible additive upgrades SHALL follow
 Campaign, standalone workflow, and repository maintenance actions MUST use
 canonical query results and exact retained source/repository coordinates; they
 MUST NOT inspect upstream manifests or browser storage directly.
+Maintenance SHALL provide separate Repository, Workflow, and Campaign pages
+under the Updates navigation section, preserving the existing Repository
+maintenance route. Each page SHALL have its own navigation entry and
+evidence-backed update indicator, without shared maintenance tabs.
+Each page SHALL provide a full-sweep action using existing gh-aw CLI commands
+with explicit approval and pull-request publication: repository upgrades for
+every listed repository, source updates for every source-managed Markdown
+workflow with retained provenance, and package updates for every campaign with
+a retained source coordinate. Sweep queries SHALL return complete ordered
+target sets without limits or pagination; unknown latest revisions SHALL NOT
+exclude a known source. Local or unknown-source entities remain visible in
+the inventory but SHALL NOT become source-update targets.
+Workflow maintenance
+SHALL include campaign-owned and standalone Markdown workflows. Individual
+source updates SHALL use the exact workflow identity in its canonical Repository,
+not a package URL or the control Repository as a substitute.
+The approval SHALL disclose that gh-aw may additionally reconcile package-manifest
+sibling workflows (potentially replacing their sources and overwriting local
+sibling edits in the proposed pull request), assets and ownership, and refresh shared action references,
+container pins, and generated files across that exact Repository; an exact
+workflow operand does not promise exclusive source selection or single-file mutation.
+Local or unknown
+source provenance MUST NOT enable source updates; known identity MAY enable
+explicit disabling independently of update/version evidence. Compiler upgrades
+remain repository-wide. Campaign disabling retains its existing policy command
+and does not cancel active runs; gh-aw workflow/repository disabling cancels
+in-progress runs before preventing future runs.
 
 ## 5.4 Activity acquisition and source roles
 
@@ -3302,6 +3335,21 @@ Campaign-wide run context SHALL be labeled as such, never as target-attributed
 execution. Missing inputs SHALL propagate unavailable states through the
 production query boundary. Active views SHALL requery on database changes within
 their abort-scoped subscription lifetime.
+
+The built-in Value page SHALL present one unified subject list rather than
+separate campaign, standalone, or review-state sections and routes. Each
+top-level entry SHALL represent exactly one canonical standalone Workflow or one
+Campaign rollup computed solely from that Campaign's canonical worker Workflows.
+Orchestrators SHALL NOT contribute to Campaign Value. A worker represented by
+its Campaign SHALL NOT also appear as a top-level Workflow entry; exact worker
+evidence remains available through the Campaign drill-down. Campaign rollups
+MUST preserve unavailable and unknown worker evidence explicitly and MUST NOT
+replace missing worker values with zero or combine incompatible native measures.
+Review state remains evidence on the unified entry, not a separate population.
+The mixed top-level rollup SHALL aggregate its complete campaign-worker
+population before presentation and SHALL report unavailable when query budgets
+are exceeded rather than page workers into partial campaign totals. The
+Workflow paging rule below applies to exact workflow drill-down lists.
 
 Value workflow lists SHALL page the canonical Workflow subject population
 before collection-health, native-measurement, or rich-evidence enrichment.

@@ -383,6 +383,7 @@
         { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
         { "as": "headline-campaign", "function": "literal", "args": [{ "value": null }] },
         { "as": "headline-evidence", "function": "literal", "args": [{ "value": "Rich evidence retained" }] },
+        { "as": "headline-unavailable", "function": "literal", "args": [{ "value": false }] },
         { "as": "headline-priority", "function": "literal", "args": [{ "value": 2 }] },
         { "as": "headline-marker", "function": "literal", "args": [{ "value": 1 }] }
       ],
@@ -392,7 +393,8 @@
         { "field": "observed-at", "as": "headline-captured" }, { "field": "window-end", "as": "headline-cutoff" },
         { "field": "change-label", "as": "headline-trend-label" }, { "field": "movement", "as": "headline-trend-movement" },
         { "field": "snapshot-name", "as": "headline-trend-measure" }, { "field": "headline-evidence" },
-        { "field": "report-href", "as": "headline-href" }, { "field": "headline-priority" }, { "field": "headline-marker" }
+        { "field": "headline-unavailable" }, { "field": "report-href", "as": "headline-href" },
+        { "field": "headline-priority" }, { "field": "headline-marker" }
       ]
     },
     {
@@ -416,6 +418,7 @@
         { "field": "observed-at", "as": "headline-captured" }, { "field": "window-end", "as": "headline-cutoff" },
         { "field": "measurement-label", "as": "headline-trend-label" }, { "field": "headline-trend-movement" },
         { "field": "metric-name", "as": "headline-trend-measure" }, { "field": "headline-evidence" },
+        { "field": "measurement-missing", "as": "headline-unavailable" },
         { "field": "headline-href" }, { "field": "headline-priority" }, { "field": "headline-marker" }
       ]
     },
@@ -505,6 +508,7 @@
             { "field": "headline-trend-movement", "as": "headline-trend-movement" },
             { "field": "headline-trend-measure", "as": "headline-trend-measure" },
             { "field": "headline-evidence", "as": "headline-evidence" },
+            { "field": "headline-unavailable", "as": "headline-unavailable" },
             { "field": "headline-href", "as": "headline-href" }
           ]
         }
@@ -557,9 +561,9 @@
     },
     {
       "name": "value-campaign-complete-topology",
-      "subject": "Complete canonical campaign workflow topology.",
-      "objective": "Provide unpaged workflow routes for complete campaign coverage aggregation.",
-      "acceptance": "Every canonical workflow remains at its exact repository and workflow identity.",
+      "subject": "Complete canonical workflow topology for campaign worker aggregation.",
+      "objective": "Provide unpaged worker routes for complete campaign coverage aggregation.",
+      "acceptance": "Every canonical worker remains at its exact repository and workflow identity; orchestrators and standalone workflows are not campaign Value members.",
       "from": "workflows",
       "compute": [
         { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
@@ -569,9 +573,9 @@
     },
     {
       "name": "value-campaign-complete-deployments",
-      "subject": "Complete canonical campaign workflow deployment population with collection and current evidence state.",
-      "objective": "Keep campaign coverage aggregates complete while workflow card lists use request-scoped subject pages.",
-      "acceptance": "Every declared campaign workflow is included once. Missing health or evidence remains explicit and no paged cohort is used.",
+      "subject": "Complete canonical campaign worker deployment population with collection and current evidence state.",
+      "objective": "Keep campaign worker aggregates complete while workflow drill-down lists use request-scoped subject pages.",
+      "acceptance": "Every declared campaign worker is included once. Orchestrators are excluded; missing health or evidence remains explicit and no paged cohort is used.",
       "from": "value-campaign-complete-topology",
       "joins": [
         {
@@ -587,7 +591,8 @@
           "on": [{ "left": "workflow-route", "right": "workflow-route" }],
           "fields": [
             { "field": "headline-id", "as": "headline-id" },
-            { "field": "headline-trend-movement", "as": "headline-trend-movement" }
+            { "field": "headline-trend-movement", "as": "headline-trend-movement" },
+            { "field": "headline-unavailable", "as": "headline-unavailable" }
           ]
         }
       ],
@@ -595,22 +600,30 @@
         { "as": "registration", "function": "coalesce", "args": [{ "field": "collection-registration" }, { "value": "unknown" }] },
         { "as": "overview-state", "function": "coalesce", "args": [{ "field": "collection-state" }, { "value": "unknown" }] },
         { "as": "headline-missing", "function": "equals-any", "args": [{ "field": "headline-id" }, { "value": null }] },
+        { "as": "retained-headline-unavailable", "function": "equals-any", "args": [{ "field": "headline-unavailable" }, { "value": true }] },
+        { "as": "headline-incomplete", "function": "if", "args": [{ "field": "headline-missing" }, { "value": true }, { "field": "retained-headline-unavailable" }] },
+        { "as": "missing-evidence-value", "function": "if", "args": [{ "field": "headline-incomplete" }, { "value": 1 }, { "value": 0 }] },
         { "as": "configured-registration", "function": "equals-any", "args": [{ "field": "registration" }, { "value": "enabled" }, { "value": "disabled" }] },
         { "as": "configured-value", "function": "if", "args": [{ "field": "configured-registration" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "unknown-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "unknown" }] },
+        { "as": "unknown-value", "function": "if", "args": [{ "field": "unknown-state" }, { "value": 1 }, { "value": 0 }] },
         { "as": "unconfigured-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "unconfigured" }] },
         { "as": "unconfigured-value", "function": "if", "args": [{ "field": "unconfigured-state" }, { "value": 1 }, { "value": 0 }] },
         { "as": "deferred-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "deferred" }] },
         { "as": "deferred-value", "function": "if", "args": [{ "field": "deferred-state" }, { "value": 1 }, { "value": 0 }] },
         { "as": "failed-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "failed" }] },
         { "as": "failed-value", "function": "if", "args": [{ "field": "failed-state" }, { "value": 1 }, { "value": 0 }] },
-        { "as": "current-evidence-value", "function": "if", "args": [{ "field": "headline-missing" }, { "value": 0 }, { "value": 1 }] },
+        { "as": "current-evidence-value", "function": "if", "args": [{ "field": "headline-incomplete" }, { "value": 0 }, { "value": 1 }] },
         { "as": "worse-movement", "function": "equals-any", "args": [{ "field": "headline-trend-movement" }, { "value": "Worse" }] },
         { "as": "attention-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "unconfigured" }, { "value": "deferred" }, { "value": "failed" }] },
-        { "as": "state-or-missing-review", "function": "if", "args": [{ "field": "attention-state" }, { "value": true }, { "field": "headline-missing" }] },
+        { "as": "state-or-missing-review", "function": "if", "args": [{ "field": "attention-state" }, { "value": true }, { "field": "headline-incomplete" }] },
         { "as": "needs-review", "function": "if", "args": [{ "field": "worse-movement" }, { "value": true }, { "field": "state-or-missing-review" }] },
         { "as": "review-value", "function": "if", "args": [{ "field": "needs-review" }, { "value": 1 }, { "value": 0 }] }
       ],
-      "filter": { "predicates": [{ "field": "campaign-missing", "equals": false }] },
+      "filter": { "predicates": [
+        { "field": "workflow-role", "equals": "worker" },
+        { "field": "campaign-missing", "equals": false }
+      ] },
       "select": [
         { "field": "workflow-route" },
         { "field": "repository-coordinate" },
@@ -619,6 +632,8 @@
         { "field": "campaign-icon" },
         { "field": "configured-value" },
         { "field": "current-evidence-value" },
+        { "field": "missing-evidence-value" },
+        { "field": "unknown-value" },
         { "field": "unconfigured-value" },
         { "field": "deferred-value" },
         { "field": "failed-value" },
@@ -627,9 +642,9 @@
     },
     {
       "name": "value-campaign-coverage-deployments",
-      "subject": "Universal Value deployments grouped under a declared campaign.",
-      "objective": "Support complete campaign coverage without creating a separate evidence system.",
-      "acceptance": "Only rows with canonical campaign context are included. Unclassified deployments remain visible in All and Needs review.",
+      "subject": "Canonical worker Value deployments grouped under their declared campaign.",
+      "objective": "Support complete campaign worker coverage without creating a separate evidence system.",
+      "acceptance": "Only canonical workers with canonical campaign context are included. They are represented once by their campaign at the top level and remain available in campaign drill-down.",
       "from": "value-campaign-complete-deployments"
     },
     {
@@ -645,6 +660,8 @@
           { "field": "repository-coordinate", "as": "value-repositories", "reducer": "distinct-count" },
           { "field": "configured-value", "as": "configured-deployments", "reducer": "sum" },
           { "field": "current-evidence-value", "as": "current-evidence-deployments", "reducer": "sum" },
+          { "field": "missing-evidence-value", "as": "missing-evidence-deployments", "reducer": "sum" },
+          { "field": "unknown-value", "as": "unknown-deployments", "reducer": "sum" },
           { "field": "unconfigured-value", "as": "unconfigured-deployments", "reducer": "sum" },
           { "field": "deferred-value", "as": "deferred-deployments", "reducer": "sum" },
           { "field": "failed-value", "as": "failed-deployments", "reducer": "sum" },
@@ -664,7 +681,30 @@
         { "as": "review-status-label", "function": "concat", "args": [{ "field": "review-count-label" }, { "value": " need review" }] },
         { "as": "campaign-value-status", "function": "if", "args": [{ "field": "review-present" }, { "field": "review-status-label" }, { "value": "No review triggered" }] },
         { "as": "encoded-campaign", "function": "url-encode", "args": [{ "field": "campaign" }] },
-        { "as": "campaign-value-href", "function": "concat", "args": [{ "value": "#page-campaign-value?campaign=" }, { "field": "encoded-campaign" }] }
+        { "as": "campaign-value-href", "function": "concat", "args": [{ "value": "#page-campaign-value?campaign=" }, { "field": "encoded-campaign" }] },
+        { "as": "worker-count-label", "function": "format-count", "args": [{ "field": "value-deployments" }] },
+        { "as": "repository-count-label", "function": "format-count", "args": [{ "field": "value-repositories" }] },
+        { "as": "value-context", "function": "concat", "args": [{ "field": "worker-count-label" }, { "value": " workers · " }, { "field": "repository-count-label" }, { "value": " repositories" }] },
+        { "as": "current-count-label", "function": "format-count", "args": [{ "field": "current-evidence-deployments" }] },
+        { "as": "missing-count-label", "function": "format-count", "args": [{ "field": "missing-evidence-deployments" }] },
+        { "as": "value-evidence", "function": "concat", "args": [{ "field": "current-count-label" }, { "value": " current results · " }, { "field": "missing-count-label" }, { "value": " unavailable" }] },
+        { "as": "collection-gap-deployments", "function": "sum", "args": [
+          { "field": "unconfigured-deployments" },
+          { "field": "deferred-deployments" },
+          { "field": "failed-deployments" },
+          { "field": "unknown-deployments" }
+        ] },
+        { "as": "collection-gap-label", "function": "format-count", "args": [{ "field": "collection-gap-deployments" }] },
+        { "as": "value-collection", "function": "concat", "args": [{ "field": "collection-gap-label" }, { "value": " collection gaps" }] },
+        { "as": "value-kind", "function": "literal", "args": [{ "value": "Campaign" }] },
+        { "as": "value-icon", "function": "literal", "args": [{ "value": "goal" }] },
+        { "as": "value-title", "function": "coalesce", "args": [{ "field": "campaign-name" }, { "field": "campaign" }] },
+        { "as": "value-status", "function": "literal", "args": [{ "field": "campaign-value-status" }] },
+        { "as": "value-measure", "function": "literal", "args": [{ "value": "Worker Value rollup" }] },
+        { "as": "value-attention", "function": "literal", "args": [{ "field": "campaign-value-status" }] },
+        { "as": "value-href", "function": "literal", "args": [{ "field": "campaign-value-href" }] },
+        { "as": "value-captured", "function": "literal", "args": [{ "value": null }] },
+        { "as": "value-cutoff", "function": "literal", "args": [{ "value": null }] }
       ],
       "order-by": [{ "field": "review-deployments", "direction": "desc" }, { "field": "campaign-name", "direction": "asc" }]
     },
@@ -672,26 +712,55 @@
       "name": "value-campaign-deployments",
       "subject": "Paged exact Value deployments for one declared campaign.",
       "objective": "Support campaign workflow drilldown through the bounded universal workflow card path.",
-      "acceptance": "Only rows with canonical campaign context are included. Every row preserves its exact collection and evidence state.",
+      "acceptance": "Only canonical campaign workers are included. Every row preserves its exact collection and evidence state.",
       "from": "value-workflow-overview",
-      "filter": { "predicates": [{ "field": "value-scope", "equals": "Campaign" }] }
+      "filter": { "predicates": [
+        { "field": "workflow-role", "equals": "worker" },
+        { "field": "value-scope", "equals": "Campaign" }
+      ] }
     },
     {
-      "name": "value-standalone-overview",
-      "subject": "Standalone workflow Value deployments.",
-      "objective": "Inspect standalone workflows through the same collection, outcome and evidence contract as campaign workers.",
-      "acceptance": "Standalone is a canonical workflow role, not inferred from missing campaign evidence.",
+      "name": "value-standalone-entries",
+      "subject": "Standalone workflow entries normalized for the unified Value view.",
+      "objective": "Present each standalone workflow once beside campaign groups without changing its native evidence.",
+      "acceptance": "Standalone is a canonical workflow role, not inferred from missing campaign evidence. Missing collection or result evidence remains explicit.",
       "from": "value-workflow-overview",
-      "filter": { "predicates": [{ "field": "value-scope", "equals": "Standalone" }] }
+      "filter": { "predicates": [{ "field": "workflow-role", "equals": "standalone" }] },
+      "compute": [
+        { "as": "value-kind", "function": "literal", "args": [{ "value": "Standalone workflow" }] },
+        { "as": "value-icon", "function": "literal", "args": [{ "value": "workflow" }] },
+        { "as": "value-title", "function": "literal", "args": [{ "field": "overview-title" }] },
+        { "as": "value-status", "function": "literal", "args": [{ "field": "trend-movement" }] },
+        { "as": "value-context", "function": "literal", "args": [{ "field": "repository-coordinate" }] },
+        { "as": "value-collection", "function": "literal", "args": [{ "field": "overview-state" }] },
+        { "as": "value-evidence", "function": "literal", "args": [{ "field": "overview-evidence" }] },
+        { "as": "value-measure", "function": "literal", "args": [{ "field": "trend-label" }] },
+        { "as": "value-attention", "function": "literal", "args": [{ "field": "attention-reason" }] },
+        { "as": "value-href", "function": "literal", "args": [{ "field": "overview-href" }] },
+        { "as": "value-captured", "function": "literal", "args": [{ "field": "overview-captured" }] },
+        { "as": "value-cutoff", "function": "literal", "args": [{ "field": "overview-cutoff" }] }
+      ]
     },
     {
-      "name": "value-review-overview",
-      "subject": "Value deployments with measured deterioration or incomplete collection/evidence state.",
-      "objective": "Prioritize exact deployments needing outcome or evidence investigation.",
-      "acceptance": "Each row preserves its explicit reason. Missing evidence, failed collection and worsening outcome are not interchangeable.",
-      "from": "value-workflow-overview",
-      "filter": { "predicates": [{ "field": "needs-review", "equals": true }] },
-      "order-by": [{ "field": "attention-reason", "direction": "asc" }, { "field": "overview-title", "direction": "asc" }]
+      "name": "value-overview",
+      "subject": "Unified Value entries for canonical campaigns and standalone workflows.",
+      "objective": "Review one campaign group or one standalone workflow per row without separate entity or review-state sections.",
+      "acceptance": "Campaign workers appear only through their campaign entry at the top level. Standalone workflows appear once. Missing and unknown evidence remains explicit and no incompatible native values are combined.",
+      "from": "value-campaign-overview",
+      "union": ["value-standalone-entries"],
+      "order-by": [{ "field": "value-title", "direction": "asc" }]
+    },
+    {
+      "name": "value-overview-by-kind",
+      "subject": "Counts of top-level campaign rollups and standalone workflow entries.",
+      "objective": "Compare the canonical entry inventory without combining native Value outcomes.",
+      "acceptance": "Count unified entries by canonical type only; do not aggregate or compare their native outcome values.",
+      "from": "value-overview",
+      "aggregate": {
+        "by": ["value-kind"],
+        "values": [{ "field": "value-kind", "as": "value-entries", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "value-kind", "direction": "asc" }]
     },
     {
       "name": "value-intent-sources",
@@ -827,23 +896,46 @@
         "objective": "Separate acquisition health from retained repository outcomes.",
         "acceptance": "Show actual reasons and separate clocks. Absent collection facts are unknown, not proof of absent registration.",
         "data": { "source": "value-collection-health", "arguments": [{ "name": "workflow", "field": "workflow-route" }], "query-context": false, "time": { "range": "all" } },
+        "disclosure": "supplemental",
         "mark": "list", "list": { "style": "entity-cards", "card": "workflow-value-collection", "icon": "pulse" },
         "encoding": { "columns": [{ "field": "workflow-context", "type": "nominal", "title": "Workflow" }] },
         "layout": "full", "empty-message": "Collection status has not been published for this workflow. Missing status does not prove that collection is unconfigured."
       }, {
-        "id": "workflow-value-cards", "title": "Repository outcomes",
+        "id": "workflow-value-movement", "title": "Repository outcome movement",
         "subject": "Direction-aware native changes for this workflow's measured repository problems.",
-        "objective": "Open the evidence behind one compact result card.",
-        "acceptance": "A card is a first-to-last snapshot comparison, not an alert, causal rating or conversion rate. Missing evidence is not zero.",
+        "objective": "Compare how many retained results improved, worsened, stayed unchanged or lack a comparison.",
+        "acceptance": "Count categorical movement only; never compare or aggregate heterogeneous native values.",
         "data": { "source": "value-workflow-results", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "list": { "style": "entity-cards", "card": "workflow-value-result", "icon": "trophy",
-          "drill": { "type": "query", "page": "value-report", "query": "value-report-summary", "title-field": "snapshot-name", "arguments": [{ "name": "report", "field": "report-id" }] } },
-        "encoding": { "columns": [{ "field": "change-label", "type": "nominal", "title": "Observed change" }] },
+        "mark": "chart", "chart": "bar",
+        "encoding": {
+          "x": { "field": "movement", "type": "nominal", "title": "Movement" },
+          "y": { "field": "report-id", "type": "quantitative", "aggregate": "count", "title": "Results" }
+        },
         "layout": "full", "empty-message": "No accepted Value evidence is retained for this workflow. See collection health above; missing evidence is not zero value."
+      }, {
+        "id": "workflow-value-results", "title": "Repository outcomes",
+        "subject": "Direction-aware native changes for this workflow's measured repository problems.",
+        "objective": "Open the evidence behind one compact result card or inspect the same result fields in a table.",
+        "acceptance": "Cards and table rows are first-to-last snapshot comparisons, not alerts, causal ratings or conversion rates. Missing evidence is not zero.",
+        "data": { "source": "value-workflow-results", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
+        "mark": "table", "controls": "interactive", "lazy-list": true,
+        "card-drill": { "type": "query", "page": "value-report", "query": "value-report-summary", "title-field": "snapshot-name", "arguments": [{ "name": "report", "field": "report-id" }] },
+        "encoding": {
+          "columns": [
+            { "field": "delta-label", "type": "nominal", "title": "Observed change" },
+            { "field": "workflow-context", "type": "nominal", "title": "Workflow" },
+            { "field": "movement", "type": "nominal", "title": "Compared with goal", "display": "status" },
+            { "field": "snapshot-name", "type": "nominal", "title": "Measure" },
+            { "field": "direction-label", "type": "nominal", "title": "Goal" },
+            { "field": "comparison-label", "type": "nominal", "title": "Reference" },
+            { "field": "observed-at", "type": "temporal", "title": "Evidence captured", "format": "human-friendly-timestamp" }
+          ]
+        },
+        "layout": "full-view", "empty-message": "No accepted Value evidence is retained for this workflow. See collection health above; missing evidence is not zero value."
       }, {
         "id": "workflow-native-measurements", "title": "Native measurements",
         "data": { "source": "value-current-measurements", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
+        "disclosure": "supplemental",
         "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph",
           "drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] } },
         "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] },
@@ -880,144 +972,72 @@
     },
     {
       "id": "value", "kind": "custom", "title": "Value", "icon": "trophy",
-      "description": "Review every known campaign and standalone Value deployment through one evidence contract.",
-      "intent": "Find which workflow deployment needs attention and distinguish measured outcome movement from evidence availability.",
-      "subject": "Canonical workflow inventory, reviewed Value collection decisions and latest retained native or rich evidence.",
-      "objective": "Open the exact workflow result or collection state without separating campaign and standalone evidence systems.",
-      "acceptance": "Keep repository/workflow identity, topology, native result, collection state, dates and unknowns visible. No campaign score, causal credit or GitHub acquisition.",
-      "view-mode-control": false,
-      "route": {
-        "tab": "all",
-        "tabs": [
-          { "id": "all", "label": "All", "icon": "trophy", "page": "value" },
-          { "id": "campaigns", "label": "Campaigns", "icon": "goal", "page": "value-campaigns" },
-          { "id": "standalone", "label": "Standalone", "icon": "workflow", "page": "value-standalone" },
-          { "id": "review", "label": "Needs review", "icon": "alert", "page": "value-review" }
-        ]
-      },
-      "views": [{
-        "id": "value-all-workflows", "title": "All Value deployments", "show-title": false,
-        "description": "Optional acquisition must leave capacity for Activity. A recent status check does not make retained measurements fresh.",
-        "subject": "One card per exact repository and workflow deployment across campaign, standalone and unclassified topology.",
-        "objective": "Open retained evidence directly while workflows without a result open collection detail.",
-        "acceptance": "Never infer campaign membership, opt-in, successful capture or zero value from missing facts.",
-        "data": { "source": "value-workflow-overview", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "lazy-list": true,
-        "list": { "style": "entity-cards", "card": "workflow-value-overview", "icon": "trophy",
-          "drill": { "type": "external", "field": "overview-href" } },
-        "encoding": { "columns": [{ "field": "overview-title", "type": "nominal", "title": "Workflow" }] },
-        "layout": "full",
-        "empty-message": "No workflow inventory, Value collection decisions or retained Value evidence are available."
-      }]
-    },
-    {
-      "id": "value-campaigns", "kind": "custom", "title": "Campaign Value", "icon": "goal",
-      "description": "Review campaign coverage and attention before opening exact worker deployments.",
-      "intent": "Find which campaign has missing evidence, collection failures or worker outcomes requiring investigation.",
-      "subject": "Campaign projections over exact repository/workflow Value deployments.",
-      "objective": "Prioritize campaign drilldown without averaging incompatible native outcomes.",
-      "acceptance": "Show deployment and repository coverage plus explicit review counts. Do not create a cross-metric campaign score.",
-      "view-mode-control": false,
-      "route": {
-        "navigation-page": "value",
-        "tab": "campaigns",
-        "tabs": [
-          { "id": "all", "label": "All", "icon": "trophy", "page": "value" },
-          { "id": "campaigns", "label": "Campaigns", "icon": "goal", "page": "value-campaigns" },
-          { "id": "standalone", "label": "Standalone", "icon": "workflow", "page": "value-standalone" },
-          { "id": "review", "label": "Needs review", "icon": "alert", "page": "value-review" }
-        ]
-      },
-      "views": [{
-        "id": "value-campaign-overview", "title": "Campaigns", "show-title": false,
-        "description": "Coverage and review state are aggregated; native outcomes remain on their exact worker deployments.",
-        "subject": "One campaign card from its exact Value deployment inventory.",
-        "objective": "Open the campaign's worker Value deployments that need evidence or outcome investigation.",
-        "acceptance": "Counts retain explicit configured, current, unconfigured, deferred and failed populations. No score or averaged outcome.",
-        "data": { "source": "value-campaign-overview", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "lazy-list": true,
-        "list": { "style": "entity-cards", "card": "campaign-value-overview", "icon": "goal",
-          "drill": { "type": "external", "field": "campaign-value-href" } },
-        "encoding": { "columns": [{ "field": "campaign-name", "type": "nominal", "title": "Campaign" }] },
-        "layout": "full",
-        "empty-message": "No Value deployment has retained canonical campaign context."
-      }]
-    },
-    {
-      "id": "value-standalone", "kind": "custom", "title": "Standalone Value", "icon": "workflow",
-      "description": "Review standalone workflows through the same collection and evidence contract used for campaign workers.",
-      "intent": "Find which standalone workflow needs outcome or evidence investigation.",
-      "subject": "Exact Value deployments whose canonical workflow role is standalone.",
-      "objective": "Open current standalone results without inventing campaign membership.",
-      "acceptance": "Standalone classification comes only from canonical workflow inventory. Missing topology remains in All, not here.",
-      "view-mode-control": false,
-      "route": {
-        "navigation-page": "value",
-        "tab": "standalone",
-        "tabs": [
-          { "id": "all", "label": "All", "icon": "trophy", "page": "value" },
-          { "id": "campaigns", "label": "Campaigns", "icon": "goal", "page": "value-campaigns" },
-          { "id": "standalone", "label": "Standalone", "icon": "workflow", "page": "value-standalone" },
-          { "id": "review", "label": "Needs review", "icon": "alert", "page": "value-review" }
-        ]
-      },
-      "views": [{
-        "id": "value-standalone-workflows", "title": "Standalone workflows", "show-title": false,
-        "subject": "One card per exact standalone repository/workflow deployment.",
-        "objective": "Open retained evidence or collection detail for standalone workflows.",
-        "acceptance": "Use the universal workflow card and preserve unavailable evidence as unavailable.",
-        "data": { "source": "value-standalone-overview", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "lazy-list": true,
-        "list": { "style": "entity-cards", "card": "workflow-value-overview", "icon": "trophy",
-          "drill": { "type": "external", "field": "overview-href" } },
-        "encoding": { "columns": [{ "field": "overview-title", "type": "nominal", "title": "Workflow" }] },
-        "layout": "full",
-        "empty-message": "No workflow with canonical standalone topology is present in the Value inventory."
-      }]
-    },
-    {
-      "id": "value-review", "kind": "custom", "title": "Value needing review", "icon": "alert",
-      "description": "Review measured deterioration and evidence availability as separate conditions.",
-      "intent": "Select an exact deployment whose outcome or Value evidence requires review.",
-      "subject": "Value deployments with worsening measured outcomes, failed or deferred collection, unconfigured collection, or no retained result.",
-      "objective": "Prioritize review without converting missing evidence into a failed outcome.",
-      "acceptance": "Keep each row's explicit attention reason. No review triggered is not an all-clear and does not appear here.",
-      "view-mode-control": false,
-      "route": {
-        "navigation-page": "value",
-        "tab": "review",
-        "tabs": [
-          { "id": "all", "label": "All", "icon": "trophy", "page": "value" },
-          { "id": "campaigns", "label": "Campaigns", "icon": "goal", "page": "value-campaigns" },
-          { "id": "standalone", "label": "Standalone", "icon": "workflow", "page": "value-standalone" },
-          { "id": "review", "label": "Needs review", "icon": "alert", "page": "value-review" }
-        ]
-      },
-      "views": [{
-        "id": "value-review-workflows", "title": "Needs review", "show-title": false,
-        "subject": "Exact workflow deployments with a declared outcome or evidence attention condition.",
-        "objective": "Open the retained result or collection detail supporting the review basis.",
-        "acceptance": "Worsening, failed, deferred, unconfigured and missing-result states remain distinguishable.",
-        "data": { "source": "value-review-overview", "query-context": false, "time": { "range": "all" } },
-        "mark": "list",
-        "lazy-list": true,
-        "list": { "style": "entity-cards", "card": "workflow-value-overview", "icon": "alert",
-          "drill": { "type": "external", "field": "overview-href" } },
-        "encoding": { "columns": [{ "field": "overview-title", "type": "nominal", "title": "Workflow" }] },
-        "layout": "full",
-        "empty-message": "No Value deployment currently has a retained review condition. This is not an all-clear for unavailable inventory."
-      }]
+      "description": "Review one Value entry per campaign worker rollup or standalone workflow, keeping native outcomes separate.",
+      "intent": "Review the unified campaign and standalone workflow inventory without combining native Value outcomes.",
+      "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
+      "objective": "Review entry-type counts, inspect complete Value cards, or compare the same entries in a table.",
+      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Counts describe entry types only; missing and unknown evidence remains explicit, and no incompatible native values are combined.",
+      "view-mode-control": true,
+      "views": [
+        {
+          "id": "value-overview-chart", "title": "Value entries by type",
+          "subject": "Counts of campaign rollups and standalone workflows in the unified Value inventory.",
+          "objective": "Compare inventory composition without treating entry counts as measured outcomes.",
+          "acceptance": "Each bar counts top-level entries of one canonical type. Native outcome values are not combined.",
+          "data": { "source": "value-overview-by-kind", "query-context": false, "time": { "range": "all" } },
+          "mark": "chart", "chart": "bar", "layout": "full",
+          "encoding": {
+            "x": { "field": "value-kind", "type": "nominal", "title": "Value entry type" },
+            "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" }
+          },
+          "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
+        },
+        {
+          "id": "value-overview-table", "title": "Value entries",
+          "description": "The same campaign rollups and standalone workflows, shown in a table.",
+          "subject": "Unified campaign and standalone workflow Value entries with their separate evidence fields.",
+          "objective": "Compare entry coverage and evidence without combining native outcomes.",
+          "acceptance": "Each row is one top-level campaign rollup or standalone workflow; no worker is counted twice.",
+          "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
+          "mark": "table", "lazy-list": true, "layout": "full",
+          "encoding": {
+            "columns": [
+              { "field": "value-title", "type": "nominal", "title": "Value entry" },
+              { "field": "value-kind", "type": "nominal", "title": "Type" },
+              { "field": "value-status", "type": "nominal", "title": "Value status" },
+              { "field": "value-context", "type": "nominal", "title": "Scope" },
+              { "field": "value-collection", "type": "nominal", "title": "Collection" },
+              { "field": "value-evidence", "type": "nominal", "title": "Evidence" },
+              { "field": "value-measure", "type": "nominal", "title": "Observed value" },
+              { "field": "value-attention", "type": "nominal", "title": "Review basis" },
+              { "field": "value-captured", "type": "temporal", "title": "Evidence captured", "format": "human-friendly-timestamp" },
+              { "field": "value-cutoff", "type": "temporal", "title": "Evidence through", "format": "human-friendly-timestamp" }
+            ]
+          },
+          "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
+        },
+        {
+          "id": "value-overview-cards", "title": "Value cards",
+          "description": "Complete Value cards with navigation to their campaign or workflow.",
+          "subject": "Unified campaign and standalone workflow Value entries with their separate evidence fields.",
+          "objective": "Inspect each entry's evidence and open its campaign or workflow.",
+          "acceptance": "Each card is one top-level campaign rollup or standalone workflow. Workers do not appear as separate entries.",
+          "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
+          "mark": "list",
+          "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy" },
+          "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
+          "layout": "full",
+          "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
+        }
+      ]
     },
     {
       "id": "campaign-value", "kind": "custom", "title": "Campaign Value", "icon": "goal",
-      "description": "Inspect one campaign's Value coverage and exact worker deployments.",
-      "intent": "Understand why the selected campaign needs review and open the responsible workflow evidence.",
-      "subject": "The selected campaign's deployment coverage and repository/workflow Value cards.",
-      "objective": "Move from campaign coverage to exact worker evidence without changing measurement semantics.",
-      "acceptance": "Reuse universal cards and original evidence routes. Do not synthesize a campaign score or attribute worker outcomes to orchestration.",
+      "description": "Inspect one campaign's worker Value rollup and exact worker deployments.",
+      "intent": "Understand the selected campaign only through its workers and open the responsible workflow evidence.",
+      "subject": "The selected campaign's canonical worker rollup and repository/workflow Value cards.",
+      "objective": "Move from the worker rollup to exact worker evidence without changing measurement semantics.",
+      "acceptance": "Campaign Value contains only canonical worker results. Reuse original evidence routes; do not include orchestrators, synthesize a separate campaign score or attribute worker outcomes to orchestration.",
       "view-mode-control": false,
       "query-binding": "page",
       "route": {
@@ -1028,10 +1048,10 @@
       },
       "views": [
         {
-          "id": "campaign-value-summary", "title": "Campaign coverage",
-          "subject": "Coverage and review counts for the selected campaign.",
-          "objective": "Explain whether attention comes from configuration, collection or missing results before opening workers.",
-          "acceptance": "Counts are bounded to the selected campaign and do not aggregate native outcome values.",
+          "id": "campaign-value-summary", "title": "Worker Value rollup",
+          "subject": "Coverage and review counts rolled up from the selected campaign's canonical workers.",
+          "objective": "Explain whether worker attention comes from configuration, collection or missing results before opening exact evidence.",
+          "acceptance": "Counts include only the selected campaign's workers and do not combine incompatible native outcome values.",
           "data": { "source": "value-campaign-overview", "arguments": [{ "name": "campaign", "field": "campaign" }], "query-context": false, "time": { "range": "all" } },
           "mark": "list",
           "list": { "style": "entity-cards", "card": "campaign-value-overview", "icon": "goal" },

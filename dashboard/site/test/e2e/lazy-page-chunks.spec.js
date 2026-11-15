@@ -268,7 +268,8 @@ test('core dashboard stays small and page chunks load on demand with in-memory c
   // Shell prerequisites execute before any page chunk can enable navigation.
   const shellQueryLength = JSON.stringify(core.value.dashboard.queries).length;
   expect(shellQueryLength).toBeLessThan(5000);
-  expect(core.textLength - shellQueryLength).toBeLessThan(83500);
+  // Three maintenance pages retain their scoped action declarations in the shell.
+  expect(core.textLength - shellQueryLength).toBeLessThan(85000);
   expect(core.value.dashboard.pages.some((/** @type {Record<string, unknown>} */ entry) =>
     ['description', 'intent', 'subject', 'objective', 'acceptance'].some((field) => field in entry))).toBe(false);
   expect(core.value.dashboard.pages.some((/** @type {{ views?: unknown[] }} */ entry) => Array.isArray(entry.views))).toBe(false);

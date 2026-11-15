@@ -3,6 +3,15 @@ import { parseUnifiedSessionDocument } from './unified-session.js';
 
 const debug = createDebug('grader-evidence');
 
+/**
+ * @param {string} reason
+ * @param {string} message
+ */
+function rejection(reason, message) {
+  debug({ event: 'reject', status: 'rejected', reason });
+  return new TypeError(message);
+}
+
 /** @param {{ path: string, content: string }} file */
 function document(file) {
   let value;
@@ -15,7 +24,7 @@ function document(file) {
   }
   if (!value || typeof value !== 'object' || Array.isArray(value)
       || ![1, 2].includes(value.version)) {
-    throw new TypeError('Unsupported grader artifact document');
+    throw rejection('unsupported-document', 'Unsupported grader artifact document');
   }
   return value;
 }
@@ -35,7 +44,7 @@ export function parseGraderArtifacts(files, context, session) {
     /(^|\/)(?:[^/]+-)?usage\/graders\/grader_results\.json$/.test(file.path));
   const separate = candidates.filter((file) => !usage.includes(file));
   if (separate.length > 1 || (!session && !separate.length && usage.length > 1)) {
-    throw new TypeError('Multiple grader result artifacts found for one run');
+    throw rejection('multiple-results', 'Multiple grader result artifacts found for one run');
   }
   const file = separate[0] ?? (session ? undefined : usage[0]);
   if (!file) return session;
@@ -44,22 +53,22 @@ export function parseGraderArtifacts(files, context, session) {
       && (!output.run || typeof output.run !== 'object' || Array.isArray(output.run)
         || (output.run.id !== undefined && output.run.id !== '' && String(output.run.id) !== context.runId)
         || (output.run.attempt !== undefined && Number(output.run.attempt) !== context.attempt)))) {
-    throw new TypeError('Grader artifact run identity or results are invalid');
+    throw rejection('run-or-results-invalid', 'Grader artifact run identity or results are invalid');
   }
   const ids = new Set();
   for (const result of output.results) {
     if (!result || typeof result !== 'object' || Array.isArray(result)
         || typeof result.id !== 'string' || !result.id.trim() || ids.has(result.id)
         || (result.value !== null && (typeof result.value !== 'number' || !Number.isFinite(result.value)))) {
-      throw new TypeError('Grader artifact must contain unique identities and finite or null values');
+      throw rejection('invalid-result-identity', 'Grader artifact must contain unique identities and finite or null values');
     }
     ids.add(result.id);
   }
   const manifestPath = file.path.replace(/grader_results\.json$/, 'grader_manifest.json');
   const manifests = files.filter((candidate) => candidate.path === manifestPath);
-  if (manifests.length > 1) throw new TypeError('Multiple grader manifests found for one artifact');
+  if (manifests.length > 1) throw rejection('multiple-manifests', 'Multiple grader manifests found for one artifact');
   const manifest = manifests[0] ? document(manifests[0]) : undefined;
-  if (manifest && !Array.isArray(manifest.graders)) throw new TypeError('Invalid grader manifest');
+  if (manifest && !Array.isArray(manifest.graders)) throw rejection('invalid-manifest', 'Invalid grader manifest');
   const events = [
     { type: 'session.format', data: { version: 1 } },
     ...(manifest ? [{ type: 'grader.manifest', data: manifest }] : []),

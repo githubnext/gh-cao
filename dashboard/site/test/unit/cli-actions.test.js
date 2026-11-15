@@ -43,6 +43,25 @@ afterEach(() => {
 });
 
 describe('CLI actions', () => {
+  it('previews exact workflow update scope and requires explicit approval without unsupported pinned options', async () => {
+    const action = dashboardDocument.dashboard['cli-actions'].find((candidate) => candidate.id === 'update-workflow-source');
+    if (!action) throw new Error('Missing workflow update action');
+    expect(action.arguments?.map((argument) => argument.flag)).toEqual(['--create-pull-request']);
+    const root = renderCliActions([{
+      id: action.id, label: action.label, description: action.description, icon: action.icon, command: action.command,
+      arguments: action.arguments?.map((argument) => ({ ...argument, type: /** @type {const} */ ('boolean') }))
+    }], { templateValues: { workflow: 'review.md', 'repository-coordinate': 'octo/target' } });
+    if (!root) throw new Error('Missing workflow update control');
+    document.body.append(root);
+    root.querySelector('.cli-action-trigger')?.dispatchEvent(new MouseEvent('click'));
+    expect(root.textContent).toContain('across the repository');
+    expect(root.querySelector('.cli-action-command')?.textContent).toBe('gh aw update review.md --repo octo/target --create-pull-request');
+    expect(queue.enqueue).not.toHaveBeenCalled();
+    root.querySelector('.cli-action-confirm')?.dispatchEvent(new MouseEvent('click'));
+    await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledOnce());
+    root.remove();
+  });
+
   it('activates standard server maintenance with exact repository targets and PR defaults', async () => {
     setDeclaredCliActions(
       /** @type {Parameters<typeof setDeclaredCliActions>[0]} */ (authoritativeDashboard.dashboard['cli-actions']),
@@ -81,7 +100,7 @@ describe('CLI actions', () => {
     root.remove();
   });
 
-  it.each(['update-repository', 'update-campaign', 'update-workflow-source', 'upgrade-repository', 'upgrade-target-repository'])(
+  it.each(['update-repository', 'update-campaign', 'upgrade-repository', 'upgrade-target-repository'])(
     'keeps auto merge opt-in and previews and submits its supported flag for %s',
     async (id) => {
       const action = dashboardDocument.dashboard['cli-actions'].find((candidate) => candidate.id === id);
@@ -100,6 +119,8 @@ describe('CLI actions', () => {
           'campaign-source': 'acme/catalog/activity',
           'campaign-name': 'Activity',
           'workflow-source': 'acme/workflows/review',
+          workflow: 'review.md',
+          'repository-coordinate': 'octo/example',
           'workflow-name': 'Review'
         },
         context: {
@@ -118,20 +139,22 @@ describe('CLI actions', () => {
       expect(autoMerge.checked).toBe(false);
       expect(root.querySelector('.cli-action-command')?.textContent).not.toContain('--auto-merge');
       const expectedPrefix = id === 'update-workflow-source'
-        ? 'gh aw update https://github.com/acme/workflows/review --repo acme/control'
+        ? 'gh aw update review.md --repo octo/example'
         : id.startsWith('update')
           ? 'gh aw update https://github.com/acme/catalog/activity --repo acme/control'
           : 'gh aw upgrade --repo octo/example';
-      expect(root.querySelector('.cli-action-command')?.textContent?.startsWith(`${expectedPrefix} --pr-message `)).toBe(true);
-      expect(root.querySelector('.cli-action-command')?.textContent).toContain(
+      expect(root.querySelector('.cli-action-command')?.textContent?.startsWith(expectedPrefix)).toBe(true);
+      if (id !== 'update-workflow-source') {
+        expect(root.querySelector('.cli-action-command')?.textContent).toContain(
         "--pr-message 'This pull request was requested through [Central Agentic Ops (CAO)]"
       );
       expect(root.querySelector('.cli-action-command')?.textContent).toContain(
         'https://github.com/acme/control'
       );
       expect(root.querySelector('.cli-action-command')?.textContent).toContain(
-        `https://ops.example.com/central/#page-maintenance${id.startsWith('update') ? '-campaigns' : ''}`
+        `https://ops.example.com/central/#page-maintenance${id === 'update-workflow-source' ? '-workflows' : id.startsWith('update') ? '-campaigns' : ''}`
       );
+      }
 
       autoMerge.click();
       expect(root.querySelector('.cli-action-command')?.textContent).toContain('--auto-merge');
@@ -161,7 +184,7 @@ describe('CLI actions', () => {
     expect(queue.enqueue).not.toHaveBeenCalled();
   });
 
-  it.each(['update-repository', 'update-campaign', 'update-workflow-source'])(
+  it.each(['update-repository', 'update-campaign'])(
     'fails closed for %s without control-repository context instead of targeting the row repository',
     (id) => {
       const action = dashboardDocument.dashboard['cli-actions'].find((candidate) => candidate.id === id);

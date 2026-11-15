@@ -89,8 +89,8 @@ func TestResolveDeclaredSourceUpdatesUseNativeGhAwCommand(t *testing.T) {
 	}{
 		{"campaign", "update-campaign", "gh aw update https://github.com/githubnext/gh-cao/security --repo octo/cao",
 			map[string]string{"campaign-name": "Security", "campaign-source": "githubnext/gh-cao/security"}},
-		{"standalone workflow", "update-workflow-source", "gh aw update https://github.com/octo/workflows/review --repo octo/cao",
-			map[string]string{"workflow-name": "Review", "workflow-source": "octo/workflows/review"}},
+		{"standalone workflow", "update-workflow-source", "gh aw update review.md --repo octo/cao",
+			map[string]string{"workflow": "review.md", "repository-coordinate": "octo/cao"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			invocation, err := catalog.Resolve(Request{
@@ -109,6 +109,48 @@ func TestResolveDeclaredSourceUpdatesUseNativeGhAwCommand(t *testing.T) {
 			}
 			if plan.Kind != KindGhAwUpdate || plan.Program != "gh-aw" || plan.Repository != "octo/cao" {
 				t.Fatalf("unexpected hosted source update plan %+v", plan)
+			}
+			if !slices.Contains(plan.Args, "--create-pull-request") {
+				t.Fatalf("source update must publish through a pull request: %v", plan.Args)
+			}
+		})
+	}
+}
+
+func TestResolveDeclaredWorkflowUpdatePreservesHostedBoundary(t *testing.T) {
+	catalog := loadTestCatalog(t)
+	for _, test := range []struct {
+		name       string
+		repository string
+		arguments  map[string]bool
+		wantError  bool
+	}{
+		{"control repository with default publication", "octo/cao", nil, false},
+		{"another repository", "octo/other", nil, true},
+		{"publication disabled", "octo/cao", map[string]bool{"create-pull-request": false}, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			invocation, err := catalog.Resolve(Request{
+				ID:        "update-workflow-source",
+				Values:    map[string]string{"workflow": "review.md", "repository-coordinate": test.repository},
+				Arguments: test.arguments,
+			}, testContext(t))
+			if err != nil {
+				t.Fatal(err)
+			}
+			plan, err := PlanCommand(invocation.Command, "octo/cao")
+			if test.wantError {
+				if err == nil {
+					t.Fatalf("workflow update expanded hosted authority: %+v", plan)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if plan.Repository != "octo/cao" ||
+				!slices.Equal(plan.Args, []string{"update", "review.md", "--repo", "octo/cao", "--create-pull-request"}) {
+				t.Fatalf("workflow update lost its exact target or publication default: %+v", plan)
 			}
 		})
 	}
