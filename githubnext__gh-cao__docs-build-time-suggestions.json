@@ -1,36 +1,7 @@
 {
  "source_sha": "29e63d1eba9e5a9cfe180fcda863161d1c5fb026",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T20:55:27Z",
-   "worker_run_id": "43639553759",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43639680929,
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196,
-    43494667529
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z) to 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z); none queued or in progress; 0 cancelled. Failed 6 (push: 43639680929, 436 [truncated]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T21:17:33Z",
    "worker_run_id": "43641585317",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:39Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; 18 push, 2 schedule; 0 cancelled; none queued or in progress; no docs.yml run after 05:43Z; source 29e63d1 = HEAD = source_sha. Failed 10 (9 at Build documentation 9-15 s into step since 15:58Z Nov 14; 43506161539 Install dependencies); excluded from timing, disclosed. n=10 successes: build-to-deploy wall median 81.5 s p90 90 (68-92); handoff 5 s; Configure Pages 1 s; upload 2 s (p90 3); deploy setup 2 s; removable transfer (handoff+configure+upload+deploy setup) median 10 s p90 10 = 12.3 percent of median, below the 12.2 s 15 percent gate and the 60 s gate. Only change that clears the gate is merging deploy into build (about 7 s saved), which drops the github-pages environment gate and id-token scoping: rejected for deployment safety. Pages pieces are each at or under 2 s. Checkout (24 s median, largest component) remains open issue 20815, unchanged, not repeated. Reliability blocker (not timing) unchanged: Pages not deployed since 43611206032 (15:39Z Nov 14); job logs return 403 DIFC so cause unverified; 20934 open related gate.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T07:35:31Z",
+   "worker_run_id": 43690144523,
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43503897533,
+    43504093917,
+    43504143936,
+    43505502149,
+    43506161539,
+    43536491714,
+    43536796952,
+    43561388555,
+    43593405440,
+    43608206381,
+    43611206032,
+    43613020723,
+    43616204011,
+    43621919773,
+    43623754509,
+    43639680929,
+    43655786695,
+    43680980929,
+    43681861583,
+    43682264332
+   ],
+   "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; 0 cancelled, none queued or in progress, no docs run after 05:43Z. Samples: 10 successes (9 push + schedule 43561388555) meet the 5-run gate; 10 failures excluded and disclosed (43506161539 Install dependencies; 9 consecutive Build documentation failures 43613020723..43682264332 incl. schedule 43680980929, all 9-15 s into that step). Queue: run created to build started median 3 s, p90 4 s; one concurrency hold of 68 s (43504143936 waited behind 43504093917 deploy; build job created_at is set at release, so hold = run created to build created). Execution (build start to deploy end, successes) median 81.5 s, p90 90; 15 percent gate 12.2 s and 60 s gate unmet. Avoidable rebuilds: 0 of 18 push runs; every push touched a build input (dashboard/site/src or dashboard/report, docs/**, package*.json, or */aw.yml; Pages build imports dashboard/site/scripts/build.mjs and dashboard/report); no test-only or shared-only push in window. Scheduled 05:23 UTC refresh is required for synthetic-date freshness, not avoidable. ETag: gh api -i returned no ETag (re-checked before 07:35Z). Reliability (not timing, critical): Pages not deployed since 43611206032 (15:39Z Nov 14); cause unverified (step logs HTTP 403 DIFC); open 20934 is the same docs:build gate in workflow-contracts. Reported in noop only. No suggestion; no issue; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -980,11 +980,6 @@
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-15T06:54:08Z",
-   "source": "docs.yml runs 43613020723..43682264332; open issues 20934, 20815",
-   "note": "Reliability, not timing (critical, unresolved, maintainer triage): Build documentation failed on 9 consecutive runs since 15:58Z Nov 14 (9-15 s into the step, after install passes); Pages not deployed since 43611206032 (15:39Z Nov 14). Open 20934 (workflow-contracts docs step, same npm run docs:build) may share the cause; unverified. Local repro blocked by sandbox TLS. Reported in noop only; no docs.yml failure tracker open."
-  },
-  {
    "observed_at": "2026-11-15T03:54:16Z",
    "source": "docs.yml path filter vs docs/pages/catalog/[slug].astro and docs/lib/catalog.ts",
    "note": "Avoidable-rebuild check: 43536491714 (2cb6d9c) is NOT avoidable: modernization/aw.yml is globbed and listed by docs/lib/catalog.ts (experimental, not private). 0 of 19 push runs avoidable."
@@ -993,6 +988,11 @@
    "observed_at": "2026-11-15T07:19:14Z",
    "source": "docs.yml runs through 43682264332; open issues 20934, 20815",
    "note": "Still blocking (not timing): Build documentation fails on all 9 runs since 15:58Z Nov 14, no docs.yml run after 05:43Z Nov 15. Job logs API returns 403 DIFC from this worker, so the cause is unverified. 20934 open (framework-health gate). 20815 open (checkout blobless suggestion), 0 comments, not repeated."
+  },
+  {
+   "observed_at": "2026-11-15T07:35:31Z",
+   "source": "docs.yml run list 07:31Z; jobs API; open issues 20934, 20815",
+   "note": "Reliability, not timing (critical, unresolved): Build documentation failed on 9 consecutive runs since 15:58Z Nov 14; no docs.yml run after 05:43Z Nov 15 as of 07:31Z. Pages not deployed since 43611206032 (15:39Z Nov 14). Logs HTTP 403 DIFC, so cause unverified; first failing push 600b56a touched docs/setup-quickstarts.md among 9 files. Open 20934 (framework-health, workflow-contracts docs gate) may share the cause. 20815 (checkout blobless) still OPEN, not repeated."
   }
  ],
  "checkout_probe": {
@@ -1034,43 +1034,30 @@
   ]
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-15T05:34:38Z",
-  "window": "43502660435 (2026-11-13T20:33:34Z) .. 43680980929 (2026-11-15T05:24:54Z)",
-  "n_success": 12,
-  "failed": [
-   "43506161539 (install, push 7c8faf4)",
-   "43613020723",
-   "43616204011",
-   "43621919773",
-   "43623754509",
-   "43639680929",
-   "43655786695 (Build documentation, push d55c91b)",
-   "43680980929 (schedule, Build documentation, d55c91b)"
-  ],
-  "cancelled": [],
-  "queued_or_in_progress_in_window": [],
-  "queue_run_created_to_build_start_all20_median_p90_max_s": [
+  "evaluated_at": "2026-11-15T07:35:31Z",
+  "window": "43503897533 (2026-11-13T20:41:38Z) .. 43682264332 (2026-11-15T05:43:01Z); latest 20 completed docs.yml runs",
+  "n_success": 10,
+  "n_failed": 10,
+  "n_cancelled": 0,
+  "queue_run_created_to_build_started_median_p90_max_s": [
    3,
    4,
    71
   ],
-  "concurrency_waits_run_created_to_build_start_s": {
-   "43502660435": 45,
-   "43504143936": 71
+  "concurrency_hold_run_created_to_build_created_s": {
+   "43504143936": 68,
+   "all_other_19_runs_max_s": 1
   },
-  "exec_success_median_p90_nearest_rank_s": [
+  "build_job_created_to_started_median_p90_s": [
+   2.5,
+   3
+  ],
+  "exec_build_start_to_deploy_end_success_median_p90_s": [
    81.5,
    90
   ],
-  "exec_success_min_max_s": [
-   68,
-   92
-  ],
-  "gate_s": 12.2,
-  "avoidable_push_runs_verified": [],
-  "avoidable_push_runs_checked": 18,
-  "avoidable_candidates_resolved": "43536491714 (2cb6d9c) NOT avoidable (modernization/aw.yml globbed by docs/lib/catalog.ts); no new push head since d55c91b; schedule 43680980929 is by design (synthetic date refresh)",
-  "conclusion": "no scheduling, concurrency, or avoidable-rebuild change meets the 15 percent (12.2 s) or 60 s gate; queue waits are not execution time"
+  "avoidable_push_runs": "0 of 18 (every push touched a build input; no test-only or shared-only pushes)",
+  "note": "Next evaluation: dependency installation and caching. Reliability blocker still open; re-check run list before timing analysis."
  },
  "transfer_sample": {
   "evaluated_at": "2026-11-15T07:19:14Z",
