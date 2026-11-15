@@ -1,36 +1,7 @@
 {
   "source_sha": "29e63d1eba9e5a9cfe180fcda863161d1c5fb026",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-14T22:18:26Z",
-      "worker_run_id": "43646940636",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555",
-        "43536796952",
-        "43536491714",
-        "43506161539",
-        "43505502149",
-        "43504143936",
-        "43504093917",
-        "43503897533",
-        "43503506778",
-        "43502660435",
-        "43502562196",
-        "43494667529"
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); all within 14 days; none queued or in progress; 0 cancelled; no docs.yml  [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-14T22:35:08Z",
       "worker_run_id": "43648232592",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z) to 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z), all within 14 days; run list re-read 08:33Z unchanged, none queued or in progress, 0 cancelled, no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Excluded and disclosed: 10 failures (43506161539 at Install dependencies; 9 Build documentation failures 43613020723..43682264332). n=10 successes meets the 5-run gate. Category step Build synthetic enterprise demo (npm run dashboard:pages:build; cp -R): successes median 4 s, p90 4, range 3-4 = 4.9 percent of build-to-deploy median 81.5 s; 12.2 s and 60 s gates unreachable even if the step were removed. Sample is generated from Date.now() (scripts/simulate-dashboard-pages.mjs), so caching rendered output would carry stale synthetic dates; workflow comment requires date refresh. Build-job exec median 64.5 s p90 77; deploy exec median 9.5 p90 13. Check-run annotations for build job 132715223669 are generic (Process completed with exit code 1); logs HTTP 403 DIFC, not bypassed; cause unverified. Open 20934 (related docs gate) and 20815 (blobless checkout, not repeated). No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T08:51:47Z",
+      "worker_run_id": "43696160824",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "43682264332",
+        "43681861583",
+        "43680980929",
+        "43655786695",
+        "43639680929",
+        "43623754509",
+        "43621919773",
+        "43616204011",
+        "43613020723",
+        "43611206032",
+        "43608206381",
+        "43593405440",
+        "43561388555",
+        "43536796952",
+        "43536491714",
+        "43506161539",
+        "43505502149",
+        "43504143936",
+        "43504093917",
+        "43503897533"
+      ],
+      "outcome": "complete, not actionable; reliability blocker unresolved: window = latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43:01Z) back to 43503897533 (push b2fa66a, created 2026-11-13T20:41:38Z), all within 14 days; run list re-read 08:50Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no docs run after 05:43Z; source 29e63d1 = HEAD = source_sha. Excluded and disclosed: 10 failures (43506161539 at Install dependencies; 9 Build documentation failures 43613020723..43682264332, logs HTTP 403 DIFC, not bypassed). Gate n=10 successes (9 push + schedule 43561388555) met. Jobs API re-verified for all 10 successes with exact timestamps: removable transfer = build-complete-to-deploy-queued (median 0 s) + deploy queue (median 5 s) + deploy Set up job (median 1 s) + Configure Pages (median 1 s) + Upload Pages artifact (median 2 s, p90 3) = median 9 s, p90 10, max 10 = 11.0 percent of build-start-to-deploy-end median 81.5 s (p90 90). 15 percent gate 12.2 s and 60 s gate unmet. Merging build and deploy saves about 6 s (7.4 percent) and would move id-token write and the github-pages environment onto the job running npm ci: rejected. Deploy Pages step median 6.5 s is GitHub-managed; github-pages artifact 8,352,438 bytes (43611206032); shrinking saves about 1 s. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1066,113 +1066,136 @@
     "note": "Next evaluation: dependency installation and caching. Reliability blocker still open; re-check run list before timing analysis."
   },
   "transfer_sample": {
-    "evaluated_at": "2026-11-15T07:19:14Z",
-    "window": "43503897533 (2026-11-13T20:41:39Z) .. 43682264332 (2026-11-15T05:43:01Z)",
+    "evaluated_at": "2026-11-15T08:51:47Z",
+    "window": "43503897533 (2026-11-13T20:41:39Z) .. 43682264332 (2026-11-15T05:43:01Z); latest 20 completed docs.yml runs; re-verified via Jobs API with exact timestamps",
     "n_success": 10,
-    "columns": "run,event,handoff_s,configPages_s,upload_s,deploySetup_s,deployPages_s,deployJob_s",
+    "columns": "run,event,build_complete_to_deploy_queued_s,deploy_queue_s,deploy_set_up_job_s,configure_pages_s,upload_pages_artifact_s,deploy_pages_s,build_exec_s,build_start_to_deploy_end_s",
     "rows": [
       [
         "43611206032",
         "push",
+        0,
         5,
+        1,
         0,
         2,
-        2,
         9,
-        13
+        65,
+        83
       ],
       [
         "43608206381",
         "push",
+        0,
         5,
+        1,
         0,
         2,
-        2,
         8,
-        12
+        65,
+        82
       ],
       [
         "43593405440",
         "push",
+        0,
         5,
         1,
-        2,
+        1,
         2,
         5,
-        9
+        59,
+        73
       ],
       [
         "43561388555",
         "schedule",
-        5,
+        1,
+        4,
+        0,
         1,
         3,
-        1,
         6,
-        8
+        79,
+        92
       ],
       [
         "43536796952",
         "push",
+        0,
         5,
         1,
-        2,
+        1,
         2,
         6,
-        12
+        58,
+        75
       ],
       [
         "43536491714",
         "push",
+        0,
         5,
         1,
-        2,
+        1,
         2,
         6,
-        10
+        64,
+        79
       ],
       [
         "43505502149",
         "push",
-        6,
+        1,
+        5,
+        2,
         1,
         1,
-        3,
         8,
-        13
+        62,
+        81
       ],
       [
         "43504143936",
         "push",
-        6,
-        1,
-        2,
         1,
         5,
-        7
+        1,
+        1,
+        2,
+        5,
+        77,
+        90
       ],
       [
         "43504093917",
         "push",
-        6,
+        1,
+        5,
+        1,
         0,
         3,
-        1,
         7,
-        9
+        69,
+        84
       ],
       [
         "43503897533",
         "push",
+        0,
         5,
         0,
+        0,
         3,
-        1,
         7,
-        9
+        54,
+        68
       ]
     ],
-    "summary": "removable transfer (handoff+configPages+upload+deploySetup) median 10 p90 10 max 11 = 12.3 pct of build-to-deploy median 81.5; gate 12.2 s not reached; deploy setup = deploy job started to Deploy Pages step started"
+    "summary": "removable transfer (build-complete-to-deploy-queued + deploy queue + deploy Set up job + Configure Pages + Upload Pages artifact) median 9 p90 10 max 10 = 11.0 pct of build-start-to-deploy-end median 81.5 (p90 90); 15 pct gate 12.2 s not reached. Earlier 07:19Z sample defined handoff as build-complete-to-deploy-start (median 5), giving median 10; both below gate.",
+    "artifact_bytes": {
+      "43611206032": 8352438
+    }
   },
   "astro_step_sample": {
     "evaluated_at": "2026-11-15T08:21:06Z",
