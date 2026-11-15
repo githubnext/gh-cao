@@ -1,36 +1,7 @@
 {
  "source_sha": "14a39d44d377f565f1f6dc8aa8e12d03100125fe",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T12:56:23Z",
-   "worker_run_id": "43715912571",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695,
-    43639680929,
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43504143936 (push 598d6b9, created 2026-11-13T20:43:16Z) to 43706435376 (push 7b092ad, created 2026-11-15T10:55:53Z), all within 14 days; 0 cancelled; none queued or in progress; no newer docs run at 12:53Z; source cedb45b = HEAD = source_sha. Gate: 8 successes (7 push + schedule 43561388555) >= 5. Excluded and disclosed: 12 failures = 11 consecutive Build documentation failures since 43613020723 plus 43506161539 (Install dependencies, 17 s); logs HTTP 403 DIFC, not bypassed. Install dependencies: successful installs n=19 median 10 s p90 16; post-rollover n=17 (after 43506161539) median 9 s p90 12; Set up Node.js restore median 4 s; Post Set up Node.js 0-1 s (exact-key hit inferred; caches API confirms 7808ecf8, 263412733 bytes; root lock hash recomputed = 7808ecf8). Best-case recoverable install = about 9-10 s = 11-13 percent of build-start-to-deploy median 81.5 s; 15 percent gate 12.2 s and 60 s gate unmet; removing install is not viable; audit, fund, and dashboard-only cache coverage changes are bounded to a few seconds. CORRECTION: cache 7808ecf8 was created 20:57:12Z, during failed run 43506161539 Install step (20:57:07-20:57:24Z; post steps ran after 20:57:24Z), so that run did not seed it; creator job unknown. Checkout median 24 s stays with open issue 20815 (not repeated). No suggestion; no issue; noop. next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T13:16:58Z",
    "worker_run_id": "43717787401",
@@ -871,21 +842,50 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16Z), all within 14 days; 0 cancelled; none queued or in progress at 22:32Z; source 14a39d4 = HEAD = source_sha. Gate: 13 successes (all push) >= 5. Excluded and disclosed: 7 failures (6 push + schedule 43680980929), all at Build documentation (logs HTTP 403 DIFC). Queue run-created to build-started, all 20: median 3 s, p90 4 s, max 4 s; no concurrency holds, so serialization in documentation-pages costs ~0 s. Successful build-start to deploy-end: median 77 s, p90 90 s; 15 percent gate 11.6 s and 60 s gate unmet. Avoidable pushes 0 of 19: each push touched a build-consumed path; build.mjs copies all of dashboard/site/src and dashboard-fragments, and no push was test-only. Cancel-in-progress rejected (could cancel Pages publication); narrower path filter saves 0 s; schedule 05:23Z kept for synthetic-date freshness (Date.now()). Stale queued run 37642403569 (workflow_run, created 2026-10-07) still queued; not blocking window runs; maintainer action. Reliability, not timing: 13 consecutive green Build documentation runs since 43721484176. No suggestion; no create_issue; noop used; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T22:53:17Z",
+   "worker_run_id": "43771365159",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109,
+    43756218347,
+    43753233809,
+    43752704784,
+    43752194225,
+    43746617494,
+    43731625055,
+    43724243400,
+    43721484176,
+    43721157324,
+    43706435376,
+    43698271571,
+    43682264332,
+    43681861583,
+    43680980929,
+    43655786695
+   ],
+   "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16Z); gh run list re-read 22:51Z: no newer run, none queued or in progress, 0 cancelled; source 14a39d4 = HEAD = source_sha; docs.yml last changed 063cbe9 (2026-11-12) per commits API. Gate: 13 successes (all push) >= 5. Excluded and disclosed: 7 failures (6 push + schedule 43680980929), all at Build documentation; step/job logs HTTP 403 DIFC re-probed 22:52Z, not bypassed. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 (263412733 B, created 2026-11-13T20:57:12Z, refs/heads/main) present; lastAccessedAt 22:45Z. Hit inferred from exact key (logs unreadable). Install dependencies n=13 median 8 s p90 11; setup restore median 3 s p90 6; post 0 s p90 1; setup+install+post median 11 s p90 15 = 14.3 percent of exec median 77 s (p90 90). 15 percent gate 11.55 s needs the whole phase removed, which is not viable (Node and both installs are build inputs); node_modules caching, audit/fund off and dashboard-lock key coverage are bounded to a few seconds per prior evaluations. 60 s gate unmet. No suggestion; no create_issue; noop used. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
-  "verified_at": "2026-11-15T19:33:46Z",
+  "verified_at": "2026-11-15T22:53:17Z",
   "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
   "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) root only>",
   "restore": "exact key only; no restore-keys",
-  "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263412733 B; created 2026-11-13T20:57:12Z; ref refs/heads/main; listed 19:31Z)",
+  "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263412733 B; created 2026-11-13T20:57:12Z; ref refs/heads/main; listed 22:51Z)",
   "root_lock_history": "root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z); no lock commit through 88f652f4",
   "hashing": "hashFiles = sha256 over concatenated binary per-file sha256 digests; root-only reproduces 7808ecf8; root+dashboard reproduces aaf3a193 (not used by docs.yml)",
   "hits": "success runs: Post Set up Node.js 0-1 s (exact-key hit inferred); failed runs: post step skipped, so cannot be classified",
   "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
-  "log_access": "step logs and job logs return HTTP 403 DIFC; not bypassed",
+  "log_access": "step logs and job logs return HTTP 403 DIFC (re-probed 22:52Z); not bypassed",
   "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-  "live_entry_last_accessed": "2026-11-15T21:14:03Z (Actions caches API read at 21:16Z)",
+  "live_entry_last_accessed": "2026-11-15T22:45:22Z (Actions caches API read at 22:51Z)",
   "window_2026_11_15T1930Z": {
    "n_success": 8,
    "setup_node_median_s": 4,
@@ -897,7 +897,7 @@
   }
  },
  "run_samples": {
-  "evaluated_at": "2026-11-15T22:34:13Z",
+  "evaluated_at": "2026-11-15T22:53:17Z",
   "window": "43655786695 (push d55c91b, 2026-11-14T23:57Z) .. 43768376457 (push 14a39d4, 2026-11-15T22:16Z)",
   "n_success": 13,
   "n_failed": 7,
@@ -1012,10 +1012,10 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-15T22:34:13Z",
+  "observed_at": "2026-11-15T22:53:17Z",
   "status": "Build documentation green on 13 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z; latest 43768376457, 22:16Z). Last schedule success 43561388555 (2026-11-14T05:24Z); schedule 43680980929 (2026-11-15T05:24Z) failed. Root cause not verified (logs HTTP 403 DIFC). Confirm the 2026-11-16 ~05:23Z schedule succeeds."
  },
- "etag_note": "2026-11-15T20:20:58Z: gh api responses in this sandbox returned no ETag header (observed: Link, X-Ratelimit-*); the earlier Jobs and file-list reads were not conditional. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43756384109.",
+ "etag_note": "2026-11-15T20:20:58Z: gh api responses in this sandbox returned no ETag header (observed: Link, X-Ratelimit-*); the earlier Jobs and file-list reads were not conditional. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43756384109. 22:52Z: this evaluation's gh api reads were not conditional; only job rows for 43768376457 were re-read; other rows reused from run_timings.",
  "observations_pending": [
   {
    "observed_at": "2026-11-15T22:34:13Z",
@@ -1639,15 +1639,15 @@
   "build_consumed_note": "build.mjs (lines 52-53) recursively copies all of dashboard/site/src and dashboard-fragments into the published output, so every src or fragment path is build-consumed regardless of import graph."
  },
  "dependency_phase_verified": {
-  "verified_at": "2026-11-15T21:17:57Z",
-  "window": "43621919773 (push 93c64ff) .. 43757990961 (push 24f570e); 10 successes, 10 failures excluded",
+  "verified_at": "2026-11-15T22:53:17Z",
+  "window": "43655786695 (push d55c91b) .. 43768376457 (push 14a39d4); 13 successes, 7 failures excluded",
   "setup_node_s": {
    "median": 3,
-   "p90": 4
+   "p90": 6
   },
   "install_s": {
-   "median": 7.5,
-   "p90": 10
+   "median": 8,
+   "p90": 11
   },
   "post_setup_node_s": {
    "median": 0,
@@ -1655,13 +1655,13 @@
   },
   "setup_install_post_s": {
    "median": 11,
-   "p90": 14
+   "p90": 15
   },
-  "share_of_exec_median_pct": 14.6,
+  "share_of_exec_median_pct": 14.3,
   "exec_s": {
-   "median": 75.5,
-   "p90": 80
+   "median": 77,
+   "p90": 90
   },
-  "note": "Recomputed from run_timings rows (completed runs immutable); removal of the whole phase is not viable"
+  "note": "Recomputed from run_timings rows (completed runs immutable); removal of the whole phase is not viable; 15 percent gate 11.55 s"
  }
 }
