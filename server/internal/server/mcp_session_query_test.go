@@ -105,8 +105,8 @@ func TestMCPSessionDataLakeDiscoveryAndValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = session.Close() }()
-	if !strings.Contains(session.InitializeResult().Instructions, "hosted cao_session_query") {
-		t.Fatal("hosted MCP instructions omitted the session data lake boundary")
+	if strings.Count(session.InitializeResult().Instructions, "cao_session_query") != 1 {
+		t.Fatal("hosted MCP instructions omitted or duplicated the session data lake boundary")
 	}
 	for _, approved := range []bool{false, true} {
 		app.sessionArchive.read.Approved = approved

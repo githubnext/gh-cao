@@ -176,7 +176,7 @@ func (a *Archive) load(ctx context.Context) error {
 		(active.State == "" && active.Generation != 0) {
 		return ErrIntegrity
 	}
-	state := archiveState{Manifest: sessionarchive.Manifest{Version: 1, CreatedAt: time.Unix(0, 0).UTC()}}
+	state := archiveState{Manifest: sessionarchive.Manifest{Version: sessionarchive.ContractVersion, CreatedAt: time.Unix(0, 0).UTC()}}
 	if active.State != "" {
 		if !digestPattern.MatchString(active.State) {
 			return ErrIntegrity
@@ -360,7 +360,7 @@ func (a *Archive) validateState(state archiveState) error {
 		return ErrCapacity
 	}
 	if len(state.Pending) > 0 {
-		pending := sessionarchive.Manifest{Version: 1, CreatedAt: state.Manifest.CreatedAt, Files: state.Pending}
+		pending := sessionarchive.Manifest{Version: sessionarchive.ContractVersion, CreatedAt: state.Manifest.CreatedAt, Files: state.Pending}
 		if _, err := a.normalize(pending, false); err != nil {
 			return err
 		}
@@ -399,7 +399,10 @@ func objectKey(file sessionarchive.File) string {
 }
 
 func (a *Archive) normalize(candidate sessionarchive.Manifest, local bool) (sessionarchive.Manifest, error) {
-	if candidate.Version != 1 || candidate.CreatedAt.IsZero() ||
+	if candidate.Version != sessionarchive.ContractVersion {
+		return sessionarchive.Manifest{}, ErrIntegrity
+	}
+	if candidate.CreatedAt.IsZero() ||
 		len(candidate.Files) > a.config.MaxFiles || len(candidate.Members) > a.config.MaxMembers {
 		return sessionarchive.Manifest{}, ErrCapacity
 	}

@@ -1,0 +1,15 @@
+{
+  "upstreamRepository": "github/gh-aw",
+  "upstreamRevision": "5ac122295e5e839aa15a727ecf4762f3e680cc24",
+  "sources": [
+    "actions/setup/js/grader_session.cjs",
+    "actions/setup/js/trace_graders.cjs",
+    "actions/setup/js/trajectory_graders.cjs"
+  ],
+  "candidates": [
+    "tool-failure-count", "tool-success-rate", "trajectory-efficiency",
+    "execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
+    "retries", "artifact-production", "objective-coverage", "premature-termination-gap",
+    "policy-near-miss", "grounding-accuracy", "state-revisit-probability-rep", "recurrence-rate"
+  ]
+}

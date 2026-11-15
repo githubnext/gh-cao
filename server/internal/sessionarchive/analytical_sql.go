@@ -17,6 +17,10 @@ func analyticalLiteral(value Scalar) string {
 		return literal(value.String)
 	case "integer":
 		return strconv.FormatInt(value.Integer, 10)
+	case "number":
+		return strconv.FormatFloat(value.Number, 'g', -1, 64)
+	case "boolean":
+		return strconv.FormatBool(value.Boolean)
 	default:
 		panic("unvalidated analytical scalar")
 	}

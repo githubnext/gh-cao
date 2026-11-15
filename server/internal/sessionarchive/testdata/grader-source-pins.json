@@ -1,0 +1,36 @@
+{
+  "upstreamRepository": "github/gh-aw",
+  "upstreamRevision": "5ac122295e5e839aa15a727ecf4762f3e680cc24",
+  "sources": [
+    {
+      "name": "trace_graders.cjs",
+      "blob": "824bea6b31290f6e8a7f79f768ffdc17f3c01d36",
+      "sha256": "caed5d1c823aef82b1544d4391ce21e0b57a4cb704e7e910923d0fdda11fde31"
+    },
+    {
+      "name": "trajectory_graders.cjs",
+      "blob": "0010ba2360fb5314eb463964444e40c4a57efa83",
+      "sha256": "ed12e07ad54401d67fdcfa20dcb1261dac71639adfbd22416a299b526988b34a"
+    },
+    {
+      "name": "grader_session.cjs",
+      "blob": "696fa0d07bf25af73bf2603fb01d75e53e5333d2",
+      "sha256": "31a473442cd14eae65556c804aeadbcabe8357b89dbd1a81824ff07a69f69efb"
+    },
+    {
+      "name": "working_set_metrics.cjs",
+      "blob": "38cdd5c1abda2c9dedf871470680569c4eef1cdb",
+      "sha256": "16670a7d418e6480b15c143ed0595438e183fa1714b3e5e6846e09b87dcd85ba"
+    },
+    {
+      "name": "builtin_graders.json",
+      "blob": "43106b4e6f6ff2a0afa0f77fd9b10f8c92e64a6e",
+      "sha256": "70ad0aa980879a0a3082a9c3c6dbc55806405e730b0e47546202d988c853cb84"
+    },
+    {
+      "name": "error_codes.cjs",
+      "blob": "43209ff08acab8995ec467729c5fbf3a42b7c37f",
+      "sha256": "8678cc4e4fa521516bd835df950bcd64b9783f8796914dd90ad1f902a1d6fd8b"
+    }
+  ]
+}

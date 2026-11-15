@@ -101,14 +101,14 @@ func TestHostedCanceledQueryCannotFinalizeSuccessfully(t *testing.T) {
 	}
 }
 
-func fixtureEvents(member sessionarchive.Member) []sessionarchive.Event {
+func fixtureEvents(t *testing.T, member sessionarchive.Member) []sessionarchive.Event {
+	t.Helper()
+	p := approvedProjectionAt(t, member.Namespace, member.Repository, member.RunID, "approved", member.Attempt)
 	var events []sessionarchive.Event
 	for i := int64(0); i < member.Events; i++ {
-		payload := `{"type":"user.message","data":{"content":"approved","null":null,"zero":0}}`
-		events = append(events, sessionarchive.Event{
-			Sequence: i, Type: "user.message", Namespace: member.Namespace, Repository: member.Repository,
-			RunID: member.RunID, RunAttempt: member.Attempt, TraceID: member.ID, ProjectionID: member.Version,
-			ContractVersion: sessionarchive.ContractVersion, PayloadJSON: payload, ContentDigest: digest([]byte(payload))})
+		event := p.Events[len(p.Events)-1]
+		event.Sequence, event.TraceID, event.ProjectionID = i, member.ID, member.Version
+		events = append(events, event)
 	}
 	return events
 }
@@ -119,7 +119,7 @@ func TestHostedTimelineAndSummaryProtocol(t *testing.T) {
 	if err := a.Publish(t.Context(), m); err != nil {
 		t.Fatal(err)
 	}
-	events := fixtureEvents(m.Members[0])
+	events := fixtureEvents(t, m.Members[0])
 	s.query = func(w http.ResponseWriter, _ *http.Request, query string) {
 		if strings.Contains(query, "summarize") {
 			member := m.Members[0]
@@ -175,7 +175,7 @@ func TestHostedResultReaderLifetime(t *testing.T) {
 						return
 					}
 					var rows [][]any
-					for _, event := range fixtureEvents(first.Members[0]) {
+					for _, event := range fixtureEvents(t, first.Members[0]) {
 						rows = append(rows, []any{event})
 					}
 					respond(w, []string{"Event"}, rows, true)
@@ -204,7 +204,7 @@ func TestHostedResultReaderLifetime(t *testing.T) {
 				case "correction":
 					err = a.Publish(t.Context(), fixture(t, 2, "correction"))
 				case "trace-withdrawal":
-					err = a.Publish(t.Context(), sessionarchive.Manifest{Version: 1, Generation: 2, CreatedAt: first.CreatedAt})
+					err = a.Publish(t.Context(), sessionarchive.Manifest{Version: sessionarchive.ContractVersion, Generation: 2, CreatedAt: first.CreatedAt})
 					expected = ErrWithdrawn
 				case "repository-withdrawal":
 					err = a.WithdrawRepository(t.Context(), "octo/api")
@@ -252,7 +252,7 @@ func TestHostedIncompleteAndUnexpectedEvidenceRejected(t *testing.T) {
 			if err := a.Publish(t.Context(), m); err != nil {
 				t.Fatal(err)
 			}
-			events := fixtureEvents(m.Members[0])
+			events := fixtureEvents(t, m.Members[0])
 			switch failure {
 			case "missing-event":
 				events = events[:1]

@@ -48,7 +48,7 @@ func (b *boundedParquet) Write(p []byte) (int, error) {
 // the caller may publish these immutable bytes. Limits reject, never truncate.
 func NativeParquet(ctx context.Context, p Projection, limit int64) ([]byte, File, error) {
 	if err := validateProjection(p); err != nil {
-		return nil, File{}, err
+		return nil, File{}, fmt.Errorf("native projection: %w", err)
 	}
 	if limit < 1 || limit > 128<<20 {
 		return nil, File{}, ErrCapacity
@@ -82,7 +82,7 @@ func NativeParquet(ctx context.Context, p Projection, limit int64) ([]byte, File
 	content := buffer.Bytes()
 	file, err := parquet.OpenFile(bytes.NewReader(content), int64(len(content)))
 	if err != nil || file.Schema().String() != schema.String() || file.NumRows() != int64(len(p.Events)) {
-		return nil, File{}, ErrIntegrity
+		return nil, File{}, fmt.Errorf("%w: native schema or row count", ErrIntegrity)
 	}
 	reader := parquet.NewReader(file)
 	defer func() { _ = reader.Close() }()
@@ -92,17 +92,17 @@ func NativeParquet(ctx context.Context, p Projection, limit int64) ([]byte, File
 		}
 		row := reflect.New(nativeEvent)
 		if err := reader.Read(row.Interface()); err != nil {
-			return nil, File{}, ErrIntegrity
+			return nil, File{}, fmt.Errorf("%w: native row decode at sequence %d", ErrIntegrity, expected.Sequence)
 		}
 		actual := reflect.ValueOf(expected)
 		for i := range nativeEvent.NumField() {
 			if !reflect.DeepEqual(row.Elem().Field(i).Interface(), actual.Field(i).Interface()) {
-				return nil, File{}, ErrIntegrity
+				return nil, File{}, fmt.Errorf("%w: native round trip column %s", ErrIntegrity, eventColumns[i])
 			}
 		}
 	}
 	if err := reader.Read(reflect.New(nativeEvent).Interface()); !errors.Is(err, io.EOF) {
-		return nil, File{}, ErrIntegrity
+		return nil, File{}, fmt.Errorf("%w: native trailing row", ErrIntegrity)
 	}
 	return content, File{Digest: hash(content), Day: p.Day, Bytes: int64(len(content)),
 		Rows: int64(len(p.Events)), Members: []Member{p.Member()}}, nil

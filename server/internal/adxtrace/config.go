@@ -25,6 +25,8 @@ type Policy struct {
 	// Each field admits its entire JSON subtree, not unspecified sibling fields.
 	Events         map[string][]string `json:"events"`
 	RedactPatterns []string            `json:"redactPatterns"`
+	// Additional provenance is closed to these two harness identifiers.
+	ProvenanceFields []string `json:"provenanceFields,omitempty"`
 }
 
 type Config struct {
@@ -213,6 +215,15 @@ func (p Policy) validate() error {
 			}
 		}
 	}
+	if len(p.ProvenanceFields) > 2 {
+		return errors.New("invalid approved provenance fields")
+	}
+	for i, field := range p.ProvenanceFields {
+		if !slices.Contains([]string{"attemptId", "startupAttemptId"}, field) ||
+			slices.Contains(p.ProvenanceFields[:i], field) {
+			return errors.New("only explicit attemptId and startupAttemptId provenance approval is supported")
+		}
+	}
 	if len(p.RedactPatterns) > 32 {
 		return errors.New("too many trace redaction patterns")
 	}
@@ -245,6 +256,6 @@ func policyDigest(p Policy) string {
 	content, _ := json.Marshal(struct {
 		Transform string
 		Policy    Policy
-	}{"cao-approved-events-v1", p})
+	}{PreservationVersion, p})
 	return digest(content)
 }

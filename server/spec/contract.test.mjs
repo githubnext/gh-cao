@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '3.0.0')
+  assert.equal(openapi.info.version, '4.0.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -421,7 +421,7 @@ test('server log records preserve reserved wire names and date-time examples', (
 
 test('the server-only MCP logs tool matches the HTTP snapshot contract', () => {
   const contract = JSON.parse(readFileSync(join(directory, '../../dashboard/site/src/agent/mcp-contract.json'), 'utf8'))
-  assert.doesNotMatch(contract.instructions, /cao_session_query|session data lake/)
+  assert.match(contract.instructions, /cao_session_query.*private session data lake/)
   assert.deepEqual(contract.tools.map(tool => tool.name), ['cao_catalog', 'cao_query'])
   assert.deepEqual(contract.serverTools.map(tool => tool.name), ['cao_session_query', 'cao_logs'])
   const logs = contract.serverTools.find(tool => tool.name === 'cao_logs')

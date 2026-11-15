@@ -40,6 +40,7 @@ func TestRedactionPatterns(t *testing.T) {
 	if err != nil || len(builtIn) != len(builtInSecrets) {
 		t.Fatalf("built-in patterns = %d, err = %v", len(builtIn), err)
 	}
+
 	extended, err := redactionPatterns([]string{`internal-[0-9]+`})
 	if err != nil {
 		t.Fatal(err)
@@ -55,5 +56,21 @@ func TestRedactionPatterns(t *testing.T) {
 	}
 	if _, err := redactionPatterns([]string{"("}); err == nil || err.Error() != "invalid trace redaction policy" {
 		t.Fatalf("invalid pattern error = %v", err)
+	}
+}
+
+func TestProvenanceApprovalIsNarrowAndExplicit(t *testing.T) {
+	c := configFor(t, "full")
+	for _, fields := range [][]string{{"attemptId", "startupAttemptId"}, nil} {
+		c.Policy.ProvenanceFields = fields
+		if err := c.Validate(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, fields := range [][]string{{"path"}, {"attemptId", "attemptId"}, {"data.usage.inputTokens"}, {"token"}, {"attemptId", "startupAttemptId", "extra"}} {
+		c.Policy.ProvenanceFields = fields
+		if err := c.Validate(); err == nil {
+			t.Fatalf("unbounded, duplicate or arbitrary nested provenance approval accepted: %v", fields)
+		}
 	}
 }

@@ -156,6 +156,9 @@ func validateProjection(p Projection) error {
 			e.PolicyDigest != p.PolicyDigest || e.CompletionDay != p.Day {
 			return ErrIntegrity
 		}
+		if err := ValidateEvent(e); err != nil {
+			return ErrIntegrity
+		}
 	}
 	return nil
 }
@@ -313,7 +316,7 @@ func (c *Converter) Verify(ctx context.Context, path string, expected File) erro
 	}
 	sql := `SELECT Namespace,Repository,RunId AS RunID,RunAttempt,TraceId AS TraceID,ProjectionId AS ProjectionID,CompletionDay,
 count(*) AS Events,min(Sequence) AS First,max(Sequence) AS Last,count(DISTINCT Sequence) AS Unique,
-bool_and(ContractVersion=1 AND sha256(PayloadJSON)=ContentDigest AND json_valid(PayloadJSON)) AS Valid
+bool_and(ContractVersion=` + strconv.Itoa(ContractVersion) + ` AND sha256(PayloadJSON)=ContentDigest AND json_valid(PayloadJSON)) AS Valid
 FROM read_parquet(` + literal(path) + `, hive_partitioning=false)
 GROUP BY Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId,CompletionDay ORDER BY RunId,RunAttempt`
 	if err := c.query(ctx, sql, &members); err != nil {

@@ -37,16 +37,26 @@ func TestDuckDBAnalyticalCorpusIntegration(t *testing.T) {
 	}
 	c := testConfig(t)
 	a := openTestArchive(t, c, nil)
-	raw := "{\"type\":\"session.format\",\"data\":{\"version\":1}}\n" +
-		"{\"type\":\"session.collection\",\"data\":{\"complete\":true}}\n" +
-		"{\"type\":\"user.message\",\"data\":{\"content\":\"approved\"}}\n"
 	for _, session := range corpus.Sessions {
-		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", session.RunID, "2026-10-25", session.Attempt, []byte(raw), time.Now().UTC())
+		var raw strings.Builder
+		for i, event := range []map[string]any{
+			{"type": "session.format", "data": map[string]any{"version": 1}},
+			{"type": "session.collection", "data": map[string]any{"complete": true}},
+			{"type": "user.message", "data": map[string]any{"content": "approved"}},
+		} {
+			event["id"] = session.EventIDs[i]
+			encoded, err := json.Marshal(event)
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw.Write(encoded)
+			raw.WriteByte('\n')
+		}
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", session.RunID, "2026-10-25", session.Attempt, []byte(raw.String()), time.Now().UTC())
 		if err != nil {
 			t.Fatal(err)
 		}
 		for i := range p.Events {
-			p.Events[i].EventID = session.EventIDs[i]
 			p.Events[i].Gaps = []string{"synthetic-omission"}
 		}
 		if err := a.Admit(t.Context(), p); err != nil {

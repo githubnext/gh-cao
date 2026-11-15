@@ -23,6 +23,7 @@ export const unitTestAreas = {
     /^maintainer-simulation\./, /^local-artifacts\./,
     /^kubernetes-local\./,
     /^(?:native-value-import|value-session-archive)\./,
+    /^session-archive-grader-source-pins\./,
   ],
   documentation: [
     /^docs-/, /^landing-page-/, /^catalog-page\./,

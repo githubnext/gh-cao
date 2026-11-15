@@ -60,65 +60,41 @@
         "Event": {
             "type": "object",
             "properties": {
-                "Sequence": {
-                    "type": "string",
-                    "description": "Zero-based contiguous event ordering within the approved trace."
-                },
-                "Type": {
-                    "type": "string"
-                },
-                "EventId": {
-                    "type": "string"
-                },
-                "ParentId": {
-                    "type": "string"
-                },
-                "EpisodeId": {
-                    "type": "string"
-                },
-                "HopId": {
-                    "type": "string"
-                },
-                "ParentHopId": {
-                    "type": "string"
-                },
-                "ToolCallId": {
-                    "type": "string"
-                },
-                "SessionId": {
-                    "type": "string"
-                },
-                "Timestamp": {
-                    "type": "string"
-                },
-                "ContentDigest": {
-                    "type": "string",
-                    "description": "SHA-256 of the concatenated UTF-8 JSON content, in Part order."
-                },
                 "Namespace": {
                     "type": "string"
-                },
-                "RunId": {
-                    "type": "string",
-                    "description": "Trace identity, not necessarily a GitHub workflow run ID."
-                },
-                "RunAttempt": {
-                    "type": "string"
-                },
-                "ProjectionId": {
-                    "type": "string",
-                    "description": "Immutable approved trace digest."
-                },
-                "ContractVersion": {
-                    "type": "number",
-                    "const": 1
                 },
                 "Repository": {
                     "type": "string"
                 },
-                "TraceId": {
+                "RunId": {
                     "type": "string",
-                    "description": "Canonical RunId above is distinct from this hashed native trace identity."
+                    "description": "Exact GitHub execution identity; not a harness or enrollment attempt."
+                },
+                "RunAttempt": {
+                    "type": "string"
+                },
+                "TraceId": {
+                    "type": "string"
+                },
+                "ProjectionId": {
+                    "type": "string"
+                },
+                "ContractVersion": {
+                    "type": "number",
+                    "const": 2
+                },
+                "EvidenceVersion": {
+                    "type": "string",
+                    "description": "Shared approval/preservation transformation, independently versioned."
+                },
+                "Sequence": {
+                    "type": "string"
+                },
+                "Type": {
+                    "type": "string"
+                },
+                "ContentDigest": {
+                    "type": "string"
                 },
                 "CompletionDay": {
                     "type": "string",
@@ -139,35 +115,279 @@
                 "CapturedAt": {
                     "type": "string"
                 },
+                "PresentFields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Generated source binding names, including structured families. Not inferred source state."
+                },
+                "NullFields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "InvalidFields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "OmissionReasons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Bounded known-field/family reasons; contains no excluded values."
+                },
+                "EventId": {
+                    "type": "string",
+                    "description": "Strings use empty physical values plus state metadata, also on ADX."
+                },
+                "ParentId": {
+                    "type": "string"
+                },
+                "Timestamp": {
+                    "type": "string"
+                },
+                "Component": {
+                    "type": "string"
+                },
+                "Phase": {
+                    "type": "string"
+                },
+                "ProvenancePath": {
+                    "type": "string"
+                },
+                "ProvenanceIndex": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "ProvenanceTimestampMs": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "ProvenanceAttemptId": {
+                    "type": "string"
+                },
+                "ProvenanceStartupAttemptId": {
+                    "type": "string"
+                },
+                "SessionId": {
+                    "type": "string"
+                },
+                "AgentId": {
+                    "type": "string"
+                },
+                "ToolCallId": {
+                    "type": "string"
+                },
+                "ToolName": {
+                    "type": "string"
+                },
+                "Success": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "Status": {
+                    "type": "string"
+                },
+                "IsError": {
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "Method": {
+                    "type": "string"
+                },
+                "ServerName": {
+                    "type": "string"
+                },
+                "RpcIdString": {
+                    "type": "string"
+                },
+                "RpcIdNumber": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "RequestIdString": {
+                    "type": "string"
+                },
+                "RequestIdNumber": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "InputTokens": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "OutputTokens": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "DurationMs": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "DataEvent": {
+                    "type": "string"
+                },
+                "Message": {
+                    "type": "string"
+                },
+                "Layer": {
+                    "type": "string"
+                },
+                "DataAttempt": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "DataAttemptId": {
+                    "type": "string"
+                },
+                "DataStartupAttemptId": {
+                    "type": "string"
+                },
+                "Strategy": {
+                    "type": "string"
+                },
+                "StartedAt": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "DataType": {
+                    "type": "string"
+                },
+                "ProducerVersion": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                },
+                "ProducerVersionString": {
+                    "type": "string"
+                },
                 "PayloadJSON": {
                     "type": "string",
                     "description": "Full approved event as UTF-8 JSON; absent and explicit null remain distinct."
                 }
             },
             "required": [
-                "Sequence",
-                "Type",
-                "EventId",
-                "ParentId",
-                "EpisodeId",
-                "HopId",
-                "ParentHopId",
-                "ToolCallId",
-                "SessionId",
-                "Timestamp",
-                "ContentDigest",
                 "Namespace",
+                "Repository",
                 "RunId",
                 "RunAttempt",
+                "TraceId",
                 "ProjectionId",
                 "ContractVersion",
-                "Repository",
-                "TraceId",
+                "EvidenceVersion",
+                "Sequence",
+                "Type",
+                "ContentDigest",
                 "CompletionDay",
                 "ArtifactDigest",
                 "PolicyDigest",
                 "Gaps",
                 "CapturedAt",
+                "PresentFields",
+                "NullFields",
+                "InvalidFields",
+                "OmissionReasons",
+                "EventId",
+                "ParentId",
+                "Timestamp",
+                "Component",
+                "Phase",
+                "ProvenancePath",
+                "ProvenanceAttemptId",
+                "ProvenanceStartupAttemptId",
+                "SessionId",
+                "AgentId",
+                "ToolCallId",
+                "ToolName",
+                "Status",
+                "Method",
+                "ServerName",
+                "RpcIdString",
+                "RequestIdString",
+                "DataEvent",
+                "Message",
+                "Layer",
+                "DataAttemptId",
+                "DataStartupAttemptId",
+                "Strategy",
+                "DataType",
+                "ProducerVersionString",
                 "PayloadJSON"
             ]
         },
@@ -213,6 +433,14 @@
                         {
                             "type": "string",
                             "const": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "const": "number"
+                        },
+                        {
+                            "type": "string",
+                            "const": "boolean"
                         }
                     ]
                 }

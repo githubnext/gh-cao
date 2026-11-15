@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"regexp"
 	"slices"
 	"strconv"
@@ -114,6 +115,10 @@ func analyticalColumns() map[string]string {
 			fields[name] = "string"
 		case eventSQLTypes[i] == "BIGINT":
 			fields[name] = "integer"
+		case eventSQLTypes[i] == "DOUBLE":
+			fields[name] = "number"
+		case eventSQLTypes[i] == "BOOLEAN":
+			fields[name] = "boolean"
 		}
 	}
 	return fields
@@ -123,6 +128,8 @@ type Scalar struct {
 	Type    string
 	String  string
 	Integer int64
+	Number  float64
+	Boolean bool
 }
 
 type PlannedPredicate struct {
@@ -357,6 +364,21 @@ func parseScalar(raw json.RawMessage, kind string) (*Scalar, error) {
 			return nil, ErrQuery
 		}
 		value.Integer = n
+	case "number":
+		var number json.Number
+		if json.Unmarshal(raw, &number) != nil || len(raw) == 0 || raw[0] == '"' {
+			return nil, ErrQuery
+		}
+		n, err := number.Float64()
+		if err != nil || math.IsInf(n, 0) || math.IsNaN(n) {
+			return nil, ErrQuery
+		}
+		value.Number = n
+	case "boolean":
+		if string(raw) != "true" && string(raw) != "false" {
+			return nil, ErrQuery
+		}
+		value.Boolean = string(raw) == "true"
 	default:
 		return nil, ErrQuery
 	}
@@ -372,6 +394,9 @@ func (predicate AnalyticalPredicate) plan(field Column) (PlannedPredicate, error
 		}
 	}
 	if modes != 1 {
+		return p, ErrQuery
+	}
+	if field.Type == "boolean" && (predicate.GTE != nil || predicate.LT != nil) {
 		return p, ErrQuery
 	}
 	for _, operand := range []struct {

@@ -93,6 +93,47 @@ hashed trace identities with canonical Run IDs. Reuse existing full-versus-sampl
 trace semantics and frozen membership; do not thin events or invent a new
 sampling system.
 
+#### Fresh original-evidence contract follow-on
+
+[PR #20993](https://github.com/githubnext/gh-cao/pull/20993) extends this
+decision with the
+[fresh archive-v2 contract](../specs/session-archive.md#21-fresh-original-evidence-contract).
+It retains the acquisition, private storage, publication, authorization and
+query boundaries above; it does not accept this proposed ADR or satisfy its
+deployment gates.
+
+Use archive contract version 2 rather than an old-schema compatibility reader
+or in-place migration. Provision fresh archive storage and a fresh reviewed
+Blob prefix/external table. Native ADX trace tables remain version 1 and
+independently selected; unchanged table versions do not imply compatible spool
+state. The preservation transform also binds the native trace policy/spool
+fingerprint: incompatible old ledgers fail closed without automatic
+reprojection or removal of their withdrawal state.
+The approved-event preservation transform and Parquet
+contract version bind immutable projection identity; the changed event schema
+also invalidates previous legacy/native destination acceptance and analytical
+acceptance. Old approval cannot activate the new layout. Fresh provisioning
+does not authorize deletion of old objects, privacy registrations, pending
+withdrawals or source-epoch fences; their retirement remains a separately
+scoped operator operation.
+
+Generate typed scalar bindings and structured-family presence/null/invalid
+metadata from TypeSpec, projecting only the approved, redacted original event.
+Preserve original observations and numeric lexemes in approved payload JSON,
+including invalid measurements; typed invalid values are not zero. Physical
+empty strings accommodate Kusto's string limitation without collapsing missing,
+null, invalid, redacted and originally empty evidence.
+
+This is evidence preservation, not capture-time invocation reconciliation,
+usage precedence, retry inclusion, objective matching, state inference or
+persisted grader scores. The 15 candidate families require the original
+evidence to have been supplied and explicitly approved without relevant
+redaction. Whole top-level subtree approval retains its actual nested privacy
+scope; optional named attempt provenance is separately approved and grants no
+collection authority. Pinned synthetic grader replay compares approved inputs
+with real Parquet reconstruction; it is not proof of complete query metrics,
+empirical utility or live Azure acceptance.
+
 ### 2. Logical events and efficient physical storage
 
 Use one logical event row with typed common analytical columns and the complete
@@ -262,6 +303,8 @@ disposition are not proof of correctness or business value.
 
 Version schema and projection rules explicitly. Additive and incompatible
 changes need tested historical-read behavior, including DuckDB/ADX differences.
+For the fresh archive-v2 follow-on, that behavior is explicit old-version
+rejection, not a compatibility adapter or migration.
 Unknown versions must not silently drop fields or produce success-shaped partial
 answers. Cross-backend fixtures cover reconstruction, presence, ordering,
 accounting, selected projections, sampling, and incomplete evidence.
