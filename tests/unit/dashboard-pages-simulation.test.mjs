@@ -11,6 +11,10 @@ import {
 } from "../../scripts/simulate-dashboard-pages.mjs";
 import { ingestCachedGhAwJsonl, ingestDashboardSources, ingestNormalizedJsonl } from "../../dashboard/site/src/data/ingest/coordinator.js";
 import { enterpriseSample } from "../../scripts/dashboard-demo-data.mjs";
+import { loadDashboardSourceSync } from "../../dashboard/report/bundle-dashboards.mjs";
+import { queryDatabaseSources } from "../../dashboard/site/src/data/queries/database.js";
+import { compileDashboardViewPayloadQueries } from "../../dashboard/site/src/data/queries/view-payload-compiler.js";
+import { processDataRequest } from "../../dashboard/site/src/data-worker.js";
 import { readCollection } from "../../dashboard/site/src/data/storage/indexeddb.js";
 import { relationshipErrors } from "../../dashboard/site/src/data/model/schema.js";
 import { isExpiredCanonicalRecord } from "../../dashboard/site/src/data/storage/retention.js";
@@ -31,6 +35,12 @@ test("enterprise distributions are reproducible, seasonal and uneven rather than
       repositories.set(run.repository, (repositories.get(run.repository) ?? 0) + 1);
       const date = run.started_at.slice(0, 10);
       days.set(date, (days.get(date) ?? 0) + 1);
+    }
+    assert.ok(days.size >= 20, "sample spans three weeks, including both chart weeks");
+    const today = Math.floor(now / 86_400_000) * 86_400_000;
+    for (let offset = 1; offset <= 14; offset++) {
+      assert.ok(days.has(new Date(today - offset * 86_400_000).toISOString().slice(0, 10)),
+        "both preceding calendar weeks contain runs on every day");
     }
     assert.equal(repositories.size, 12);
     assert.ok(Math.max(...repositories.values()) > Math.min(...repositories.values()) * 3);
@@ -237,6 +247,23 @@ test("sample-only build produces verified canonical enterprise data and no opera
   assert.deepEqual(relationshipErrors(records), []);
   const runs = await readCollection(indexedDB, "runs");
   assert.equal(runs.length, marker.runs);
+  const dashboardDocument = loadDashboardSourceSync(path.join(root, "dashboard/site/dashboard.json")).document.dashboard;
+  const overview = dashboardDocument.pages.find(page => page.id === "overview");
+  const rhythmQuery = compileDashboardViewPayloadQueries(overview, "overview", {
+    viewId: "overview-header", sourceNames: ["overview-rhythm"],
+    queries: dashboardDocument.queries,
+    evaluatedAt: new Date(now).toISOString(),
+    queryContext: { timeWindow: { end: new Date(now).toISOString() } },
+  });
+  const database = await queryDatabaseSources(indexedDB, inventory, ["overview-runs"]);
+  const rhythm = processDataRequest({
+    operation: "execute-dashboard-queries", queries: rhythmQuery.queries,
+    sourceNames: rhythmQuery.aliases, sources: database,
+  })[rhythmQuery.aliases[0]];
+  assert.equal(rhythm.metadata.availability, "available");
+  assert.equal(rhythm.rows[0].rhythm.days.length, 7);
+  assert.ok(rhythm.rows[0].rhythm.days.some(day => day.current > 0), "current week has visible bars");
+  assert.ok(rhythm.rows[0].rhythm.days.every(day => day.previous > 0), "last week has visible bars");
   assert.equal((await readCollection(indexedDB, "repositories")).length, 12);
   assert.equal((await readCollection(indexedDB, "workflows")).length, 48);
   const expectedOutputs = new Map();
