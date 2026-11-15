@@ -1048,12 +1048,12 @@
     },
     {
       "id": "maintenance",
-      "title": "Compiler upgrades",
-      "description": "Review retained gh-aw compiler evidence by repository before applying upgrades.",
-      "intent": "Identify repositories whose gh-aw compiler provenance warrants maintenance review.",
+      "title": "Repository maintenance",
+      "description": "Review exact repository source updates, compiler upgrades, or disabling that cancels in-progress runs before stopping future runs.",
+      "intent": "Maintain workflow sources and compiler tooling or disable Agentic Workflows in an exact repository.",
       "subject": "Repository workflow compiler versions and retained upgrade-confidence evidence.",
       "objective": "Prioritize safe compiler upgrades using known version provenance and explain incomplete evidence.",
-      "acceptance": "Distinguish observed installed and latest-stable versions, preserve unknown provenance with a diagnostic reason, and expose upgrade actions only for known outdated evidence. Do not infer outdatedness from missing data or execute upgrades without approval.",
+      "acceptance": "Preserve unknown compiler evidence and expose recommended upgrades only for known outdated evidence. Exact repository identities support source updates and disabling independently of compiler evidence. Disable cancels in-progress runs before disabling all Agentic Workflows in that repository. Every execution requires approval.",
       "experimental": false,
       "parameters": [],
       "queries": [
@@ -2264,13 +2264,51 @@
     },
     {
       "id": "maintenance-standalone-workflows",
-      "subject": "Standalone workflows with retained upstream provenance and update evidence.",
-      "objective": "Represent source-managed and local workflows without synthetic campaign membership.",
-      "acceptance": "Retain exact coordinates and revisions for source-managed rows; keep local or incomplete rows visible and non-actionable with an explicit reason.",
+      "subject": "Canonical workflow provenance retained under the legacy standalone query identifier.",
+      "objective": "Supply campaign-owned and standalone identities to the maintenance eligibility query without synthetic membership.",
+      "acceptance": "Preserve exact identity, source kind, coordinates and revisions; the consuming maintenance query must gate actions on complete provenance.",
       "description": "",
       "parameters": [],
       "sources": [
         "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-workflow-identities",
+      "subject": "Individual declared Markdown workflows in their canonical repositories.",
+      "objective": "Offer exact workflow source updates and disable operations without substituting the control repository.",
+      "acceptance": "Keep campaign and standalone Markdown workflows visible. Updates require source-managed provenance, known revisions and update-available evidence. Local and unknown workflows remain disableable by exact identity but cannot update.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-standalone-workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-workflows",
+      "subject": "Exact Markdown workflow maintenance targets.",
+      "objective": "Exclude registry YAML and misleading .md substrings from gh-aw operations.",
+      "acceptance": "Return only exact .md suffix identities from canonical workflow evidence.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflow-identities"
       ],
       "used-by-pages": [],
       "execution": {
@@ -2348,13 +2386,13 @@
     },
     {
       "id": "maintenance-standalone-updates",
-      "subject": "Expose at most one standalone workflow source update row for the Updates navigation indicator.",
-      "objective": "Determine whether retained source-managed standalone workflow metadata contains an actionable update signal for the Updates indicator.",
+      "subject": "Expose at most one exact workflow source update row for the Updates navigation indicator.",
+      "objective": "Determine whether retained source-managed campaign-owned or standalone workflow metadata contains an actionable update signal for the Updates indicator.",
       "acceptance": "Return zero or one workflow-update-action-visible row only when it is true; unmanaged local workflows and incomplete source evidence do not activate the indicator.",
       "description": "",
       "parameters": [],
       "sources": [
-        "maintenance-standalone-workflows"
+        "maintenance-workflows"
       ],
       "used-by-pages": [],
       "execution": {

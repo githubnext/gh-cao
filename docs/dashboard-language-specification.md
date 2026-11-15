@@ -1524,6 +1524,8 @@ A smell row identifies one detected condition with a stable `smell-id` and uniqu
 The optional table-column field `display` is `text`, `status`, `grader-status`, `mode`, `active-state`, `label`, `ref`, `digest`, `outcome-link`, `run-link`, `repository-link`, `workflow-link`, or `evidence-link` and defaults to `text`. It selects presentation independently from the field name. The optional table-column field `filter` is boolean and defaults to `true`; `false` excludes the column from interactive facet filters without changing its display or sorting. Named UI element values are `campaign-route`, `workflow-route-page`, `outcome-detail`, `outcome-detail-section`, `problem-detail`, `entity-route`, `configuration-policy`, `measure-history`, `factory-header`, `factory-floor`, `link-button-list`, and `markdown`; renderers dispatch these values without inferring behavior from page IDs, view IDs, or source contents.
 
 A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
+The dashboard may declare at most 24 CLI actions. This authoring bound does not
+grant execution authority or change command-service allowlists.
 
 CLI command text supports literal `{{field}}` substitutions, not expressions or
 shell evaluation. Row fields remain bounded, validated command tokens.
@@ -1569,7 +1571,15 @@ service. Local maintenance additionally requires fresh approval in the owning
 native terminal. There is no Copilot canvas or standalone Node admin preview.
 These capabilities do not change the document vocabulary, copy-only
 restrictions, action authority, or per-run confirmation requirements. Hosted commands start after web confirmation and server authorization; local
-maintenance starts only after native terminal approval. The approval dialog executes at most once and
+maintenance starts only after native terminal approval.
+Local repository maintenance provides separate Repository, Workflow, and
+Campaign pages. A break operation uses the existing disable command, not a new
+CLI verb: gh-aw disable cancels in-progress runs before disabling future runs,
+whereas campaign policy disable leaves active runs running. Exact repository
+and workflow targets require fresh approval independently of update evidence.
+Updates/upgrades still require pull-request publication in the native adapter;
+the disable exception does not expand the hosted execution allowlist.
+The approval dialog executes at most once and
 opens the command's full-page, read-only console, with no separate
 terminal-window option. Its first output line shows the executed command.
 Terminal emulation cannot be expressed by data marks and does not query or

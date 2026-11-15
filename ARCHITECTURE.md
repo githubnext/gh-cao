@@ -1042,7 +1042,12 @@ serves the dashboard, with automatic collection and refresh; it has no
 public subcommands or remote run mutations and grants no rollout authority or
 hosted CLI execution. A private native adapter enables only declared
 repository maintenance commands in the selected exact scope, with mandatory
-pull-request publication and trusted terminal approval for every execution.
+pull-request publication for updates/upgrades and trusted terminal approval for
+every execution. Explicit local disable actions are the only publication
+exception: they cancel in-progress runs before disabling future runs in the
+approved repository or individual workflow. The adapter prepares that exact
+repository's private checkout for gh-aw's inventory and ambient cancellation
+scope; it does not extend the hosted executor's allowlist.
 The existing operational PostgreSQL command queue owns IDs, idempotency, output,
 cancel/retry and fail-closed recovery, separately from canonical evidence.
 The ordinary bearer-authenticated server owns that queue, requires same-origin

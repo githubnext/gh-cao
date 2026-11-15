@@ -110,7 +110,7 @@ for (const width of [1440, 390]) {
               'gh-aw-current-version': 'v0.92.0'
             },
             {
-              organization: 'acme', repository: 'control', workflow: 'review.md',
+              organization: 'octo', repository: 'outdated', workflow: 'review.md',
               'workflow-name': 'Review', 'workflow-role': 'standalone',
               'workflow-source-kind': 'source-managed', 'workflow-source': 'acme/workflows/review',
               'workflow-source-version': 'v1', 'workflow-source-current-version': 'v2',
@@ -124,6 +124,18 @@ for (const width of [1440, 390]) {
               'workflow-source-version': 'unknown', 'workflow-source-current-version': 'unknown',
               'workflow-source-update-state': 'unknown',
               'gh-aw-version': 'v0.92.0', 'gh-aw-current-version': 'v0.92.0'
+            },
+            {
+              organization: 'acme', repository: 'control', workflow: 'activity-worker.md',
+              campaign: 'activity', 'workflow-name': 'Activity worker', 'workflow-role': 'worker',
+              'workflow-source-kind': 'local', 'workflow-source': '',
+              'gh-aw-version': 'v0.92.0', 'gh-aw-current-version': 'v0.92.0'
+            },
+            {
+              organization: 'octo', repository: 'outdated', workflow: 'review-extended.md',
+              'workflow-name': 'Review extended', 'workflow-role': 'standalone',
+              'workflow-source-kind': 'local', 'workflow-source': '',
+              'gh-aw-version': 'v0.92.0', 'gh-aw-current-version': 'v0.92.0'
             }
           ] }
         } });
@@ -133,6 +145,12 @@ for (const width of [1440, 390]) {
       await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${preview.url}/#page-maintenance`);
+      await page.evaluate(() => {
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: { writeText: async (/** @type {string} */ text) => { document.body.dataset.copiedCommand = text; } }
+        });
+      });
       const compilerPage = page.locator('#page-maintenance');
       await expect(compilerPage.getByRole('button', { name: 'Upgrade', exact: true })).toHaveCount(1);
       await expect(compilerPage.getByRole('button', { name: 'Upgrade selected repositories', exact: true })).toHaveCount(0);
@@ -142,7 +160,22 @@ for (const width of [1440, 390]) {
       await expect(upgradeDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/outdated');
       await upgradeDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
 
-      await compilerPage.getByRole('link', { name: 'Workflow updates', exact: true }).click();
+      const unknownRepository = compilerPage.locator('.entity-card-list-card').filter({ has: page.getByText('octo/unknown', { exact: true }) });
+      await unknownRepository.getByRole('button', { name: 'Disable', exact: true }).click();
+      const disableRepositoryDialog = page.getByRole('dialog', { name: 'Approve Disable', exact: true });
+      await expect(disableRepositoryDialog).toContainText('Cancel in-progress');
+      await disableRepositoryDialog.getByRole('button', { name: 'Copy command', exact: true }).click();
+      await expect(page.locator('body')).toHaveAttribute('data-copied-command', 'gh aw disable --repo octo/unknown');
+      await disableRepositoryDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await unknownRepository.getByRole('button', { name: 'Update', exact: true }).click();
+      const repositoryUpdateDialog = page.getByRole('dialog', { name: 'Approve Update', exact: true });
+      await expect(repositoryUpdateDialog.locator('.cli-action-command')).toHaveText('gh aw update --repo octo/unknown --create-pull-request');
+      await repositoryUpdateDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      const repositoryScreenshot = testInfo.outputPath(`maintenance-repositories-${width}.png`);
+      await page.screenshot({ path: repositoryScreenshot, fullPage: true });
+      await testInfo.attach(`maintenance-repositories-${width}`, { path: repositoryScreenshot, contentType: 'image/png' });
+
+      await compilerPage.getByRole('link', { name: 'Campaigns', exact: true }).click();
       const updatesPage = page.locator('#page-maintenance-campaigns');
       await expect(updatesPage.getByRole('button', { name: 'Update selected sources', exact: true })).toHaveCount(0);
 
@@ -152,18 +185,42 @@ for (const width of [1440, 390]) {
       await expect(campaignDialog.locator('.cli-action-command'))
         .toContainText('gh aw update https://github.com/acme/catalog/activity --repo acme/control');
       await campaignDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await campaignCard.getByRole('button', { name: 'Deactivate', exact: true }).click();
+      const deactivateDialog = page.getByRole('dialog', { name: 'Approve Deactivate', exact: true });
+      await expect(deactivateDialog).toContainText('Active runs continue');
+      await deactivateDialog.getByRole('button', { name: 'Copy command', exact: true }).click();
+      await expect(page.locator('body')).toHaveAttribute('data-copied-command', 'gh cao campaigns disable activity');
+      await deactivateDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(updatesPage.getByText('Review', { exact: true })).toHaveCount(0);
+      const campaignScreenshot = testInfo.outputPath(`maintenance-campaigns-${width}.png`);
+      await page.screenshot({ path: campaignScreenshot, fullPage: true });
+      await testInfo.attach(`maintenance-campaigns-${width}`, { path: campaignScreenshot, contentType: 'image/png' });
+      await updatesPage.getByRole('link', { name: 'Workflows', exact: true }).click();
+      const workflowsPage = page.locator('#page-maintenance-workflows');
 
-      const workflowCard = updatesPage.locator('.entity-card-list-card').filter({ hasText: 'Review' });
+      const workflowCard = workflowsPage.locator('.entity-card-list-card').filter({ has: page.getByText('Review', { exact: true }) });
       await workflowCard.getByRole('button', { name: 'Update', exact: true }).click();
       const workflowDialog = page.getByRole('dialog', { name: 'Approve Update', exact: true });
       await expect(workflowDialog.locator('.cli-action-command'))
-        .toContainText('gh aw update https://github.com/acme/workflows/review --repo acme/control');
+        .toContainText('gh aw update review.md --repo octo/outdated --create-pull-request');
       await workflowDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await workflowCard.getByRole('button', { name: 'Disable', exact: true }).click();
+      const disableWorkflowDialog = page.getByRole('dialog', { name: 'Approve Disable', exact: true });
+      await disableWorkflowDialog.getByRole('button', { name: 'Copy command', exact: true }).click();
+      await expect(page.locator('body')).toHaveAttribute('data-copied-command', 'gh aw disable review.md --repo octo/outdated');
+      await disableWorkflowDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(workflowCard.getByRole('button', { name: 'Disable', exact: true })).toBeFocused();
+      const campaignWorkflowCard = workflowsPage.locator('.entity-card-list-card').filter({ has: page.getByText('Activity worker', { exact: true }) });
+      await campaignWorkflowCard.getByRole('button', { name: 'Disable', exact: true }).click();
+      const campaignWorkflowDialog = page.getByRole('dialog', { name: 'Approve Disable', exact: true });
+      await expect(campaignWorkflowDialog.locator('.cli-action-command')).toHaveText('gh aw disable activity-worker.md --repo acme/control');
+      await campaignWorkflowDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
 
-      const localCards = updatesPage.locator('.entity-card-list-card').filter({ hasText: 'Local' });
-      await expect(localCards).toHaveCount(2);
+      const localCards = workflowsPage.locator('.entity-card-list-card').filter({ hasText: 'Local workflow' });
+      await expect(localCards).toHaveCount(1);
       await expect(localCards.getByRole('button', { name: 'Update', exact: true })).toHaveCount(0);
-      await expect(updatesPage.getByText('No upstream source coordinate was retained; update manually.', { exact: true })).toBeVisible();
+      await expect(localCards.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(1);
+      await expect(workflowsPage.getByText('Source update unavailable; compiler upgrades apply to the whole repository.', { exact: true }).first()).toBeVisible();
 
       const screenshot = testInfo.outputPath(`maintenance-exact-coordinates-${width}.png`);
       await page.screenshot({ path: screenshot, fullPage: true });

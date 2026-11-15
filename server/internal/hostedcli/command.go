@@ -189,8 +189,8 @@ func planUpdate(args []string, controlRepository string) (Plan, error) {
 	if !targetRepository.MatchString(controlRepository) {
 		return Plan{}, errors.New("hosted gh aw update requires a configured control repository")
 	}
-	if len(args) == 0 || !validGitHubSourceURL(args[0]) {
-		return Plan{}, errors.New("hosted gh aw update requires a GitHub workflow source URL")
+	if len(args) == 0 || !validGitHubSourceURL(args[0]) && (!maintenanceWorkflow.MatchString(args[0]) || strings.Contains(args[0], "..")) {
+		return Plan{}, errors.New("hosted gh aw update requires an exact Markdown workflow or GitHub source URL")
 	}
 	values, err := publishingOptions(args[1:],
 		map[string]bool{"--create-pull-request": true, "--auto-merge": true, "--pre-releases": true},

@@ -1082,7 +1082,13 @@ Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
 NOT grant local rollout, dispatch or hosted execution authority. Separately,
 declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
-pull-request publication, and fresh trusted terminal approval per command.
+fresh trusted terminal approval per command, and pull-request publication for
+updates and upgrades. Explicit local disable commands MAY omit publication:
+they SHALL cancel in-progress runs before disabling future runs and SHALL use
+the approved repository's checkout for both Markdown inventory and ambient
+GitHub cancellation scope. An individual workflow target MUST be exact, never a
+substring, wildcard, package update, or implicit repository-wide operation.
+This exception MUST NOT extend hosted execution authority.
 The native maintenance adapter SHALL be independent of presentation and
 require ordinary server bearer authentication plus same-origin mutation checks.
 Credentials and subprocesses MUST remain in the owning CLI, not the read-only
@@ -1337,6 +1343,22 @@ MUST rebuild these derived records; compatible additive upgrades SHALL follow
 Campaign, standalone workflow, and repository maintenance actions MUST use
 canonical query results and exact retained source/repository coordinates; they
 MUST NOT inspect upstream manifests or browser storage directly.
+Maintenance SHALL provide separate Repository, Workflow, and Campaign pages,
+preserving the existing Repository maintenance route. Workflow maintenance
+SHALL include campaign-owned and standalone Markdown workflows. Individual
+source updates SHALL use the exact workflow identity in its canonical Repository,
+not a package URL or the control Repository as a substitute.
+The approval SHALL disclose that gh-aw may additionally reconcile package-manifest
+sibling workflows (potentially replacing their sources and overwriting local
+sibling edits in the proposed pull request), assets and ownership, and refresh shared action references,
+container pins, and generated files across that exact Repository; an exact
+workflow operand does not promise exclusive source selection or single-file mutation.
+Local or unknown
+source provenance MUST NOT enable source updates; known identity MAY enable
+explicit disabling independently of update/version evidence. Compiler upgrades
+remain repository-wide. Campaign disabling retains its existing policy command
+and does not cancel active runs; gh-aw workflow/repository disabling cancels
+in-progress runs before preventing future runs.
 
 ## 5.4 Activity acquisition and source roles
 

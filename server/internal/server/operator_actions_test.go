@@ -12,8 +12,38 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
+
+func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
+	catalog, err := hostedcli.LoadCatalog(filepath.Join("..", "..", "..", "dashboard", "site", "dashboard.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := &App{hostedCLI: &hostedCLI{catalog: catalog, local: &LocalOperatorActionsConfig{Repositories: []string{"octo/service", "octo/other"}}}}
+	for _, id := range []string{"update-repository-sources", "disable-repository-workflows", "update-workflow-source", "disable-workflow"} {
+		values := map[string]string{"repository": "octo/service"}
+		if id == "update-workflow-source" || id == "disable-workflow" {
+			values = map[string]string{"workflow": ".github/workflows/review.md", "repository-coordinate": "octo/service"}
+		}
+		invocation, err := app.admitOperatorAction(hostedcli.Request{ID: id, Values: values})
+		if err != nil || invocation.Repository != "octo/service" {
+			t.Fatalf("production maintenance %s failed admission: %v", id, err)
+		}
+		for key := range values {
+			if strings.Contains(key, "repository") {
+				values[key] = "octo/outside"
+			}
+		}
+		if _, err := app.admitOperatorAction(hostedcli.Request{ID: id, Values: values}); err == nil {
+			t.Fatalf("production maintenance %s widened scope", id)
+		}
+	}
+	if _, err := app.admitOperatorAction(hostedcli.Request{ID: "disable-workflow", Values: map[string]string{"workflow": "review*", "repository-coordinate": "octo/service"}}); err == nil {
+		t.Fatal("wildcard workflow admitted")
+	}
+}
 
 func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	app, _ := newLocalPostgresTestApp(t, false)
