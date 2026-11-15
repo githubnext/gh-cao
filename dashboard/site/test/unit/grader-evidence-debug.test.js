@@ -71,6 +71,19 @@ describe('grader-evidence debug logging', () => {
     );
   });
 
+  it('logs invalid run identity or results', async () => {
+    const { parseGraderArtifacts, output } = await loadGraderEvidenceWithDebug('?debug=grader-evidence');
+
+    expect(() => parseGraderArtifacts([
+      file('graders/grader_results.json', { version: 1, run: { id: 'other' }, results: [] })
+    ], context)).toThrow('Grader artifact run identity or results are invalid');
+
+    expect(output.debug).toHaveBeenCalledWith(
+      '[cao:grader-evidence]',
+      { event: 'reject', status: 'rejected', reason: 'run-or-results-invalid' }
+    );
+  });
+
   it('logs invalid result identities and excludes sensitive values', async () => {
     const { parseGraderArtifacts, output } = await loadGraderEvidenceWithDebug('?debug=grader-evidence');
 
@@ -100,6 +113,22 @@ describe('grader-evidence debug logging', () => {
     expect(output.debug).toHaveBeenCalledWith(
       '[cao:grader-evidence]',
       { event: 'reject', status: 'rejected', reason: 'invalid-manifest' }
+    );
+  });
+
+  it('logs multiple grader manifests', async () => {
+    const { parseGraderArtifacts, output } = await loadGraderEvidenceWithDebug('?debug=grader-evidence');
+    const manifest = { version: 1, graders: [] };
+
+    expect(() => parseGraderArtifacts([
+      file('graders/grader_results.json', { version: 1, results: [] }),
+      file('graders/grader_manifest.json', manifest),
+      file('graders/grader_manifest.json', manifest)
+    ], context)).toThrow('Multiple grader manifests found for one artifact');
+
+    expect(output.debug).toHaveBeenCalledWith(
+      '[cao:grader-evidence]',
+      { event: 'reject', status: 'rejected', reason: 'multiple-manifests' }
     );
   });
 
