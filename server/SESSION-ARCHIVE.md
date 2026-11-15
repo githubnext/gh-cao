@@ -260,6 +260,23 @@ enable the analytical profile. Existing capture acceptance, timeline/summary
 access and native privacy-ledger destination identity remain unchanged.
 No archive, reader grant, or rollout policy is enabled by this implementation.
 
+When MCP is enabled on the Go server, `cao_session_query` is a separate
+read-only tool for this private session data lake. `cao_query` continues to run
+named dashboard queries; there is no cross-source fallback. Discovery exposes
+the session tool only when the analytical backend and the caller's separate
+full-trace-read grant are available. Hosted MCP retains its existing OAuth,
+administrator and CSRF gates; administrator or Actions access alone does not
+grant archive reads. The standalone `gh cao mcp` canonical-snapshot server does
+not expose the session tool.
+
+Call `cao_session_query` with the `repository`, `language-version`, and `query`
+fields from the JSON example above, omitting `kind`. Responses include the
+same generation, columns, rows and coverage metadata as HTTP, in both MCP text
+and structured content. Argument and complete-response budgets remain
+4096 bytes and 8 MiB. The reader survives SDK serialization through the actual
+HTTP response write, with withdrawal and caller authorization rechecked before
+delivery; source-epoch fencing remains in the hosted archive adapter.
+
 Results bind one pinned generation. Timeline events use the shared trace
 contract and carry approved payload JSON; full approved content is not
 necessarily a complete native log. Requests cannot supply SQL/KQL, paths,

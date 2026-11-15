@@ -168,7 +168,7 @@ func mcpToolName(request mcp.Request) string {
 	case *mcp.CallToolParamsRaw:
 		name = params.Name
 	}
-	if name == "cao_catalog" || name == "cao_query" || name == "cao_logs" {
+	if name == "cao_catalog" || name == "cao_query" || name == "cao_logs" || name == "cao_session_query" {
 		return name
 	}
 	return ""

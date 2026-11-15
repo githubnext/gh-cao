@@ -131,14 +131,16 @@ func (a *App) newMCPHandler() (http.Handler, error) {
 			return nil, fmt.Errorf("contract declares unsupported tool %q", tool.Name)
 		}
 	}
-	for index, tool := range contract.ServerTools {
-		if tool.Name != "cao_logs" {
+	serverTools := map[string]bool{}
+	for _, tool := range contract.ServerTools {
+		if tool.Name != "cao_logs" && tool.Name != "cao_session_query" {
 			return nil, fmt.Errorf("contract declares unsupported server tool %q", tool.Name)
 		}
-		if index > 0 {
+		if serverTools[tool.Name] {
 			return nil, fmt.Errorf("contract declares tool %q more than once", tool.Name)
 		}
-		if a.logs != nil {
+		serverTools[tool.Name] = true
+		if tool.Name == "cao_session_query" || a.logs != nil {
 			tools = append(tools, tool)
 		}
 	}
@@ -166,7 +168,7 @@ func (a *App) newMCPHandler() (http.Handler, error) {
 	})
 	mcpLog.Printf("mcp handler constructed tools=%d default_rows=%d max_rows=%d",
 		len(tools), contract.Limits.DefaultQueryRows, contract.Limits.MaxQueryRows)
-	return &mcpContractHandler{next: handler, tools: tools}, nil
+	return &mcpContractHandler{next: handler, tools: tools, app: a}, nil
 }
 
 func readJSONFile[T any](path string) (T, error) {
@@ -186,6 +188,20 @@ func readJSONFile[T any](path string) (T, error) {
 }
 
 func (runtime *mcpRuntime) call(ctx context.Context, name string, arguments json.RawMessage) *mcp.CallToolResult {
+	if name == "cao_session_query" {
+		payload, err := runtime.callSessionQuery(ctx, arguments)
+		if err != nil {
+			mcpLog.PrintfContext(ctx, "session data lake query rejected")
+			return mcpErrorResult(err.Error())
+		}
+		data, err := json.Marshal(payload)
+		if err != nil {
+			return mcpErrorResult("Session data lake result cannot be encoded")
+		}
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{Text: string(data)}}, StructuredContent: payload,
+		}
+	}
 	var args map[string]any
 	if len(arguments) == 0 {
 		args = map[string]any{}
@@ -444,13 +460,25 @@ func metadataString(metadata model.Metadata, name, fallback string) string {
 type mcpContractHandler struct {
 	next  http.Handler
 	tools []mcpContractTool
+	app   *App
 }
 
 func (handler *mcpContractHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	ctx := request.Context()
+	delivery := &mcpArchiveDelivery{request: request}
+	request = request.WithContext(context.WithValue(ctx, mcpArchiveDeliveryKey{}, delivery))
+	defer func() {
+		if delivery.reader != nil {
+			_ = delivery.reader.Close()
+		}
+		if delivery.cancel != nil {
+			delivery.cancel()
+		}
+	}()
 	recorder := newBufferedResponse(response)
 	handler.next.ServeHTTP(recorder, request)
 	body := recorder.body
-	if request.Header.Get("Mcp-Method") == "tools/list" && recorder.status == http.StatusOK {
+	if recorder.status == http.StatusOK {
 		var message map[string]any
 		if json.Unmarshal(body, &message) == nil {
 			result, _ := message["result"].(map[string]any)
@@ -459,16 +487,57 @@ func (handler *mcpContractHandler) ServeHTTP(response http.ResponseWriter, reque
 			for _, tool := range handler.tools {
 				byName[tool.Name] = tool
 			}
+			advertised := make([]any, 0, len(tools))
 			for _, item := range tools {
 				tool, _ := item.(map[string]any)
+				if tool["name"] == "cao_session_query" && (handler.app == nil || !handler.app.sessionDataLakeAvailable(request)) {
+					continue
+				}
 				if declared, ok := byName[fmt.Sprint(tool["name"])]; ok {
 					tool["annotations"] = declared.Annotations
 				}
+				advertised = append(advertised, item)
 			}
-			body, _ = json.Marshal(message)
+			if tools != nil {
+				result["tools"] = advertised
+				body, _ = json.Marshal(message)
+			}
 		}
 	}
 	response.Header().Set("Cache-Control", "no-store")
+	if delivery.reader != nil {
+		if len(body) > 8<<20 {
+			body = mcpArchiveErrorBody(body, "Session data lake result exceeds the response budget")
+			recorder.flush(response, body)
+			return
+		}
+		if deadline, ok := delivery.ctx.Deadline(); ok {
+			if err := http.NewResponseController(response).SetWriteDeadline(deadline); err != nil && !errors.Is(err, http.ErrNotSupported) {
+				recorder.flush(response, mcpArchiveErrorBody(body, "Session data lake response is unavailable"))
+				return
+			}
+		}
+		started := false
+		err := delivery.reader.Deliver(func() error {
+			if !handler.app.sessionArchiveAuthorized(delivery.request.WithContext(delivery.ctx)) {
+				return errors.New("full-trace-read access was revoked")
+			}
+			if err := delivery.ctx.Err(); err != nil {
+				return err
+			}
+			started = true
+			response.WriteHeader(recorder.status)
+			_, err := response.Write(body)
+			return err
+		})
+		if err != nil {
+			mcpLog.PrintfContext(ctx, "session data lake response delivery rejected")
+			if !started {
+				recorder.flush(response, mcpArchiveErrorBody(body, "Session data lake access is no longer available"))
+			}
+		}
+		return
+	}
 	recorder.flush(response, body)
 }
 

@@ -570,6 +570,12 @@ privacy fences. Unsupported operators, unavailable exact engine functions, and
 resource failures are explicit, never cross-backend fallbacks. Real destination
 acceptance independently binds the additional analytical plan version, without
 changing capture acceptance or native privacy-ledger destination identity.
+The server-only `cao_session_query` MCP tool uses this archive contract,
+separately from `cao_query` and the canonical dashboard catalog. It preserves
+the additional trace-read grant, backend acceptance, exact repository scope,
+and withdrawal-aware reader through SDK serialization and final HTTP delivery.
+Actions or administrator access alone cannot authorize it. The standalone
+canonical-snapshot MCP server and browser tool manifests do not expose it.
 Responses recheck authorization, are bounded to
 8 MiB/10000 rows and 30 seconds, and never expose arbitrary SQL/KQL, paths,
 credentials, or caller-selected generations. Existing dashboard query backends,
