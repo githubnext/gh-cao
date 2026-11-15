@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -75,8 +76,12 @@ func TestPostgresBackfillStress(t *testing.T) {
 	for index := range names {
 		names[index] = fmt.Sprintf("simulator/repo-%05d", index+1)
 	}
-	if err := app.Collector().enrollment.AddRepositories(ctx, 1, names); err != nil {
-		t.Fatal(err)
+	// Enroll the fixture before traffic in bounded ownership transactions,
+	// preserving the native authority's production deadline at every scale.
+	for start := 0; start < len(names); start += 256 {
+		if err := app.Collector().enrollment.AddRepositories(ctx, 1, names[start:min(start+256, len(names))]); err != nil {
+			t.Fatal(err)
+		}
 	}
 	handler := app.Handler()
 	var active atomic.Bool
@@ -113,7 +118,9 @@ func TestPostgresBackfillStress(t *testing.T) {
 	}
 	defer transport.CloseIdleConnections()
 	webhookClient := &http.Client{Transport: transport, Timeout: 30 * time.Second}
-	backfillReadiness(t, ctx, local, http.StatusServiceUnavailable)
+	// The synthetic lake is already ingested; readiness is independent of
+	// historical enumeration and task admission.
+	backfillReadiness(t, ctx, local, http.StatusOK)
 	type completed struct {
 		state    collect.BackfillState
 		err      error
@@ -152,9 +159,12 @@ func TestPostgresBackfillStress(t *testing.T) {
 	validateSyntheticRunTasks(t, ctx, h.backfill, scenario, horizon)
 	requests := h.proxy.RequestCount(syntheticRunPath, 1)
 	rerun, err := h.backfill.Run(ctx)
-	if err != nil || rerun.QueuedRunTasks != 0 || rerun.Revision != state.Revision ||
+	if err != nil || rerun.QueuedRunTasks != 0 || rerun.Revision != result.state.Revision ||
 		h.proxy.RequestCount(syntheticRunPath, 1) != requests {
 		t.Fatalf("enterprise rerun ignored completion cursors or duplicated historical work: %+v, %v", rerun, err)
+	}
+	if got := backfillState(t, ctx, h.data); !reflect.DeepEqual(got, state) {
+		t.Fatalf("enterprise rerun changed native Postgres state: %+v", got)
 	}
 	depth, err := taskQueueLength(ctx, h.backfill.Queue.Tasks, "collect:run-tasks")
 	if err != nil || depth != int64(expected) {

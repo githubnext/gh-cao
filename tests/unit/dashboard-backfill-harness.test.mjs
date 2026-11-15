@@ -8,6 +8,13 @@ import { promisify } from "node:util";
 
 const execute = promisify(execFile);
 
+test("backfill topology provisions enterprise PostgreSQL lock-table headroom", async () => {
+  const compose = await readFile(resolve("server/backfill-compose.yml"), "utf8");
+  const harness = await readFile(resolve("scripts/test-dashboard-backfill.sh"), "utf8");
+  assert.match(compose, /command: \["postgres", "-c", "max_locks_per_transaction=1024"\]/);
+  assert.match(harness, /compose\+=\(-p "\$project" -f server\/backfill-compose\.yml\)/);
+});
+
 for (const outcome of ["available", "rate-limit", "other-error"]) {
   test(`backfill harness handles OpenObserve ${outcome}`, async () => {
     const directory = await mkdtemp(join(tmpdir(), "backfill-harness-"));
