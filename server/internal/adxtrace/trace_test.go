@@ -255,6 +255,155 @@ func TestRetryRestartCorrectionAndWithdrawal(t *testing.T) {
 	}
 }
 
+func TestEvidenceIdentityCorrectionReplacesCompatibleSpool(t *testing.T) {
+	for _, mode := range []string{"full", "sample"} {
+		t.Run(mode, func(t *testing.T) {
+			c := configFor(t, mode)
+			w, s := workerFor(t, c)
+			artifact := source(t, "unchanged approved trajectory")
+			current, err := Project(c, "octo/api", "42", "2026-01-01", 1, artifact, clock)
+			if err != nil {
+				t.Fatal(err)
+			}
+			previous := current
+			// Exercise the previous evidence hash inside a compatible spool,
+			// not migration of a previous policy fingerprint.
+			tables := map[string][]model.Row{}
+			for table, rows := range current.Tables {
+				if table != "TraceManifest" {
+					tables[table] = rows
+				}
+			}
+			projected, err := json.Marshal(tables)
+			if err != nil {
+				t.Fatal(err)
+			}
+			previous.Version = digest([]byte(current.ArtifactDigest + current.PolicyDigest + digest(projected)))
+			if err := w.spool.admit(t.Context(), previous, "", clock); err != nil {
+				t.Fatal(err)
+			}
+			drain(t, w)
+			before := stateFor(t, w).Records[current.ID]
+			spec := DatasetSpec{ID: "identity-correction", Transform: "reviewed-transform-v1", Evaluator: "human-review-v1",
+				TrainingApproved: true, ToolSchemaEvidence: "reviewed-config:sha",
+				ToolSchemas: []map[string]any{{"name": "read", "parameters": map[string]any{"type": "object"}}},
+				Entries: []DatasetEntry{{TraceID: previous.ID, TraceVersion: previous.Version, TaskGroup: "episode",
+					Split: "train", QualityLabel: "accepted", LabelEvidence: "review:123"}}}
+			content, err := json.Marshal(spec)
+			if err != nil {
+				t.Fatal(err)
+			}
+			datasetPath, err := exportDatasetAt(t.Context(), c, "destination", content, clock)
+			if err != nil {
+				t.Fatal(err)
+			}
+			drain(t, w)
+			restarted, err := New(t.Context(), c, "destination", s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			restarted.now = func() time.Time { return clock.Add(time.Minute) }
+			if err := restarted.CaptureSession(t.Context(), "octo/api", "42", 1, clock.AddDate(0, 0, -4), artifact, ""); err != nil {
+				t.Fatal(err)
+			}
+			state := stateFor(t, restarted)
+			after := state.Records[current.ID]
+			if after.Version != current.Version || after.ArtifactDigest != before.ArtifactDigest || after.PolicyDigest != before.PolicyDigest ||
+				after.Revision <= before.Revision || after.Delivered != "" || after.File == before.File {
+				t.Fatal("changed evidence identity was skipped instead of replacing the same artifact and policy")
+			}
+			for _, path := range []string{filepath.Join(c.Directory, before.File), datasetPath} {
+				if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+					t.Fatalf("stale approved or derived payload retained: %v", err)
+				}
+			}
+			for _, d := range state.Datasets {
+				if d.State != "invalidated" || d.File != "" {
+					t.Fatal("identity correction did not invalidate the frozen dataset")
+				}
+			}
+			f := state.Frames[restarted.spool.frameID("octo/api", "2026-01-01")]
+			if f.State != "invalidated" || f.Members[current.ID] != previous.Version {
+				t.Fatal("identity correction retained readiness or rewrote frozen membership")
+			}
+			drain(t, restarted)
+			delivered := stateFor(t, restarted).Records[current.ID]
+			last := s.rows["TraceManifest"][len(s.rows["TraceManifest"])-1]
+			if delivered.Delivered == "" || last["ProjectionId"] != current.Version || last["State"] != "ready" {
+				t.Fatal("replacement was not delivered under its new immutable identity")
+			}
+			eventCount := len(s.rows["TraceEvents"])
+			restarted.now = func() time.Time { return clock.Add(2 * time.Minute) }
+			if err := restarted.CaptureSession(t.Context(), "octo/api", "42", 1, clock.AddDate(0, 0, -4), artifact, ""); err != nil {
+				t.Fatal(err)
+			}
+			drain(t, restarted)
+			repeated := stateFor(t, restarted).Records[current.ID]
+			if repeated.Revision != delivered.Revision || repeated.Delivered != delivered.Delivered || len(s.rows["TraceEvents"]) != eventCount {
+				t.Fatal("repeat acquisition changed or redelivered an unchanged evidence identity")
+			}
+		})
+	}
+}
+
+func TestPreviousPreservationSpoolFailsClosedWithoutMutation(t *testing.T) {
+	c := configFor(t, "full")
+	c.Repositories = []string{"octo/api", "octo/withdrawn"}
+	w, s := workerFor(t, c)
+	e := admit(t, w, "42", "retained approved evidence")
+	if err := w.CaptureSession(t.Context(), "octo/withdrawn", "43", 1, clock.AddDate(0, 0, -4), source(t, "withdrawn evidence"), ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.WithdrawRepository(t.Context(), "octo/withdrawn"); err != nil {
+		t.Fatal(err)
+	}
+	priorPolicy, err := json.Marshal(struct {
+		Transform string
+		Policy    Policy
+	}{"cao-approved-events-v1", c.Policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	priorIdentity, err := json.Marshal(struct {
+		Namespace, Policy, Mode, Seed string
+		Count                         int
+		Repositories                  []string
+		MaxTrace                      int64
+		Delay                         time.Duration
+		Mining                        bool `json:",omitempty"`
+	}{"destination", digest(priorPolicy), c.Mode, c.Seed, c.SampleCount,
+		c.Repositories, c.MaxTraceBytes, c.FrameDelay, c.MiningEnabled})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var files = map[string][]byte{}
+	if err := w.spool.locked(t.Context(), func(root Objects, state *ledger) error {
+		state.Fingerprint = digest(priorIdentity)
+		if err := w.spool.save(root, state); err != nil {
+			return err
+		}
+		for _, file := range []string{"ledger.json", state.Records[e.ID].File} {
+			content, err := root.Read(file, c.MaxSpoolBytes)
+			if err != nil {
+				return err
+			}
+			files[file] = content
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(t.Context(), c, "destination", s); err == nil || err.Error() != "trace ledger is corrupt, incompatible or outside budget" {
+		t.Fatalf("previous transform spool was not rejected at the compatibility boundary: %v", err)
+	}
+	for file, before := range files {
+		after, err := os.ReadFile(filepath.Join(c.Directory, file)) // #nosec G304 -- names were read from this test's private spool.
+		if err != nil || !bytes.Equal(before, after) {
+			t.Fatalf("startup rejection changed approved payload or withdrawal ledger: %v", err)
+		}
+	}
+}
+
 func TestFrozenWholeTraceSamplingDeterminismAndNoRefill(t *testing.T) {
 	c := configFor(t, "sample")
 	w, s := workerFor(t, c)

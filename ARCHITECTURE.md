@@ -571,7 +571,10 @@ The boundary does not activate the distributed collector or permit multiple ADX
 exporters. Native collector selection remains fail-closed pending real PG
 enrollment/read-lock/outbox composition, Azure acceptance, and the complete
 integration gates. Native ADX trace tables remain an independently selected
-unchanged physical contract.
+version 1 physical contract; their approved-evidence identity now binds the
+`cao-approved-events-v2` transform and omission metadata. The transform also
+binds the native spool fingerprint: incompatible existing ledgers fail closed,
+rather than being silently skipped or automatically migrated.
 
 Local trusted queries read authorized Parquet directly without persistent
 DuckDB event tables. Hosted trusted ADX queries require verified external-table

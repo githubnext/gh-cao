@@ -459,7 +459,7 @@ publication, and authenticated query tests. Required tests MUST fail when the
 runtime is missing; mocks or skipped tests are not conformance.
 
 `TestDuckDBArchiveMillionEventBenchmark` verifies exactly 1,048,576 event rows
-across 128 traces and 16 files, including separate high-entropy 64 KiB event
+across 128 traces and 19 files, including separate high-entropy 64 KiB event
 samples. It requires `CAO_SESSION_ARCHIVE_BENCHMARK=1` and required DuckDB mode.
 Reported peak Go heap and DuckDB temporary-disk use are 20 ms samples, not
 continuous process RSS measurements or proof of an OS-enforced memory ceiling.
