@@ -1,36 +1,7 @@
 {
  "source_sha": "cedb45b1af2c5064760db2e412b1affa69606791",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T02:38:44Z",
-   "worker_run_id": "43668311378",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43655786695,
-    43639680929,
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952,
-    43536491714,
-    43506161539,
-    43505502149,
-    43504143936,
-    43504093917,
-    43503897533,
-    43503506778,
-    43502660435,
-    43502562196
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43655786695 (created 2026-11-14T23:57:34Z) back to 43502562196 (created 2026-11-13T20:32:55Z); all 20 completed, 0 cancelled, none queued; source d55c91b = HEAD = source_sha. Excluded and dis [truncated]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T02:53:53Z",
    "worker_run_id": "43669549050",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable; reliability blocker unresolved. Window: latest 20 completed docs.yml runs 43504143936 (push 598d6b9, created 2026-11-13T20:43:16Z) to 43706435376 (push 7b092ad, created 2026-11-15T10:55:53Z); 0 cancelled, 0 queued or in progress; run list and jobs API re-read 12:35Z: no newer docs run. Gate: 8 successes (7 push + schedule 43561388555) >= 5 met; 12 failures excluded and disclosed (11 consecutive Build documentation failures 43613020723..43706435376; 43506161539 Install dependencies). Queue run-created to build-started median 3 s, p90 4 s, max 71 s (43504143936 held behind 43504093917 in documentation-pages); queue is not execution time. Exec build-start to deploy-end (successes) median 81.5 s, p90 92 s; 15 percent gate 12.2 s; 60 s gate unmet. Avoidable push runs 0 of 18: 7b092ad touched dashboard/site/src/auth.js plus a unit test (build input); dashboard/report/configure-site.mjs consumes .github/workflows/shared; no test-only push. Path narrowing or cancel-in-progress cannot reduce per-run execution time; scheduled 05:23Z refresh is needed for synthetic-date freshness. Open 20815 (checkout) and 20934 (framework-health, relation to docs.yml unverified) not repeated. No suggestion; no create_issue; noop used; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T12:56:23Z",
+   "worker_run_id": "43715912571",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43706435376,
+    43698271571,
+    43682264332,
+    43681861583,
+    43680980929,
+    43655786695,
+    43639680929,
+    43623754509,
+    43621919773,
+    43616204011,
+    43613020723,
+    43611206032,
+    43608206381,
+    43593405440,
+    43561388555,
+    43536796952,
+    43536491714,
+    43506161539,
+    43505502149,
+    43504143936
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43504143936 (push 598d6b9, created 2026-11-13T20:43:16Z) to 43706435376 (push 7b092ad, created 2026-11-15T10:55:53Z), all within 14 days; 0 cancelled; none queued or in progress; no newer docs run at 12:53Z; source cedb45b = HEAD = source_sha. Gate: 8 successes (7 push + schedule 43561388555) >= 5. Excluded and disclosed: 12 failures = 11 consecutive Build documentation failures since 43613020723 plus 43506161539 (Install dependencies, 17 s); logs HTTP 403 DIFC, not bypassed. Install dependencies: successful installs n=19 median 10 s p90 16; post-rollover n=17 (after 43506161539) median 9 s p90 12; Set up Node.js restore median 4 s; Post Set up Node.js 0-1 s (exact-key hit inferred; caches API confirms 7808ecf8, 263412733 bytes; root lock hash recomputed = 7808ecf8). Best-case recoverable install = about 9-10 s = 11-13 percent of build-start-to-deploy median 81.5 s; 15 percent gate 12.2 s and 60 s gate unmet; removing install is not viable; audit, fund, and dashboard-only cache coverage changes are bounded to a few seconds. CORRECTION: cache 7808ecf8 was created 20:57:12Z, during failed run 43506161539 Install step (20:57:07-20:57:24Z; post steps ran after 20:57:24Z), so that run did not seed it; creator job unknown. Checkout median 24 s stays with open issue 20815 (not repeated). No suggestion; no issue; noop. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -885,7 +885,7 @@
   "install_shape": "root npm ci: 765 entries; dashboard npm --prefix ci --omit=dev --ignore-scripts; both in the Install dependencies step, which cannot be split from job logs",
   "key_check": "Root package-lock.json unchanged since 7c8faf4 (commits API path filter, 2026-11-14); dashboard/site/package-lock.json last changed in 7c8faf4 too and is not in the key.",
   "current_key_install": "post-rollover installs (install step completed; n=10 incl. 4 build-failed runs): median 9 s, p90 11 (7,8,8,8,9,9,10,10,11,11); pre-rollover n=9 successes median 15 s, p90 24; setup median 4 s",
-  "head_key_recheck": "2026-11-15T11:15Z: root package-lock.json at HEAD 7b092ad reproduces 7808ecf8 under the hashFiles method; key present; docs.yml key excludes dashboard/site/package-lock.json.",
+  "head_key_recheck": "2026-11-15T12:56:23Z: root package-lock.json hash recomputed locally = 7808ecf8 (match); caches API: 7808ecf8 263412733 bytes created 2026-11-13T20:57:12Z, lastAccessedAt 2026-11-15T12:52:52Z, ref refs/heads/main",
   "hash_method": "hashFiles = sha256 over concatenated binary per-file sha256 digests; root-only reproduces 7808ecf8 (re-verified 2026-11-15T02:38:44Z); root+dashboard (root first) reproduces aaf3a193 (key used by other main workflows); docs.yml key excludes dashboard/site/package-lock.json",
   "current_install_regime": {
    "evaluated_at": "2026-11-15T11:18:14Z",
@@ -909,10 +909,11 @@
    "observed_at": "2026-11-15T09:35:10Z",
    "claim_withdrawn": "Earlier wording that failed run 43506161539 seeded cache 7808ecf8 is not supported: its Post Set up Node.js step was skipped. Cache 7808ecf8 (created 2026-11-13T20:57:12Z) was saved by another push run started 2026-11-13T20:56:37Z; caches API does not expose the creator; contents unverified."
   },
-  "live_key_check_2026_11_15T11_56Z": "node-cache-Linux-x64-npm-7808ecf8 present (263412733 bytes, created 2026-11-13T20:57:12Z, ref main, last_accessed 2026-11-15T11:43:56Z); post-rollover success installs median ~9-11 s; setup 2-5 s"
+  "live_key_check_2026_11_15T11_56Z": "node-cache-Linux-x64-npm-7808ecf8 present (263412733 bytes, created 2026-11-13T20:57:12Z, ref main, last_accessed 2026-11-15T11:43:56Z); post-rollover success installs median ~9-11 s; setup 2-5 s",
+  "seeding_correction": "2026-11-15T12:53Z: the earlier note that failed run 43506161539 seeded 7808ecf8 is WITHDRAWN. Its Install step ran 20:57:07-20:57:24Z and post steps ran after 20:57:24Z; the cache was created 20:57:12Z, so another job with the same root-only key created it. Creator and contents unverified; exact-key hits never re-save, so dashboard-only packages may be absent from it (cost bounded to a few seconds)."
  },
  "run_samples": {
-  "evaluated_at": "2026-11-15T11:57:00Z",
+  "evaluated_at": "2026-11-15T12:56:23Z",
   "window": "43504143936 (2026-11-13T20:43:16Z) .. 43706435376 (2026-11-15T10:55:53Z); latest 20 completed docs.yml runs",
   "n_success": 8,
   "n_failed": 12,
@@ -931,15 +932,15 @@
    "43505502149",
    "43504143936"
   ],
-  "push_only_success_n": 7,
-  "all_success_median_p90": {
-   "queue_run_to_build_start": [
-    3.5,
-    24.1
+  "success_metrics_median_p90_s": {
+   "queue_run_created_to_build_start_all20": [
+    3,
+    4,
+    "max 71 (43504143936 concurrency wait)"
    ],
    "build_job": [
     64.5,
-    77.6
+    79
    ],
    "deploy_job": [
     11,
@@ -947,38 +948,50 @@
    ],
    "build_start_to_deploy_end": [
     81.5,
-    90.6
+    92
+   ],
+   "run_created_to_deploy_end": [
+    85,
+    161
    ],
    "checkout": [
     24,
-    30.7
+    37
+   ],
+   "set_up_node": [
+    4,
+    5
    ],
    "install": [
     10.5,
-    18.4
+    24
    ],
    "build_documentation": [
     13.5,
-    14.3
+    15
    ],
    "demo": [
     4,
     4
    ],
+   "configure_pages": [
+    1,
+    1
+   ],
    "upload_pages_artifact": [
     2,
-    2.3
+    3
+   ],
+   "handoff_build_end_to_deploy_start": [
+    5,
+    6
    ],
    "deploy_pages": [
     6,
-    8.3
+    9
    ]
   },
-  "push_only_success_wall_median_p90": [
-   81,
-   85.8
-  ],
-  "note": "Jobs API timings (step logs HTTP 403 DIFC, not read). Dashboard job named in mission does not exist in docs.yml; dashboard generation is a build-job step."
+  "note": "Jobs API step timings (step logs HTTP 403 DIFC, not read). Job named dashboard does not exist in docs.yml; dashboard generation is build-job steps (demo 4 s) plus the dashboard install inside Install dependencies. Nearest-rank p90 with n=8."
  },
  "observations_pending": [
   {
@@ -1198,20 +1211,15 @@
   "conclusion": "not actionable: max saving 4 s; output is Date.now()-synthetic (scripts/simulate-dashboard-pages.mjs:78), so caching rendered output is not freshness-safe and would defeat the daily synthetic-date refresh"
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-15T12:37:15Z",
+  "observed_at": "2026-11-15T12:56:23Z",
   "consecutive_build_documentation_failures": 11,
   "first_failure_run": "43613020723 (push 600b56a, 2026-11-14T15:58:23Z)",
   "last_successful_run_and_pages_deploy": "43611206032 (2026-11-14T15:37:50Z; deploy success ~15:39Z)",
-  "latest_failure_run": "43706435376 (push 7b092ad, 2026-11-15T10:55:53Z); no docs.yml run after 10:55Z at 12:22Z",
-  "failing_step": "Build documentation = npm run docs:build = astro build && node scripts/validate-agent-docs.mjs && node --test tests/integration/agent-docs-discovery.test.mjs; fails 9-15 s into the step",
-  "local_reproduction": "blocked at 11:54Z: npm ci fails with DEPTH_ZERO_SELF_SIGNED_CERT (sandbox TLS interception); not bypassed",
-  "related_open_issue": "20934 (OPEN): same npm run docs:build command fails in workflow-contracts documentation gate at a2b14dd; relation to docs.yml unverified. No open issue tracks the docs.yml streak.",
-  "note": "Reliability, not timing; cause unverified; Pages not redeployed for about 20 h; maintainer triage needed; no open Documentation Pages failure tracker found; not a create_issue candidate under the timing-improvement rule",
-  "scheduled_refresh_failed": "43680980929 (2026-11-15T05:24:54Z)",
-  "log_access": "HTTP 403 DIFC (jobs logs endpoint re-probed 12:2xZ; not bypassed)",
-  "local_repro": "not reproduced: npm ci blocked by sandbox self-signed TLS certificate; TLS settings not altered",
-  "maintainer_action": "triage required; Pages has not republished since 2026-11-14T15:39Z",
-  "note_12_37Z": "No docs.yml run after 10:55Z at 12:35Z; Pages not redeployed since 2026-11-14T15:39Z. Still unresolved; log access HTTP 403 DIFC; cause unverified; no open Documentation Pages failure tracker found (20934 is workflow-contracts gate, OPEN, relation unverified). Surfaced in noop message, not an issue (timing-only create_issue rule)."
+  "latest_failure_run": "43706435376 (push 7b092ad, 2026-11-15T10:55:53Z); no docs.yml run after 10:55Z at 12:53Z",
+  "failing_step": "Build documentation = npm run docs:build; fails 9-15 s into the step",
+  "log_access": "HTTP 403 DIFC (not bypassed; not re-probed this run)",
+  "related_open_issue": "20934 (OPEN, workflow-contracts documentation gate, relation to docs.yml unverified); no open issue tracks the docs.yml streak",
+  "note": "Reliability, not timing; cause unverified; Pages not redeployed since 2026-11-14T15:39Z; maintainer triage needed; not a create_issue candidate under the timing-improvement rule"
  },
- "etag_note": "gh api -i for repos/githubnext/gh-cao/actions/workflows/docs.yml/runs returned no ETag header (re-checked 2026-11-15T11:55Z); conditional requests not used; completed-run timings persisted in run_samples."
+ "etag_note": "2026-11-15T12:53Z: gh api -i for the docs.yml runs list and a single run returned no ETag header; conditional requests not used; completed-run timings persisted in run_samples."
 }
