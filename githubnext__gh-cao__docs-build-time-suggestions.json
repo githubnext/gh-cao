@@ -1,36 +1,7 @@
 {
- "source_sha": "11a826aa3412479833cd2031bd37a6bed284735a",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "source_sha": "d55c91b99b237fff5f391f167c1b33ef6adc6ca6",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-14T14:16:29Z",
-   "worker_run_id": "43603740474",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43593405440",
-    "43561388555",
-    "43536796952",
-    "43536491714",
-    "43506161539",
-    "43505502149",
-    "43504143936",
-    "43504093917",
-    "43503897533",
-    "43503506778",
-    "43502660435",
-    "43502562196",
-    "43494667529",
-    "43484369040",
-    "43465706802",
-    "43447728981",
-    "43447111490",
-    "43440055797",
-    "43430232636",
-    "43430166810"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43593405440 (push 7e620f3, created 2026-11-14T12:09:24Z) back to 43430166810 (created 2026-11-13T13:02:07Z); run list re-read 14:16Z: same 20 IDs, all completed, none queued or in progress, no newer docs run; source 215837f = HEAD = source_sha. Compare 7e620f3...215837f = 1 commit touching only experiments/java-backend/** (no docs trigger path). Excluded and disclosed: 43506161539 FAILED (push 7c8faf4, Install dependencies); 0 cancelled. n=19 successes (18 push + schedule 43561388555); 5-run gate met. Queue spot-check (jobs API): 43504143936 run-to-build-created 68 s and 43430232636 51 s match stored values; queue median 1 s, p90 51 s is not execution time, so the 60 s and 15 percent gates are unmet. Avoidable rebuilds: 0 of 18 successful push runs (the newest push matched docs/** only). Superseded in-progress builds (3 cases, upper bound 117 s, median saving 0) stay rejected: cancel-in-progress true or split groups risk Pages publication order. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-14T14:32:37Z",
    "worker_run_id": "43605075299",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43494667529 (push 0e9fef7, created 2026-11-13T19:42:08Z) to 43639680929 (push 6418dcd, created 2026-11-14T20:51:15Z); none queued or in progress; 0 cancelled; source 11a826a = HEAD = source_sha. Excluded and disclosed: 6 FAILED runs (5 push runs failed at Build documentation 15:58Z to 20:51Z: 43613020723, 43616204011, 43621919773, 43623754509, 43639680929; 43506161539 failed at Install dependencies 2026-11-13). n=14 successes (13 push + schedule 43561388555); 5-run gate met. Jobs API timings; step logs HTTP 403 (DIFC), cause unverified. Successes: handoff (build end to deploy start) median 5 s p90 6; Configure Pages median 0.5 s; Upload Pages artifact median 2 s p90 3; deploy setup median 1 s; removable set median 9 s p90 10 = 11.0 percent of exec median 81.5 s (p90 92); 15 percent gate 12.2 s and 60 s gate unmet even with the set fully removed. Deploy Pages (GitHub-managed) median 7 s p90 8, not controllable; merging deploy into build saves about 6 s but needs id-token and github-pages environment in the build job (least privilege, rejected). Artifact github-pages 8,352,438 bytes (API, run 43611206032); shrinking saves about 1 s. Reliability, not timing: Pages not deployed since 04c9d9e (run 43611206032, 15:39Z); no open issue tracks the docs.yml streak (open 20934 covers a workflow-contracts docs gate). Correction: earlier observation that 11a826a touched docs.yml trigger paths is false (compare 6418dcd...11a826a: 4 commits, 23 files, 0 trigger-path hits). No suggestion; no create_issue; noop used. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-15T00:42:07Z",
+   "worker_run_id": "43658910635",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "43655786695",
+    "43639680929",
+    "43623754509",
+    "43621919773",
+    "43616204011",
+    "43613020723",
+    "43611206032",
+    "43608206381",
+    "43593405440",
+    "43561388555",
+    "43536796952",
+    "43536491714",
+    "43506161539",
+    "43505502149",
+    "43504143936",
+    "43504093917",
+    "43503897533",
+    "43503506778",
+    "43502660435",
+    "43502562196"
+   ],
+   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43502562196 (push 79129a5, created 2026-11-13T20:32:55Z) to 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z); 0 cancelled; none queued or in progress in window; source d55c91b = HEAD = source_sha. n=13 successes (12 push + schedule 43561388555); 7 failures: 43506161539 (install, 7c8faf4) and six consecutive push failures at Build documentation (43613020723 to 43655786695). Queue (run created to build start) median 3 s, p90 4 s, max 71 s; concurrency waits (run created to build job created) 68 s (43504143936) and 42 s (43502660435), both behind the predecessor deploy (cancel-in-progress false, by design); median wait 0 s. Exec (build start to deploy end, successes) median 81 s, p90 90 s; 15 percent gate 12.2 s and 60 s gate unmet because the median run saves 0 s from queue removal. Avoidable rebuilds: 18 push comparisons via compare API (consecutive docs run heads); 17 of 18 changed docs or dashboard build inputs; only 43536491714 (2cb6d9c, 4 files, all .github/workflows/shared/**) was trigger-only. Expected saving from removing that path = about 1/18 x 81 s = 4.5 s per push run, and not repeated; rejected. Schedule 43561388555 is the daily synthetic-date refresh by design. Cancelling in-flight builds or relaxing serialization stays rejected (Pages publication order). Open issue 20815 (checkout, OPEN, 0 comments) not repeated. Reliability (not timing, critical): Build documentation failed on six consecutive push runs since 15:58Z; Pages last deployed by 43611206032 (15:39Z); job logs HTTP 403 DIFC, cause unverified; no open issue tracks it. Surfaced to maintainers via noop message and observations_pending. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -898,11 +898,24 @@
   }
  },
  "run_samples": {
-  "window_created": "2026-11-13T19:42:08Z..2026-11-14T20:51:15Z",
-  "evaluated_at": "2026-11-14T23:53:59Z",
-  "note": "window = latest 20 completed docs.yml runs; 14 successful; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes); 0 for skipped/unreached jobs.",
+  "window_created": "2026-11-13T20:32:55Z..2026-11-14T23:57:34Z",
+  "evaluated_at": "2026-11-15T00:42:07Z",
+  "note": "window = latest 20 completed docs.yml runs; 13 successful; Jobs API timings (step logs HTTP 403). queue = run created to build job start; exec = build start to deploy end (successes); 0 for skipped/unreached jobs.",
   "columns": "run,conclusion,queue_s,build_job_s,deploy_job_s,exec_s,checkout_s,install_s,docs_s,demo_s,upload_s",
   "rows": [
+   [
+    43655786695,
+    "fail",
+    4,
+    47,
+    0,
+    47,
+    24,
+    7,
+    11,
+    0,
+    0
+   ],
    [
     43639680929,
     "fail",
@@ -961,7 +974,7 @@
     4,
     53,
     0,
-    54,
+    53,
     25,
     8,
     11,
@@ -1149,64 +1162,35 @@
     10,
     3,
     1
-   ],
-   [
-    43494667529,
-    "succ",
-    4,
-    79,
-    9,
-    93,
-    31,
-    17,
-    15,
-    4,
-    3
    ]
   ],
-  "median_p90_s": {
-   "exec": [
-    81.5,
-    92
-   ],
-   "build_job": [
-    64.5,
-    79
-   ],
-   "removable_handoff_cfg_upload_deploy_setup": [
-    9,
-    10
-   ],
-   "deploy_pages": [
-    7,
-    8
-   ],
-   "queue": [
-    3,
-    45
-   ]
+  "medians": {
+   "exec_success_s": 81,
+   "exec_success_p90_s": 90,
+   "queue_s": 3,
+   "queue_p90_s": 4,
+   "checkout_s": 24,
+   "install_s": 11,
+   "docs_s": 12,
+   "demo_s": 4,
+   "upload_s": 2
   }
  },
  "observations_pending": [
   {
-   "observed_at": "2026-11-14T23:53:59Z",
-   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929",
-   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on 5 consecutive push runs since 15:58Z (latest 6418dcd, 20:51Z). No docs.yml run since 20:51Z. Pages last deployed 15:39Z (04c9d9e, run 43611206032). docs:build = astro build, validate-agent-docs, agent-docs-discovery test. Cause unverified (job logs HTTP 403 DIFC). No open issue tracks the docs.yml streak; open 20934 classifies a workflow-contracts docs gate. Maintainer triage needed."
+   "observed_at": "2026-11-15T00:42:07Z",
+   "source": "docs.yml runs 43613020723, 43616204011, 43621919773, 43623754509, 43639680929, 43655786695",
+   "note": "Reliability, not timing (highest priority, unresolved): Build documentation fails after install on six consecutive push runs since 15:58Z (latest d55c91b, 23:57Z). Pages last deployed by 43611206032 (15:39Z, 04c9d9e), so published docs are stale. Cause unverified (job logs HTTP 403 DIFC; annotations only say exit code 1). No open issue tracks this streak. Maintainer triage needed."
   },
   {
-   "observed_at": "2026-11-14T23:53:59Z",
-   "source": "compare 6418dcd...11a826a",
-   "note": "Correction of prior observation: 11a826a (committed 2026-11-14T23:03:49Z) touches no docs.yml trigger path (4 commits, 23 files, 0 matches), so no Pages run was expected. Pages freshness is stale only because the last docs-path builds failed."
-  },
-  {
-   "observed_at": "2026-11-14T23:53:59Z",
+   "observed_at": "2026-11-15T00:42:07Z",
    "source": "docs.yml path filter vs build closure",
    "note": "Freshness gap, not timing: scripts/dashboard-demo-data.mjs and .github/workflows/cao.json are outside docs.yml push paths; data-only changes wait for the 05:23Z daily schedule. Record for triage, not a suggestion."
   },
   {
-   "observed_at": "2026-11-14T23:18:27Z",
+   "observed_at": "2026-11-15T00:42:07Z",
    "source": "docs.yml run list",
-   "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z) last seen queued; no current trigger. Maintainer hygiene item; not a suggestion."
+   "note": "Stale queued run 37642403569 (workflow_run, created 2026-10-07T15:12Z, headSha 6206962) still queued at evaluation; no current trigger; maintainer hygiene item."
   }
  ],
  "checkout_probe": {
@@ -1235,7 +1219,7 @@
    "number": 20815,
    "state": "OPEN",
    "fingerprint": "docs-checkout-blobless-history-v1",
-   "checked_at": "2026-11-14T23:53:59Z",
+   "checked_at": "2026-11-15T00:42:07Z",
    "note": "only open issue for this worker; checkout category, not repeated"
   },
   "window_checkout_ok14_median_p90_s": [
@@ -1244,37 +1228,40 @@
   ]
  },
  "scheduling_sample": {
-  "evaluated_at": "2026-11-14T22:35:08Z",
-  "window": "43494667529..43639680929 (2026-11-13T19:42:08Z to 2026-11-14T20:51:15Z)",
-  "n_success_push": 13,
+  "evaluated_at": "2026-11-15T00:42:07Z",
+  "window": "43502562196..43655786695 (2026-11-13T20:32:55Z to 2026-11-14T23:57:34Z)",
+  "n_success_push": 12,
   "n_success_schedule": 1,
   "failed": [
-   "43506161539",
+   "43506161539 (install)",
    "43613020723",
    "43616204011",
    "43621919773",
    "43623754509",
-   "43639680929"
+   "43639680929",
+   "43655786695 (Build documentation)"
   ],
   "cancelled": [],
   "queued_or_in_progress_in_window": [],
-  "stale_queued_outside_window": "37642403569 (workflow_run, created 2026-10-07T15:12Z) still queued at evaluation",
+  "stale_queued_outside_window": "37642403569 (workflow_run, created 2026-10-07T15:12Z)",
   "queue_s_median_p90_max": [
    3,
-   8.1,
+   4,
    71
   ],
   "queue_waits_behind_deploy_s": {
-   "43502660435": 45,
-   "43504143936": 71
+   "43502660435": 42,
+   "43504143936": 68
   },
   "exec_s_median_p90": [
-   81.5,
-   91.4
+   81,
+   90
   ],
   "gate_s": 12.2,
   "avoidable_push_runs": [
-   "43536491714 (shared/** non-closure files and modernization/aw.yml only)"
-  ]
+   "43536491714 (.github/workflows/shared/** only, 4 files)"
+  ],
+  "push_comparisons": 18,
+  "build_side_zero": 1
  }
 }
