@@ -1,9 +1,9 @@
 {
-  "tabs": [
-    { "id": "repositories", "label": "Repositories", "icon": "repo", "page": "maintenance" },
-    { "id": "workflows", "label": "Workflows", "icon": "workflow", "page": "maintenance-workflows" },
-    { "id": "campaigns", "label": "Campaigns", "icon": "workflow", "page": "maintenance-campaigns" }
-  ],
+  "navigation": {
+    "label": "Updates",
+    "pages": ["maintenance", "maintenance-workflows", "maintenance-campaigns"]
+  },
+  "labels": ["Repositories", "Workflows", "Campaigns"],
   "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-workflows"],
   "repository-drill": { "type": "external", "field": "repository-url" },
   "repository-upgrade-action": {

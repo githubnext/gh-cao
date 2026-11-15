@@ -82,7 +82,7 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 
 func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
-	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow":
+	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow":
 	default:
 		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared repository maintenance actions are available.")
 	}

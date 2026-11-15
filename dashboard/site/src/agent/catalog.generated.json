@@ -1061,6 +1061,36 @@
       ]
     },
     {
+      "id": "maintenance-campaigns",
+      "title": "Campaign maintenance",
+      "description": "Review campaign package updates or disabling future campaign runs without canceling active runs, and maintain individual workflows on Workflows.",
+      "intent": "Review installed campaign packages for source updates or disabling.",
+      "subject": "Campaign package coordinates, revisions, registration and update-confidence evidence.",
+      "objective": "Choose evidence-backed workflow-source maintenance without inventing campaign membership or expanding rollout.",
+      "acceptance": "Retain exact package coordinates and gate updates on source evidence. Keep existing campaign activation and disabling semantics and approval; disabling future campaign runs does not cancel active runs. Individual workflows are maintained on Workflows.",
+      "experimental": false,
+      "parameters": [],
+      "queries": [
+        "maintenance-campaign-packages",
+        "maintenance-campaign-sweep"
+      ]
+    },
+    {
+      "id": "maintenance-workflows",
+      "title": "Workflow maintenance",
+      "description": "Select a workflow source update or disabling, with approval disclosing package sibling source replacement and shared repository maintenance.",
+      "intent": "Maintain an individual workflow in its exact canonical repository.",
+      "subject": "Campaign-owned and standalone Markdown workflow identities and retained source evidence.",
+      "objective": "Review an exact upstream source target or disable a workflow without substituting a package or foreign repository.",
+      "acceptance": "Source updates require known provenance and revisions; approval discloses gh-aw package sibling/assets reconciliation and shared repository maintenance. Local or unknown workflows remain disableable. Disable cancels in-progress runs first. Every execution requires existing approval.",
+      "experimental": false,
+      "parameters": [],
+      "queries": [
+        "maintenance-workflow-sweep",
+        "maintenance-workflows"
+      ]
+    },
+    {
       "id": "experiments",
       "title": "Experiments",
       "description": "Assess whether retained experiment assignments are sufficient for a bounded comparison.",
@@ -2253,7 +2283,30 @@
       "sources": [
         "campaigns"
       ],
-      "used-by-pages": [],
+      "used-by-pages": [
+        "maintenance-campaigns"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-campaign-sweep",
+      "subject": "All installed campaign packages with exact retained upstream coordinates.",
+      "objective": "Let gh-aw refresh every sourced package without requiring cached update or revision evidence.",
+      "acceptance": "Exclude absent or unknown source coordinates, preserve package identities, and return the complete ordered target set without pagination or limits.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-campaign-packages"
+      ],
+      "used-by-pages": [
+        "maintenance-campaigns"
+      ],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -2310,7 +2363,30 @@
       "sources": [
         "maintenance-workflow-identities"
       ],
-      "used-by-pages": [],
+      "used-by-pages": [
+        "maintenance-workflows"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-workflow-sweep",
+      "subject": "All source-managed Markdown workflows with retained upstream coordinates.",
+      "objective": "Let gh-aw refresh exact workflow targets without requiring cached update or revision evidence.",
+      "acceptance": "Exclude local, registry and unknown-source workflows, preserve exact canonical repository and workflow identities, and return every target without pagination or limits.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflows"
+      ],
+      "used-by-pages": [
+        "maintenance-workflows"
+      ],
       "execution": {
         "local": true,
         "backend": "postgres",

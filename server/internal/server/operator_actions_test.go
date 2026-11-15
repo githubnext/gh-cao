@@ -22,9 +22,9 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := &App{hostedCLI: &hostedCLI{catalog: catalog, local: &LocalOperatorActionsConfig{Repositories: []string{"octo/service", "octo/other"}}}}
-	for _, id := range []string{"update-repository-sources", "disable-repository-workflows", "update-workflow-source", "disable-workflow"} {
+	for _, id := range []string{"update-repository-sources", "disable-repository-workflows", "update-workflow-source", "update-workflows", "disable-workflow"} {
 		values := map[string]string{"repository": "octo/service"}
-		if id == "update-workflow-source" || id == "disable-workflow" {
+		if id == "update-workflow-source" || id == "update-workflows" || id == "disable-workflow" {
 			values = map[string]string{"workflow": ".github/workflows/review.md", "repository-coordinate": "octo/service"}
 		}
 		invocation, err := app.admitOperatorAction(hostedcli.Request{ID: id, Values: values})

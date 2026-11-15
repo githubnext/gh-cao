@@ -1184,11 +1184,22 @@
         { "field": "campaign-current-version" },
         { "field": "campaign-update-state" },
         { "field": "campaign-registration" },
+        { "field": "campaign-source-unavailable" },
         { "field": "campaign-update-action-visible" }
       ],
       "order-by": [
         { "field": "campaign-name", "direction": "asc" }
       ]
+    },
+    {
+      "name": "maintenance-campaign-sweep",
+      "subject": "All installed campaign packages with exact retained upstream coordinates.",
+      "objective": "Let gh-aw refresh every sourced package without requiring cached update or revision evidence.",
+      "acceptance": "Exclude absent or unknown source coordinates, preserve package identities, and return the complete ordered target set without pagination or limits.",
+      "from": "maintenance-campaign-packages",
+      "filter": { "predicates": [{ "field": "campaign-source-unavailable", "equals": false }] },
+      "select": [{ "field": "campaign-source" }, { "field": "campaign-name" }],
+      "order-by": [{ "field": "campaign-name", "direction": "asc" }, { "field": "campaign-source", "direction": "asc" }]
     },
     {
       "name": "maintenance-standalone-workflows",
@@ -1359,6 +1370,7 @@
         { "field": "workflow-is-markdown" },
         { "field": "repository-coordinate" }, { "field": "workflow" }, { "field": "workflow-name" },
         { "field": "maintenance-source-kind", "as": "workflow-source-kind" }, { "field": "workflow-source" }, { "field": "workflow-source-version" }, { "field": "workflow-source-current-version" },
+        { "field": "source-unavailable", "as": "workflow-source-unavailable" },
         { "field": "maintenance-update-action-visible", "as": "workflow-update-action-visible" }, { "field": "maintenance-update-status-reason", "as": "workflow-update-status-reason" }
       ],
       "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
@@ -1370,6 +1382,16 @@
       "acceptance": "Return only exact .md suffix identities from canonical workflow evidence.",
       "from": "maintenance-workflow-identities",
       "filter": { "predicates": [{ "field": "workflow-is-markdown", "equals": true }] },
+      "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-workflow-sweep",
+      "subject": "All source-managed Markdown workflows with retained upstream coordinates.",
+      "objective": "Let gh-aw refresh exact workflow targets without requiring cached update or revision evidence.",
+      "acceptance": "Exclude local, registry and unknown-source workflows, preserve exact canonical repository and workflow identities, and return every target without pagination or limits.",
+      "from": "maintenance-workflows",
+      "filter": { "predicates": [{ "field": "workflow-source-kind", "equals": "source-managed" }, { "field": "workflow-source-unavailable", "equals": false }] },
+      "select": [{ "field": "workflow" }, { "field": "repository-coordinate" }],
       "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
     },
     {

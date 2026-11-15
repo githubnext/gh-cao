@@ -152,6 +152,14 @@ for (const width of [1440, 390]) {
         });
       });
       const compilerPage = page.locator('#page-maintenance');
+      await expect(compilerPage.locator('[data-route-tabs]')).toHaveCount(0);
+      await compilerPage.getByRole('button', { name: 'Upgrade all repositories', exact: true }).click();
+      const sweepDialog = page.getByRole('dialog', { name: 'Approve Upgrade all repositories', exact: true });
+      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo acme/control');
+      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/current');
+      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/outdated');
+      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/unknown');
+      await sweepDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect(compilerPage.getByRole('button', { name: 'Upgrade', exact: true })).toHaveCount(1);
       await expect(compilerPage.getByRole('button', { name: 'Upgrade selected repositories', exact: true })).toHaveCount(0);
       await expect(compilerPage.getByText('Installed gh-aw compiler version unavailable for one or more workflows.', { exact: true })).toBeVisible();
@@ -175,9 +183,21 @@ for (const width of [1440, 390]) {
       await page.screenshot({ path: repositoryScreenshot, fullPage: true });
       await testInfo.attach(`maintenance-repositories-${width}`, { path: repositoryScreenshot, contentType: 'image/png' });
 
-      await compilerPage.getByRole('link', { name: 'Campaigns', exact: true }).click();
+      if (width < 768) await page.getByRole('button', { name: /^Select view/ }).click();
+      const campaignNavigation = page.locator(width < 768
+        ? '[data-mobile-nav-page-id="maintenance-campaigns"]'
+        : '[data-nav-section="Updates"] [data-nav-page-id="maintenance-campaigns"]');
+      await campaignNavigation.click();
       const updatesPage = page.locator('#page-maintenance-campaigns');
+      await expect(campaignNavigation).toHaveAttribute('aria-current', 'page');
+      await expect(updatesPage.locator('[data-route-tabs]')).toHaveCount(0);
       await expect(updatesPage.getByRole('button', { name: 'Update selected sources', exact: true })).toHaveCount(0);
+      await updatesPage.getByRole('button', { name: 'Update all campaigns', exact: true }).click();
+      const campaignSweepDialog = page.getByRole('dialog', { name: 'Approve Update all campaigns', exact: true });
+      await expect(campaignSweepDialog.locator('.cli-action-command')).toContainText('gh aw update https://github.com/acme/catalog/activity --repo acme/control');
+      await expect(campaignSweepDialog.locator('.cli-action-command')).not.toContainText('Local package');
+      await expect(campaignSweepDialog.locator('.cli-action-command')).toContainText('--create-pull-request');
+      await campaignSweepDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
 
       const campaignCard = updatesPage.locator('.entity-card-list-card').filter({ hasText: 'Activity' });
       await campaignCard.getByRole('button', { name: 'Update', exact: true }).click();
@@ -195,8 +215,18 @@ for (const width of [1440, 390]) {
       const campaignScreenshot = testInfo.outputPath(`maintenance-campaigns-${width}.png`);
       await page.screenshot({ path: campaignScreenshot, fullPage: true });
       await testInfo.attach(`maintenance-campaigns-${width}`, { path: campaignScreenshot, contentType: 'image/png' });
-      await updatesPage.getByRole('link', { name: 'Workflows', exact: true }).click();
+      if (width < 768) await page.getByRole('button', { name: /^Select view/ }).click();
+      const workflowNavigation = page.locator(width < 768
+        ? '[data-mobile-nav-page-id="maintenance-workflows"]'
+        : '[data-nav-section="Updates"] [data-nav-page-id="maintenance-workflows"]');
+      await workflowNavigation.click();
       const workflowsPage = page.locator('#page-maintenance-workflows');
+      await expect(workflowNavigation).toHaveAttribute('aria-current', 'page');
+      await expect(workflowsPage.locator('[data-route-tabs]')).toHaveCount(0);
+      await workflowsPage.getByRole('button', { name: 'Update all workflows', exact: true }).click();
+      const workflowSweepDialog = page.getByRole('dialog', { name: 'Approve Update all workflows', exact: true });
+      await expect(workflowSweepDialog.locator('.cli-action-command')).toHaveText('gh aw update review.md --repo octo/outdated --create-pull-request');
+      await workflowSweepDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
 
       const workflowCard = workflowsPage.locator('.entity-card-list-card').filter({ has: page.getByText('Review', { exact: true }) });
       await workflowCard.getByRole('button', { name: 'Update', exact: true }).click();

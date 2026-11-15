@@ -1573,7 +1573,15 @@ These capabilities do not change the document vocabulary, copy-only
 restrictions, action authority, or per-run confirmation requirements. Hosted commands start after web confirmation and server authorization; local
 maintenance starts only after native terminal approval.
 Local repository maintenance provides separate Repository, Workflow, and
-Campaign pages. A break operation uses the existing disable command, not a new
+Campaign pages under the **Updates** navigation section, each with its own
+navigation entry and evidence-backed update indicator rather than shared tabs.
+Each page provides a full sweep through existing gh-aw CLI commands and the
+shared batch approval: `gh aw upgrade --repo` for every listed repository,
+`gh aw update WORKFLOW --repo` for every sourced Markdown workflow, and
+`gh aw update PACKAGE-URL --repo` for every sourced campaign package.
+Sweeps include known sources with unknown latest revisions, exclude entities
+without source provenance, and publish pull requests without changing rollout.
+A break operation uses the existing disable command, not a new
 CLI verb: gh-aw disable cancels in-progress runs before disabling future runs,
 whereas campaign policy disable leaves active runs running. Exact repository
 and workflow targets require fresh approval independently of update evidence.
