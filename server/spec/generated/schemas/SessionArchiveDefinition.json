@@ -115,7 +115,7 @@
         "subject",
         "from"
     ],
-    "description": "Local DuckDB analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last.",
+    "description": "Shared DuckDB/ADX analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. Counts exclude empty strings and null integers; distinct-count is exact, never approximate.",
     "$defs": {
         "SessionArchivePredicate": {
             "type": "object",

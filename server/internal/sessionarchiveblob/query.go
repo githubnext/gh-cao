@@ -270,6 +270,11 @@ func (a *Archive) exactStorageProperties(properties string) bool {
 }
 
 func membershipKQL(table string, files []sessionarchive.File, members []sessionarchive.Member) string {
+	prefix, source := membershipSourceKQL(table, files, members)
+	return prefix + source
+}
+
+func membershipSourceKQL(table string, files []sessionarchive.File, members []sessionarchive.Member) (string, string) {
 	objects := make([]string, 0, len(files))
 	days := make([]string, 0, len(files))
 	rows := make([]string, 0, len(members))
@@ -288,12 +293,12 @@ func membershipKQL(table string, files []sessionarchive.File, members []sessiona
 	// objects. The inner join is unique on complete canonical binding and is
 	// applied before any summary/order/limit; no global DISTINCT is needed.
 	return "let selected=datatable(Namespace:string,Repository:string,RunId:string,RunAttempt:long,ProjectionId:string,TraceId:string)[" +
-		strings.Join(rows, ",") + "];\nexternal_table(" + literal(table) + ")\n" +
-		"| where ArchiveNamespace==" + literal(digest([]byte(members[0].Namespace))) +
-		" and ArchiveRepository==" + literal(digest([]byte(members[0].Repository))) +
-		" and ArchiveDay in (" + strings.Join(days, ",") + ")\n" +
-		"| where ArchiveObject in (" + strings.Join(objects, ",") + ")\n" +
-		"| join kind=inner (selected) on Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId\n"
+			strings.Join(rows, ",") + "];\n", "external_table(" + literal(table) + ")\n" +
+			"| where ArchiveNamespace==" + literal(digest([]byte(members[0].Namespace))) +
+			" and ArchiveRepository==" + literal(digest([]byte(members[0].Repository))) +
+			" and ArchiveDay in (" + strings.Join(days, ",") + ")\n" +
+			"| where ArchiveObject in (" + strings.Join(objects, ",") + ")\n" +
+			"| join kind=inner (selected) on Namespace,Repository,RunId,RunAttempt,ProjectionId,TraceId\n"
 }
 
 func fileVerificationKQL(table string, file sessionarchive.File) string {
@@ -362,6 +367,9 @@ func (r *Reader) Deliver(deliver func() error) error {
 	if a.reader.Load() != r.pinned {
 		return context.Canceled
 	}
+	if slices.Contains(a.state.WithdrawnRepositories, r.pinned.repository) {
+		return ErrWithdrawn
+	}
 	if r.pinned.source != nil && slices.Contains(a.state.WithdrawnSources, *r.pinned.source) {
 		return ErrWithdrawn
 	}
@@ -393,6 +401,10 @@ func (a *Archive) pin(ctx context.Context, scope sessionarchive.Scope, repositor
 }
 
 func (a *Archive) pinSource(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64, source *sessionarchive.Source) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, *Reader, error) {
+	return a.pinRead(ctx, scope, repository, runID, attempt, source, false)
+}
+
+func (a *Archive) pinRead(ctx context.Context, scope sessionarchive.Scope, repository, runID string, attempt int64, source *sessionarchive.Source, allowEmpty bool) (context.Context, uint64, []sessionarchive.File, []sessionarchive.Member, *Reader, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, 0, nil, nil, nil, err
 	}
@@ -447,10 +459,10 @@ func (a *Archive) pinSource(ctx context.Context, scope sessionarchive.Scope, rep
 			scanRows += file.Rows
 		}
 	}
-	if scanBytes > a.config.MaxQueryBytes || scanRows > 1_000_000 {
+	if scanBytes > a.config.MaxQueryBytes || scanRows > 1_000_000 || len(members) > 10000 {
 		return nil, 0, nil, nil, nil, ErrCapacity
 	}
-	if len(members) == 0 {
+	if len(members) == 0 && !allowEmpty {
 		return nil, a.active.Generation, nil, nil, nil, sessionarchive.ErrNotFound
 	}
 	if err := a.blob.CheckPrivate(ctx); err != nil {
@@ -463,7 +475,12 @@ func (a *Archive) pinSource(ctx context.Context, scope sessionarchive.Scope, rep
 		return nil, 0, nil, nil, nil, err
 	}
 	queryCtx, cancel := context.WithTimeout(ctx, a.config.QueryTimeout)
-	pinned := &reader{members: members, cancel: cancel}
+	pinned := &reader{repository: repository, members: members, cancel: cancel}
+	for _, record := range a.state.NativeRecords {
+		if record.Member.Repository == repository && record.Gap != "" && (source == nil || record.Source == *source) {
+			pinned.admissionGaps++
+		}
+	}
 	if source != nil {
 		copy := *source
 		pinned.source = &copy

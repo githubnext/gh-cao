@@ -4,12 +4,91 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestDuckDBAnalyticalCorpusIntegration(t *testing.T) {
+	content, err := os.ReadFile("testdata/analytical.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var corpus struct {
+		Sessions []struct {
+			RunID    string   `json:"runId"`
+			Attempt  int64    `json:"attempt"`
+			EventIDs []string `json:"eventIds"`
+		}
+		Cases []struct {
+			Name    string
+			Clauses json.RawMessage
+			Rows    []map[string]any
+			Limited bool
+		}
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(content)))
+	decoder.UseNumber()
+	if err := decoder.Decode(&corpus); err != nil {
+		t.Fatal(err)
+	}
+	c := testConfig(t)
+	a := openTestArchive(t, c, nil)
+	raw := "{\"type\":\"session.format\",\"data\":{\"version\":1}}\n" +
+		"{\"type\":\"session.collection\",\"data\":{\"complete\":true}}\n" +
+		"{\"type\":\"user.message\",\"data\":{\"content\":\"approved\"}}\n"
+	for _, session := range corpus.Sessions {
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", session.RunID, "2026-10-25", session.Attempt, []byte(raw), time.Now().UTC())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := range p.Events {
+			p.Events[i].EventID = session.EventIDs[i]
+			p.Events[i].Gaps = []string{"synthetic-omission"}
+		}
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := pinTestArchive(t, a)
+	for _, test := range corpus.Cases {
+		t.Run(test.Name, func(t *testing.T) {
+			definition := analyticalDefinition(t, strings.TrimSuffix(strings.TrimPrefix(string(test.Clauses), "{"), "}"))
+			result, err := snapshot.Analytical(t.Context(), definition)
+			if err != nil || !reflect.DeepEqual(result.Rows, test.Rows) || result.Metadata.Limited != test.Limited ||
+				result.Metadata.TracesWithGaps != 2 || result.Metadata.UpstreamCoverage != "unknown" {
+				t.Fatalf("shared analytical corpus mismatch: %#v %v; expected %#v", result, err, test.Rows)
+			}
+		})
+	}
+}
+
+func TestAnalyticalPlanCapabilities(t *testing.T) {
+	definition := analyticalDefinition(t, `"aggregate":{"values":[{"field":"RunId","as":"traces","reducer":"distinct-count"}]}`)
+	plan, err := definition.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+	capabilities := AnalyticalCapabilities(4096)
+	capabilities.Reducers = []string{"count"}
+	if !errors.Is(plan.Require(capabilities), ErrQuery) {
+		t.Fatal("missing exact-distinct capability was silently emulated")
+	}
+	plan.Limit, plan.ExplicitLimit = 4097, true
+	if !errors.Is(plan.Require(AnalyticalCapabilities(4096)), ErrLimit) {
+		t.Fatal("explicit backend row budget silently lowered")
+	}
+	plan.ExplicitLimit = false
+	if err := plan.Require(AnalyticalCapabilities(4096)); err != nil || plan.Limit != 4096 {
+		t.Fatalf("implicit complete-result backend budget lost: %#v %v", plan, err)
+	}
+}
 
 func analyticalDefinition(t *testing.T, clauses string) Definition {
 	t.Helper()
@@ -32,8 +111,8 @@ func TestSessionArchiveAnalyticalValidation(t *testing.T) {
 		`"filter":{"predicates":[{"field":"RunAttempt","equals":9007199254740993}]},"select":[{"field":"RunAttempt"}]`,
 	} {
 		definition := analyticalDefinition(t, clauses)
-		plan, err := definition.compile()
-		if err != nil || slices.Contains(plan.inputs, "PayloadJSON") || slices.Contains(plan.inputs, "Gaps") {
+		plan, err := definition.Plan()
+		if err != nil || slices.Contains(plan.Inputs, "PayloadJSON") || slices.Contains(plan.Inputs, "Gaps") {
 			t.Fatalf("unbounded or content-reading plan: %#v %v", plan, err)
 		}
 	}

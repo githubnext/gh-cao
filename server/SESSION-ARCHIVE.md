@@ -218,7 +218,7 @@ Send a trusted query to `POST /api/v1/session-archive/query`:
 {"kind":"summary","repository":"octo/api","limit":10000}
 ```
 
-For local analytical session queries, use the explicit `session-query` kind:
+For analytical session queries on DuckDB or ADX, use the explicit `session-query` kind:
 
 ```json
 {
@@ -239,12 +239,26 @@ For local analytical session queries, use the explicit `session-query` kind:
 }
 ```
 
-Status advertises supported `queryKinds`. `session-query` currently runs only
-on DuckDB; hosted ADX rejects it explicitly without fallback. Results include
+Status advertises supported `queryKinds` and `analytical` capabilities, including
+the generated scalar field vocabulary, predicates, exact reducers, and output
+budget (10000 rows on DuckDB, 4096 on ADX). Both backends execute the same
+versioned JSON profile through a typed plan and their own trusted SQL/KQL
+lowerers. Unsupported operators or explicit limits fail without fallback.
+Results include
 typed columns, rows, and metadata separating intentional top-N selection from
 known evidence gaps and unknown upstream coverage. These counts are event
 records, not tool calls or sessions. Full approved payloads remain available
 through `timeline`, not the analytical projection.
+
+Exact distinct counting on ADX uses `count_distinctif`; an engine lacking it
+reports failure rather than substituting an approximate count. Column pruning
+excludes full payloads, and gap metadata is assessed before user filtering.
+Hosted `session-query` is independently default-off. A successful dedicated live
+Azure conformance run emits `Config.AnalyticalAcceptanceBinding()` separately;
+review it and configure `CAO_SESSION_ARCHIVE_BLOB_ANALYTICAL_ACCEPTANCE` to
+enable the analytical profile. Existing capture acceptance, timeline/summary
+access and native privacy-ledger destination identity remain unchanged.
+No archive, reader grant, or rollout policy is enabled by this implementation.
 
 Results bind one pinned generation. Timeline events use the shared trace
 contract and carry approved payload JSON; full approved content is not

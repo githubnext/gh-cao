@@ -304,7 +304,7 @@ CSRF protection.
 | Endpoint | Contract |
 | --- | --- |
 | `GET /api/v1/session-archive/status` | Disabled availability or authorized bounded archive counters; no paths, credentials, or content |
-| `POST /api/v1/session-archive/query` | Trusted `timeline` or `summary` template, or local-only analytical `session-query`, for one exact approved repository |
+| `POST /api/v1/session-archive/query` | Trusted `timeline` or `summary` template, or shared analytical `session-query`, for one exact approved repository |
 
 Timeline requires a positive GitHub run ID and exact positive attempt.
 Summary rejects run/attempt selectors. Neither accepts SQL/KQL, directories,
@@ -323,9 +323,30 @@ typed conjunctive predicates, explicit projection, grouping, exact `count` and
 are not supported. An explicit `query.limit` reports omitted matching rows with
 `metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
 remains unknown, with repository admission gaps and retained traces with recorded
-omissions reported independently of selection. Local status advertises
-`session-query` in `queryKinds`; the hosted ADX adapter does not yet advertise
-or execute it.
+omissions reported independently of selection. Both backends advertise
+`session-query` in `queryKinds` when supported; hosted analytics require the
+separate default-off analytical acceptance gate below. Status then exposes `analytical` capabilities:
+the language version, generated scalar fields, source, predicates, exact
+reducers, and maximum output rows (10000 for DuckDB, 4096 for ADX). Unsupported
+operators or explicit limits MUST fail rather than silently emulate or clamp.
+
+Validation produces one backend-neutral typed plan; separate trusted SQL and
+KQL lowerers implement it. Neither translates caller SQL nor exposes storage
+syntax. ADX uses exact `count_distinctif`, not approximate `dcount`; unavailable
+engine functions fail explicitly. String counts exclude empty strings,
+integer counts exclude null, and empty strings sort last in either direction.
+ADX materializes only needed scalar columns and `Gaps` after exact partition
+and membership selection. Unfiltered gap metadata and filtered analytical rows
+share that bounded source and return one result table. An authorized empty
+archive preserves zero ungrouped counts and empty grouped/projected results.
+
+The analytical plan version has a separate destination acceptance binding,
+`Config.AnalyticalAcceptanceBinding()`. A successful real destination conformance
+run emits that binding for operator review and
+`CAO_SESSION_ARCHIVE_BLOB_ANALYTICAL_ACCEPTANCE`. Without it, hosted analytical
+queries MUST remain unavailable. Existing capture acceptance and native
+privacy-ledger destination identity MUST remain unchanged. Native analytical readers retain
+the same dispatch-source membership and authoritative final-delivery fencing.
 
 Archive queries MUST NOT route through, replace, or fall back to ordinary
 SQLite/PostgreSQL dashboard queries. Query failures return explicit unavailable
@@ -380,7 +401,13 @@ The CI gate alone MUST NOT be described as completing those deployment gates.
 Real Kusto membership conformance uses the pinned official emulator through
 `scripts/test-kusto-emulator.sh`, with `CAO_SESSION_ARCHIVE_REQUIRE_KUSTO=1`.
 Its manual Actions job requires an explicit default-false EULA acceptance input;
-ordinary CI does not accept terms. The emulator proves functional KQL behavior,
+ordinary CI does not accept terms. The shared `server/internal/sessionarchive/testdata/analytical.json` corpus
+executes through production DuckDB archive queries and the production KQL
+lowerer against the real emulator. It covers exact counts, integer precision,
+case-sensitive filters, lexical ordering, empty strings, aliases, hidden ties,
+top-N disclosure, and empty results. Protocol tests separately exercise
+reader lifetime, source fencing, malformed responses and resource rejection.
+The emulator proves functional KQL behavior,
 not live Blob/external-table access, authentication, retention, or performance.
 Live Azure conformance remains separately required in an approved dedicated
 empty `conformance-*` namespace; missing required-mode evidence MUST fail.

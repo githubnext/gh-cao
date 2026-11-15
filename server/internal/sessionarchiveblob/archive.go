@@ -48,9 +48,11 @@ type pointer struct {
 }
 
 type reader struct {
-	source  *sessionarchive.Source
-	members []sessionarchive.Member
-	cancel  context.CancelFunc
+	repository    string
+	admissionGaps int
+	source        *sessionarchive.Source
+	members       []sessionarchive.Member
+	cancel        context.CancelFunc
 }
 
 type fileVerifier interface {
@@ -97,6 +99,9 @@ func newArchive(ctx context.Context, config Config, converter *sessionarchive.Co
 		return &Archive{config: config}, nil
 	}
 	if config.Acceptance != config.AcceptanceBinding() {
+		return nil, ErrConformance
+	}
+	if config.AnalyticalAcceptance != "" && config.AnalyticalAcceptance != config.AnalyticalAcceptanceBinding() {
 		return nil, ErrConformance
 	}
 	if converter == nil {
@@ -726,7 +731,7 @@ func (a *Archive) WithdrawRepository(ctx context.Context, repository string) err
 		return ErrScope
 	}
 	if r := a.reader.Load(); r != nil {
-		if slices.ContainsFunc(r.members, func(m sessionarchive.Member) bool { return m.Repository == repository }) {
+		if r.repository == repository {
 			r.cancel()
 		}
 	}

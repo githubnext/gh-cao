@@ -54,6 +54,9 @@ func newNative(ctx context.Context, capture sessionarchive.Config, destination C
 	if destination.Acceptance != destination.NativeAcceptanceBinding() {
 		return nil, ErrConformance
 	}
+	if destination.AnalyticalAcceptance != "" && destination.AnalyticalAcceptance != destination.AnalyticalAcceptanceBinding() {
+		return nil, ErrConformance
+	}
 	if services == nil {
 		resolved := azureServices(destination)
 		services = &resolved

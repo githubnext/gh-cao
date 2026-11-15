@@ -73,6 +73,11 @@ func TestArchiveServiceInjectionPreservesActivationGates(t *testing.T) {
 			}
 		})
 	}
+	invalidAnalytics := destination
+	invalidAnalytics.AnalyticalAcceptance = "wrong"
+	if result, err := NewNativeWithServices(t.Context(), capture, invalidAnalytics, Services{Blob: blob, Queries: queries}); !errors.Is(err, ErrConformance) || result != nil || blob.calls != 1 {
+		t.Fatal("invalid analytical approval contacted Blob or changed capture authority")
+	}
 	if blob.calls != 1 {
 		t.Fatalf("invalid activation reached Blob or failure retried a fallback: %d calls", blob.calls)
 	}

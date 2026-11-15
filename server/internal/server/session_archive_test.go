@@ -32,12 +32,20 @@ func TestSessionArchiveNativeBoundaryRejectsLegacyFallback(t *testing.T) {
 }
 
 type sessionArchiveProbe struct {
-	query     func(context.Context, sessionArchiveQuery) (sessionArchiveResult, error)
-	flush     func(context.Context) error
-	called    int
-	closed    int
-	withdrawn int
-	kinds     []string
+	query        func(context.Context, sessionArchiveQuery) (sessionArchiveResult, error)
+	flush        func(context.Context) error
+	called       int
+	closed       int
+	withdrawn    int
+	kinds        []string
+	capabilities *sessionarchive.Capabilities
+}
+
+func (p *sessionArchiveProbe) AnalyticalCapabilities() sessionarchive.Capabilities {
+	if p.capabilities != nil {
+		return *p.capabilities
+	}
+	return sessionarchive.AnalyticalCapabilities(10000)
 }
 
 type sessionArchiveReadProbe struct {

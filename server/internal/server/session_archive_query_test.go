@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
@@ -12,6 +13,32 @@ import (
 const analyticalArchiveRequest = `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0",
 "query":{"name":"event-counts","subject":"Count approved retained events.","from":"archive-events",
 "aggregate":{"by":["Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]}}}`
+
+func TestSessionArchiveAnalyticalCapabilitiesHTTP(t *testing.T) {
+	app, _ := newLocalPostgresTestApp(t, false)
+	capabilities := (&hostedSessionArchive{}).AnalyticalCapabilities()
+	probe := &sessionArchiveProbe{kinds: []string{"timeline", "summary", "session-query"}, capabilities: &capabilities}
+	app.sessionArchive = &sessionArchiveService{
+		backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{Approved: true},
+	}
+	request := archiveRequest(t, app, strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"limit":4097,"aggregate":`, 1), true)
+	if request.Code != http.StatusUnprocessableEntity || probe.called != 0 {
+		t.Fatal("hosted capabilities did not reject an unsupported limit before execution")
+	}
+	capabilities.Reducers = nil
+	request = archiveRequest(t, app, analyticalArchiveRequest, true)
+	if request.Code != http.StatusUnprocessableEntity || probe.called != 0 {
+		t.Fatal("unsupported reducer was executed or silently emulated")
+	}
+	for _, backend := range []sessionArchiveBackend{&localSessionArchive{}, &hostedSessionArchive{}, &nativeSessionArchive{}} {
+		var decoded sessionarchive.Capabilities
+		content, err := json.Marshal(backend.AnalyticalCapabilities())
+		if err != nil || json.Unmarshal(content, &decoded) != nil || decoded.LanguageVersion != "0.1.0" ||
+			len(decoded.Fields) == 0 || decoded.Source != "archive-events" {
+			t.Fatal("backend capability vocabulary is missing or unversioned")
+		}
+	}
+}
 
 func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 	app, _ := newLocalPostgresTestApp(t, false)
@@ -64,7 +91,7 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 	if response := archiveRequest(t, app, strings.Replace(analyticalArchiveRequest, "octo/one", "octo/two", 1), true); response.Code != http.StatusForbidden {
 		t.Fatalf("analytical query escaped repository scope: %d", response.Code)
 	}
-	probe.kinds = (&hostedSessionArchive{}).QueryKinds()
+	probe.kinds = []string{"timeline", "summary"}
 	if response := archiveRequest(t, app, analyticalArchiveRequest, true); response.Code != http.StatusUnprocessableEntity ||
 		!strings.Contains(response.Body.String(), "unavailable on this archive backend") {
 		t.Fatalf("hosted unsupported profile did not fail explicitly: %d %s", response.Code, response.Body.String())

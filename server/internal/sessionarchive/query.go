@@ -20,6 +20,18 @@ type Snapshot struct {
 	admissionGaps int
 }
 
+func (a *Archive) AdmissionGaps(repository string) int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	gaps := 0
+	for _, record := range a.state.Records {
+		if record.Member.Repository == repository && record.Gap != "" {
+			gaps++
+		}
+	}
+	return gaps
+}
+
 func (a *Archive) Pin(ctx context.Context, scope Scope) (*Snapshot, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
