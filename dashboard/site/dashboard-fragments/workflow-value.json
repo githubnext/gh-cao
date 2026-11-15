@@ -700,6 +700,7 @@
         { "as": "value-icon", "function": "literal", "args": [{ "value": "goal" }] },
         { "as": "value-title", "function": "coalesce", "args": [{ "field": "campaign-name" }, { "field": "campaign" }] },
         { "as": "value-status", "function": "literal", "args": [{ "field": "campaign-value-status" }] },
+        { "as": "value-plot-status", "function": "if", "args": [{ "field": "review-present" }, { "value": "Needs review" }, { "value": "No review triggered" }] },
         { "as": "value-measure", "function": "literal", "args": [{ "value": "Worker Value rollup" }] },
         { "as": "value-attention", "function": "literal", "args": [{ "field": "campaign-value-status" }] },
         { "as": "value-href", "function": "literal", "args": [{ "field": "campaign-value-href" }] },
@@ -731,6 +732,7 @@
         { "as": "value-icon", "function": "literal", "args": [{ "value": "workflow" }] },
         { "as": "value-title", "function": "literal", "args": [{ "field": "overview-title" }] },
         { "as": "value-status", "function": "literal", "args": [{ "field": "trend-movement" }] },
+        { "as": "value-plot-status", "function": "coalesce", "args": [{ "field": "trend-movement" }, { "value": "Status unavailable" }] },
         { "as": "value-context", "function": "literal", "args": [{ "field": "repository-coordinate" }] },
         { "as": "value-collection", "function": "literal", "args": [{ "field": "overview-state" }] },
         { "as": "value-evidence", "function": "literal", "args": [{ "field": "overview-evidence" }] },
@@ -761,6 +763,18 @@
         "values": [{ "field": "value-kind", "as": "value-entries", "reducer": "count" }]
       },
       "order-by": [{ "field": "value-kind", "direction": "asc" }]
+    },
+    {
+      "name": "value-overview-by-status",
+      "subject": "Status counts for top-level campaign rollups and standalone workflows.",
+      "objective": "Compare campaign review state and standalone workflow outcome movement without merging their meanings.",
+      "acceptance": "Count each top-level entry once by its own type and categorical status. Campaign worker review counts are not categories or native outcome values; missing standalone status remains explicit.",
+      "from": "value-overview",
+      "aggregate": {
+        "by": ["value-plot-status", "value-kind"],
+        "values": [{ "field": "value-kind", "as": "value-entries", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "value-kind", "direction": "asc" }, { "field": "value-plot-status", "direction": "asc" }]
     },
     {
       "name": "value-intent-sources",
@@ -975,8 +989,8 @@
       "description": "Review one Value entry per campaign worker rollup or standalone workflow, keeping native outcomes separate.",
       "intent": "Review the unified campaign and standalone workflow inventory without combining native Value outcomes.",
       "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
-      "objective": "Review entry-type counts, inspect complete Value cards, or compare the same entries in a table.",
-      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Counts describe entry types only; missing and unknown evidence remains explicit, and no incompatible native values are combined.",
+      "objective": "Review entry-type and status counts, inspect complete Value cards, or compare the same entries in a table.",
+      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Plot counts describe entries by type or by type-specific status, not combined native outcomes; missing and unknown evidence remains explicit.",
       "view-mode-control": true,
       "views": [
         {
@@ -989,6 +1003,21 @@
           "encoding": {
             "x": { "field": "value-kind", "type": "nominal", "title": "Value entry type" },
             "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" }
+          },
+          "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
+        },
+        {
+          "id": "value-overview-status-chart", "title": "Value entries by status",
+          "subject": "Campaign review states and standalone workflow outcome movements in the unified Value inventory.",
+          "objective": "Compare counts of entry statuses without treating worker review counts as categories or campaign review as native movement.",
+          "acceptance": "Each bar counts top-level entries of one canonical type and categorical status. Unknown standalone status remains visible and incompatible native outcomes are not combined.",
+          "description": "Campaign statuses reflect whether any worker needs review; standalone statuses describe measured movement or unavailable evidence. Counts are entries, not measured value.",
+          "data": { "source": "value-overview-by-status", "query-context": false, "time": { "range": "all" } },
+          "mark": "chart", "chart": "bar", "layout": "full",
+          "encoding": {
+            "x": { "field": "value-plot-status", "type": "nominal", "title": "Value status" },
+            "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" },
+            "color": { "field": "value-kind", "type": "nominal", "title": "Entry type" }
           },
           "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
         },
