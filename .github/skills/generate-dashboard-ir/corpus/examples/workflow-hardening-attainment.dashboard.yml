@@ -1,0 +1,127 @@
+language-version: "0.1.0"
+dashboard:
+  id: workflow-hardening-attainment
+  title: Workflow hardening attainment
+  defaults:
+    scope:
+      repositories:
+        - githubnext/gh-cao
+      workflows:
+        - .github/workflows/dependency-update-planner.md
+    time:
+      range: 30d
+  queries:
+    - name: workflow-high-severity-smells
+      subject: Retained high-severity deterministic configuration smell observations for workflows.
+      objective: Isolate the actionable configuration defects that need remediation before the next compile.
+      acceptance: Keep only rows whose smell severity is high; medium, low, and absent severities are excluded.
+      from: workflow-smells
+      filter:
+        predicates:
+          - field: smell-severity
+            equals: high
+  pages:
+    - id: workflow-hardening-attainment
+      kind: custom
+      title: Workflow hardening attainment
+      description: Shows the high-severity deterministic configuration smells that remain for one standalone workflow and its native workflow-hardening attainment over time.
+      views:
+        - id: hardening-high-severity-count
+          title: High-severity smells
+          description: Count of retained high-severity configuration smell observations for the selected workflow.
+          subject: Retained high-severity workflow-smells observations for the dependency update planner workflow.
+          objective: Show how many fail-open or supply-chain configuration defects remain before the next compile.
+          acceptance: Counts only high-severity smell observations for the selected workflow; the value is a smell count, not a run count or the attainment metric.
+          data:
+            source: workflow-high-severity-smells
+            filters:
+              workflow: .github/workflows/dependency-update-planner.md
+          mark: metric
+          layout: third
+          disclosure: essential
+          encoding:
+            value:
+              field: smell-observation-id
+              type: quantitative
+              aggregate: count
+              title: High-severity smells
+        - id: hardening-attainment-trend
+          title: Hardening attainment
+          description: Exact workflow-hardening attainment observations, with interim and matured values kept distinct and unavailable inspections left as gaps.
+          subject: Published workflow-hardening-attainment observations for the dependency update planner workflow.
+          objective: Show whether hardening attainment is rising, flat, or unavailable without treating an incomplete inspection as zero.
+          acceptance: Plots each native ratio observation without averaging across maturity states; null observations remain gaps and maturity status remains visible.
+          data:
+            source: operational-values
+            filters:
+              workflow: .github/workflows/dependency-update-planner.md
+              operational-value-definition: workflow-hardening-attainment
+          mark: chart
+          chart: dot
+          layout: half
+          disclosure: essential
+          encoding:
+            x:
+              field: observed-at
+              type: temporal
+              time-unit: day
+              title: Observed
+            y:
+              field: operational-value
+              type: quantitative
+              title: Attainment
+            color:
+              field: maturity-status
+              type: nominal
+              title: Maturity
+        - id: hardening-smell-queue
+          title: Remaining hardening smells
+          description: High-severity workflow configuration smells retained for the selected workflow, newest first, with their remediation.
+          subject: Retained high-severity workflow-smells observations for the dependency update planner workflow.
+          objective: Give the operator each remaining deterministic configuration defect with its evidence and recommended remediation.
+          acceptance: Lists only high-severity smell observations for the selected workflow, newest first, with recommendation, evidence, and a workflow link.
+          data:
+            source: workflow-high-severity-smells
+            filters:
+              workflow: .github/workflows/dependency-update-planner.md
+            order-by:
+              - field: observed-at
+                direction: desc
+              - field: smell-observation-id
+                direction: asc
+            limit: 20
+          mark: table
+          controls: interactive
+          layout: full
+          disclosure: essential
+          empty-message: No high-severity configuration smells are retained for this workflow; this does not confirm that an inspection ran.
+          encoding:
+            href:
+              field: workflow-link
+              type: nominal
+            columns:
+              - field: smell-observation-id
+                type: nominal
+                title: Observation
+              - field: smell-name
+                type: nominal
+                title: Smell
+              - field: smell-category
+                type: nominal
+                title: Category
+              - field: smell-severity
+                type: ordinal
+                title: Severity
+                display: status
+              - field: smell-summary
+                type: nominal
+                title: Summary
+              - field: smell-evidence
+                type: nominal
+                title: Evidence
+              - field: smell-recommendation
+                type: nominal
+                title: Recommendation
+              - field: observed-at
+                type: temporal
+                title: Observed

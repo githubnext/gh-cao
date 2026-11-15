@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "id": "workflow-hardening-attainment",
+  "task": {
+    "actor": "Repository operator",
+    "subject": "The dependency update planner standalone workflow in githubnext/gh-cao and its retained deterministic configuration smells and native hardening attainment",
+    "intent": "Show whether the dependency update planner's compiled configuration still carries high-severity fail-open or supply-chain defects, what remediation each defect needs, and how its native workflow-hardening attainment evolves, so an operator can correct the configuration before the next compile.",
+    "activationConditions": [
+      "The githubnext/gh-cao repository declares a standalone workflow at .github/workflows/dependency-update-planner.md.",
+      "The deterministic workflow-smells inspection evaluates the compiled metadata of that workflow within the 30-day horizon.",
+      "The gh-aw operational-value protocol publishes workflow-hardening-attainment observations for that workflow."
+    ],
+    "requiredEffects": [
+      "Each retained high-severity workflow-smells observation for the workflow appears in the remediation queue with its smell name, category, summary, evidence, recommendation, observation time, and a link to the workflow.",
+      "Each published workflow-hardening-attainment observation appears once with its native value and maturity status, so interim and matured values remain distinguishable.",
+      "The high-severity smell count is a count of retained smell observations and is not presented as a run count, a failure count, or the attainment metric."
+    ],
+    "noopConditions": [
+      "No high-severity smell is retained for the workflow in the horizon; the empty queue is not proof that an inspection ran or that the configuration is complete.",
+      "No workflow-hardening-attainment observation is published for the workflow in the horizon; the trend has no points and must not be filled with zeros.",
+      "The workflow-smells or operational-values source is unavailable; the dashboard must report an unavailable state rather than an empty or zero result."
+    ],
+    "successConditions": [
+      "The operator can identify each remaining high-severity defect and its recommended remediation without opening a workflow run.",
+      "Missing or incomplete attainment observations remain null gaps and never appear as zero attainment.",
+      "The remediation queue is ordered deterministically by observation time descending and then by smell identity ascending."
+    ],
+    "uncertainties": [
+      "A workflow smell is deterministic configuration evidence; it does not establish that the workflow was exploited or that a remediation was merged.",
+      "A smell disappears from the queue only after a later complete inspection; absence alone does not prove remediation.",
+      "Workflow-hardening attainment is gh-aw's native result and is maturity-dependent; an interim value is not final attainment."
+    ]
+  },
+  "operationalValue": {
+    "upstream": "gh-aw",
+    "orderedMetrics": [
+      {
+        "id": "workflow-hardening-attainment",
+        "unit": "ratio",
+        "direction": "higher_is_better"
+      }
+    ],
+    "preservation": "Preserve the upstream metric identity, order, native finite value or null, ratio unit, higher-is-better direction, and maturity status. The high-severity smell count is a separate deterministic count and must never replace or be combined with the attainment metric."
+  },
+  "logicalSources": {
+    "workflow-smells": {
+      "rows": [
+        {
+          "smell-observation-id": "workflow:dependency-update-planner:unpinned-dependencies:container-digest",
+          "smell-id": "unpinned-dependencies",
+          "smell-name": "Unpinned dependencies",
+          "smell-category": "supply-chain",
+          "smell-severity": "high",
+          "smell-summary": "A container image is referenced by a mutable tag instead of an immutable digest.",
+          "smell-evidence": "Compiled manifest references node:22-alpine by tag only.",
+          "smell-recommendation": "Pin the container image to its immutable digest and recompile the workflow.",
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/dependency-update-planner.md",
+          "observed-at": "2026-08-28T09:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          },
+          "workflow-link": {
+            "relation": "workflow",
+            "href": "https://github.com/githubnext/gh-cao/blob/HEAD/.github/workflows/dependency-update-planner.md",
+            "label": "Dependency update planner"
+          }
+        }
+      ]
+    },
+    "operational-values": {
+      "rows": [
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/dependency-update-planner.md",
+          "operational-value-definition": "workflow-hardening-attainment",
+          "operational-value-role": "primary",
+          "operational-value-name": "Workflow hardening attainment",
+          "operational-value-unit": "ratio",
+          "operational-value-direction": "higher_is_better",
+          "operational-value": 0.5,
+          "maturity-status": "interim",
+          "coverage-status": "complete",
+          "observed-at": "2026-08-27T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/dependency-update-planner.md",
+          "operational-value-definition": "workflow-hardening-attainment",
+          "operational-value-role": "primary",
+          "operational-value-name": "Workflow hardening attainment",
+          "operational-value-unit": "ratio",
+          "operational-value-direction": "higher_is_better",
+          "operational-value": 0.75,
+          "maturity-status": "interim",
+          "coverage-status": "complete",
+          "observed-at": "2026-08-28T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/dependency-update-planner.md",
+          "operational-value-definition": "workflow-hardening-attainment",
+          "operational-value-role": "primary",
+          "operational-value-name": "Workflow hardening attainment",
+          "operational-value-unit": "ratio",
+          "operational-value-direction": "higher_is_better",
+          "operational-value": null,
+          "maturity-status": "unavailable",
+          "coverage-status": "unavailable",
+          "missing-reason": "inspection-incomplete",
+          "observed-at": "2026-08-29T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          }
+        }
+      ]
+    }
+  },
+  "dashboard": "workflow-hardening-attainment.dashboard.yml"
+}
