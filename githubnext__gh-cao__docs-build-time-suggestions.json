@@ -1,36 +1,7 @@
 {
   "source_sha": "24f570e7eba32138d327c2b0a6aaac5e84bf443e",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T10:52:03Z",
-      "worker_run_id": "43705908194",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43698271571,
-        43682264332,
-        43681861583,
-        43680980929,
-        43655786695,
-        43639680929,
-        43623754509,
-        43621919773,
-        43616204011,
-        43613020723,
-        43611206032,
-        43608206381,
-        43593405440,
-        43561388555,
-        43536796952,
-        43536491714,
-        43506161539,
-        43505502149,
-        43504143936,
-        43504093917
-      ],
-      "outcome": "complete, not actionable; reliability blocker unresolved. Window = latest 20 completed docs.yml runs 43504093917 (push a7d5ebf, created 2026-11-13T20:42:56Z) to 43698271571 (push f8da6f2, created 2026-11-15T09:14:26Z), all within 14 days; run list and jobs API re-read 10:52Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no docs run after 09:14Z; source f8da6f2 = HEAD = source_sha. Samples: 9 successes (8 push + schedule 43561388555) meet the 5-run gate; 11 failures excluded and disclosed (10 Build documentation failures 43613020723..43698271571 since 2026-11-14T15:58Z; 43506161539 at Install dependencies). Queue run-created to build-started median 3 s, p90 4 s, max 71 s (43504143936 held 68 s behind in-flight 43504093917 in documentation-pages); queue is not execution time. Exec build-start to deploy-end (successes) median 82 s, p90 92 s; 15 percent gate 12.3 s; 60 s gate unmet. Avoidable pushes 0 of 18: every push touched a build input (docs/, dashboard/site, dashboard/report, shared dashboard-build imports, or */aw.yml, which the docs catalog globs via import.meta.glob); a narrower filter cannot change the median run. Scheduled 05:23Z refresh is needed for synthetic-date freshness. Rejected: cancel-in-progress true (could cancel Pages publication), skipping schedule (freshness). No suggestion; no create_issue; noop used; next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T11:18:14Z",
       "worker_run_id": "43707809132",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable. Window = latest 20 completed docs.yml runs, all within 14 days: 43621919773 (push 93c64ff, 2026-11-14T17:35Z) .. 43757990961 (push 24f570e, 2026-11-15T20:25Z); 0 cancelled, 0 queued or in progress; source 24f570e = HEAD. Samples: 10 push successes meet the 5-run gate; 10 failures disclosed (all Build documentation, 8-15 s; last 43721157324 before fix f02efd0). Transfer on successes: build-complete to deploy-start handoff median 5 s; Configure Pages median 0 s; Upload Pages artifact median 2 s (p90 3); deploy setup median 1 s; removable total median 8 s (p90 9) = 10.6 percent of exec median 75.5 s (p90 80); 15 percent gate 11.3 s and 60 s gate unmet. Deploy Pages median 7 s is GitHub-managed. Merging deploy into build saves about 6 s and moves id-token and github-pages environment onto build (rejected). github-pages artifact 9.14-9.16 MB since 43752194225 (was 8.39-8.42 MB; #21003 demo history), upload median unchanged; shrinking saves about 1 s. Checkout median 24.5 s stays with open issue 20815 (OPEN, 0 comments), not repeated. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-15T20:53:51Z",
+      "worker_run_id": "43760259435",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43757990961,
+        43756384109,
+        43756218347,
+        43753233809,
+        43752704784,
+        43752194225,
+        43746617494,
+        43731625055,
+        43724243400,
+        43721484176,
+        43721157324,
+        43706435376,
+        43698271571,
+        43682264332,
+        43681861583,
+        43680980929,
+        43655786695,
+        43639680929,
+        43623754509,
+        43621919773
+      ],
+      "outcome": "complete, not actionable; reliability state unchanged. Window: latest 20 completed docs.yml runs 43621919773 (push 93c64ff, created 2026-11-14T17:35Z) to 43757990961 (push 24f570e, created 2026-11-15T20:25Z), all within 14 days; list re-read 20:52Z: no newer docs run, 0 cancelled, none queued or in progress; source 24f570e = HEAD = source_sha. Gate: 10 successes (all push) >= 5. Excluded and disclosed: 10 failures (deploy skipped; Build documentation per prior Jobs API reads; logs HTTP 403 DIFC). Scheduling: avoidable pushes 0 of 20. Commit file lists fetched for the three window pushes missing from commit_paths: 24f570e touches dashboard/site/src/agent/mcp-contract.json (trigger path; imported by dashboard/site/src/agent/query-executor.js, so build-consumed) plus server/docs-unrelated files that do not match the paths filter; 8c2dd68 touches only docs/glossary.md (docs/** = Astro srcDir, consumed); 10f5e57 touches dashboard/site/src/data/github-service.js (source, consumed) and a unit test. Test-only pushes 0. Concurrency: documentation-pages is docs.yml-only, cancel-in-progress false (required to protect Pages publication); queue run-created to build-started median 3 s, p90 4 s, so no in-window queueing. Exec (10 successes) median 75.5 s, p90 80; build_job median 60.5 s, p90 65; 15 percent gate 11.3 s and 60 s gate unmet; path narrowing cannot reduce per-run median and would avoid zero of the window's runs. Observation: stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) still queued at 20:52Z; maintainer should verify and cancel it, since a start would deploy an old commit. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -897,7 +897,7 @@
     }
   },
   "run_samples": {
-    "evaluated_at": "2026-11-15T20:33:00Z",
+    "evaluated_at": "2026-11-15T20:53:51Z",
     "window": "43621919773 (push 93c64ff, 2026-11-14T17:35Z) .. 43757990961 (push 24f570e, 2026-11-15T20:25Z)",
     "n_success": 10,
     "n_failed": 10,
@@ -1005,30 +1005,30 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-15T20:33:00Z",
+    "observed_at": "2026-11-15T20:53:51Z",
     "status": "Build documentation green on 10 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z; latest 43757990961, 20:25Z). The failure streak 43621919773..43721157324 has ended. No schedule success since 43561388555 (2026-11-14T05:24Z); schedule 43680980929 (2026-11-15T05:24Z) failed at Build documentation. Root cause not verified (step logs HTTP 403 DIFC). Confirm the 2026-11-16 ~05:23Z schedule succeeds."
   },
   "etag_note": "2026-11-15T20:20:58Z: gh api responses in this sandbox returned no ETag header (observed: Link, X-Ratelimit-*); the earlier Jobs and file-list reads were not conditional. Completed-run rows are immutable: reuse run_timings and commit_paths; fetch only runs newer than 43756384109.",
   "observations_pending": [
     {
-      "observed_at": "2026-11-15T20:33:00Z",
-      "note": "Stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) is still queued in documentation-pages (re-checked 20:33Z). Maintainer should verify and cancel it; a dispatch would build an old commit."
+      "observed_at": "2026-11-15T20:53:51Z",
+      "note": "Stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) still queued in documentation-pages at 20:52Z. Maintainer should verify and cancel it; a start would build and deploy an old commit."
     },
     {
-      "observed_at": "2026-11-15T20:33:00Z",
-      "note": "Latent avoidable-rebuild path: docs.yml paths dashboard/site/** matches dashboard/site/test/**, which build.mjs never copies. Act only on repeated evidence."
+      "observed_at": "2026-11-15T20:53:51Z",
+      "note": "Latent avoidable-rebuild path: docs.yml paths dashboard/site/** matches dashboard/site/test/**, which build.mjs never copies. Zero window evidence; act only on repeated evidence."
     },
     {
-      "observed_at": "2026-11-15T20:33:00Z",
+      "observed_at": "2026-11-15T20:53:51Z",
       "note": "Open #20815 (checkout blobless fetch) is the only open worker issue; window checkout median 24.5 s, p90 28 s. Not repeated."
     },
     {
-      "observed_at": "2026-11-15T20:33:00Z",
-      "note": "Retired-path guard: docs.yml has no restored dashboard artifact; cao-dashboard.yml is absent at 24f570e (checked 20:33Z). Do not re-propose restored-dashboard caches from closed #20380, #18929, #16825 without new evidence of a live producer."
+      "observed_at": "2026-11-15T20:53:51Z",
+      "note": "Retired-path guard: docs.yml has no restored dashboard artifact; do not re-propose restored-dashboard caches from closed #20380, #18929, #16825 without new evidence of a live producer."
     },
     {
-      "observed_at": "2026-11-15T20:33:00Z",
-      "note": "Scheduling category next: 20-run window has 0 avoidable-push evidence yet; fetch commit file lists for window pushes not in commit_paths (24f570e) before judging."
+      "observed_at": "2026-11-15T20:53:51Z",
+      "note": "Scheduling category resolved at 20:52Z: 0 of 20 window pushes avoidable (commit_paths complete for window). Next check: confirm the 2026-11-16 ~05:23Z schedule succeeds (reliability, not timing)."
     }
   ],
   "run_timings": {
@@ -1553,7 +1553,7 @@
     }
   },
   "commit_paths": {
-    "verified_at": "2026-11-15T19:53:46Z",
+    "verified_at": "2026-11-15T20:53:51Z",
     "method": "gh api repos/githubnext/gh-cao/commits/<sha> file lists; commits are immutable, so reuse this map and do not refetch; no ETag captured",
     "push_commits_checked": 20,
     "test_only_pushes": 0,
@@ -1580,7 +1580,10 @@
       "d62125be": "dashboard-fragments/workflow-value.json, dashboard.json, generated agent catalog/queries, test fixtures and unit (build-consumed)",
       "e3b3b9cd": "docs/operations.md, scripts/dashboard-demo-data.mjs, dashboard-pages-simulation unit test (build-consumed via docs/**)",
       "88f652f4": "ARCHITECTURE.md, dashboard/README.md, dashboard/site/README.md, dashboard/site/scripts/build.mjs, dashboard-site-build unit test (build-consumed via dashboard/site/**)",
-      "de1fbfc": "docs/local-debugging.md (build-consumed via docs/**)"
+      "de1fbfc": "docs/local-debugging.md (build-consumed via docs/**)",
+      "24f570e": "dashboard/site/src/agent/mcp-contract.json (trigger path; imported by query-executor.js, build-consumed), server/* and specs (not in paths filter)",
+      "8c2dd68": "docs/glossary.md (docs/** Astro srcDir, build-consumed)",
+      "10f5e57": "dashboard/site/src/data/github-service.js, dashboard/site/test/unit/github-service-debug.test.js (build-consumed source)"
     }
   }
 }
