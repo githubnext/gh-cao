@@ -137,6 +137,23 @@ approved for the archive's full repository scope. These are distinct from
 fresh existing strong-authentication assurance, and CSRF on POST requests.
 Actions tokens and storage credentials are not archive-reader identities.
 
+## Synthetic grader replay
+
+Run `node scripts/replay-session-archive-graders.mjs [private-report-directory]`
+from the repository root to exercise the 15 reviewed candidates against the
+pinned gh-aw revision recorded in the evidence fixture manifest. It reads only
+public pinned grader code through `gh`, verifies downloaded Git blob identities,
+and compares grader values/errors on original approved events and real DuckDB
+Parquet reconstructions. The focused Go regression is
+`CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1`.
+
+Reports separate approved-input preservation, pinned-grader replay, and attempted
+full public JSON query support. Successful scalar component queries are not
+complete metrics. Missing provenance, invalid measurements, missing/null inputs,
+excluded fields and redacted descriptions are not normalized to make replay
+succeed. Reports are private ignored test artifacts, not persisted archive
+scores, dashboard sources, live collection or Kusto/Azure acceptance evidence.
+
 ## Queries and operations
 
 ### Native hosted producer (independent activation gates)
