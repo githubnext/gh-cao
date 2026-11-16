@@ -1,36 +1,7 @@
 {
  "source_sha": "f0e71a1b4512de16e35b34fe6348365dc378ec81",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T22:53:17Z",
-   "worker_run_id": "43771365159",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43768376457,
-    43766933236,
-    43766019418,
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809,
-    43752704784,
-    43752194225,
-    43746617494,
-    43731625055,
-    43724243400,
-    43721484176,
-    43721157324,
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695
-   ],
-   "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16Z); gh run list re-read 22:51Z: no newer run, none queued or in progress, 0 cancelled; source 14a39d4 = HEAD = ...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T23:18:00Z",
    "worker_run_id": "43773722096",
@@ -870,6 +841,34 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43756384109 (push 8c2dd68, created 2026-11-15T20:08Z) to 43840581457 (push f0e71a1, created 2026-11-16T09:31Z); 19 successes sampled (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded (superseded pending run, cancelled after 12 s); no newer run at 09:55Z; source f0e71a1 = HEAD = source_sha. Queue (created to build start) median 3 s, p90 5 s; outlier 64 s on 43832040488 behind 43831980991 in documentation-pages group. Exec (build start to deploy end) median 76 s, p90 129 s (nearest-rank). Concurrency: cancel-in-progress false protects in-flight Pages deploys; superseded pending runs already cancelled (1 in window); cancel-in-progress true rejected. Avoidable rebuilds: 17 of 18 push commits touch build-consumed paths (17a3b7a, fa5faeb, f343b8b, 70f59d2 verified by file list this run); only test-only push 5b8b842 (run 43780290464, exec 76 s) qualifies: about 4 s per run averaged, below 60 s and 15 percent (11.4 s) gates; watch item unchanged. Daily 05:23Z schedule (run 43810351164, exec 63 s) refreshes synthetic dates and is not skippable. Stale queued workflow_run 37642403569 (created 2026-10-07) still queued; not blocking; maintainer housekeeping. No suggestion. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T10:24:00Z",
+   "worker_run_id": "43847582021",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    43840581457,
+    43832040488,
+    43831980991,
+    43831754585,
+    43829639369,
+    43825070138,
+    43814432358,
+    43810351164,
+    43798031034,
+    43792211504,
+    43789359390,
+    43781377358,
+    43781088986,
+    43780290464,
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43756384109 (push 8c2dd68, 2026-11-15T20:08Z) to 43840581457 (push f0e71a1, 2026-11-16T09:31Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; no queued or in-progress docs run (10:23Z). Jobs API spot-check of 43840581457 matched stored rows. Cache: docs.yml key node-cache-Linux-x64-npm-7808ecf8 (root lock only; hash re-derived) is live on main (created 2026-11-13T20:57Z); post Set up Node.js 0-1 s in 19/19 (inferred hit; logs API 403 DIFC, not bypassed). Setup+install+post median 13 s (p90 18), 17.1% of exec median 76 s; gate 11.4 s. Realistic levers (node_modules cache est. 3-6 s net, unmeasured; dashboard/site lock in cache path, 34 non-dev packages) fall below gate. Dashboard/deploy job stats: no dashboard job exists (demo is a build step); deploy median 10 s, p90 12 s.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -894,7 +893,8 @@
    "exec_median_s": 78,
    "exec_p90_s": 111
   },
-  "last_accessed_checked": "2026-11-16T08:37:32Z"
+  "last_accessed_checked": "2026-11-16T10:24:00Z",
+  "hash_rederived": "2026-11-16T10:24:00Z root-only sha256(binary per-file digests) = 7808ecf8...; root+dashboard = aaf3a193... (not used by docs.yml)"
  },
  "checkout_probe": {
   "measured_at": "2026-11-13T17:38:10Z",
@@ -939,26 +939,26 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-16T09:46:11Z",
-  "status": "27 consecutive non-cancelled docs.yml successes since 43721484176 (window ends 43840581457). Last failure 43721157324 (push ac6789f, 2026-11-15 13:51Z). Root cause not verified (job logs API HTTP 403 DIFC in earlier runs; not re-attempted)."
+  "observed_at": "2026-11-16T10:24:00Z",
+  "status": "No docs.yml failure in the latest 20 completed window (19 success, 1 cancelled 43832015521 excluded). Last failure 43721157324 (push ac6789f, 2026-11-15 13:51Z). Root cause not verified (job logs API HTTP 403 DIFC; not re-attempted)."
  },
  "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-16T09:24:52Z",
-   "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued at 09:24Z; no docs run queued or in progress. Maintainer should verify and cancel; this worker is read-only."
+   "observed_at": "2026-11-16T10:24:00Z",
+   "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued at 10:23Z; no docs run queued or in progress; new runs unaffected. Maintainer should verify and cancel; this worker is read-only."
+  },
+  {
+   "observed_at": "2026-11-16T10:24:00Z",
+   "note": "Checkout outlier 43840581457 (73 s) remains a single sample; open issue 20815 (blobless checkout) unchanged, not re-proposed."
   },
   {
    "observed_at": "2026-11-16T08:37:32Z",
-   "note": "Watch (unchanged): test-only push 5b8b842 (43780290464) is the only test-only docs run in the window. No second test-only run in the 20-run window. Candidate change only if a second test-only run appears: negated trigger for dashboard/site/test/** in docs.yml, validated with a docs run."
+   "note": "Watch (unchanged): test-only push 5b8b842 (43780290464) is the only test-only docs run in the 20-run window. Candidate change only if a second test-only run appears: negated trigger for dashboard/site/test/** in docs.yml, validated with a docs run."
   },
   {
    "observed_at": "2026-11-16T08:37:32Z",
    "note": "Queue outlier: 43832040488 queued 64 s behind 43831980991 (documentation-pages serializes pushes; cancel-in-progress false); pending run 43832015521 cancelled after 12 s. Exec unaffected. For the scheduling category on its next cycle."
-  },
-  {
-   "observed_at": "2026-11-16T09:46:11Z",
-   "note": "Checkout outlier: 43840581457 (push f0e71a1) Checkout 73 s vs window median ~25 s; single sample, window checkout median/p90 recomputed from rows. Checkout remains under open issue 20815; not re-proposed unless median or p90 changes materially."
   }
  ],
  "run_timings": {
@@ -1584,10 +1584,10 @@
    ]
   ],
   "summary": {
-   "removable_median_s": 8.0,
+   "removable_median_s": 8,
    "removable_p90_s": 10,
    "removable_max_s": 10,
-   "exec_median_s": 77.0,
+   "exec_median_s": 77,
    "exec_p90_s": 120,
    "removable_pct_of_exec_median": 10.4,
    "gate_15pct_s": 11.55
@@ -1722,11 +1722,11 @@
   "method": "gh run list + memory run_timings rows (immutable) + commit file lists (immutable)"
  },
  "dependency_phase": {
-  "evaluated_at": "2026-11-16T08:37:32Z",
-  "window": "43753233809..43832040488 (20 success)",
+  "evaluated_at": "2026-11-16T10:24:00Z",
+  "window": "43756384109..43840581457 (19 success of latest 20 completed; cancelled 43832015521 excluded)",
   "setup_node_s": {
    "median": 3,
-   "p90": 6
+   "p90": 8
   },
   "install_s": {
    "median": 8,
@@ -1738,15 +1738,15 @@
   },
   "setup_install_post_s": {
    "median": 13,
-   "p90": 17
+   "p90": 18
   },
-  "share_of_exec_median_pct": 16.9,
+  "share_of_exec_median_pct": 17.1,
   "exec_s": {
-   "median": 77,
-   "p90": 92
+   "median": 76,
+   "p90": 129
   },
-  "gate_15pct_s": 11.6,
-  "note": "Whole-phase removal is a ceiling (not a concrete change). node_modules restore replacing npm ci est. saves 3-6 s net after restore (unmeasured)."
+  "gate_15pct_s": 11.4,
+  "note": "Whole-phase removal is a ceiling, not a concrete change. Root lock 656 non-dev packages; dashboard/site lock 34 non-dev packages (--omit=dev), so adding it to the cache path can save only seconds and changes the key (one miss). node_modules restore est. 3-6 s net after restore (unmeasured). Not actionable."
  },
  "astro_step_verified": {
   "verified_at": "2026-11-16T09:01:16Z",
