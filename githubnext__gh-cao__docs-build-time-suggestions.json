@@ -1,36 +1,7 @@
 {
- "source_sha": "70f59d2198be304016522d78a8351df5f23767d3",
- "next_category": "reusable dashboard generation",
+ "source_sha": "19e539cca59cec1d6ebb1f676dfcf799c94389e0",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T21:52:29Z",
-   "worker_run_id": "43765687936",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "43757990961",
-    "43756384109",
-    "43756218347",
-    "43753233809",
-    "43752704784",
-    "43752194225",
-    "43746617494",
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376",
-    "43698271571",
-    "43682264332",
-    "43681861583",
-    "43680980929",
-    "43655786695",
-    "43639680929",
-    "43623754509",
-    "43621919773"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43621919773 (push 93c64ff, created 2026-11-14T17:35Z) to 43757990961 (push 24f570e, created 2026-11-15T20:25Z), all within 14 days; 0 cancelled, 0 queued or in progress; run list re-read 21:51Z: no newer run; workspace HEAD 24f57...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T22:18:00Z",
    "worker_run_id": "43768158157",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43753233809 (push de1fbfc, created 2026-11-15T19:35Z) to 43832040488 (push 70f59d2, 2026-11-16T08:32Z); all success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list re-read 09:00Z: same 20 IDs, none newer, none queued or in progress; source 70f59d2 = HEAD = source_sha. Samples reused from immutable 08:37Z Jobs API rows; live spot-check of 43832040488 and 43814432358 matched. Astro step 'Build documentation' (= astro build && validate-agent-docs && node --test agent-docs-discovery): median 11 s, p90 15 s, 14.3% of workflow exec median 77 s (gate 11.55 s; 60 s absolute not met). Ceiling: removing the whole step saves 11 s. Output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT embedded: docs/components/SiteFooter.astro:9, scripts/validate-agent-docs.mjs:571). Partial .astro caching unmeasured and bounded by the same ceiling; sub-step split unavailable from Jobs API. Open issue 20815 (checkout blobless) is another category and not repeated. Next: reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T09:24:52Z",
+   "worker_run_id": "43838938822",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418",
+    "43757990961",
+    "43756384109",
+    "43756218347",
+    "43753233809"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43753233809 (push de1fbfc, created 2026-11-15T19:35Z) to 43832040488 (push 70f59d2, created 2026-11-16T08:32Z); 19 push + 1 schedule 43810351164; all success; cancelled 43832015521 excluded; latest-30 list re-read 09:24Z: window unchanged, none in progress; stale queued 37642403569 (created 2026-10-07) outside window. Demo step (Build synthetic enterprise demo = dashboard:pages:build, which calls buildDashboardSite; no separate dashboard job) median 5 s, p90 6 s, max 6 s = 6.5% of exec median 77 s; gate 15% = 11.55 s and 60 s absolute not met even at 100% reuse ceiling. Reuse blocked by simulate-dashboard-pages.mjs now=Date.now() synthetic dates and daily 05:23Z refresh. Source 19e539c: compare vs 70f59d2 touches only server/cmd/cao-cli-relay (outside docs paths); docs-consumed source unchanged.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -946,8 +946,8 @@
  "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-16T08:37:32Z",
-   "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued at 08:4xZ; no docs run queued or in progress. Maintainer should verify and cancel; this worker is read-only."
+   "observed_at": "2026-11-16T09:24:52Z",
+   "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued at 09:24Z; no docs run queued or in progress. Maintainer should verify and cancel; this worker is read-only."
   },
   {
    "observed_at": "2026-11-16T08:37:32Z",
@@ -1640,20 +1640,20 @@
   "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
  },
  "dashboard_generation_verified": {
-  "verified_at": "2026-11-16T07:09:02Z",
-  "window": "43724243400..43814432358 (20 successes, 0 failures; 19 push + 1 schedule)",
+  "verified_at": "2026-11-16T09:24:52Z",
+  "window": "43753233809..43832040488 (20 completed non-cancelled; 19 push + 1 schedule 43810351164); recomputed from run_timings rows, no refetch",
   "demo_step_s": {
-   "median": 4.5,
+   "median": 5,
    "p90": 6,
-   "max": 6,
-   "min": 3
+   "min": 3,
+   "max": 6
   },
   "exec_s": {
-   "median": 73.5,
-   "p90": 111
+   "median": 77,
+   "p90": 92
   },
-  "demo_share_of_exec_median_pct": 6.1,
-  "gate_15pct_s": 11,
+  "demo_share_of_exec_median_pct": 6.5,
+  "gate_15pct_s": 11.55,
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 now = Date.now(); 05:23Z daily schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
   "note": "Dashboard site is built only by the demo step (buildDashboardSite); docs:build does not build the dashboard; no dashboard job exists; no dashboard cache in docs.yml."
  },
