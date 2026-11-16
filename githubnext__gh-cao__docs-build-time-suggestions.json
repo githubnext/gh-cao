@@ -1,36 +1,7 @@
 {
  "source_sha": "fade88d19a623a7e8b0aef354389615c54822f04",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T23:53:27Z",
-   "worker_run_id": "43776883092",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43768376457,
-    43766933236,
-    43766019418,
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809,
-    43752704784,
-    43752194225,
-    43746617494,
-    43731625055,
-    43724243400,
-    43721484176,
-    43721157324,
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57:34Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16:39Z), all within 14 days; 0 cancelled; gh run list at 23:52Z shows no completed run newer than 43768376457; source 14...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T00:42:13Z",
    "worker_run_id": "43781370553",
@@ -868,6 +839,34 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43757990961 (push 24f570e, created 2026-11-15T20:25Z) to 43854851689 (push fade88d, created 2026-11-16T11:06Z), all within 14 days; cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failures; none in progress; only stale queued 37642403569 (created 2026-10-07, outside window). Source fade88d = HEAD = new source_sha. Category: Build synthetic enterprise demo (npm run dashboard:pages:build -> simulate-dashboard-pages.mjs -> buildDashboardSite) median 5 s, p90 6 s, range 3-6 s = 6.6 percent of exec median 76 s; gate 15 percent = 11.4 s and 60 s absolute not met even at 100 percent ceiling (6 s). Reuse blocked: Date.now() synthetic dates and daily 05:23Z refresh. Exec median 76 s, p90 129 s. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T11:38:43Z",
+   "worker_run_id": "43859017780",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418",
+    "43757990961"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43757990961 (push 24f570e, created 2026-11-15T20:25Z) to 43854851689 (push fade88d, created 2026-11-16T11:06Z); 19 successes (18 push, 1 schedule 43810351164) sampled; cancelled 43832015521 excluded; 0 failed; none in progress at 11:37Z; only queued run is stale 37642403569 (created 2026-10-07, outside window). Source fade88d = main HEAD = source_sha. Transfer phase (handoff = deploy start minus build completion, plus Configure Pages, Upload Pages artifact, and deploy Set up job): median 8 s, p90 10 s, max 10 s = 10.5% of exec median 76 s; gate 60 s or 15% = 11.4 s not met. Newest run Jobs API matched stored row (handoff 5, upload 2, Deploy Pages 6). Artifact 9.2 MB; upload median 2 s, so compression cannot reach the gate. Rejected: merging deploy into build (saves about 6 s median and removes environment-gated deploy and id-token separation); dropping Configure Pages (0-1 s, Pages setup); Deploy Pages (6-7 s, GitHub-managed). Pages packaging (cp dashboard-pages to dist/cao) sits inside the 5-6 s demo step and is not separately timed. Next category: scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1312,8 +1311,8 @@
   ]
  },
  "transfer_model": {
-  "verified_at": "2026-11-16T09:46:11Z",
-  "window": "43756218347 (push 10f5e57) .. 43840581457 (push f0e71a1); 20 successes (19 push, 1 schedule 43810351164)",
+  "verified_at": "2026-11-16T11:38:43Z",
+  "window": "43757990961 (push 24f570e, 2026-11-15T20:25Z) .. 43854851689 (push fade88d, 2026-11-16T11:06Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded",
   "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
   "columns": [
    "run",
@@ -1328,6 +1327,18 @@
    "exec_s"
   ],
   "rows": [
+   [
+    "43854851689",
+    "push",
+    5,
+    0,
+    2,
+    1,
+    6,
+    9,
+    8,
+    76
+   ],
    [
     "43840581457",
     "push",
@@ -1543,42 +1554,19 @@
     9,
     7,
     61
-   ],
-   [
-    "43756384109",
-    "push",
-    4,
-    0,
-    2,
-    1,
-    5,
-    9,
-    7,
-    65
-   ],
-   [
-    "43756218347",
-    "push",
-    5,
-    0,
-    2,
-    0,
-    5,
-    8,
-    7,
-    78
    ]
   ],
   "summary": {
    "removable_median_s": 8,
    "removable_p90_s": 10,
    "removable_max_s": 10,
-   "exec_median_s": 77,
-   "exec_p90_s": 120,
-   "removable_pct_of_exec_median": 10.4,
-   "gate_15pct_s": 11.55
+   "exec_median_s": 76,
+   "exec_p90_s": 129,
+   "removable_pct_of_exec_median": 10.5,
+   "gate_15pct_s": 11.4,
+   "gate_60s_absolute": "not met"
   },
-  "reverified_note": "Window rolled to 43840581457: Jobs API rows added for 43825070138, 43829639369, 43831754585, 43831980991, 43832040488, 43840581457; 14 stored rows reused; rows outside the new 20-run window dropped."
+  "reverified_note": "Window rolled to 43854851689 (fade88d): Jobs API row added (handoff 5, configure 0, upload 2, deploy setup 1, Deploy Pages 6, exec 76); rows 43756218347 and 43756384109 dropped; 19 stored rows reused. Artifact github-pages 9233422 B (run 43854851689)."
  },
  "commit_paths": {
   "verified_at": "2026-11-16T02:26:27Z",
