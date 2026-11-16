@@ -1,36 +1,7 @@
 {
   "source_sha": "4121d564c85c3585b8c9fe2a8a0eae9c4e70d155",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T18:52:19Z",
-      "worker_run_id": "43748861830",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "43746617494",
-        "43731625055",
-        "43724243400",
-        "43721484176",
-        "43721157324",
-        "43706435376",
-        "43698271571",
-        "43682264332",
-        "43681861583",
-        "43680980929",
-        "43655786695",
-        "43639680929",
-        "43623754509",
-        "43621919773",
-        "43616204011",
-        "43613020723",
-        "43611206032",
-        "43608206381",
-        "43593405440",
-        "43561388555"
-      ],
-      "outcome": "complete, not actionable. Window = latest 20 completed docs.yml runs 43561388555 (schedule, 2026-11-14T05:24Z) to 43746617494 (push d62125be, 2026-11-15T18:24Z), all within 14 days; 0 cancelled, none queued or in progress; gh run list re-read 18:51Z: no newer run; source d62125be = HEAD = source_sha. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (all Build documentation). Rows reused from the 18:33Z Jobs API fetch (completed runs immutable; no ETag). Transfer median 8 s, p90 9 s = 10.5 percent of exec median 76.5 s (p90 92): handoff build-complete-to-deploy-start 5 s, deploy setup 1 s, Configure Pages median 0 s, Upload Pages artifact median 2 s (p90 3). 15 percent gate 11.5 s and 60 s gate unmet. Deploy Pages step median 7 s is GitHub-managed (removal drops publication). Merging deploy into build saves about 6 s (7.8 percent) and would move id-token write and the github-pages environment onto the job running root npm ci: rejected. Artifact shrink saves about 1 s. Checkout median 24.5 s stays with open issue 20815 (OPEN, 0 comments, unchanged), not repeated. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T19:18:00Z",
       "worker_run_id": "43751133159",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43721157324 (push ac6789f, 2026-11-15T13:51Z, failure) to 43798031034 (push 4121d56, 2026-11-16T03:24Z); all completed, 0 cancelled, none in progress; gh run list 04:58Z shows no newer run. Source 4121d56 = HEAD = source_sha. Samples: 19 successes meet the 5-run gate; 1 failure excluded and disclosed (Build documentation, 43721157324). Rows reused from run_timings (Jobs API; completed runs immutable); spot-checked 43798031034 (demo step 4 s) and 43752194225 (demo step 6 s) against the Jobs API. Category step Build synthetic enterprise demo: median 4 s, p90 6 s, range 3-6 s = 5.4 percent of exec median 74 s (p90 111 s). Best-case saving about 4 s; 60 s and 15 percent (11.1 s) gates unmet. Reuse not freshness-safe: scripts/simulate-dashboard-pages.mjs:78 defaults now to Date.now() and the 05:23Z schedule refreshes synthetic dates; skipping the step is invalid because dist/cao is deployed. docs.yml has no dashboard-generation cache (setup-node npm cache only). Open #20815 (checkout) unchanged (0 comments, updated 2026-11-13T17:41:19Z), not repeated; no open issue covers dashboard generation. Stale queued run 37642403569 still queued (see observations_pending). No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T05:20:00Z",
+      "worker_run_id": "43809140110",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "43798031034",
+        "43792211504",
+        "43789359390",
+        "43781377358",
+        "43781088986",
+        "43780290464",
+        "43768376457",
+        "43766933236",
+        "43766019418",
+        "43757990961",
+        "43756384109",
+        "43756218347",
+        "43753233809",
+        "43752704784",
+        "43752194225",
+        "43746617494",
+        "43731625055",
+        "43724243400",
+        "43721484176",
+        "43721157324"
+      ],
+      "outcome": "complete, not actionable. Window = latest 20 completed docs.yml runs 43721157324 (push ac6789f, 2026-11-15T13:51Z, failure) to 43798031034 (push 4121d56, 2026-11-16T03:24Z, success), all within 14 days; gh run list at 05:18Z: no newer docs run, none queued or in progress from the window, 0 cancelled; source 4121d56 = HEAD = source_sha. Gate: 19 successes (all push) >= 5; 1 failure excluded and disclosed (Build documentation). Removable transfer (handoff build-complete to deploy-start 5 s, Configure Pages 0 s, Upload Pages artifact 2 s, deploy setup 1 s): median 8 s, p90 10 s = 10.8 percent of exec median 74 s (p90 111). 15 percent gate 11.1 s and 60 s gate unmet. Deploy Pages median 7 s is GitHub-managed. Merging deploy into build saves about 6 s and moves id-token and github-pages environment onto the build job running npm ci (rejected). Artifact shrink saves about 1 s. Spot check: Jobs API for 43798031034 matches stored row (build 03:24:50-03:25:43, deploy 03:25:48-03:25:57, handoff 5 s, exec 67 s). Checkout median 24.5 s stays with OPEN issue 20815 (0 comments, unchanged since 2026-11-13T17:41:19Z), not repeated. Observation: stale queued docs run 37642403569 (workflow_run, headSha 6206962, created 2026-10-07) still queued at 05:18Z; maintainer should verify and cancel. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1650,7 +1650,9 @@
       "exec_p90_s": 111,
       "removable_pct_of_exec_median": 10.8,
       "gate_15pct_s": 11.1
-    }
+    },
+    "reverified_at": "2026-11-16T05:20:00Z",
+    "reverified_note": "Rows unchanged (completed runs immutable; no new docs runs since 43798031034). Recomputed median 8 s / p90 10 s from rows; spot check of 43798031034 Jobs API matched."
   },
   "commit_paths": {
     "verified_at": "2026-11-16T02:26:27Z",
