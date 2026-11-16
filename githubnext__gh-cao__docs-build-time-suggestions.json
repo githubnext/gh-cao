@@ -1,36 +1,7 @@
 {
  "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T05:54:18Z",
-   "worker_run_id": "43812745841",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "43810351164",
-    "43798031034",
-    "43792211504",
-    "43789359390",
-    "43781377358",
-    "43781088986",
-    "43780290464",
-    "43768376457",
-    "43766933236",
-    "43766019418",
-    "43757990961",
-    "43756384109",
-    "43756218347",
-    "43753233809",
-    "43752704784",
-    "43752194225",
-    "43746617494",
-    "43731625055",
-    "43724243400",
-    "43721484176"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43721484176 (push f02efd0, created 2026-11-15T13:54Z) to 43810351164 (schedule 4121d56, created 2026-11-16T05:27Z); all success, 0 cancelled, 0 failed; no docs run queued or in progress at 05:52Z; window unchanged since the 05:37...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T06:36:53Z",
    "worker_run_id": "43817419009",
@@ -863,6 +834,34 @@
     "43877103800"
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 comparable successes (18 push + 1 schedule 43810351164). gh run list 17:35Z: same 20 IDs, none newer, none queued or in progress; source ac6d75b = HEAD = source_sha. Queue (created to build start) median 3 s, p90 5 s; one 64 s outlier (43832040488 behind in-flight 43831980991, latency only). Exec (build start to deploy end) median 76 s, p90 129 s; 15 percent gate 11.4 s and 60 s absolute not met. Concurrency documentation-pages with cancel-in-progress false kept: protects in-flight Pages deploys; superseded pending run 43832015521 cancelled after 12 s with no compute; burst finding unchanged. Avoidable rebuilds: every window push except test-only 5b8b842 (43780290464) touches build-consumed paths (build.mjs copies dashboard/site/src and dashboard-fragments); test-only saving about 4 s per run averaged, below gates. Daily 05:23Z schedule (43810351164, exec 63 s) refreshes synthetic dates and is not skippable without a freshness change. No suggestion. Open #20815 (blobless checkout; checkout median 25 s, 33 percent of exec) is the only threshold-clearing candidate, already tracked, not repeated. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T17:54:40Z",
+   "worker_run_id": "43922348549",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z), including cancelled 43832015521 (excluded and disclosed): 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list 17:53Z: same 20 IDs, none newer, none queued or in progress. Source ac6d75b = HEAD = source_sha (non-trigger since 0cfeed6). Dependency phase (setup-node + install + post) recomputed from stored run_timings rows, no refetch: median 13 s, p90 18 s = 17.1 percent of exec median 76 s; 15 percent gate 11.4 s not met; install median 8 s. Cache: main key node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57Z, 263 MB), last accessed 17:50Z; post step 0-1 s in 19/19 (hit inferred; logs API not used). node_modules restore est 3-6 s net, unmeasured, below gate; npm ci cannot be skipped. Open #20815 (checkout) verified OPEN, 0 comments, updated 2026-11-13; other category, not repeated. No suggestion; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1718,8 +1717,9 @@
   "prior_window_convention": "evaluations through 2026-11-16T17:20Z used 20 non-cancelled runs (adds 43766019418); strict window used from 17:35Z"
  },
  "dependency_phase": {
-  "evaluated_at": "2026-11-16T16:22:30Z",
-  "window": "43766019418 (push eccbdd6) .. 43877103800 (push 0cfeed6); 20 completed non-cancelled runs; cancelled 43832015521 excluded; 20 successes; recomputed from run_timings rows, no refetch",
+  "evaluated_at": "2026-11-16T17:54:40Z",
+  "window": "strict latest 20 completed docs.yml runs 43766933236..43877103800; cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164)",
+  "method": "recomputed from stored run_timings rows (immutable), no refetch",
   "setup_node_s": {
    "median": 3,
    "p90": 6
@@ -1734,15 +1734,15 @@
   },
   "setup_install_post_s": {
    "median": 13,
-   "p90": 17
+   "p90": 18
   },
-  "share_of_exec_median_pct": 16.7,
+  "share_of_exec_median_pct": 17.1,
   "exec_s": {
-   "median": 78,
-   "p90": 120
+   "median": 76,
+   "p90": 129
   },
   "gate_15pct_s": 11.4,
-  "note": "Whole-phase removal is an unreachable ceiling (npm ci cannot be skipped). node_modules restore est 3-6 s net, unmeasured, below gate. Not actionable."
+  "note": "Whole-phase removal unreachable (npm ci required). node_modules restore est 3-6 s net, unmeasured, below gate. Not actionable."
  },
  "astro_step_verified": {
   "verified_at": "2026-11-16T16:35:33Z",
