@@ -1218,12 +1218,18 @@ Value execution without a snapshot Projector or its dirty-generation lifecycle.
 Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
 Redis-backed operational counters and exposes a read-only health status API.
-Verified GitHub issue and pull-request lifecycle deliveries for enrolled
-repositories enqueue repository-keyed lifecycle refresh through the durable
-operational queue. Delivery IDs are deduplicated and pending repository work is
-coalesced. Webhook payloads and receipt clocks remain hints, not entity evidence:
-a bounded worker holds a per-repository lease and re-reads exact attributed
-objects through the shared quota service before updating canonical lifecycle.
+Verified GitHub issue and pull-request lifecycle deliveries for enrolled target
+repositories enqueue target-repository-keyed lifecycle refresh through the
+durable operational queue. The lifecycle row remains owned by its producing
+repository, workflow, and Run even when the exact attributed object belongs to
+another enrolled repository. Delivery IDs are deduplicated and pending target
+repository work is coalesced. Webhook payloads and receipt clocks remain hints,
+not entity evidence: a bounded worker holds a per-target-repository lease and
+re-reads exact attributed objects with that target's current installation and
+enrollment epoch through the shared quota service before updating canonical
+lifecycle rows. Target withdrawal or authority change removes provider-derived
+adoption, reversal, survival, and supporting Audit evidence while retaining the
+producing delivery lifecycle at its registry-derived state.
 Hourly scope repair queues only state older than one day, so missed deliveries
 receive daily repair without per-workflow polling or another acquisition profile.
 Authorized operators receive the registered `collection-health` runtime source

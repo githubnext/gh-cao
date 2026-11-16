@@ -43,14 +43,18 @@ func (f *lifecycleStoreFixture) RecordOutcome(
 }
 
 type lifecycleReaderFixture struct {
-	outcome mining.Outcome
-	calls   int
+	outcome      mining.Outcome
+	target       mining.Target
+	installation int64
+	calls        int
 }
 
 func (f *lifecycleReaderFixture) ReadOutcome(
-	context.Context, int64, mining.Target,
+	_ context.Context, installation int64, target mining.Target,
 ) (mining.Outcome, githubquota.ResponseQuota, error) {
 	f.calls++
+	f.installation = installation
+	f.target = target
 	return f.outcome, githubquota.ResponseQuota{
 		HasResponse: true, Resource: githubquota.ResourceCore, HasObservation: true,
 		Observation: githubquota.Observation{
@@ -83,6 +87,7 @@ func TestNativeLifecycleRefreshRereadsAuthoritativeState(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !more || !store.before.IsZero() || reader.calls != 1 || len(store.recorded) != 1 ||
+		reader.installation != scope.InstallationID || reader.target.Repository != scope.Repository ||
 		store.recorded[0].Source != "github-api" || len(quota.commits) != 1 {
 		t.Fatalf("authoritative refresh = more:%t before:%s calls:%d recorded:%+v commits:%d",
 			more, store.before, reader.calls, store.recorded, len(quota.commits))

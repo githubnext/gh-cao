@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
@@ -119,6 +120,101 @@ func (a Acquisition) fenceScope(ctx context.Context, tx *sql.Tx, scope collectna
 	return err
 }
 
+func lifecycleAuthorityPresence(issueAccepted, pullRequestAccepted bool) string {
+	expression := "present_fields"
+	for index, column := range entityTables["$outputLifecycles"].columns {
+		bit := ""
+		switch column.field {
+		case "adoptionAt":
+			bit = fmt.Sprintf(
+				"CASE WHEN safe_output_type='create_issue' THEN %d ELSE %d END",
+				map[bool]int{false: 0, true: 1}[issueAccepted],
+				map[bool]int{false: 0, true: 1}[pullRequestAccepted],
+			)
+		case "reversalSignal", "reversedAt", "survivalSignal", "survivalObservedAt":
+			bit = "0"
+		case "adoptionState", "adoptionSignal", "adoptionObservedAt", "adoptionSource",
+			"ruleVersion", "survivalState", "observedAt":
+			bit = "1"
+		}
+		if bit != "" {
+			expression = fmt.Sprintf("set_bit(%s,%d,%s)", expression, index, bit)
+		}
+	}
+	return expression
+}
+
+func lifecycleFallback(outputType string) (mining.AdoptionEvaluation, string) {
+	evaluation := mining.EvaluateSafeOutputDelivery(outputType, time.Unix(0, 0).UTC())
+	source := "adoption-registry"
+	if evaluation.AcceptanceKind == "fallback_delivery" {
+		source = "delivery-rule"
+	}
+	return evaluation, source
+}
+
+// invalidateNativeOutcomeAuthority removes provider evidence acquired under a
+// target repository's previous enrollment epoch without deleting producing
+// lifecycle rows owned by other repositories.
+func (s *Store) invalidateNativeOutcomeAuthority(
+	ctx context.Context,
+	tx *sql.Tx,
+	repository string,
+) (bool, error) {
+	if !validEnrollmentRepository(repository) {
+		return false, collectnative.ErrIdentity
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_outcomes
+		WHERE namespace=$1 AND repository=$2`, s.namespace, repository); err != nil {
+		return false, err
+	}
+	audits, err := tx.ExecContext(ctx, `DELETE FROM audits a USING output_lifecycles l
+		WHERE a.namespace=$1 AND l.namespace=a.namespace AND l.target_repository=$2
+		AND l.safe_output_type IN ('create_issue','create_pull_request')
+		AND a.run_id=l.run_id AND a.payload_ref=l.target_url
+		AND a.source=$3 AND a.type='outcome.observed'`,
+		s.namespace, repository, mining.Source)
+	if err != nil {
+		return false, err
+	}
+	issue, issueSource := lifecycleFallback("create_issue")
+	pullRequest, pullRequestSource := lifecycleFallback("create_pull_request")
+	//nolint:gosec // The generated lifecycle contract supplies the only dynamic bit indexes.
+	statement := `UPDATE output_lifecycles SET
+		adoption_state=CASE WHEN safe_output_type='create_issue' THEN $3 ELSE $4 END,
+		adoption_signal=CASE WHEN safe_output_type='create_issue' THEN $5 ELSE $6 END,
+		adoption_at=CASE
+			WHEN safe_output_type='create_issue' AND $9 THEN delivered_at
+			WHEN safe_output_type='create_pull_request' AND $10 THEN delivered_at
+			ELSE NULL END,
+		adoption_observed_at=delivery_observed_at,
+		adoption_source=CASE WHEN safe_output_type='create_issue' THEN $7 ELSE $8 END,
+		rule_version=$11,
+		reversal_signal=NULL,reversed_at=NULL,
+		survival_state='unknown',survival_signal=NULL,survival_observed_at=NULL,
+		observed_at=delivery_observed_at,
+		present_fields=` + lifecycleAuthorityPresence(issue.AcceptedAt != nil, pullRequest.AcceptedAt != nil) + `
+		WHERE namespace=$1 AND target_repository=$2
+		AND safe_output_type IN ('create_issue','create_pull_request')`
+	lifecycles, err := tx.ExecContext(ctx, statement,
+		s.namespace, repository,
+		issue.Status, pullRequest.Status,
+		issue.Signal, pullRequest.Signal,
+		issueSource, pullRequestSource,
+		issue.AcceptedAt != nil, pullRequest.AcceptedAt != nil,
+		mining.AdoptionRegistryVersion,
+	)
+	if err != nil {
+		return false, err
+	}
+	auditRows, err := audits.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	lifecycleRows, err := lifecycles.RowsAffected()
+	return auditRows > 0 || lifecycleRows > 0, err
+}
+
 func decodeNativeOutcome(content []byte, repository string) (mining.Outcome, error) {
 	var outcome mining.Outcome
 	if len(content) > 32768 || decodeJSON(content, &outcome) != nil ||
@@ -132,11 +228,9 @@ func (s *Store) attributeNativeOutcome(ctx context.Context, tx *sql.Tx, outcome 
 	rows, err := tx.QueryContext(ctx, `SELECT l.id,l.run_id,r.run_at,l.safe_output_type,coalesce(i.id,'')
 		FROM output_lifecycles l
 		JOIN runs r ON r.namespace=l.namespace AND r.id=l.run_id
-		JOIN repositories repo ON repo.namespace=l.namespace AND repo.id=l.repository_id
 		LEFT JOIN issues i ON i.namespace=l.namespace AND i.run_id=l.run_id
 			AND (i.safe_output_url=l.target_url OR i.correlation_id=l.target_url)
 		WHERE l.namespace=$1 AND l.target_url=$2 AND l.target_repository=$3
-		AND lower(repo.owner || '/' || repo.name)=$3
 		AND ((l.safe_output_type='create_issue' AND NOT $4)
 			OR (l.safe_output_type='create_pull_request' AND $4))
 		AND ($5='' OR l.run_id=$5)
@@ -209,15 +303,13 @@ func (s *Store) attributeNativeOutcome(ctx context.Context, tx *sql.Tx, outcome 
 
 // Replay only dispositions selected by exact safe-output URLs in this run.
 // Run replacement must never erase independently retained observations.
-func (a Acquisition) replayOutcomes(ctx context.Context, tx *sql.Tx, publication AcquisitionPublication, runID string, now time.Time) error {
-	rows, err := tx.QueryContext(ctx, `SELECT o.content FROM cao_acquisition_outcomes o
+func (a Acquisition) replayOutcomes(ctx context.Context, tx *sql.Tx, _ AcquisitionPublication, runID string, now time.Time) error {
+	rows, err := tx.QueryContext(ctx, `SELECT o.repository,o.content FROM cao_acquisition_outcomes o
 		JOIN cao_acquisition_scopes s ON s.namespace=o.namespace AND s.repository=o.repository
 			AND s.epoch=o.epoch AND s.installation_id>0
 		WHERE o.namespace=$1 AND o.observed_at >= $3
 		AND EXISTS (SELECT 1 FROM output_lifecycles l WHERE l.namespace=o.namespace
-			AND l.run_id=$2 AND l.target_url=o.url AND l.target_repository=o.repository
-			AND EXISTS(SELECT 1 FROM repositories repo WHERE repo.namespace=l.namespace
-				AND repo.id=l.repository_id AND lower(repo.owner || '/' || repo.name)=o.repository))
+			AND l.run_id=$2 AND l.target_url=o.url AND l.target_repository=o.repository)
 		ORDER BY o.repository,o.url LIMIT 20001`, a.store.namespace, runID, now.AddDate(0, 0, -30))
 	if err != nil {
 		return err
@@ -225,12 +317,13 @@ func (a Acquisition) replayOutcomes(ctx context.Context, tx *sql.Tx, publication
 	defer func() { _ = rows.Close() }()
 	var outcomes []mining.Outcome
 	for rows.Next() {
+		var repository string
 		var content []byte
-		if err := rows.Scan(&content); err != nil {
+		if err := rows.Scan(&repository, &content); err != nil {
 			_ = rows.Close()
 			return err
 		}
-		outcome, err := decodeNativeOutcome(content, publication.Identity.Repository)
+		outcome, err := decodeNativeOutcome(content, repository)
 		if err != nil {
 			_ = rows.Close()
 			return err
@@ -267,10 +360,8 @@ func (a Acquisition) LifecycleRefreshDue(
 	}
 	var due bool
 	err = a.store.db.QueryRowContext(ctx, `SELECT EXISTS(
-		SELECT 1 FROM output_lifecycles l JOIN repositories repo
-			ON repo.namespace=l.namespace AND repo.id=l.repository_id
+		SELECT 1 FROM output_lifecycles l
 		WHERE l.namespace=$1 AND l.target_repository=$2
-			AND lower(repo.owner || '/' || repo.name)=$2
 			AND l.safe_output_type IN ('create_issue','create_pull_request')
 			AND l.target_url IS NOT NULL AND l.adoption_observed_at<$3
 	)`, a.store.namespace, scope.Repository, before).Scan(&due)
@@ -294,10 +385,8 @@ func (a Acquisition) LifecycleRefreshTargets(
 		return nil, false, collectnative.ErrClaimLost
 	}
 	rows, err := a.store.db.QueryContext(ctx, `SELECT l.target_url,min(l.adoption_observed_at) AS oldest
-		FROM output_lifecycles l JOIN repositories repo
-			ON repo.namespace=l.namespace AND repo.id=l.repository_id
+		FROM output_lifecycles l
 		WHERE l.namespace=$1 AND l.target_repository=$2
-			AND lower(repo.owner || '/' || repo.name)=$2
 			AND l.safe_output_type IN ('create_issue','create_pull_request')
 			AND l.target_url IS NOT NULL AND ($3 OR l.adoption_observed_at<$4)
 		GROUP BY l.target_url ORDER BY oldest,l.target_url LIMIT $5`,

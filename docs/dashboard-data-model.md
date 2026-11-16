@@ -89,12 +89,16 @@ provenance, and any observed reversal or survival evidence. It does not calculat
 impact, contribution, before/after windows, or Value. `operationalValueEvidence`
 may reference lifecycle facts but is never their source of truth.
 
-Hosted webhooks only request a repository refresh. Workers re-read exact
-attributed provider objects before changing adoption state. The initial
-authoritative provider reader covers same-repository created issues and pull
-requests; other provider event families and cross-repository refresh are
-explicitly deferred. Delivery and fail-closed registry state remain available
-for every safe-output type.
+Hosted webhooks only request a target-repository refresh. Workers re-read exact
+attributed provider objects using the target repository's current enrollment,
+installation, and source epoch before changing adoption state. Created issues
+and pull requests may live in a different enrolled repository from the
+producing workflow; the Output Lifecycle remains owned by the producing
+Repository, Workflow, and Run. Target withdrawal or authority change removes
+provider-derived adoption, reversal, survival, and supporting Audit evidence
+while preserving delivery and restoring registry-derived adoption. Other
+provider event families remain explicitly deferred. Delivery and fail-closed
+registry state remain available for every safe-output type.
 
 The current dashboard publication does not include immutable GitHub repository or workflow IDs. Its compatibility adapter therefore uses namespaced deterministic source coordinates for those entities. These IDs are explicitly transitional and MUST be replaced by immutable GitHub IDs when publication supplies them.
 

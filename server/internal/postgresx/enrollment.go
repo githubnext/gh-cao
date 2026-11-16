@@ -390,6 +390,9 @@ func (a nativeEnrollment) flush(ctx context.Context, mutation *enrollmentMutatio
 		if current.InstallationID == change.next {
 			continue
 		}
+		if _, err := a.store.invalidateNativeOutcomeAuthority(ctx, mutation.tx, repository); err != nil {
+			return err
+		}
 		if current.InstallationID > 0 {
 			if err := a.store.withdrawArchiveSources(ctx, mutation.tx, repository); err != nil {
 				return err

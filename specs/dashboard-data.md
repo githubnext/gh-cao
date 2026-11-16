@@ -2554,12 +2554,20 @@ when webhooks are absent or lost. The Actions profile remains valid without an
 inbound receiver.
 
 The private `cao_acquisition_outcomes` operational table MAY retain at most
-20,000 exact issue/pull-request observations and 16 MiB per repository for 30
-days. It is replay/repair state, not the query source. Authoritative delivery is
-reconstructable from the existing Activity/evidence-lake `safe_output.result`;
-supported disposition is reconstructable by re-reading the exact provider URL.
-The initial hosted reader supports same-repository `create_issue` and
-`create_pull_request`. Cross-repository provider refresh and authoritative
+20,000 exact issue/pull-request observations and 16 MiB per target repository
+for 30 days. It is replay/repair state, not the query source. Authoritative
+delivery is reconstructable from the existing Activity/evidence-lake
+`safe_output.result`; supported disposition is reconstructable by re-reading the
+exact provider URL. The hosted reader supports same-repository and
+cross-repository `create_issue` and `create_pull_request` when the URL's target
+repository is currently enrolled. Refresh admission, quota, lease, cache, and
+source epoch SHALL belong to that exact target repository; the producing
+Repository, Workflow, Run, delivery evidence, and lifecycle identity SHALL NOT
+move. URLs, credentials, and producing-workflow authority MUST NOT discover or
+authorize a target. Target withdrawal or authority change SHALL remove
+provider-derived adoption, reversal, survival, and supporting Audit evidence
+acquired under the prior target epoch, then restore the delivery-derived
+registry state without deleting the producing lifecycle row. Authoritative
 provider events for discussions, reviews, comments, projects, advisories,
 alerts, dispatches, releases, artifacts, assets, and mutations are deferred;
 their delivery and registry-derived adoption remain queryable without invented

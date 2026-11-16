@@ -556,13 +556,24 @@ Projection MUST discard memberships whose run or selected attempt is absent.
 
 Verified `issues` and `pull_request` deliveries MUST queue bounded lifecycle
 observations without acquiring logs or calling GitHub in the receiver.
-Workers MUST recheck current installation ownership. An observation MUST join
-an agent output only through an exact retained safe-output URL, including host,
-repository, object category, and number; unrelated objects MUST NOT be attributed
-to an agent. This lifecycle profile MUST evaluate only `create_issue` and
-`create_pull_request` actions; edits, comments, reviews, and close actions require
-their own evidence rules. Newer object `updated_at` observations supersede older ones.
-Contradictory same-time observations MUST fail closed.
+Workers MUST queue, coalesce, lease, reserve quota, and fence source epochs by
+the exact URL's current enrolled target repository. The producing workflow's
+repository and credentials grant no target authority, and URLs MUST NOT cause
+repository discovery. An observation MUST join an agent output only through an
+exact retained safe-output URL, including host, repository, object category, and
+number; unrelated objects MUST NOT be attributed to an agent. The producing
+lifecycle row remains owned by its original Repository, Workflow, and Run when
+the target differs. This lifecycle profile MUST evaluate only `create_issue` and
+`create_pull_request` actions; edits, comments, reviews, and close actions
+require their own evidence rules. Newer object `updated_at` observations
+supersede older ones. Contradictory same-time observations MUST fail closed.
+
+Target-repository withdrawal or installation/epoch change MUST remove retained
+provider observations and provider-derived adoption, reversal, survival, and
+supporting Audit evidence sourced under the prior authority. It MUST retain
+delivery evidence and any producing lifecycle rows owned by other repositories,
+restoring their registry-derived state. A stale queued refresh MUST fail its
+target epoch fence and MUST NOT mutate a later enrollment.
 
 PR merge is accepted; PR closure without merge is rejected. Issue closure as
 `completed` is accepted. Issue closure as `not_planned` by a bot is lifecycle,
@@ -572,8 +583,9 @@ unknown. Run success MUST NOT establish any of these dispositions. Comment,
 review, engagement, zero-touch, and operational-value evidence MUST NOT be
 inferred from this bounded lifecycle profile.
 
-The server MUST repair dispositions over retained exact output references, not
-GitHub searches or repository issue inventories. The default repair pass has a
+The server MUST repair dispositions over retained exact output references,
+grouped by their enrolled target repository, not GitHub searches or repository
+issue inventories. The default repair pass has a
 one-minute deadline and a hard cap of ten REST calls, including quota
 initialization, across the entire pass. Every object read MUST reserve and
 reconcile shared installation quota, including errors and backoff. A persisted

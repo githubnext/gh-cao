@@ -8,7 +8,10 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
+	"github.com/githubnext/gh-cao/server/internal/mining"
+	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
@@ -206,6 +209,102 @@ func TestNativeIssueWebhooksCoalesceIntoAuthoritativeLifecycleRefresh(t *testing
 	if more, err := nativeEventWorker(queue, enrollment, hooks).Step(t.Context()); err != nil || !more ||
 		hooks.outcomes != 1 {
 		t.Fatalf("authoritative lifecycle refresh = %v %v refreshes=%d", more, err, hooks.outcomes)
+	}
+}
+
+func TestNativeIssueWebhookRefreshesCrossRepositoryProducingLifecycle(t *testing.T) {
+	data := testutil.Postgres(t, t.Context(), "CAO_TEST_POSTGRES_URL", "POSTGRES_URL")
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	runID := "github:run:octo/control:303"
+	lifecycle, err := mining.OutputLifecycleRow(
+		"safe-output", "producer", "workflow", runID, "create_issue", "Cross-repository proposal",
+		"octo/target", "https://github.com/octo/target/issues/42",
+		now.Add(-time.Hour), now.Add(-time.Hour), "gh-aw-logs",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer, err := data.BeginIngestion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Abort(t.Context())
+	for _, record := range []struct {
+		source string
+		row    model.Row
+	}{
+		{"$repositories", model.Row{"id": "producer", "owner": "octo", "name": "control"}},
+		{"$workflows", model.Row{"id": "workflow", "repositoryId": "producer", "path": ".github/workflows/test.md"}},
+		{"$runs", model.Row{"id": runID, "repositoryId": "producer", "workflowId": "workflow",
+			"owner": "octo", "repository": "control", "githubRunId": "303"}},
+		{"$outputLifecycles", lifecycle},
+	} {
+		if err := writer.Append(t.Context(), record.source, record.row); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := writer.Publish(t.Context(), "cross-repository-lifecycle"); err != nil {
+		t.Fatal(err)
+	}
+
+	queue := nativeEventQueue(t)
+	enrollment := nativeEnrollmentFixture(t, data, queue)
+	if err := enrollment.AddRepositories(t.Context(), 8, []string{"octo/control"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := enrollment.AddRepositories(t.Context(), 7, []string{"octo/target"}); err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(`{"action":"closed","installation":{"id":7},"repository":{"full_name":"octo/target"},
+		"issue":{"number":42,"state":"closed","state_reason":"completed",
+		"closed_at":"2026-11-15T12:00:00Z","updated_at":"2026-11-15T12:00:00Z",
+		"html_url":"https://github.com/octo/target/issues/42"}}`)
+	admitter := Admitter{Enrollment: enrollment, Queue: queue}
+	admission, err := admitter.AdmitDelivery(t.Context(), "issues", payload, "cross-lifecycle", time.Hour)
+	if err != nil || !admission.Enqueued {
+		t.Fatalf("cross-repository lifecycle hint = %+v %v", admission, err)
+	}
+	dispositionAt := now.Add(-time.Minute)
+	reader := &lifecycleReaderFixture{outcome: mining.Outcome{
+		Repository: "octo/target", Number: 42, URL: "https://github.com/octo/target/issues/42",
+		State: "closed", StateReason: "completed", CloseActor: "User",
+		DispositionAt: &dispositionAt, UpdatedAt: dispositionAt,
+		ObservedAt: now, Source: "github-api",
+	}}
+	hooks := &nativeRefreshFixture{}
+	client := nativeScopeFixture{
+		installations: []githubapp.Installation{{ID: 7}, {ID: 8}},
+		repositories: map[int64][]githubapp.Repository{
+			7: {{FullName: "octo/target"}},
+			8: {{FullName: "octo/control"}},
+		},
+	}
+	worker := NativeWorker{
+		Queue: queue, Enrollment: enrollment, Consumer: "native-control",
+		Client: client, Inventory: hooks, Values: hooks,
+		Lifecycles: NativeLifecycleService{
+			Store: data.Acquisition(), Client: reader,
+			Quota: &fakeRunQuota{known: true}, QuotaApp: "github-app-123",
+		},
+		WindowDays: 7,
+		ScopeRefresher: ScopeRefresher{
+			Client: client, Quota: &fakeRunQuota{known: true}, QuotaApp: "github-app-123",
+		},
+	}
+	if more, err := worker.Step(t.Context()); err != nil || !more {
+		t.Fatalf("cross-repository lifecycle worker = more:%t err:%v", more, err)
+	}
+	results, _, err := data.ExecuteSQLPlan(t.Context(), []query.Definition{
+		{Name: "lifecycles", From: "$outputLifecycles"},
+	}, []string{"lifecycles"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := results["lifecycles"].Rows
+	if len(rows) != 1 || rows[0]["repositoryId"] != "producer" ||
+		rows[0]["targetRepository"] != "octo/target" || rows[0]["adoptionState"] != "accepted" ||
+		reader.calls != 1 || reader.installation != 7 || reader.target.Repository != "octo/target" {
+		t.Fatalf("cross-repository lifecycle result = rows:%+v reader:%+v", rows, reader)
 	}
 }
 
