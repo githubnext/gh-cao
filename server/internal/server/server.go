@@ -835,6 +835,9 @@ func (a *App) Handler() http.Handler {
 	register("POST /api/v1/refresh", a.refresh)
 	if a.oauth == nil {
 		register("POST /api/v1/ingestion/start", a.startIngestion)
+		if a.hostedCLI != nil && a.hostedCLI.local != nil {
+			register("POST /__cli_commands/selector", a.repositorySelector)
+		}
 	}
 	register("GET /api/repositories", a.repositories)
 	register("GET /api/repositories/{id}", a.repository)
@@ -2153,7 +2156,7 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 			// authorizes only the local command queue routes.
 			http.SetCookie(response, &http.Cookie{
 				Name: localCLISessionCookie, Value: a.localCLISession(), Path: "/__cli_commands",
-				HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+				HttpOnly: true, Secure: request.TLS != nil, SameSite: http.SameSiteStrictMode,
 			})
 		}
 	}

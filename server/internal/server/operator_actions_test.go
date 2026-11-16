@@ -47,8 +47,11 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 	if err != nil || invocation.Command != "gh cao repos add Octo/New-Service" || invocation.Repository != "octo/new-service" {
 		t.Fatalf("exact enrollment failed admission: %+v %v", invocation, err)
 	}
-	// The shared template grammar admits exact names only.
-	for _, pattern := range []string{"octo/service-*", "octo/../other", "octo", "octo/a b", "octo/api --repo x"} {
+	invocation, err = app.admitOperatorAction(hostedcli.Request{ID: "add-repository", Values: map[string]string{"repository-pattern": "octo/service-*"}})
+	if err != nil || invocation.Command != "gh cao repos add 'octo/service-*'" || invocation.Repository != "" {
+		t.Fatalf("wildcard enrollment failed admission: %+v %v", invocation, err)
+	}
+	for _, pattern := range []string{"octo/../other", "octo", "octo/a b", "octo/api --repo x"} {
 		if _, err := app.admitOperatorAction(hostedcli.Request{ID: "add-repository", Values: map[string]string{"repository-pattern": pattern}}); err == nil {
 			t.Fatalf("invalid enrollment pattern %q admitted", pattern)
 		}
@@ -220,7 +223,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 			session = cookie
 		}
 	}
-	if session == nil || session.Path != "/__cli_commands" || !session.HttpOnly || !session.Secure || session.SameSite != http.SameSiteStrictMode || strings.Contains(session.Value, testAccessToken) {
+	if session == nil || session.Path != "/__cli_commands" || !session.HttpOnly || session.Secure || session.SameSite != http.SameSiteStrictMode || strings.Contains(session.Value, testAccessToken) {
 		t.Fatalf("worker command session cookie is missing or unscoped: %+v", session)
 	}
 	// The data worker carries only the scoped cookie, never the bearer token.

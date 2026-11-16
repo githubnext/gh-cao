@@ -45,11 +45,18 @@ afterEach(() => {
 });
 
 describe('declarative external dialog selector', () => {
-  it('offers exact input and wildcard patterns only when declared and clears selection on edits', async () => {
+  it('disables spelling, capitalization, and correction for repository identifiers', () => {
+    const { input } = picker();
+    expect(input.getAttribute('spellcheck')).toBe('false');
+    expect(input.getAttribute('autocapitalize')).toBe('none');
+    expect(input.getAttribute('autocorrect')).toBe('off');
+  });
+
+  it('offers only declared wildcard patterns without GitHub lookup and clears selection on edits', async () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const control = picker({ ...definition, 'allow-patterns': true, mapping: { ...definition.mapping, target: 'repository-pattern' } });
-    for (const value of ['octo/repo', 'octo/service-*', 'octo/*']) {
+    for (const value of ['octo/service-*', 'octo/*']) {
       control.type(value);
       expect(control.select).toHaveBeenLastCalledWith(null);
       control.root.querySelector('button')?.click();
@@ -64,6 +71,39 @@ describe('declarative external dialog selector', () => {
     control.reset();
     expect(control.input.value).toBe('');
     expect(control.root.querySelector('button')).toBeNull();
+  });
+
+  it('resolves typed repository names through GitHub rather than offering unverified exact input', async () => {
+    const fetch = vi.fn().mockResolvedValue(response([{ ...option, value: 'Octo/Repository', label: 'Octo/Repository' }]));
+    vi.stubGlobal('fetch', fetch);
+    const control = picker({ ...definition, 'allow-patterns': true, mapping: { ...definition.mapping, target: 'repository-pattern' } });
+    control.type('octo/repo');
+    expect(control.root.querySelector('button')).toBeNull();
+    expect(control.select).toHaveBeenLastCalledWith(null);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(fetch).toHaveBeenCalledWith('./__cli_commands/selector', expect.objectContaining({
+      body: JSON.stringify({ id: action.id, text: 'octo/repo' })
+    }));
+    control.root.querySelector('button')?.click();
+    expect(control.select).toHaveBeenLastCalledWith('Octo/Repository');
+  });
+
+  it('aborts in-flight search when switching to a wildcard and ignores its late results', async () => {
+    /** @type {((value: ReturnType<typeof response>) => void) | undefined} */
+    let resolveSearch;
+    const fetch = vi.fn().mockImplementation(() => new Promise((resolve) => { resolveSearch = resolve; }));
+    vi.stubGlobal('fetch', fetch);
+    const control = picker({ ...definition, 'allow-patterns': true, mapping: { ...definition.mapping, target: 'repository-pattern' } });
+    control.type('octo/repo');
+    await vi.advanceTimersByTimeAsync(300);
+    control.type('octo/*');
+    expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+    resolveSearch?.(response());
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(control.root.textContent).toContain('octo/*');
+    expect(control.root.textContent).not.toContain('octo/repo');
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('debounces input and uses only action identity and opaque text in requests', async () => {

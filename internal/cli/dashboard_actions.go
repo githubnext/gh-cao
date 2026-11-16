@@ -208,6 +208,7 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 	active := map[string]context.CancelFunc{}
 	canceled := map[string]bool{}
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST "+adapterPrefix+"/repositories/search", dashboardRepositorySearch)
 	mux.HandleFunc("POST "+adapterPrefix+"/cancel", func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get("X-Command-ID")
 		if !dashboardRunID.MatchString(id) {

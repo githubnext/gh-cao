@@ -48,7 +48,7 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       message.set('GitHub search is taking longer than usual. You can keep typing to refine your search or cancel.');
     }, 2000);
     try {
-      const response = await fetch('./__dialog_selector', {
+      const response = await fetch('./__cli_commands/selector', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: actionId, text }), signal: request.signal
       });
@@ -73,6 +73,7 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
   }, definition['debounce-ms']);
   const input = /** @type {HTMLInputElement} */ (h('input', {
     type: 'search', className: 'dialog-selector-input', 'aria-label': definition.label,
+    spellcheck: false, autocapitalize: 'none',
     placeholder: definition.placeholder ?? 'Search repositories', maxLength: 200,
     onInput: () => {
       invalidate();
@@ -81,14 +82,13 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       selected.set(null);
       select(null);
       const text = input.value.trim();
-      if (definition['allow-patterns'] && REPOSITORY_PATTERN.test(text)) {
-        choices.set([{ value: text, label: text, description: text.includes('*')
-          ? 'Use wildcard: resolve accessible matches to exact repositories in review mode.'
-          : 'Use this exact repository; access is verified before enrollment.' }]);
-        message.set('Select this repository or pattern to review the command. No policy changes have been made.');
-        return;
-      }
       if (definition['allow-patterns'] && text.includes('*')) {
+        if (REPOSITORY_PATTERN.test(text)) {
+          choices.set([{ value: text, label: text,
+            description: 'Use wildcard: resolve accessible matches to exact repositories in review mode.' }]);
+          message.set('Select this pattern to review the command. No policy changes have been made.');
+          return;
+        }
         message.set('Enter an owner/repository pattern, for example octo/* or octo/service-*.');
         return;
       }
@@ -96,6 +96,7 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       if (text.length >= 2) lookup(text);
     }
   }));
+  input.setAttribute('autocorrect', 'off');
   const status = renderLiveRegion('output', 'dialog-selector-status');
   const results = h('div', { className: 'dialog-selector-options', role: 'group', 'aria-label': 'Search results' });
   const root = h('div', { className: 'dialog-selector' }, h('label', null, definition.label, input), status, results);
