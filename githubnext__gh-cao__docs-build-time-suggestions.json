@@ -1,36 +1,7 @@
 {
- "source_sha": "86f6047e5301a5bd2efb910d3f5c676e9b3e5362",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "source_sha": "67a85689f0c177e6ae1da38b68ee962bc25dc070",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T15:53:10Z",
-   "worker_run_id": "43731956471",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376",
-    "43698271571",
-    "43682264332",
-    "43681861583",
-    "43680980929",
-    "43655786695",
-    "43639680929",
-    "43623754509",
-    "43621919773",
-    "43616204011",
-    "43613020723",
-    "43611206032",
-    "43608206381",
-    "43593405440",
-    "43561388555",
-    "43536796952"
-   ],
-   "outcome": "complete, not actionable; reliability recovered. Window = latest 20 completed docs.yml runs 43536796952 (push 54e08aa, created 2026-11-14T00:50:15Z) to 43731625055 (push 88f046c, created 2026-11-15T15:45:14Z), all within 14 days; none queued or in progress; 0 cancelled; no docs.yml run after 15:46Z. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (Build documentation streak 43613020723..43721157324 incl. schedule 43680980929). Queue (run created to build start, n=20) median 3 s, p90 4 s, max 4 s; run intervals do not overlap, so no concurrency hold in window (43504143936 68 s hold is outside it). Execution (build start to deploy end, successes) median 77 s, p90 92 s; 15 percent gate 11.6 s and 60 s gate unmet; removable transfer median 8.5 s (11 percent). Avoidable rebuilds: 0 of 18 push runs. 88f046c touched dashboard/site/dashboard-fragments/workflow-value.json, which build.mjs copies (line 51), so it is a real build input; the test-only files it also touched are not copied. Latent watch item: docs.yml trigger dashboard/site/** matches dashboard/site/test/**, which the build never copies; no test-only docs run observed in window, so not repeated evidence. Schedule 05:23 UTC is by-design synthetic-date refresh (runs 05:24Z on time). No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T16:19:50Z",
    "worker_run_id": "43734357300",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43Z) to 43781377358 (push 86f6047, created 2026-11-16T00:36Z); re-listed 01:53Z: same 20 IDs, none newer, none in progress, 0 cancelled; stale queued 37642403569 excluded (see observations_pending). Source 86f6047 = HEAD = source_sha. Jobs API re-fetched for all 20 runs. n=16 push successes meet the 5-run gate; 4 failures (Build documentation, 9-13 s into step) excluded and disclosed; no schedule run in window. Removable transfer (build completed to deploy started median 5 s, Configure Pages 0 s, Upload Pages artifact 2 s, deploy Set up job 0-1 s) per-run median 8 s, p90 9 s = 10.7 percent of exec median 75 s (p90 90); 15 percent gate 11.25 s and 60 s gate unmet. Deploy Pages (GitHub-managed) median 7 s, not controllable. Merging deploy into build saves about 6 s, still below gate, and stays rejected (id-token write and github-pages environment gate would move into the npm-ci build job). No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T02:26:27Z",
+   "worker_run_id": "43791688786",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43789359390,
+    43781377358,
+    43781088986,
+    43780290464,
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109,
+    43756218347,
+    43753233809,
+    43752704784,
+    43752194225,
+    43746617494,
+    43731625055,
+    43724243400,
+    43721484176,
+    43721157324,
+    43706435376,
+    43698271571
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43698271571 (push f8da6f2, created 2026-11-15T09:14Z) to 43789359390 (push 67a8568, 2026-11-16T01:58:40Z), all within 14 days; no cancelled, queued, or in-progress runs; no schedule run in window. Source 67a8568 = HEAD (one commit after 86f6047). Samples: 17 successes (all push) meet the 5-run gate; 3 failures excluded and disclosed (Build documentation, 43721157324, 43706435376, 43698271571). Queue (created to build-job start, n=20): median 3 s, p90 4 s, max 4 s; no concurrency hold in window; group documentation-pages with cancel-in-progress false is retained (protects Pages deploys). Queue ceiling 3 s = 3.9 percent of exec median 76 s (15 percent gate 11.4 s, 60 s gate unmet). Avoidable rebuilds: 1 test-only push in window (5b8b842, 43780290464); negated trigger would avoid about 76 s per occurrence but leaves median execution unchanged and is watch-only until a second test-only run appears. Schedule 05:23Z is required for synthetic-date refresh (simulate-dashboard-pages uses Date.now()); not avoidable. Disclosed outlier: 43789359390 checkout 70 s (window checkout median 25 s, p90 51 s), already tracked by open 20815 (OPEN, 0 comments), not repeated. Non-timing observation: stale queued run 37642403569 still queued (see observations_pending). No suggestion; no create_issue; noop used; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -898,12 +898,13 @@
   "last_accessed_checked": "2026-11-16T01:07:48Z"
  },
  "run_samples": {
-  "evaluated_at": "2026-11-16T01:07:48Z",
-  "window": "43682264332 (push 29e63d1, 2026-11-15T05:43Z) .. 43781377358 (push 86f6047, 2026-11-16T00:36Z)",
-  "n_success": 16,
-  "n_failed": 4,
+  "evaluated_at": "2026-11-16T02:26:27Z",
+  "window": "43698271571 (push 2026-11-15T09:14Z) .. 43789359390 (push 67a8568, 2026-11-16T01:58Z)",
+  "n_success": 17,
+  "n_failed": 3,
   "n_cancelled": 0,
   "success_ids": [
+   43789359390,
    43781377358,
    43781088986,
    43780290464,
@@ -922,56 +923,56 @@
    43721484176
   ],
   "success_metrics_median_p90_s": {
-   "queue": [
+   "queue_s": [
     3,
     4
    ],
-   "build_job": [
-    60.5,
-    75
+   "build_job_s": [
+    62,
+    95
    ],
-   "checkout": [
-    24.5,
-    34
+   "checkout_s": [
+    25,
+    51
    ],
-   "setup_node": [
+   "setup_node_s": [
     3,
     6
    ],
-   "install": [
+   "install_s": [
     8,
     11
    ],
-   "post_setup_node": [
+   "post_setup_node_s": [
     0,
     1
    ],
-   "build_docs": [
-    11.5,
+   "build_docs_s": [
+    12,
     15
    ],
-   "demo": [
-    4.5,
+   "demo_s": [
+    5,
     6
    ],
-   "upload": [
+   "upload_s": [
     2,
-    3
+    4
    ],
-   "deploy_job": [
-    9.5,
+   "deploy_job_s": [
+    9,
     12
    ],
-   "exec": [
-    75,
-    90
+   "exec_s": [
+    76,
+    111
    ]
   },
   "queue_all_20_median_p90_s": [
-   3,
+   3.0,
    4
   ],
-  "note": "Jobs API step timings; step logs unavailable (HTTP 403 DIFC). Nearest-rank p90. Failures: Build documentation on 43721157324, 43706435376, 43698271571, 43682264332. New runs 43780290464, 43781088986, 43781377358 read this evaluation; older completed rows reused."
+  "note": "Jobs API step timings; step logs unavailable (HTTP 403 DIFC). Nearest-rank p90. Failures excluded: Build documentation on 43721157324, 43706435376, 43698271571. Window has no schedule runs."
  },
  "checkout_probe": {
   "measured_at": "2026-11-13T17:38:10Z",
@@ -1016,23 +1017,23 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-16T01:55:26Z",
-  "status": "Build documentation green on 16 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z 2026-11-15; latest 43781377358, 00:36Z 2026-11-16). Last schedule failure 43680980929 (2026-11-15T05:24Z). The 2026-11-16 ~05:23Z schedule is unverified (not yet run at 01:53Z). Root cause not verified (logs HTTP 403 DIFC)."
+  "observed_at": "2026-11-16T02:26:27Z",
+  "status": "Build documentation green on 17 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z 2026-11-15; latest 43789359390, 01:58Z 2026-11-16). Last schedule failure 43680980929 (2026-11-15T05:24Z). The 2026-11-16 ~05:23Z schedule is unverified (not yet due). Root cause not verified (logs HTTP 403 DIFC)."
  },
  "etag_note": "23:52Z: gh api -i (docs.yml runs endpoint, per_page=1) returned no ETag header; reads not conditional. Completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-16T01:55:26Z",
-   "note": "Stale queued run 37642403569 (event workflow_run, path .github/workflows/docs.yml, headSha 6206962, created and last updated 2026-10-07T15:12Z, 1 job) is still status queued at 01:53Z and has never started. Maintainer should verify and cancel it; if it starts it would build and deploy the old commit. Not cancelled: this worker is read-only."
+   "observed_at": "2026-11-16T02:26:27Z",
+   "note": "Stale queued run 37642403569 (event workflow_run, path .github/workflows/docs.yml, headSha 6206962, created and updated 2026-10-07T15:12Z) is still status queued with zero jobs at 02:24Z and has never started. Maintainer should verify and cancel it; if it starts it would build and deploy the old commit. Not cancelled: this worker is read-only. Queue times for live runs are unaffected (3 s median, 4 s max)."
   },
   {
-   "observed_at": "2026-11-16T00:42:13Z",
-   "note": "Watch: dashboard/site/** trigger matched test-only push 5b8b842 (43780290464). Not repeated (1 of 20 pushes). If a second test-only docs run appears in a later window, candidate change is a negated trigger for dashboard/site/test/** in .github/workflows/docs.yml, validated with a docs run."
+   "observed_at": "2026-11-16T02:26:27Z",
+   "note": "Watch (unchanged): test-only push 5b8b842 (43780290464) is the only test-only docs run in the window; 67a8568 (43789359390) touches build-consumed dashboard/site/src. Candidate change only if a second test-only docs run appears in a later window: negated trigger for dashboard/site/test/** in docs.yml, validated with a docs run."
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-16T00:42:13Z",
-  "window": "43682264332 (push 29e63d1, 2026-11-15T05:43Z) .. 43781377358 (push 86f6047, 2026-11-16T00:36Z); 20 completed runs",
+  "evaluated_at": "2026-11-16T02:26:27Z",
+  "window": "43698271571 (push 2026-11-15T09:14Z, failure) .. 43789359390 (push 67a8568, 2026-11-16T01:58:40Z); 20 completed runs",
   "columns": [
    "run",
    "event",
@@ -1050,8 +1051,25 @@
    "deploy_job_s",
    "exec_s"
   ],
-  "note": "Jobs API step timestamps for 3 new runs (00:25-00:37Z) plus stored rows. Completed runs are immutable; fetch only runs newer than 43781377358.",
+  "note": "Jobs API step timestamps; completed runs immutable. Run 43789359390 added (checkout 70 s outlier, tracked by open 20815); 43682264332 dropped from window.",
   "rows": [
+   [
+    43789359390,
+    "push",
+    "success",
+    "67a8568",
+    3,
+    115,
+    70,
+    5,
+    10,
+    0,
+    14,
+    6,
+    4,
+    9,
+    129
+   ],
    [
     43781377358,
     "push",
@@ -1374,23 +1392,6 @@
     0,
     -1,
     43
-   ],
-   [
-    43682264332,
-    "push",
-    "failure",
-    "29e63d1",
-    3,
-    42,
-    21,
-    3,
-    5,
-    0,
-    9,
-    0,
-    0,
-    -1,
-    42
    ]
   ]
  },
@@ -1614,11 +1615,11 @@
   }
  },
  "commit_paths": {
-  "verified_at": "2026-11-16T00:42:13Z",
+  "verified_at": "2026-11-16T02:26:27Z",
   "method": "gh api repos/githubnext/gh-cao/commits/<sha> file lists; commits are immutable, so reuse this map and do not refetch; no ETag captured",
-  "push_commits_checked": 26,
+  "push_commits_checked": 27,
   "test_only_pushes": 1,
-  "build_consumed_pushes": 22,
+  "build_consumed_pushes": 23,
   "examples": {
    "88f046c": "dashboard-fragments/workflow-value.json, test fixtures, test units",
    "aa73dc6": "dashboard-fragments, dashboard.json, src/agent generated, specs, e2e",
@@ -1648,15 +1649,16 @@
    "14a39d4": "dashboard/site/src/components/cli-actions.js (src copied by build.mjs), dashboard/site/test/unit debug test (never copied)",
    "e75f80a": "dashboard/site/src/agent/mcp-contract.json (build-consumed; imported by query-executor.js), plus server/Go/specs (outside paths filter)",
    "eccbdd6": "dashboard/site/dashboard-fragments/workflow-value.json, src/agent generated JSON (build-consumed), e2e and unit tests",
-   "5b8b842": "dashboard/site/test/e2e/*.spec.js ONLY in docs trigger (test-only; not copied by build.mjs; avoidable docs rebuild, 76 s exec)",
+   "5b8b842": "test-only: dashboard/site/test/e2e/*, tests/**, server *_test.go; trigger matched via dashboard/site/test/** (only test-only push in window)",
    "f996c9a": "dashboard/site/scripts/build.mjs, tests (build script itself is build-consumed)",
-   "86f6047": "dashboard/site/src/agent/mcp-contract.json (build-consumed via src copy); session-archive server and workflow outside paths filter"
+   "86f6047": "dashboard/site/src/agent/mcp-contract.json (build-consumed via src copy); session-archive server and workflow outside paths filter",
+   "67a8568": "dashboard/site/src/components/campaign-route-shell.js (build-consumed src), dashboard/site/test/unit/campaign-route-shell-debug.test.js"
   },
   "build_consumed_note": "build.mjs (lines 52-53) recursively copies all of dashboard/site/src and dashboard-fragments into the published output, so every src or fragment path is build-consumed regardless of import graph."
  },
  "dependency_phase_verified": {
-  "verified_at": "2026-11-16T01:07:48Z",
-  "window": "43682264332 (push 29e63d1) .. 43781377358 (push 86f6047); 16 successes, 4 failures excluded",
+  "verified_at": "2026-11-16T02:26:27Z",
+  "window": "43698271571 .. 43789359390; 17 successes, 3 failures excluded",
   "setup_node_s": {
    "median": 3,
    "p90": 6
@@ -1673,12 +1675,12 @@
    "median": 11,
    "p90": 15
   },
-  "share_of_exec_median_pct": 14.7,
+  "share_of_exec_median_pct": 14.5,
   "exec_s": {
-   "median": 75,
-   "p90": 90
+   "median": 76,
+   "p90": 111
   },
-  "note": "Recomputed from run_timings rows; whole-phase removal is the ceiling and is below the 15 percent gate (11.25 s)"
+  "note": "Recomputed from run_timings rows; whole-phase removal is the ceiling and is below the 15 percent gate (11.4 s)"
  },
  "local_clone_note": {
   "verified_at": "2026-11-16T01:07:48Z",
