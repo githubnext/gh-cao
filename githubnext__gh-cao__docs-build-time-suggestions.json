@@ -1,35 +1,7 @@
 {
   "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T11:22:56Z",
-      "worker_run_id": "43856273504",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "43757990961",
-        "43766019418",
-        "43766933236",
-        "43768376457",
-        "43780290464",
-        "43781088986",
-        "43781377358",
-        "43789359390",
-        "43792211504",
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43757990961 (push 24f570e, created 2026-11-15T20:25Z) to 43854851689 (push fade88d, created 2026-11-16T11:06Z), all within 14 days; cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failures; none in progress; only stale queued 37642403569 (created 2026-10-07, outside window). Source fade88d = HEAD = new source_sha. Category: Build synthetic enterprise demo (npm run dashboard:pages:build -> simulate-dashboard-pages.mjs -> buildDashboardSite) median 5 s, p90 6 s, range 3-6 s = 6.6 percent of exec median 76 s; gate 15 percent = 11.4 s and 60 s absolute not met even at 100 percent ceiling (6 s). Reuse blocked: Date.now() synthetic dates and daily 05:23Z refresh. Exec median 76 s, p90 129 s. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T11:38:43Z",
       "worker_run_id": "43859017780",
@@ -854,6 +826,34 @@
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 21:32Z: no newer docs run, none queued or in progress (only stale 37642403569, 2026-10-07). Source ac6d75b = HEAD = source_sha; compare 0cfeed6...ac6d75b changes no docs.yml-triggering path. Build documentation step (astro build + validate-agent-docs + agent-docs-discovery test): strict median 11 s, p90 15 s (14.5 percent of exec median 76 s); push-only n=18 median 11.5 s, p90 15 s (14.7 percent of exec median 78 s). 15 percent gate 11.4 s and 60 s gate not met; whole-step removal ceiling 11 s is below gate, so no Astro-only change can qualify without dropping validation. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Checkout bottleneck covered by open #20815 (not re-proposed). Next: reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T21:53:11Z",
+      "worker_run_id": "43963919707",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "43877103800",
+        "43862265708",
+        "43854851689",
+        "43840581457",
+        "43832040488",
+        "43831980991",
+        "43831754585",
+        "43829639369",
+        "43825070138",
+        "43814432358",
+        "43810351164",
+        "43798031034",
+        "43792211504",
+        "43789359390",
+        "43781377358",
+        "43781088986",
+        "43780290464",
+        "43768376457",
+        "43766933236"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164), 0 failed; gh run list 21:53Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = HEAD = source_sha (unchanged). Demo step (Build synthetic enterprise demo; no dashboard job exists) recomputed from stored run_timings rows: median 5 s, p90 6 s, max 8 s = 6.6 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met; whole-step removal ceiling 5 s. Jobs API spot-check of 43877103800 matched (demo 5 s, build docs 11 s, exec 73 s). Reuse blocked: simulate-dashboard-pages.mjs:78 defaults now to Date.now(); daily 05:23Z schedule refresh required; dist/cao deployed. Open #20815 (checkout, other category) verified OPEN, 0 comments, unchanged; not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1647,7 +1647,7 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-16T20:20:20Z",
+    "verified_at": "2026-11-16T21:53:11Z",
     "window": "strict 19-success window 43766933236..43877103800 (cancelled 43832015521 excluded); recomputed from immutable run_timings rows",
     "demo_step_s": {
       "median": 5,
@@ -1665,7 +1665,7 @@
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
     "note": "Re-verified 18:37Z by worker 43929821091: no newer docs run than 43877103800; demo rows recomputed (median 5 s, p90 6 s, max 8 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists.",
     "decision": "not actionable (ceiling 5 s vs gate 11.4 s and 60 s absolute)",
-    "reverified_note": "Re-verified by worker 43947951719 at 2026-11-16T20:20:20Z: no docs run newer than 43877103800; Jobs API spot-check of 43877103800 matched (demo 5 s, exec 73 s)."
+    "reverified_note": "Re-verified 2026-11-16T21:53Z by worker 43963919707: no docs run newer than 43877103800; Jobs API spot-check matched (demo 5 s, exec 73 s); scripts/simulate-dashboard-pages.mjs:78 still defaults now to Date.now(); decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s)."
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
