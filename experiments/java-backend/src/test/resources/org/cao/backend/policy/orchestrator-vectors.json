@@ -1,0 +1,1041 @@
+{
+  "generatedFrom": ".github/workflows/shared/control.mjs",
+  "vectors": [
+    {
+      "name": "cell-and-batch-partition",
+      "policy": "{\"version\":1,\"gh-aw-version\":\"v0.89.20\",\"control-plane\":{\"scope\":{\"allowed-owners\":[\"acme\"],\"allowed-repositories\":[\"acme/a\",\"acme/b\",\"acme/c\",\"acme/d\",\"acme/e\",\"acme/f\",\"acme/g\"]},\"inventory\":{\"cell-count\":2,\"cell-index\":1,\"batch-size\":2,\"batch-index\":1},\"campaigns\":{\"dependabot\":{\"mode\":\"review\",\"max-repositories\":5,\"workers\":{\"update-planner\":{\"workflow\":\"dependabot-update-planner\"},\"update-applier\":{\"workflow\":\"dependabot-update-applier\",\"max-mode\":\"review\"},\"update-paused\":{\"workflow\":\"dependabot-update-paused\",\"enabled\":false},\"update-missing\":{\"workflow\":\"dependabot-update-missing\"}}}}}}",
+      "request": {},
+      "workflowSha": "1111111111111111111111111111111111111111",
+      "controlRepository": "acme/control",
+      "dispatchMax": 3,
+      "safeOutputRepository": "acme/control",
+      "configuredWorkers": [
+        "dependabot-update-planner"
+      ],
+      "actionsWorkflows": [
+        {
+          "id": 1,
+          "name": "dependabot-update-planner",
+          "path": ".github/workflows/dependabot-update-planner.lock.yml",
+          "state": "active"
+        }
+      ],
+      "repositories": [
+        {
+          "id": 17,
+          "full_name": "acme/a",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 4,
+          "full_name": "acme/b",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 9,
+          "full_name": "acme/c",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 2,
+          "full_name": "acme/d",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 33,
+          "full_name": "acme/e",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 11,
+          "full_name": "acme/f",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 5,
+          "full_name": "acme/g",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        }
+      ],
+      "expected": {
+        "authorized": true,
+        "reason": "authorized",
+        "control_role": "orchestrator",
+        "campaign": "dependabot",
+        "bundle": "dependabot",
+        "worker": "",
+        "enabled": true,
+        "target_repo": "",
+        "organization": "acme",
+        "max_repos": 5,
+        "max_scan_repos": 1000,
+        "dispatch_max": 3,
+        "rollout_percent": 100,
+        "effective_max_repos": 2,
+        "orchestrator_credits": 0,
+        "worker_credits_per_target": 0,
+        "monthly_credit_budget": 0,
+        "monthly_ai_credits_spent": 0,
+        "monthly_ai_credits_remaining": 0,
+        "monthly_budget_error": "",
+        "monthly_budget_target_cap": 2,
+        "safe_output_mode": "review",
+        "safe_output_repo": "acme/control",
+        "repo_source": "allowed_repos",
+        "repo_error": "",
+        "policy_source": {
+          "repository": "acme/control",
+          "path": ".github/workflows/cao.json",
+          "sha": "1111111111111111111111111111111111111111"
+        },
+        "inventory_version": "sha256:c9594294e510218ae11e7b06d1c9c71be9c3d13f4ceb2bfe45ac9baa66c0728d",
+        "inventory_repository_count": 7,
+        "cell_count": 2,
+        "cell_index": 1,
+        "cell_repository_count": 5,
+        "batch_size": 2,
+        "batch_index": 1,
+        "batch_count": 3,
+        "batch_id": "sha256:c9594294e510218ae11e7b06d1c9c71be9c3d13f4ceb2bfe45ac9baa66c0728d:cell-1-of-2:batch-1-of-3",
+        "total_repositories_scanned": 7,
+        "candidate_repositories": [
+          {
+            "id": 11,
+            "full_name": "acme/f",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 17,
+            "full_name": "acme/a",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          }
+        ],
+        "worker_workflows": [
+          {
+            "configured": "dependabot-update-planner",
+            "matched": true,
+            "worker": "update-planner",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": 1,
+            "name": "dependabot-update-planner",
+            "path": ".github/workflows/dependabot-update-planner.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          }
+        ],
+        "activation_ready": true,
+        "inventory_status": "complete"
+      }
+    },
+    {
+      "name": "rollout-and-dispatch-caps",
+      "policy": "{\"version\":1,\"gh-aw-version\":\"v0.89.20\",\"control-plane\":{\"scope\":{\"allowed-owners\":[\"acme\"],\"allowed-repositories\":[\"acme/a\",\"acme/b\",\"acme/c\",\"acme/d\",\"acme/e\"]},\"campaigns\":{\"dependabot\":{\"mode\":\"review\",\"max-repositories\":10,\"rollout-percent\":50,\"workers\":{\"update-planner\":{\"workflow\":\"dependabot-update-planner\"},\"update-applier\":{\"workflow\":\"dependabot-update-applier\",\"max-mode\":\"review\"},\"update-paused\":{\"workflow\":\"dependabot-update-paused\",\"enabled\":false},\"update-missing\":{\"workflow\":\"dependabot-update-missing\"}}}}}}",
+      "request": {
+        "maxRepositories": "9"
+      },
+      "workflowSha": "1111111111111111111111111111111111111111",
+      "controlRepository": "acme/control",
+      "dispatchMax": 3,
+      "safeOutputRepository": "acme/control",
+      "configuredWorkers": [
+        "dependabot-update-planner",
+        "dependabot-update-applier"
+      ],
+      "actionsWorkflows": [
+        {
+          "id": 1,
+          "name": "dependabot-update-planner",
+          "path": ".github/workflows/dependabot-update-planner.lock.yml",
+          "state": "active"
+        },
+        {
+          "id": 2,
+          "name": "dependabot-update-applier",
+          "path": ".github/workflows/dependabot-update-applier.lock.yml",
+          "state": "active"
+        }
+      ],
+      "repositories": [
+        {
+          "id": 1,
+          "full_name": "acme/a",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 2,
+          "full_name": "acme/b",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 3,
+          "full_name": "acme/c",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 4,
+          "full_name": "acme/d",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 5,
+          "full_name": "acme/e",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        }
+      ],
+      "expected": {
+        "authorized": true,
+        "reason": "authorized",
+        "control_role": "orchestrator",
+        "campaign": "dependabot",
+        "bundle": "dependabot",
+        "worker": "",
+        "enabled": true,
+        "target_repo": "",
+        "organization": "acme",
+        "max_repos": 9,
+        "max_scan_repos": 1000,
+        "dispatch_max": 3,
+        "rollout_percent": 50,
+        "effective_max_repos": 1,
+        "orchestrator_credits": 0,
+        "worker_credits_per_target": 0,
+        "monthly_credit_budget": 0,
+        "monthly_ai_credits_spent": 0,
+        "monthly_ai_credits_remaining": 0,
+        "monthly_budget_error": "",
+        "monthly_budget_target_cap": 1,
+        "safe_output_mode": "review",
+        "safe_output_repo": "acme/control",
+        "repo_source": "allowed_repos",
+        "repo_error": "",
+        "policy_source": {
+          "repository": "acme/control",
+          "path": ".github/workflows/cao.json",
+          "sha": "1111111111111111111111111111111111111111"
+        },
+        "inventory_version": "sha256:4b4c44af6f6a1ec34e009235fed91ec5a696b483ec65f7d0a99bd8754531dfb8",
+        "inventory_repository_count": 5,
+        "cell_count": 1,
+        "cell_index": 0,
+        "cell_repository_count": 5,
+        "batch_size": 100000,
+        "batch_index": 0,
+        "batch_count": 1,
+        "batch_id": "sha256:4b4c44af6f6a1ec34e009235fed91ec5a696b483ec65f7d0a99bd8754531dfb8:cell-0-of-1:batch-0-of-1",
+        "total_repositories_scanned": 5,
+        "candidate_repositories": [
+          {
+            "id": 1,
+            "full_name": "acme/a",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 2,
+            "full_name": "acme/b",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 3,
+            "full_name": "acme/c",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 4,
+            "full_name": "acme/d",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 5,
+            "full_name": "acme/e",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          }
+        ],
+        "worker_workflows": [
+          {
+            "configured": "dependabot-update-planner",
+            "matched": true,
+            "worker": "update-planner",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": 1,
+            "name": "dependabot-update-planner",
+            "path": ".github/workflows/dependabot-update-planner.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          },
+          {
+            "configured": "dependabot-update-applier",
+            "matched": true,
+            "worker": "update-applier",
+            "policy_enabled": true,
+            "max_mode": "review",
+            "id": 2,
+            "name": "dependabot-update-applier",
+            "path": ".github/workflows/dependabot-update-applier.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          }
+        ],
+        "activation_ready": true,
+        "inventory_status": "complete"
+      }
+    },
+    {
+      "name": "worker-skip-reasons",
+      "policy": "{\"version\":1,\"gh-aw-version\":\"v0.89.20\",\"control-plane\":{\"scope\":{\"allowed-owners\":[\"acme\"],\"allowed-repositories\":[\"acme/a\"]},\"campaigns\":{\"dependabot\":{\"mode\":\"review\",\"workers\":{\"update-planner\":{\"workflow\":\"dependabot-update-planner\"},\"update-applier\":{\"workflow\":\"dependabot-update-applier\",\"max-mode\":\"review\"},\"update-paused\":{\"workflow\":\"dependabot-update-paused\",\"enabled\":false},\"update-missing\":{\"workflow\":\"dependabot-update-missing\"}}}}}}",
+      "request": {},
+      "workflowSha": "1111111111111111111111111111111111111111",
+      "controlRepository": "acme/control",
+      "dispatchMax": 1,
+      "safeOutputRepository": "acme/control",
+      "configuredWorkers": [
+        "dependabot-update-planner",
+        "dependabot-update-applier",
+        "dependabot-update-paused",
+        "dependabot-update-missing",
+        "dependabot-stranger"
+      ],
+      "actionsWorkflows": [
+        {
+          "id": 1,
+          "name": "dependabot-update-planner",
+          "path": ".github/workflows/dependabot-update-planner.lock.yml",
+          "state": "disabled_manually"
+        },
+        {
+          "id": 2,
+          "name": "dependabot-update-applier",
+          "path": ".github/workflows/dependabot-update-applier.lock.yml",
+          "state": "active"
+        },
+        {
+          "id": 3,
+          "name": "dependabot-update-paused",
+          "path": ".github/workflows/dependabot-update-paused.lock.yml",
+          "state": "active"
+        },
+        {
+          "id": 4,
+          "name": "dependabot-stranger",
+          "path": ".github/workflows/dependabot-stranger.lock.yml",
+          "state": "active"
+        }
+      ],
+      "repositories": [
+        {
+          "id": 1,
+          "full_name": "acme/a",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        }
+      ],
+      "expected": {
+        "authorized": true,
+        "reason": "authorized",
+        "control_role": "orchestrator",
+        "campaign": "dependabot",
+        "bundle": "dependabot",
+        "worker": "",
+        "enabled": true,
+        "target_repo": "",
+        "organization": "acme",
+        "max_repos": 1,
+        "max_scan_repos": 1000,
+        "dispatch_max": 1,
+        "rollout_percent": 100,
+        "effective_max_repos": 1,
+        "orchestrator_credits": 0,
+        "worker_credits_per_target": 0,
+        "monthly_credit_budget": 0,
+        "monthly_ai_credits_spent": 0,
+        "monthly_ai_credits_remaining": 0,
+        "monthly_budget_error": "",
+        "monthly_budget_target_cap": 1,
+        "safe_output_mode": "review",
+        "safe_output_repo": "acme/control",
+        "repo_source": "allowed_repos",
+        "repo_error": "",
+        "policy_source": {
+          "repository": "acme/control",
+          "path": ".github/workflows/cao.json",
+          "sha": "1111111111111111111111111111111111111111"
+        },
+        "inventory_version": "sha256:76fad921b328a57854d3f5f9825d0e0b3dfcb7bf17aa165bccfdedb036f8e403",
+        "inventory_repository_count": 1,
+        "cell_count": 1,
+        "cell_index": 0,
+        "cell_repository_count": 1,
+        "batch_size": 100000,
+        "batch_index": 0,
+        "batch_count": 1,
+        "batch_id": "sha256:76fad921b328a57854d3f5f9825d0e0b3dfcb7bf17aa165bccfdedb036f8e403:cell-0-of-1:batch-0-of-1",
+        "total_repositories_scanned": 1,
+        "candidate_repositories": [
+          {
+            "id": 1,
+            "full_name": "acme/a",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          }
+        ],
+        "worker_workflows": [
+          {
+            "configured": "dependabot-update-planner",
+            "matched": true,
+            "worker": "update-planner",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": 1,
+            "name": "dependabot-update-planner",
+            "path": ".github/workflows/dependabot-update-planner.lock.yml",
+            "state": "disabled_manually",
+            "eligible": false,
+            "skip_reason": "worker workflow disabled"
+          },
+          {
+            "configured": "dependabot-update-applier",
+            "matched": true,
+            "worker": "update-applier",
+            "policy_enabled": true,
+            "max_mode": "review",
+            "id": 2,
+            "name": "dependabot-update-applier",
+            "path": ".github/workflows/dependabot-update-applier.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          },
+          {
+            "configured": "dependabot-update-paused",
+            "matched": true,
+            "worker": "update-paused",
+            "policy_enabled": false,
+            "max_mode": null,
+            "id": 3,
+            "name": "dependabot-update-paused",
+            "path": ".github/workflows/dependabot-update-paused.lock.yml",
+            "state": "active",
+            "eligible": false,
+            "skip_reason": "worker disabled by control-plane policy"
+          },
+          {
+            "configured": "dependabot-update-missing",
+            "matched": false,
+            "worker": "update-missing",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": null,
+            "name": null,
+            "path": null,
+            "state": "",
+            "eligible": false,
+            "skip_reason": "worker workflow unavailable"
+          },
+          {
+            "configured": "dependabot-stranger",
+            "matched": true,
+            "worker": null,
+            "policy_enabled": false,
+            "max_mode": null,
+            "id": 4,
+            "name": "dependabot-stranger",
+            "path": ".github/workflows/dependabot-stranger.lock.yml",
+            "state": "active",
+            "eligible": false,
+            "skip_reason": "worker is not part of installed campaign"
+          }
+        ],
+        "activation_ready": true,
+        "inventory_status": "complete"
+      }
+    },
+    {
+      "name": "target-modes-live-and-narrowed",
+      "policy": "{\"version\":1,\"gh-aw-version\":\"v0.89.20\",\"control-plane\":{\"scope\":{\"allowed-owners\":[\"acme\"],\"allowed-repositories\":[\"acme/a\",\"acme/b\",\"acme/c\"]},\"campaigns\":{\"dependabot\":{\"mode\":\"live\",\"max-repositories\":5,\"targets\":{\"acme/b\":{\"mode\":\"review\"},\"ACME/C\":{\"mode\":\"live\"}},\"workers\":{\"update-planner\":{\"workflow\":\"dependabot-update-planner\"},\"update-applier\":{\"workflow\":\"dependabot-update-applier\",\"max-mode\":\"review\"},\"update-paused\":{\"workflow\":\"dependabot-update-paused\",\"enabled\":false},\"update-missing\":{\"workflow\":\"dependabot-update-missing\"}}}}}}",
+      "request": {},
+      "workflowSha": "1111111111111111111111111111111111111111",
+      "controlRepository": "acme/control",
+      "dispatchMax": 2,
+      "safeOutputRepository": "acme/control",
+      "configuredWorkers": [
+        "dependabot-update-planner"
+      ],
+      "actionsWorkflows": [
+        {
+          "id": 1,
+          "name": "dependabot-update-planner",
+          "path": ".github/workflows/dependabot-update-planner.lock.yml",
+          "state": "active"
+        }
+      ],
+      "repositories": [
+        {
+          "id": 1,
+          "full_name": "acme/a",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 2,
+          "full_name": "acme/b",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 3,
+          "full_name": "acme/C",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        }
+      ],
+      "expected": {
+        "authorized": true,
+        "reason": "authorized",
+        "control_role": "orchestrator",
+        "campaign": "dependabot",
+        "bundle": "dependabot",
+        "worker": "",
+        "enabled": true,
+        "target_repo": "",
+        "organization": "acme",
+        "max_repos": 5,
+        "max_scan_repos": 1000,
+        "dispatch_max": 2,
+        "rollout_percent": 100,
+        "effective_max_repos": 2,
+        "orchestrator_credits": 0,
+        "worker_credits_per_target": 0,
+        "monthly_credit_budget": 0,
+        "monthly_ai_credits_spent": 0,
+        "monthly_ai_credits_remaining": 0,
+        "monthly_budget_error": "",
+        "monthly_budget_target_cap": 2,
+        "safe_output_mode": "live",
+        "safe_output_repo": "acme/control",
+        "repo_source": "allowed_repos",
+        "repo_error": "",
+        "policy_source": {
+          "repository": "acme/control",
+          "path": ".github/workflows/cao.json",
+          "sha": "1111111111111111111111111111111111111111"
+        },
+        "inventory_version": "sha256:c7ecf650992e9e3e3c2fe6b73e558cfea3717576b9af4962f2f4d8351086a108",
+        "inventory_repository_count": 3,
+        "cell_count": 1,
+        "cell_index": 0,
+        "cell_repository_count": 3,
+        "batch_size": 100000,
+        "batch_index": 0,
+        "batch_count": 1,
+        "batch_id": "sha256:c7ecf650992e9e3e3c2fe6b73e558cfea3717576b9af4962f2f4d8351086a108:cell-0-of-1:batch-0-of-1",
+        "total_repositories_scanned": 3,
+        "candidate_repositories": [
+          {
+            "id": 1,
+            "full_name": "acme/a",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "live"
+          },
+          {
+            "id": 2,
+            "full_name": "acme/b",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 3,
+            "full_name": "acme/C",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "live"
+          }
+        ],
+        "worker_workflows": [
+          {
+            "configured": "dependabot-update-planner",
+            "matched": true,
+            "worker": "update-planner",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": 1,
+            "name": "dependabot-update-planner",
+            "path": ".github/workflows/dependabot-update-planner.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          }
+        ],
+        "activation_ready": true,
+        "inventory_status": "complete"
+      }
+    },
+    {
+      "name": "requested-review-narrows-live-targets",
+      "policy": "{\"version\":1,\"gh-aw-version\":\"v0.89.20\",\"control-plane\":{\"scope\":{\"allowed-owners\":[\"acme\"],\"allowed-repositories\":[\"acme/a\",\"acme/b\"]},\"campaigns\":{\"dependabot\":{\"mode\":\"live\",\"max-repositories\":5,\"targets\":{\"acme/b\":{\"mode\":\"live\"}},\"workers\":{\"update-planner\":{\"workflow\":\"dependabot-update-planner\"},\"update-applier\":{\"workflow\":\"dependabot-update-applier\",\"max-mode\":\"review\"},\"update-paused\":{\"workflow\":\"dependabot-update-paused\",\"enabled\":false},\"update-missing\":{\"workflow\":\"dependabot-update-missing\"}}}}}}",
+      "request": {
+        "mode": "review"
+      },
+      "workflowSha": "1111111111111111111111111111111111111111",
+      "controlRepository": "acme/control",
+      "dispatchMax": 2,
+      "safeOutputRepository": "acme/control",
+      "configuredWorkers": [
+        "dependabot-update-planner"
+      ],
+      "actionsWorkflows": [
+        {
+          "id": 1,
+          "name": "dependabot-update-planner",
+          "path": ".github/workflows/dependabot-update-planner.lock.yml",
+          "state": "active"
+        }
+      ],
+      "repositories": [
+        {
+          "id": 1,
+          "full_name": "acme/a",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 2,
+          "full_name": "acme/b",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        }
+      ],
+      "expected": {
+        "authorized": true,
+        "reason": "authorized",
+        "control_role": "orchestrator",
+        "campaign": "dependabot",
+        "bundle": "dependabot",
+        "worker": "",
+        "enabled": true,
+        "target_repo": "",
+        "organization": "acme",
+        "max_repos": 5,
+        "max_scan_repos": 1000,
+        "dispatch_max": 2,
+        "rollout_percent": 100,
+        "effective_max_repos": 2,
+        "orchestrator_credits": 0,
+        "worker_credits_per_target": 0,
+        "monthly_credit_budget": 0,
+        "monthly_ai_credits_spent": 0,
+        "monthly_ai_credits_remaining": 0,
+        "monthly_budget_error": "",
+        "monthly_budget_target_cap": 2,
+        "safe_output_mode": "review",
+        "safe_output_repo": "acme/control",
+        "repo_source": "allowed_repos",
+        "repo_error": "",
+        "policy_source": {
+          "repository": "acme/control",
+          "path": ".github/workflows/cao.json",
+          "sha": "1111111111111111111111111111111111111111"
+        },
+        "inventory_version": "sha256:48c369e45f03dc934fc34f362d2a60c87e36ef1d3bf50bc831b98f308337315f",
+        "inventory_repository_count": 2,
+        "cell_count": 1,
+        "cell_index": 0,
+        "cell_repository_count": 2,
+        "batch_size": 100000,
+        "batch_index": 0,
+        "batch_count": 1,
+        "batch_id": "sha256:48c369e45f03dc934fc34f362d2a60c87e36ef1d3bf50bc831b98f308337315f:cell-0-of-1:batch-0-of-1",
+        "total_repositories_scanned": 2,
+        "candidate_repositories": [
+          {
+            "id": 1,
+            "full_name": "acme/a",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 2,
+            "full_name": "acme/b",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          }
+        ],
+        "worker_workflows": [
+          {
+            "configured": "dependabot-update-planner",
+            "matched": true,
+            "worker": "update-planner",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": 1,
+            "name": "dependabot-update-planner",
+            "path": ".github/workflows/dependabot-update-planner.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          }
+        ],
+        "activation_ready": true,
+        "inventory_status": "complete"
+      }
+    },
+    {
+      "name": "archived-disabled-and-null-metadata",
+      "policy": "{\"version\":1,\"gh-aw-version\":\"v0.89.20\",\"control-plane\":{\"scope\":{\"allowed-owners\":[\"acme\"],\"allowed-repositories\":[\"acme/a\",\"acme/b\",\"acme/c\"]},\"campaigns\":{\"dependabot\":{\"mode\":\"review\",\"max-repositories\":3,\"workers\":{\"update-planner\":{\"workflow\":\"dependabot-update-planner\"},\"update-applier\":{\"workflow\":\"dependabot-update-applier\",\"max-mode\":\"review\"},\"update-paused\":{\"workflow\":\"dependabot-update-paused\",\"enabled\":false},\"update-missing\":{\"workflow\":\"dependabot-update-missing\"}}}}}}",
+      "request": {},
+      "workflowSha": "1111111111111111111111111111111111111111",
+      "controlRepository": "acme/control",
+      "dispatchMax": 1,
+      "safeOutputRepository": "acme/control",
+      "configuredWorkers": [
+        "dependabot-update-planner"
+      ],
+      "actionsWorkflows": [
+        {
+          "id": 1,
+          "name": "dependabot-update-planner",
+          "path": ".github/workflows/dependabot-update-planner.lock.yml",
+          "state": "active"
+        }
+      ],
+      "repositories": [
+        {
+          "id": 1,
+          "full_name": "acme/a",
+          "archived": true,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 2,
+          "full_name": "acme/b",
+          "archived": false,
+          "disabled": true,
+          "private": false,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        },
+        {
+          "id": 3,
+          "full_name": "acme/c",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": null,
+          "default_branch": "ünï/\"main\" <&>"
+        }
+      ],
+      "expected": {
+        "authorized": true,
+        "reason": "authorized",
+        "control_role": "orchestrator",
+        "campaign": "dependabot",
+        "bundle": "dependabot",
+        "worker": "",
+        "enabled": true,
+        "target_repo": "",
+        "organization": "acme",
+        "max_repos": 3,
+        "max_scan_repos": 1000,
+        "dispatch_max": 1,
+        "rollout_percent": 100,
+        "effective_max_repos": 1,
+        "orchestrator_credits": 0,
+        "worker_credits_per_target": 0,
+        "monthly_credit_budget": 0,
+        "monthly_ai_credits_spent": 0,
+        "monthly_ai_credits_remaining": 0,
+        "monthly_budget_error": "",
+        "monthly_budget_target_cap": 1,
+        "safe_output_mode": "review",
+        "safe_output_repo": "acme/control",
+        "repo_source": "allowed_repos",
+        "repo_error": "",
+        "policy_source": {
+          "repository": "acme/control",
+          "path": ".github/workflows/cao.json",
+          "sha": "1111111111111111111111111111111111111111"
+        },
+        "inventory_version": "sha256:063ed2cd41813d3f3ab72f79ae5aa8d1a9e47a44233ef07ccd5a95bd34a74628",
+        "inventory_repository_count": 3,
+        "cell_count": 1,
+        "cell_index": 0,
+        "cell_repository_count": 3,
+        "batch_size": 100000,
+        "batch_index": 0,
+        "batch_count": 1,
+        "batch_id": "sha256:063ed2cd41813d3f3ab72f79ae5aa8d1a9e47a44233ef07ccd5a95bd34a74628:cell-0-of-1:batch-0-of-1",
+        "total_repositories_scanned": 3,
+        "candidate_repositories": [
+          {
+            "id": 1,
+            "full_name": "acme/a",
+            "archived": true,
+            "disabled": false,
+            "private": true,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 2,
+            "full_name": "acme/b",
+            "archived": false,
+            "disabled": true,
+            "private": false,
+            "pushed_at": "2026-09-03T00:00:00Z",
+            "default_branch": "main",
+            "safe_output_mode": "review"
+          },
+          {
+            "id": 3,
+            "full_name": "acme/c",
+            "archived": false,
+            "disabled": false,
+            "private": true,
+            "pushed_at": null,
+            "default_branch": "ünï/\"main\" <&>",
+            "safe_output_mode": "review"
+          }
+        ],
+        "worker_workflows": [
+          {
+            "configured": "dependabot-update-planner",
+            "matched": true,
+            "worker": "update-planner",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": 1,
+            "name": "dependabot-update-planner",
+            "path": ".github/workflows/dependabot-update-planner.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          }
+        ],
+        "activation_ready": true,
+        "inventory_status": "complete"
+      }
+    },
+    {
+      "name": "empty-cell",
+      "policy": "{\"version\":1,\"gh-aw-version\":\"v0.89.20\",\"control-plane\":{\"scope\":{\"allowed-owners\":[\"acme\"],\"allowed-repositories\":[\"acme/a\"]},\"inventory\":{\"cell-count\":2,\"cell-index\":0},\"campaigns\":{\"dependabot\":{\"mode\":\"review\",\"workers\":{\"update-planner\":{\"workflow\":\"dependabot-update-planner\"},\"update-applier\":{\"workflow\":\"dependabot-update-applier\",\"max-mode\":\"review\"},\"update-paused\":{\"workflow\":\"dependabot-update-paused\",\"enabled\":false},\"update-missing\":{\"workflow\":\"dependabot-update-missing\"}}}}}}",
+      "request": {},
+      "workflowSha": "1111111111111111111111111111111111111111",
+      "controlRepository": "acme/control",
+      "dispatchMax": 1,
+      "safeOutputRepository": "acme/control",
+      "configuredWorkers": [
+        "dependabot-update-planner"
+      ],
+      "actionsWorkflows": [
+        {
+          "id": 1,
+          "name": "dependabot-update-planner",
+          "path": ".github/workflows/dependabot-update-planner.lock.yml",
+          "state": "active"
+        }
+      ],
+      "repositories": [
+        {
+          "id": 1,
+          "full_name": "acme/a",
+          "archived": false,
+          "disabled": false,
+          "private": true,
+          "pushed_at": "2026-09-03T00:00:00Z",
+          "default_branch": "main"
+        }
+      ],
+      "expected": {
+        "authorized": true,
+        "reason": "authorized",
+        "control_role": "orchestrator",
+        "campaign": "dependabot",
+        "bundle": "dependabot",
+        "worker": "",
+        "enabled": true,
+        "target_repo": "",
+        "organization": "acme",
+        "max_repos": 1,
+        "max_scan_repos": 1000,
+        "dispatch_max": 1,
+        "rollout_percent": 100,
+        "effective_max_repos": 0,
+        "orchestrator_credits": 0,
+        "worker_credits_per_target": 0,
+        "monthly_credit_budget": 0,
+        "monthly_ai_credits_spent": 0,
+        "monthly_ai_credits_remaining": 0,
+        "monthly_budget_error": "",
+        "monthly_budget_target_cap": 0,
+        "safe_output_mode": "review",
+        "safe_output_repo": "acme/control",
+        "repo_source": "allowed_repos",
+        "repo_error": "",
+        "policy_source": {
+          "repository": "acme/control",
+          "path": ".github/workflows/cao.json",
+          "sha": "1111111111111111111111111111111111111111"
+        },
+        "inventory_version": "sha256:76fad921b328a57854d3f5f9825d0e0b3dfcb7bf17aa165bccfdedb036f8e403",
+        "inventory_repository_count": 1,
+        "cell_count": 2,
+        "cell_index": 0,
+        "cell_repository_count": 0,
+        "batch_size": 100000,
+        "batch_index": 0,
+        "batch_count": 0,
+        "batch_id": "sha256:76fad921b328a57854d3f5f9825d0e0b3dfcb7bf17aa165bccfdedb036f8e403:cell-0-of-2:batch-0-of-0",
+        "total_repositories_scanned": 1,
+        "candidate_repositories": [],
+        "worker_workflows": [
+          {
+            "configured": "dependabot-update-planner",
+            "matched": true,
+            "worker": "update-planner",
+            "policy_enabled": true,
+            "max_mode": null,
+            "id": 1,
+            "name": "dependabot-update-planner",
+            "path": ".github/workflows/dependabot-update-planner.lock.yml",
+            "state": "active",
+            "eligible": true,
+            "skip_reason": null
+          }
+        ],
+        "activation_ready": true,
+        "inventory_status": "complete"
+      }
+    }
+  ]
+}

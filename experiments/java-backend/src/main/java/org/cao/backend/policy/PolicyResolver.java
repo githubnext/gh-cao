@@ -82,7 +82,7 @@ public final class PolicyResolver {
     }
 
     /** Owners default to the control repository owner; owner and repository lists are cumulative. */
-    static void validateScope(ControlPolicy.Scope scope, String controlRepository, String target) {
+    public static void validateScope(ControlPolicy.Scope scope, String controlRepository, String target) {
         String normalized = target.toLowerCase(Locale.ROOT);
         String owner = normalized.substring(0, normalized.indexOf('/'));
         List<String> owners = scope.owners().isEmpty()

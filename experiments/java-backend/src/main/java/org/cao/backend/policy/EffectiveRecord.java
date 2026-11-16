@@ -8,8 +8,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.regex.Pattern;
 
 /**
- * Builds the derived effective record of specs/control-architecture.md §6.3. Only denials and worker
- * records are supported; orchestrator and standalone records need inventory and are rejected explicitly.
+ * Builds the derived effective record of specs/control-architecture.md §6.3. Worker records and
+ * worker denials only; orchestrator records are built by {@code control.OrchestratorPrecompute} and
+ * standalone records are not implemented.
  */
 public final class EffectiveRecord {
     public static final int SCHEMA_VERSION = 1;
@@ -24,7 +25,7 @@ public final class EffectiveRecord {
             throw new PolicyException("workflow SHA must be a 40-character lowercase hex commit");
         }
         if (resolution.role() != Role.WORKER) {
-            throw new PolicyException("orchestrator effective records are not implemented");
+            throw new PolicyException("orchestrator records are built by OrchestratorPrecompute");
         }
         if (resolution.authorized() && parent == null) {
             throw new PolicyException("an authorized worker record requires the dispatch envelope");

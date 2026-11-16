@@ -17,6 +17,12 @@ The fail-closed policy/authority kernel for the control-plane subset of
   default, exact-target and worker-ceiling narrowing, and narrowing-only dispatch
   requests (widening throws `PolicyException`; expected denials return stable reasons).
 
+- `control` package: `OrchestratorPrecompute` builds the §6.3 orchestrator effective record from policy plus
+  evidence read through the `RepositoryInventory` and `WorkflowCatalog` ports (fake-only today): deterministic
+  `control-plane.inventory` cell/batch partitioning, worker eligibility, and the stricter repository cap. Missing
+  evidence yields an explicit incomplete record, never a partial candidate list. Regenerate the comparison vectors
+  (needs Node, runs the production `control.mjs` against a synthetic `gh` stub, no network) with
+  `node experiments/java-backend/scripts/generate-orchestrator-vectors.mjs`.
 - `operational` package: PostgreSQL adapter for the operational `AuditLog`
   (`specs/server-operational-storage.md`): tamper-evident SHA-256 hash chain compatible with the Go
   canonical record bytes, anchors, namespace isolation, runtime-versus-owner separation

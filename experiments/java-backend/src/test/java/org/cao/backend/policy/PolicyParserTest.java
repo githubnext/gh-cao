@@ -88,4 +88,27 @@ class PolicyParserTest {
                 "{\"version\":1,\"control-plane\":{\"campaigns\":{\"c\":{\"workers\":"
                         + "{\"a\":{\"workflow\":\"w\"},\"b\":{\"workflow\":\"w\"}}}}}}")));
     }
+
+    @Test
+    void parsesInventoryWithSchemaDefaults() {
+        ControlPolicy defaults = PolicyParser.parse(bytes("{\"version\":1,\"control-plane\":{}}"));
+        assertEquals(new ControlPolicy.Inventory(1000, 1, 0, 100_000, 0), defaults.inventory());
+        ControlPolicy partial = PolicyParser.parse(bytes(
+                "{\"version\":1,\"control-plane\":{\"inventory\":{\"cell-count\":4,\"cell-index\":3,\"batch-size\":10}}}"));
+        assertEquals(new ControlPolicy.Inventory(1000, 4, 3, 10, 0), partial.inventory());
+    }
+
+    @Test
+    void rejectsInvalidInventoryBoundsAndUnknownKeys() {
+        String[] inventories = {
+            "{\"max-scan-repositories\":100001}", "{\"max-scan-repositories\":0}", "{\"cell-count\":0}",
+            "{\"cell-count\":1001}", "{\"cell-count\":4,\"cell-index\":4}", "{\"cell-index\":1}",
+            "{\"cell-index\":-1}", "{\"batch-size\":0}", "{\"batch-size\":100001}", "{\"batch-index\":-1}",
+            "{\"batch-index\":\"0\"}", "{\"surprise\":1}", "[]", "{\"cell-count\":1.5}",
+        };
+        for (String inventory : inventories) {
+            assertThrows(PolicyException.class, () -> PolicyParser.parse(bytes(
+                    "{\"version\":1,\"control-plane\":{\"inventory\":" + inventory + "}}")), inventory);
+        }
+    }
 }
