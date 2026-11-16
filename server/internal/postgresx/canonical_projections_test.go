@@ -55,6 +55,13 @@ func TestOutputLifecycleEventClocksExecuteNatively(t *testing.T) {
 	if err := json.Unmarshal(content, &fixture); err != nil {
 		t.Fatal(err)
 	}
+	asOf, err := time.Parse(time.RFC3339, fixture["repositories"][0]["observedAt"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.RunPartitionMaintenance(t.Context(), asOf, 90, store.linkedRetentionDays); err != nil {
+		t.Fatal(err)
+	}
 	acceptedAt := "2026-09-17T13:00:00Z"
 	fixture["outputLifecycles"][1]["adoptionState"] = "accepted"
 	fixture["outputLifecycles"][1]["adoptionSignal"] = "completed"
