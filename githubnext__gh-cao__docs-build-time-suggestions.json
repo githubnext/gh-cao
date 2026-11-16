@@ -1,36 +1,7 @@
 {
  "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T08:37:32Z",
-   "worker_run_id": "43831934746",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    43832040488,
-    43831980991,
-    43831754585,
-    43829639369,
-    43825070138,
-    43814432358,
-    43810351164,
-    43798031034,
-    43792211504,
-    43789359390,
-    43781377358,
-    43781088986,
-    43780290464,
-    43768376457,
-    43766933236,
-    43766019418,
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43753233809 (push de1fbfc, 2026-11-15T19:35Z) to 43832040488 (push 70f59d2, 2026-11-16T08:32Z): 20 success (19 push, 1 schedule 43810351164), 0 failures; cancelled 43832015521 excluded (pending run superseded in documentation-pages group). Gate 20>=5 met. Dependency phase (Set up Node + Install + Post) median 13 s, p90 17 s = 16.9 percent of exec median 77 s (p90 92 s); 15 percent gate 11.6 s. Whole-phase removal is a ceiling, not a concrete change. Concrete option (node_modules restore replacing npm ci) saves at most install median 8 s (p90 11) before restore cost, est. 3-6 s net, unmeasured: below 11.6 s and 60 s gates. Cache: main exact key node-cache-Linux-x64-npm-7808ecf8 (created 2026-11-13T20:57Z) last accessed 08:35Z; post-step 0-1 s in window (exact hit inferred). No lockfile change in window heads. A 2026-11-16 Linux entry 798b3cf6 is feature-branch scoped and not visible to main. Checkout median 25 s (32.5 percent of exec) stays under OPEN #20815 (0 comments, updatedAt 2026-11-13); not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T09:01:16Z",
    "worker_run_id": "43835481375",
@@ -859,6 +830,34 @@
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 19:17Z: no docs run queued or in progress (only stale queued 37642403569, created 2026-10-07, outside window). Compare API 0cfeed6..ac6d75b: 1 commit (#21058), files outside docs.yml paths filter, so no new docs run expected; source_sha = HEAD ac6d75b. Stored immutable run_timings rows recomputed: queue median 3 s, p90 5 s (one 64 s outlier 43832040488 behind in-flight 43831980991); exec median 76 s, p90 129 s; 15 percent gate 11.4 s and 60 s gate not met. Concurrency (cancel-in-progress false) protects in-flight Pages deploys and already coalesces superseded pending runs; cancel-in-progress true saves about 0 s of median. Avoidable rebuilds: 17 of 18 push commits touch build-consumed paths; only test-only push 5b8b842 (43780290464) qualifies, about 4 s per run averaged; below gates. Daily 05:23Z schedule (43810351164, 63 s) refreshes synthetic dates and is required. Checkout (median 25 s) stays with open issue 20815 (not duplicated). No suggestion; noop; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T19:31:11Z",
+   "worker_run_id": "43939635144",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list 19:31Z: no newer docs run, none queued or in progress. Source ac6d75b = HEAD = source_sha (non-trigger since 0cfeed6). Dependency phase (setup-node + install + post) from stored run_timings rows, no refetch: median 13 s, p90 18 s = 17.1 percent of exec median 76 s; 15 percent gate 11.4 s not met; setup-node median 3 s, install median 8 s, post median 0 s. Jobs API spot-check of 43877103800 matched (setup-node 6 s, install 8 s, post 0 s). Cache: key node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57Z, last accessed 19:28Z); hit inferred from post step 0-1 s; no miss in window. Lock history via commits API: root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56Z), before the cache entry was created. Whole-phase removal unreachable (npm ci required); node_modules restore est 3-6 s net, unmeasured, below gate. Open #20815 is checkout (other category, OPEN, updated 2026-11-13); not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -873,7 +872,7 @@
   "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
   "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
   "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-  "live_entry_last_accessed": "2026-11-16T16:18:10Z (Actions caches API at 16:2xZ; run 43877103800 post step 0 s)",
+  "live_entry_last_accessed": "2026-11-16T19:28:45Z (Actions caches API at 19:31Z; run 43877103800 post step 0 s)",
   "window_2026_11_15T1930Z": {
    "n_success": 8,
    "setup_node_median_s": 4,
@@ -957,6 +956,10 @@
   {
    "observed_at": "2026-11-16T12:29:00Z",
    "note": "Repository cache usage 10,570,080,425 B across 101 active caches exceeds the 10 GB default quota; eviction is LRU. Main docs key node-cache-Linux-x64-npm-7808ecf8 still present and accessed by every docs run. Watch item: a cold miss would show as a longer install and non-zero post step. Not a speed suggestion."
+  },
+  {
+   "observed_at": "2026-11-16T19:31:11Z",
+   "note": "Watch (cache-key coverage, not a speed suggestion): docs.yml setup-node key hashes root package-lock.json only and entries are immutable, so a dashboard/site/package-lock.json-only change would keep the same key and dashboard deps would be fetched from the registry each run until the root lock changes. No effect today: both locks last changed 7c8faf4 (2026-11-13T20:56Z), before the entry was created (20:57Z). Re-open only if a dashboard-only lock change appears and install median rises above 11.4 s; candidate fix (not validated): add dashboard/site/package-lock.json to cache-dependency-path."
   }
  ],
  "run_timings": {
