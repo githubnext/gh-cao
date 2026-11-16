@@ -365,17 +365,28 @@ Native backends also reject item-source and chained plans.
 
 ## 6. Progress
 
-Phases are ordered by how many graders each unlocks. Mark an item done only
-when its definitions replay with parity.
+Phases are listed in execution order, which follows dependencies rather than
+the number of graders unlocked: Phase 5's closed forms need Phase 4's L5
+windows. Phase IDs are stable because ADRs cite them; there is no Phase 3, it
+was folded into Phase 2. Mark an item done only when its definitions replay
+with parity.
 
-- [x] Inventory the 35 upstream built-ins and classify feasibility at the pin and at `main` `a25e38ee`.
-- [x] Implement the usage family: `execution-step-count`, `execution-duration`, `working-set-rebuild-factor`, `context-growth` (#21020).
-- [x] **Phase 1:** S1 (`objectives`, `actions`, `states`), S2 and L1. Unlocks `objective-coverage`, `premature-termination-gap`, `grounding-accuracy` and `state-revisit-probability-rep` on local DuckDB (§7).
-- [ ] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted against the Kusto emulator or a real ADX cluster. Until then hosted backends reject them.
-- [x] **Phase 2:** L3. Unlocks `recurrence-rate` and `artifact-production` on local DuckDB (§8).
-- [ ] **Phase 2b:** KQL lowering of L3 chaining, accepted against the Kusto emulator or a real ADX cluster. Until then hosted backends reject chained plans.
-- [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL. Unlocks `tool-failure-count`, `tool-success-rate` and `trajectory-efficiency` after the reconciliation parity fixture (§4.1).
-- [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`). Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
+Hosted acceptance runs in the opt-in `session-archive-kusto` job of
+`.github/workflows/session-archive.yml`. Dispatching it with
+`accept_kusto_emulator_eula` accepts the Kusto emulator license. The job runs
+`scripts/test-kusto-emulator.sh` against the real emulator on `ubuntu-latest`,
+including the pinned grader replay. Only local ARM development hosts lack the
+emulator. The job has not yet been dispatched for Phases 1 and 2.
+
+- [x] Inventory the 35 upstream built-ins and classify feasibility at the pin, at `main` `a25e38ee`, and at `main` `789cc9c2`.
+- [x] Implement the usage family: `execution-step-count`, `execution-duration`, `working-set-rebuild-factor`, `context-growth` (#21020). Hosted parity through `TestKustoUsageGraderReplay`.
+- [x] **Phase 1:** S1 (`objectives`, `actions`, `states`), S2 and L1. Unlocks `objective-coverage`, `premature-termination-gap`, `grounding-accuracy` and `state-revisit-probability-rep` on local DuckDB (§7, #21030).
+- [x] **Phase 2:** L3. Unlocks `recurrence-rate` and `artifact-production` on local DuckDB (§8, #21059).
+- [ ] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted in the `session-archive-kusto` job. Until then hosted backends reject them. Do this before Phase 4 so hosted support does not fall further behind.
+- [ ] **Phase 2b:** KQL lowering of L3 chaining, accepted in the `session-archive-kusto` job. Until then hosted backends reject chained plans. Brings hosted ADX to all 10 `implemented` graders.
+- [ ] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). If resume mapping needs transitive closure, reclassify the three tool graders as `vocabulary-gated` (G3); Phase 4 then still delivers L2, L5 and L6 for Phase 5.
+- [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `tool-failure-count`, `tool-success-rate` and `trajectory-efficiency` if the reconciliation fixture passes.
+- [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
 - [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
 - [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
 
@@ -401,7 +412,8 @@ Declared divergences, all failing towards `unavailable`:
   upstream's synthesized event list.
 - ADX and native backends do not advertise item sources and reject such plans.
   The KQL lowering is Phase 1b because the Kusto emulator does not run on the
-  ARM development host used for Phase 1.
+  ARM development host used for Phase 1. The opt-in `session-archive-kusto`
+  CI job can accept it (§6).
 
 ## 8. Phase 2 implementation notes
 
@@ -434,18 +446,27 @@ Declared divergences, all failing towards `unavailable`:
   Live upstream sees the original data and always measures.
 - ADX and native backends do not advertise `chaining` and reject chained
   plans. The KQL lowering is Phase 2b because the Kusto emulator is
-  unavailable on the development host. An unvalidated lowering would risk
+  unavailable on the development host; the opt-in `session-archive-kusto` CI
+  job can accept it (§6). An unvalidated lowering would risk
   silent divergence in ordered real sums and grouping on empty strings.
 
 ## 9. Smallest next delta
 
-Tool reconciliation (`tool-failure-count`, `tool-success-rate`,
-`trajectory-efficiency`) needs more than L5 `previous`: upstream collapses
-resume-strategy attempts to the last non-resume attempt in each invocation,
-which is a gaps-and-islands construction (`row-number` differences plus L3).
-L2, L5 and L6, building on L3, are therefore the next delta (Phase 4).
-Phase 4 alone does not unlock `recurrence-laminarity`: its visit order
-follows state `firstEventIndex` through the IR `events`, which needs nested S1
-and L4 (Phase 5). The three RQA graders then share one linear plan, already
-executed on DuckDB in `TestDuckDBLoweringEvidenceIntegration` (§4.2). The
-hosted lowerings in Phases 1b and 2b are independent of that work.
+Hosted parity comes first. Phases 1b and 2b add KQL lowerings for the item
+sources and L3 chaining and accept them in the `session-archive-kusto` job,
+bringing ADX from 4 to all 10 `implemented` graders. They need no new
+vocabulary, and without them every later local phase widens the gap between
+DuckDB and ADX.
+
+Next is the reconciliation fixture. Tool reconciliation (`tool-failure-count`,
+`tool-success-rate`, `trajectory-efficiency`) needs more than L5 `previous`:
+upstream collapses resume-strategy attempts to the last non-resume attempt in
+each invocation, which is a gaps-and-islands construction (`row-number`
+differences plus L3). The fixture decides whether that is enough or whether
+resume mapping needs transitive closure (G3).
+
+L2, L5 and L6 then follow as Phase 4. Phase 4 alone does not unlock
+`recurrence-laminarity`: its visit order follows state `firstEventIndex`
+through the IR `events`, which needs nested S1 and L4 (Phase 5). The three RQA
+graders then share one linear plan, already executed on DuckDB in
+`TestDuckDBLoweringEvidenceIntegration` (§4.2).
