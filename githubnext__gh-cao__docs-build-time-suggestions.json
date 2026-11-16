@@ -1,36 +1,7 @@
 {
  "source_sha": "86f6047e5301a5bd2efb910d3f5c676e9b3e5362",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T14:34:12Z",
-   "worker_run_id": "43724554592",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376",
-    "43698271571",
-    "43682264332",
-    "43681861583",
-    "43680980929",
-    "43655786695",
-    "43639680929",
-    "43623754509",
-    "43621919773",
-    "43616204011",
-    "43613020723",
-    "43611206032",
-    "43608206381",
-    "43593405440",
-    "43561388555",
-    "43536796952",
-    "43536491714"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43536491714 (push 2cb6d9c, 2026-11-14T00:47Z) to 43724243400 (push aa73dc6, 2026-11-15T14:25Z); none queued or in progress; 0 cancelled. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (all at Build documentation; Install completed in all 12). Source aa73dc6 = HEAD; prior source_sha f02efd0 differs by a dashboard-only change. Root package-lock.json last changed in 7c8faf4 (2026-11-13T20:56:33Z, commits API path check), so all 20 runs share key node-cache-Linux-x64-npm-7808ecf8 (root-only hash reproduced locally at HEAD). Cache: one repo cache entry 7808ecf8 (263412733 B, created 2026-11-13T20:57:12Z, ref main) present at 14:28Z; successes' Post Set up Node.js 0-1 s (exact-key hit, save skipped; inferred from step timing; logs HTTP 403 DIFC, not bypassed). Success medians n=8: setup-node restore 4.5 s (p90 6); Install dependencies 9.0 s (p90 11); setup+install+post per run median 12.5 s; exec (build start to deploy end) median 77.0 s, p90 92 (push-only median 75). 15 percent gate 11.55 s: full removal of the install step (9 s; deps required by build) cannot clear it; a node_modules replacement would need its restore to take about 1 s or less, while the current 263 MB npm-cache restore takes 4.5 s median. 60 s gate unreachable. dashboard/site/package-lock.json (last changed 7c8faf4) is outside the key; its share of install is unmeasured (logs unavailable) and bounded by the 9 s install median. Open 20815 (checkout; same worker campaign; OPEN, 0 comments) is another category: not repeated. Reliability, not timing: 12 Build documentation failures 43613020723 (2026-11-14T15:58Z) to 43721157324 (2026-11-15T13:51Z) ended by green pushes 43721484176 (f02efd0, 13:54Z) and 43724243400 (aa73dc6, 14:25Z); cause unverified. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T14:52:24Z",
    "worker_run_id": "43726371276",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43Z) to 43781377358 (push 86f6047, created 2026-11-16T00:36Z), all within 14 days; 0 cancelled (newest cancelled run 2026-11-12); none queued or in progress except stale 37642403569 outside the window. Gate: 16 successes >= 5; 4 Build documentation failures (43721157324, 43706435376, 43698271571, 43682264332) excluded and disclosed. Queue (run created to build start, all 20): median 3 s, p90 4 s, max 4 s; no concurrency hold and no overlapping runs. Exec (build start to deploy end, 16 successes): median 75 s, p90 90 s; 15 percent gate 11.25 s; 60 s gate unmet. Avoidable rebuilds: 1 of 20 pushes. 43780290464 (push 5b8b842, 00:25Z, exec 76 s) changed only dashboard/site/test/e2e/*.spec.js, which matches the dashboard/site/** trigger; build.mjs copies only dashboard/site/src and dashboard-fragments, and docs:build reads no test path. Not repeated (earlier windows 0 of 23 pushes; cumulative 1 of 26), so expected saving is about 3.8 s per push (76 s / 20), well below the gates. Scheduled 05:23Z rebuild is by design (synthetic dates, Date.now in scripts/simulate-dashboard-pages.mjs). Reliability: Build documentation green on 16 consecutive push runs since f02efd0; 2026-11-16 schedule unverified. Checkout f996c9a; main advanced to 86f6047 during the window. No suggestion; no create_issue; noop used; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T01:07:48Z",
+   "worker_run_id": "43783921769",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418",
+    "43757990961",
+    "43756384109",
+    "43756218347",
+    "43753233809",
+    "43752704784",
+    "43752194225",
+    "43746617494",
+    "43731625055",
+    "43724243400",
+    "43721484176",
+    "43721157324",
+    "43706435376",
+    "43698271571",
+    "43682264332"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43682264332 (push 29e63d1, 2026-11-15T05:43Z) to 43781377358 (push 86f6047, 2026-11-16T00:36Z), all within 14 days; 0 cancelled; none queued or in progress; no docs run after 00:36Z (re-read 01:06Z); main still 86f6047. Samples: 16 successes meet the 5-run gate; 4 failures excluded and disclosed (all Build documentation after Install succeeded). Stored run_timings recomputed; Jobs API spot-check of 43781377358 and 43731625055 matches. Medians (p90): setup-node 3 s (6), install 8 s (11), post-setup 0 s (1); whole phase 11 s (15) = 14.7 percent of exec median 75 s (p90 90). 15 percent gate 11.25 s: removing the entire phase (not viable; build needs node_modules) still does not clear it; 60 s gate unreachable. Cache: node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57:12Z, last accessed 01:03Z, key shared with other workflows); docs hit inferred from Post step 0 s (logs HTTP 403 DIFC, not bypassed). Locks: root and dashboard lock last changed 7c8faf4 (commits API, 2026-11-13), so no key change in window. Checkout (median 24.5 s, p90 34) is outside this category and tracked by OPEN issue 20815 (0 comments, unchanged since 2026-11-13T17:41Z); not repeated. Stale queued run 37642403569 (since 2026-10-07) still queued. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -894,10 +894,11 @@
    "setup_install_post_median_s": 12,
    "exec_median_s": 78,
    "exec_p90_s": 111
-  }
+  },
+  "last_accessed_checked": "2026-11-16T01:07:48Z"
  },
  "run_samples": {
-  "evaluated_at": "2026-11-16T00:42:13Z",
+  "evaluated_at": "2026-11-16T01:07:48Z",
   "window": "43682264332 (push 29e63d1, 2026-11-15T05:43Z) .. 43781377358 (push 86f6047, 2026-11-16T00:36Z)",
   "n_success": 16,
   "n_failed": 4,
@@ -1021,8 +1022,8 @@
  "etag_note": "23:52Z: gh api -i (docs.yml runs endpoint, per_page=1) returned no ETag header; reads not conditional. Completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-16T00:42:13Z",
-   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07) still queued at 00:39Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker."
+   "observed_at": "2026-11-16T01:07:48Z",
+   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07) still queued at 01:06Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker."
   },
   {
    "observed_at": "2026-11-16T00:42:13Z",
@@ -1633,8 +1634,8 @@
   "build_consumed_note": "build.mjs (lines 52-53) recursively copies all of dashboard/site/src and dashboard-fragments into the published output, so every src or fragment path is build-consumed regardless of import graph."
  },
  "dependency_phase_verified": {
-  "verified_at": "2026-11-15T22:53:17Z",
-  "window": "43655786695 (push d55c91b) .. 43768376457 (push 14a39d4); 13 successes, 7 failures excluded",
+  "verified_at": "2026-11-16T01:07:48Z",
+  "window": "43682264332 (push 29e63d1) .. 43781377358 (push 86f6047); 16 successes, 4 failures excluded",
   "setup_node_s": {
    "median": 3,
    "p90": 6
@@ -1651,11 +1652,15 @@
    "median": 11,
    "p90": 15
   },
-  "share_of_exec_median_pct": 14.3,
+  "share_of_exec_median_pct": 14.7,
   "exec_s": {
-   "median": 77,
+   "median": 75,
    "p90": 90
   },
-  "note": "Recomputed from run_timings rows (completed runs immutable); removal of the whole phase is not viable; 15 percent gate 11.55 s"
+  "note": "Recomputed from run_timings rows; whole-phase removal is the ceiling and is below the 15 percent gate (11.25 s)"
+ },
+ "local_clone_note": {
+  "verified_at": "2026-11-16T01:07:48Z",
+  "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
  }
 }
