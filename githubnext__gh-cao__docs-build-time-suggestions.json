@@ -1,36 +1,7 @@
 {
  "source_sha": "4121d564c85c3585b8c9fe2a8a0eae9c4e70d155",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T17:53:47Z",
-   "worker_run_id": "43743239744",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376",
-    "43698271571",
-    "43682264332",
-    "43681861583",
-    "43680980929",
-    "43655786695",
-    "43639680929",
-    "43623754509",
-    "43621919773",
-    "43616204011",
-    "43613020723",
-    "43611206032",
-    "43608206381",
-    "43593405440",
-    "43561388555",
-    "43536796952"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43536796952 (push 54e08aa, 2026-11-14T00:50Z) to 43731625055 (push 88f046c, 2026-11-15T15:45Z); re-listed 17:52Z: no newer docs run, none queued or in progress, 0 cancelled. Source c0bfef8 = HEAD; its 2 changed files are outside docs.yml triggers (no run owed). Excluded and disclosed: 12 failures, all reached Install dependencies (install median 8.5 s). n=8 successes (7 push + schedule 43561388555) meets the 5-run gate. Install median 9 s, p90 11 (nearest-rank) = 11.7 percent of exec median 77 s; 15 percent gate = 11.55 s. Set up Node.js median 4.5 s; post-step median 0 s, so exact-key hits inferred. Live entry node-cache-Linux-x64-npm-7808ecf8 (263 MB, created 2026-11-13T20:57:12Z) last accessed 17:43:49Z. Both lockfiles last changed in 7c8faf4 (20:56:33Z) and unchanged since, so the root-only cache key has no current staleness effect. Best case: one node_modules restore replacing setup-node plus install (est. 5 s restore, unmeasured) saves about 8.5 s (about 11 percent), below gate; full install removal saves at most 9 s and is invalid. No suggestion; no create_issue (checkout issue 20815 still OPEN, 0 comments, not repeated). next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T18:19:23Z",
    "worker_run_id": "43745745463",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43721157324 (push ac6789f, 2026-11-15T13:51Z, failure) to 43798031034 (push 4121d56, 2026-11-16T03:24Z, success); all push, no schedule; run list re-read 03:53Z: no newer run; source 4121d56 = HEAD = source_sha. n=19 successes meets the 5-run gate; 1 failure excluded. Spot-checked Jobs API for 43798031034 (exec 67 s) and 43789359390 (build 115 s) against stored rows: match. Queue create-to-build-start median 3 s, p90 4 s (range 2-4). 0 of 19 consecutive pairs overlapped (smallest idle gap 23 s), so documentation-pages never held a run; cancel-in-progress true rejected (could cancel a Pages deploy). Schedule kept for daily synthetic-date refresh; no schedule run in window. Avoidable rebuilds: 1 of 20 (5b8b842 / 43780290464, test-only: dashboard/site/test/e2e/*, tests/*, server *_test.go, exec 76 s, trigger via dashboard/site/test/**); no build input reads dashboard/site/test (rg). Excluding it saves at most 76 s on 1 push in 20 (about 3.8 s per push), 0 s on median exec 74 s; gate 11.1 s and 60 s unmet; single occurrence, so the second-test-only-run watch threshold is unmet. Checkout median 24.5 s stays under OPEN #20815 (0 comments, updated 2026-11-13T17:41:19Z), not repeated. Stale queued run 37642403569 still queued at 03:53Z (not in window, no timing effect). No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T04:22:00Z",
+   "worker_run_id": "43803316173",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418",
+    "43757990961",
+    "43756384109",
+    "43756218347",
+    "43753233809",
+    "43752704784",
+    "43752194225",
+    "43746617494",
+    "43731625055",
+    "43724243400",
+    "43721484176",
+    "43721157324"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43721157324 (push ac6789f, 2026-11-15T13:51Z, failure) to 43798031034 (push 4121d56, 2026-11-16T03:24Z); same 20 IDs as the 03:42Z window, none newer or queued (re-listed 04:20Z). Source 4121d56 = HEAD = source_sha. Samples: 19 push successes meet the 5-run gate; 1 failure (Build documentation) excluded and disclosed. Dependency phase (setup+install+post): median 11 s, p90 15 = 14.9 percent of exec median 74 s (p90 111); 15 percent gate 11.1 s. Install median 8 s (p90 11), Set up Node.js median 3 s (p90 6), post median 0 s (p90 1). Cache: node-cache-Linux-x64-npm-7808ecf8 live (263,412,733 B, created 2026-11-13T20:57:12Z, last accessed 04:19:30Z); post step 0 s on all 19 successes = exact-key hit inferred (job logs HTTP 403 DIFC, not bypassed). Root and dashboard lockfiles last changed 7c8faf4 (2026-11-13T20:56:33Z). Spot-check of 43798031034 via Jobs API matches stored row. Best realistic change (node_modules restore, est. 5 s, unmeasured, replacing setup+install+post) saves about 6 s = 8.1 percent, below gate; full phase removal is invalid (Astro needs node_modules). Workflow has build and deploy jobs only (no dashboard job); dashboard generation is the Build synthetic enterprise demo step. No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -885,7 +885,7 @@
   "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
   "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
   "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-  "live_entry_last_accessed": "2026-11-16T03:34:53Z (Actions caches API read at 03:40Z); 43798031034 Set up Node.js 2 s, Install 7 s, Post 0 s (exact-key hit inferred)",
+  "live_entry_last_accessed": "2026-11-16T04:19:30Z (Actions caches API read at 04:20Z); 43798031034 Set up Node.js 2 s, Install 7 s, Post 0 s (exact-key hit inferred)",
   "window_2026_11_15T1930Z": {
    "n_success": 8,
    "setup_node_median_s": 4,
@@ -895,7 +895,7 @@
    "exec_median_s": 78,
    "exec_p90_s": 111
   },
-  "last_accessed_checked": "2026-11-16T03:42:21Z"
+  "last_accessed_checked": "2026-11-16T04:22:00Z"
  },
  "run_samples": {
   "evaluated_at": "2026-11-16T02:56:01Z",
@@ -1030,6 +1030,10 @@
   {
    "observed_at": "2026-11-16T02:38:13Z",
    "note": "Watch (unchanged): test-only push 5b8b842 (43780290464) is the only test-only docs run in the window; 0599943 (43792211504) touches build-consumed dashboard/site/src and scripts/build.mjs. Candidate change only if a second test-only docs run appears in a later window: negated trigger for dashboard/site/test/** in docs.yml, validated with a docs run."
+  },
+  {
+   "observed_at": "2026-11-16T04:21:30Z",
+   "note": "Re-checked stale queued run 37642403569 (workflow_run, headSha 6206962, created 2026-10-07T15:12Z): still status queued. Maintainer should verify and cancel; this worker is read-only."
   }
  ],
  "run_timings": {
@@ -1741,5 +1745,32 @@
   "gate_15pct_s": 11.25,
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs prepareDashboardPages now = Date.now() (line 78); daily schedule refreshes synthetic dates",
   "note": "Dashboard site is built only by the demo step (buildDashboardSite); docs:build does not build the dashboard; no dashboard job exists."
+ },
+ "dependency_phase_recheck": {
+  "evaluated_at": "2026-11-16T04:22:00Z",
+  "window": "43721157324..43798031034 (19 push successes; 43721157324 failure excluded)",
+  "setup_node_s": {
+   "median": 3,
+   "p90": 6
+  },
+  "install_s": {
+   "median": 8,
+   "p90": 11
+  },
+  "post_setup_node_s": {
+   "median": 0,
+   "p90": 1
+  },
+  "setup_install_post_s": {
+   "median": 11,
+   "p90": 15
+  },
+  "exec_s": {
+   "median": 74,
+   "p90": 111
+  },
+  "share_of_exec_median_pct": 14.9,
+  "gate_15pct_s": 11.1,
+  "best_case": "node_modules restore est 5 s replacing setup+install+post saves ~6 s (8.1 pct); below gate"
  }
 }
