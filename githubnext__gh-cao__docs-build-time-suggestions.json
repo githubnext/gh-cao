@@ -1,36 +1,7 @@
 {
- "source_sha": "0cfeed6fae6c5f2dab6432ceaaaf4211d242b6b8",
- "next_category": "reusable dashboard generation",
+ "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T04:59:39Z",
-   "worker_run_id": "43807021936",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "43798031034",
-    "43792211504",
-    "43789359390",
-    "43781377358",
-    "43781088986",
-    "43780290464",
-    "43768376457",
-    "43766933236",
-    "43766019418",
-    "43757990961",
-    "43756384109",
-    "43756218347",
-    "43753233809",
-    "43752704784",
-    "43752194225",
-    "43746617494",
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43721157324 (push ac6789f, 2026-11-15T13:51Z, failure) to 43798031034 (push 4121d56, 2026-11-16T03:24Z); all completed, 0 cancelled, none in progress; gh run list 04:58Z shows no newer run. Source 4121d56 = HEAD = source_sha. Sam...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T05:20:00Z",
    "worker_run_id": "43809140110",
@@ -865,6 +836,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 19 push + 1 schedule 43810351164; all success; cancelled 43832015521 excluded; no docs run queued or in progress at evaluation. Build documentation step (astro build + validate-agent-docs + agent-docs-discovery test): median 11.5 s, p90 14 s from stored Jobs API rows (reused, immutable). Exec median 78 s, 15% gate 11.7 s; whole-step ceiling 11.5 s, below gate and 60 s. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). HEAD ac6d75b (16:26Z) changes no docs.yml trigger path; docs source remains 0cfeed6.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T16:54:42Z",
+   "worker_run_id": "43911819734",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "43766019418",
+    "43766933236",
+    "43768376457",
+    "43780290464",
+    "43781088986",
+    "43781377358",
+    "43789359390",
+    "43792211504",
+    "43798031034",
+    "43810351164",
+    "43814432358",
+    "43825070138",
+    "43829639369",
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z): 19 push + 1 schedule 43810351164, all success, 0 failed; cancelled 43832015521 excluded and disclosed; gh run list 16:54Z shows no newer docs run, none queued or in progress. Source ac6d75b = HEAD, a non-trigger (files under scripts/generate-session-query-lowering-cases.mjs, server/, specs/); last trigger source 0cfeed6. Recomputed from stored run_timings rows (no refetch): Build synthetic enterprise demo median 5 s, p90 6 s, min 3, max 8; 6.4% of exec median 78 s (p90 120 s). Gate 60 s or 15% (11.7 s) not met; ceiling saving 5 s. Jobs API spot-check 43877103800: demo step 13:35:36-13:35:41 = 5 s, matches row. Rejected: skipping is invalid (scripts/simulate-dashboard-pages.mjs:78 now=Date.now(); dist/cao deployed); separate dashboard job re-pays checkout (median 25 s) plus setup and install (about 11 s). Open issue 20815 (blobless checkout) is the checkout category, not re-proposed; no duplicate created. Next: artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1649,7 +1649,7 @@
   "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
  },
  "dashboard_generation_verified": {
-  "verified_at": "2026-11-16T15:24:38Z",
+  "verified_at": "2026-11-16T16:54:42Z",
   "window": "43766019418..43877103800 (20 non-cancelled runs: 19 push + 1 schedule 43810351164; all success; cancelled 43832015521 excluded); recomputed from run_timings rows; Jobs API spot-check of 43877103800",
   "demo_step_s": {
    "median": 5,
@@ -1665,7 +1665,7 @@
   "gate_15pct_s": 11.7,
   "ceiling_saving_s": 6,
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
-  "note": "Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists; no dashboard cache in docs.yml. Step is 5 s median, so no reuse or parallelization clears the gate (a separate dashboard job would re-pay about 12 s setup+install)."
+  "note": "Re-verified 16:54Z by worker 43911819734: no newer docs run; demo rows recomputed (median 5 s, p90 6 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.7 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists."
  },
  "astro_output_reuse": {
   "verified_at": "2026-11-16T06:36:53Z",
