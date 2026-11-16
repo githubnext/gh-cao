@@ -1,0 +1,76 @@
+{
+  "cases": [
+    {
+      "name": "fresh control repository",
+      "repositories": [],
+      "workflows": [],
+      "campaigns": [],
+      "expected": {
+        "show-onboarding": true,
+        "has-repositories": false,
+        "has-artifacts": false,
+        "repository-count": 0,
+        "workflow-count": 0,
+        "campaign-count": 0
+      }
+    },
+    {
+      "name": "repositories without workflows or campaigns",
+      "repositories": [
+        {
+          "repository": "control"
+        }
+      ],
+      "workflows": [],
+      "campaigns": [],
+      "expected": {
+        "show-onboarding": true,
+        "has-repositories": true,
+        "has-artifacts": false,
+        "repository-count": 1,
+        "workflow-count": 0,
+        "campaign-count": 0
+      }
+    },
+    {
+      "name": "workflow without selected repositories",
+      "repositories": [],
+      "workflows": [
+        {
+          "workflow": "health.md"
+        }
+      ],
+      "campaigns": [],
+      "expected": {
+        "show-onboarding": true,
+        "has-repositories": false,
+        "has-artifacts": true,
+        "repository-count": 0,
+        "workflow-count": 1,
+        "campaign-count": 0
+      }
+    },
+    {
+      "name": "configured repository and campaign",
+      "repositories": [
+        {
+          "repository": "control"
+        }
+      ],
+      "workflows": [],
+      "campaigns": [
+        {
+          "campaign": "dependabot"
+        }
+      ],
+      "expected": {
+        "show-onboarding": false,
+        "has-repositories": true,
+        "has-artifacts": true,
+        "repository-count": 1,
+        "workflow-count": 0,
+        "campaign-count": 1
+      }
+    }
+  ]
+}

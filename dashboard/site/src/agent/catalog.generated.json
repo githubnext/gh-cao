@@ -1555,6 +1555,7 @@
         "overview-factory-station",
         "overview-header-presentation",
         "overview-issue-station",
+        "overview-onboarding-state",
         "overview-repository-station",
         "overview-rhythm",
         "overview-value-station"
@@ -13250,6 +13251,145 @@
         "backend": "postgres",
         "requirements": [
           "simulation-days"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-repository-summary",
+      "subject": "Count configured repositories retained in the canonical control-plane inventory.",
+      "objective": "Determine whether repository selection is present before presenting the operational Overview.",
+      "acceptance": "Count canonical repository identities only; incomplete or unavailable inventory cannot establish a fresh control repository.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-workflow-summary",
+      "subject": "Count declared workflows retained in the canonical control-plane inventory.",
+      "objective": "Determine whether the control repository has an Agentic Workflow to operate.",
+      "acceptance": "Count canonical workflow identities only; incomplete or unavailable workflow inventory cannot establish an unconfigured control repository.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-campaign-summary",
+      "subject": "Count installed campaigns retained in the canonical control-plane inventory.",
+      "objective": "Determine whether the control repository has a campaign to operate.",
+      "acceptance": "Count canonical campaign identities independently of execution; incomplete or unavailable campaign inventory cannot establish an unconfigured control repository.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaigns"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-repository-input",
+      "subject": "Prepare repository selection evidence for the Overview onboarding decision.",
+      "objective": "Carry the configured repository count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-repository-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-repository-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-workflow-input",
+      "subject": "Prepare workflow inventory evidence for the Overview onboarding decision.",
+      "objective": "Carry the declared workflow count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-workflow-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-workflow-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-campaign-input",
+      "subject": "Prepare campaign inventory evidence for the Overview onboarding decision.",
+      "objective": "Carry the installed campaign count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-campaign-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-campaign-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-state",
+      "subject": "Classify whether the Overview should invite initial control-plane setup.",
+      "objective": "Replace operational factory statistics only when repository selection or workflow and campaign inventory is absent.",
+      "acceptance": "show-onboarding is true when resolved canonical inventory has no repositories or has neither workflows nor campaigns. This is setup guidance, not a claim of complete operational coverage or rollout authority.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-campaign-input",
+        "overview-onboarding-repository-input",
+        "overview-onboarding-workflow-input"
+      ],
+      "used-by-pages": [
+        "overview"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns",
+          "repositories",
+          "workflows"
         ]
       }
     },

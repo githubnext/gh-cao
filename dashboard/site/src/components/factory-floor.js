@@ -1,4 +1,6 @@
+import { effect } from '../reactive.js';
 import { renderFactoryElement } from './factory-elements.js';
+import { factoryOnboardingState, renderFactoryOnboarding } from './factory-onboarding.js';
 import { renderFactoryStation } from './factory-station.js';
 import { renderReactiveGrid } from './reactive-grid.js';
 import { createDebug } from '../debug.js';
@@ -54,6 +56,7 @@ const STATION_DEFINITIONS = {
  * @param {FactoryStationId[]} selectedStations
  */
 export function renderFactoryFloor(sources, animateNumbers, scope, roleNames, selectedStations) {
+  const onboardingSource = roleNames.onboarding ? sources[roleNames.onboarding] : undefined;
   const stations = selectedStations.map((id) => {
     const definition = STATION_DEFINITIONS[id];
     const source = sources[roleNames[id]];
@@ -82,22 +85,42 @@ export function renderFactoryFloor(sources, animateNumbers, scope, roleNames, se
   });
   debugFactoryFloor({ event: 'composed', stationCount: stations.length, animate: animateNumbers });
 
-  return renderReactiveGrid({
+  const onboarding = renderFactoryOnboarding();
+  const floor = renderReactiveGrid({
     className: stations.length <= 2 ? 'factory-floor factory-floor-compact' : 'factory-floor',
     activeClassName: 'factory-floor-active',
     listClassName: 'factory-stations',
     items: () => stations,
     key: (station) => station.id,
     renderItem: (station) => station.element,
-    active: () => stations.some(({ source }) => source.rows()[0]?.active === true),
-    ariaLabel: () => `${stations.map(({ definition, source }) => {
-      const row = source.rows()[0];
-      return !source.pending() && !source.unavailable() && typeof row?.description === 'string'
-        ? row.description
-        : definition.unavailableDescription;
-    }).join(', ')}.`,
+    active: () => {
+      const onboardingState = factoryOnboardingState(onboardingSource);
+      return !onboardingState.pending && !onboardingState.show
+        && stations.some(({ source }) => source.rows()[0]?.active === true);
+    },
+    ariaLabel: () => {
+      const onboardingState = factoryOnboardingState(onboardingSource);
+      if (onboardingState.pending) return 'Loading dashboard setup status.';
+      if (onboardingState.show) return 'Get started with Central Agentic Ops.';
+      return `${stations.map(({ definition, source }) => {
+        const row = source.rows()[0];
+        return !source.pending() && !source.unavailable() && typeof row?.description === 'string'
+          ? row.description
+          : definition.unavailableDescription;
+      }).join(', ')}.`;
+    },
     signal: scope.signal
   });
+  const stationList = floor.querySelector('.factory-stations');
+  floor.append(onboarding);
+  effect(() => {
+    const onboardingState = factoryOnboardingState(onboardingSource);
+    if (stationList instanceof HTMLElement) stationList.hidden = onboardingState.pending || onboardingState.show;
+    onboarding.hidden = !onboardingState.show;
+    floor.classList.toggle('factory-floor-onboarding', onboardingState.show);
+    floor.classList.toggle('factory-floor-onboarding-pending', onboardingState.pending);
+  }, { signal: scope.signal });
+  return floor;
 }
 
 /**
@@ -107,6 +130,7 @@ export function renderFactoryFloor(sources, animateNumbers, scope, roleNames, se
  * @type {Record<string, string>}
  */
 export const FLOOR_DEFAULT_SOURCES = {
+  onboarding: 'overview-onboarding-state',
   campaigns: 'overview-factory-station',
   repositories: 'overview-repository-station',
   issues: 'overview-issue-station',
@@ -135,7 +159,10 @@ export function renderFactoryFloorElement(context) {
   return renderFactoryElement(
     context,
     FLOOR_DEFAULT_SOURCES,
-    (roleNames) => selectedStations.map((station) => roleNames[station]),
+    (roleNames) => [
+      ...(context.sourceNames.includes(roleNames.onboarding) ? [roleNames.onboarding] : []),
+      ...selectedStations.map((station) => roleNames[station])
+    ],
     (sources, scope, roleNames) => renderFactoryFloor(
       sources,
       context.elementConfig?.animate === 'number',
