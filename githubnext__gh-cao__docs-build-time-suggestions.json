@@ -1,36 +1,7 @@
 {
  "source_sha": "0cfeed6fae6c5f2dab6432ceaaaf4211d242b6b8",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T03:55:10Z",
-   "worker_run_id": "43800528932",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43798031034,
-    43792211504,
-    43789359390,
-    43781377358,
-    43781088986,
-    43780290464,
-    43768376457,
-    43766933236,
-    43766019418,
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809,
-    43752704784,
-    43752194225,
-    43746617494,
-    43731625055,
-    43724243400,
-    43721484176,
-    43721157324
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43721157324 (push ac6789f, 2026-11-15T13:51Z, failure) to 43798031034 (push 4121d56, 2026-11-16T03:24Z, success); all push, no schedule; run list re-read 03:53Z: no newer run; source 4121d56 = HEAD = source_sha. n=19 successes m...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T04:22:00Z",
    "worker_run_id": "43803316173",
@@ -865,6 +836,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 20/20 success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 15:43Z: no newer docs run, none queued or in progress; docs.yml unchanged since 063cbe9 (2026-11-12). Stored transfer_model rows reused (immutable; no new Jobs API calls). Removable handoff+Configure+Upload+deploy setup: median 8 s, p90 10 s = 10.3% of exec median 78 s; gate 11.7 s and 60 s not met. Deploy Pages (median 7 s) is GitHub-managed. Checkout (median 25 s) remains under open issue 20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); not re-proposed.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T15:57:15Z",
+   "worker_run_id": "43901205524",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 excluded; gh run list re-read 15:56Z shows no newer docs run. Source 0cfeed6 = HEAD = source_sha. Queue median 3 s, p90 4 s, one 64 s outlier (43832040488 behind in-flight 43831980991); queue is latency, not build time. Exec median 78 s, p90 120 s; ceiling of concurrency or trigger change on median = 0 s. cancel-in-progress false preserved: 0 in-flight builds superseded in window (only 43832015521 cancelled pending at 12 s, no compute). Avoidable rebuilds: 18 of 19 push commits touch build-consumed paths (fade88d and 0cfeed6 verified by file list this run; both touch src, dashboard-fragments, generated catalogs, docs); only test-only push 5b8b842 qualifies, about 4 s per push run averaged, below 60 s and 15% (11.7 s) gates; watch item unchanged. Daily 05:23Z schedule (63 s) refreshes synthetic dates; not skippable. Checkout (median 25 s, 32% of exec) remains tracked by OPEN #20815 (0 comments, updated 2026-11-13); not repeated. Next category: dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1688,7 +1688,7 @@
   "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
  },
  "scheduling_verified": {
-  "verified_at": "2026-11-16T14:09:27Z",
+  "verified_at": "2026-11-16T15:57:15Z",
   "window": "43766019418 (push eccbdd6, 2026-11-15T21:51Z) .. 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 20 completed non-cancelled runs: 19 push, 1 schedule 43810351164; all success; cancelled 43832015521 excluded",
   "method": "gh run list + memory run_timings rows (immutable) + Jobs API for 43877103800 (only new run in window)",
   "queue_s": {
@@ -1726,7 +1726,9 @@
    "17a3b7a": "build-consumed (dashboard/site/src, dashboard-fragments, docs/**-adjacent)",
    "fa5faeb": "build-consumed (docs/operational-value.md); server/specs outside filter",
    "f343b8b": "build-consumed (dashboard/site/src/agent/mcp-contract.json); server/specs outside filter",
-   "70f59d2": "build-consumed (dashboard/site/src/data/github-resource.js)"
+   "70f59d2": "build-consumed (dashboard/site/src/data/github-resource.js)",
+   "fade88d": "build-consumed (dashboard/site/src, dashboard-fragments, generated catalogs, docs, server outside filter); verified 2026-11-16 file list",
+   "0cfeed6": "build-consumed (dashboard/site/dashboard-fragments, src/agent generated JSON, docs); verified 2026-11-16 file list"
   }
  },
  "dependency_phase": {
@@ -1771,5 +1773,12 @@
   "ceiling_saving_s": 11.5,
   "decision": "not actionable: whole-step removal (includes validate-agent-docs and agent-docs-discovery test) saves at most 11.5 s, below 60 s and the 15% gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
   "denominator_note": "exec = build job start to deploy job end; docs.yml has no separate dashboard job (dashboard generation is the Build synthetic enterprise demo step in build)"
+ },
+ "burst_analysis": {
+  "verified_at": "2026-11-16T15:57:15Z",
+  "window": "08:14Z-08:35Z, 2026-11-16 (runs 43829639369, 43831754585, 43831980991, 43832015521 cancelled, 43832040488)",
+  "finding": "Sequential, non-superseding builds: each in-flight run finished before the next started; 43832015521 cancelled while pending at 12 s (no compute); 43832040488 waited 64 s behind in-flight 43831980991 (latency only).",
+  "candidate_considered": "build-stage cancel-in-progress true with deploy-stage cancel false",
+  "decision": "rejected for this window: no in-flight build was superseded, so execution-time saving is about 0 s; would add deploy-safety risk for latency only"
  }
 }
