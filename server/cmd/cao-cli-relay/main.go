@@ -20,6 +20,8 @@ import (
 
 var relayLog = logger.New("cao:cli-relay")
 
+const egressProbeTimeout = 5 * time.Second
+
 var proxyVariables = []string{"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"}
 
 // workloadEnv drops inherited proxy settings and points every proxy variable at
@@ -49,12 +51,10 @@ func run() int {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	ready, err := (&net.Dialer{Timeout: 5 * time.Second}).DialContext(ctx, "unix", cliegress.SocketPath)
-	if err != nil {
+	if err := probeEgressSocket(ctx, cliegress.SocketPath); err != nil {
 		fmt.Fprintln(os.Stderr, "hosted CLI egress socket is unavailable")
 		return 125
 	}
-	_ = ready.Close()
 	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp4", cliegress.RelayAddress)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "hosted CLI egress relay is unavailable")
@@ -73,6 +73,18 @@ func run() int {
 	command.Env = workloadEnv(os.Environ())
 	relayLog.Printf("starting workload: args=%d", len(os.Args)-2)
 	return workloadExitCode(command.Run())
+}
+
+// probeEgressSocket confirms the host egress socket accepts a connection before
+// the relay starts, so the workload never runs without a reachable proxy.
+func probeEgressSocket(ctx context.Context, socket string) error {
+	ready, err := (&net.Dialer{Timeout: egressProbeTimeout}).DialContext(ctx, "unix", socket)
+	if err != nil {
+		relayLog.Printf("egress socket probe failed: ctx_done=%t", ctx.Err() != nil)
+		return err
+	}
+	relayLog.Printf("egress socket probe succeeded")
+	return ready.Close()
 }
 
 // workloadExitCode maps a workload run result to the relay exit status: the
