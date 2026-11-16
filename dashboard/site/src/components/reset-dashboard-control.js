@@ -1,5 +1,5 @@
 import { h } from '../dom.js';
-import { deleteCanonicalDatabase } from '../data/storage/indexeddb.js';
+import { deleteCanonicalDatabase } from '../data/storage/canonical-database.js';
 import { octicon } from '../octicons.js';
 import { clearScopedStorage } from '../storage-scope.js';
 import { createDebug } from '../debug.js';

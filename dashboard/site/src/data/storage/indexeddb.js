@@ -2,7 +2,7 @@ import { relationshipErrors, timestampMilliseconds } from '../model/schema.js';
 import { DAILY_RUN_COUNT_STORES, DAILY_RUN_COUNT_STATE_ID, evictDailyRunCounts, reconcileDailyRunCountsBatch } from '../model/daily-run-counts.js';
 import { pruneCanonicalRecord } from '../model/fields.js';
 import { BROWSER_RETENTION_WINDOWS_MS, recordTimestamp, RETENTION_TIMESTAMPS as RETENTION_TIMESTAMP_FIELDS } from './retention.js';
-import { scopedStorageKey } from '../../storage-scope.js';
+import { canonicalDatabaseName } from './canonical-database.js';
 import { createDebug } from '../../debug.js';
 import { tidy } from '../../data-operations.js';
 import {
@@ -18,7 +18,8 @@ import {
 
 const debug = createDebug('data:indexeddb');
 
-export const DATABASE_NAME = 'gh-aw-cao-dashboard-data';
+export { canonicalDatabaseName, DATABASE_NAME, deleteCanonicalDatabase } from './canonical-database.js';
+
 export const DATABASE_VERSION = 49;
 const WORKFLOW_SUBJECT_STATE_ID = 'workflow-subject-state';
 
@@ -40,11 +41,6 @@ export const CANONICAL_QUERY_INDEX_FIELDS = /** @type {Record<string, string[]>}
   byQueryDomain: ['domain'],
   byQueryMcpIdentity: ['source', 'type', 'mcpServer', 'mcpTool']
 });
-
-/** @param {string} [pathname] */
-export function canonicalDatabaseName(pathname) {
-  return scopedStorageKey(DATABASE_NAME, pathname);
-}
 
 export const ENTITY_STORES = /** @type {const} */ ([
   'campaigns',
@@ -418,53 +414,6 @@ function createSchema(database, backfill = false, coverage = 'retained-v44') {
       coverage: backfill ? coverage : 'admitted', excludedRuns: 0, conflictedRuns: 0
     });
   }
-}
-
-const DELETE_BLOCKED_TIMEOUT_MS = 3_000;
-
-/**
- * @param {IDBFactory} indexedDB
- * @param {{ blockedTimeoutMs?: number, onBlocked?: () => void }} [options]
- * @returns {Promise<void>}
- */
-export function deleteCanonicalDatabase(indexedDB, options = {}) {
-  const name = canonicalDatabaseName();
-  const blockedTimeoutMs = options.blockedTimeoutMs ?? DELETE_BLOCKED_TIMEOUT_MS;
-  debug('deleting database', name);
-  const request = indexedDB.deleteDatabase(name);
-  return new Promise((resolve, reject) => {
-    /** @type {ReturnType<typeof setTimeout> | undefined} */
-    let blockedTimeout;
-    const settle = (/** @type {() => void} */ action) => {
-      if (blockedTimeout !== undefined) clearTimeout(blockedTimeout);
-      action();
-    };
-    request.onsuccess = () => settle(() => {
-      debug('deleted database', name);
-      resolve();
-    });
-    request.onerror = () => settle(() => {
-      const error = request.error ?? new Error('Unable to delete canonical dashboard data');
-      debug('failed to delete database', name, error);
-      reject(error);
-    });
-    request.onblocked = () => {
-      // Another open connection (a stale tab, worker, or leaked handle) is
-      // still holding the database open. The delete request stays pending
-      // and resolves once that connection closes, so give it a bounded grace
-      // period instead of hanging indefinitely or failing immediately.
-      debug('delete database blocked by an open connection', name);
-      options.onBlocked?.();
-      if (blockedTimeout === undefined) {
-        blockedTimeout = setTimeout(() => {
-          debug('delete database still blocked after timeout', name);
-          const error = new Error('Deleting canonical dashboard data was blocked by another open tab or connection');
-          error.name = 'IndexedDBDeleteBlockedError';
-          reject(error);
-        }, blockedTimeoutMs);
-      }
-    };
-  });
 }
 
 /**

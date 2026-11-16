@@ -14,7 +14,7 @@ import {
   githubWorkerBackendConfiguration,
   usesRemoteDataBackend
 } from './remote-data-backend.js';
-import { githubResourcePath } from './data/github-service.js';
+import { githubResourcePath } from './data/github-resource.js';
 import { isGitHubQuerySource } from './data/github-query-sources.js';
 import { invalidateGitHubResourceAuthentication } from './auth.js';
 import { cliQueueAvailable } from './backend-mode.js';

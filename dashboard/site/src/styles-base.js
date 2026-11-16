@@ -128,6 +128,7 @@ a:hover { text-decoration: underline; text-decoration-thickness: 2px; }
 a:focus-visible, [tabindex]:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 180ms; animation-timing-function: ease-out; }
 :root[data-navigation-transition="tab"] { view-transition-name: none; }
+:root[data-deferred-styles="pending"] .dashboard-page { visibility: hidden; }
 :root[data-navigation-transition="tab"] .dashboard-page:not([hidden]) > :is(.custom-view-grid, .page-layout-grid, .dashboard-view-skeleton) { view-transition-name: dashboard-tab-content; }
 ::view-transition-group(dashboard-tab-content), ::view-transition-old(dashboard-tab-content), ::view-transition-new(dashboard-tab-content) { animation-duration: 120ms; animation-timing-function: ease-out; }
 .skip-link { position: fixed; z-index: 10; top: -80px; left: 12px; padding: 7px 12px; border: 1px solid var(--focus); border-radius: 6px; background: var(--canvas); color: var(--accent); font-weight: 600; text-decoration: none; transition: top 120ms ease, color 120ms ease; }

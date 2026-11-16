@@ -262,7 +262,6 @@ export const chartStyles = `.chart-widget { min-height: 230px; display: grid; pl
 .swimlane-mark-unknown { stroke: var(--muted); }
 .swimlane-mark:hover, .swimlane-mark:focus-visible { filter: brightness(1.2); stroke-width: 4; }
 .swimlane-mark:focus-visible { outline: none; }
-.dashboard-full-view .custom-view-grid > .custom-view { padding-inline: var(--dashboard-page-padding-inline); }
 .dashboard-full-view .custom-view-grid > .chart-view-swimlane { padding-bottom: 14px; }
 .chart-widget .chart-series-7 { stroke: var(--pink); }
 .chart-widget .chart-series-8 { stroke: var(--coral); }
@@ -347,12 +346,9 @@ export const chartStyles = `.chart-widget { min-height: 230px; display: grid; pl
   from { opacity: 0; transform: scaleX(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pie-chart-segment, .area-chart-area, .line-chart-series, .line-chart-point, .dot-chart-point, .scatter-chart-point, .bar-chart-bar, .histogram-chart-bar, .table-summary-histogram rect, .metric-number-animated { animation: none; }
-  .metric-number-animated { --metric-number: var(--metric-number-target); }
+  .pie-chart-segment, .area-chart-area, .line-chart-series, .line-chart-point, .dot-chart-point, .scatter-chart-point, .bar-chart-bar, .histogram-chart-bar, .table-summary-histogram rect { animation: none; }
   .pie-chart-segment, .point-tooltip, .swimlane-run-mark, .dashboard-notification-chevron { transition: none; }
 }
-.view-description { margin: 3px 0 0; color: var(--muted); }
-.chart-view-pie { display: grid; gap: 16px; }
 .pie-chart-card { display: grid; grid-template-columns: minmax(190px, .65fr) minmax(0, 1.35fr); align-items: center; gap: 4px 24px; padding: 20px 24px; }
 .layout-section .pie-chart-card { padding: 0; border: 0; }
 #page-preview .pie-chart-card { padding: 0; border: 0; }
