@@ -1,36 +1,7 @@
 {
  "source_sha": "86f6047e5301a5bd2efb910d3f5c676e9b3e5362",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T15:16:45Z",
-   "worker_run_id": "43728588034",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376",
-    "43698271571",
-    "43682264332",
-    "43681861583",
-    "43680980929",
-    "43655786695",
-    "43639680929",
-    "43623754509",
-    "43621919773",
-    "43616204011",
-    "43613020723",
-    "43611206032",
-    "43608206381",
-    "43593405440",
-    "43561388555",
-    "43536796952",
-    "43536491714"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43536491714 (push 2cb6d9c, created 2026-11-14T00:47:23Z) to 43724243400 (push aa73dc6, created 2026-11-15T14:25:07Z), all within 14 days; gh run list re-read ~15:14Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, no newer docs run; source aa73dc6 = HEAD = source_sha. Stored Jobs API rows reused for completed runs (immutable); newest success 43724243400 re-fetched: Build synthetic enterprise demo 3 s, Build documentation 10 s, exec 67 s match stored rows. Excluded and disclosed: 12 failures, all at Build documentation (Install completed; step logs HTTP 403 DIFC, not bypassed). n=8 successes (7 push + schedule 43561388555) meets the 5-run gate. Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 3.5 s, p90 4 s, range 3-4 s = 4.5 percent of median exec 77 s (p90 92 s). 15 percent gate 11.55 s and 60 s gate unreachable; full removal saves at most 3.5 s. Reuse unsafe: scripts/simulate-dashboard-pages.mjs defaults now to Date.now() and writes generatedAt into the output, and the daily 05:23Z schedule refreshes synthetic dates by design. No dashboard job exists (generation is a build-job step). Open issue 20815 (checkout, OPEN, 0 comments, unchanged since 2026-11-13T17:41Z) not repeated. Reliability, not timing: 12-failure Build documentation streak (43613020723 to 43721157324) ended by green pushes 43721484176 and 43724243400. No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T15:33:52Z",
    "worker_run_id": "43730178086",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43Z) to 43781377358 (push 86f6047, created 2026-11-16T00:36Z), all within 14 days; gh run list re-read 01:22Z: same 20 IDs, all completed, none queued or in progress in window, 0 cancelled, no docs run newer than 00:36Z; source 86f6047 = workspace HEAD = source_sha. Window contains 0 schedule runs (all push). Samples: 16 successes meet the 5-run gate; 4 failures excluded and disclosed (Build documentation: 43721157324, 43706435376, 43698271571, 43682264332). Category step 'Build documentation' (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): success median 11.5 s, p90 15 s (nearest-rank), range 8-16 s; exec median 75 s, p90 90 s; 15 percent gate = 11.25 s; 60 s gate unreachable. Only change clearing the gate would be removing essentially the whole step, which is invalid (deploy consumes dist; validation gates correctness). Validation reads dist and git only (static check of scripts/validate-agent-docs.mjs and tests/integration/agent-docs-discovery.test.mjs: no spawn of astro, no second build). Astro-internal vs validation split unmeasurable (step logs HTTP 403 DIFC, not bypassed; no local node_modules). Spot check 43781377358 Jobs API: Build documentation 00:37:11-00:37:22 = 11 s, matches stored row. No Astro output cache exists; a commit-keyed dist cache would hit only same-commit reruns, none in window, and would not move the median. No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation. Observation (not repeated): stale queued workflow_run 37642403569 (created 2026-10-07, headSha 6206962) still queued at 01:23Z.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T01:35:30Z",
+   "worker_run_id": "43786830539",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    43781377358,
+    43781088986,
+    43780290464,
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109,
+    43756218347,
+    43753233809,
+    43752704784,
+    43752194225,
+    43746617494,
+    43731625055,
+    43724243400,
+    43721484176,
+    43721157324,
+    43706435376,
+    43698271571,
+    43682264332
+   ],
+   "outcome": "complete, not actionable. Window = latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43Z) to 43781377358 (push 86f6047, created 2026-11-16T00:36Z); 16 successes, 4 failures excluded and disclosed (Build documentation: 43682264332, 43698271571, 43706435376, 43721157324); 0 cancelled; gh run list re-read 01:35Z: no docs run newer than 43781377358; main = source_sha 86f6047. Only push events in window (n=16 meets 5-run gate). Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp to dist/cao): median 4.5 s, p90 6 s, range 3-6 s = 6.0 percent of median exec 75 s (p90 90); 15 percent gate 11.25 s and 60 s gate unreachable; whole-step removal saves at most 4.5 s and is invalid (deploy publishes dist/cao). Spot checks via Jobs API: 43781377358 demo 5 s, 43766019418 demo 4 s, 43724243400 demo 3 s, all match stored rows. Reuse unsafe: scripts/simulate-dashboard-pages.mjs defaults now = Date.now() and writes generatedAt; daily 05:23Z schedule refreshes synthetic dates by design, so cached output would be stale. No dashboard job exists (generation is a build-job step), so the prompt dashboard-job timing is not separately measurable. Checkout (median 24.5 s, about 33 percent of exec) remains open issue 20815 (OPEN, 0 comments, updated 2026-11-13T17:41:19Z), not repeated. No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1022,8 +1022,8 @@
  "etag_note": "23:52Z: gh api -i (docs.yml runs endpoint, per_page=1) returned no ETag header; reads not conditional. Completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-16T01:24:04Z",
-   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07) still queued at 01:23Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker."
+   "observed_at": "2026-11-16T01:35:30Z",
+   "note": "Stale queued run 37642403569 (event workflow_run, headSha 6206962, created 2026-10-07) still queued at 01:35Z. Maintainer should verify and cancel it; a start would build and deploy an old commit. Not cancelled by this worker."
   },
   {
    "observed_at": "2026-11-16T00:42:13Z",
