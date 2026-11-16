@@ -16,7 +16,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 )
 
-func TestRepositorySelectorCookieFollowsLocalTransport(t *testing.T) {
+func TestRepositorySelectorCookieIsSecureOnBothLocalTransports(t *testing.T) {
 	site := t.TempDir()
 	if err := os.WriteFile(filepath.Join(site, "index.html"), []byte("<head></head>"), 0o600); err != nil {
 		t.Fatal(err)
@@ -27,7 +27,7 @@ func TestRepositorySelectorCookieFollowsLocalTransport(t *testing.T) {
 			OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"octo/control"}},
 		},
 	}}
-	for scheme, secure := range map[string]bool{"http": false, "https": true} {
+	for _, scheme := range []string{"http", "https"} {
 		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, scheme+"://127.0.0.1:8080/", nil)
 		response := httptest.NewRecorder()
 		app.serveIndex(response, request, testAccessToken)
@@ -37,8 +37,8 @@ func TestRepositorySelectorCookieFollowsLocalTransport(t *testing.T) {
 				session = cookie
 			}
 		}
-		if session == nil || session.Secure != secure || !session.HttpOnly || session.Path != "/__cli_commands" || session.SameSite != http.SameSiteStrictMode {
-			t.Fatalf("%s session cookie does not match local transport: %+v", scheme, session)
+		if session == nil || !session.Secure || !session.HttpOnly || session.Path != "/__cli_commands" || session.SameSite != http.SameSiteStrictMode {
+			t.Fatalf("%s session cookie is missing required protections: %+v", scheme, session)
 		}
 	}
 }
@@ -123,9 +123,15 @@ func TestRepositorySelectorUsesDeclaredGitHubLookupAndLocalCapability(t *testing
 			request.Header.Set("Origin", test.origin)
 			switch test.credential {
 			case "cookie":
-				request.AddCookie(&http.Cookie{Name: localCLISessionCookie, Value: app.localCLISession()})
+				request.AddCookie(&http.Cookie{
+					Name: localCLISessionCookie, Value: app.localCLISession(), Path: "/__cli_commands",
+					Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode,
+				})
 			case "forged":
-				request.AddCookie(&http.Cookie{Name: localCLISessionCookie, Value: "wrong"})
+				request.AddCookie(&http.Cookie{
+					Name: localCLISessionCookie, Value: "wrong", Path: "/__cli_commands",
+					Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode,
+				})
 			case "bearer":
 				request.Header.Set("Authorization", "Bearer "+testAccessToken)
 			}

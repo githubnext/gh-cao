@@ -330,6 +330,10 @@ may be loaded without the capability.
 - The server does not place the bearer capability in a cookie; loopback cookies
   are host-scoped rather than port-scoped and could leak to another local HTTPS
   service.
+- The optional native maintenance queue issues a separate opaque cookie scoped
+  to `/__cli_commands`, with `Secure`, `HttpOnly`, and `SameSite=Strict`.
+  Browsers must support Secure cookies on trustworthy loopback HTTP origins
+  when debugging without TLS. This cookie never contains the bearer capability.
 - Token comparisons use constant-time comparison.
 - The unauthenticated health response contains only operational connectivity,
   per-feature guarantees, recovery readiness, and whether PostgreSQL has ready dashboard data.

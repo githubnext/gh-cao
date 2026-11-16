@@ -190,10 +190,6 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 	}()
 	output := hostedcli.NewCommandOutput(ctx, queue, lease, command.ID)
 	code, executionErr := a.callOperatorAdapter(ctx, command, output.Write)
-	var rejected *hostedCLIError
-	if errors.As(executionErr, &rejected) {
-		output.Write("stderr", []byte(rejected.message+"\n"))
-	}
 	output.Close() //nolint:contextcheck // the sink carries the command context, including during cancellation.
 	cancel()
 	<-done
@@ -203,7 +199,8 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 	if executionErr != nil || code == nil || *code != 0 {
 		result.Status = operational.CLICommandFailed
 		result.Error = "Native maintenance failed; inspect command output."
-		if rejected != nil {
+		var rejected *hostedCLIError
+		if errors.As(executionErr, &rejected) {
 			result.Error = rejected.message
 		}
 	}
@@ -227,7 +224,13 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 	return true
 }
 
-func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICommand, output func(string, []byte)) (*int, error) {
+func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICommand, output func(string, []byte)) (exitCode *int, executionErr error) {
+	defer func() {
+		var failure *hostedCLIError
+		if errors.As(executionErr, &failure) {
+			output("stderr", []byte(failure.message+"\n"))
+		}
+	}()
 	rejected := 1 // A pre-dispatch failure is confirmed not to have started a native process.
 	connection := a.operatorConnection()
 	if connection == nil {

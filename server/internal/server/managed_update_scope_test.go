@@ -147,7 +147,12 @@ func TestRevokedManagedUpgradeSettlesWithoutBlockingOtherQueuedCommands(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(app.config.SiteDirectory, "dashboard.json"), catalog, 0o600); err != nil {
+	site, err := os.OpenRoot(app.config.SiteDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = site.Close() }()
+	if err := site.WriteFile("dashboard.json", catalog, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := app.enableOperatorActions(t.Context()); err != nil {
@@ -182,6 +187,12 @@ func TestRevokedManagedUpgradeSettlesWithoutBlockingOtherQueuedCommands(t *testi
 		settled, err := queue.Detail(t.Context(), command.ID)
 		if err != nil || settled.Status != expected || settled.ExecutionClaimed {
 			t.Fatalf("command did not settle: %+v %v", settled, err)
+		}
+		if expected == operational.CLICommandFailed {
+			chunks, err := queue.Output(t.Context(), command.ID, 0, 10)
+			if err != nil || len(chunks) != 1 || chunks[0].Stream != "stderr" || chunks[0].Data != settled.Error+"\n" {
+				t.Fatalf("pre-dispatch rejection was not persisted to stderr: %+v %v", chunks, err)
+			}
 		}
 	}
 	if executions.Load() != 1 {

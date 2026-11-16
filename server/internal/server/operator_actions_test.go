@@ -104,13 +104,22 @@ func TestOperatorExecutionRechecksCurrentScopeWithoutQueueState(t *testing.T) {
 		app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
 			AdapterURL: adapter.URL, OperatorActions: scope,
 		}}}
+		var stderr strings.Builder
 		code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
 			ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
 				Command: "gh aw disable review.md --repo octo/service", Repository: "octo/service",
 			},
-		}, func(string, []byte) {})
+		}, func(stream string, data []byte) {
+			if stream != "stderr" {
+				t.Errorf("rejection was written to %s", stream)
+			}
+			_, _ = stderr.Write(data)
+		})
 		if code == nil || *code == 0 || err == nil {
 			t.Fatal("missing or changed scope did not fail closed")
+		}
+		if !strings.Contains(stderr.String(), "no command was started.") {
+			t.Fatalf("pre-dispatch rejection was not streamed: %q", stderr.String())
 		}
 	}
 }
@@ -223,7 +232,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 			session = cookie
 		}
 	}
-	if session == nil || session.Path != "/__cli_commands" || !session.HttpOnly || session.Secure || session.SameSite != http.SameSiteStrictMode || strings.Contains(session.Value, testAccessToken) {
+	if session == nil || session.Path != "/__cli_commands" || !session.HttpOnly || !session.Secure || session.SameSite != http.SameSiteStrictMode || strings.Contains(session.Value, testAccessToken) {
 		t.Fatalf("worker command session cookie is missing or unscoped: %+v", session)
 	}
 	// The data worker carries only the scoped cookie, never the bearer token.
@@ -239,7 +248,10 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 		handler.ServeHTTP(response, req)
 		return response.Code
 	}
-	forged := &http.Cookie{Name: localCLISessionCookie, Value: strings.Repeat("0", 64)}
+	forged := &http.Cookie{
+		Name: localCLISessionCookie, Value: strings.Repeat("0", 64), Path: "/__cli_commands",
+		Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode,
+	}
 	for _, test := range []struct {
 		method, origin string
 		cookie         *http.Cookie
