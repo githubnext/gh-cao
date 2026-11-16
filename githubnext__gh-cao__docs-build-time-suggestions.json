@@ -1,36 +1,7 @@
 {
  "source_sha": "0599943dee6451b5cd116095e883d4859eda2dfe",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T16:51:00Z",
-   "worker_run_id": "43737576461",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376",
-    "43698271571",
-    "43682264332",
-    "43681861583",
-    "43680980929",
-    "43655786695",
-    "43639680929",
-    "43623754509",
-    "43621919773",
-    "43616204011",
-    "43613020723",
-    "43611206032",
-    "43608206381",
-    "43593405440",
-    "43561388555",
-    "43536796952"
-   ],
-   "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43536796952 (push 54e08aa, created 2026-11-14T00:50:15Z) to 43731625055 (push 88f046c, created 2026-11-15T15:45:14Z); run list re-read 16:50Z: same 20 IDs, all completed, none queued, 0 cancelled, no docs run after 15:45Z. Source: 88f046c is the latest docs run source; main HEAD c0bfef8 is 1 commit ahead touching only internal/topology Go files (no docs.yml trigger path). Excluded and disclosed: 12 failures (demo_s 0, deploy skipped; Build documentation ended in failure, 43613020723..43721157324). n=8 successes (7 push + schedule 43561388555) meet the 5-run gate. Category step Build synthetic enterprise demo (npm run dashboard:pages:build plus cp -R): median 4 s, p90 4 s, range 3-4 s = 5.2 percent of exec median 77 s (p90 92); 15 percent gate 11.55 s and 60 s gate unreachable; whole-step removal saves at most 4 s and is not valid. Reuse unsafe: scripts/simulate-dashboard-pages.mjs defaults now = Date.now() and writes generatedAt; docs.yml requires daily synthetic date refresh. Spot check run 43731625055 jobs API: demo 15:46:12-15:46:16. Workflow has build and deploy jobs only; no dashboard job exists, so dashboard generation is a build-job step. Open 20815 (checkout, OPEN, 0 comments) is the largest component (median 24.5 s, 32 percent of exec) and is not repeated. Reliability (not timing): 12-run failure streak ended with green 43721484176, 43724243400, 43731625055; no schedule green since 43561388555; cause unverified (logs HTTP 403). No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T17:16:49Z",
    "worker_run_id": "43739847175",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43706435376 (push 7b092ad, created 2026-11-15T10:55Z, failure) to 43792211504 (push 0599943, created 2026-11-16T02:26Z, success); fresh gh run list 02:51Z: same 20 IDs, all completed, 0 cancelled, none queued; source 0599943 = HEAD = source_sha. Samples: 18 successes (all push; no schedule in window) meet the 5-run gate; 2 failures (Build documentation, 43706435376 and 43721157324) excluded and disclosed. Category step Build documentation (npm run docs:build): n=18 median 11.5 s, p90 15 s, range 8-16 s = 14.7 percent of run created-to-completed median 78 s and 15.3 percent of build-job-start-to-deploy-end median 75 s; 15 percent gate 11.25-11.7 s; 60 s gate unreachable. Any Astro-internal change saves only part of the 11.5 s; whole-step removal is invalid (deploy consumes dist; validation gates correctness). Read limits: gh transport refused connections from about 02:52Z through 02:56Z (6 failed attempts, not bypassed), so step timings are the immutable-run Jobs API reads stored at 02:38Z in run_timings, cross-checked against the fresh run list (conclusions and wall times match all 20 runs). Cache hits not re-verified this run (logs HTTP 403 DIFC). Outliers disclosed, not excluded: 43789359390 (checkout 70 s, exec 129 s) and 43752194225 (checkout 51 s, exec 111 s); their build-docs step is normal (14 s each), and excluding them leaves the median at 11.5 s. Open 20815 (blobless checkout, OPEN, unchanged since 2026-11-13) not repeated. No suggestion; noop used; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T03:23:30Z",
+   "worker_run_id": "43797398977",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418",
+    "43757990961",
+    "43756384109",
+    "43756218347",
+    "43753233809",
+    "43752704784",
+    "43752194225",
+    "43746617494",
+    "43731625055",
+    "43724243400",
+    "43721484176",
+    "43721157324",
+    "43706435376"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43706435376 (push 7b092ad, created 2026-11-15T10:55Z, failure) to 43792211504 (push 0599943, created 2026-11-16T02:26Z, success); gh run list 03:21Z: same 20 IDs, all completed, 0 cancelled, none queued or in progress, no docs run after 02:26Z. Source 0599943 = HEAD = source_sha. Samples: 18 successes (all push; no schedule in window) meet the 5-run gate; 2 failures (Build documentation, 43706435376 and 43721157324) excluded and disclosed. Jobs API re-fetched 03:21Z for all 20 runs; step timings match run_timings. Category step Build synthetic enterprise demo (node scripts/simulate-dashboard-pages.mjs, which calls buildDashboardSite, then cp -R to dist/cao): median 4.5 s, p90 6 s, max 6 s = 6.0 percent of exec median 75 s (build start to deploy end; p90 111). 15 percent gate 11.25 s and 60 s gate unreachable; whole-step removal saves at most 4.5 s and is invalid (deploy serves dist/cao). Reuse unsafe: simulate-dashboard-pages.mjs prepareDashboardPages defaults now = Date.now() (line 78) and the 05:23Z schedule refreshes synthetic dates by design. docs:build does not invoke the dashboard build; no dashboard job exists. Checkout median 25 s stays under OPEN issue 20815 (0 comments, updated 2026-11-13T17:41:19Z), not repeated. No suggestion; no create_issue; noop used; next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1018,8 +1018,8 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-16T02:56:01Z",
-  "status": "Build documentation green on 18 consecutive docs.yml push runs (re-checked 02:51Z with fresh run list) since fix f02efd0 (43721484176, 13:54Z 2026-11-15; latest 43792211504, 02:26Z 2026-11-16). Last schedule failure 43680980929 (2026-11-15T05:24Z). The 2026-11-16 ~05:23Z schedule is unverified (not yet due at evaluation). Root cause not verified (logs HTTP 403 DIFC)."
+  "observed_at": "2026-11-16T03:23:30Z",
+  "status": "Build documentation green on 18 consecutive docs.yml push runs since fix f02efd0 (43721484176); latest 43792211504 (02:26Z 2026-11-16). No docs run after 02:26Z at 03:21Z. Last schedule failure 43680980929 (2026-11-15T05:24Z). Root cause not verified (logs HTTP 403 DIFC)."
  },
  "etag_note": "23:52Z: gh api -i (docs.yml runs endpoint, per_page=1) returned no ETag header; reads not conditional. Completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
@@ -1686,5 +1686,22 @@
  "local_clone_note": {
   "verified_at": "2026-11-16T01:07:48Z",
   "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
+ },
+ "dashboard_generation_verified": {
+  "verified_at": "2026-11-16T03:23:30Z",
+  "window": "43706435376 .. 43792211504 (18 successes, 2 failures excluded)",
+  "demo_step_s": {
+   "median": 4.5,
+   "p90": 6,
+   "max": 6
+  },
+  "exec_s": {
+   "median": 75,
+   "p90": 111
+  },
+  "demo_share_of_exec_median_pct": 6.0,
+  "gate_15pct_s": 11.25,
+  "reuse_blocker": "scripts/simulate-dashboard-pages.mjs prepareDashboardPages now = Date.now() (line 78); daily schedule refreshes synthetic dates",
+  "note": "Dashboard site is built only by the demo step (buildDashboardSite); docs:build does not build the dashboard; no dashboard job exists."
  }
 }
