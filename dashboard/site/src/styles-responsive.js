@@ -108,6 +108,8 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .dashboard-full-view .app-shell { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
   /* Pin the mobile title bar like a native app navigation bar; z-index keeps page popovers beneath it while its menu drawer stays above content. */
   .org-sidebar { height: auto; display: block; position: sticky; top: 0; z-index: 40; overflow: visible; margin-bottom: 8px; padding: max(14px, env(safe-area-inset-top)) 12px 10px; border-right: 0; border-bottom: 1px solid var(--border); background: var(--canvas); }
+  /* Keep the focused skip link above the sticky title bar. */
+  .skip-link { z-index: 60; }
   /* The Overview hero is full-bleed, so the header must sit flush against it. */
   .app-shell:has(.dashboard-overview-page:not([hidden])) > .org-sidebar { margin-bottom: 0; }
   /* --full-view-sidebar-max-height bounds the full-view mobile header (a single title/back/menu

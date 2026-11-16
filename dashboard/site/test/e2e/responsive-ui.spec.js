@@ -292,6 +292,15 @@ test('mobile title bar stays anchored to the top while the page scrolls', async 
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
   await expect.poll(() => header.evaluate((element) => element.getBoundingClientRect().top)).toBe(0);
   await expect(header.getByRole('heading', { name: 'Overview', level: 1 })).toBeInViewport();
+
+  const skipLink = page.locator('.skip-link');
+  await skipLink.focus();
+  await expect.poll(() => skipLink.evaluate((element) => element.getBoundingClientRect().top)).toBe(8);
+  await expect.poll(() => skipLink.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return hit !== null && element.contains(hit);
+  })).toBe(true);
 });
 
 test('notification filters and view controls are hidden on mobile', async ({ page }) => {
