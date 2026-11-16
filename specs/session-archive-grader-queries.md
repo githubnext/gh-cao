@@ -412,7 +412,7 @@ development hosts lack the emulator. Phases 1b and 2b were accepted in
 - [x] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728), §7).
 - [x] **Phase 2b:** KQL lowering of L3 chaining, accepted in the same run. Brings hosted ADX to all 10 `implemented` graders (§8).
 - [x] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). Resume mapping is linear, but the FIFO pointer's skips are sequential state, so the three tool graders are `vocabulary-gated` (G3). Phase 4 still delivers L2, L5 and L6 for Phase 5.
-- [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. L2, L5 and L6 replay on local DuckDB and lower to KQL (§9); hosted ADX advertises them only after the job accepts the corpus. The reconciliation fixture made the three tool graders G3, so Phase 4 unlocks no grader and delivers its vocabulary for Phase 5.
+- [x] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. L2, L5 and L6 replay on DuckDB and real Kusto (§9; [run 43917614253](https://github.com/githubnext/gh-cao/actions/runs/43917614253), and after rebasing with an `Error`-present subtest, [run 43920740101](https://github.com/githubnext/gh-cao/actions/runs/43920740101)), so every backend advertises them. The reconciliation fixture made the three tool graders G3, so Phase 4 unlocks no grader and delivers its vocabulary for Phase 5.
 - [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
 - [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
 - [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
@@ -537,8 +537,7 @@ The reconciliation fixture is done. Resume mapping is linear, but the FIFO
 pointer's skips are sequential state, so `tool-failure-count`,
 `tool-success-rate` and `trajectory-efficiency` are G3 (§6).
 
-Phase 4 lands L2, L5 and L6 (§9), with hosted support gated on the
-Kusto job. Phase 4 alone does not unlock
+Phase 4 lands L2, L5 and L6 (§9), accepted on real Kusto. Phase 4 alone does not unlock
 `recurrence-laminarity`: its visit order follows state `firstEventIndex`
 through the IR `events`, which needs nested S1 and L4 (Phase 5). The three RQA
 graders then share one linear plan, already executed on DuckDB in
