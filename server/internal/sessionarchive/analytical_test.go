@@ -512,11 +512,13 @@ func TestAnalyticalItemSourcePlans(t *testing.T) {
 	if plan.Values[0].Predicates[0].Path != "data.objectives" {
 		t.Fatalf("item field state not qualified by its collection: %#v", plan.Values[0].Predicates)
 	}
-	if !errors.Is(plan.Require(AnalyticalCapabilities(4096)), ErrQuery) {
-		t.Fatal("hosted capabilities silently accepted a local-only item source")
+	capabilities := AnalyticalCapabilities(4096)
+	capabilities.Sources = nil
+	if !errors.Is(plan.Require(capabilities), ErrQuery) {
+		t.Fatal("a backend without the item source silently accepted it")
 	}
-	if err := plan.Require(LocalAnalyticalCapabilities(4096)); err != nil {
-		t.Fatalf("local item source capability rejected: %v", err)
+	if err := plan.Require(AnalyticalCapabilities(4096)); err != nil {
+		t.Fatalf("item source capability rejected: %v", err)
 	}
 	for _, definition := range []Definition{
 		itemDefinition(t, "archive-objectives", `"select":[{"field":"Type"}]`),
@@ -627,11 +629,13 @@ func TestAnalyticalChainedPlans(t *testing.T) {
 	if err != nil || plan.Stages() != 1 || plan.Base().Source != "archive-states" || plan.Input.Columns[len(plan.Input.Columns)-1].Type != "number" {
 		t.Fatalf("chained plan rejected: %#v %v", plan, err)
 	}
-	if !errors.Is(plan.Require(AnalyticalCapabilities(4096)), ErrQuery) {
-		t.Fatal("hosted capabilities silently accepted a chained query")
+	capabilities := AnalyticalCapabilities(4096)
+	capabilities.Chaining = 0
+	if !errors.Is(plan.Require(capabilities), ErrQuery) {
+		t.Fatal("a backend without chaining silently accepted a chained query")
 	}
-	if err := plan.Require(LocalAnalyticalCapabilities(4096)); err != nil {
-		t.Fatalf("local chaining capability rejected: %v", err)
+	if err := plan.Require(AnalyticalCapabilities(4096)); err != nil {
+		t.Fatalf("chaining capability rejected: %v", err)
 	}
 	events := `{"name":"per-trace","subject":"S.","from":"archive-events","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"Sequence","as":"n","reducer":"count"}]}}`
 	if _, err := chainedDefinition(t, events, `"from":"per-trace","select":[{"field":"TraceId"},{"field":"n"}]`).Plan(); err != nil {

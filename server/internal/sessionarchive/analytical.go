@@ -144,6 +144,13 @@ func lookupItemSource(name string) (itemSource, bool) {
 	return itemSource{}, false
 }
 
+// ItemSourceSpec exposes one approved item source's collection path, element
+// key and typed element column, so every backend lowers the same contract.
+func ItemSourceSpec(name string) (path, key string, element Column, ok bool) {
+	item, ok := lookupItemSource(name)
+	return item.Path, item.Key, item.Element, ok
+}
+
 // sourceColumns returns the ordered public vocabulary of one analytical source.
 func sourceColumns(source string) ([]Column, bool) {
 	if source == eventSource {
@@ -279,24 +286,18 @@ type Capabilities struct {
 	Chaining int `json:"chaining,omitempty"`
 }
 
+// maxStages bounds the earlier definitions of one chained query.
+const maxStages = 2
+
+// AnalyticalCapabilities advertises the item sources and query chaining that
+// both the DuckDB and the hosted KQL lowerings implement. The KQL lowering is
+// accepted only through the real Kusto emulator replay.
 func AnalyticalCapabilities(maxRows int) Capabilities {
 	c := Capabilities{LanguageVersion: "0.2.0", Source: eventSource,
 		Predicates: []string{"equals", "in", "gte", "lt", "state"},
 		Reducers:   []string{"count", "distinct-count", "sum", "max", "first"},
-		Functions:  scalarFunctions, FieldStates: fieldStates, MaxRows: maxRows}
+		Functions:  scalarFunctions, FieldStates: fieldStates, MaxRows: maxRows, Chaining: maxStages}
 	c.Fields, _ = sourceColumns(eventSource)
-	return c
-}
-
-// maxStages bounds the earlier definitions of one chained query.
-const maxStages = 2
-
-// LocalAnalyticalCapabilities additionally advertises the DuckDB-only item
-// sources and query chaining. Hosted ADX has no reviewed lowering for either
-// and must not advertise them.
-func LocalAnalyticalCapabilities(maxRows int) Capabilities {
-	c := AnalyticalCapabilities(maxRows)
-	c.Chaining = maxStages
 	for _, item := range itemSources {
 		fields, _ := sourceColumns(item.Name)
 		c.Sources = append(c.Sources, SourceCapability{Name: item.Name, Fields: fields})

@@ -36,12 +36,15 @@ func TestSessionArchiveAnalyticalCapabilitiesHTTP(t *testing.T) {
 "queries":[{"name":"per-type","subject":"Count events per type.","from":"archive-events","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]}}],
 "from":"per-type","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"values":[{"field":"Type","as":"types","reducer":"count"}]}}}`
 	capabilities = (&hostedSessionArchive{}).AnalyticalCapabilities()
+	capabilities.Chaining = 0
 	if request := archiveRequest(t, app, chained, true); request.Code != http.StatusUnprocessableEntity || probe.called != 0 {
-		t.Fatal("hosted capabilities executed a chained query without a reviewed KQL lowering")
+		t.Fatal("a backend without chaining executed a chained query")
 	}
-	capabilities = (&localSessionArchive{}).AnalyticalCapabilities()
-	if archiveRequest(t, app, chained, true); probe.called != 1 {
-		t.Fatal("local capabilities rejected a valid chained query")
+	for i, backend := range []sessionArchiveBackend{&localSessionArchive{}, &hostedSessionArchive{}, &nativeSessionArchive{}} {
+		capabilities = backend.AnalyticalCapabilities()
+		if archiveRequest(t, app, chained, true); probe.called != i+1 {
+			t.Fatal("backend capabilities rejected a valid chained query")
+		}
 	}
 	for _, backend := range []sessionArchiveBackend{&localSessionArchive{}, &hostedSessionArchive{}, &nativeSessionArchive{}} {
 		var decoded sessionarchive.Capabilities

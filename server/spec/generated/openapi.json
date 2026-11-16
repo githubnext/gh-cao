@@ -5914,7 +5914,7 @@
             "type": "string",
             "maxLength": 128,
             "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
-            "description": "One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
+            "description": "One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
           },
           "filter": {
             "type": "object",

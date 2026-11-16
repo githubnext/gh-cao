@@ -88,14 +88,14 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 					t.Fatal("reviewed scalar plan unavailable")
 				}
 				if err := plan.Require(sessionarchive.AnalyticalCapabilities(4096)); err != nil {
-					// Item sources are local-only until a reviewed KQL lowering exists; ADX must reject them.
-					if plan.Require(sessionarchive.LocalAnalyticalCapabilities(4096)) != nil {
-						t.Fatal("reviewed scalar plan unavailable")
-					}
-					continue
+					t.Fatal("reviewed scalar plan unavailable")
 				}
 				count++
-				table := execute(t.Context(), prefix+";\n"+analyticalKQL(plan, source))
+				kql, err := analyticalKQL(plan, source)
+				if err != nil {
+					t.Fatalf("%s has no KQL lowering: %v", replay.ID, err)
+				}
+				table := execute(t.Context(), prefix+";\n"+kql)
 				if len(table.Columns) != 2 || len(table.Rows) != 1 || len(table.Rows[0]) != 2 {
 					t.Fatal("real Kusto scalar query broke bounded result envelope")
 				}
@@ -114,8 +114,8 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 					t.Fatalf("%s real Kusto differs from actual DuckDB/upstream replay: got %#v want %#v", replay.ID, rows, expected)
 				}
 			}
-			if count != 4 {
-				t.Fatal("all four full definitions are required for analytical acceptance")
+			if count != 10 {
+				t.Fatalf("all ten full definitions are required for analytical acceptance, got %d", count)
 			}
 		})
 	}
