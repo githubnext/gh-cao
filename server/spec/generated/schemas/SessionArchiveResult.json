@@ -478,13 +478,26 @@
                     "minimum": -2147483648,
                     "maximum": 2147483647,
                     "description": "Retained active traces with recorded omissions, before user filtering; distinct from admission gaps."
+                },
+                "queryDigest": {
+                    "type": "string"
+                },
+                "implementation": {
+                    "type": "string"
+                },
+                "language-version": {
+                    "type": "string",
+                    "const": "0.2.0"
                 }
             },
             "required": [
                 "limited",
                 "upstreamCoverage",
                 "admissionGaps",
-                "tracesWithGaps"
+                "tracesWithGaps",
+                "queryDigest",
+                "implementation",
+                "language-version"
             ]
         }
     }

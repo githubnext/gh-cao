@@ -879,7 +879,7 @@ func (input sessionArchiveQuery) validate() error {
 		return sessionarchive.ErrQuery
 	}
 	if input.Kind == "session-query" {
-		if input.LanguageVersion != "0.1.0" || input.Query == nil || input.RunID != nil || input.Attempt != nil || input.Limit != nil {
+		if input.LanguageVersion != "0.2.0" || input.Query == nil || input.RunID != nil || input.Attempt != nil || input.Limit != nil {
 			return sessionarchive.ErrQuery
 		}
 		return input.Query.Validate()

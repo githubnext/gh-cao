@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "4.0.0",
+    "version": "4.1.0",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -6567,13 +6567,15 @@
           "fields",
           "predicates",
           "reducers",
+          "functions",
+          "fieldStates",
           "maxRows"
         ],
         "properties": {
           "language-version": {
             "type": "string",
             "enum": [
-              "0.1.0"
+              "0.2.0"
             ]
           },
           "source": {
@@ -6595,6 +6597,18 @@
             }
           },
           "reducers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "functions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fieldStates": {
             "type": "array",
             "items": {
               "type": "string"
@@ -6741,8 +6755,34 @@
                       "type": "string",
                       "enum": [
                         "count",
-                        "distinct-count"
+                        "distinct-count",
+                        "sum",
+                        "max",
+                        "first"
                       ]
+                    },
+                    "filter": {
+                      "type": "object",
+                      "properties": {
+                        "predicates": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SessionArchivePredicate"
+                          },
+                          "minItems": 1,
+                          "maxItems": 64
+                        }
+                      },
+                      "required": [
+                        "predicates"
+                      ]
+                    },
+                    "order-by": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrderField"
+                      },
+                      "description": "first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic."
                     }
                   },
                   "required": [
@@ -6758,6 +6798,45 @@
             "required": [
               "values"
             ]
+          },
+          "post-aggregate": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "as": {
+                  "type": "string"
+                },
+                "function": {
+                  "type": "string",
+                  "enum": [
+                    "if",
+                    "equals",
+                    "gt",
+                    "lte",
+                    "sum",
+                    "quotient",
+                    "coalesce",
+                    "is-null",
+                    "and"
+                  ]
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionArchiveExpression"
+                  },
+                  "maxItems": 3
+                }
+              },
+              "required": [
+                "as",
+                "function",
+                "args"
+              ]
+            },
+            "maxItems": 32,
+            "description": "Explicit bounded phase after aggregation, before selection/order/limit. Computations can reference groups, aggregates and preceding computations, never source rows."
           },
           "select": {
             "type": "array",
@@ -6784,6 +6863,83 @@
           }
         },
         "description": "Shared DuckDB/ADX analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range; boolean ranges are forbidden. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. Counts exclude empty strings and null scalars, but retain false and zero; distinct-count is exact, never approximate."
+      },
+      "SessionArchiveExpression": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SessionArchiveFieldArgument"
+          },
+          {
+            "$ref": "#/components/schemas/SessionArchiveValueArgument"
+          },
+          {
+            "$ref": "#/components/schemas/SessionArchiveNullArgument"
+          },
+          {
+            "$ref": "#/components/schemas/SessionArchiveFunctionArgument"
+          }
+        ]
+      },
+      "SessionArchiveFieldArgument": {
+        "type": "object",
+        "required": [
+          "field"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionArchiveFunctionArgument": {
+        "type": "object",
+        "required": [
+          "function",
+          "args"
+        ],
+        "properties": {
+          "function": {
+            "type": "string",
+            "enum": [
+              "if",
+              "equals",
+              "gt",
+              "lte",
+              "sum",
+              "quotient",
+              "coalesce",
+              "is-null",
+              "and"
+            ]
+          },
+          "args": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionArchiveExpression"
+            }
+          }
+        }
+      },
+      "SessionArchiveNullArgument": {
+        "type": "object",
+        "required": [
+          "value",
+          "type"
+        ],
+        "properties": {
+          "value": {
+            "type": "null"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "integer",
+              "number"
+            ]
+          }
+        },
+        "description": "Null is allowed only as an explicitly typed numeric computation literal."
       },
       "SessionArchivePredicate": {
         "type": "object",
@@ -6864,6 +7020,19 @@
                 "format": "double"
               }
             ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "present",
+              "absent",
+              "null",
+              "invalid",
+              "excluded",
+              "redacted",
+              "valid"
+            ],
+            "description": "State of a declared promoted field, inspected through generated evidence metadata only. Exclusive with comparison operands."
           }
         }
       },
@@ -6905,16 +7074,16 @@
           "language-version": {
             "type": "string",
             "enum": [
-              "0.1.0"
+              "0.2.0"
             ],
-            "description": "Required only for kind=session-query on both DuckDB and ADX."
+            "description": "Required only for kind=session-query on both DuckDB and ADX. Only 0.2.0 is accepted; older versions are rejected."
           },
           "query": {
             "$ref": "#/components/schemas/SessionArchiveDefinition",
             "description": "Required only for kind=session-query; runId, attempt and envelope limit are forbidden."
           }
         },
-        "description": "Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on legacy templates and vice versa. Optional fields must be omitted rather than null."
+        "description": "Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on timeline/summary templates and vice versa. Optional fields must be omitted rather than null."
       },
       "SessionArchiveQueryMetadata": {
         "type": "object",
@@ -6922,7 +7091,10 @@
           "limited",
           "upstreamCoverage",
           "admissionGaps",
-          "tracesWithGaps"
+          "tracesWithGaps",
+          "queryDigest",
+          "implementation",
+          "language-version"
         ],
         "properties": {
           "limited": {
@@ -6945,6 +7117,18 @@
             "type": "integer",
             "format": "int32",
             "description": "Retained active traces with recorded omissions, before user filtering; distinct from admission gaps."
+          },
+          "queryDigest": {
+            "type": "string"
+          },
+          "implementation": {
+            "type": "string"
+          },
+          "language-version": {
+            "type": "string",
+            "enum": [
+              "0.2.0"
+            ]
           }
         }
       },
@@ -7060,6 +7244,41 @@
           "events": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "SessionArchiveValueArgument": {
+        "type": "object",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "number",
+                "format": "double"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean"
+            ]
           }
         }
       },

@@ -52,8 +52,10 @@ function replaySessionArchiveGraders() {
       env: { ...process.env, CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB: "1", CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR: temporary },
     });
     const cases = JSON.parse(readFileSync(join(temporary, "evidence.json"), "utf8"));
+    writeFileSync(join(output, "evidence.json"), JSON.stringify(cases) + "\n", { mode: 0o600 });
     const require = createRequire(import.meta.url);
     const graders = require(join(upstream, "trace_graders.cjs"));
+    const supported = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"]);
     function grade(events) {
       let lookups;
       try {
@@ -73,13 +75,66 @@ function replaySessionArchiveGraders() {
       const reconstructed = grade(structuredClone(scenario.reconstructed));
       assert.deepEqual(original, reconstructed, `${scenario.name}: pinned grader replay`);
       assert.deepEqual(scenario.queries.map(({ id }) => id), ids);
-      assert.ok(scenario.queries.every(({ fullError }) => fullError), "full metric probes must report their actual rejection");
+      const companion = grade(structuredClone(scenario.companion));
+      for (const query of scenario.queries) {
+        if (!supported.has(query.id)) {
+          assert.ok(query.fullError, `${query.id}: unsupported full query must report actual rejection`);
+          continue;
+        }
+        assert.equal(query.fullError, "");
+        assert.equal(query.fullResult.rows.length, 2);
+        for (const [runId, evidence, upstreamResult] of [["123", scenario.original, original], ["456", scenario.companion, companion]]) {
+          if (upstreamResult.stage === "lookup") {
+            assert.equal(scenario.name, "original-preservation-fixture");
+            // This intentionally malformed fixture proves preservation, not full metric equivalence.
+            continue;
+          }
+          const expected = upstreamResult.results.find(({ id }) => id === query.id);
+          const row = query.fullResult.rows.find((row) => row.RunId === runId);
+          assert.ok(row, `${scenario.name}: exact trace/run-attempt result`);
+          assert.equal(row.value, expected.value, `${scenario.name}/${runId}/${query.id}: full upstream metric`);
+          assert.equal(row.availability, expected.status === "unavailable" ? "unavailable" : "measured");
+          const lookups = graders.createSessionLookups(evidence);
+          const selected = lookups.trace.tokenUsageEntries;
+          let reason;
+          switch (query.id) {
+            case "execution-step-count": reason = selected.length ? "measured" : "no-requests"; break;
+            case "execution-duration": {
+              const durations = selected.map(({ duration_ms }) => duration_ms);
+              const sum = durations.reduce((a, b) => a + (b ?? 0), 0);
+              const usable = durations.length > 0 && durations.every((n) => n !== null) && Number.isFinite(sum) && sum <= Number.MAX_SAFE_INTEGER;
+              reason = usable ? "measured" : expected.value === null ? "duration-unavailable" : "execution-result-fallback";
+              break;
+            }
+            case "working-set-rebuild-factor":
+              reason = !selected.length ? "no-requests" : selected.some(({ input_tokens }) => input_tokens === null)
+                ? "incomplete-input" : expected.value === null ? "zero-peak" : "measured";
+              break;
+            case "context-growth":
+              reason = expected.value === null ? "incomplete-unsafe-or-zero-usage" : "measured";
+              break;
+          }
+          assert.equal(row.reason, reason, `${scenario.name}/${runId}/${query.id}: qualified lookup reason`);
+          const proxy = evidence.some((event) => event.provenance.phase === "agent" && event.type === "firewall.token_usage");
+          assert.equal(row.family, proxy ? "firewall.token_usage" : "usage.report");
+        }
+      }
       return {
         name: scenario.name, schemaVersion: scenario.schemaVersion, events: scenario.original.length,
         approvedInputRoundTripEqual: true, pinnedReplayEqual: true,
         omissions: scenario.omissions, original, reconstructed, queries: scenario.queries,
       };
     });
+    let kustoReplay = "unavailable: no approved real Kusto endpoint";
+    if (process.env.CAO_KUSTO_EMULATOR_URL || process.env.CAO_SESSION_ARCHIVE_REQUIRE_KUSTO === "1") {
+      const kustoLog = execFileSync("go", ["-C", "server", "test", "./internal/sessionarchiveblob",
+        "-run", "^TestKustoUsageGraderReplay$", "-count=1", "-v"], {
+        cwd: root, encoding: "utf8", timeout: 180000,
+        env: { ...process.env, CAO_SESSION_ARCHIVE_REQUIRE_KUSTO: "1", CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR: temporary },
+      });
+      writeFileSync(join(output, "kusto-verification.log"), kustoLog, { mode: 0o600 });
+      kustoReplay = "matched: same definitions and synthetic approved events through real Kusto; not live external-table acceptance";
+    }
     const measured = replays.find(({ name }) => name === "measured");
     assert.equal(measured.original.stage, "graded");
     const matrix = ids.map((id) => {
@@ -88,7 +143,7 @@ function replaySessionArchiveGraders() {
       return {
         id, approvedInputRoundTripEqual: true, pinnedReplayEqual: true,
         measuredValue: result.value, measuredStatus: result.status,
-        fullPublicQuerySupported: false, fullQueryError: query.fullError, blocker: query.blocker,
+        fullPublicQuerySupported: supported.has(id), fullQueryError: query.fullError, blocker: query.blocker,
         results: Object.fromEntries(replays.map((scenario) => [
           scenario.name, scenario.original.results?.find((result) => result.id === id) ?? {
             stage: scenario.original.stage, error: scenario.original.error,
@@ -97,10 +152,10 @@ function replaySessionArchiveGraders() {
       };
     });
     const report = {
-      upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources,
+      upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources, kustoReplay,
       verification: ["CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1",
         "node scripts/replay-session-archive-graders.mjs [private-report-directory]"],
-      qualification: "Replay compares original approved events, not excluded or pre-redaction content. JSON component queries do not implement full grader formulas. No missing provenance is filled. Real Kusto/Azure acceptance is not exercised.",
+      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Four full declarative scalar metrics execute through real DuckDB; the other eleven remain unsupported. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its explicitly separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are separately checked against pinned lookup state. No missing provenance is filled. Live Azure acceptance is not exercised.",
       matrix, scenarios: replays,
     };
     writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
@@ -110,16 +165,16 @@ function replaySessionArchiveGraders() {
       `Upstream: github/gh-aw ${revision}. ${ids.length} candidates, ${replays.length} scenarios; every approved-input round trip and pinned replay matched.`, "",
       "| Grader | Measured value | Approved round trip | Pinned replay | Full public JSON metric |",
       "| --- | ---: | --- | --- | --- |",
-      ...matrix.map((row) => `| ${row.id} | ${row.measuredValue ?? row.measuredStatus} | equal | equal | unsupported |`),
+      ...matrix.map((row) => `| ${row.id} | ${row.measuredValue ?? row.measuredStatus} | equal | equal | ${row.fullPublicQuerySupported ? "matched" : "unsupported"} |`),
       "",
       "## Full-query attempt blockers", "",
-      ...matrix.map((row) => `- ${row.id}: \`${row.fullQueryError}\`. ${row.blocker}`),
+      ...matrix.filter((row) => !row.fullPublicQuerySupported).map((row) => `- ${row.id}: \`${row.fullQueryError}\`. ${row.blocker}`),
       "",
       "## Scenario results", "",
       ...replays.map((scenario) => scenario.original.stage === "lookup"
         ? `${scenario.name}: lookup error preserved: ${scenario.original.error}`
         : `${scenario.name}: ${scenario.original.results.map(({ id, value, status }) => `${id}=${value ?? status}`).join("; ")}`),
-      "", report.qualification,
+      "", report.qualification, "", kustoReplay,
     ].join("\n") + "\n";
     writeFileSync(join(output, "report.md"), text, { mode: 0o600 });
     process.stdout.write(text);

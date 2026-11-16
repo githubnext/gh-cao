@@ -85,3 +85,5 @@ go -C "$root/server" test ./internal/sessionarchiveblob -list '^TestKustoAnalyti
 CAO_KUSTO_EMULATOR_URL="$endpoint" CAO_SESSION_ARCHIVE_REQUIRE_KUSTO=1 \
   go -C "$root/server" test -race ./internal/sessionarchiveblob \
   -run '^TestKusto(ArchiveMembership|AnalyticalCorpus)$' -count=1 -timeout=5m -v
+CAO_KUSTO_EMULATOR_URL="$endpoint" CAO_SESSION_ARCHIVE_REQUIRE_KUSTO=1 \
+  node "$root/scripts/replay-session-archive-graders.mjs" "${RUNNER_TEMP:-$root/.tmp}/session-archive-grader-replay"

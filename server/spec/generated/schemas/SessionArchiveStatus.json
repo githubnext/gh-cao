@@ -90,7 +90,7 @@
             "properties": {
                 "language-version": {
                     "type": "string",
-                    "const": "0.1.0"
+                    "const": "0.2.0"
                 },
                 "source": {
                     "type": "string",
@@ -114,6 +114,18 @@
                         "type": "string"
                     }
                 },
+                "functions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "fieldStates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "maxRows": {
                     "type": "integer",
                     "minimum": -2147483648,
@@ -127,6 +139,8 @@
                 "fields",
                 "predicates",
                 "reducers",
+                "functions",
+                "fieldStates",
                 "maxRows"
             ]
         },

@@ -20,12 +20,13 @@ type graderQueryAttempt struct {
 }
 
 type graderQueryReplay struct {
-	ID             string           `json:"id"`
-	Component      AnalyticalResult `json:"component"`
-	ComponentQuery json.RawMessage  `json:"componentQuery"`
-	FullQuery      json.RawMessage  `json:"fullQuery"`
-	FullError      string           `json:"fullError"`
-	Blocker        string           `json:"blocker"`
+	ID             string            `json:"id"`
+	Component      AnalyticalResult  `json:"component"`
+	ComponentQuery json.RawMessage   `json:"componentQuery"`
+	FullQuery      json.RawMessage   `json:"fullQuery"`
+	FullError      string            `json:"fullError"`
+	FullResult     *AnalyticalResult `json:"fullResult,omitempty"`
+	Blocker        string            `json:"blocker"`
 }
 
 type graderEvidenceReplay struct {
@@ -35,6 +36,8 @@ type graderEvidenceReplay struct {
 	Omissions     []string            `json:"omissions"`
 	Queries       []graderQueryReplay `json:"queries"`
 	SchemaVersion int                 `json:"schemaVersion"`
+	Companion     []json.RawMessage   `json:"companion"`
+	Events        []Event             `json:"events"`
 }
 
 func replayQuery(t *testing.T, id string, clauses json.RawMessage) json.RawMessage {
@@ -78,6 +81,7 @@ func TestGraderReplayEvidence(t *testing.T) {
 	for _, scenario := range []struct{ name, raw string }{
 		{"measured", string(measured)},
 		{"original-preservation-fixture", string(original)},
+		{"preservation-valid-envelope", strings.ReplaceAll(strings.ReplaceAll(string(original), `"type":"session.format","data":`, `"type":"session.format","provenance":{},"data":`), `"type":"session.collection","data":`, `"type":"session.collection","provenance":{},"data":`)},
 		{"no-inputs", header},
 		{"usage-only-zero", header + "{\"type\":\"usage.report\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{\"usage\":{\"inputTokens\":0,\"outputTokens\":0},\"durationMs\":2.5}}\n"},
 		{"invalid-measurements-fallback", header + "{\"type\":\"firewall.token_usage\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{\"usage\":{\"inputTokens\":1.5,\"outputTokens\":null},\"durationMs\":null}}\n" +
@@ -91,6 +95,23 @@ func TestGraderReplayEvidence(t *testing.T) {
 		{"malformed-latest-ir", string(measured) + "{\"type\":\"trajectory.ir\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{\"objectives\":[{\"id\":\"invalid\",\"satisfiedAtEventIndex\":0.5}],\"actions\":[{\"id\":\"unknown\",\"validAtIssueTime\":null}],\"states\":{},\"events\":[]}}\n"},
 		{"excluded-fields", string(measured)},
 		{"redacted-descriptions", string(measured)},
+		{"invalid-proxy-valid-report", header + usageEvent("firewall.token_usage", `null`, `null`, `null`) + usageEvent("usage.report", `10`, `5`, `100.5`)},
+		{"null-first", header + usageEvent("firewall.token_usage", `null`, `2`, `1`) + usageEvent("firewall.token_usage", `100`, `20`, `2`)},
+		{"large-totals", header + usageEvent("firewall.token_usage", `9007199254740991`, `9007199254740991`, `1`) + usageEvent("firewall.token_usage", `9007199254740991`, `9007199254740991`, `2`)},
+		{"rounded-wide-input", header + usageEvent("firewall.token_usage", `9007199254740991`, `0`, `1`) + usageEvent("firewall.token_usage", `2`, `0`, `2`)},
+		{"unsafe-duration-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `9007199254740991`) + usageEvent("firewall.token_usage", `1`, `1`, `1`) +
+			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":3.75}}\n"},
+		{"finite-duration-overflow", header + usageEvent("firewall.token_usage", `1`, `1`, `1e308`) + usageEvent("firewall.token_usage", `1`, `1`, `1e308`)},
+		{"zero-first-valid-later", header + usageEvent("firewall.token_usage", `0`, `0`, `0`) + usageEvent("firewall.token_usage", `1`, `1`, `0.25`)},
+		{"redacted-measurements", header + usageEvent("firewall.token_usage", `"token-secret"`, `2`, `1`)},
+		{"non-agent-only", "{\"type\":\"usage.report\",\"provenance\":{\"phase\":\"detection\"},\"data\":{\"usage\":{\"inputTokens\":10,\"outputTokens\":5},\"durationMs\":5}}\n"},
+		{"combined-large-first", header + usageEvent("firewall.token_usage", `9007199254740991`, `9007199254740991`, `0.125`)},
+		{"duration-sequential-rounding", header + usageEvent("firewall.token_usage", `1`, `1`, `9007199254740990`) +
+			strings.Repeat(usageEvent("firewall.token_usage", `1`, `1`, `0.25`), 4)},
+		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
+			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
+			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
+			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":100},\"data\":{\"durationMs\":0.25}}\n"},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			c := testConfig(t)
@@ -107,6 +128,9 @@ func TestGraderReplayEvidence(t *testing.T) {
 			if scenario.name == "redacted-descriptions" {
 				c.Policy.RedactPatterns = append(c.Policy.RedactPatterns, `(?i)verify|policy|approval`)
 			}
+			if scenario.name == "redacted-measurements" {
+				c.Policy.RedactPatterns = append(c.Policy.RedactPatterns, `token-secret`)
+			}
 			now := time.Now().UTC()
 			p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", now.Format(time.DateOnly), 7, []byte(scenario.raw), now)
 			if err != nil {
@@ -116,6 +140,14 @@ func TestGraderReplayEvidence(t *testing.T) {
 				t.Fatal(err)
 			}
 			a := openTestArchive(t, c, nil)
+			companionRaw := header + usageEvent("usage.report", `7`, `3`, `100.5`)
+			companion, err := Project(c.traceConfig(), c.Namespace, "octo/api", "456", now.Format(time.DateOnly), 2, []byte(companionRaw), now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := a.Admit(t.Context(), companion); err != nil {
+				t.Fatal(err)
+			}
 			if err := a.Admit(t.Context(), p); err != nil {
 				t.Fatal(err)
 			}
@@ -123,11 +155,22 @@ func TestGraderReplayEvidence(t *testing.T) {
 				t.Fatal(err)
 			}
 			s := pinTestArchive(t, a)
+			if scenario.name == "excluded-fields" {
+				definition := analyticalDefinition(t, `"filter":{"predicates":[{"field":"InputTokens","state":"excluded"}]},"aggregate":{"values":[{"field":"Sequence","as":"n","reducer":"count"}]}`)
+				out, err := s.Analytical(t.Context(), definition)
+				if err != nil || out.Rows[0]["n"] != json.Number("4") {
+					t.Fatalf("generated parent exclusion was not qualified: %#v %v", out, err)
+				}
+			}
 			restored, err := s.Timeline(t.Context(), TimelineRequest{Repository: "octo/api", RunID: "123", Attempt: 7, Limit: 100})
 			if err != nil || !reflect.DeepEqual(p.Events, restored) {
 				t.Fatalf("original evidence changed across real Parquet publication: %v", err)
 			}
 			result := graderEvidenceReplay{Name: scenario.name, SchemaVersion: ContractVersion}
+			result.Events = append(slices.Clone(p.Events), companion.Events...)
+			for _, event := range companion.Events {
+				result.Companion = append(result.Companion, json.RawMessage(event.PayloadJSON))
+			}
 			for i, event := range p.Events {
 				result.Original = append(result.Original, json.RawMessage(event.PayloadJSON))
 				result.Reconstructed = append(result.Reconstructed, json.RawMessage(restored[i].PayloadJSON))
@@ -137,6 +180,21 @@ func TestGraderReplayEvidence(t *testing.T) {
 			result.Omissions = slices.Compact(result.Omissions)
 			for _, attempt := range attempts {
 				component, full := replayQuery(t, attempt.ID+"-component", attempt.Component), replayQuery(t, attempt.ID+"-full", attempt.Full)
+				supported := slices.Contains([]string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"}, attempt.ID)
+				if supported {
+					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
+					if err != nil {
+						t.Fatal(err)
+					}
+					var envelope map[string]any
+					if json.Unmarshal(full, &envelope) != nil {
+						t.Fatal("invalid reviewed definition")
+					}
+					request, _ := json.Marshal(map[string]any{"kind": "session-query", "repository": "githubnext/gh-cao", "language-version": "0.2.0", "query": envelope})
+					if len(request) > 4096 {
+						t.Fatalf("%s exceeds actual MCP/HTTP argument budget: %d", attempt.ID, len(request))
+					}
+				}
 				var definition Definition
 				if err := json.Unmarshal(component, &definition); err != nil {
 					t.Fatal(err)
@@ -146,12 +204,32 @@ func TestGraderReplayEvidence(t *testing.T) {
 					t.Fatalf("%s scalar component execution failed: %v", attempt.ID, err)
 				}
 				err = json.Unmarshal(full, &definition)
+				var fullResult AnalyticalResult
 				if err == nil {
-					_, err = s.Analytical(t.Context(), definition)
+					fullResult, err = s.Analytical(t.Context(), definition)
+				}
+				if supported {
+					if err != nil {
+						t.Fatalf("%s full declarative metric failed: %v", attempt.ID, err)
+					}
+					if len(fullResult.Rows) != 2 || fullResult.Metadata.QueryDigest == "" {
+						t.Fatalf("lost complete trace binding or query provenance: %#v", fullResult)
+					}
+					for _, row := range fullResult.Rows {
+						if row["availability"] != "measured" && row["availability"] != "unavailable" || row["reason"] == "" {
+							t.Fatal("missing measurement qualification")
+						}
+						if row["RunId"] == "456" && row["family"] != "usage.report" {
+							t.Fatal("proxy presence leaked across trace/run-attempt bindings")
+						}
+					}
+					result.Queries = append(result.Queries, graderQueryReplay{ID: attempt.ID, Component: out, ComponentQuery: component, FullQuery: full, FullResult: &fullResult})
+					continue
 				}
 				if err == nil {
 					t.Fatalf("%s attempted full metric unexpectedly accepted", attempt.ID)
 				}
+
 				if !errors.Is(err, ErrQuery) && !strings.Contains(err.Error(), "unknown field") {
 					t.Fatalf("unexpected full-query failure: %v", err)
 				}
@@ -173,4 +251,8 @@ func TestGraderReplayEvidence(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func usageEvent(family, input, output, duration string) string {
+	return `{"type":"` + family + `","provenance":{"phase":"agent","component":"agent"},"data":{"usage":{"inputTokens":` + input + `,"outputTokens":` + output + `},"durationMs":` + duration + `}}` + "\n"
 }

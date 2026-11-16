@@ -1,0 +1,35 @@
+{
+  "name":"context-growth",
+  "subject":"Recompute gh-aw v2 context growth.",
+  "from":"archive-events",
+  "aggregate":{
+    "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],
+    "values":[
+      {"field":"Sequence","as":"p","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"Sequence","as":"r","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"InputTokens","as":"pc","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"},{"field":"OutputTokens","state":"valid"}]}},
+      {"field":"InputTokens","as":"rc","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"},{"field":"OutputTokens","state":"valid"}]}},
+      {"field":"InputTokens","as":"ps","reducer":"sum","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"InputTokens","as":"rs","reducer":"sum","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"OutputTokens","as":"pt","reducer":"sum","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"OutputTokens","as":"rt","reducer":"sum","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"InputTokens","as":"pf","reducer":"first","order-by":[{"field":"Sequence"}],"filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"InputTokens","as":"rf","reducer":"first","order-by":[{"field":"Sequence"}],"filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}},
+      {"field":"OutputTokens","as":"pg","reducer":"first","order-by":[{"field":"Sequence"}],"filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"OutputTokens","as":"rg","reducer":"first","order-by":[{"field":"Sequence"}],"filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}}
+    ]
+  },
+  "post-aggregate":[
+    {"as":"proxy","function":"gt","args":[{"field":"p"},{"value":0}]},
+    {"as":"n","function":"if","args":[{"field":"proxy"},{"field":"p"},{"field":"r"}]},
+    {"as":"c","function":"if","args":[{"field":"proxy"},{"field":"pc"},{"field":"rc"}]},
+    {"as":"s","function":"if","args":[{"field":"proxy"},{"field":"ps"},{"field":"rs"}]},
+    {"as":"t","function":"if","args":[{"field":"proxy"},{"field":"pt"},{"field":"rt"}]},
+    {"as":"f","function":"if","args":[{"field":"proxy"},{"function":"sum","args":[{"field":"pf"},{"field":"pg"}]},{"function":"sum","args":[{"field":"rf"},{"field":"rg"}]}]},
+    {"as":"value","function":"if","args":[{"function":"and","args":[{"function":"equals","args":[{"field":"n"},{"field":"c"}]},{"function":"and","args":[{"function":"lte","args":[{"field":"s"},{"value":9007199254740991}]},{"function":"lte","args":[{"field":"t"},{"value":9007199254740991}]}]}]},{"function":"quotient","args":[{"function":"sum","args":[{"field":"s"},{"field":"t"}]},{"field":"f"}]},{"value":null,"type":"number"}]},
+    {"as":"reason","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"incomplete-unsafe-or-zero-usage"},{"value":"measured"}]},
+    {"as":"family","function":"if","args":[{"field":"proxy"},{"value":"firewall.token_usage"},{"value":"usage.report"}]},
+    {"as":"availability","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"unavailable"},{"value":"measured"}]}
+  ],
+  "select":[{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"family"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

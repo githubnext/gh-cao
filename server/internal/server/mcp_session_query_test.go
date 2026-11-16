@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -15,9 +16,51 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
 
-var sessionMCPArguments = json.RawMessage(`{"repository":"octo/one","language-version":"0.1.0","query":{
+var sessionMCPArguments = json.RawMessage(`{"repository":"octo/one","language-version":"0.2.0","query":{
 "name":"session-events","subject":"Inspect retained synthetic events.","from":"archive-events",
 "select":[{"field":"Sequence"}]}}`)
+
+func TestMCPSessionDataLakeScalarDefinitions(t *testing.T) {
+	for _, name := range []string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"} {
+		t.Run(name, func(t *testing.T) {
+			// #nosec G304 -- Fixed reviewed names, not caller-provided file paths.
+			content, err := os.ReadFile("../sessionarchive/testdata/graders/" + name + ".json")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var definition sessionarchive.Definition
+			if err := json.Unmarshal(content, &definition); err != nil {
+				t.Fatal(err)
+			}
+			app := newMCPTestApp(t, true)
+			reader := &sessionArchiveReadProbe{}
+			probe := &sessionArchiveProbe{query: func(_ context.Context, input sessionArchiveQuery) (sessionArchiveResult, error) {
+				if input.LanguageVersion != "0.2.0" || input.Query.Name != name || len(input.Query.PostAggregate) == 0 {
+					t.Fatal("new typed query did not reach archive boundary unchanged")
+				}
+				rows := []map[string]any{{"value": nil, "availability": "unavailable", "reason": "synthetic-test"}}
+				metadata := definition.Metadata(false, 0, 0)
+				return sessionArchiveResult{Kind: "session-query", Generation: 1, Rows: &rows,
+					Columns:  []sessionarchive.Column{{Name: "value", Type: "number"}, {Name: "availability", Type: "string"}, {Name: "reason", Type: "string"}},
+					Metadata: &metadata, reader: reader}, nil
+			}}
+			app.sessionArchive = &sessionArchiveService{backend: probe, repositories: []string{"octo/one"}, read: SessionArchiveReadAccess{Approved: true}}
+			for _, version := range []string{"0.1.0", "0.2.0"} {
+				arguments := map[string]any{"repository": "octo/one", "language-version": version, "query": definition}
+				request := mcpLogsRequest(t, "tools/call", map[string]any{"name": "cao_session_query", "arguments": arguments})
+				authorize(request)
+				response := httptest.NewRecorder()
+				app.Handler().ServeHTTP(response, request)
+				if response.Code != http.StatusOK || strings.Contains(response.Body.String(), `"isError":true`) != (version == "0.1.0") {
+					t.Fatalf("scalar profile or typed null rejected by SDK: %s", response.Body.String())
+				}
+			}
+			if probe.called != 1 || reader.closed != 1 {
+				t.Fatal("scalar query bypassed profile admission or lost HTTP-owned reader lifetime")
+			}
+		})
+	}
+}
 
 func TestMCPSessionDataLakeAccessAndReaderLifetime(t *testing.T) {
 	for _, outcome := range []string{"success", "no-grant", "actions", "disabled", "unsupported-backend", "query-error",
@@ -135,14 +178,15 @@ func TestMCPSessionDataLakeDiscoveryAndValidation(t *testing.T) {
 		}
 	}
 	for _, arguments := range []json.RawMessage{
-		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"0.1.0"`, `"2.0.0"`, 1)),
+		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"0.2.0"`, `"0.1.0"`, 1)),
+		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"0.2.0"`, `"2.0.0"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"Sequence"`, `"PayloadJSON"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"octo/one"`, `"octo/two"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"octo/one"`, `"Octo/One"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"kind":"timeline","query":`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"sql":"SELECT 1","query":`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"path":"/private/archive.parquet","query":`, 1)),
-		json.RawMessage(`{"repository":"octo/one","language-version":"0.1.0","query":null}`),
+		json.RawMessage(`{"repository":"octo/one","language-version":"0.2.0","query":null}`),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"Inspect retained synthetic events."`, `"`+strings.Repeat("x", 4096)+`"`, 1)),
 	} {
 		request := mcpLogsRequest(t, "tools/call", map[string]any{"name": "cao_session_query", "arguments": arguments})

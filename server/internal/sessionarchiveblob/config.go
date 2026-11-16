@@ -208,7 +208,7 @@ func (c Config) AcceptanceBinding() string {
 }
 
 func (c Config) AnalyticalAcceptanceBinding() string {
-	return digest([]byte("cao-archive-analytical-v1\x00" + c.AcceptanceBinding()))
+	return digest([]byte("cao-archive-analytical-0.2.0\x00" + c.AcceptanceBinding()))
 }
 
 func (c Config) authorized(namespace, repository string) bool {

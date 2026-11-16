@@ -1,0 +1,20 @@
+{
+  "name": "execution-step-count",
+  "subject": "Recompute gh-aw v2 execution steps from retained approved usage.",
+  "from": "archive-events",
+  "aggregate": {
+    "by": ["Namespace", "Repository", "RunId", "RunAttempt", "TraceId", "ProjectionId", "PolicyDigest", "EvidenceVersion"],
+    "values": [
+      {"field":"Sequence","as":"p","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"firewall.token_usage"}]}},
+      {"field":"Sequence","as":"r","reducer":"count","filter":{"predicates":[{"field":"Phase","equals":"agent"},{"field":"Type","equals":"usage.report"}]}}
+    ]
+  },
+  "post-aggregate": [
+    {"as":"requests","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"p"},{"field":"r"}]},
+    {"as":"family","function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"value":"firewall.token_usage"},{"value":"usage.report"}]},
+    {"as":"value","function":"if","args":[{"function":"gt","args":[{"field":"requests"},{"value":0}]},{"field":"requests"},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"unavailable"},{"value":"measured"}]},
+    {"as":"reason","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"no-requests"},{"value":"measured"}]}
+  ],
+  "select": [{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"EvidenceVersion"},{"field":"family"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}
