@@ -65,6 +65,26 @@
       "name":"quoted-literal-is-data",
       "clauses":{"filter":{"predicates":[{"field":"Type","equals":"x'); print hacked=1; //"}]},"select":[{"field":"Type"}]},
       "rows":[]
+    },
+    {
+      "name":"row-compute-before-aggregate",
+      "definition":{"name":"weighted-messages","subject":"Weight approved message events before aggregation.","from":"archive-events","compute":[{"as":"userMessage","function":"equals","args":[{"field":"Type"},{"value":"user.message"}]},{"as":"weight","function":"if","args":[{"field":"userMessage"},{"value":10.5},{"field":"Sequence"}]}],"aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"values":[{"field":"weight","as":"total","reducer":"sum","order-by":[{"field":"Sequence"}]},{"field":"Sequence","as":"messages","reducer":"count","filter":{"predicates":[{"field":"userMessage","equals":true}]}}]},"select":[{"field":"RunId"},{"field":"total"},{"field":"messages"}],"order-by":[{"field":"RunId"}]},
+      "rows":[{"RunId":"123","total":11.5,"messages":1},{"RunId":"9007199254740993","total":11.5,"messages":1}]
+    },
+    {
+      "name":"previous-and-row-number-windows",
+      "definition":{"name":"event-neighbours","subject":"Number approved events and read their predecessors within each trace.","from":"archive-events","window":[{"as":"position","operation":"row-number","groupby":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"order-by":[{"field":"EventId"},{"field":"Sequence"}]},{"field":"EventId","as":"before","operation":"previous","groupby":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"order-by":[{"field":"EventId"},{"field":"Sequence"}]},{"field":"Sequence","as":"prior","operation":"previous","groupby":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"order-by":[{"field":"Sequence","direction":"desc"}]}],"select":[{"field":"RunId"},{"field":"EventId"},{"field":"position"},{"field":"before"},{"field":"prior"}],"order-by":[{"field":"RunId"},{"field":"position"}]},
+      "rows":[{"RunId":"123","EventId":"Z","position":1,"before":"","prior":2},{"RunId":"123","EventId":"a","position":2,"before":"Z","prior":null},{"RunId":"123","EventId":"","position":3,"before":"a","prior":1},{"RunId":"9007199254740993","EventId":"z","position":1,"before":"","prior":1},{"RunId":"9007199254740993","EventId":"\ue000","position":2,"before":"z","prior":2},{"RunId":"9007199254740993","EventId":"\ud83d\ude80","position":3,"before":"\ue000","prior":null}]
+    },
+    {
+      "name":"gaps-and-islands",
+      "definition":{"name":"collection-islands","subject":"Count contiguous collection and non-collection event islands per trace.","queries":[{"name":"numbered","subject":"Number approved events overall and within their collection state.","from":"archive-events","compute":[{"as":"collection","function":"equals","args":[{"field":"Type"},{"value":"session.collection"}]}],"window":[{"as":"rn","operation":"row-number","groupby":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"order-by":[{"field":"Sequence"}]},{"as":"rnState","operation":"row-number","groupby":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","collection"],"order-by":[{"field":"Sequence"}]}],"select":[{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence"},{"field":"collection"},{"field":"rn"},{"field":"rnState"}]},{"name":"islands","subject":"Group consecutive events with equal collection state.","from":"numbered","compute":[{"as":"island","function":"difference","args":[{"field":"rn"},{"field":"rnState"}]}],"aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","collection","island"],"values":[{"field":"Sequence","as":"length","reducer":"count"}]}}],"from":"islands","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"values":[{"field":"island","as":"islands","reducer":"count"},{"field":"island","as":"quiet","reducer":"count","filter":{"predicates":[{"field":"collection","equals":false}]}},{"field":"length","as":"longest","reducer":"max"}]},"select":[{"field":"RunId"},{"field":"islands"},{"field":"quiet"},{"field":"longest"}],"order-by":[{"field":"RunId"}]},
+      "rows":[{"RunId":"123","islands":3,"quiet":2,"longest":1},{"RunId":"9007199254740993","islands":3,"quiet":2,"longest":1}]
+    },
+    {
+      "name":"structured-family-states",
+      "definition":{"name":"family-states","subject":"Count approved events by structured evidence family state.","from":"archive-events","filter":{"predicates":[{"field":"Error","state":"absent"}]},"aggregate":{"values":[{"field":"Sequence","as":"clean","reducer":"count"},{"field":"Sequence","as":"provenanced","reducer":"count","filter":{"predicates":[{"field":"Provenance","state":"present"}]}},{"field":"Sequence","as":"metered","reducer":"count","filter":{"predicates":[{"field":"Usage","state":"present"}]}}]}},
+      "rows":[{"clean":6,"provenanced":0,"metered":0}]
     }
   ]
 }

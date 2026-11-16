@@ -220,18 +220,63 @@ func (p Plan) stageSQL(prefix, from string) (string, string) {
 	if len(groups) > 0 {
 		group = " GROUP BY " + strings.Join(groups, ",")
 	}
-	reduced := "SELECT * FROM " + prefix + "filtered"
-	if len(p.Values) > 0 {
-		reduced = "SELECT " + strings.Join(base, ",") + " FROM " + prefix + "filtered" + group
+	ctes := prefix + "filtered AS (SELECT * FROM " + from + " WHERE " + filter + ")"
+	rows := prefix + "filtered"
+	for i, computed := range p.RowComputations {
+		next := prefix + "rowcomputed_" + strconv.Itoa(i)
+		ctes += ",\n" + next + " AS (SELECT *," + computed.Expression.sql() + " AS " + identifier(computed.As) + " FROM " + rows + ")"
+		rows = next
 	}
-	ctes := prefix + "filtered AS (SELECT * FROM " + from + " WHERE " + filter + "),\n" + prefix + "reduced AS (" + reduced + ")"
+	if len(p.Windows) > 0 {
+		windows := make([]string, 0, len(p.Windows))
+		for _, window := range p.Windows {
+			windows = append(windows, window.sql()+" AS "+identifier(window.As))
+		}
+		ctes += ",\n" + prefix + "windowed AS (SELECT *," + strings.Join(windows, ",") + " FROM " + rows + ")"
+		rows = prefix + "windowed"
+	}
+	reduced := "SELECT * FROM " + rows
+	if len(p.Values) > 0 {
+		reduced = "SELECT " + strings.Join(base, ",") + " FROM " + rows + group
+	}
+	ctes += ",\n" + prefix + "reduced AS (" + reduced + ")"
 	last := prefix + "reduced"
 	for i, computed := range p.Computations {
 		next := prefix + "computed_" + strconv.Itoa(i)
 		ctes += ",\n" + next + " AS (SELECT *," + computed.Expression.sql() + " AS " + identifier(computed.As) + " FROM " + last + ")"
 		last = next
 	}
-	return ctes, last
+	if p.Aggregate() || prefix == "" {
+		return ctes, last
+	}
+	// A row-level stage exposes only its selected row, including its key.
+	selected := make([]string, 0, len(p.Selections))
+	for _, selection := range p.Selections {
+		selected = append(selected, identifier(selection.Field.Name)+" AS "+identifier(selection.As))
+	}
+	ctes += ",\n" + prefix + "selected AS (SELECT " + strings.Join(selected, ",") + " FROM " + last + ")"
+	return ctes, prefix + "selected"
+}
+
+// sql lowers one window over a total order: groupby plus order-by covers the
+// row key, so DuckDB's sort stability never decides a value.
+func (w PlannedWindow) sql() string {
+	partition := make([]string, 0, len(w.Partition))
+	for _, column := range w.Partition {
+		partition = append(partition, identifier(column.Name))
+	}
+	order := make([]string, 0, len(w.Order))
+	for _, item := range w.Order {
+		order = append(order, sqlOrder(item.Field, item.Direction))
+	}
+	over := " OVER (PARTITION BY " + strings.Join(partition, ",") + " ORDER BY " + strings.Join(order, ",") + ")"
+	if w.Operation == "row-number" {
+		return "row_number()" + over
+	}
+	if w.Type == "string" {
+		return "coalesce(lag(" + identifier(w.Field.Name) + ")" + over + ",'')"
+	}
+	return "lag(" + identifier(w.Field.Name) + ")" + over
 }
 
 func (p Plan) sql(source string) string {
@@ -262,8 +307,11 @@ func (p Plan) sql(source string) string {
 			expressions[value.As] = identifier(value.As)
 		}
 	}
-	for _, computed := range p.Computations {
+	for _, computed := range append(slices.Clone(p.RowComputations), p.Computations...) {
 		expressions[computed.As] = identifier(computed.As)
+	}
+	for _, window := range p.Windows {
+		expressions[window.As] = identifier(window.As)
 	}
 	for _, selection := range p.Selections {
 		projections = append(projections, expressions[selection.Field.Name]+" AS "+identifier(selection.As))
