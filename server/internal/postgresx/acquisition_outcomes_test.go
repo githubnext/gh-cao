@@ -20,12 +20,23 @@ import (
 )
 
 func nativeOutcomeEvidence(t *testing.T, identity collectnative.Identity) collectnative.Evidence {
+	return nativeOutcomeEvidenceForTarget(t, identity, identity.Repository)
+}
+
+func nativeOutcomeEvidenceForTarget(
+	t *testing.T,
+	identity collectnative.Identity,
+	targetRepository string,
+) collectnative.Evidence {
 	t.Helper()
 	raw, err := os.ReadFile(filepath.Join("../../../dashboard/site/test/fixtures", "unified-telemetry-session.jsonl"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	raw = bytes.Replace(raw, []byte(`"runId":"303",`), []byte(`"runId":"303","repository":"octo/api",`), 1)
+	raw = bytes.ReplaceAll(raw, []byte(`"repo":"octo/api"`), []byte(`"repo":"`+targetRepository+`"`))
+	raw = bytes.ReplaceAll(raw, []byte("https://github.com/octo/api/issues/42"),
+		[]byte("https://github.com/"+targetRepository+"/issues/42"))
 	session, _, err := collectnative.ProjectSession(t.Context(), raw, "usage/aw_session.jsonl", identity, collectnative.Limits{})
 	if err != nil {
 		t.Fatal(err)
@@ -62,6 +73,110 @@ func nativeOutputLifecycles(t *testing.T, store *postgresx.Store) []model.Row {
 		t.Fatal(err)
 	}
 	return results["lifecycles"].Rows
+}
+
+func TestCrossRepositoryNativeOutcomesUseTargetEnrollmentAuthority(t *testing.T) {
+	first, config := testutil.PostgresWithConfig(t, t.Context(), "CAO_TEST_POSTGRES_URL")
+	second, err := postgresx.NewConfig(t.Context(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = second.Close() })
+	identity := acquisitionIdentity()
+	targetRepository := "octo/target"
+	targetURL := "https://github.com/octo/target/issues/42"
+	evidence := nativeOutcomeEvidenceForTarget(t, identity, targetRepository)
+	a, b := first.Acquisition(), second.Acquisition()
+	if err := a.SetEnrollment(t.Context(), identity.Repository, identity.InstallationID); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SetEnrollment(t.Context(), targetRepository, 8); err != nil {
+		t.Fatal(err)
+	}
+	producingScope, err := a.CurrentScope(t.Context(), identity.Repository)
+	if err != nil {
+		t.Fatal(err)
+	}
+	targetScope, err := a.CurrentScope(t.Context(), targetRepository)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	dispositionAt := now.Add(-time.Minute)
+	outcome := mining.Outcome{
+		Repository: targetRepository, Number: 42, URL: targetURL,
+		State: "closed", StateReason: "completed", CloseActor: "User",
+		DispositionAt: &dispositionAt, UpdatedAt: dispositionAt,
+		ObservedAt: now, Source: "github-api",
+	}
+	if err := a.RecordOutcome(t.Context(), targetScope, outcome); err != nil {
+		t.Fatal(err)
+	}
+	publication := publishNative(t, a, evidence)
+	if _, err := b.Activate(t.Context(), publication); err != nil {
+		t.Fatal(err)
+	}
+	lifecycles := nativeOutputLifecycles(t, second)
+	if len(lifecycles) != 1 || lifecycles[0]["adoptionState"] != "accepted" ||
+		lifecycles[0]["targetRepository"] != targetRepository ||
+		lifecycles[0]["deliveryState"] != "delivered" {
+		t.Fatalf("cross-repository outcome was not attributed to the producing lifecycle: %+v", lifecycles)
+	}
+	targets, more, err := b.LifecycleRefreshTargets(t.Context(), targetScope, time.Time{}, 25)
+	if err != nil || more || len(targets) != 1 || targets[0] != targetURL {
+		t.Fatalf("target-authority refresh page = %v more=%t err=%v", targets, more, err)
+	}
+	producingTargets, more, err := b.LifecycleRefreshTargets(t.Context(), producingScope, time.Time{}, 25)
+	if err != nil || more || len(producingTargets) != 0 {
+		t.Fatalf("producing repository acquired target refresh authority: %v more=%t err=%v",
+			producingTargets, more, err)
+	}
+	if audits := nativeOutcomeAudits(t, second); len(audits) != 1 ||
+		audits[0]["targetRepository"] != targetRepository {
+		t.Fatalf("cross-repository outcome audit = %+v", audits)
+	}
+
+	if err := a.SetEnrollment(t.Context(), targetRepository, 9); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.RecordOutcome(t.Context(), targetScope, outcome); !errors.Is(err, collectnative.ErrClaimLost) {
+		t.Fatalf("previous target epoch retained outcome authority: %v", err)
+	}
+	assertDeliveryFallback := func(stage string) {
+		t.Helper()
+		rows := nativeOutputLifecycles(t, second)
+		if len(rows) != 1 || rows[0]["adoptionState"] != "pending" ||
+			rows[0]["adoptionSource"] != "adoption-registry" ||
+			rows[0]["survivalState"] != "unknown" ||
+			rows[0]["deliveryState"] != "delivered" ||
+			rows[0]["targetRepository"] != targetRepository ||
+			rows[0]["reversalSignal"] != nil || rows[0]["survivalSignal"] != nil {
+			t.Fatalf("%s did not retain delivery-only lifecycle: %+v", stage, rows)
+		}
+		if audits := nativeOutcomeAudits(t, second); len(audits) != 0 {
+			t.Fatalf("%s retained provider-derived audits: %+v", stage, audits)
+		}
+	}
+	assertDeliveryFallback("target authority transfer")
+
+	currentTarget, err := b.CurrentScope(t.Context(), targetRepository)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.RecordOutcome(t.Context(), currentTarget, outcome); err != nil {
+		t.Fatal(err)
+	}
+	if rows := nativeOutputLifecycles(t, second); len(rows) != 1 || rows[0]["adoptionState"] != "accepted" {
+		t.Fatalf("current target epoch did not reacquire exact outcome: %+v", rows)
+	}
+	authority := first.NativeEnrollment()
+	if err := authority.WithMutation(t.Context(), func(ctx context.Context) error {
+		_, err := authority.Withdraw(ctx, currentTarget.InstallationID, []string{targetRepository})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	assertDeliveryFallback("target withdrawal")
 }
 
 func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing.T) {

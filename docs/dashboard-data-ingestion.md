@@ -87,21 +87,28 @@ pages show delivery and adoption separately; neither state is operational impact
 or Value.
 
 Hosted issue and pull-request webhooks are refresh hints only. Admission
-deduplicates delivery IDs, coalesces repository work for 15 minutes, and places
-it on the existing bounded collection queue. A worker holds a 15-minute
-repository lease and re-reads at most 25 exact attributed GitHub objects per
-task before recording provider clocks; more work is requeued. The hourly scope
+deduplicates delivery IDs, coalesces target-repository work for 15 minutes, and
+places it on the existing bounded collection queue. A worker holds a 15-minute
+target-repository lease and re-reads at most 25 exact attributed GitHub objects
+per task using that target's current installation and enrollment epoch before
+recording provider clocks; more work is requeued. The producing lifecycle row
+stays attached to its original Repository, Workflow, and Run. The hourly scope
 repair schedules only lifecycle rows older than 24 hours, so every enabled
-repository receives daily repair even when deliveries are missed. Queue capacity
-remains 200,000 outstanding tasks, and the private outcome cache remains bounded
-to 20,000 rows and 16 MiB per repository.
+target repository receives daily repair even when deliveries are missed. Queue
+capacity remains 200,000 outstanding tasks, and the private outcome cache
+remains bounded to 20,000 rows and 16 MiB per target repository.
 
 The Actions profile has no inbound receiver and remains complete for universal
-delivery plus registry-derived adoption. Hosted authoritative adoption currently
-covers same-repository `create_issue` and `create_pull_request`. Cross-repository
-provider refresh and provider events for other safe-output types are deferred;
-missing evidence remains unknown rather than being inferred from workflow
-success, webhook receipt, or object existence.
+delivery plus registry-derived adoption. Hosted authoritative adoption covers
+same-repository and cross-repository `create_issue` and `create_pull_request`
+only when the exact target repository is currently enrolled. URLs, producer
+credentials, and producer authority never widen that scope. Target withdrawal
+or authority change deletes provider-derived adoption, reversal, survival, and
+supporting Audit evidence from the prior epoch and restores delivery-derived
+registry state without deleting a lifecycle owned by another repository.
+Provider events for other safe-output types are deferred; missing evidence
+remains unknown rather than being inferred from workflow success, webhook
+receipt, or object existence.
 
 ## Completeness and duplicates
 
