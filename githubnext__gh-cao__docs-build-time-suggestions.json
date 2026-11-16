@@ -1,36 +1,7 @@
 {
  "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T08:03:28Z",
-   "worker_run_id": "43827870159",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    43825070138,
-    43814432358,
-    43810351164,
-    43798031034,
-    43792211504,
-    43789359390,
-    43781377358,
-    43781088986,
-    43780290464,
-    43768376457,
-    43766933236,
-    43766019418,
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809,
-    43752704784,
-    43752194225,
-    43746617494,
-    43731625055
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43731625055 (push 88f046c, created 2026-11-15T15:45Z) to 43825070138 (push 2fdf4a0, created 2026-11-16T07:36Z), all within 14 days; 0 cancelled; none in progress; source 2fdf4a0 = HEAD = new source_sha. Gate: 20 successes (19 pus...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T08:37:32Z",
    "worker_run_id": "43831934746",
@@ -860,6 +831,34 @@
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 18:55Z: no newer docs run, none queued or in progress. Source ac6d75b = local HEAD = source_sha; no docs trigger since 0cfeed6. Transfer phase (deploy handoff 5 s + Configure Pages 0 s + Upload artifact 2 s + deploy Set up job 1 s) recomputed from stored transfer_model rows, no refetch: median 8 s, p90 10 s = 10.5 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met; ceiling saving 8 s. Deploy Pages (GitHub-managed, median 7 s) excluded; merging deploy into build saves about 6 to 8 s but removes the Pages environment and id-token boundary. Open #20815 (checkout, other category) not repeated. No suggestion; noop. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T19:18:33Z",
+   "worker_run_id": "43937249845",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    43877103800,
+    43862265708,
+    43854851689,
+    43840581457,
+    43832040488,
+    43831980991,
+    43831754585,
+    43829639369,
+    43825070138,
+    43814432358,
+    43810351164,
+    43798031034,
+    43792211504,
+    43789359390,
+    43781377358,
+    43781088986,
+    43780290464,
+    43768376457,
+    43766933236
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 19:17Z: no docs run queued or in progress (only stale queued 37642403569, created 2026-10-07, outside window). Compare API 0cfeed6..ac6d75b: 1 commit (#21058), files outside docs.yml paths filter, so no new docs run expected; source_sha = HEAD ac6d75b. Stored immutable run_timings rows recomputed: queue median 3 s, p90 5 s (one 64 s outlier 43832040488 behind in-flight 43831980991); exec median 76 s, p90 129 s; 15 percent gate 11.4 s and 60 s gate not met. Concurrency (cancel-in-progress false) protects in-flight Pages deploys and already coalesces superseded pending runs; cancel-in-progress true saves about 0 s of median. Avoidable rebuilds: 17 of 18 push commits touch build-consumed paths; only test-only push 5b8b842 (43780290464) qualifies, about 4 s per run averaged; below gates. Daily 05:23Z schedule (43810351164, 63 s) refreshes synthetic dates and is required. Checkout (median 25 s) stays with open issue 20815 (not duplicated). No suggestion; noop; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1688,9 +1687,9 @@
   "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
  },
  "scheduling_verified": {
-  "verified_at": "2026-11-16T17:35:35Z",
+  "verified_at": "2026-11-16T19:18:33Z",
   "window": "strict latest 20 completed docs.yml runs 43766933236..43877103800; cancelled 43832015521 excluded; 19 successes",
-  "method": "gh run list (30 rows, no newer run, none in progress) + memory run_timings rows (immutable); no Jobs API refetch",
+  "method": "gh run list (no newer docs run since 43877103800; none queued or in progress) + compare API 0cfeed6..ac6d75b (non-docs paths) + immutable run_timings rows recomputed; no Jobs API refetch",
   "queue_s": {
    "median": 3,
    "p90_nearest_rank": 5,
@@ -1698,19 +1697,9 @@
   },
   "exec_build_start_to_deploy_end_s": {
    "median": 76,
-   "p90": 129,
-   "min": 63,
-   "max": 132
+   "p90": 129
   },
-  "build_job_s": {
-   "median": 62,
-   "p90": 115
-  },
-  "deploy_job_s": {
-   "median": 9,
-   "p90": 12
-  },
-  "decision": "not actionable: no repeated saving meets 60 s or 15 pct of median exec (11.4 s); trigger and concurrency changes save about 0 s median; watch test-only trigger (second test-only run would re-open)",
+  "decision": "not actionable: no repeated saving meets 60 s or 15 pct of median exec (11.4 s); concurrency and trigger changes save about 0 s median; watch test-only trigger (a second test-only run would re-open)",
   "prior_window_convention": "evaluations through 2026-11-16T17:20Z used 20 non-cancelled runs (adds 43766019418); strict window used from 17:35Z"
  },
  "dependency_phase": {
