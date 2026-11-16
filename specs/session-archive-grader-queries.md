@@ -292,10 +292,16 @@ S1 sources in Phase 5 (§10).
 
 E1 reclassification notes:
 
-- **Reference source.** For the `reference` graders, upstream searches the
-  trace record itself before the IR (`irCandidates(trace, { includeTrace: true })`).
-  CAO archives only the S2-bound IR `reference`. A trace-level `reference`
-  therefore reports `unavailable` in CAO, a declared S2-style divergence.
+- **Trace-level candidates.** Several graders search the trace record before
+  the IR (`irCandidates(trace, { includeTrace: true })`). At the pin, the
+  trace that `createSessionLookups` builds carries no `reference`,
+  `observations` or `resources`, so those reads resolve to `trajectoryIR`. That
+  is the S2-bound IR payload, so there is no divergence.
+- **Synthesized fallbacks.** `trajectoryIR.events` defaults to synthesized
+  `{index, kind: event.type}` rows, and `trajectoryIR.toolCalls` falls back
+  (`??`) to reconciled calls whose fields are copied from event data. When the
+  IR omits either collection, an E1 grader that reads it reports
+  `unavailable`, the declared S2 divergence.
 - **Size guard.** Upstream's 5,000-item guard (`withTrajectoryLimits`) covers
   every IR collection (`events`, `states`, `actions`, `toolCalls`,
   `observations`, `resources`, `provenanceEdges`, `objectives`, `outputs`) and
