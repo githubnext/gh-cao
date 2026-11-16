@@ -7,7 +7,8 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     const names = new Set([
       'value-campaign-overview', 'value-standalone-entries', 'value-overview',
-      'value-overview-by-kind', 'value-overview-by-status'
+      'value-overview-kind-counts', 'value-overview-by-kind',
+      'value-overview-status-counts', 'value-overview-by-status'
     ]);
     const queries = authoritativeDashboard.dashboard.queries.filter(
       (/** @type {{ name: string }} */ query) => names.has(query.name)
@@ -57,6 +58,138 @@ for (const width of [1440, 390]) {
     }
   });
 }
+
+for (const width of [1440, 390]) {
+  test(`Value bars drill into scoped entries at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const names = new Set([
+      'value-overview-kind-counts', 'value-overview-by-kind',
+      'value-overview-status-counts', 'value-overview-by-status'
+    ]);
+    const queries = authoritativeDashboard.dashboard.queries.filter(
+      (/** @type {{ name: string }} */ query) => names.has(query.name)
+    );
+    await page.setContent(`
+      <div id="root"></div>
+      <script type="module">
+        import { processDataRequest } from 'http://dashboard.test/src/data-worker.js';
+        import { compileDashboardViewPayloadQueries } from 'http://dashboard.test/src/data/queries/view-payload-compiler.js';
+        import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+        const documentModel = ${JSON.stringify(authoritativeDashboard)};
+        const queries = ${JSON.stringify(queries)};
+        const metadata = {
+          'source-id': 'value-drill-fixture', 'source-kind': 'fixture',
+          'as-of': '2026-11-15T00:00:00Z', 'retrieved-at': '2026-11-15T00:00:00Z',
+          completeness: 'complete', freshness: 'fresh', availability: 'available'
+        };
+        const entries = { source: 'value-overview', metadata, rows: [
+          { 'value-kind': 'Campaign', 'value-plot-status': 'Needs review', 'value-title': 'Alpha',
+            'value-href': '#page-campaign-value?campaign=alpha' },
+          { 'value-kind': 'Campaign', 'value-plot-status': 'No review triggered', 'value-title': 'Beta',
+            'value-href': '#page-campaign-value?campaign=beta' },
+          { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Better', 'value-title': 'Solo',
+            'value-href': '#page-workflow-value?workflow=solo' }
+        ] };
+        const inputs = { 'value-overview': entries };
+        const plots = processDataRequest({
+          operation: 'execute-dashboard-queries', queries,
+          sourceNames: ['value-overview-by-kind', 'value-overview-by-status'],
+          sources: inputs
+        });
+        window.location.hash = '#page-value';
+        document.querySelector('#root').append(renderDashboard({
+          document: documentModel,
+          sources: { ...inputs, ...plots },
+          loadPageSources: async (pageId, options) => {
+            if (pageId === 'value') return { ...inputs, ...plots };
+            const page = documentModel.dashboard.pages.find(candidate => candidate.id === pageId);
+            const compiled = compileDashboardViewPayloadQueries(page, pageId, {
+              queries, routeParameters: options.routeParameters
+            });
+            return processDataRequest({
+              operation: 'execute-dashboard-queries',
+              queries: compiled.queries, sourceNames: compiled.aliases, sources: inputs
+            });
+          }
+        }));
+      </script>
+    `);
+    const value = page.locator('[data-page-id="value"]');
+    await value.locator('[data-view-id="value-overview-chart"] .chart-point-link[href="#page-value-type?kind=Campaign"]').click();
+    await expect(page).toHaveURL(/#page-value-type\?kind=Campaign$/);
+    const type = page.locator('[data-page-id="value-type"]');
+    await expect(type.getByText('Alpha', { exact: true })).toBeVisible();
+    await expect(type.getByText('Beta', { exact: true })).toBeVisible();
+    await expect(type.getByText('Solo', { exact: true })).toHaveCount(0);
+    await type.locator('summary').filter({ hasText: 'Statuses in this type' }).click();
+    await type.locator('.chart-point-link[href="#page-value-status?kind=Campaign&status=Needs%20review"]').click();
+    await expect(page).toHaveURL(/#page-value-status\?kind=Campaign&status=Needs%20review$/);
+    const status = page.locator('[data-page-id="value-status"]');
+    await expect(status.getByRole('cell', { name: 'Alpha' })).toBeVisible();
+    await expect(status.getByRole('cell', { name: 'Beta' })).toHaveCount(0);
+    await page.evaluate(() => { window.location.hash = '#page-value-status?kind=Campaign'; });
+    await expect(page.locator('[data-page-id="value-status"]').getByRole('cell', { name: 'No Value entries match this type and status.' })).toBeVisible();
+  });
+}
+
+test('workflow Value movement bars open the exact native results', async ({ page }) => {
+  const queries = authoritativeDashboard.dashboard.queries.filter(
+    (/** @type {{ name: string }} */ query) => [
+      'value-workflow-movement-counts', 'value-workflow-movement'
+    ].includes(query.name)
+  );
+  await page.setContent(`
+    <div id="root"></div>
+    <script type="module">
+      import { processDataRequest } from 'http://dashboard.test/src/data-worker.js';
+      import { compileDashboardViewPayloadQueries } from 'http://dashboard.test/src/data/queries/view-payload-compiler.js';
+      import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+      const documentModel = ${JSON.stringify(authoritativeDashboard)};
+      const metadata = {
+        'source-id': 'movement-drill-fixture', 'source-kind': 'fixture',
+        'as-of': '2026-11-15T00:00:00Z', 'retrieved-at': '2026-11-15T00:00:00Z',
+        completeness: 'complete', freshness: 'fresh', availability: 'available'
+      };
+      const input = { 'value-workflow-results': {
+        source: 'value-workflow-results', metadata, rows: [
+          { 'workflow-route': 'octo/one:value', movement: 'Better', 'report-id': 'first',
+            'snapshot-name': 'Improved measure', 'delta-label': 'Down 2', 'workflow-context': 'octo/one' },
+          { 'workflow-route': 'octo/one:value', movement: 'Worse', 'report-id': 'second',
+            'snapshot-name': 'Worsened measure', 'delta-label': 'Up 3', 'workflow-context': 'octo/one' }
+        ]
+      } };
+      const chart = processDataRequest({
+        operation: 'execute-dashboard-queries', queries: ${JSON.stringify(queries)},
+        sourceNames: ['value-workflow-movement'], sources: input
+      });
+      window.location.hash = '#page-workflow-value?workflow=octo%2Fone%3Avalue';
+      document.querySelector('#root').append(renderDashboard({
+        document: documentModel,
+        sources: { ...input, ...chart },
+        loadPageSources: async (pageId, options) => {
+          if (pageId === 'workflow-value') return { ...input, ...chart };
+          const definition = documentModel.dashboard.pages.find(candidate => candidate.id === pageId);
+          const compiled = compileDashboardViewPayloadQueries(definition, pageId, {
+            queries: [], routeParameters: options.routeParameters
+          });
+          return processDataRequest({
+            operation: 'execute-dashboard-queries', queries: compiled.queries,
+            sourceNames: compiled.aliases, sources: input
+          });
+        }
+      }));
+    </script>
+  `);
+  const workflow = page.locator('[data-page-id="workflow-value"]');
+  await workflow.locator('.chart-point-link[href="#page-value-movement?workflow=octo%2Fone%3Avalue&movement=Better"]').click();
+  await expect(page).toHaveURL(/#page-value-movement\?workflow=octo%2Fone%3Avalue&movement=Better$/);
+  const movement = page.locator('[data-page-id="value-movement"]');
+  await expect(movement.getByRole('cell', { name: 'Improved measure' })).toBeVisible();
+  await expect(movement.getByRole('cell', { name: 'Worsened measure' })).toHaveCount(0);
+  await movement.getByRole('button', { name: 'Cards' }).click();
+  await movement.locator('[data-card-drill="query"]').click();
+  await expect(page).toHaveURL(/#page-value-report\?query=value-report-summary&title=Improved\+measure&report=first$/);
+});
 
 for (const width of [1440, 390]) {
   test(`Skills is a non-experimental Data destination at ${width}px`, async ({ page }) => {
