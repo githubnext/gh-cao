@@ -21,7 +21,7 @@ var sessionMCPArguments = json.RawMessage(`{"repository":"octo/one","language-ve
 "select":[{"field":"Sequence"}]}}`)
 
 func TestMCPSessionDataLakeScalarDefinitions(t *testing.T) {
-	for _, name := range []string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"} {
+	for _, name := range []string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth", "dependency-order-violation-rate", "evidence-saturation-stopping-lag", "recurrence-laminarity", "recurrence-trapping-time"} {
 		t.Run(name, func(t *testing.T) {
 			// #nosec G304 -- Fixed reviewed names, not caller-provided file paths.
 			content, err := os.ReadFile("../sessionarchive/testdata/graders/" + name + ".json")

@@ -62,7 +62,7 @@ func TestHostedAnalyticalProtocol(t *testing.T) {
 			definition := archiveDefinition(t, `"select":[{"field":"RunAttempt","as":"attempt"},{"field":"Type"}],"limit":1`)
 			withdrawn := make(chan struct{})
 			protocol.query = func(w http.ResponseWriter, _ *http.Request, kql string) {
-				for _, required := range []string{"ArchiveObject in", "join kind=inner", "let source=materialize", "nulls last", "| take 2", "make_list(bag_pack", "array_length(Gaps)", `| extend ["__archive_empty_0"]=iff(isempty(`} {
+				for _, required := range []string{"ArchiveObject in", "join kind=inner", "let source_0=materialize", "nulls last", "| take 2", "make_list(bag_pack", "array_length(Gaps)", `| extend ["__archive_empty_0"]=iff(isempty(`} {
 					if !strings.Contains(kql, required) {
 						t.Errorf("missing trusted KQL stage %q", required)
 					}
@@ -380,9 +380,35 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 	})
 }
 
+func TestAnalyticalKQLLowersJoins(t *testing.T) {
+	binding := `"Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"`
+	for joinType, kind := range map[string]string{"left": "leftouter", "inner": "inner"} {
+		var definition sessionarchive.Definition
+		content := `{"name":"t","subject":"S.","queries":[{"name":"ids","subject":"S.","from":"archive-objectives","aggregate":{"by":[` + binding + `,"Id"],` +
+			`"values":[{"field":"Ordinal","as":"copies","reducer":"count"}]}}],"from":"archive-objective-dependencies","joins":[{"source":"ids","type":"` + joinType + `",` +
+			`"on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"select":[{"field":"Value"},{"field":"copies"}]}`
+		if err := json.Unmarshal([]byte(content), &definition); err != nil {
+			t.Fatal(err)
+		}
+		plan, err := definition.Plan()
+		if err != nil {
+			t.Fatal(err)
+		}
+		kql, err := analyticalKQL(plan, "EVENTS\n")
+		if err != nil {
+			t.Fatal(err)
+		}
+		join := regexp.MustCompile(`\| join kind=(\w+) \(stage_0 \| where isnotempty\(\["Id"\]\) \| project [^)]*\) on (.*)\n`).FindStringSubmatch(kql)
+		if join == nil || join[1] != kind || strings.Count(join[2], "$left.") != 8 || !strings.Contains(join[2], `$left.["Value"]==$right.`) ||
+			!strings.Contains(join[2], `$left.["PolicyDigest"]==$right.`) || !strings.Contains(kql, "dependsOn") {
+			t.Fatalf("%s join lost its explicit kind, full binding or missing-key exclusion:\n%s", joinType, kql)
+		}
+	}
+}
+
 func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 	entries, err := os.ReadDir("../sessionarchive/testdata/graders")
-	if err != nil || len(entries) != 10 {
+	if err != nil || len(entries) != 14 {
 		t.Fatal("missing reviewed grader definitions")
 	}
 	for _, entry := range entries {
@@ -402,9 +428,11 @@ func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", entry.Name(), err)
 		}
-		lets, query, _ := strings.Cut(kql, "\nsource\n")
-		_, source, _ := strings.Cut(lets, "let source=materialize(")
-		if strings.Contains(query, "PayloadJSON") || strings.Count(source, "PayloadJSON") != 0 ||
+		// Source and stage lets, then the outer query, follow the item lets.
+		start := strings.LastIndex(kql, "let source_")
+		_, query, _ := strings.Cut(kql[start:], ");\n")
+		sources := regexp.MustCompile(`(?s)let (source|stage)_\d+=materialize\(.*?\);\n`).FindAllString(kql, -1)
+		if strings.Contains(query, "PayloadJSON") || strings.Contains(strings.Join(sources, ""), "PayloadJSON") ||
 			strings.Contains(kql, "dcount(") || strings.Count(kql, "join ") != strings.Count(kql, "join kind=") {
 			t.Fatalf("%s: payload escaped the item source or a join/count is implicit", entry.Name())
 		}

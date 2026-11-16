@@ -653,26 +653,25 @@ func TestAnalyticalChainedPlans(t *testing.T) {
 		return `{"name":"` + name + `","subject":"S.","from":"` + from + `","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"` + rest + `","as":"n","reducer":"count"}]}}`
 	}
 	for name, test := range map[string]struct{ stages, clauses string }{
-		"unknown":       {kindStage, `"from":"missing","select":[{"field":"n"}]`},
-		"skips stage":   {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
-		"forward read":  {stage("a", "b", "n") + "," + stage("b", "archive-events", "Sequence"), `"from":"b","select":[{"field":"n"}]`},
-		"self read":     {stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
-		"duplicate":     {stage("a", "archive-events", "Sequence") + "," + stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
-		"outer name":    {stage("test-chain", "archive-events", "Sequence"), `"from":"test-chain","select":[{"field":"n"}]`},
-		"shadow source": {stage("archive-states", "archive-events", "Sequence"), `"from":"archive-states","select":[{"field":"n"}]`},
-		"too deep": {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n") + "," + stage("c", "b", "n"),
-			`"from":"c","select":[{"field":"n"}]`},
-		"unbound stage":    {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":["TraceId"],"values":[{"field":"Sequence","as":"n","reducer":"count"}]}}`, `"from":"a","select":[{"field":"n"}]`},
-		"row stage":        {`{"name":"a","subject":"S.","from":"archive-events","select":[{"field":"Sequence"}]}`, `"from":"a","select":[{"field":"Sequence"}]`},
-		"stage limit":      {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"Sequence","as":"n","reducer":"count"}]},"limit":1}`, `"from":"a","select":[{"field":"n"}]`},
-		"nested":           {`{"name":"a","subject":"S.","queries":[` + stage("b", "archive-events", "Sequence") + `],"from":"b","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"count"}]}}`, `"from":"a","select":[{"field":"m"}]`},
-		"unbound outer":    {kindStage, `"from":"per-kind","aggregate":{"by":["TraceId"],"values":[{"field":"n","as":"m","reducer":"sum"}]}`},
-		"state predicate":  {kindStage, `"from":"per-kind","filter":{"predicates":[{"field":"n","state":"valid"}]},"select":[{"field":"n"}]`},
-		"first":            {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"first","order-by":[{"field":"Kind"}]}]}`},
-		"unordered sum":    {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum"}]}`},
-		"wrong order":      {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum","order-by":[{"field":"Kind","direction":"desc"}]}]}`},
-		"hidden source":    {kindStage, `"from":"per-kind","select":[{"field":"Ordinal"}]`},
-		"base source read": {kindStage, `"from":"archive-states","select":[{"field":"Kind"}]`},
+		"unknown":            {kindStage, `"from":"missing","select":[{"field":"n"}]`},
+		"skips stage":        {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
+		"forward read":       {stage("a", "b", "n") + "," + stage("b", "archive-events", "Sequence"), `"from":"b","select":[{"field":"n"}]`},
+		"self read":          {stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
+		"duplicate":          {stage("a", "archive-events", "Sequence") + "," + stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
+		"outer name":         {stage("test-chain", "archive-events", "Sequence"), `"from":"test-chain","select":[{"field":"n"}]`},
+		"shadow source":      {stage("archive-states", "archive-events", "Sequence"), `"from":"archive-states","select":[{"field":"n"}]`},
+		"reused output name": {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n"), `"from":"b","select":[{"field":"n"}]`},
+		"unbound stage":      {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":["TraceId"],"values":[{"field":"Sequence","as":"n","reducer":"count"}]}}`, `"from":"a","select":[{"field":"n"}]`},
+		"row stage":          {`{"name":"a","subject":"S.","from":"archive-events","select":[{"field":"Sequence"}]}`, `"from":"a","select":[{"field":"Sequence"}]`},
+		"stage limit":        {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"Sequence","as":"n","reducer":"count"}]},"limit":1}`, `"from":"a","select":[{"field":"n"}]`},
+		"nested":             {`{"name":"a","subject":"S.","queries":[` + stage("b", "archive-events", "Sequence") + `],"from":"b","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"count"}]}}`, `"from":"a","select":[{"field":"m"}]`},
+		"unbound outer":      {kindStage, `"from":"per-kind","aggregate":{"by":["TraceId"],"values":[{"field":"n","as":"m","reducer":"sum"}]}`},
+		"state predicate":    {kindStage, `"from":"per-kind","filter":{"predicates":[{"field":"n","state":"valid"}]},"select":[{"field":"n"}]`},
+		"first":              {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"first","order-by":[{"field":"Kind"}]}]}`},
+		"unordered sum":      {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum"}]}`},
+		"wrong order":        {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum","order-by":[{"field":"Kind","direction":"desc"}]}]}`},
+		"hidden source":      {kindStage, `"from":"per-kind","select":[{"field":"Ordinal"}]`},
+		"base source read":   {kindStage, `"from":"archive-states","select":[{"field":"Kind"}]`},
 	} {
 		if _, err := chainedDefinition(t, test.stages, test.clauses).Plan(); !errors.Is(err, ErrQuery) {
 			t.Fatalf("%s: invalid chained plan accepted: %v", name, err)
@@ -721,6 +720,114 @@ func TestDuckDBAnalyticalChainingIntegration(t *testing.T) {
 	}
 	if out.Metadata.QueryDigest == analyticalDefinition(t, `"select":[{"field":"Sequence"}]`).Metadata(false, 0, 0).QueryDigest {
 		t.Fatal("query digest ignored earlier stages")
+	}
+}
+
+const joinBinding = chainBinding + `,"PolicyDigest"`
+
+// idStage counts objectives per trace and Id, so Id is the unique right key.
+const idStage = `{"name":"ids","subject":"S.","from":"archive-objectives","aggregate":{"by":[` + joinBinding + `,"Id"],"values":[{"field":"Ordinal","as":"copies","reducer":"count"}]}}`
+
+const dependencyJoin = `"from":"archive-objective-dependencies","joins":[{"source":"ids","type":"left","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],` +
+	`"select":[{"field":"RunId"},{"field":"Ordinal"},{"field":"Position"},{"field":"Value"},{"field":"copies"}],"order-by":[{"field":"RunId"},{"field":"Ordinal"},{"field":"Position"}]`
+
+func TestAnalyticalJoinPlans(t *testing.T) {
+	plan, err := chainedDefinition(t, idStage, dependencyJoin).Plan()
+	if err != nil || len(plan.Joins) != 1 || len(plan.Joins[0].On) != 8 || plan.Joins[0].Type != "left" {
+		t.Fatalf("trace-scoped join rejected: %#v %v", plan.Joins, err)
+	}
+	capabilities := AnalyticalCapabilities(4096)
+	capabilities.Joins = 0
+	if !errors.Is(plan.Require(capabilities), ErrQuery) {
+		t.Fatal("a backend without joins silently accepted a join")
+	}
+	if err := plan.Require(AnalyticalCapabilities(4096)); err != nil {
+		t.Fatalf("join capability rejected: %v", err)
+	}
+	rows := `"from":"archive-states","joins":[{"source":"archive-ir-events","on":[{"left":"Ordinal","right":"Ordinal"}],"fields":[{"field":"Index"}]}],"select":[{"field":"Index"}]`
+	if _, err := itemDefinition(t, "archive-states", rows[len(`"from":"archive-states",`):]).Plan(); err != nil {
+		t.Fatalf("join on a complete source row key rejected: %v", err)
+	}
+	join := func(spec string) string {
+		return `"from":"archive-objective-dependencies","joins":[` + spec + `],"select":[{"field":"Value"}]`
+	}
+	stage := func(n int) string {
+		var stages []string
+		for i := range n {
+			stages = append(stages, strings.Replace(idStage, `"name":"ids"`, `"name":"ids`+fmt.Sprint(i)+`"`, 1))
+		}
+		return strings.Join(stages, ",")
+	}
+	many := make([]string, 5)
+	for i := range many {
+		many[i] = `{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies","as":"c` + fmt.Sprint(i) + `"}]}`
+	}
+	for name, test := range map[string]struct{ stages, clauses string }{
+		"non-unique right":    {idStage, join(`{"source":"ids","fields":[{"field":"copies"}]}`)},
+		"non-unique item":     {idStage, join(`{"source":"archive-objectives","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"Items"}]},{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"cross join":          {idStage, join(`{"source":"ids","type":"cross","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"right join":          {idStage, join(`{"source":"ids","type":"right","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"rebound binding":     {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Id"},{"left":"RunId","right":"RunId"}],"fields":[{"field":"copies"}]}`)},
+		"mistyped key":        {idStage, join(`{"source":"ids","on":[{"left":"Ordinal","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"unknown right":       {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Missing"}],"fields":[{"field":"copies"}]}`)},
+		"name collision":      {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies","as":"value"}]}`)},
+		"no fields":           {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[]}`)},
+		"too many joins":      {idStage, join(strings.Join(many, ","))},
+		"unused stage":        {idStage + "," + strings.Replace(idStage, `"name":"ids"`, `"name":"spare"`, 1), join(`{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"too many stages":     {stage(9), join(`{"source":"ids0","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"joined state":        {idStage, `"from":"archive-objective-dependencies","joins":[{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"filter":{"predicates":[{"field":"copies","state":"valid"}]},"select":[{"field":"Value"}]`},
+		"unknown join source": {idStage, join(`{"source":"missing","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]},{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"wide window":         {idStage, `"from":"archive-objective-dependencies","joins":[{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"window":[{"as":"n","operation":"row-number","groupby":[` + joinBinding + `,"Value","copies"],"order-by":[{"field":"Ordinal"},{"field":"Position"}]}],"select":[{"field":"n"}]`},
+		"ordered item sum":    {idStage, `"from":"archive-states","aggregate":{"by":[` + joinBinding + `],"values":[{"field":"FirstEventIndex","as":"s","reducer":"sum","order-by":[{"field":"Ordinal"}]}]},"joins":[{"source":"ids","on":[{"left":"Id","right":"Id"}],"fields":[{"field":"copies"}]}]`},
+	} {
+		if _, err := chainedDefinition(t, test.stages, test.clauses).Plan(); !errors.Is(err, ErrQuery) {
+			t.Fatalf("%s: invalid join plan accepted: %v", name, err)
+		}
+	}
+}
+
+func TestDuckDBAnalyticalJoinIntegration(t *testing.T) {
+	c := testConfig(t)
+	policy, err := os.ReadFile("testdata/evidence-policy.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := decode(policy, &c.Policy); err != nil {
+		t.Fatal(err)
+	}
+	a := openTestArchive(t, c, nil)
+	now := time.Now().UTC()
+	header := "{\"type\":\"session.format\",\"provenance\":{},\"data\":{\"version\":1}}\n"
+	raw := header + `{"type":"trajectory.ir","provenance":{"component":"agent","phase":"agent"},"data":{"objectives":[{"id":"a"},{"id":"b","dependsOn":["a","","z",1]},{"dependsOn":[""]},{"dependsOn":"a"}]}}` + "\n"
+	for run, content := range map[string]string{"1": raw, "2": header} {
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", run, now.Format(time.DateOnly), 1, []byte(content), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	s := pinTestArchive(t, a)
+	for joinType, want := range map[string]string{
+		// The "" dependency never matches the "" Id of objectives without an id.
+		"left":  "1/1/0/a/1,1/1/1//<nil>,1/1/2/z/<nil>,1/1/3//<nil>,1/2/0//<nil>,2/<nil>/<nil>//<nil>",
+		"inner": "1/1/0/a/1",
+	} {
+		out, err := s.Analytical(t.Context(), chainedDefinition(t, idStage, strings.Replace(dependencyJoin, `"left"`, `"`+joinType+`"`, 1)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, row := range out.Rows {
+			got = append(got, fmt.Sprint(row["RunId"], "/", row["Ordinal"], "/", row["Position"], "/", row["Value"], "/", row["copies"]))
+		}
+		if strings.Join(got, ",") != want {
+			t.Fatalf("%s join rows = %v, want %s", joinType, got, want)
+		}
 	}
 }
 

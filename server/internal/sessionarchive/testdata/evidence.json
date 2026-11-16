@@ -10,6 +10,8 @@
     "tool-failure-count", "tool-success-rate", "trajectory-efficiency",
     "execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
     "retries", "artifact-production", "objective-coverage", "premature-termination-gap",
-    "policy-near-miss", "grounding-accuracy", "state-revisit-probability-rep", "recurrence-rate"
+    "policy-near-miss", "grounding-accuracy", "state-revisit-probability-rep", "recurrence-rate",
+    "dependency-order-violation-rate", "evidence-saturation-stopping-lag", "recurrence-determinism",
+    "recurrence-laminarity", "recurrence-trapping-time"
   ]
 }

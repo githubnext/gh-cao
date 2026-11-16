@@ -396,8 +396,9 @@ typed conjunctive predicates, explicit projection, grouping, exact `count` and
 bounded `post-aggregate` scalar computation, deterministic ordering, and optional
 top-N selection. Only `0.2.0` requests are accepted over HTTP or MCP;
 `0.1.0` and other versions MUST be rejected without compatibility fallback.
-`PayloadJSON`, arbitrary JSON paths, joins, scripts, and caller-selected storage
-are not supported. Item sources and query chaining are bounded as described below. An explicit `query.limit` reports omitted matching rows with
+`PayloadJSON`, arbitrary JSON paths, cross or cross-trace joins, scripts, and
+caller-selected storage are not supported. Item sources, query chaining and
+trace-scoped joins are bounded as described below. An explicit `query.limit` reports omitted matching rows with
 `metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
 remains unknown, with repository admission gaps and retained traces with recorded
 omissions reported independently of selection. Both backends advertise
@@ -428,17 +429,26 @@ and scalar `extend`. No approximate cardinality or unordered `take_any`
 is permitted. ADX's million-row scan fence bounds those internal lists.
 These lowerers are not a universal compiler or a new canonical resolver.
 
-Both backends also accept three item sources: `archive-objectives`,
-`archive-actions`, and `archive-states`. Each binds the last agent-phase
-`trajectory.ir` event of every complete active trace and flattens its
-`data.objectives`, `data.actions`, or `data.states` array at query time; no
-item rows are persisted. Every trace yields one anchor row with null `Ordinal`
-and `Items` when it has no array, plus one row per element. Rows carry the
-complete trace binding, the bound IR `Sequence`, `Items`, `Ordinal`, element
-`Kind`, and only reviewed typed element fields: `SatisfiedAtEventIndex`
-(objectives; a safe non-negative JSON integer), `ValidAtIssueTime` (actions; a
-JSON boolean) and `Id` (states; a string element or an object's string `id`).
-Wrong JSON types are `invalid`, never coerced. `state` predicates on `Items`
+Both backends also accept five item sources: `archive-objectives`,
+`archive-objective-dependencies`, `archive-actions`, `archive-states` and
+`archive-ir-events`. Each binds the last agent-phase `trajectory.ir` event of
+every complete active trace and flattens its `data.objectives`,
+`data.actions`, `data.states` or `data.events` array at query time; no item
+rows are persisted. Every trace yields one anchor row with null `Ordinal` and
+`Items` when it has no array, plus one row per element. Rows carry the
+complete trace binding, `PolicyDigest`, the bound IR `Sequence`, `Items`,
+`Ordinal`, element `Kind`, and only reviewed typed element fields:
+`SatisfiedAtEventIndex` (a safe non-negative JSON integer), `Id` (a string)
+and `DependsOn` (the `dependsOn` array length) for objectives;
+`ValidAtIssueTime` (a JSON boolean) for actions; `Id` (a string element or an
+object's string `id`) and `FirstEventIndex` (a safe JSON integer) for states;
+and `Index` (a safe JSON integer), `EventKind` and `Ref` (strings) for IR
+events. `archive-objective-dependencies` is nested: it further flattens each
+objective's `dependsOn` array into one row per string `Value`, keyed by the
+parent `Ordinal` plus a zero-based `Position`, with one trace anchor (null
+`Ordinal` and `Position`) when the trace has no dependency. Wrong JSON types
+are `invalid`, never coerced; absent or invalid strings read as the empty
+string. `state` predicates on `Items`
 and element fields are qualified by the collection path, so an excluded or
 redacted collection is reported, not treated as empty. Item sources forbid
 `first` and real-valued `sum`, order ties by `Ordinal`, and never expose
@@ -448,11 +458,11 @@ same IR with materialized `let` statements and expands elements with
 Kusto MUST omit them and reject such plans.
 
 Both backends also accept query chaining (Dashboard Language DLS-QUERY-017)
-for two-stage aggregation. A definition may list at most two earlier
-definitions in `queries`. They are evaluated in order: the first reads an
-archive source, each later one reads its immediate predecessor by name, and
-the outer definition reads the last, so no stage is unused or bypassed. Every
-earlier definition MUST aggregate with the complete `Namespace`, `Repository`,
+for multi-stage aggregation. A definition may list at most eight earlier
+definitions in `queries`. They are evaluated in order: each reads an archive
+source or any earlier definition through `from` or `joins`, and every earlier
+definition is read by a later one or by the outer definition, so no stage is
+unused. Every earlier aggregating definition MUST aggregate with the complete `Namespace`, `Repository`,
 `RunId`, `RunAttempt`, `TraceId`, `ProjectionId` binding in `aggregate.by`, and
 MUST NOT declare `queries`, `select`, `order-by` or `limit`. Its output columns
 are its groups, aggregates and computations, typed as planned. Stage names are
@@ -466,6 +476,31 @@ to one statement: one DuckDB common table expression, or one materialized KQL
 `let`, per stage; no intermediate result is persisted. Status advertises the
 maximum stage count as `analytical.chaining`; a backend without a lowering
 accepted against real Kusto MUST omit it and reject chained plans.
+
+Both backends also accept trace-scoped equality joins (Dashboard Language
+DLS-QUERY-005..008). A definition may declare at most four `joins`, applied in
+order before `filter`; each names an archive source or an earlier definition,
+`type` `inner` (default) or `left`, up to four extra integer or string `on`
+key pairs, and 1 to 16 imported `fields`. Both sides always match on the
+complete `Namespace`, `Repository`, `RunId`, `RunAttempt`, `TraceId`,
+`ProjectionId`, `PolicyDigest` binding, which the planner adds and `on` MUST
+NOT repeat; cross, right, full and cross-trace joins are not expressible.
+The binding plus `on` MUST cover the right input's row key (the source key,
+or an earlier stage's `aggregate.by` or row key), so every left row meets at
+most one right row and a join never multiplies rows. Right rows whose explicit
+key is null or the empty string never match, because Kusto equates `""` with
+`""` while DuckDB never equates nulls. `inner` drops unmatched left rows;
+`left` keeps them with typed null imports, or the empty string for strings.
+Imported names MUST NOT collide case-insensitively with input columns, and
+`state` predicates MUST NOT target them because joined rows carry no
+field-state metadata. DuckDB lowers each join to one common table expression
+with null-safe binding equality; KQL always emits explicit `kind=inner` or
+`kind=leftouter` (never the deduplicating default), filters missing right keys
+with `isnotempty`/`isnotnull`, and projects key aliases away afterwards. The
+join is evaluated within the one statement and the existing row budget fails
+closed. Status advertises the maximum join count as `analytical.joins`; a
+backend without a lowering accepted against real Kusto MUST omit it and reject
+joined plans.
 
 Session queries may also be row-level. A definition may declare up to 32
 row-level `compute` values, evaluated after `filter` and before `window` and
