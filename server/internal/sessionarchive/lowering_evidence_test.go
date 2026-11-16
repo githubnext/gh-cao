@@ -211,7 +211,8 @@ func rowSet(columns []string, types []string, rows [][]string) string {
 
 func recurrenceLoweringSQL(t *testing.T, cases []recurrenceCase) string {
 	t.Helper()
-	var traces, states, events [][]string
+	traces := make([][]string, 0, len(cases))
+	var states, events [][]string
 	for _, c := range cases {
 		trace := literal(c.ID)
 		traces = append(traces, []string{trace})
