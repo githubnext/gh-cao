@@ -41,7 +41,19 @@ func dashboardActionCommand() *cobra.Command {
 var dashboardWorkflowTarget = regexp.MustCompile(`^(?:\.github/workflows/)?[A-Za-z0-9][A-Za-z0-9_.-]*(?:\.md)?$`)
 var dashboardSourceTarget = regexp.MustCompile(`^https://github\.com/[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$`)
 
+var dashboardEnrollmentPattern = regexp.MustCompile(`^[A-Za-z0-9_.*-]+/[A-Za-z0-9_.*-]+$`)
+
+// dashboardEnrollmentArgs reports whether args stage local review-mode
+// enrollment. The pattern is new by definition, so scope does not apply.
+func dashboardEnrollmentArgs(args []string) bool {
+	return len(args) == 3 && args[0] == "repos" && args[1] == "add" && len(args[2]) <= 200 &&
+		!strings.Contains(args[2], "..") && dashboardEnrollmentPattern.MatchString(args[2])
+}
+
 func dashboardActionArgs(args, repositories []string) error {
+	if dashboardEnrollmentArgs(args) {
+		return nil
+	}
 	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable"}, args[0]) {
 		return errors.New("only gh-aw maintenance commands are supported")
 	}
@@ -106,7 +118,11 @@ func approveDashboardAction(ctx context.Context, args []string) (bool, error) {
 		return false, err
 	}
 	defer func() { _ = output.Close() }()
-	if _, err := fmt.Fprintf(output, "\nDashboard maintenance requests:\n  gh aw %s\nApprove this command using your local GitHub CLI identity? [y/N] ", strings.Join(args, " ")); err != nil {
+	program := "gh aw"
+	if dashboardEnrollmentArgs(args) {
+		program = "gh cao"
+	}
+	if _, err := fmt.Fprintf(output, "\nDashboard maintenance requests:\n  %s %s\nApprove this command using your local GitHub CLI identity? [y/N] ", program, strings.Join(args, " ")); err != nil {
 		return false, err
 	}
 	text, err := readDashboardApproval(ctx, input)
@@ -277,7 +293,12 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 			_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
 			return
 		}
-		child := exec.CommandContext(executionCtx, executable, append([]string{"__dashboard_aw"}, args...)...)
+		childArgs := append([]string{"__dashboard_aw"}, args...)
+		if dashboardEnrollmentArgs(args) {
+			// Stages review-mode policy in the dashboard's control checkout.
+			childArgs = slices.Clone(args)
+		}
+		child := exec.CommandContext(executionCtx, executable, childArgs...)
 		if args[0] == "disable" {
 			directory, prepareErr := prepareDashboardDisableCheckout(executionCtx, cache, args)
 			if prepareErr != nil {

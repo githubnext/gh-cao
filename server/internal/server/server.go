@@ -2148,6 +2148,14 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	}
 	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
 		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
+		if a.oauth == nil && accessToken != "" {
+			// The data worker cannot read the page's bearer token; this cookie
+			// authorizes only the local command queue routes.
+			http.SetCookie(response, &http.Cookie{
+				Name: localCLISessionCookie, Value: a.localCLISession(), Path: "/__cli_commands",
+				HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+			})
+		}
 	}
 	if a.oauth != nil {
 		injections += `<meta name="cao-auth-mode" content="github">`

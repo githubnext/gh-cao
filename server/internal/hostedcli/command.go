@@ -14,6 +14,8 @@ const (
 	KindGhAwUpgrade Kind = "gh-aw-upgrade"
 	KindGhAwUpdate  Kind = "gh-aw-update"
 	KindWorkflowRun Kind = "workflow-run"
+	// KindCaoReposAdd stages local policy enrollment through the native CLI.
+	KindCaoReposAdd Kind = "cao-repos-add"
 )
 
 // ErrNotHosted reports a declared command that hosted execution refuses.

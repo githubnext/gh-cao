@@ -82,9 +82,9 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 
 func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
-	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow":
+	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow", "add-repository":
 	default:
-		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared repository maintenance actions are available.")
+		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared repository maintenance and enrollment actions are available.")
 	}
 	invocation, err := a.hostedCLI.catalog.Resolve(request, a.hostedCLI.context)
 	if err != nil {
@@ -94,7 +94,14 @@ func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICom
 	if err != nil {
 		return invocation, cliFailure(http.StatusUnprocessableEntity, "Maintenance requires an exact target and supported options; updates and upgrades must publish a pull request.")
 	}
-	if !a.hostedCLI.local.allows(plan.Repository) {
+	if plan.Kind == hostedcli.KindCaoReposAdd {
+		if request.ID != "add-repository" {
+			return invocation, cliFailure(http.StatusForbidden, "Only the declared enrollment action may stage repository policy.")
+		}
+		invocation.Repository = plan.Repository
+		return invocation, nil
+	}
+	if request.ID == "add-repository" || !a.hostedCLI.local.allows(plan.Repository) {
 		return invocation, cliFailure(http.StatusForbidden, "The command is outside the selected repository scope.")
 	}
 	invocation.Repository = plan.Repository
@@ -214,7 +221,10 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 	if err != nil {
 		return nil, err
 	}
-	if !strings.EqualFold(plan.Repository, command.Repository) || connection.OperatorActions == nil || !connection.OperatorActions.allows(plan.Repository) {
+	// Enrollment only stages local review-mode policy; the native CLI verifies
+	// access and the operator approves it in the terminal.
+	if !strings.EqualFold(plan.Repository, command.Repository) || connection.OperatorActions == nil ||
+		plan.Kind != hostedcli.KindCaoReposAdd && !connection.OperatorActions.allows(plan.Repository) {
 		return nil, errors.New("queued maintenance target is outside the approved repository scope")
 	}
 	content, err := json.Marshal(plan.Args)

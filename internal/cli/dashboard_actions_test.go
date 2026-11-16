@@ -23,6 +23,8 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 		{"update", "--repo", "github/gh-aw", "--create-pull-request"},
 		{"disable", "review", "--repo", "github/gh-aw"},
 		{"disable", "--repo", "github/gh-aw"},
+		{"repos", "add", "octo/new-service"},
+		{"repos", "add", "octo/service-*"},
 	} {
 		if err := dashboardActionArgs(args, scope); err != nil {
 			t.Fatalf("valid maintenance rejected: %v", err)
@@ -46,6 +48,11 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 		{"disable", "review", "--repo", "octo/other"},
 		{"disable", "review", "--repo", "github/gh-aw", "--create-pull-request"},
 		{"update", "../review.md", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"repos", "add"},
+		{"repos", "add", "octo/a", "octo/b"},
+		{"repos", "add", "octo/../other"},
+		{"repos", "add", "--repo", "octo/api"},
+		{"repos", "add", "octo"},
 	} {
 		if dashboardActionArgs(args, scope) == nil {
 			t.Fatalf("unscoped or unsupported maintenance accepted: %v", args)

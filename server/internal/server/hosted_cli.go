@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -150,13 +152,28 @@ func writeHostedCLIError(ctx context.Context, response http.ResponseWriter, err 
 	}
 }
 
+const localCLISessionCookie = "cao_cli_local"
+
+func (a *App) localCLISession() string {
+	if a.accessToken == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte("cao-cli-command-session\x00" + a.accessToken))
+	return hex.EncodeToString(sum[:])
+}
+
+func (a *App) localCLISessionAuthorized(request *http.Request) bool {
+	cookie, err := request.Cookie(localCLISessionCookie)
+	return err == nil && a.accessToken != "" && constantTimeTokenEqual(cookie.Value, a.localCLISession())
+}
+
 // authorizeHostedCLI requires a configured administrator with a fresh,
 // assured OAuth step-up. Every hosted CLI route, including reads, exposes
 // operator commands and output.
 func (a *App) authorizeHostedCLI(response http.ResponseWriter, request *http.Request) (oauthSession, bool) {
 	if a.hostedCLI.local != nil {
 		if a.config.OperatorActions == nil ||
-			!a.authorized(request) ||
+			!a.authorized(request) && !a.localCLISessionAuthorized(request) ||
 			(request.Method != http.MethodGet && request.Header.Get("Origin") != "http://"+request.Host) {
 			writeError(request.Context(), response, http.StatusForbidden, "Local command capability and same-origin approval are required.")
 			return oauthSession{}, false

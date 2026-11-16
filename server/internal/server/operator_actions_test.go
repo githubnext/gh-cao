@@ -43,6 +43,50 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 	if _, err := app.admitOperatorAction(hostedcli.Request{ID: "disable-workflow", Values: map[string]string{"workflow": "review*", "repository-coordinate": "octo/service"}}); err == nil {
 		t.Fatal("wildcard workflow admitted")
 	}
+	invocation, err := app.admitOperatorAction(hostedcli.Request{ID: "add-repository", Values: map[string]string{"repository-pattern": "Octo/New-Service"}})
+	if err != nil || invocation.Command != "gh cao repos add Octo/New-Service" || invocation.Repository != "octo/new-service" {
+		t.Fatalf("exact enrollment failed admission: %+v %v", invocation, err)
+	}
+	// The shared template grammar admits exact names only.
+	for _, pattern := range []string{"octo/service-*", "octo/../other", "octo", "octo/a b", "octo/api --repo x"} {
+		if _, err := app.admitOperatorAction(hostedcli.Request{ID: "add-repository", Values: map[string]string{"repository-pattern": pattern}}); err == nil {
+			t.Fatalf("invalid enrollment pattern %q admitted", pattern)
+		}
+	}
+}
+
+func TestOperatorEnrollmentReachesNativeAdapterOutsideMaintenanceScope(t *testing.T) {
+	calls := make(chan []string, 1)
+	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var args []string
+		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
+			t.Error(err)
+		}
+		calls <- args
+		_, _ = w.Write([]byte("{\"complete\":true,\"exitCode\":0}\n"))
+	}))
+	defer adapter.Close()
+	app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"octo/other"}},
+	}}}
+	code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
+		ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
+			Command: "gh cao repos add octo/service-*",
+		},
+	}, func(string, []byte) {})
+	if err != nil || code == nil || *code != 0 {
+		t.Fatalf("enrollment did not execute: %v %v", code, err)
+	}
+	if args := <-calls; strings.Join(args, " ") != "repos add octo/service-*" {
+		t.Fatalf("unexpected native argv: %v", args)
+	}
+	if _, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
+		ID: 2, CLICommandInvocation: operational.CLICommandInvocation{
+			Command: "gh cao repos add octo/service", Repository: "octo/forged",
+		},
+	}, func(string, []byte) {}); err == nil {
+		t.Fatal("enrollment with a forged queue repository executed")
+	}
 }
 
 func TestOperatorExecutionRechecksCurrentScopeWithoutQueueState(t *testing.T) {
@@ -167,6 +211,46 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	index := request(http.MethodGet, "/", "", "")
 	if !strings.Contains(index.Body.String(), "__CLI_QUEUE__ = true") || !strings.Contains(index.Body.String(), "__LOCAL_CLI_QUEUE__ = true") {
 		t.Fatal("native dashboard did not activate local maintenance controls")
+	}
+	capability := httptest.NewRecorder()
+	handler.ServeHTTP(capability, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://127.0.0.1:8080/?access_token="+testAccessToken, nil))
+	var session *http.Cookie
+	for _, cookie := range capability.Result().Cookies() {
+		if cookie.Name == localCLISessionCookie {
+			session = cookie
+		}
+	}
+	if session == nil || session.Path != "/__cli_commands" || !session.HttpOnly || !session.Secure || session.SameSite != http.SameSiteStrictMode || strings.Contains(session.Value, testAccessToken) {
+		t.Fatalf("worker command session cookie is missing or unscoped: %+v", session)
+	}
+	// The data worker carries only the scoped cookie, never the bearer token.
+	workerRequest := func(method, body, origin string, cookie *http.Cookie) int {
+		req := httptest.NewRequestWithContext(t.Context(), method, "http://127.0.0.1:8080/__cli_commands", bytes.NewBufferString(body))
+		req.URL.Scheme, req.URL.Host = "", ""
+		req.Header.Set("Content-Type", "application/json")
+		if origin != "" {
+			req.Header.Set("Origin", origin)
+		}
+		req.AddCookie(cookie)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, req)
+		return response.Code
+	}
+	forged := &http.Cookie{Name: localCLISessionCookie, Value: strings.Repeat("0", 64)}
+	for _, test := range []struct {
+		method, origin string
+		cookie         *http.Cookie
+		status         int
+	}{
+		{http.MethodGet, "", session, 200},
+		{http.MethodPost, "http://127.0.0.1:8080", session, 202},
+		{http.MethodPost, "https://evil.example", session, 403},
+		{http.MethodGet, "", forged, 403},
+		{http.MethodPost, "http://127.0.0.1:8080", forged, 403},
+	} {
+		if code := workerRequest(test.method, valid, test.origin, test.cookie); code != test.status {
+			t.Fatalf("%s %s cookie=%s: got %d expected %d", test.method, test.origin, test.cookie.Value[:4], code, test.status)
+		}
 	}
 }
 
