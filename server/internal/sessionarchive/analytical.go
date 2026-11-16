@@ -615,7 +615,8 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 	}
 	available := map[string]string{}
 	var ties []string
-	if d.Aggregate == nil {
+	switch {
+	case d.Aggregate == nil:
 		if len(d.Select) == 0 {
 			return p, ErrQuery
 		}
@@ -650,10 +651,10 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 			reserved[strings.ToLower(window.As)] = true
 			p.Windows = append(p.Windows, planned)
 		}
-	} else if d.Window != nil {
+	case d.Window != nil:
 		// Aggregated windows read a row-level or aggregate earlier stage instead.
 		return p, ErrQuery
-	} else {
+	default:
 		a := d.Aggregate
 		if len(a.By) > 16 || len(a.Values) < 1 || len(a.Values) > 16 || input != nil && !bindsTrace(a.By) {
 			return p, ErrQuery

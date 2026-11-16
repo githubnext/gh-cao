@@ -380,8 +380,6 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 	})
 }
 
-
-
 func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 	entries, err := os.ReadDir("../sessionarchive/testdata/graders")
 	if err != nil || len(entries) != 10 {

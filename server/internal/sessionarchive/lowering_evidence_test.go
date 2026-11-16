@@ -394,12 +394,14 @@ var reconciliationColumns = []struct{ name, kind, field string }{
 }
 
 // reconciliationLoweringSQL promotes each unified event to archive-shaped
-// columns: absent strings are '', absent booleans and numbers NULL, and error
+// columns: absent strings are empty, absent booleans and numbers NULL, and error
 // keeps its absent|null|value state. Fixture strings are never empty.
 func reconciliationLoweringSQL(t *testing.T, cases []reconciliationCase) string {
 	t.Helper()
-	columns := []string{"trace", "Sequence"}
-	types := []string{"VARCHAR", "BIGINT"}
+	columns := make([]string, 0, 2+len(reconciliationColumns))
+	columns = append(columns, "trace", "Sequence")
+	types := make([]string, 0, 2+len(reconciliationColumns))
+	types = append(types, "VARCHAR", "BIGINT")
 	for _, column := range reconciliationColumns {
 		columns = append(columns, column.name)
 		types = append(types, column.kind)
@@ -416,7 +418,8 @@ func reconciliationLoweringSQL(t *testing.T, cases []reconciliationCase) string 
 			if err := decoder.Decode(&event); err != nil {
 				t.Fatalf("%s: %v", c.ID, err)
 			}
-			row := []string{trace, strconv.Itoa(sequence)}
+			row := make([]string, 0, 2+len(reconciliationColumns))
+			row = append(row, trace, strconv.Itoa(sequence))
 			for _, column := range reconciliationColumns {
 				row = append(row, reconciliationValue(t, c.ID, event, column.field, column.name, column.kind))
 			}

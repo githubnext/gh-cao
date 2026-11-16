@@ -314,7 +314,8 @@ func rowKQL(plan sessionarchive.Plan) string {
 		kql += "| extend " + kqlIdentifier(computation.As) + "=" + kqlExpression(computation.Expression) + "\n"
 	}
 	for _, window := range plan.Windows {
-		var order, empties, same []string
+		var order, empties []string
+		same := make([]string, 0, len(window.Partition))
 		for _, column := range window.Partition {
 			name := kqlIdentifier(column.Name)
 			order = append(order, name+" asc nulls last")
