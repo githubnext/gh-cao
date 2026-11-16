@@ -119,7 +119,7 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
   const health = await context.request.get("/api/v1/health", { headers });
   expect(health.ok()).toBe(true);
   const healthPayload = await health.json();
-  expect(healthPayload.redis).toEqual({ connected: true });
+  expect(healthPayload.operational).toMatchObject({ connected: true });
   expect(healthPayload.revision).toBeGreaterThan(0);
   expect(healthPayload.counts).toMatchObject({
     $repositories: 1,

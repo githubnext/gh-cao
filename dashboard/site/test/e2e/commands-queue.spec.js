@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
@@ -10,7 +10,9 @@ const { startDashboardServer } = await import(new URL('../../../../tests/helpers
 for (const width of [1440, 390]) {
   test(`server-owned maintenance survives browser detachment at ${width}px`, async ({ page }, testInfo) => {
     test.setTimeout(90_000);
-    const directory = await mkdtemp(fileURLToPath(new URL('../../../../.tmp/operator-browser-', import.meta.url)));
+    const temporaryRoot = fileURLToPath(new URL('../../../../.tmp/', import.meta.url));
+    await mkdir(temporaryRoot, { recursive: true });
+    const directory = await mkdtemp(join(temporaryRoot, 'operator-browser-'));
     const prefix = '/' + 'b'.repeat(48);
     /** @type {string[][]} */
     const calls = [];
