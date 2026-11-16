@@ -19,26 +19,19 @@
         "acceptance": {
             "type": "string"
         },
+        "queries": {
+            "type": "array",
+            "items": {
+                "$ref": "SessionArchiveDefinition.json"
+            },
+            "maxItems": 2,
+            "description": "Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. The first reads an archive source, each later one reads its immediate predecessor by name, and this definition reads the last, so no stage is unused. Earlier definitions must aggregate with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, and must not declare queries, select, order-by or limit; their output is their groups, aggregates and computations. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length."
+        },
         "from": {
-            "anyOf": [
-                {
-                    "type": "string",
-                    "const": "archive-events"
-                },
-                {
-                    "type": "string",
-                    "const": "archive-objectives"
-                },
-                {
-                    "type": "string",
-                    "const": "archive-actions"
-                },
-                {
-                    "type": "string",
-                    "const": "archive-states"
-                }
-            ],
-            "description": "archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources."
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+            "description": "One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
         },
         "filter": {
             "type": "object",
@@ -122,7 +115,7 @@
                                 "items": {
                                     "$ref": "#/$defs/OrderField"
                                 },
-                                "description": "first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic."
+                                "description": "first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic. Over an earlier definition, a real sum instead orders ascending by exactly the earlier aggregate.by fields absent from this aggregate.by, in their declared order."
                             }
                         },
                         "required": [

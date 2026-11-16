@@ -1,0 +1,40 @@
+{
+  "name":"recurrence-rate",
+  "subject":"Recompute gh-aw state recurrence rate.",
+  "queries":[{
+    "name":"state-visits",
+    "subject":"Count canonical visits per state id.",
+    "from":"archive-states",
+    "aggregate":{
+      "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest","Id"],
+      "values":[
+        {"field":"Items","as":"n","reducer":"max"},
+        {"field":"TraceId","as":"excluded","reducer":"count","filter":{"predicates":[{"field":"Items","state":"excluded"}]}},
+        {"field":"TraceId","as":"redacted","reducer":"count","filter":{"predicates":[{"field":"Items","state":"redacted"}]}},
+        {"field":"Ordinal","as":"strings","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"string"}]}},
+        {"field":"Id","as":"ids","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"}]}}
+      ]
+    },
+    "post-aggregate":[
+      {"as":"c","function":"sum","args":[{"field":"strings"},{"field":"ids"}]},
+      {"as":"pairs","function":"product","args":[{"field":"c"},{"function":"difference","args":[{"field":"c"},{"value":1}]}]}
+    ]
+  }],
+  "from":"state-visits",
+  "aggregate":{
+    "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],
+    "values":[
+      {"field":"n","as":"items","reducer":"max"},
+      {"field":"excluded","as":"exclusions","reducer":"sum"},
+      {"field":"redacted","as":"redactions","reducer":"sum"},
+      {"field":"c","as":"visits","reducer":"sum","order-by":[{"field":"Id"}]},
+      {"field":"pairs","as":"recurrent","reducer":"sum","order-by":[{"field":"Id"}]}
+    ]
+  },
+  "post-aggregate":[
+    {"as":"reason","function":"if","args":[{"function":"gt","args":[{"field":"exclusions"},{"value":0}]},{"value":"excluded"},{"function":"if","args":[{"function":"gt","args":[{"field":"redactions"},{"value":0}]},{"value":"redacted"},{"function":"if","args":[{"function":"gt","args":[{"field":"items"},{"value":5000}]},{"value":"oversized"},{"function":"if","args":[{"function":"lte","args":[{"field":"visits"},{"value":1}]},{"value":"fewer-than-two-visits"},{"value":"measured"}]}]}]}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"function":"quotient","args":[{"field":"recurrent"},{"function":"product","args":[{"field":"visits"},{"function":"difference","args":[{"field":"visits"},{"value":1}]}]}]},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"value":"measured"},{"value":"unavailable"}]}
+  ],
+  "select":[{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

@@ -108,6 +108,12 @@ func TestGraderReplayEvidence(t *testing.T) {
 		{"combined-large-first", header + usageEvent("firewall.token_usage", `9007199254740991`, `9007199254740991`, `0.125`)},
 		{"duration-sequential-rounding", header + usageEvent("firewall.token_usage", `1`, `1`, `9007199254740990`) +
 			strings.Repeat(usageEvent("firewall.token_usage", `1`, `1`, `0.25`), 4)},
+		{"chained-edge-cases", header + "{\"type\":\"trajectory.ir\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{\"states\":[\"x\",\"\",\"x\",{\"id\":\"\"},{\"id\":5},{\"id\":\"x\"},null,{\"id\":\"y\"},\"\"]}}\n" +
+			safeOutput("agent", "agent/log", `{"type":"create_issue"}`) + safeOutput("safe_outputs", "usage/aw_session.jsonl", `{"type":"create_issue","status":"failure"}`) +
+			safeOutput("agent", "agent/log", `{"type":"add_comment"}`) + safeOutput("agent", "agent/log", `{"status":"success"}`) +
+			safeOutput("agent", "agent/log", `{"type":5}`) + safeOutput("agent", "agent/log", `{}`) + safeOutput("agent", "agent/log", `{"type":""}`) +
+			safeOutput("safe_outputs", "usage/aw_session.jsonl", `{"type":"","status":null}`) + safeOutput("agent", "agent/log", `{"type":"x","status":"pending"}`) +
+			safeOutput("safe_outputs", "other.jsonl", `{"type":"push","status":"failure"}`) + safeOutput("agent", "agent/log", `{"type":"push"}`)},
 		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
@@ -181,7 +187,8 @@ func TestGraderReplayEvidence(t *testing.T) {
 			for _, attempt := range attempts {
 				component, full := replayQuery(t, attempt.ID+"-component", attempt.Component), replayQuery(t, attempt.ID+"-full", attempt.Full)
 				supported := slices.Contains([]string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
-					"objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep"}, attempt.ID)
+					"objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
+					"recurrence-rate", "artifact-production"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {
@@ -252,6 +259,10 @@ func TestGraderReplayEvidence(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func safeOutput(phase, path, data string) string {
+	return `{"type":"safe_output.result","provenance":{"component":"` + phase + `","phase":"` + phase + `","path":"` + path + `"},"data":` + data + "}\n"
 }
 
 func usageEvent(family, input, output, duration string) string {

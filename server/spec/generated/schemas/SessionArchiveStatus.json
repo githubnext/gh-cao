@@ -138,6 +138,12 @@
                     "minimum": -2147483648,
                     "maximum": 2147483647,
                     "description": "Independent complete-result budget; an explicit limit must not exceed it."
+                },
+                "chaining": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected."
                 }
             },
             "required": [

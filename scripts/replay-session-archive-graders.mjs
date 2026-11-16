@@ -56,8 +56,11 @@ function replaySessionArchiveGraders() {
     const require = createRequire(import.meta.url);
     const graders = require(join(upstream, "trace_graders.cjs"));
     const supported = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
-      "objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep"]);
-    const itemGraders = new Set(["objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep"]);
+      "objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
+      "recurrence-rate", "artifact-production"]);
+    const itemGraders = new Set(["objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
+      "recurrence-rate"]);
+    const usageGraders = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"]);
     // Item sources read the last agent-phase trajectory.ir, matching grader_session.cjs IR selection.
     function lastIR(evidence) {
       const irs = evidence.filter((event) => event.type === "trajectory.ir" && event.provenance?.phase === "agent");
@@ -65,7 +68,7 @@ function replaySessionArchiveGraders() {
     }
     function itemReason(id, evidence, omissions) {
       const ir = lastIR(evidence);
-      const key = { "grounding-accuracy": "actions", "state-revisit-probability-rep": "states" }[id] ?? "objectives";
+      const key = { "grounding-accuracy": "actions", "state-revisit-probability-rep": "states", "recurrence-rate": "states" }[id] ?? "objectives";
       if (omissions.includes(`data.${key}:excluded`) || omissions.includes("data:excluded")) return "excluded";
       if (key === "states" && omissions.includes("data.states:redacted")) return "redacted";
       const items = ir[key];
@@ -139,9 +142,14 @@ function replaySessionArchiveGraders() {
             case "context-growth":
               reason = expected.value === null ? "incomplete-unsafe-or-zero-usage" : "measured";
               break;
+            case "artifact-production": {
+              const omissions = runId === "123" ? scenario.omissions ?? [] : [];
+              reason = omissions.includes("data.status:excluded") ? "excluded" : omissions.includes("data.status:redacted") ? "redacted" : "measured";
+              break;
+            }
           }
           assert.equal(row.reason, reason, `${scenario.name}/${runId}/${query.id}: qualified lookup reason`);
-          if (!itemGraders.has(query.id)) {
+          if (usageGraders.has(query.id)) {
             const proxy = evidence.some((event) => event.provenance.phase === "agent" && event.type === "firewall.token_usage");
             assert.equal(row.family, proxy ? "firewall.token_usage" : "usage.report");
           }
@@ -183,7 +191,7 @@ function replaySessionArchiveGraders() {
       upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources, kustoReplay,
       verification: ["CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1",
         "node scripts/replay-session-archive-graders.mjs [private-report-directory]"],
-      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Eight full declarative metrics execute through real DuckDB, four of them over local-only trajectory.ir item sources; the other seven remain unsupported. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its explicitly separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are separately checked against pinned lookup state. No missing provenance is filled. Live Azure acceptance is not exercised.",
+      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Ten full declarative metrics execute through real DuckDB, five of them over local-only trajectory.ir item sources and two (recurrence-rate, artifact-production) through local-only two-stage query chaining; the other five remain unsupported. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its explicitly separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are separately checked against pinned lookup state. No missing provenance is filled. Live Azure acceptance is not exercised.",
       matrix, scenarios: replays,
     };
     writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
