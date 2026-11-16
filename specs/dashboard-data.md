@@ -2578,6 +2578,33 @@ OutputLifecycle. `outcomes` exposes delivery and adoption separately for every
 workflow; `work-items` treats `adoptionState=pending` as review work. Issue and
 Audit joins MAY add short-lived detail but MUST NOT become lifecycle authority.
 
+### 11.3.1 Campaign delivery and adoption evidence
+
+The `output-delivery-events` logical source SHALL project one row per delivered
+Output Lifecycle with `observed-at=delivered-at`. The
+`output-adoption-events` logical source SHALL project only
+`adoptionState=accepted` rows with an authoritative `adoptionAt`, using
+`observed-at=adoption-at`. These are clock-specific query adapters over the same
+canonical lifecycle row, not new entities or persisted event ledgers.
+
+The Campaigns evidence surface SHALL use campaign inventory as its left-hand
+population, so every retained campaign remains visible. It SHALL count distinct
+safe-output identities delivered in the selected `[start, end)` horizon and,
+separately, distinct accepted identities whose adoption clock is in that
+horizon. Pending, rejected or lifecycle, and unknown or not-applicable
+diagnostics describe the delivery-horizon population's current retained
+adoption state. They SHALL NOT be presented as an accepted-to-delivered
+conversion rate because delivery and adoption use different event clocks and
+may describe different cohorts.
+
+Lifecycle rows without authoritative campaign membership SHALL NOT be assigned
+to a synthetic campaign. Missing, unavailable, partial, stale, or retention-
+bounded lifecycle evidence SHALL propagate through query metadata; a displayed
+zero means no matching retained event under that metadata, not proof of no
+historical activity. This surface is delivery and adoption evidence only. It
+MUST NOT calculate Operational Value, a baseline, a before/after effect, causal
+attribution, or a frozen evaluator result.
+
 ---
 
 # 12. Run-Owned Records

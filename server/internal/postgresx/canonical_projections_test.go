@@ -45,6 +45,72 @@ func TestCanonicalProjectionsCompileWithoutReportSources(t *testing.T) {
 	}
 }
 
+func TestOutputLifecycleEventClocksExecuteNatively(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	content, err := os.ReadFile("../../../dashboard/site/test/fixtures/canonical-work-items.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixture map[string][]model.Row
+	if err := json.Unmarshal(content, &fixture); err != nil {
+		t.Fatal(err)
+	}
+	acceptedAt := "2026-09-17T13:00:00Z"
+	fixture["outputLifecycles"][1]["adoptionState"] = "accepted"
+	fixture["outputLifecycles"][1]["adoptionSignal"] = "completed"
+	fixture["outputLifecycles"][1]["adoptionAt"] = acceptedAt
+	fixture["outputLifecycles"][1]["adoptionObservedAt"] = acceptedAt
+	fixture["outputLifecycles"][1]["adoptionSource"] = "github-api"
+	fixture["outputLifecycles"][1]["observedAt"] = acceptedAt
+
+	writer, err := store.BeginIngestion(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Abort(t.Context())
+	for _, name := range []string{"repositories", "workflows", "runs", "outputLifecycles"} {
+		for _, row := range fixture[name] {
+			if err := writer.Append(t.Context(), "$"+name, row); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if _, err := writer.Publish(t.Context(), "output-lifecycle-event-clocks"); err != nil {
+		t.Fatal(err)
+	}
+
+	results, metrics, err := store.ExecuteSQLPlan(t.Context(), canonicalProjectionDefinitions(t), []string{
+		"output-delivery-events", "output-adoption-events",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(metrics.FallbackOperations) != 0 || !slices.Contains(metrics.PushedDown, "sql-plan") {
+		t.Fatalf("output lifecycle clocks must execute entirely in native SQL: %#v", metrics)
+	}
+	if len(results["output-delivery-events"].Rows) != 2 {
+		t.Fatalf("delivery events = %#v", results["output-delivery-events"].Rows)
+	}
+	if len(results["output-adoption-events"].Rows) != 1 {
+		t.Fatalf("adoption events = %#v", results["output-adoption-events"].Rows)
+	}
+	var delivery model.Row
+	for _, row := range results["output-delivery-events"].Rows {
+		if row["safe-output"] == "output:current" {
+			delivery = row
+			break
+		}
+	}
+	if delivery["safe-output"] != "output:current" ||
+		delivery["observed-at"] != fixture["outputLifecycles"][1]["deliveredAt"] {
+		t.Fatalf("delivery clock changed: %#v", delivery)
+	}
+	adoption := results["output-adoption-events"].Rows[0]
+	if adoption["safe-output"] != "output:current" || adoption["observed-at"] != acceptedAt {
+		t.Fatalf("adoption clock changed: %#v", adoption)
+	}
+}
+
 func TestCanonicalWorkItemContractExecutesNatively(t *testing.T) {
 	store, _ := nativeTestStore(t)
 	content, err := os.ReadFile("../../../dashboard/site/test/fixtures/canonical-work-items.json")

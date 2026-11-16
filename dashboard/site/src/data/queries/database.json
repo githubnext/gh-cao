@@ -1998,6 +1998,48 @@
     ]
   },
   {
+    "name": "output-delivery-events",
+    "stores": ["outputLifecycles", "runs", "workflows", "repositories", "campaigns"],
+    "from": "output-lifecycles",
+    "filter": {
+      "predicates": [
+        { "field": "delivery-state", "equals": "delivered" },
+        { "field": "delivered-at", "gte": "0001-01-01T00:00:00Z" }
+      ]
+    },
+    "select": [
+      { "field": "safe-output" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "adoption-state" },
+      { "field": "adoption-signal" },
+      { "field": "adoption-source" },
+      { "field": "delivered-at" },
+      { "field": "delivered-at", "as": "observed-at" }
+    ]
+  },
+  {
+    "name": "output-adoption-events",
+    "stores": ["outputLifecycles", "runs", "workflows", "repositories", "campaigns"],
+    "from": "output-lifecycles",
+    "filter": {
+      "predicates": [
+        { "field": "adoption-state", "equals": "accepted" },
+        { "field": "adoption-at", "gte": "0001-01-01T00:00:00Z" }
+      ]
+    },
+    "select": [
+      { "field": "safe-output" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "adoption-state" },
+      { "field": "adoption-signal" },
+      { "field": "adoption-source" },
+      { "field": "adoption-at" },
+      { "field": "adoption-at", "as": "observed-at" }
+    ]
+  },
+  {
     "name": "outcomes",
     "stores": ["outputLifecycles", "issues", "runs", "workflows", "repositories", "campaigns"],
     "from": "output-lifecycles",

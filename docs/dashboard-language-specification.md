@@ -422,6 +422,8 @@ and runtime sources (§5.4). Bind sources or declared queries with `data.source`
 | `firewall-policy-rules` | one effective firewall policy rule and domain pattern for one run | scope IDs, `run`, run-level agent, engine, model, and runtime fields, `observed-at`, `rule-id`, `rule-order`, `action`, `protocol`, `domain-pattern`, `description`, `hit-count`, `ssl-bump-enabled`, `dlp-enabled`, `host-access-enabled`, `policy-source`, `policy-manifest-identity`, `run-link`, `evidence-link` |
 | `model-usage-summary` | model usage summary | `model`, `resolved-model`, `engine`, `requested-model`, `runs`, `invocations`, `total-aic`, `estimated-usd`, `pricing` |
 | `engine-usage-summary` | agentic engine usage summary | `engine`, `runs`, `invocations`, `total-aic`, `estimated-usd`, `min-engine-version`, `max-engine-version`, `models` |
+| `output-delivery-events` | delivered lifecycle output | `safe-output`, optional campaign fields, current adoption fields, `delivered-at`, `observed-at` = `delivered-at` |
+| `output-adoption-events` | accepted lifecycle output | `safe-output`, optional campaign fields, adoption fields, `adoption-at`, `observed-at` = `adoption-at` |
 | `outcomes` | safe-output outcome observation | scope IDs, `campaign`, `runtime-repository`, `workflow-name`, `run`, `run-conclusion`, `safe-output`, `outcome-number`, `outcome-title`, `outcome-summary`, `outcome-body-html`, `outcome-category`, `outcome-status`, `outcome-state`, `evidence-strength`, `rollout-mode`, `engine`, `engine-version`, `requested-model`, `resolved-model`, `published-at`, `observed-at`, `issue-link`, `pull-request-link`, `run-link`, `external-link`, `organization-link`, `repository-link`, `workflow-link` |
 | `findings` | finding | scope IDs, `run`, `finding`, `finding-severity`, `finding-status`, `finding-summary`, `observed-at`, `engine`, `engine-version`, `requested-model`, `resolved-model`, `issue-link`, `pull-request-link`, `run-link`, `external-link`, `organization-link`, `repository-link`, `workflow-link` |
 | `operational-values` | Campaign-defined repository metric | repository and campaign scope IDs, `operational-value`, `operational-value-definition`, `operational-value-role`, `operational-value-name`, `operational-value-direction`, `maturity-status`, `observed-at`, `organization-link`, `repository-link`, `campaign-link`, optional `run-link` for run-attributed observations |
@@ -435,6 +437,10 @@ and runtime sources (§5.4). Bind sources or declared queries with `data.source`
 “Scope IDs” means the applicable `organization`, `repository`, and `workflow` fields. Fields that do not apply to an observation are absent rather than fabricated. Link-bearing source fields are relation-specific optional fields whose intrinsic type is one Section 9.1 link object. `organization-link`, `repository-link`, `workflow-link`, `issue-link`, `pull-request-link`, `run-link`, `evidence-link`, and `external-link` correspond to the `organization`, `repository`, `workflow`, `issue`, `pull-request`, `run`, `evidence`, and `external` link relations, respectively; a source row MUST NOT encode multiple link relations inside one field.
 
 For `outcomes`, `repository` identifies the target repository that owns the durable safe output, while `runtime-repository` identifies the repository where the attributed workflow ran.
+
+These event sources are clock-specific Output Lifecycle projections for
+ordinary horizon filtering. They are not persisted ledgers, and their counts
+do not imply conversion or Value.
 
 #### 5.1.1 Smell Classification
 
