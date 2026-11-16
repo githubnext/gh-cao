@@ -1713,7 +1713,11 @@ func (a *App) executeQuery(ctx context.Context, input queryRequest, allowCollect
 
 func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, allowCollectionHealth bool, reader dashboardstore.Reader) (queryResponse, int, error) {
 	active, err := reader.State(ctx)
-	if err != nil || !active.Ready {
+	if err != nil {
+		return queryResponse{}, http.StatusServiceUnavailable, errors.New("dashboard data is unavailable")
+	}
+	definitions, requested := a.queryPlan(input)
+	if !active.Ready && !marketplaceOnlyQuery(definitions, requested) {
 		return queryResponse{}, http.StatusServiceUnavailable, errors.New("dashboard data is unavailable")
 	}
 	evaluatedAt := evaluationTime(active)
@@ -1731,12 +1735,14 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 			Metrics: model.Metrics{PushedDown: []string{}, FallbackOperations: []string{}},
 		}, http.StatusOK, nil
 	}
-	definitions, requested := a.queryPlan(input)
 	ResolveQueryContext(definitions, evaluatedAt)
 	started := time.Now()
 	loader := &databaseLoader{
 		ctx: ctx, database: reader, operational: a.services.Cache, dataRevision: active.DataRevision,
 		app: a, allowCollectionHealth: allowCollectionHealth,
+	}
+	if !active.Ready {
+		loader.dataRevision = "marketplace-before-first-snapshot"
 	}
 	pages := map[string]dashboardstore.Page{}
 	requestedSet := make(map[string]bool, len(requested))
