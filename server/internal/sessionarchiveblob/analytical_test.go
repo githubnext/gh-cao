@@ -380,43 +380,6 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 	})
 }
 
-func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
-	entries, err := os.ReadDir("../sessionarchive/testdata/graders")
-	if err != nil || len(entries) != 10 {
-		t.Fatal("missing reviewed grader definitions")
-	}
-	for _, entry := range entries {
-		content, err := os.ReadFile("../sessionarchive/testdata/graders/" + entry.Name())
-		if err != nil {
-			t.Fatal(err)
-		}
-		var definition sessionarchive.Definition
-		if err := json.Unmarshal(content, &definition); err != nil {
-			t.Fatal(err)
-		}
-		plan, err := definition.Plan()
-		if err != nil {
-			t.Fatal(err)
-		}
-		kql, err := analyticalKQL(plan, "EVENTS\n")
-		if err != nil {
-			t.Fatalf("%s: %v", entry.Name(), err)
-		}
-		lets, query, _ := strings.Cut(kql, "\nsource\n")
-		_, source, _ := strings.Cut(lets, "let source=materialize(")
-		if strings.Contains(query, "PayloadJSON") || strings.Count(source, "PayloadJSON") != 0 ||
-			strings.Contains(kql, "dcount(") || strings.Count(kql, "join ") != strings.Count(kql, "join kind=") {
-			t.Fatalf("%s: payload escaped the item source or a join/count is implicit", entry.Name())
-		}
-		// KQL reserves bare identifiers that start with "__"; only bracket-quoted names may.
-		if regexp.MustCompile(`(^|[^"'\w])__\w`).MatchString(kql) {
-			t.Fatalf("%s: lowering uses a reserved bare KQL identifier", entry.Name())
-		}
-		if plan.Input != nil && strings.Count(query, "| summarize ") != plan.Stages()+3 {
-			t.Fatalf("%s: chained stages were not lowered in order", entry.Name())
-		}
-	}
-}
 
 // Local-only corpus cases must lower offline; their real-engine acceptance is
 // TestKustoAnalyticalCorpus, and hosted ADX keeps rejecting them until it passes.
@@ -460,5 +423,43 @@ func TestAnalyticalKQLLowersRowLevelCorpus(t *testing.T) {
 	}
 	if rowLevel != 4 {
 		t.Fatalf("expected four row-level corpus cases, got %d", rowLevel)
+	}
+}
+
+func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
+	entries, err := os.ReadDir("../sessionarchive/testdata/graders")
+	if err != nil || len(entries) != 10 {
+		t.Fatal("missing reviewed grader definitions")
+	}
+	for _, entry := range entries {
+		content, err := os.ReadFile("../sessionarchive/testdata/graders/" + entry.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		var definition sessionarchive.Definition
+		if err := json.Unmarshal(content, &definition); err != nil {
+			t.Fatal(err)
+		}
+		plan, err := definition.Plan()
+		if err != nil {
+			t.Fatal(err)
+		}
+		kql, err := analyticalKQL(plan, "EVENTS\n")
+		if err != nil {
+			t.Fatalf("%s: %v", entry.Name(), err)
+		}
+		lets, query, _ := strings.Cut(kql, "\nsource\n")
+		_, source, _ := strings.Cut(lets, "let source=materialize(")
+		if strings.Contains(query, "PayloadJSON") || strings.Count(source, "PayloadJSON") != 0 ||
+			strings.Contains(kql, "dcount(") || strings.Count(kql, "join ") != strings.Count(kql, "join kind=") {
+			t.Fatalf("%s: payload escaped the item source or a join/count is implicit", entry.Name())
+		}
+		// KQL reserves bare identifiers that start with "__"; only bracket-quoted names may.
+		if regexp.MustCompile(`(^|[^"'\w])__\w`).MatchString(kql) {
+			t.Fatalf("%s: lowering uses a reserved bare KQL identifier", entry.Name())
+		}
+		if plan.Input != nil && strings.Count(query, "| summarize ") != plan.Stages()+3 {
+			t.Fatalf("%s: chained stages were not lowered in order", entry.Name())
+		}
 	}
 }

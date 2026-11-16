@@ -174,8 +174,8 @@ to guard against cross-trace family/measurement leakage.
 With an explicitly approved real `CAO_KUSTO_EMULATOR_URL`, the same runner also
 executes `TestKustoUsageGraderReplay` against that engine. Without it, Kusto
 parity is unavailable. Never accept an emulator license or start an engine
-implicitly. The existing opt-in `scripts/test-kusto-emulator.sh` includes paired
-replay and retains its separate EULA approval gate.
+implicitly. `scripts/test-kusto-emulator.sh` includes paired replay and keeps
+its `ACCEPT_EULA=Y` gate.
 For separately approved live destination acceptance, set
 `CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR` to the retained replay directory containing
 `evidence.json`; the live gate executes all four current ADX-runnable usage definitions on real
@@ -419,9 +419,11 @@ Run the fixed 1,048,576-event test with
 `^TestDuckDBArchiveMillionEventBenchmark$`. Its sampled heap/temp figures are
 not RSS guarantees.
 
-Functional Kusto evidence is opt-in: review the emulator license, then explicitly
-set `ACCEPT_EULA=Y` for `scripts/test-kusto-emulator.sh`, or select the default-false
-acceptance input when manually dispatching Parquet and Session Archive CI. This runs the
+Locally, functional Kusto evidence is opt-in: review the emulator license, then
+explicitly set `ACCEPT_EULA=Y` for `scripts/test-kusto-emulator.sh` on an x86-64
+host with SSE4.2 and AVX2 (ARM hosts are unsupported). Parquet and Session Archive
+CI runs the same script on every trigger in its `session-archive-kusto` job, under
+the repository's reviewed license acceptance recorded in the workflow. This runs the
 production membership query template against the pinned official engine, not
 live Azure storage. The script does not benchmark the emulator.
 
