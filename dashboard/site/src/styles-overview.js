@@ -29,8 +29,8 @@ ${overviewGridStyles}
 .dashboard-overview-page .factory-floor::before { content: none; }
 .factory-floor-onboarding { min-height: 300px; background: var(--canvas-subtle); }
 .factory-floor-onboarding-pending { min-height: 300px; }
-.factory-onboarding { width: min(100%, 900px); position: relative; z-index: 1; margin: 0 auto; }
-.factory-onboarding-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
+.factory-onboarding { width: min(100%, 1100px); position: relative; z-index: 1; margin: 0 auto; }
+.factory-onboarding-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 0; padding: 0; list-style: none; }
 .factory-onboarding-step { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 14px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--canvas); }
 .factory-onboarding-step-icon { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--accent); border-radius: 50%; background: var(--accent-muted); color: var(--accent); font-size: .875rem; font-weight: 700; }
 .factory-onboarding-step-copy { min-width: 0; display: grid; gap: 8px; }
@@ -107,13 +107,13 @@ ${overviewGridStyles}
 @media (max-width: 900px) {
   .factory-intro { grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 32px; }
   .factory-rhythm { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .factory-onboarding-steps { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 700px) {
   .factory-intro { min-height: 0; gap: 24px; padding: 24px 20px; }
   .factory-intro h2 { font-size: 2rem; }
   .factory-floor { min-height: 0; padding: 28px 20px; }
   .factory-floor-onboarding { min-height: 0; }
-  .factory-onboarding-steps { grid-template-columns: minmax(0, 1fr); }
   .factory-onboarding-step { padding: 18px; }
   .factory-onboarding-action { min-height: 44px; justify-content: center; }
   .factory-stations { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 16px; }

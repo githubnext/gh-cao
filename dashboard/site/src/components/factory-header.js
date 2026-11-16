@@ -67,7 +67,7 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
       : initialStatus === 'failed'
       ? 'Factory status is not available yet.'
       : onboarding.show
-      ? 'Choose the repositories for this control plane, then add a workflow or campaign.'
+      ? 'Set up CAO, choose the repositories for this control plane, then add a workflow or campaign.'
       : typeof candidate === 'string' ? candidate : '';
     summary.hidden = initialStatus === 'inactive' && (pending || !text);
     if (!pending) debugFactoryHeader({ event: 'summary-settled', hasSummary: Boolean(text) });

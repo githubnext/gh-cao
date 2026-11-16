@@ -71,10 +71,21 @@ export function renderFactoryOnboarding() {
       'ol',
       { className: 'factory-onboarding-steps' },
       renderOnboardingStep({
+        number: '0',
+        title: 'Set up CAO',
+        description: 'Run gh cao setup in this checkout to create the control policy and configure access.',
+        action: h('div', { className: 'factory-onboarding-action-row' }, setup.button, setup.status)
+      }),
+      renderOnboardingStep({
         number: '1',
         title: 'Choose repositories',
-        description: 'Run gh cao setup in this checkout to choose repositories and create the control policy.',
-        action: h('div', { className: 'factory-onboarding-action-row' }, setup.button, setup.status)
+        description: 'Review or add the repositories this control plane should include.',
+        action: h(
+          'a',
+          { className: 'factory-onboarding-action', href: '#page-repositories' },
+          'Choose repositories',
+          renderIconSpan('factory-onboarding-action-icon', 'arrow-right', { ariaHidden: true })
+        )
       }),
       renderOnboardingStep({
         number: '2',
