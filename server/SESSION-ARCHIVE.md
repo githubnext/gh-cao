@@ -53,7 +53,9 @@ whole subtrees with generated families
 ([Section 2.2](../specs/session-archive.md#22-trajectory-ir-collection-approval-user-directed)).
 They stay off unless the reviewed policy names them; approving `toolCalls`
 retains its tool arguments. The `cao-approved-events-v3` transform records their
-exclusion and redaction, and rejects v2 projections that did not.
+exclusion and redaction. Archive contract version 3 drops v2 data: v2
+projections, local archives, Parquet files and hosted acceptance fail closed and
+require fresh provisioning.
 
 The supplied standard Alpine images do not imply DuckDB compatibility or
 provision a private archive volume. Use a reviewed persistent native host or

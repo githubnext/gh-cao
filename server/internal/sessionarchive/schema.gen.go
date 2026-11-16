@@ -2,7 +2,7 @@
 
 package sessionarchive
 
-const ContractVersion = 2
+const ContractVersion = 3
 
 type Event struct {
 	Namespace                  string   `json:"Namespace"`

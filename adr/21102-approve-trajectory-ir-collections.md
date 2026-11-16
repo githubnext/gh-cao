@@ -31,10 +31,12 @@ narrow field allowlist (counts, ids, `sourceToolCallId`,
    nothing outside these subtrees: models, cache counters, safe-output
    titles/URLs and tool arguments or outputs outside an approved collection
    remain unapproved.
-3. The preservation transform becomes `cao-approved-events-v3`. v2 projections
-   never recorded these families' exclusion, redaction or field states, so they
-   are rejected rather than read as if the collections were absent. The Parquet
-   column layout and `ContractVersion` 2 are unchanged.
+3. The preservation transform becomes `cao-approved-events-v3` and the archive
+   `ContractVersion` becomes 3. v2 data never recorded these families'
+   exclusion, redaction or field states, so support for it is removed rather
+   than read as if the collections were absent. Because the Parquet column
+   layout is unchanged, the contract version is also bound into hosted
+   acceptance so v2-accepted destinations cannot activate.
 4. Excluded, redacted, invalid or oversized collections keep dependent grader
    results unavailable. Nothing is derived or persisted at capture.
 
@@ -45,9 +47,9 @@ narrow field allowlist (counts, ids, `sourceToolCallId`,
   approval mechanism. The user did not choose it.
 - **Keep the collections excluded.** Leaves every E1-gated grader unavailable.
   The user did not choose it.
-- **Keep `cao-approved-events-v2`.** Would let v2 projections, which lack the
-  new omission records, be reused under the new semantics and report an
-  excluded collection as absent.
+- **Keep reading v2 data.** Would let v2 projections, archives and accepted
+  destinations, which lack the new omission records, be reused under the new
+  semantics and report an excluded collection as absent.
 
 ## Consequences
 

@@ -169,7 +169,7 @@ namespace Archive {
     RunAttempt: int64;
     TraceId: string;
     ProjectionId: string;
-    ContractVersion: 2;
+    ContractVersion: 3;
     /** Shared approval/preservation transformation, independently versioned. */
     EvidenceVersion: string;
     Sequence: int64;

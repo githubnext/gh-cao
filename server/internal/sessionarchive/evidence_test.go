@@ -212,9 +212,16 @@ func TestOriginalEvidenceExclusionAndVersionFences(t *testing.T) {
 		t.Fatal("typed column bypassed redaction")
 	}
 	e = approved.Events[0]
-	e.ContractVersion = 1
+	for _, version := range []int64{1, 2} {
+		e.ContractVersion = version
+		if !errors.Is(ValidateEvent(e), ErrIntegrity) {
+			t.Fatalf("archive contract version %d accepted", version)
+		}
+	}
+	e = approved.Events[0]
+	e.EvidenceVersion = "cao-approved-events-v2"
 	if !errors.Is(ValidateEvent(e), ErrIntegrity) {
-		t.Fatal("old schema accepted")
+		t.Fatal("v2 preservation transform accepted")
 	}
 	approved.Events[0].Success = new(true)
 	if !errors.Is(validateProjection(approved), ErrIntegrity) {
@@ -224,9 +231,11 @@ func TestOriginalEvidenceExclusionAndVersionFences(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	evidence.EvidenceVersion = ""
-	if _, err := FromEvidence(c.Namespace, evidence); !errors.Is(err, ErrIntegrity) {
-		t.Fatal("old preservation transformation accepted")
+	for _, version := range []string{"", "cao-approved-events-v2"} {
+		evidence.EvidenceVersion = version
+		if _, err := FromEvidence(c.Namespace, evidence); !errors.Is(err, ErrIntegrity) {
+			t.Fatalf("old preservation transformation %q accepted", version)
+		}
 	}
 	raw = []byte("{\"type\":\"tool.execution_complete\",\"provenance\":{\"attemptId\":{\"unapprovedNested\":\"content\"}},\"data\":{}}\n")
 	if _, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", "", 1, raw, time.Now()); err == nil {

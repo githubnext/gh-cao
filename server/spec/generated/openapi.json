@@ -6926,7 +6926,7 @@
           "ContractVersion": {
             "type": "number",
             "enum": [
-              2
+              3
             ]
           },
           "EvidenceVersion": {

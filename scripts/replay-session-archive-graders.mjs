@@ -146,7 +146,7 @@ function replaySessionArchiveGraders() {
       };
     }
     const replays = cases.map((scenario) => {
-      assert.equal(scenario.schemaVersion, 2);
+      assert.equal(scenario.schemaVersion, 3);
       assert.deepEqual(scenario.original, scenario.reconstructed, `${scenario.name}: original approved input preservation`);
       const original = grade(structuredClone(scenario.original));
       const reconstructed = grade(structuredClone(scenario.reconstructed));

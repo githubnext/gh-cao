@@ -76,11 +76,13 @@ MUST fail explicitly.
 
 ### 2.1 Fresh original-evidence contract
 
-Archive `ContractVersion` is **2**, independent of the native ADX trace tables'
-unchanged version 1. There is no backward-compatible reader, old-schema adapter
-or in-place migration. Provision a fresh archive directory and a fresh reviewed
-Blob prefix/external table. `EventSchema()` changes both `AcceptanceBinding()`
-and `NativeAcceptanceBinding()`; analytical activation also requires its newly
+Archive `ContractVersion` is **3**, independent of the native ADX trace tables'
+unchanged version 1. Version 2 and earlier archive data are unsupported: there is
+no backward-compatible reader, old-schema adapter or in-place migration, and
+local archive state, manifests, Parquet members, hosted external-table files and
+hosted acceptance bound to an earlier version all fail closed. Provision a fresh archive directory and a fresh reviewed
+Blob prefix/external table. The archive `ContractVersion` and `EventSchema()`
+both change `AcceptanceBinding()` and `NativeAcceptanceBinding()`; analytical activation also requires its newly
 bound acceptance. Old destination acceptance MUST NOT activate this layout.
 Rejection MUST NOT erase old objects, privacy registrations, pending withdrawals
 or source-epoch fences. Retiring previous data is a separate explicitly scoped
@@ -94,10 +96,12 @@ redacted original event. The shared preservation transform is
 projection identity additionally binds the Parquet contract version. Replay MUST
 NOT reuse a projection produced under previous preservation semantics. Version 3
 adds the trajectory-IR `toolCalls`, `observations`, `resources`,
-`provenanceEdges` and `reference` families (Section 2.2): v2 projections never
-recorded their exclusion, redaction or field states, so they are rejected rather
-than read as if those collections were simply absent. The Parquet column layout
-and `ContractVersion` are unchanged.
+`provenanceEdges` and `reference` families (Section 2.2). v2 data never recorded
+their exclusion, redaction or field states, so it is unsupported rather than read
+as if those collections were simply absent. The Parquet column layout is
+unchanged, so archive `ContractVersion` 3 and the hosted acceptance binding,
+which now includes that version, carry the break to every stored and accepted
+artifact.
 
 Every promoted field and declared family has generated-name entries in
 `PresentFields`, `NullFields` and `InvalidFields`. Invalid includes incompatible
