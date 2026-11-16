@@ -500,7 +500,8 @@ func TestNativeInventoryAtomicReadinessFencesControlTransfer(t *testing.T) {
 	for {
 		var waiting bool
 		if err := first.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM pg_stat_activity
-			WHERE application_name=$1 AND wait_event_type='Lock' AND query LIKE '%cao_acquisition_scopes%')`,
+			WHERE application_name=$1 AND pid<>pg_backend_pid() AND wait_event_type='Lock'
+			AND (query LIKE '%cao_acquisition_scopes%' OR query LIKE '%pg_advisory_xact_lock(hashtextextended%'))`,
 			config.RuntimeParams["application_name"]).Scan(&waiting); err != nil {
 			t.Fatal(err)
 		}
