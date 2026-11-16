@@ -467,7 +467,33 @@ to one statement: one DuckDB common table expression, or one materialized KQL
 maximum stage count as `analytical.chaining`; a backend without a lowering
 accepted against real Kusto MUST omit it and reject chained plans.
 
-The `state` predicate accepts only generated promoted scalar names and inspects
+Session queries may also be row-level. A definition may declare up to 32
+row-level `compute` values, evaluated after `filter` and before `window` and
+`aggregate` with the post-aggregate function vocabulary over input columns and
+earlier computations; `is-null` and `coalesce` over strings are rejected
+because empty and absent strings are indistinguishable. It may also declare up
+to eight `window` entries, each `previous` (the prior row's `field`, typed null
+or the empty string on a partition's first row) or `row-number` (1-based).
+Windows port Dashboard Language §5.5.4: `groupby` MUST include the complete
+trace binding, and `groupby` plus `order-by` MUST cover the input's row key
+(the trace binding plus `Sequence` over `archive-events` or `Ordinal` over an
+item source, or an earlier stage's key), so the order is total. Without `aggregate`, a definition
+returns one row per input row. A row-level earlier definition in `queries`
+MUST select its row key unrenamed and is then a valid chain input; an
+aggregate over it still binds the complete trace. Row-number differences over
+such a stage give gaps-and-islands without a new operator. `state` predicates
+also accept the structured `Error`, `Usage` and `Provenance` families, using
+the same metadata as scalar fields; family values remain unexposed. Status
+advertises these as `analytical.compute`, `analytical.windows` and
+`analytical.stateFamilies`. The DuckDB lowering adds one common table
+expression for computations and one for windows (`row_number` and `lag`); the
+KQL lowering sorts by partition and order keys, restarts on a partition change
+and uses `row_number` and `prev` over that serialized order. Every backend
+advertises them; a backend whose lowering has not passed the real Kusto
+acceptance job MUST omit them and reject such plans.
+
+The `state` predicate accepts only generated promoted scalar names, and the
+structured families advertised in `analytical.stateFamilies`, and inspects
 `PresentFields`, `NullFields`, `InvalidFields` and `OmissionReasons` using
 generated source paths. Supported states are present, absent, null, invalid,
 excluded, redacted and valid. Absent excludes known exclusions/redactions;

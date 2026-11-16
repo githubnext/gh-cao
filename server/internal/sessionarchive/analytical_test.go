@@ -26,10 +26,11 @@ func TestDuckDBAnalyticalCorpusIntegration(t *testing.T) {
 			EventIDs []string `json:"eventIds"`
 		}
 		Cases []struct {
-			Name    string
-			Clauses json.RawMessage
-			Rows    []map[string]any
-			Limited bool
+			Name       string
+			Clauses    json.RawMessage
+			Definition json.RawMessage
+			Rows       []map[string]any
+			Limited    bool
 		}
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(content)))
@@ -71,7 +72,14 @@ func TestDuckDBAnalyticalCorpusIntegration(t *testing.T) {
 	snapshot := pinTestArchive(t, a)
 	for _, test := range corpus.Cases {
 		t.Run(test.Name, func(t *testing.T) {
-			definition := analyticalDefinition(t, strings.TrimSuffix(strings.TrimPrefix(string(test.Clauses), "{"), "}"))
+			var definition Definition
+			if test.Definition != nil {
+				if err := json.Unmarshal(test.Definition, &definition); err != nil || definition.Validate() != nil {
+					t.Fatal("invalid shared corpus definition")
+				}
+			} else {
+				definition = analyticalDefinition(t, strings.TrimSuffix(strings.TrimPrefix(string(test.Clauses), "{"), "}"))
+			}
 			result, err := snapshot.Analytical(t.Context(), definition)
 			if err != nil || !reflect.DeepEqual(result.Rows, test.Rows) || result.Metadata.Limited != test.Limited ||
 				result.Metadata.TracesWithGaps != 2 || result.Metadata.UpstreamCoverage != "unknown" {
@@ -713,5 +721,92 @@ func TestDuckDBAnalyticalChainingIntegration(t *testing.T) {
 	}
 	if out.Metadata.QueryDigest == analyticalDefinition(t, `"select":[{"field":"Sequence"}]`).Metadata(false, 0, 0).QueryDigest {
 		t.Fatal("query digest ignored earlier stages")
+	}
+}
+
+const windowBy = `"groupby":[` + chainBinding + `]`
+
+func TestAnalyticalRowLevelPlans(t *testing.T) {
+	accepted := map[string]string{
+		"compute": `"compute":[{"as":"late","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"select":[{"field":"late"}]`,
+		"window":  `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"family":  `"filter":{"predicates":[{"field":"Usage","state":"present"}]},"select":[{"field":"Sequence"}]`,
+	}
+	for name, clauses := range accepted {
+		plan, err := analyticalDefinition(t, clauses).Plan()
+		if err != nil || plan.Require(AnalyticalCapabilities(4096)) != nil {
+			t.Fatalf("%s rejected: %v", name, err)
+		}
+		capabilities := AnalyticalCapabilities(4096)
+		capabilities.Compute, capabilities.Windows, capabilities.StateFamilies = false, nil, nil
+		if !errors.Is(plan.Require(capabilities), ErrQuery) {
+			t.Fatalf("a backend without the construct silently accepted %s", name)
+		}
+	}
+	rowStage := `{"name":"rows","subject":"S.","from":"archive-events","window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[`
+	for name, clauses := range map[string]string{
+		"window with aggregate":     `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"aggregate":{"values":[{"field":"n","as":"m","reducer":"max"}]}`,
+		"partial trace partition":   `"window":[{"as":"n","operation":"row-number","groupby":["RunId"],"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"order not covering key":    `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Type"}]}],"select":[{"field":"n"}]`,
+		"order repeats partition":   `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"RunId"},{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"previous without field":    `"window":[{"as":"n","operation":"previous",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"unknown window":            `"window":[{"field":"Sequence","as":"n","operation":"next",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"window output collision":   `"window":[{"as":"Type","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"Type"}]`,
+		"family comparison":         `"filter":{"predicates":[{"field":"Error","equals":"x"}]},"select":[{"field":"Sequence"}]`,
+		"family selected":           `"select":[{"field":"Usage"}]`,
+		"family named output":       `"compute":[{"as":"Error","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"select":[{"field":"Error"}]`,
+		"compute in main filter":    `"compute":[{"as":"late","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"filter":{"predicates":[{"field":"late","equals":true}]},"select":[{"field":"late"}]`,
+		"string null test":          `"compute":[{"as":"untyped","function":"is-null","args":[{"field":"Type"}]}],"select":[{"field":"untyped"}]`,
+		"string coalesce":           `"compute":[{"as":"kind","function":"coalesce","args":[{"field":"Type"},{"value":"x"}]}],"select":[{"field":"kind"}]`,
+		"row stage drops key":       `"queries":[` + rowStage + `{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
+		"row stage renames key":     `"queries":[` + rowStage + `{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence","as":"seq"},{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
+		"family over item source":   `"from-items":true`,
+		"family over chained stage": `"queries":[` + rowStage + `{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence"},{"field":"n"}]}],"from":"rows","filter":{"predicates":[{"field":"Error","state":"present"}]},"select":[{"field":"n"}]`,
+	} {
+		var definition Definition
+		content := `{"name":"t","subject":"S.","from":"archive-events",` + clauses + `}`
+		switch {
+		case name == "family over item source":
+			content = `{"name":"t","subject":"S.","from":"archive-states","filter":{"predicates":[{"field":"Error","state":"present"}]},"select":[{"field":"Kind"}]}`
+		case strings.HasPrefix(clauses, `"queries"`):
+			content = `{"name":"t","subject":"S.",` + clauses + `}`
+		}
+		if err := json.Unmarshal([]byte(content), &definition); err != nil {
+			t.Fatalf("%s did not decode: %v", name, err)
+		}
+		if _, err := definition.Plan(); !errors.Is(err, ErrQuery) {
+			t.Fatalf("%s was accepted", name)
+		}
+	}
+	plan, err := chainedDefinition(t, rowStage+`{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence"},{"field":"n"}]}`,
+		`"from":"rows","aggregate":{"by":[`+chainBinding+`],"values":[{"field":"n","as":"events","reducer":"max"}]}`).Plan()
+	if err != nil || plan.Stages() != 1 || len(plan.Input.Key) != 7 {
+		t.Fatalf("row-level stage did not keep its trace and sequence key: %v", err)
+	}
+}
+
+func TestDuckDBStructuredFamilyStates(t *testing.T) {
+	c := testConfig(t)
+	a := openTestArchive(t, c, nil)
+	raw := `{"type":"session.format","data":{"version":1}}` + "\n" +
+		`{"type":"tool.execution_complete","data":{"toolCallId":"a","success":false,"error":{"message":"denied"}}}` + "\n" +
+		`{"type":"tool.execution_complete","data":{"toolCallId":"b","success":true}}` + "\n" +
+		`{"type":"session.collection","data":{"complete":true}}` + "\n"
+	p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "1", "2026-10-25", 1, []byte(raw), time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Admit(t.Context(), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	result, err := pinTestArchive(t, a).Analytical(t.Context(), analyticalDefinition(t,
+		`"filter":{"predicates":[{"field":"Type","equals":"tool.execution_complete"}]},`+
+			`"aggregate":{"values":[{"field":"Sequence","as":"failed","reducer":"count","filter":{"predicates":[{"field":"Error","state":"present"}]}},`+
+			`{"field":"Sequence","as":"clean","reducer":"count","filter":{"predicates":[{"field":"Error","state":"absent"}]}}]}`))
+	if err != nil || len(result.Rows) != 1 || fmt.Sprint(result.Rows[0]["failed"], ",", result.Rows[0]["clean"]) != "1,1" {
+		t.Fatalf("structured Error family state changed: %#v %v", result, err)
 	}
 }

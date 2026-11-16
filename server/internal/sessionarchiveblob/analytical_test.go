@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/adxtrace"
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
 
@@ -226,10 +227,11 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 			EventIDs []string `json:"eventIds"`
 		}
 		Cases []struct {
-			Name    string
-			Clauses json.RawMessage
-			Rows    []map[string]any
-			Limited bool
+			Name       string
+			Clauses    json.RawMessage
+			Definition json.RawMessage
+			Rows       []map[string]any
+			Limited    bool
 		}
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(content)))
@@ -256,7 +258,14 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 	source = strings.Replace(source, `external_table("Events")`, kustoEventSource(events, manifest.Files[0]), 1)
 	for _, test := range corpus.Cases {
 		t.Run(test.Name, func(t *testing.T) {
-			definition := archiveDefinition(t, strings.TrimSuffix(strings.TrimPrefix(string(test.Clauses), "{"), "}"))
+			var definition sessionarchive.Definition
+			if test.Definition != nil {
+				if err := json.Unmarshal(test.Definition, &definition); err != nil || definition.Validate() != nil {
+					t.Fatal("invalid shared corpus definition")
+				}
+			} else {
+				definition = archiveDefinition(t, strings.TrimSuffix(strings.TrimPrefix(string(test.Clauses), "{"), "}"))
+			}
 			plan, err := definition.Plan()
 			if err != nil {
 				t.Fatal(err)
@@ -328,6 +337,47 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 			t.Fatal("real Kusto fabricated empty archive rows or coverage")
 		}
 	}
+	t.Run("structured-family-error-present", func(t *testing.T) {
+		c := adxtrace.Config{Enabled: true, DurableStorage: true, Directory: t.TempDir(), Repositories: []string{"octo/api"}, Mode: "full",
+			Policy: adxtrace.Policy{Version: "synthetic-approved-v1", ContentApproved: true, RightsApproved: true,
+				Events: map[string][]string{"session.format": {"version"}, "session.collection": {"complete"},
+					"tool.execution_complete": {"error", "success", "toolCallId"}}}}
+		artifact := `{"type":"session.format","data":{"version":1}}` + "\n" +
+			`{"type":"tool.execution_complete","data":{"toolCallId":"a","success":false,"error":{"message":"denied"}}}` + "\n" +
+			`{"type":"tool.execution_complete","data":{"toolCallId":"b","success":true}}` + "\n" +
+			`{"type":"session.collection","data":{"complete":true}}` + "\n"
+		p, err := sessionarchive.Project(c, "private", "octo/api", "1", "2026-10-25", 1, []byte(artifact), time.Now().UTC())
+		if err != nil {
+			t.Fatal(err)
+		}
+		manifest := fixture(t, 1, "family")
+		manifest.Members = []sessionarchive.Member{p.Member()}
+		manifest.Files[0].Members = manifest.Members
+		manifest.Files[0].Day = "2026-10-25"
+		prefix, source, _ := strings.Cut(membershipKQL("Events", manifest.Files, manifest.Members), ";\n")
+		source = strings.Replace(source, `external_table("Events")`, kustoEventSource(p.Events, manifest.Files[0]), 1)
+		definition := archiveDefinition(t, `"filter":{"predicates":[{"field":"Type","equals":"tool.execution_complete"}]},`+
+			`"aggregate":{"values":[{"field":"Sequence","as":"failed","reducer":"count","filter":{"predicates":[{"field":"Error","state":"present"}]}},`+
+			`{"field":"Sequence","as":"clean","reducer":"count","filter":{"predicates":[{"field":"Error","state":"absent"}]}}]}`)
+		plan, err := definition.Plan()
+		if err != nil || plan.Require(sessionarchive.AnalyticalCapabilities(4096)) != nil {
+			t.Fatal("structured family plan unavailable")
+		}
+		kql, err := analyticalKQL(plan, source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		content, err := engine.Execute(t.Context(), "/v1/rest/query", prefix+";\n"+kql)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var response struct{ Tables []queryTable }
+		var compact bytes.Buffer
+		if json.Unmarshal(content, &response) != nil || len(response.Tables) == 0 || len(response.Tables[0].Rows) != 1 ||
+			json.Compact(&compact, response.Tables[0].Rows[0][0]) != nil || compact.String() != `[{"failed":1,"clean":1}]` {
+			t.Fatalf("real Kusto differs from DuckDB on the Error family: %s", compact.String())
+		}
+	})
 }
 
 func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
@@ -365,5 +415,50 @@ func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 		if plan.Input != nil && strings.Count(query, "| summarize ") != plan.Stages()+3 {
 			t.Fatalf("%s: chained stages were not lowered in order", entry.Name())
 		}
+	}
+}
+
+// Local-only corpus cases must lower offline; their real-engine acceptance is
+// TestKustoAnalyticalCorpus, and hosted ADX keeps rejecting them until it passes.
+func TestAnalyticalKQLLowersRowLevelCorpus(t *testing.T) {
+	content, err := os.ReadFile("../sessionarchive/testdata/analytical.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var corpus struct {
+		Cases []struct {
+			Name       string
+			Definition json.RawMessage
+		}
+	}
+	if err := json.Unmarshal(content, &corpus); err != nil {
+		t.Fatal(err)
+	}
+	rowLevel := 0
+	for _, test := range corpus.Cases {
+		if test.Definition == nil {
+			continue
+		}
+		rowLevel++
+		var definition sessionarchive.Definition
+		if err := json.Unmarshal(test.Definition, &definition); err != nil {
+			t.Fatal(err)
+		}
+		plan, err := definition.Plan()
+		if err != nil || plan.Require(sessionarchive.AnalyticalCapabilities(4096)) != nil {
+			t.Fatalf("%s: %v", test.Name, err)
+		}
+		kql, err := analyticalKQL(plan, "datatable("+EventSchema()+")[]\n")
+		if err != nil {
+			t.Fatalf("%s: %v", test.Name, err)
+		}
+		if strings.Contains(test.Name, "window") || strings.Contains(test.Name, "islands") {
+			if !strings.Contains(kql, "row_number(1,archive_restart)") {
+				t.Fatalf("%s: window did not restart per partition", test.Name)
+			}
+		}
+	}
+	if rowLevel != 4 {
+		t.Fatalf("expected four row-level corpus cases, got %d", rowLevel)
 	}
 }

@@ -26,9 +26,14 @@ type Definition struct {
 	// Queries are earlier definitions in the same request. Each reads its
 	// immediate predecessor (the first reads an archive source) and the
 	// outer definition reads the last one, so a chain has no unused stages.
-	Queries       []Definition          `json:"queries,omitempty"`
-	From          string                `json:"from"`
-	Filter        *AnalyticalFilter     `json:"filter,omitempty"`
+	Queries []Definition      `json:"queries,omitempty"`
+	From    string            `json:"from"`
+	Filter  *AnalyticalFilter `json:"filter,omitempty"`
+	// Compute adds row-level values after filter and before window/aggregate,
+	// following Dashboard Language order; filter cannot read them.
+	Compute []ComputedValue `json:"compute,omitempty"`
+	// Window adds partitioned row-level values to non-aggregate queries only.
+	Window        []AnalyticalWindow    `json:"window,omitempty"`
 	Aggregate     *AnalyticalAggregate  `json:"aggregate,omitempty"`
 	PostAggregate []ComputedValue       `json:"post-aggregate,omitempty"`
 	Select        []query.SelectedField `json:"select,omitempty"`
@@ -47,6 +52,17 @@ type AnalyticalPredicate struct {
 	GTE    json.RawMessage `json:"gte,omitempty"`
 	LT     json.RawMessage `json:"lt,omitempty"`
 	State  string          `json:"state,omitempty"`
+}
+
+// AnalyticalWindow is the Dashboard Language previous/row-number window
+// (DLS §5.5.4). groupby and order-by must identify each row uniquely, so the
+// order is total and backend sort stability never decides a result.
+type AnalyticalWindow struct {
+	Field     string             `json:"field,omitempty"`
+	As        string             `json:"as"`
+	Operation string             `json:"operation"`
+	OrderBy   []query.OrderField `json:"order-by"`
+	GroupBy   []string           `json:"groupby"`
 }
 
 type AnalyticalAggregate struct {
@@ -235,6 +251,18 @@ type PlannedValue struct {
 	Order []Column
 }
 
+// PlannedWindow is one typed previous or row-number window. Field is empty
+// for row-number. previous over a string yields "" on a partition's first
+// row, because archive strings use "" rather than null for absence.
+type PlannedWindow struct {
+	Operation string
+	Field     Column
+	As        string
+	Type      string
+	Partition []Column
+	Order     []PlannedOrder
+}
+
 type PlannedSelection struct {
 	Field Column
 	As    string
@@ -250,18 +278,23 @@ type PlannedOrder struct {
 type Plan struct {
 	Source string
 	// Input is the earlier stage this plan reads, or nil for an archive source.
-	Input         *Plan
-	Columns       []Column
-	Inputs        []string
-	Predicates    []PlannedPredicate
-	By            []Column
-	Values        []PlannedValue
-	Computations  []PlannedComputation
-	Selections    []PlannedSelection
-	Orders        []PlannedOrder
-	Ties          []Column
-	Limit         int
-	ExplicitLimit bool
+	Input      *Plan
+	Columns    []Column
+	Inputs     []string
+	Predicates []PlannedPredicate
+	// Key identifies each output row: the aggregate groups, or for a row-level
+	// plan the source trace binding plus Sequence/Ordinal, or the input key.
+	Key             []Column
+	RowComputations []PlannedComputation
+	Windows         []PlannedWindow
+	By              []Column
+	Values          []PlannedValue
+	Computations    []PlannedComputation
+	Selections      []PlannedSelection
+	Orders          []PlannedOrder
+	Ties            []Column
+	Limit           int
+	ExplicitLimit   bool
 }
 
 type SourceCapability struct {
@@ -284,20 +317,51 @@ type Capabilities struct {
 	// Chaining is the maximum number of earlier definitions a query may read
 	// through queries. Zero means the backend rejects chained queries.
 	Chaining int `json:"chaining,omitempty"`
+	// Compute, Windows and StateFamilies advertise row-level compute,
+	// previous/row-number windows and structured-family state predicates.
+	// Backends without an accepted lowering omit them and reject such plans.
+	Compute       bool     `json:"compute,omitempty"`
+	Windows       []string `json:"windows,omitempty"`
+	StateFamilies []string `json:"stateFamilies,omitempty"`
 }
 
 // maxStages bounds the earlier definitions of one chained query.
 const maxStages = 2
 
-// AnalyticalCapabilities advertises the item sources and query chaining that
-// both the DuckDB and the hosted KQL lowerings implement. The KQL lowering is
-// accepted only through the real Kusto emulator replay.
+var windowOperations = []string{"previous", "row-number"}
+
+// stateFamily returns the generated path of an approved structured family.
+// Families have field states only; their values are never query inputs.
+func stateFamily(name string) string {
+	for _, family := range evidenceFields {
+		if family.Index < 0 && family.Name == name {
+			return family.Path
+		}
+	}
+	return ""
+}
+
+func stateFamilies() []string {
+	var names []string
+	for _, family := range evidenceFields {
+		if family.Index < 0 {
+			names = append(names, family.Name)
+		}
+	}
+	return names
+}
+
+// AnalyticalCapabilities advertises the item sources, query chaining,
+// row-level compute, windows and structured-family states that both the
+// DuckDB and the hosted KQL lowerings implement. The KQL lowering is accepted
+// only through the real Kusto emulator replay.
 func AnalyticalCapabilities(maxRows int) Capabilities {
 	c := Capabilities{LanguageVersion: "0.2.0", Source: eventSource,
 		Predicates: []string{"equals", "in", "gte", "lt", "state"},
 		Reducers:   []string{"count", "distinct-count", "sum", "max", "first"},
 		Functions:  scalarFunctions, FieldStates: fieldStates, MaxRows: maxRows, Chaining: maxStages}
 	c.Fields, _ = sourceColumns(eventSource)
+	c.Compute, c.Windows, c.StateFamilies = true, windowOperations, stateFamilies()
 	for _, item := range itemSources {
 		fields, _ := sourceColumns(item.Name)
 		c.Sources = append(c.Sources, SourceCapability{Name: item.Name, Fields: fields})
@@ -322,6 +386,11 @@ func (p *Plan) Require(c Capabilities) error {
 	}
 	p.Limit = min(p.Limit, c.MaxRows)
 	return nil
+}
+
+// Aggregate reports whether the plan reduces rows rather than keeping them.
+func (p *Plan) Aggregate() bool {
+	return len(p.Values) > 0
 }
 
 // Stages counts the earlier definitions this plan reads.
@@ -392,8 +461,19 @@ func (p *Plan) requireOperators(c Capabilities) error {
 				return ErrQuery
 			}
 		}
+		if predicate.Field.Type == "structured" && !slices.Contains(c.StateFamilies, predicate.Field.Name) {
+			return ErrQuery
+		}
 	}
-	for _, computed := range p.Computations {
+	if len(p.RowComputations) > 0 && !c.Compute {
+		return ErrQuery
+	}
+	for _, window := range p.Windows {
+		if !slices.Contains(c.Windows, window.Operation) {
+			return ErrQuery
+		}
+	}
+	for _, computed := range append(slices.Clone(p.RowComputations), p.Computations...) {
 		if !computed.Expression.require(c.Functions) {
 			return ErrQuery
 		}
@@ -418,15 +498,23 @@ func (d Definition) Plan() (Plan, error) {
 	var input *Plan
 	for i, stage := range d.Queries {
 		_, shadows := sourceColumns(stage.Name)
-		if names[stage.Name] || shadows || len(stage.Queries) != 0 || stage.Aggregate == nil ||
-			stage.Select != nil || stage.OrderBy != nil || stage.Limit != nil ||
-			(i > 0 && stage.From != d.Queries[i-1].Name) || !bindsTrace(stage.Aggregate.By) {
+		// A stage either aggregates by complete trace binding with its default
+		// output, or is row-level and selects its whole row key unrenamed.
+		rowLevel := stage.Aggregate == nil
+		if names[stage.Name] || shadows || len(stage.Queries) != 0 || stage.OrderBy != nil || stage.Limit != nil ||
+			(i > 0 && stage.From != d.Queries[i-1].Name) ||
+			rowLevel && stage.Select == nil || !rowLevel && (stage.Select != nil || !bindsTrace(stage.Aggregate.By)) {
 			return Plan{}, ErrQuery
 		}
 		names[stage.Name] = true
 		planned, err := stage.plan(input)
 		if err != nil {
 			return Plan{}, err
+		}
+		for _, key := range planned.Key {
+			if !slices.ContainsFunc(planned.Selections, func(s PlannedSelection) bool { return s.Field.Name == key.Name && s.As == key.Name }) {
+				return Plan{}, ErrQuery
+			}
 		}
 		input = &planned
 	}
@@ -475,14 +563,31 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 		needed[name] = true
 		return Column{Name: name, Type: fields[name]}, nil
 	}
+	// Structured families of the event source are state-only predicate
+	// targets; comparisons fail because they have no scalar type.
+	family := func(name string) bool {
+		return input == nil && d.From == eventSource && stateFamily(name) != ""
+	}
+	readPredicate := func(name string) (Column, error) {
+		if fields[name] == "" && family(name) {
+			return Column{Name: name, Type: "structured"}, nil
+		}
+		return read(name)
+	}
 	planFilter := func(filter *AnalyticalFilter) ([]PlannedPredicate, error) {
 		// Stage outputs have no field-state metadata, so state predicates are rejected there.
-		return planPredicates(filter, read, func(name string) string {
+		return planPredicates(filter, readPredicate, func(name string) string {
 			if input != nil {
 				return ""
 			}
+			if fields[name] == "" && family(name) {
+				return stateFamily(name)
+			}
 			return statePath(d.From, name)
 		}, needed)
+	}
+	output := func(name string) bool {
+		return outputName.MatchString(name) && !reserved[strings.ToLower(name)] && !family(name)
 	}
 	if d.Filter != nil {
 		var err error
@@ -491,9 +596,27 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 			return p, err
 		}
 	}
+	if len(d.Compute) > 32 {
+		return p, ErrQuery
+	}
+	rowNodes := 0
+	for _, computed := range d.Compute {
+		if !output(computed.As) {
+			return p, ErrQuery
+		}
+		expression, err := (Expression{Function: computed.Function, Args: computed.Args}).plan(fields, 0, &rowNodes)
+		if err != nil || !expression.rowLevel() {
+			return p, ErrQuery
+		}
+		expression.visitFields(func(name string) { needed[name] = true })
+		fields[computed.As] = expression.Type
+		reserved[strings.ToLower(computed.As)] = true
+		p.RowComputations = append(p.RowComputations, PlannedComputation{As: computed.As, Expression: expression})
+	}
 	available := map[string]string{}
 	var ties []string
-	if d.Aggregate == nil {
+	switch {
+	case d.Aggregate == nil:
 		if len(d.Select) == 0 {
 			return p, ErrQuery
 		}
@@ -501,15 +624,37 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 			available[name] = kind
 		}
 		ties = []string{"Repository", "RunId", "RunAttempt", "TraceId", "ProjectionId", "Sequence"}
+		key := append(slices.Clone(traceBinding), "Sequence")
 		if input != nil {
 			ties = nil
-			for _, key := range input.By {
-				ties = append(ties, key.Name)
+			for _, column := range input.Key {
+				ties = append(ties, column.Name)
 			}
-		} else if d.From != eventSource {
-			ties[len(ties)-1] = "Ordinal"
+			p.Key = input.Key
+		} else {
+			if d.From != eventSource {
+				ties[len(ties)-1], key[len(key)-1] = "Ordinal", "Ordinal"
+			}
+			for _, name := range key {
+				p.Key = append(p.Key, Column{Name: name, Type: fields[name]})
+			}
 		}
-	} else {
+		if len(d.Window) > 8 {
+			return p, ErrQuery
+		}
+		for _, window := range d.Window {
+			planned, err := window.plan(read, fields, p.Key)
+			if err != nil || !output(window.As) {
+				return p, ErrQuery
+			}
+			available[window.As] = planned.Type
+			reserved[strings.ToLower(window.As)] = true
+			p.Windows = append(p.Windows, planned)
+		}
+	case d.Window != nil:
+		// Aggregated windows read a row-level or aggregate earlier stage instead.
+		return p, ErrQuery
+	default:
 		a := d.Aggregate
 		if len(a.By) > 16 || len(a.Values) < 1 || len(a.Values) > 16 || input != nil && !bindsTrace(a.By) {
 			return p, ErrQuery
@@ -522,10 +667,10 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 			available[name] = fields[name]
 			p.By = append(p.By, field)
 		}
-		ties = a.By
+		ties, p.Key = a.By, p.By
 		for _, value := range a.Values {
 			field, err := read(value.Field)
-			if err != nil || !outputName.MatchString(value.As) || reserved[strings.ToLower(value.As)] {
+			if err != nil || !output(value.As) {
 				return p, ErrQuery
 			}
 			kind := field.Type
@@ -556,7 +701,7 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 					return p, ErrQuery
 				}
 				var remaining []string
-				for _, key := range input.By {
+				for _, key := range input.Key {
 					if !slices.Contains(a.By, key.Name) {
 						remaining = append(remaining, key.Name)
 					}
@@ -606,7 +751,7 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 	}
 	nodes := 0
 	for _, computed := range d.PostAggregate {
-		if !outputName.MatchString(computed.As) || reserved[strings.ToLower(computed.As)] {
+		if !output(computed.As) {
 			return p, ErrQuery
 		}
 		expression, err := (Expression{Function: computed.Function, Args: computed.Args}).plan(available, 0, &nodes)
@@ -689,6 +834,61 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 		predicates += len(value.Predicates)
 	}
 	if predicates > 64 {
+		return p, ErrQuery
+	}
+	return p, nil
+}
+
+// plan types one window. Partitions must keep complete trace binding, and
+// groupby plus order-by must cover the row key so the order is total.
+func (w AnalyticalWindow) plan(read func(string) (Column, error), fields map[string]string, key []Column) (PlannedWindow, error) {
+	p := PlannedWindow{Operation: w.Operation, As: w.As}
+	if len(w.GroupBy) < 1 || len(w.GroupBy) > 8 || len(w.OrderBy) < 1 || len(w.OrderBy) > 8 {
+		return p, ErrQuery
+	}
+	covered := map[string]bool{}
+	for _, name := range w.GroupBy {
+		column, err := read(name)
+		if err != nil || covered[name] {
+			return p, ErrQuery
+		}
+		covered[name] = true
+		p.Partition = append(p.Partition, column)
+	}
+	if !bindsTrace(w.GroupBy) {
+		return p, ErrQuery
+	}
+	for _, order := range w.OrderBy {
+		column, err := read(order.Field)
+		if err != nil || covered[order.Field] || order.Direction != "" && order.Direction != "asc" && order.Direction != "desc" {
+			return p, ErrQuery
+		}
+		covered[order.Field] = true
+		direction := order.Direction
+		if direction == "" {
+			direction = "asc"
+		}
+		p.Order = append(p.Order, PlannedOrder{Field: column, Direction: direction})
+	}
+	for _, column := range key {
+		if !covered[column.Name] {
+			return p, ErrQuery
+		}
+	}
+	switch w.Operation {
+	case "row-number":
+		// Dashboard Language accepts an unused field on row-number.
+		if w.Field != "" && fields[w.Field] == "" {
+			return p, ErrQuery
+		}
+		p.Type = "integer"
+	case "previous":
+		column, err := read(w.Field)
+		if err != nil {
+			return p, ErrQuery
+		}
+		p.Field, p.Type = column, column.Type
+	default:
 		return p, ErrQuery
 	}
 	return p, nil
