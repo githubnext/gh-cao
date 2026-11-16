@@ -1,0 +1,38 @@
+{
+  "name":"artifact-production",
+  "subject":"Recompute gh-aw safe-output artifact count.",
+  "queries":[{
+    "name":"output-types",
+    "subject":"Count safe-output receipts per data type.",
+    "from":"archive-events",
+    "aggregate":{
+      "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest","DataType"],
+      "values":[
+        {"field":"Sequence","as":"applied","reducer":"count","filter":{"predicates":[{"field":"Type","equals":"safe_output.result"},{"field":"Status","equals":"success"}]}},
+        {"field":"Sequence","as":"pending","reducer":"count","filter":{"predicates":[{"field":"Type","equals":"safe_output.result"},{"field":"Status","state":"absent"}]}},
+        {"field":"Sequence","as":"typed","reducer":"count","filter":{"predicates":[{"field":"Type","equals":"safe_output.result"},{"field":"Status","state":"absent"},{"field":"DataType","state":"valid"}]}},
+        {"field":"Sequence","as":"outcomes","reducer":"count","filter":{"predicates":[{"field":"Type","equals":"safe_output.result"},{"field":"Phase","equals":"safe_outputs"},{"field":"ProvenancePath","equals":"usage/aw_session.jsonl"},{"field":"Status","state":"present"},{"field":"DataType","state":"valid"}]}},
+        {"field":"Sequence","as":"excluded","reducer":"count","filter":{"predicates":[{"field":"Type","equals":"safe_output.result"},{"field":"Status","state":"excluded"}]}},
+        {"field":"Sequence","as":"redacted","reducer":"count","filter":{"predicates":[{"field":"Type","equals":"safe_output.result"},{"field":"Status","state":"redacted"}]}}
+      ]
+    },
+    "post-aggregate":[
+      {"as":"artifacts","function":"sum","args":[{"function":"sum","args":[{"field":"applied"},{"function":"difference","args":[{"field":"pending"},{"field":"typed"}]}]},{"function":"if","args":[{"function":"gt","args":[{"field":"outcomes"},{"value":0}]},{"value":0},{"field":"typed"}]}]}
+    ]
+  }],
+  "from":"output-types",
+  "aggregate":{
+    "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],
+    "values":[
+      {"field":"artifacts","as":"total","reducer":"sum","order-by":[{"field":"DataType"}]},
+      {"field":"excluded","as":"exclusions","reducer":"sum"},
+      {"field":"redacted","as":"redactions","reducer":"sum"}
+    ]
+  },
+  "post-aggregate":[
+    {"as":"reason","function":"if","args":[{"function":"gt","args":[{"field":"exclusions"},{"value":0}]},{"value":"excluded"},{"function":"if","args":[{"function":"gt","args":[{"field":"redactions"},{"value":0}]},{"value":"redacted"},{"value":"measured"}]}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"field":"total"},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"value":"measured"},{"value":"unavailable"}]}
+  ],
+  "select":[{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

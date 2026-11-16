@@ -47,8 +47,10 @@ model SessionArchiveDefinition {
   @minLength(1) @maxLength(512) subject: string;
   objective?: string;
   acceptance?: string;
-  /** archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources. */
-  from: "archive-events" | "archive-objectives" | "archive-actions" | "archive-states";
+  /** Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. The first reads an archive source, each later one reads its immediate predecessor by name, and this definition reads the last, so no stage is unused. Earlier definitions must aggregate with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, and must not declare queries, select, order-by or limit; their output is their groups, aggregates and computations. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length. */
+  @maxItems(2) queries?: SessionArchiveDefinition[];
+  /** One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there. */
+  @pattern("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$") @maxLength(128) from: string;
   filter?: { @minItems(1) @maxItems(64) predicates: SessionArchivePredicate[] };
   aggregate?: {
     @maxItems(16) by?: string[];
@@ -57,7 +59,7 @@ model SessionArchiveDefinition {
       as: string;
       reducer: "count" | "distinct-count" | "sum" | "max" | "first";
       filter?: { @minItems(1) @maxItems(64) predicates: SessionArchivePredicate[] };
-      /** first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic. */
+      /** first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic. Over an earlier definition, a real sum instead orders ascending by exactly the earlier aggregate.by fields absent from this aggregate.by, in their declared order. */
       @encodedName("application/json", "order-by") orderBy?: OrderField[];
     }[];
   };
@@ -157,6 +159,8 @@ model SessionArchiveCapabilities {
   fieldStates: string[];
   /** Independent complete-result budget; an explicit limit must not exceed it. */
   maxRows: int32;
+  /** Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected. */
+  chaining?: int32;
 }
 
 @jsonSchema

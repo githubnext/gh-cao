@@ -30,10 +30,11 @@ for original structured evidence. Physical empty strings are not proof of source
 absence, and nullable/invalid measurements are not zero. The
 [fresh evidence contract](../specs/session-archive.md#21-fresh-original-evidence-contract)
 defines the 15 conditional grader-evidence families. Four scalar usage formulas
-are reviewed declarative queries on DuckDB and ADX, and four trajectory formulas
+are reviewed declarative queries on DuckDB and ADX. Four trajectory formulas
 (objective coverage, premature termination, grounding accuracy, state revisit)
-are reviewed local DuckDB queries over item sources; the remaining seven are
-unsupported. The
+are reviewed local DuckDB queries over item sources. Recurrence rate and
+artifact production are reviewed local DuckDB two-stage chained queries. The
+remaining five are unsupported. The
 [grader query feasibility tracker](../specs/session-archive-grader-queries.md)
 classifies all 35 upstream built-ins and the extensions each one needs.
 It preserves every original observation rather than reconciling invocations,
@@ -154,12 +155,13 @@ Parquet reconstructions. The focused Go regression is
 `CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1`.
 
 Reports separate approved-input preservation, pinned-grader replay, and attempted
-full public JSON query support. The four definitions in
+full public JSON query support. The ten definitions in
 `internal/sessionarchive/testdata/graders/` execute in real DuckDB and compare
-step count, duration, rebuild factor, context growth and the four trajectory
-item-source metrics to the pinned upstream values and unavailable states. Reason codes are query qualifications; upstream
+step count, duration, rebuild factor, context growth, the four trajectory
+item-source metrics, and the chained recurrence-rate and artifact-production
+metrics to the pinned upstream values and unavailable states. Reason codes are query qualifications; upstream
 v2 provides status but no reason codes. Successful scalar component queries for
-the remaining seven are not complete metrics. Missing provenance, invalid measurements, missing/null inputs,
+the remaining five are not complete metrics. Missing provenance, invalid measurements, missing/null inputs,
 excluded fields and redacted descriptions are not normalized to make replay
 succeed. Reports are private ignored test artifacts, not persisted archive
 scores, dashboard sources, live collection or Kusto/Azure acceptance evidence.
@@ -176,7 +178,7 @@ implicitly. The existing opt-in `scripts/test-kusto-emulator.sh` includes paired
 replay and retains its separate EULA approval gate.
 For separately approved live destination acceptance, set
 `CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR` to the retained replay directory containing
-`evidence.json`; the live gate executes all four current definitions on real
+`evidence.json`; the live gate executes all four current ADX-runnable usage definitions on real
 Kusto before emitting the new analytical binding. This is not production
 ingestion, persisted grading or proof of complete acquired evidence.
 
@@ -319,8 +321,11 @@ for filtered aggregates, generated field-state predicates, numeric ordered
 phase. No reducer reads `PayloadJSON`; null first values are retained.
 Local DuckDB status also lists `analytical.sources`: `archive-objectives`,
 `archive-actions`, and `archive-states` flatten each trace's last agent-phase
-`trajectory.ir` collection at query time. ADX does not advertise them and rejects
-those plans.
+`trajectory.ir` collection at query time, and `analytical.chaining`: a
+definition may read up to two earlier definitions in `queries`, each keyed by
+complete trace and projection identity, lowered to one DuckDB statement with no
+persisted intermediate. ADX does not advertise item sources or chaining and
+rejects those plans until a KQL lowering is accepted against real Kusto.
 Results include
 typed columns, rows, and metadata separating intentional top-N selection from
 known evidence gaps and unknown upstream coverage, plus query digest and compiler

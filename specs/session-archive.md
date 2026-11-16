@@ -397,7 +397,7 @@ bounded `post-aggregate` scalar computation, deterministic ordering, and optiona
 top-N selection. Only `0.2.0` requests are accepted over HTTP or MCP;
 `0.1.0` and other versions MUST be rejected without compatibility fallback.
 `PayloadJSON`, arbitrary JSON paths, joins, scripts, and caller-selected storage
-are not supported. An explicit `query.limit` reports omitted matching rows with
+are not supported. Query chaining is local-only, as described below. An explicit `query.limit` reports omitted matching rows with
 `metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
 remains unknown, with repository admission gaps and retained traces with recorded
 omissions reported independently of selection. Both backends advertise
@@ -444,6 +444,26 @@ redacted collection is reported, not treated as empty. Item sources forbid
 `first` and real-valued `sum`, order ties by `Ordinal`, and never expose
 `PayloadJSON`. Status advertises them in `analytical.sources`; ADX and native
 backends omit them and MUST reject such plans until a reviewed lowering exists.
+
+Local DuckDB also accepts query chaining (Dashboard Language DLS-QUERY-017)
+for two-stage aggregation. A definition may list at most two earlier
+definitions in `queries`. They are evaluated in order: the first reads an
+archive source, each later one reads its immediate predecessor by name, and
+the outer definition reads the last, so no stage is unused or bypassed. Every
+earlier definition MUST aggregate with the complete `Namespace`, `Repository`,
+`RunId`, `RunAttempt`, `TraceId`, `ProjectionId` binding in `aggregate.by`, and
+MUST NOT declare `queries`, `select`, `order-by` or `limit`. Its output columns
+are its groups, aggregates and computations, typed as planned. Stage names are
+unique and never shadow a source, and aliases never collide case-insensitively
+with an input column. An aggregate over a stage also keeps complete trace
+binding. `state` predicates and `first` are unavailable over a stage because
+stage rows carry no field-state metadata or `Sequence`. A real-valued `sum`
+over a stage orders by exactly the input groups it collapses, ascending.
+Chaining is validated as one plan before any rows are read, and it is lowered
+to one SQL statement with one common table expression per stage; no
+intermediate result is persisted. Status advertises the maximum stage count as
+`analytical.chaining`. ADX and native backends omit it and MUST reject chained
+plans until a KQL lowering is accepted against real Kusto.
 
 The `state` predicate accepts only generated promoted scalar names and inspects
 `PresentFields`, `NullFields`, `InvalidFields` and `OmissionReasons` using
