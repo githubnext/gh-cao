@@ -3,7 +3,7 @@ title: Portfolio Intelligence Computation
 description: Correlate runtime-health evidence into deterministic, review-only Decisions with Campaign contracts and operator feedback.
 ---
 
-# Portfolio intelligence computation
+## Portfolio intelligence computation
 
 The `intelligence` computation answers:
 
