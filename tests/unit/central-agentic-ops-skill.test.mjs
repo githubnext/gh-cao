@@ -37,7 +37,14 @@ test("central-agentic-ops resolves guides outside a checkout for gh skill instal
   assert.match(frontmatter, /^compatibility: "[^"\n]+"$/m);
   assert.match(skill, /^\s*curl -fsSL "https:\/\/raw\.githubusercontent\.com\/githubnext\/gh-cao\/REF\/PATH"$/m);
   assert.match(skill, /metadata\.github-ref/);
-  assert.doesNotMatch(skill, /Former skill|setup-cao|debug-cao/);
+  assert.doesNotMatch(skill, /Former skill|\b(?:setup-cao|add-cao-campaign|create-cao-campaign|debug-cao|analyze-cao)\b|\bcao-cli\b(?!\.md)/);
+});
+
+test("former CAO skills are removed without legacy aliases", () => {
+  for (const former of ["setup-cao", "add-cao-campaign", "create-cao-campaign", "debug-cao", "analyze-cao", "cao-cli"]) {
+    assert.equal(existsSync(join(root, "skills", former)), false, former);
+    assert.equal(existsSync(join(root, ".github", "skills", former)), false, former);
+  }
 });
 
 test("task guides do not collide with control-repository steering", () => {
