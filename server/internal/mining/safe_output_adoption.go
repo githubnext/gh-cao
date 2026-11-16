@@ -40,7 +40,7 @@ type AdoptionEvaluation struct {
 
 func safeOutputAdoptionRules() map[string]SafeOutputAdoptionRule {
 	rules := map[string]SafeOutputAdoptionRule{}
-	add := func(effect AdoptionEffectClass, fallback, eligible bool, parent string, types ...string) {
+	add := func(effect AdoptionEffectClass, fallback, eligible bool, types ...string) {
 		defaultReversal := map[AdoptionEffectClass]string{
 			AdoptionProposal:    "RESOURCE_REJECTED_OR_REVERSED",
 			AdoptionPublication: "PUBLICATION_REMOVED_OR_HIDDEN",
@@ -50,7 +50,7 @@ func safeOutputAdoptionRules() map[string]SafeOutputAdoptionRule {
 		for _, outputType := range types {
 			rule := SafeOutputAdoptionRule{
 				SafeOutputType: outputType, EffectClass: effect,
-				ParentResource: parent, FallbackToDelivery: fallback,
+				FallbackToDelivery:  fallback,
 				AttributionEligible: eligible, SurvivalRequired: eligible,
 			}
 			if eligible {
@@ -60,15 +60,15 @@ func safeOutputAdoptionRules() map[string]SafeOutputAdoptionRule {
 		}
 	}
 
-	add(AdoptionProposal, false, true, "",
+	add(AdoptionProposal, false, true,
 		"create_discussion", "create_issue", "create_pull_request",
 		"create_security_advisory")
-	add(AdoptionPublication, true, true, "",
+	add(AdoptionPublication, true, true,
 		"add_comment", "add_security_advisory_comment", "create_check_run",
 		"create_project", "create_project_status_update",
 		"create_pull_request_review_comment", "reply_to_pull_request_review_comment",
 		"submit_pull_request_review", "update_release", "upload_artifact", "upload_asset")
-	add(AdoptionMutation, true, true, "",
+	add(AdoptionMutation, true, true,
 		"add_labels", "add_reviewer", "assign_milestone", "assign_to_user",
 		"autofix_code_scanning_alert", "close_discussion", "close_issue",
 		"close_pull_request", "dismiss_pull_request_review", "hide_comment",
@@ -78,12 +78,12 @@ func safeOutputAdoptionRules() map[string]SafeOutputAdoptionRule {
 		"resolve_pull_request_review_thread", "set_issue_field", "set_issue_type",
 		"unassign_from_user", "update_discussion", "update_issue", "update_project",
 		"update_pull_request")
-	add(AdoptionDelegation, true, true, "",
+	add(AdoptionDelegation, true, true,
 		"approve_workflow_run", "assign_to_agent", "call_workflow",
 		"create_agent_session", "dispatch_repository", "dispatch_workflow")
-	add(AdoptionProposal, false, true, "",
+	add(AdoptionProposal, false, true,
 		"create_code_scanning_alert")
-	add(AdoptionInfra, false, false, "",
+	add(AdoptionInfra, false, false,
 		"comment_memory", "ledger_append", "ledger_request_compaction", "noop",
 		"push_repo_memory", "report_incomplete", "report_missing_data",
 		"report_missing_tool", "upload_code_coverage")

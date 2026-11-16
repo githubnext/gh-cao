@@ -113,6 +113,7 @@ func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing
 	}
 	reopened := outcome
 	reopened.State, reopened.StateReason, reopened.UpdatedAt = "open", "reopened", now.Add(time.Minute)
+	reopened.CloseActor, reopened.DispositionAt = "", nil
 	if err := b.RecordOutcome(t.Context(), scope, reopened); err != nil {
 		t.Fatal(err)
 	}

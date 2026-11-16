@@ -42,11 +42,12 @@ func ParseWebhook(event string, payload []byte, observedAt time.Time) (*Outcome,
 	} else if outcome.State == "closed" && object.ClosedAt != nil {
 		outcome.DispositionAt = copiedTime(object.ClosedAt)
 	}
-	if outcome.Merged && object.MergedBy != nil {
+	switch {
+	case outcome.Merged && object.MergedBy != nil:
 		outcome.CloseActor = object.MergedBy.Type
-	} else if object.ClosedBy != nil {
+	case object.ClosedBy != nil:
 		outcome.CloseActor = object.ClosedBy.Type
-	} else if envelope.Action == "closed" {
+	case envelope.Action == "closed":
 		outcome.CloseActor = envelope.Sender.Type
 	}
 	if envelope.Action == "closed" && outcome.State != "closed" ||
