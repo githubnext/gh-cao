@@ -20,7 +20,7 @@ const debug = createDebug('data:indexeddb');
 
 export { canonicalDatabaseName, DATABASE_NAME, deleteCanonicalDatabase } from './canonical-database.js';
 
-export const DATABASE_VERSION = 49;
+export const DATABASE_VERSION = 50;
 const WORKFLOW_SUBJECT_STATE_ID = 'workflow-subject-state';
 
 /** @param {string} storeName @param {Record<string, unknown>} record */
@@ -53,6 +53,7 @@ export const ENTITY_STORES = /** @type {const} */ ([
   'friction',
   'audits',
   'issues',
+  'outputLifecycles',
   'operationalValues',
   'operationalValueEvidence',
   'workflowValueCollections',
@@ -133,6 +134,15 @@ export const CANONICAL_DATABASE_SCHEMA = /** @type {Record<
     indexes: {
       byRun: 'runId',
       byQuerySummary: '_queryKeys.byQuerySummary'
+    }
+  },
+  outputLifecycles: {
+    keyPath: 'id',
+    indexes: {
+      byRepository: 'repositoryId',
+      byWorkflow: 'workflowId',
+      byRun: 'runId',
+      byAdoptionState: 'adoptionState'
     }
   },
   operationalValues: {
@@ -223,6 +233,7 @@ const QUERYABLE_STRING_KEY_PATHS = new Set([
   'campaignId',
   'workflowId',
   'runId',
+  'adoptionState',
   'valueId',
   'conclusion',
   'event'

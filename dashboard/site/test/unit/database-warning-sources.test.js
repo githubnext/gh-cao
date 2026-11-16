@@ -68,6 +68,29 @@ function batch() {
       observedAt,
       sequence: 1
     }],
+    outputLifecycles: [{
+      id: 'output:1',
+      repositoryId: 'repository:owner%2Frepo',
+      workflowId: 'workflow:owner%2Frepo%3A.github%2Fworkflows%2Fworker.md',
+      runId: 'github:run:42:attempt:1',
+      safeOutputType: 'create_issue',
+      targetRepository: 'owner/repo',
+      targetUrl: 'https://github.com/owner/repo/issues/7',
+      title: 'Created issue',
+      deliveryState: 'delivered',
+      deliverySignal: 'safe_output.result',
+      deliveredAt: observedAt,
+      deliveryObservedAt: observedAt,
+      deliverySource: 'safe-output',
+      deliveryEvidenceId: 'event:safe-output',
+      adoptionState: 'pending',
+      adoptionSignal: 'human_decision_pending',
+      adoptionObservedAt: observedAt,
+      adoptionSource: 'adoption-registry',
+      ruleVersion: 'gh-aw-v1.2.3-adoption-v1',
+      survivalState: 'unknown',
+      observedAt
+    }],
     operationalValues: [],
     marketplacePackages: [],
     audits: [{
@@ -158,7 +181,7 @@ describe('database warning source queries', () => {
       expect.objectContaining({ run: '42', 'safe-output-count': 1, 'safe-output-kind': 'create-issue' })
     ]);
     expect(sources['work-items'].rows).toEqual([
-      expect.objectContaining({ 'work-item-id': 'owner/repo:.github/workflows/worker.md', 'lifecycle-state': 'completed' })
+      expect.objectContaining({ 'work-item-id': 'owner/repo:.github/workflows/worker.md', 'lifecycle-state': 'review' })
     ]);
     for (const name of ['security-findings', 'admissions']) {
       expect(sources[name].rows).toEqual([]);

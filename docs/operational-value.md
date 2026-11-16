@@ -81,12 +81,6 @@ Use the **same exact repository and workflow** when comparing deployments.
 First confirm that the frozen definition and original packet were validated;
 an evaluation artifact by itself is not a published dashboard result.
 
-- **Pages:** Confirm that the default-branch Activity run accepted the packet
-  and that the subsequent CAO Dashboard build deployed its snapshot. If another
-  workflow owns Pages (as with Documentation Pages), confirm that it mounted
-  that dashboard artifact too. Open **Value** and the workflow report on the
-  deployed site, not a local preview. A completed collector run or dashboard
-  build without a successful deployment does not establish Pages freshness.
 - **Hosted PostgreSQL:** Publish through the authenticated Value API above and
   confirm that the receipt advanced the canonical revision (`updated: true`)
   or was an exact idempotent retry (`updated: false`). Open the same workflow's
@@ -191,6 +185,30 @@ capture. Ordinary Activity projection and bounded local Value remain
 independent. The default Actions profile has no inbound webhook receiver and
 continues its existing scheduled collection.
 
+Value uses a versioned safe-output adoption registry. Delivery is a successfully
+created or applied safe output. Adoption uses an authoritative human decision
+when GitHub exposes one—such as an issue completed by a human, a merged pull
+request, an answered discussion, or a published advisory. Where no human
+decision channel exists, successful delivery is the explicit fallback. Unknown
+or custom types remain ineligible until reviewed.
+
+The Campaigns dashboard uses these universal lifecycle facts as an evidence
+surface before Value evaluation. It counts delivery events by `delivered-at`
+and accepted events by `adoption-at` inside the selected horizon, keeps every
+retained campaign visible, and shows pending, rejected/lifecycle, and
+unknown/not-applicable delivery-horizon evidence separately. Those counts use
+different clocks and potentially different cohorts, so they are not a
+conversion rate, measured impact, or Operational Value. Retention and source
+coverage metadata remain part of the interpretation.
+
+Accepted outputs are measured only after a survival window. The collector
+rechecks that the accepted effect was not reverted, removed, reopened,
+unpublished, unassigned, hidden, expired before the cutoff, or invalidated by a
+failed downstream run or session. The before/after diagnostic is anchored to
+the authoritative acceptance time, not webhook receipt time. A surviving zero
+or negative result remains valid evidence; a reversed or unobservable effect
+cannot support positive attributed Value.
+
 The hosted Go worker keeps the installation token out of policy, packets and
 private proof. Its repository-confined API bridge admits REST/core, search and GraphQL
 requests against the same shared installation quota used by Activity; GraphQL
@@ -269,11 +287,10 @@ deployed together. Its reviewed `api-requests: 700` ceiling allows Activity to
 refresh it automatically only when that full grant fits above ordinary
 collection's protected reserve.
 
-Collected packets remain in bounded operational artifacts and canonical
-operational stores. Verify the packet in the successful Activity snapshot or
-authorized hosted query result; acquisition or merge alone does not prove
-canonical publication. Download the selected Activity run's `cao-activity-index`
-artifact as described in [Agent analysis](agent-analysis.md).
+Collected packets remain in canonical operational stores. Verify the packet in
+an authorized hosted or local query result; acquisition or merge alone does not
+prove canonical publication. See [Agent analysis](agent-analysis.md) for local
+evidence collection.
 Documentation Pages independently builds a synthetic enterprise demo, not a
 view of this repository's measurements. It consumes no operational artifact,
 and the former `campaigns.dashboard.deploy` setting is removed. Direct hosted

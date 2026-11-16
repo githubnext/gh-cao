@@ -118,7 +118,7 @@ func setupPublishOutput(publication map[string]any, styled bool) string {
 		link = "\x1b[1;36m%s:\x1b[0m \x1b[4;34m%s\x1b[0m\n"
 	}
 	message += fmt.Sprintf(link, "Actions", publication["actionsURL"])
-	message += "Use Actions operational artifacts with the local or cloud dashboard.\n"
+	message += "View collected evidence with gh cao dashboard or the cloud dashboard.\n"
 	return message
 }
 

@@ -34,7 +34,9 @@ func TestReadOutcomeMakesOneQuotaReportedObjectRead(t *testing.T) {
 				w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
 				w.Header().Set("X-RateLimit-Resource", "core")
 				_, _ = fmt.Fprintf(w, `{"number":12,"html_url":%q,"state":"closed","state_reason":"completed",
-					"merged":%t,"updated_at":"2026-10-20T00:00:00Z","closed_by":{"type":"User"}}`, raw, pullRequest)
+					"merged":%t,"updated_at":"2026-10-20T00:00:00Z","closed_at":"2026-10-20T00:00:00Z",
+					"merged_at":%s,"closed_by":{"type":"User"},"merged_by":{"type":"User"}}`,
+					raw, pullRequest, map[bool]string{false: "null", true: `"2026-10-20T00:00:00Z"`}[pullRequest])
 			}))
 			defer upstream.Close()
 			installation := github.NewClient(upstream.Client())

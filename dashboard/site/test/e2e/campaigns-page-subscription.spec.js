@@ -93,7 +93,23 @@ test('Campaigns uses the shared page binding and refreshes its charts, table, an
         ...(updated ? [{ ...identity, run: '2', 'run-attempt': 1, 'started-at': now, 'run-conclusion': 'success',
           event: 'workflow_dispatch', 'target-repository': 'octo/target', 'aic-total': 3 }] : [])
       ] },
-      audits: { metadata, rows: [] }, tools: { metadata, rows: [] },
+      audits: { metadata, rows: [
+        {
+          ...identity, run: '1', 'run-attempt': 1, event: 'safe-output:add-comment',
+          'event-source': 'safe-output', 'event-type': 'safe_output.result', 'event-status': 'success',
+          'event-summary': 'Posted a comment', 'event-timestamp': now, 'observed-at': now,
+          'safe-output-type': 'add_comment', 'correlation-id': 'safe-output:add-comment',
+          'source-sequence': 0
+        },
+        {
+          ...identity, run: '1', 'run-attempt': 1, event: 'safe-output:create-issue',
+          'event-source': 'safe-output', 'event-type': 'safe_output.result', 'event-status': 'success',
+          'event-summary': 'Created an issue', 'event-timestamp': now, 'observed-at': now,
+          'safe-output-type': 'create_issue',
+          'correlation-id': 'https://github.com/octo/target/issues/1',
+          'source-sequence': 1
+        }
+      ] }, tools: { metadata, rows: [] },
       domains: { metadata, rows: [] }, issues: { metadata, rows: [] }
     }) });
   });
@@ -118,15 +134,25 @@ test('Campaigns uses the shared page binding and refreshes its charts, table, an
     document.querySelector('#root')?.replaceChildren(renderDashboard({ document: documentModel, sources, loadPageSources: loader }));
   }, model);
   const root = page.locator('[data-page-id="campaigns"]');
+  await expect(root.locator('[data-view-id="campaigns-delivery-evidence"]')).toContainText('alpha');
+  await expect(root.locator('[data-view-id="campaigns-adoption-evidence"]')).toContainText('alpha');
   await expect(root.locator('[data-view-id="campaigns-dispatches"]')).toContainText('alpha');
   await expect(root.locator('[data-view-id="campaigns-repository-coverage"]')).toContainText('alpha');
   await expect(root.locator('[data-view-state="unavailable"]')).toHaveCount(0);
   expect(await page.evaluate(() => Reflect.get(window, '__campaignPageBindings'))).toBe(1);
   await root.locator('[data-view-mode-value="table"]').click();
   const row = root.locator('[data-view-id="campaigns-inventory"] tbody > tr').filter({ hasText: 'alpha' });
-  await expect(row.getByRole('cell').nth(4)).toHaveText('1');
-  await expect(row.getByRole('cell').nth(5)).toHaveText('1');
-  await expect(row.getByRole('cell').nth(6)).toHaveText('$0.02');
+  await expect(row.locator('[data-field="runs"]')).toHaveText('1');
+  await expect(row.locator('[data-field="dispatches"]')).toHaveText('1');
+  await expect(row.locator('[data-field="delivered"]')).toHaveText('2');
+  await expect(row.locator('[data-field="accepted"]')).toHaveText('1');
+  await expect(row.locator('[data-field="pending"]')).toHaveText('1');
+  await expect(row.locator('[data-field="first-blocker"]')).toContainText('Delivery and adoption observed');
+  await expect(row.locator('[data-field="aic"]')).toHaveText('$0.02');
+  const empty = root.locator('[data-view-id="campaigns-inventory"] tbody > tr').filter({ hasText: 'beta' });
+  await expect(empty.locator('[data-field="delivered"]')).toHaveText('0');
+  await expect(empty.locator('[data-field="accepted"]')).toHaveText('0');
+  await expect(empty.locator('[data-field="first-blocker"]')).toContainText('No delivered output observed');
   await expect(row.locator('a').first()).toHaveAttribute('href', '#page-campaign-insights?campaign=alpha');
   await expect(root.locator('[data-view-state="unavailable"]')).toHaveCount(0);
   updated = true;
@@ -136,12 +162,16 @@ test('Campaigns uses the shared page binding and refreshes its charts, table, an
       pages: documentModel.dashboard.pages, queries: documentModel.dashboard.queries, views: documentModel.dashboard.views
     });
   }, model);
-  await expect(row.getByRole('cell').nth(4)).toHaveText('2');
-  await expect(row.getByRole('cell').nth(5)).toHaveText('2');
-  await expect(row.getByRole('cell').nth(6)).toHaveText('$0.06');
+  await expect(row.locator('[data-field="runs"]')).toHaveText('2');
+  await expect(row.locator('[data-field="dispatches"]')).toHaveText('2');
+  await expect(row.locator('[data-field="delivered"]')).toHaveText('2');
+  await expect(row.locator('[data-field="accepted"]')).toHaveText('1');
+  await expect(row.locator('[data-field="aic"]')).toHaveText('$0.06');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(row.locator('a').first()).toBeVisible();
   await page.getByRole('button', { name: 'Switch to Chart view', exact: true }).click();
+  await expect(root.locator('[data-view-id="campaigns-delivery-evidence"]')).toContainText('alpha');
+  await expect(root.locator('[data-view-id="campaigns-adoption-evidence"]')).toContainText('alpha');
   await expect(root.locator('[data-view-id="campaigns-dispatches"]')).toContainText('alpha');
   await expect(root.locator('[data-view-state="unavailable"]')).toHaveCount(0);
   expect(await page.evaluate(() => Reflect.get(window, '__campaignPageBindings'))).toBe(3);

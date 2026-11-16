@@ -368,8 +368,8 @@ legacy import, conversion, or fallback. Set CAO_POSTGRES_URL explicitly and
 provision canonical and operational namespaces as described in
 [POSTGRES.md](POSTGRES.md). Runtime credentials never bootstrap storage.
 
-Acquire operational evidence explicitly with gh run download, then ingest its
-verified canonical JSONL shards with cao-dashboard ingest --source DIRECTORY.
+Collect real evidence with gh cao dashboard, or download an explicit
+payload-hashes.json snapshot and ingest its verified canonical JSONL shards with cao-dashboard ingest --source DIRECTORY.
 Start the local server with npm run dashboard:local. Paths passed through
 Go's -C server option resolve from server/.
 
@@ -381,8 +381,8 @@ disabled. The local profile requires loopback listeners and bearer authenticatio
 Database credentials remain in the Go process.
 
 Copilot canvas support and the --canvas-config adapter are removed.
-Use gh cao dashboard in an interactive terminal and open its private browser URL.
-The native CLI retains acquisition and terminal-approved maintenance; the Go
+Use gh cao dashboard and open its private browser URL.
+The native CLI retains acquisition and dashboard-confirmed queued maintenance; the Go
 server retains durable queue ownership. Missing evidence remains partial or unavailable.
 
 ## Single-process memory operational storage

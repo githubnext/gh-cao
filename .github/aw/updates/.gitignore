@@ -1,0 +1,5 @@
+# Ignore checked-out repositories used by 'gh aw update --repo'
+*
+
+# Keep this file in version control
+!.gitignore

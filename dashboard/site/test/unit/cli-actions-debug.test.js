@@ -184,7 +184,7 @@ describe('cli-actions debug logging', () => {
     document.body.append(root);
     /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-trigger')).click();
     const input = /** @type {HTMLInputElement} */ (root.querySelector('input'));
-    input.value = SECRET_SELECTION;
+    input.value = 'octo/repo';
     input.dispatchEvent(new Event('input'));
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, json: async () => ({ options: [{ value: SECRET_SELECTION, label: SECRET_SELECTION, description: '' }] })

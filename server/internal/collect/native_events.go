@@ -39,7 +39,7 @@ func (a Admitter) admitNativeEvent(ctx context.Context, intent Intent, delivery 
 		}()
 	}
 	admission, err := a.enqueueNativeIntent(ctx, intent, delivery, ttl)
-	if err != nil || delivery == "" || admission.Enqueued || admission.Duplicate {
+	if err != nil || delivery == "" || admission.Kind != IntentIgnore {
 		return admission, err
 	}
 	// Ignored events have no task on which to atomically commit the delivery.
@@ -54,10 +54,8 @@ func (a Admitter) enqueueNativeIntent(ctx context.Context, intent Intent, delive
 	}
 	task := Task{Repository: intent.Repository, InstallationID: intent.InstallationID, Reason: intent.Reason,
 		RepositoryID: intent.RepositoryID, Lifecycle: intent.Lifecycle, ValueRefresh: intent.ValueRefresh,
-		InventoryRefresh: intent.Kind == IntentWorkflowRefresh}
-	if a.Mining {
-		task.Outcome = intent.Outcome
-	}
+		InventoryRefresh: intent.Kind == IntentWorkflowRefresh,
+		LifecycleRefresh: intent.Kind == IntentIssueStatus || intent.Kind == IntentOutcome}
 	if isScopeIntent(intent.Kind) {
 		if intent.InstallationID <= 0 {
 			return Admission{}, collectnative.ErrIdentity

@@ -171,6 +171,9 @@ func (s *Store) BeginIngestion(ctx context.Context) (*Writer, error) {
 	}
 	tx := writer.tx
 	fail := func(err error) (*Writer, error) { writer.Abort(ctx); return nil, err }
+	if err := writer.preserveOutputLifecycles(ctx); err != nil {
+		return fail(err)
+	}
 	if err := writer.preserveValuePublications(ctx); err != nil {
 		return fail(err)
 	}
@@ -586,6 +589,9 @@ func (w *Writer) PublishVerifiedSnapshot(ctx context.Context, dataRevision, snap
 	if err := w.restoreValuePublications(ctx); err != nil {
 		return State{}, err
 	}
+	if err := w.restoreOutputLifecycles(ctx); err != nil {
+		return State{}, err
+	}
 	// Autovacuum cannot analyze uncommitted replacement rows or partitioned parents.
 	// Refresh estimates before reconciliation and integrity joins choose cold-start plans.
 	if _, err := w.tx.Exec(ctx, "SELECT cao_analyze_native()"); err != nil {
@@ -614,6 +620,8 @@ func (w *Writer) PublishVerifiedSnapshot(ctx context.Context, dataRevision, snap
 		`SELECT 1 FROM operational_value_evidence e JOIN workflows p ON p.namespace=e.namespace AND p.id=e.workflow_id
 			WHERE e.namespace=$1 AND e.repository_id<>p.repository_id LIMIT 1`,
 		`SELECT 1 FROM workflow_value_collections e JOIN workflows p ON p.namespace=e.namespace AND p.id=e.workflow_id
+			WHERE e.namespace=$1 AND e.repository_id<>p.repository_id LIMIT 1`,
+		`SELECT 1 FROM output_lifecycles e JOIN workflows p ON p.namespace=e.namespace AND p.id=e.workflow_id
 			WHERE e.namespace=$1 AND e.repository_id<>p.repository_id LIMIT 1`,
 		`SELECT 1 FROM experiment_assignments o JOIN runs r ON r.namespace=o.namespace AND r.id=o.run_id
 			JOIN experiments d ON d.namespace=o.namespace AND d.id=o.experiment_id WHERE o.namespace=$1 AND r.workflow_id<>d.workflow_id LIMIT 1`,

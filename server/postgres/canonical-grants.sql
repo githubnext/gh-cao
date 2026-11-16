@@ -60,7 +60,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
     :"schema".runs, :"schema".audits, :"schema".domains, :"schema".evals,
     :"schema".experiments, :"schema".eval_observations, :"schema".experiment_assignments,
     :"schema".friction, :"schema".graders, :"schema".grader_observations,
-    :"schema".issues, :"schema".operational_values, :"schema".workflow_value_collections, :"schema".outcome_performance,
+    :"schema".issues, :"schema".output_lifecycles, :"schema".operational_values,
+    :"schema".workflow_value_collections, :"schema".outcome_performance,
     :"schema".security_findings, :"schema".skills, :"schema".tools,
     :"schema".transactions, :"schema".work_items TO :"runtime";
 -- The database administrator must separately grant TEMPORARY on this database

@@ -39,6 +39,15 @@ func TestMiningProjectsOnlyExactOutputsAndSelectedAttempts(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC().Truncate(time.Microsecond)
+	lifecycle, err := mining.OutputLifecycleRow("output", "repository", "workflow", runID,
+		"create_pull_request", "", "octo/target", "https://github.com/octo/target/pull/12",
+		now, now, "safe-output")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Append(ctx, "$outputLifecycles", lifecycle); err != nil {
+		t.Fatal(err)
+	}
 	member := mining.Membership{Repository: "octo/api", RunID: "42", Attempt: 2,
 		Context: mining.Context{EpisodeID: "recorded", HopID: "hop", ParentHopID: "parent"}, ObservedAt: now}
 	if err := w.AppendEpisode(ctx, member); err != nil {
@@ -52,8 +61,10 @@ func TestMiningProjectsOnlyExactOutputsAndSelectedAttempts(t *testing.T) {
 	if err := w.AppendEpisode(ctx, member); err != nil {
 		t.Fatal(err)
 	}
+	dispositionAt := now
 	outcome := mining.Outcome{Repository: "octo/target", Number: 12, PullRequest: true,
 		URL: "https://github.com/octo/target/pull/12", State: "closed", Merged: true,
+		CloseActor: "User", DispositionAt: &dispositionAt,
 		UpdatedAt: now, ObservedAt: now, Source: "github-webhook"}
 	if err := w.AppendOutcome(ctx, outcome); err != nil {
 		t.Fatal(err)

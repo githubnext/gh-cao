@@ -713,7 +713,16 @@ describe('declarative dashboard queries', () => {
 
     const result = executeDashboardQueries(
       dashboardQueries,
-      { workflows: compilerWorkflows },
+      {
+        repositories: {
+          source: 'repositories', metadata: metadata('repositories'), rows: [
+            { organization: 'acme', repository: 'current', 'repository-coordinate': 'acme/current' },
+            { organization: 'acme', repository: 'service', 'repository-coordinate': 'acme/service' },
+            { organization: 'acme', repository: 'unknown', 'repository-coordinate': 'acme/unknown' }
+          ]
+        },
+        workflows: compilerWorkflows
+      },
       ['maintenance-repositories']
     );
 
@@ -1501,6 +1510,12 @@ describe('declarative dashboard queries', () => {
       runs: 3,
       dispatches: 2,
       'covered-repositories': 1,
+      delivered: 0,
+      accepted: 0,
+      pending: 0,
+      'rejected-lifecycle': 0,
+      'unknown-not-applicable': 0,
+      'first-blocker': 'No delivered output observed',
       aic: 10,
     }]);
   });

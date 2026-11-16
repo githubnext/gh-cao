@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -120,6 +121,24 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	}
 	defer cleanup()
 	namespace := dashboardPostgresNamespace(repositories)
+	configuration := &dashboardConfiguration{path: policyPath, builtins: slices.Clone(repositories)}
+	localRepository := options.localRepository
+	if localRepository == "" {
+		localRepository = dashboardCheckoutRepository(ctx)
+	}
+	if localRepository != "" && !slices.Contains(configuration.builtins, localRepository) {
+		configuration.builtins = append(configuration.builtins, localRepository)
+	}
+	configuration.owner, _, _ = strings.Cut(localRepository, "/")
+	if configuration.owner == "" {
+		configuration.owner, _, _ = strings.Cut(repositories[0], "/")
+	}
+	initialConfiguration, err := readDashboardConfiguration(configuration.path)
+	if err != nil {
+		return err
+	}
+	configuration.current.Store(initialConfiguration)
+	ctx = context.WithValue(ctx, dashboardConfigurationKey{}, configuration)
 	_, _ = fmt.Fprintf(cmd.ErrOrStderr(),
 		"Starting local CAO dashboard for %s...\n"+
 			"Collecting up to %s of recent activity; cached artifacts are reused.\n"+
@@ -130,6 +149,9 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		return err
 	}
 	if err := initializeDashboardSnapshot(ctx, cache, repositories, options); err != nil {
+		return err
+	}
+	if err := refreshDashboardConfigurationSnapshot(ctx, cache); err != nil {
 		return err
 	}
 	options.postgresURL, err = configureDashboardPostgres(ctx, server, cache, namespace, options.postgresURL, options.containerEngine)
@@ -162,6 +184,8 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 	}()
 	ingest := func() error {
+		unlock := dashboardSnapshotGuard(ctx)
+		defer unlock()
 		if err := ingestor.Ingest(); err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -172,11 +196,30 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		}
 		return nil
 	}
+	configurationDone := make(chan struct{})
+	configurationReady := make(chan struct{})
+	go func() {
+		defer close(configurationDone)
+		select {
+		case <-ctx.Done():
+			return
+		case <-configurationReady:
+		}
+		configuration.watch(ctx, func() error {
+			if err := refreshDashboardConfigurationSnapshot(ctx, cache); err != nil {
+				return err
+			}
+			return ingest()
+		}, cmd.ErrOrStderr())
+	}()
+	defer func() { cancel(); <-configurationDone }()
 	// Publish the "collecting" status before the pass ends so the dashboard
 	// shows ingestion as running while GitHub evidence is acquired.
 	options.onCollecting = func() { _ = ingest() }
 	options.onPublished = ingest
 	options.onRunBundles = func() error {
+		unlock := dashboardSnapshotGuard(ctx)
+		defer unlock()
 		if err := ingestor.IngestRunBundles(); err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -343,6 +386,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 		select {
 		case <-waitingForServer:
 			waitingForServer = nil
+			close(configurationReady)
 			if archive != nil {
 				// The pre-start pass already collected; capture its frames now.
 				captureSessions()
@@ -441,9 +485,9 @@ func dashboardPostgresNamespace(repositories []string) string {
 }
 
 func printDashboardReady(output io.Writer, address string, repositories []string, cache string, options dashboardOptions) {
-	maintenance := "every command requires approval in this terminal."
+	maintenance := "dashboard-confirmed commands execute through the local queue; no terminal prompt."
 	if runtime.GOOS == "windows" {
-		maintenance = "copy-only; trusted native terminal approval is unavailable on Windows."
+		maintenance = "copy-only; native command execution is unavailable on Windows."
 	}
 	_, _ = fmt.Fprintf(output,
 		"\nCAO dashboard is ready. Open this URL in your browser:\n\n"+

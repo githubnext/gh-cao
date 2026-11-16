@@ -315,9 +315,9 @@ namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
 The plugin contributes read-only Dashboard Language query and specification tools.
 It registers no canvas, requests no GitHub credentials, and starts no dashboard
-or command executor. Operators run `gh cao dashboard` in an interactive terminal
+or command executor. Operators run `gh cao dashboard`
 and use the private browser URL. The native CLI owns acquisition, managed
-PostgreSQL, and scoped maintenance with trusted terminal approval; the Go server
+PostgreSQL, and scoped maintenance after dashboard confirmation; the Go server
 owns command admission, durable queue state, output, and cancellation.
 The Node authoring host, canvas adapter routes, preview reload socket, and local
 quota helper are removed. Hosted execution retains its separate reviewed
@@ -372,6 +372,14 @@ query-consumed fields and identity/storage keys. Scalars use native SQL types;
 required structured fields use entity-owned relational child values, not
 JSON, JSONB, or serialized row documents. Scalar entity rows are never duplicated
 in generic source storage. Compact presence bits preserve missing versus null.
+Safe-output delivery and adoption use one compact `output_lifecycles` canonical
+entity per successful result, keyed to the producing Repository, Workflow and
+immutable Run identity but retained independently of run detail. It records
+delivery, adoption, rule, provider provenance, and observed reversal/survival
+facts for every workflow without computing Operational Value. Activity evidence
+reconstructs delivery; hosted exact-object reads enrich supported dispositions.
+The private acquisition outcome table is bounded repair/replay state, never the
+dashboard authority, and `operationalValueEvidence` remains a separate consumer.
 Operational Value evidence retains one bounded current packet per target
 repository, workflow and frozen contribution metric/version. Its acquired
 contract, output, acceptance, lineage, independent snapshot, quality and
@@ -988,10 +996,10 @@ ownership and production dependencies independent of the implementations.
 Acquisition requires `DASHBOARD_DATA_URL` or an explicit URL naming an operational
 `payload-hashes.json` directly. Site-root and `cao/` discovery are not supported;
 the synthetic Pages site is not an operational snapshot source.
-An authorized operator downloads the Activity artifact
-with `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao`
-and ingests its canonical shards into the selected PostgreSQL namespace. This
-requires Actions read access and introduces no hosted snapshot-export API.
+No Actions workflow publishes a snapshot artifact; `gh cao dashboard` collects
+real evidence natively. An authorized operator ingests a downloaded snapshot's
+canonical shards into the selected PostgreSQL namespace. This introduces no
+hosted snapshot-export API.
 Manifest SHA-256 verification and canonical-version validation precede atomic
 publication; failed ingestion preserves the prior committed state.
 The profile is loopback-only and bearer-authenticated. Database credentials
@@ -1088,9 +1096,16 @@ Source builds select existing server/site paths explicitly. The command only
 serves the dashboard, with automatic collection and refresh; it has no
 public subcommands or remote run mutations and grants no rollout authority or
 hosted CLI execution. A private native adapter enables only declared
-repository maintenance commands in the selected exact scope, with mandatory
-pull-request publication for updates/upgrades and trusted terminal approval for
-every execution. Explicit local disable actions are the only publication
+repository maintenance commands in an exact scope: built-in and CAO-managed
+repositories for publishing updates/upgrades, and explicitly selected repositories
+for destructive disable. There is mandatory
+pull-request publication for updates/upgrades and explicit dashboard confirmation
+before queue admission. Commands execute directly without terminal prompts.
+The exact upstream repository `github/gh-aw` is excluded from all local operations,
+regardless of configuration or explicit selection. Declarative operation queries,
+queue admission, enrollment and native execution enforce the exclusion; read-only
+evidence and sibling repositories are unaffected.
+Explicit local disable actions are the only publication
 exception: they cancel in-progress runs before disabling future runs in the
 approved repository or individual workflow. The adapter prepares that exact
 repository's private checkout for gh-aw's inventory and ambient cancellation
@@ -1101,8 +1116,24 @@ The ordinary bearer-authenticated server owns that queue, requires same-origin
 mutation requests, and proxies validated execution plans to
 the native CLI; only the CLI holds credentials and invokes the embedded gh-aw
 maintenance commands. Subprocess completion must be confirmed before settlement.
-Unix terminal approval is cancellation-scoped; unsupported platforms and missing
-terminals fail closed. Ordinary local serving and hosted administration are unchanged.
+Execution does not require an interactive terminal. Cancellation remains scoped
+to the owned process tree; unsupported platforms fail closed. Ordinary local
+serving and hosted administration are unchanged.
+
+The native owner watches local `cao.json` configuration, validates complete
+documents, and republishes exact configured repository identities through the
+existing inventory snapshot and canonical ingestion boundary. The checkout and
+explicitly selected repositories are permanent built-ins for that session.
+Snapshot publication and ingestion are serialized with collection; the active
+browser view refreshes through normal database revision subscriptions.
+Configuration is local observability input, not deployed rollout authority:
+reload does not widen explicit collection or disable scope, activate
+workflows, or reconfigure authentication/storage. Publishing updates/upgrades
+recheck current validated policy at admission and native execution; canonical
+repository observations never grant that access. Exact managed targets must
+satisfy owner/repository bounds, and owner-only bounds never trigger discovery.
+Invalid input is reported and
+the previous validated configuration remains published.
 
 Local requests use the production PostgreSQL SQL planner and resource limits.
 The local profile retains a 300-unit/minute weighted admission bucket while
@@ -1187,9 +1218,20 @@ Value execution without a snapshot Projector or its dirty-generation lifecycle.
 Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
 Redis-backed operational counters and exposes a read-only health status API.
-Verified GitHub issue lifecycle deliveries for enrolled repositories enqueue
-repository collection through the durable operational queue. Webhook payloads
-remain invalidation signals, not authority for direct entity-row mutations.
+Verified GitHub issue and pull-request lifecycle deliveries for enrolled target
+repositories enqueue target-repository-keyed lifecycle refresh through the
+durable operational queue. The lifecycle row remains owned by its producing
+repository, workflow, and Run even when the exact attributed object belongs to
+another enrolled repository. Delivery IDs are deduplicated and pending target
+repository work is coalesced. Webhook payloads and receipt clocks remain hints,
+not entity evidence: a bounded worker holds a per-target-repository lease and
+re-reads exact attributed objects with that target's current installation and
+enrollment epoch through the shared quota service before updating canonical
+lifecycle rows. Target withdrawal or authority change removes provider-derived
+adoption, reversal, survival, and supporting Audit evidence while retaining the
+producing delivery lifecycle at its registry-derived state.
+Hourly scope repair queues only state older than one day, so missed deliveries
+receive daily repair without per-workflow polling or another acquisition profile.
 Authorized operators receive the registered `collection-health` runtime source
 through the Dashboard Language query boundary; it is not published or stored in
 browser IndexedDB. The Ingestion page renders that bounded snapshot alongside
@@ -2150,8 +2192,9 @@ not authorize cross-repository evidence access.
   reviewed document so a replica can restore it by its explicitly selected
   digest, and checks current target/control inventory inside canonical activation.
   Webhook/control deliveries carry source epochs and fresh queue receipts.
-  Independent safe-output dispositions survive run reprojection, while durable
-  Value invalidations remain hints, not acquired Value evidence.
+  Universal output lifecycle survives run-detail expiry and run reprojection;
+  webhook deliveries and durable Value invalidations remain hints, not acquired
+  adoption or Value evidence.
   The separately selected `NativeValues` lane evaluates the reviewed Value
   policy and supported collector in Go, using Git only for its declared Git
   acquisition requirements. Optimization uses the canonical PostgreSQL query

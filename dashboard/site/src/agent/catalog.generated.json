@@ -299,10 +299,10 @@
       "id": "workflow-detail",
       "title": "Workflow",
       "description": "Identify durable reports from the selected workflow that require follow-up.",
-      "intent": "Inspect durable reports produced by the selected authored workflow.",
-      "subject": "Retained safe-output reports associated with the workflow route parameter.",
-      "objective": "Locate report evidence and reviewer disposition before claiming delivery.",
-      "acceptance": "Preserve report identity, status, timestamps and provenance links; distinguish no retained reports from unavailable evidence. A published report is not automatically an accepted outcome.",
+      "intent": "Inspect safe outputs produced by the selected authored workflow.",
+      "subject": "Retained safe-output delivery and adoption associated with the workflow route parameter.",
+      "objective": "Locate delivery evidence and adoption disposition without confusing either with operational impact.",
+      "acceptance": "Preserve output identity, delivery, adoption, timestamps and provenance links; distinguish no retained outputs from unavailable evidence. Delivery is not automatically human adoption or operational value.",
       "experimental": false,
       "parameters": [
         {
@@ -649,11 +649,11 @@
     {
       "id": "campaigns",
       "title": "Campaigns",
-      "description": "Identify centrally managed campaigns that require deeper CAO operational review.",
-      "intent": "Determine which centrally managed campaign needs deeper operational review.",
-      "subject": "Campaign inventory and retained dispatch evidence in the selected horizon.",
-      "objective": "Choose campaigns requiring deeper operational review.",
-      "acceptance": "Keep campaign identity, dispatch counts and repository coverage basis explicit. Registration, dispatched work and accepted outcomes remain distinct; missing activity is not proof of no work.",
+      "description": "Compare campaign delivery and adoption evidence before investigating execution, reach, or operational Value.",
+      "intent": "Determine which centrally managed campaign first needs delivery or adoption investigation.",
+      "subject": "Campaign inventory, retained execution, and safe-output lifecycle evidence in the selected horizon.",
+      "objective": "Choose campaigns whose first observed blocker is missing delivery evidence or delivered work without an accepted event.",
+      "acceptance": "Keep campaign identity, delivery and adoption clocks, dispatches, and repository coverage explicit. Accepted and delivered counts are separate populations, not a conversion rate or operational Value; partial evidence is not proof of zero activity.",
       "experimental": false,
       "parameters": [],
       "queries": [
@@ -2391,6 +2391,44 @@
       }
     },
     {
+      "id": "maintenance-workflow-operation-flags",
+      "subject": "Retained workflow repository identities.",
+      "objective": "Exclude the upstream gh-aw repository from operational workflow targets.",
+      "acceptance": "Mark only github/gh-aw, case-insensitively; read-only workflow evidence remains unchanged.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-operable-workflows",
+      "subject": "Workflow identities eligible for operational presentation.",
+      "objective": "Keep the upstream source repository out of single and bulk workflow operations.",
+      "acceptance": "Exclude only github/gh-aw; sibling repositories remain eligible for separate service authorization.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflow-operation-flags"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "maintenance-standalone-workflows",
       "subject": "Canonical workflow provenance retained under the legacy standalone query identifier.",
       "objective": "Supply campaign-owned and standalone identities to the maintenance eligibility query without synthetic membership.",
@@ -2398,7 +2436,7 @@
       "description": "",
       "parameters": [],
       "sources": [
-        "workflows"
+        "maintenance-operable-workflows"
       ],
       "used-by-pages": [],
       "execution": {
@@ -2471,7 +2509,7 @@
       }
     },
     {
-      "id": "maintenance-repository-versions",
+      "id": "maintenance-observed-repository-versions",
       "subject": "Group installed and current gh-aw compiler versions and upgrade evidence by repository.",
       "objective": "Identify repositories with declared Markdown workflows whose retained compiler-version evidence warrants upgrade review.",
       "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct known installed/current version lists, distinct counts, upgrade-required evidence, and separate missing-installed/missing-latest flags. Never infer unavailable versions.",
@@ -2485,6 +2523,65 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-operation-flags",
+      "subject": "Known repository identities.",
+      "objective": "Identify the upstream source repository without changing read-only inventory.",
+      "acceptance": "Mark github/gh-aw case-insensitively, without excluding sibling repositories.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-coordinates",
+      "subject": "Known repository identities, including local configuration.",
+      "objective": "Keep configured repositories visible before workflow evidence is collected.",
+      "acceptance": "Return one coordinate per canonical repository without inventing workflow or version observations.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-repository-operation-flags"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-versions",
+      "subject": "Configured and observed repositories with retained compiler evidence.",
+      "objective": "Expose missing evidence without hiding newly configured repositories.",
+      "acceptance": "Left join compiler observations by repository. Missing versions remain null, counts and upgrade-required are zero, and unavailable flags are one. Configuration never establishes upgrade evidence.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-observed-repository-versions",
+        "maintenance-repository-coordinates"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories",
           "workflows"
         ]
       }
@@ -2512,6 +2609,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "repositories",
           "workflows"
         ]
       }
@@ -2569,6 +2667,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "repositories",
           "workflows"
         ]
       }
@@ -2856,6 +2955,67 @@
       }
     },
     {
+      "id": "campaign-delivery-evidence",
+      "subject": "Distinct delivered outputs and current adoption diagnoses by campaign.",
+      "objective": "Separate delivery-horizon evidence from later adoption events.",
+      "acceptance": "Count each delivered lifecycle output once; preserve pending, rejected or lifecycle, and unknown or not-applicable states without implying adoption conversion.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "output-delivery-events"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "output-delivery-events"
+        ]
+      }
+    },
+    {
+      "id": "campaign-adoption-evidence",
+      "subject": "Distinct accepted outputs by campaign.",
+      "objective": "Count accepted lifecycle events on their authoritative adoption clock.",
+      "acceptance": "Count each accepted lifecycle output once; missing adoption dates are absent rather than assigned to the delivery cohort.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "output-adoption-events"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "output-adoption-events"
+        ]
+      }
+    },
+    {
+      "id": "campaign-output-evidence",
+      "subject": "Campaign delivery and adoption evidence in separate selected-horizon populations.",
+      "objective": "Keep every retained campaign visible and identify the first observed blocker.",
+      "acceptance": "Left join event counts to campaign inventory; zero means no matching retained event, while partial or unavailable source metadata remains a coverage limitation, not proof of no activity.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaign-adoption-evidence",
+        "campaign-delivery-evidence",
+        "campaigns"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns",
+          "output-adoption-events",
+          "output-delivery-events"
+        ]
+      }
+    },
+    {
       "id": "campaign-inventory-preview",
       "subject": "Show declared campaigns before execution evidence is evaluated.",
       "objective": "Expose campaign identities and navigation links while observed totals remain pending.",
@@ -2876,13 +3036,14 @@
     },
     {
       "id": "campaign-inventory",
-      "subject": "List centrally managed campaigns with their observed workflow and execution totals.",
-      "objective": "Compare declared campaigns with retained workflow composition, dispatches, target reach, runs, and AIC to choose an evidence-backed drill-down.",
-      "acceptance": "Keep declared campaigns with campaign identity and link plus joined totals; defaulted zero values mean no matching retained evidence and cannot certify no activity, complete coverage, or successful outcomes.",
-      "description": "Canonical campaign inventory enriched with observed workflow, rollout, run, repository coverage, and AI Credit totals.",
+      "subject": "List centrally managed campaigns with retained execution, delivery, and adoption evidence.",
+      "objective": "Compare declared campaigns with workflow composition, dispatches, target reach, runs, AI Credits, and lifecycle evidence to choose a drill-down.",
+      "acceptance": "Keep every declared campaign and link. Delivered and accepted use separate clocks; defaulted zeros mean no matching retained event under the composed metadata, not complete coverage, conversion, or Value.",
+      "description": "Campaign inventory enriched with execution totals and distinct delivery-clock and adoption-clock lifecycle counts.",
       "parameters": [],
       "sources": [
         "campaign-dispatch-totals",
+        "campaign-output-evidence",
         "campaign-repository-coverage",
         "campaign-workflow-totals",
         "campaigns"
@@ -2898,6 +3059,8 @@
           "campaigns",
           "domains",
           "issues",
+          "output-adoption-events",
+          "output-delivery-events",
           "repositories",
           "runs",
           "tools",

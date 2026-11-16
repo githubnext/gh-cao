@@ -6,9 +6,14 @@ using TypeSpec.JsonSchema;
 namespace Cao;
 
 /** An error response. The message is diagnostic, not a stable error code. */
+model FailureBody {
+  error: string;
+}
+
+/** An error response. The message is diagnostic, not a stable error code. */
 model Failure<Code extends int32> {
   @statusCode statusCode: Code;
-  error: string;
+  @body body: FailureBody;
 }
 
 alias BadRequest = Failure<400>;

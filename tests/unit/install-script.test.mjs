@@ -1304,7 +1304,7 @@ for (const [name, environment, arguments_] of [
     if (setup) {
       assert.match(result.stderr, /Non-interactive setup applied/);
       assert.match(result.stderr, /repository GITHUB_TOKEN \(workflow-token\)/);
-      assert.match(result.stdout + result.stderr, /Actions operational artifacts for the local or cloud dashboard/);
+      assert.match(result.stdout + result.stderr, /Evidence: gh cao dashboard or the cloud dashboard/);
       assert.doesNotMatch(result.stdout + result.stderr, /Pages|public dashboard|dashboardPages|pagesSettingsURL|dashboardURL/);
       assert.doesNotMatch(result.stdout + result.stderr, /Repositories CAO should read|Apply this setup\?/);
     }

@@ -155,7 +155,7 @@ func TestSignedIssueWebhookQueuesDeduplicatedRepositoryRefresh(t *testing.T) {
 			t.Fatal(err)
 		}
 		if task.InstallationID != wantInstallations[task.Repository] || task.InstallationID == 0 ||
-			task.Reason != "issue-status" || task.Erase {
+			task.Reason != "issue-status" || !task.LifecycleRefresh || task.Erase {
 			t.Fatalf("unexpected repository refresh: %+v", task)
 		}
 		delete(wantInstallations, task.Repository)

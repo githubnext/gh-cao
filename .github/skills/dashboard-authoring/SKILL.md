@@ -44,7 +44,7 @@ Use [`gh aw logs`](https://github.com/github/gh-aw/blob/main/docs/src/content/do
 
 Operational-grader design and result semantics belong to gh-aw's `operational-value` protocol. Dashboard work may consume the canonical grader result, but must not redefine, normalize, clamp, replay, mature, reconstruct its metrics, or confuse it with package-defined repository operational value.
 
-For real feature-development evidence, download a selected `cao-activity-index` Actions artifact into `.cao/`, or run `cao download --url URL` with an explicit operational `payload-hashes.json` endpoint. There is no default remote source; Pages contains synthetic demo data only. Query the canonical PostgreSQL data with `cao query`. Real data is development evidence, not schema authority; follow the specifications and JSONL schema.
+For real feature-development evidence, run `gh cao dashboard --repo OWNER/REPO` to collect natively into PostgreSQL, or run `cao download --url URL` with an explicit operational `payload-hashes.json` endpoint. No Actions workflow publishes a snapshot artifact. There is no default remote source; Pages contains synthetic demo data only. Query the canonical PostgreSQL data with `cao query`. Real data is development evidence, not schema authority; follow the specifications and JSONL schema.
 
 Before treating a source as complete, preserve canonical source availability and coverage metadata. Historical analysis requires explicitly retained evidence and a separately provisioned PostgreSQL namespace; never repair or reinterpret a database file. Browser IndexedDB is not an operational archive.
 

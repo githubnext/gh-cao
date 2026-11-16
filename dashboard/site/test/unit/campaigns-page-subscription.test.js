@@ -94,7 +94,9 @@ describe('Campaigns shared canonical page subscription', () => {
     const compiled = compileDashboardViewPayloadQueries(page, contract.page, { queries: context.queries });
     expect(compiled.queries.filter(query => String(query.name).endsWith(`:dependency:${contract['shared-dependency']}`))).toHaveLength(1);
     expect(compiled.aliases).toEqual(contract.views.map(viewId => `view:campaigns:${viewId}:campaign-inventory`));
-    expect(page.definition.views[2].data['partial-source']).toBe('campaign-inventory-preview');
+    expect(page.definition.views.find((/** @type {{ id: string }} */ view) =>
+      view.id === 'campaigns-inventory').data['partial-source'])
+      .toBe('campaign-inventory-preview');
   });
 
   it('resolves the bounded navigation prerequisite through the production worker', async () => {
@@ -220,9 +222,10 @@ describe('Campaigns shared canonical page subscription', () => {
     const result = await settled();
     for (const [position, viewId] of contract.views.entries()) {
       const alias = `view:campaigns:${viewId}:campaign-inventory`;
-      expect(result[alias].rows).toHaveLength(position + 1);
+      const limit = position + 1;
+      expect(result[alias].rows).toHaveLength(Math.min(limit, contract.rows));
       expect(result[alias].metadata).toMatchObject({ 'total-row-count': 3, 'query-name': alias });
-      if (position < 2) expect(result[alias].continuationToken).toEqual(expect.any(String));
+      if (limit < contract.rows) expect(result[alias].continuationToken).toEqual(expect.any(String));
       else expect(result[alias].continuationToken).toBeUndefined();
     }
   });

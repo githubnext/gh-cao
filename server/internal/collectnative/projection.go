@@ -153,7 +153,7 @@ func (p *Projection) add(collection, sourceID, at string, row model.Row) {
 	p.Collections[collection] = append(p.Collections[collection], row)
 }
 
-func (p *Projection) event(location string, line int, key, at, source, kind string, fields map[string]any) {
+func (p *Projection) event(location string, line int, key, at, source, kind string, fields map[string]any) error {
 	row := model.Row{"runId": p.RunID, "source": source, "type": kind, "payloadRef": fmt.Sprintf("%s#L%d", location, line),
 		"sourceSequence": line}
 	merge(row, fields)
@@ -185,6 +185,10 @@ func (p *Projection) event(location string, line int, key, at, source, kind stri
 		sourceID += ":" + key
 	}
 	p.add(collection, sourceID, at, row)
+	if kind == "safe_output.result" {
+		return p.addOutputLifecycle(sourceID, at, row, firstText(row["targetRepository"], row["repo"]))
+	}
+	return nil
 }
 
 // ProjectCanonical consumes only the collector's safe envelope, never raw
@@ -325,13 +329,17 @@ func ProjectCanonical(ctx context.Context, evidence Evidence, published time.Tim
 			}
 			fields["timestamp"] = timestamp
 		}
-		p.event(text(session["path"]), int(line), text(event["key"]), firstText(fields["timestamp"], at),
-			text(event["source"]), text(event["type"]), fields)
+		if err := p.event(text(session["path"]), int(line), text(event["key"]), firstText(fields["timestamp"], at),
+			text(event["source"]), text(event["type"]), fields); err != nil {
+			return Projection{}, err
+		}
 	}
 	if err := p.evaluations(ctx, input, workflowID, at, limits); err != nil {
 		return Projection{}, err
 	}
-	p.runEvents(input, at)
+	if err := p.runEvents(input, at); err != nil {
+		return Projection{}, err
+	}
 	for _, gap := range persisted.Gaps {
 		if !gapCode.MatchString(gap) {
 			return Projection{}, errors.New("invalid native evidence gap classification")

@@ -54,19 +54,21 @@ Without a shell, use `cao_catalog` and `cao_query` against the prepared snapshot
 See [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/).
 
 1. Verify `gh cao --version`; operators may use the [installer](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md#github-cli-extension) if absent.
-2. With Actions read access, select a successful default-branch Activity run:
+2. Collect real evidence natively with a managed local PostgreSQL database:
 
    ```bash
-   gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+   gh cao dashboard --repo OWNER/REPO
    ```
 
-   This supplies verified canonical JSONL under `.cao/`, not a database file.
-   An authorized operator must ingest it into the selected PostgreSQL namespace.
+   No Actions workflow publishes a snapshot artifact.
 3. Or select a trusted operational manifest:
 
    ```bash
    gh cao download --url URL
    ```
+
+   This supplies verified canonical JSONL under `.cao/`, not a database file.
+   An authorized operator must ingest it into the selected PostgreSQL namespace.
 
    `DASHBOARD_DATA_URL=URL` is equivalent. URLs must end in `/payload-hashes.json`.
    No default Pages source, directory discovery, or hosted export is implied.

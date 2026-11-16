@@ -27,8 +27,8 @@ independent profiles, not a fallback chain.
 PostgreSQL and IndexedDB are independently rebuildable projections, not sources
 for one another. PostgreSQL uses the production typed relational schema; it does
 not emulate IndexedDB stores or retain duplicate serialized row mirrors. Default
-canonical retention keeps Runs for 30 days, linked detail for seven days and
-Operational Value for at least 365 days. Historical analysis requires a separately
+canonical retention keeps Runs for 30 days, linked detail for seven days, and
+Output Lifecycle and Operational Value for at least 365 days. Historical analysis requires a separately
 configured PostgreSQL namespace and preserved authoritative evidence.
 
 See [Data model](/gh-cao/dashboard-data-model/) for the canonical entities, identities, and relationships produced by ingestion.
@@ -40,8 +40,8 @@ existing PostgreSQL storage without DDL, automatic file conversion or synthetic
 bootstrap data. Readiness remains incomplete until an explicitly verified artifact
 or authorized collector publishes canonical evidence.
 
-Use a selected authenticated Actions artifact, a trusted direct manifest URL, or
-the explicitly scoped native collection profile. Structural-only observations may
+Use a trusted direct manifest URL or the explicitly scoped native collection
+profile; no Actions workflow publishes a snapshot artifact. Structural-only observations may
 be available while Run and artifact coverage remain unknown or partial; absence
 must not become healthy zero activity. The synthetic Pages demo is never an
 operational source, repair path or hosted fallback.
@@ -50,7 +50,7 @@ operational source, repair path or hosted fallback.
 
 Native command execution is separate from ingestion. Ordinary read-only Go
 serving and synthetic Pages previews enable no commands. `gh cao dashboard`
-uses the scoped native maintenance adapter with trusted terminal approval;
+uses the scoped native maintenance adapter after dashboard confirmation, without terminal prompts;
 see [the native dashboard guide](cao-cli.md#on-demand-local-dashboard).
 
 ## Hosted server data pipeline
@@ -69,6 +69,46 @@ supported capabilities, not a dashboard entity database. Protected operational
 state is not disposable evidence-cache data. If canonical PostgreSQL storage is
 unavailable, dashboard data remains unavailable even when Redis is healthy.
 See the [server operational-storage contract](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+
+### Safe-output lifecycle refresh
+
+Safe-output delivery and adoption are collected for every workflow, whether or
+not it has an Operational Value definition. PostgreSQL owns the hosted
+`output_lifecycles` entity table; browser adapter conformance uses the equivalent
+`outputLifecycles` store. The private `cao_acquisition_outcomes` table keeps only
+bounded 30-day repair/replay evidence and is not a dashboard query source.
+`operationalValueEvidence` is a separate consumer-owned packet and never owns
+lifecycle truth.
+
+Successful `safe_output.result` events establish delivery. The reviewed adoption
+registry classifies delivery fallback, pending proposal, not-applicable
+infrastructure, and unknown custom outputs. The ordinary workflow and outcome
+pages show delivery and adoption separately; neither state is operational impact
+or Value.
+
+Hosted issue and pull-request webhooks are refresh hints only. Admission
+deduplicates delivery IDs, coalesces target-repository work for 15 minutes, and
+places it on the existing bounded collection queue. A worker holds a 15-minute
+target-repository lease and re-reads at most 25 exact attributed GitHub objects
+per task using that target's current installation and enrollment epoch before
+recording provider clocks; more work is requeued. The producing lifecycle row
+stays attached to its original Repository, Workflow, and Run. The hourly scope
+repair schedules only lifecycle rows older than 24 hours, so every enabled
+target repository receives daily repair even when deliveries are missed. Queue
+capacity remains 200,000 outstanding tasks, and the private outcome cache
+remains bounded to 20,000 rows and 16 MiB per target repository.
+
+The Actions profile has no inbound receiver and remains complete for universal
+delivery plus registry-derived adoption. Hosted authoritative adoption covers
+same-repository and cross-repository `create_issue` and `create_pull_request`
+only when the exact target repository is currently enrolled. URLs, producer
+credentials, and producer authority never widen that scope. Target withdrawal
+or authority change deletes provider-derived adoption, reversal, survival, and
+supporting Audit evidence from the prior epoch and restores delivery-derived
+registry state without deleting a lifecycle owned by another repository.
+Provider events for other safe-output types are deferred; missing evidence
+remains unknown rather than being inferred from workflow success, webhook
+receipt, or object existence.
 
 ## Completeness and duplicates
 
@@ -119,7 +159,7 @@ node scripts/fit-aw-behavior.mjs \
   --output /private/operational/behavior-model.json
 ```
 
-Acquire evidence through authenticated Actions artifacts or bounded `gh aw logs`
+Acquire evidence through a trusted direct manifest or bounded `gh aw logs`
 collection, never the synthetic Pages demo. The estimator uses the production
 gh-aw adapter, canonical normalizer and Dashboard Language query engine. It
 selects the exact execution repository and half-open UTC creation-time window,
@@ -163,13 +203,12 @@ failed resolutions appear in the Model routing Problems view once per run, with
 an unknown time unless the session clock is recorded, and per-run resolution roles
 stay on the run page. Routed sessions are expected
 to lack these events, and legacy sessions report no resolution evidence rather
-than failure. Canonical schema 36 retains Campaign and Workflow
-source-maintenance provenance. IndexedDB version 49 adds the disposable
-workflow-subject cursor index and rebuilds older browser
-projections so every retained Run receives the disposable statistical range
-keys and indexes. Hosted PostgreSQL
-needs a fresh generated schema with the new
-Audit columns and compact Run routing aggregates. Ingestion derives the aggregate
+than failure. Canonical schema 37 adds universal Output Lifecycle while retaining
+Campaign and Workflow source-maintenance provenance. IndexedDB version 50 adds
+`outputLifecycles` and rebuilds prior browser projections; the disposable
+workflow-subject cursor and Run statistical range indexes remain. Hosted
+PostgreSQL needs a fresh generated schema with the lifecycle table, existing
+Audit columns, and compact Run routing aggregates. Ingestion derives the aggregate
 with shared Dashboard Language accounting, retains request evidence needed by
 run-page views, and drops unused inventory and generic proxy events.
 
@@ -185,14 +224,14 @@ ownership. Unknown kinds and unsupported non-empty schema versions fail explicit
 
 The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-gh-aw-jsonl-mapping.md) describes source fields, canonical entities, identity, ownership, and accounting.
 
-The canonical model is version 36. The browser database is
-logically `gh-aw-cao-dashboard-data`, IndexedDB version 49. Pages storage keys
+The canonical model is version 37. The browser database is
+logically `gh-aw-cao-dashboard-data`, IndexedDB version 50. Pages storage keys
 carry the `synthetic-demo` suffix and deployment scope; service-worker caches
 use `demo`. Demo payloads live under `demo-data/`, not the old root
 manifest URL, preventing old same-origin cached real data from being reused.
 Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,
-`friction`, `audits`, `issues`, `operationalValues`, `operationalValueEvidence`, `workflowValueCollections`, `marketplacePackages`,
+`friction`, `audits`, `issues`, `outputLifecycles`, `operationalValues`, `operationalValueEvidence`, `workflowValueCollections`, `marketplacePackages`,
 `experiments`, `experimentAssignments`, `graders`, `graderObservations`,
 `evals`, and `evalObservations`;
 all use `id` as the key.
@@ -231,8 +270,8 @@ recorded after each complete shard. A stopped import can reuse those receipts on
 the next visit, even before the full snapshot marker has been written. Run-phase
 views can load after the run shards finish while record shards continue. Retention
 and orphan cleanup run after shard ingestion. During maintenance, the worker
-expires run-linked detail outside the seven-day window and Operational Values
-outside the 30-day window, pruning orphaned descendants and unreferenced
+expires run-linked detail outside the seven-day window and Output Lifecycle or
+Operational Value rows outside their configured long-term windows, pruning orphaned descendants and unreferenced
 structural parents. The effective retention horizon is the later of the browser
 clock and the newest incoming observation, so a slow clock cannot prune
 current producer data.
@@ -257,8 +296,13 @@ Every merged batch must satisfy these relationships:
 - Workflow to Repository
 - Run to Repository and Workflow
 - Domain, Tool, Audit, and Issue to Run
+- Output Lifecycle to Repository and Workflow
 
-Work items and findings are projected from Issue and Audit records rather than stored in separate canonical tables. Independent logical sources, such as usage, outcomes, admissions, security, and MCP evidence, retain their published schemas in worker memory and are selected only when a page requests them.
+Work items and ordinary outcomes are projected from Output Lifecycle. Issue and
+Audit rows add optional detail; findings remain projected from Audit records.
+Independent logical sources, such as usage, admissions, security, and MCP
+evidence, retain their published schemas in worker memory and are selected only
+when a page requests them.
 
 Source download, adaptation, normalization, IndexedDB writes, and page queries
 run in a dedicated Web Worker. Successful inputs write content-addressed
@@ -351,8 +395,7 @@ backend, import conversion, writable overlay, or browser fallback.
 
 1. Start an explicitly selected local PostgreSQL instance and configure CAO_POSTGRES_URL.
 2. Provision canonical and operational storage separately with schema-owner credentials.
-3. Acquire an operational cao-activity-index Actions artifact or a trusted direct
-   payload-hashes.json manifest. Acquisition does not select a public Pages source.
+3. Acquire a trusted direct payload-hashes.json manifest with gh cao download --url URL. Acquisition does not select a public Pages source.
 4. Ingest its verified normalized JSONL with cao-dashboard ingest --source DIRECTORY.
 5. Run npm run dashboard:local against that namespace. Set --namespace to the
    exact provisioned namespace when using a non-default dataset.
@@ -366,10 +409,10 @@ server reader. Node cao retains artifact preparation and catalog discovery, not 
 second local database backend. Removed ingestion and repair commands have no
 compatibility path.
 
-Run the installed `gh cao dashboard` command in an interactive terminal. It
+Run the installed `gh cao dashboard` command. It
 acquires bounded recent activity and manages local PostgreSQL unless an explicit
 connection is supplied. Open its private loopback URL in a browser. Maintenance
-requires trusted terminal approval; viewing evidence grants no rollout,
+requires dashboard confirmation before direct queue execution; viewing evidence grants no rollout,
 credential, or hosted execution authority.
 
 ### Query the private session archive

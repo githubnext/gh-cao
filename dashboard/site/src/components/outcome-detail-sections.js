@@ -81,6 +81,13 @@ function renderOutcomeMetadataSection(outcome) {
   const runLink = findLink(outcome, 'run-link');
   const workflowLink = findLink(outcome, 'workflow-link');
   const workflowName = text(outcome['workflow-name']) || text(outcome.workflow) || 'Unknown workflow';
+  const deliveryState = text(outcome['delivery-state']) || (outcome['published-at'] ? 'delivered' : 'unknown');
+  const adoptionState = text(outcome['adoption-state'])
+    || text(outcome['outcome-status']) || text(outcome['outcome-state']) || 'unknown';
+  const lifecycleSources = [
+    text(outcome['delivery-source']),
+    text(outcome['adoption-source'])
+  ].filter(Boolean).map((value) => titleCase(value.replaceAll('_', ' ')));
   debugOutcomeDetailSections({
     event: 'metadata-resolved',
     hasSourceLink: sourceLink != null,
@@ -91,8 +98,28 @@ function renderOutcomeMetadataSection(outcome) {
   return h(
     'aside',
     { className: 'outcome-meta', 'aria-label': 'Outcome metadata' },
-    renderMetadataSection('Status', renderStatusBadge(titleCase(text(outcome['outcome-status']) || text(outcome['outcome-state'])))),
-    renderMetadataSection('Disposition', renderStatusBadge(titleCase(text(outcome['outcome-state'])))),
+    renderMetadataSection('Delivery', renderStatusBadge(titleCase(deliveryState))),
+    renderMetadataSection('Adoption', renderStatusBadge(titleCase(adoptionState))),
+    renderMetadataSection(
+      'Adoption signal',
+      h('p', null, titleCase(text(outcome['adoption-signal']).replaceAll('_', ' ')) || 'Unknown')
+    ),
+    renderMetadataSection('Delivered', h('p', null, formatUtcDateTime(outcome['delivered-at'] ?? outcome['published-at']))),
+    renderMetadataSection(
+      'Adopted',
+      h('p', null, outcome['adoption-at'] ? formatUtcDateTime(outcome['adoption-at']) : 'Not observed')
+    ),
+    renderMetadataSection(
+      'Survival',
+      renderStatusBadge(titleCase(text(outcome['survival-state']) || 'unknown'))
+    ),
+    ...(outcome['reversal-signal']
+      ? [renderMetadataSection(
+          'Reversal',
+          h('p', null, titleCase(text(outcome['reversal-signal']).replaceAll('_', ' ')))
+        )]
+      : []),
+    renderMetadataSection('Rule', h('p', null, text(outcome['rule-version']) || 'Unknown')),
     ...(text(outcome['outcome-warning']) === 'Warning'
       ? [renderMetadataSection('Warning', renderStatusBadge('Warning'))]
       : []),
@@ -114,7 +141,7 @@ function renderOutcomeMetadataSection(outcome) {
         renderExternalLinkOrFallback(sourceLink, 'View source'),
         sourceLink && runLink ? h('br') : null,
         renderExternalLinkOrFallback(runLink, 'View workflow run'),
-        !sourceLink && !runLink ? 'Unavailable' : null
+        !sourceLink && !runLink ? lifecycleSources.join(' · ') || 'Unavailable' : null
       )
     )
   );

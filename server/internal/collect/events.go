@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
@@ -50,7 +49,6 @@ type Intent struct {
 	Issue          operational.IssueUpdate
 	RepositoryID   int64
 	Lifecycle      string
-	Outcome        *mining.Outcome
 	ValueRefresh   bool
 	RunID          int64
 	RunAttempt     int
@@ -135,12 +133,6 @@ func ParseEvent(event string, payload []byte) (Intent, error) {
 
 	if err != nil {
 		return Intent{}, err
-	}
-	if intent.Kind == IntentIssueStatus || intent.Kind == IntentOutcome {
-		intent.Outcome, err = mining.ParseWebhook(trimmedEvent, payload, time.Now().UTC())
-		if err != nil {
-			return Intent{}, err
-		}
 	}
 	// One classification per delivery is a meaningful state transition worth
 	// observing, and this is never called from a polling or retry loop, so
@@ -364,9 +356,6 @@ var ErrDeliveryInProgress = errors.New("webhook delivery admission is already in
 type Admitter struct {
 	Enrollment Enrollment
 	Queue      Queue
-	// Mining retains each object's payload instead of coalescing it into a
-	// repository refresh. Admission-only replicas use the same durable task.
-	Mining bool
 }
 
 // Admission describes what a delivery did, for the webhook response.
@@ -496,10 +485,8 @@ func (a Admitter) admitIssue(ctx context.Context, intent Intent, delivery string
 		RepositoryID:     intent.RepositoryID,
 		Lifecycle:        intent.Lifecycle,
 		InventoryRefresh: intent.Kind == IntentWorkflowRefresh,
+		LifecycleRefresh: intent.Kind == IntentIssueStatus || intent.Kind == IntentOutcome,
 		ValueRefresh:     intent.ValueRefresh,
-	}
-	if a.Mining {
-		task.Outcome = intent.Outcome
 	}
 	if task.Reason == "" {
 		task.Reason = "issue-status"

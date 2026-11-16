@@ -76,6 +76,9 @@ the server lifetime defaults to 48 hours. Bounded background passes resume
 historical discovery while reserving GitHub API quota for other work.
 Ctrl-C stops the server; the private local snapshot is retained for reuse.
 Collection never changes policy, workflows, or remote repository state.
+The current checkout and explicitly selected repositories are built in. Local
+.github/workflows/cao.json changes refresh configured repository identities
+without restarting the browser or widening the selected collection scope.
 
 When DuckDB v2.0.0 or newer is on PATH and an approved, versioned closed content
 policy exists (--session-archive-policy, or ` + dashboardSessionArchiveDefaultPolicy + `),

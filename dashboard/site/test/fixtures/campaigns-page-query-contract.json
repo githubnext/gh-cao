@@ -6,7 +6,13 @@
   },
   "query-binding": "page",
   "source": "campaign-inventory",
-  "views": ["campaigns-dispatches", "campaigns-repository-coverage", "campaigns-inventory"],
+  "views": [
+    "campaigns-delivery-evidence",
+    "campaigns-adoption-evidence",
+    "campaigns-dispatches",
+    "campaigns-repository-coverage",
+    "campaigns-inventory"
+  ],
   "rows": 3,
   "maximum-identical-evaluations-per-refresh": 1,
   "shared-dependency": "campaign-workflow-import-evidence",

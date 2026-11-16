@@ -20,7 +20,8 @@ func TestMiningExportExactRunAttemptAndBoundedSnapshot(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	member := mining.Membership{Repository: "octo/api", RunID: "42", Attempt: 2, ObservedAt: now, Context: mining.Context{EpisodeID: "episode", HopID: "hop"}}
 	outcome := mining.Outcome{Repository: "octo/target", Number: 12, PullRequest: true, URL: "https://github.com/octo/target/pull/12",
-		State: "closed", Merged: true, UpdatedAt: now, ObservedAt: now, Source: "github-api"}
+		State: "closed", Merged: true, CloseActor: "User", DispositionAt: &now,
+		UpdatedAt: now, ObservedAt: now, Source: "github-api"}
 	seed := func(attempt int, audits []model.Row) {
 		t.Helper()
 		nativeSeed(ctx, t, store, map[string][]model.Row{

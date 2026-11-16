@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '4.1.0')
+  assert.equal(openapi.info.version, '4.3.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -111,6 +111,34 @@ test('the generated contract describes the implemented security and wire formats
   )
 })
 
+test('repository suggestions use the bounded local native selector contract', () => {
+  const operation = openapi.paths['/__cli_commands/selector'].post
+  assert.ok(operation.security.some(entry => 'BearerAuth' in entry))
+  assert.ok(operation.security.some(entry => 'LocalCLIResourceSession' in entry))
+  assert.ok(operation.parameters.some(parameter => parameter.name === 'origin' && parameter.required))
+  assert.equal(operation.requestBody.content['application/json'].schema.$ref, '#/components/schemas/RepositorySelectorRequest')
+  assert.deepEqual(openapi.components.schemas.RepositorySelectorRequest.required, ['id', 'text'])
+  assert.equal(openapi.components.schemas.RepositorySelectorRequest.properties.text.maxLength, 200)
+  assert.equal(openapi.components.schemas.RepositorySelectorResult.properties.options.maxItems, 50)
+  assert.deepEqual(operation.responses['200'].headers['cache-control'].schema.enum, ['no-store'])
+  for (const status of ['400', '403', '404', '415', '429', '502', '504']) assert.ok(operation.responses[status])
+  assert.match(operation.description, /owning CLI's credentials/)
+  assert.match(operation.description, /Wildcards are rejected/)
+})
+
+test('command output describes live status before any subprocess output', () => {
+  const operation = openapi.paths['/__cli_commands/{id}/output'].get
+  assert.ok(operation.security.some(entry => 'BearerAuth' in entry))
+  assert.ok(operation.security.some(entry => 'LocalCLIResourceSession' in entry))
+  assert.ok(operation.security.some(entry => 'ApiKeyAuth' in entry))
+  const response = operation.responses['200']
+  assert.ok(response.content['application/x-ndjson; charset=utf-8'])
+  assert.deepEqual(response.headers['cache-control'].schema.enum, ['no-store'])
+  assert.match(operation.description, /whenever its status changes, even before output exists/)
+  assert.match(operation.description, /without terminal prompts/)
+  assert.match(operation.description, /Disconnecting only detaches/)
+})
+
 test('token broker exposes only the OIDC exchange and exact credential response', () => {
   const operation = openapi.paths['/api/token-broker'].post
   assert.equal(operation.security, undefined)
@@ -148,13 +176,17 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.equal(input.properties.query.$ref, '#/components/schemas/SessionArchiveDefinition')
   const definition = openapi.components.schemas.SessionArchiveDefinition
   assert.deepEqual(definition.required, ['name', 'subject', 'from'])
-  assert.deepEqual(definition.properties.from.enum, ['archive-events', 'archive-objectives', 'archive-actions', 'archive-states'])
+  assert.equal(definition.properties.from.pattern, '^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')
+  assert.match(definition.properties.from.description, /archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition/)
+  assert.equal(definition.properties.queries.maxItems, 2)
+  assert.equal(definition.properties.queries.items.$ref, '#/components/schemas/SessionArchiveDefinition')
+  assert.match(definition.properties.queries.description, /DLS-QUERY-017/)
   assert.equal(definition.properties.limit.maximum, 10000)
   for (const key of ['joins', 'union', 'compute', 'window', 'sql', 'stores', 'parameters']) {
     assert.equal(definition.properties[key], undefined)
   }
   assert.deepEqual(Object.keys(definition.properties).sort(), [
-    'acceptance', 'aggregate', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'post-aggregate', 'select', 'subject'
+    'acceptance', 'aggregate', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'post-aggregate', 'queries', 'select', 'subject'
   ])
   assert.match(definition.description, /UTF-8 lexical string order/)
   assert.match(query.description, /shared session-query/)
@@ -168,6 +200,7 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.equal(capabilities.properties.fields.items.$ref, '#/components/schemas/SessionArchiveColumn')
   assert.deepEqual(openapi.components.schemas.SessionArchiveSourceCapability.properties.name.enum, ['archive-objectives', 'archive-actions', 'archive-states'])
   assert.deepEqual(capabilities.required, ['language-version', 'source', 'fields', 'predicates', 'reducers', 'functions', 'fieldStates', 'maxRows'])
+  assert.equal(capabilities.properties.chaining.type, 'integer')
   const result = openapi.components.schemas.SessionArchiveResult
   assert.equal(result.properties.events.items.$ref, '#/components/schemas/Trace.Archive.Event')
   assert.equal(openapi.components.schemas['Trace.Archive.Event'].properties.PayloadJSON.type, 'string')
@@ -455,7 +488,9 @@ test('the separate server-only session data lake tool preserves the analytical c
   assert.equal(tool.inputSchema.additionalProperties, false)
   const definition = tool.inputSchema.properties.query
   assert.deepEqual(Object.keys(definition.properties).sort(), Object.keys(openapi.components.schemas.SessionArchiveDefinition.properties).sort())
-  assert.deepEqual(definition.properties.from.enum, ['archive-events', 'archive-objectives', 'archive-actions', 'archive-states'])
+  assert.equal(definition.properties.from.pattern, openapi.components.schemas.SessionArchiveDefinition.properties.from.pattern)
+  assert.equal(definition.properties.queries.items.$ref, '#/properties/query')
+  assert.equal(definition.properties.queries.maxItems, 2)
   assert.deepEqual(definition.properties.aggregate.properties.values.items.properties.reducer.enum, ['count', 'distinct-count', 'sum', 'max', 'first'])
   assert.deepEqual(definition.properties.filter.properties.predicates.items.properties.equals.type, ['string', 'integer', 'number', 'boolean'])
   assert.equal(definition.properties.limit.maximum, 10000)
@@ -484,7 +519,10 @@ test('selected JSON Schemas and nullable responses are emitted', () => {
   ]) {
     const schema = openapi.paths[path].get.responses['503'].content['application/json'].schema
     assert.ok(schema.anyOf.some(branch => branch.$ref === `#/components/schemas/${response}`), path)
-    assert.ok(schema.anyOf.some(branch => branch.required?.includes('error')), path)
+    assert.ok(schema.anyOf.some(branch => {
+      const body = branch.$ref ? openapi.components.schemas[branch.$ref.split('/').at(-1)] : branch
+      return body.required?.includes('error') && body.properties.error.type === 'string'
+    }), path)
     assert.ok(openapi.paths[path].get.responses['429'].content['application/json'], path)
   }
 })

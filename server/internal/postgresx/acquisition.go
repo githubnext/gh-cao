@@ -124,14 +124,29 @@ func (a Acquisition) SetEnrollment(ctx context.Context, repository string, insta
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `INSERT INTO cao_acquisition_scopes(namespace,repository,installation_id,epoch)
-		VALUES($1,$2,$3,1) ON CONFLICT(namespace,repository) DO NOTHING`, a.store.namespace, repository, installation); err != nil {
+	if err := a.store.lockInvocation(ctx, tx); err != nil {
+		return err
+	}
+	inserted, err := tx.ExecContext(ctx, `INSERT INTO cao_acquisition_scopes(namespace,repository,installation_id,epoch)
+		VALUES($1,$2,$3,1) ON CONFLICT(namespace,repository) DO NOTHING`, a.store.namespace, repository, installation)
+	if err != nil {
+		return err
+	}
+	insertedRows, err := inserted.RowsAffected()
+	if err != nil {
 		return err
 	}
 	var previous int64
 	if err := tx.QueryRowContext(ctx, `SELECT installation_id FROM cao_acquisition_scopes
 		WHERE namespace=$1 AND repository=$2 FOR UPDATE`, a.store.namespace, repository).Scan(&previous); err != nil {
 		return err
+	}
+	canonicalChanged := false
+	if insertedRows > 0 || previous != installation || installation == 0 {
+		canonicalChanged, err = a.store.invalidateNativeOutcomeAuthority(ctx, tx, repository)
+		if err != nil {
+			return err
+		}
 	}
 	if previous != installation || installation == 0 {
 		if err := a.store.withdrawArchiveSources(ctx, tx, repository); err != nil {
@@ -145,16 +160,18 @@ func (a Acquisition) SetEnrollment(ctx context.Context, repository string, insta
 			a.store.namespace, repository); err != nil {
 			return err
 		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_outcomes WHERE namespace=$1 AND repository=$2`,
-			a.store.namespace, repository); err != nil {
-			return err
-		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_value_hints WHERE namespace=$1 AND repository=$2`,
 			a.store.namespace, repository); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM cao_acquisition_inventory WHERE namespace=$1 AND repository=$2`,
 			a.store.namespace, repository); err != nil {
+			return err
+		}
+	}
+	if canonicalChanged {
+		if _, err := tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1 WHERE namespace=$1`,
+			a.store.namespace); err != nil {
 			return err
 		}
 	}

@@ -192,4 +192,4 @@ perform these operations, so editing remains disabled for hosted administrators.
 	and agents without a browser or shell through
 	[Agent analysis](agent-analysis.md).
 - Use the [Copilot plugin](agent-plugin.md) for local activity evidence
-	and conversation-based query authoring. Maintenance retains trusted terminal approval.
+	and conversation-based query authoring. Maintenance executes from the local queue after dashboard confirmation.

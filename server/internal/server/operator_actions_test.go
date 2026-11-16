@@ -27,7 +27,7 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 		if id == "update-workflow-source" || id == "update-workflows" || id == "disable-workflow" {
 			values = map[string]string{"workflow": ".github/workflows/review.md", "repository-coordinate": "octo/service"}
 		}
-		invocation, err := app.admitOperatorAction(hostedcli.Request{ID: id, Values: values})
+		invocation, err := app.admitOperatorAction(t.Context(), hostedcli.Request{ID: id, Values: values})
 		if err != nil || invocation.Repository != "octo/service" {
 			t.Fatalf("production maintenance %s failed admission: %v", id, err)
 		}
@@ -36,12 +36,59 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 				values[key] = "octo/outside"
 			}
 		}
-		if _, err := app.admitOperatorAction(hostedcli.Request{ID: id, Values: values}); err == nil {
+		if _, err := app.admitOperatorAction(t.Context(), hostedcli.Request{ID: id, Values: values}); err == nil {
 			t.Fatalf("production maintenance %s widened scope", id)
 		}
 	}
-	if _, err := app.admitOperatorAction(hostedcli.Request{ID: "disable-workflow", Values: map[string]string{"workflow": "review*", "repository-coordinate": "octo/service"}}); err == nil {
+	if _, err := app.admitOperatorAction(t.Context(), hostedcli.Request{ID: "disable-workflow", Values: map[string]string{"workflow": "review*", "repository-coordinate": "octo/service"}}); err == nil {
 		t.Fatal("wildcard workflow admitted")
+	}
+	invocation, err := app.admitOperatorAction(t.Context(), hostedcli.Request{ID: "add-repository", Values: map[string]string{"repository-pattern": "Octo/New-Service"}})
+	if err != nil || invocation.Command != "gh cao repos add Octo/New-Service" || invocation.Repository != "octo/new-service" {
+		t.Fatalf("exact enrollment failed admission: %+v %v", invocation, err)
+	}
+	invocation, err = app.admitOperatorAction(t.Context(), hostedcli.Request{ID: "add-repository", Values: map[string]string{"repository-pattern": "octo/service-*"}})
+	if err != nil || invocation.Command != "gh cao repos add 'octo/service-*'" || invocation.Repository != "" {
+		t.Fatalf("wildcard enrollment failed admission: %+v %v", invocation, err)
+	}
+	for _, pattern := range []string{"octo/../other", "octo", "octo/a b", "octo/api --repo x"} {
+		if _, err := app.admitOperatorAction(t.Context(), hostedcli.Request{ID: "add-repository", Values: map[string]string{"repository-pattern": pattern}}); err == nil {
+			t.Fatalf("invalid enrollment pattern %q admitted", pattern)
+		}
+	}
+}
+
+func TestOperatorEnrollmentReachesNativeAdapterOutsideMaintenanceScope(t *testing.T) {
+	calls := make(chan []string, 1)
+	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var args []string
+		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
+			t.Error(err)
+		}
+		calls <- args
+		_, _ = w.Write([]byte("{\"complete\":true,\"exitCode\":0}\n"))
+	}))
+	defer adapter.Close()
+	app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"octo/other"}},
+	}}}
+	code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
+		ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
+			Command: "gh cao repos add octo/service-*",
+		},
+	}, func(string, []byte) {})
+	if err != nil || code == nil || *code != 0 {
+		t.Fatalf("enrollment did not execute: %v %v", code, err)
+	}
+	if args := <-calls; strings.Join(args, " ") != "repos add octo/service-*" {
+		t.Fatalf("unexpected native argv: %v", args)
+	}
+	if _, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
+		ID: 2, CLICommandInvocation: operational.CLICommandInvocation{
+			Command: "gh cao repos add octo/service", Repository: "octo/forged",
+		},
+	}, func(string, []byte) {}); err == nil {
+		t.Fatal("enrollment with a forged queue repository executed")
 	}
 }
 
@@ -57,13 +104,22 @@ func TestOperatorExecutionRechecksCurrentScopeWithoutQueueState(t *testing.T) {
 		app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
 			AdapterURL: adapter.URL, OperatorActions: scope,
 		}}}
+		var stderr strings.Builder
 		code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
 			ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
 				Command: "gh aw disable review.md --repo octo/service", Repository: "octo/service",
 			},
-		}, func(string, []byte) {})
-		if code != nil || err == nil {
+		}, func(stream string, data []byte) {
+			if stream != "stderr" {
+				t.Errorf("rejection was written to %s", stream)
+			}
+			_, _ = stderr.Write(data)
+		})
+		if code == nil || *code == 0 || err == nil {
 			t.Fatal("missing or changed scope did not fail closed")
+		}
+		if !strings.Contains(stderr.String(), "no command was started.") {
+			t.Fatalf("pre-dispatch rejection was not streamed: %q", stderr.String())
 		}
 	}
 }
@@ -87,7 +143,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	defer adapter.Close()
 	app.config.OperatorActions = &LocalOperatorConfig{
 		AdapterURL:      adapter.URL + adapterPrefix,
-		OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
+		OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"octo/control"}},
 	}
 	document := `{"dashboard":{"cli-actions":[
 		{"id":"upgrade-repository","command":"gh aw upgrade --repo {{repository}}","arguments":[{"id":"create-pull-request","flag":"--create-pull-request","default":true}]},
@@ -112,16 +168,16 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 		handler.ServeHTTP(response, req)
 		return response
 	}
-	valid := `{"id":"upgrade-repository","values":{"repository":"github/gh-aw"},"idempotencyKey":"same-request"}`
+	valid := `{"id":"upgrade-repository","values":{"repository":"octo/control"},"idempotencyKey":"same-request"}`
 	for _, test := range []struct {
 		path, body, origin string
 		status             int
 	}{
 		{"/__cli_commands", valid, "https://evil.example", 403},
 		{"/__cli_commands", valid, "", 403},
-		{"/__cli_commands", `{"id":"dispatch","values":{"repository":"github/gh-aw"}}`, "http://127.0.0.1:8080", 403},
+		{"/__cli_commands", `{"id":"dispatch","values":{"repository":"octo/control"}}`, "http://127.0.0.1:8080", 403},
 		{"/__cli_commands", `{"id":"upgrade-repository","values":{"repository":"octo/other"}}`, "http://127.0.0.1:8080", 403},
-		{"/__cli_commands", `{"id":"upgrade-repository","values":{"repository":"github/gh-aw"},"arguments":{"create-pull-request":false}}`, "http://127.0.0.1:8080", 422},
+		{"/__cli_commands", `{"id":"upgrade-repository","values":{"repository":"octo/control"},"arguments":{"create-pull-request":false}}`, "http://127.0.0.1:8080", 422},
 		{"/__cli_commands", valid, "http://127.0.0.1:8080", 202},
 		{"/__cli_commands", valid, "http://127.0.0.1:8080", 202},
 	} {
@@ -136,7 +192,7 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	defer func() { cancel(); <-done }()
 	select {
 	case args := <-calls:
-		if strings.Join(args, " ") != "upgrade --repo github/gh-aw --create-pull-request" {
+		if strings.Join(args, " ") != "upgrade --repo octo/control --create-pull-request" {
 			t.Fatalf("unexpected native argv: %v", args)
 		}
 	case <-time.After(5 * time.Second):
@@ -168,6 +224,72 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 	if !strings.Contains(index.Body.String(), "__CLI_QUEUE__ = true") || !strings.Contains(index.Body.String(), "__LOCAL_CLI_QUEUE__ = true") {
 		t.Fatal("native dashboard did not activate local maintenance controls")
 	}
+	capability := httptest.NewRecorder()
+	handler.ServeHTTP(capability, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "http://127.0.0.1:8080/?access_token="+testAccessToken, nil))
+	var session *http.Cookie
+	for _, cookie := range capability.Result().Cookies() {
+		if cookie.Name == localCLISessionCookie {
+			session = cookie
+		}
+	}
+	if session == nil || session.Path != "/__cli_commands" || !session.HttpOnly || !session.Secure || session.SameSite != http.SameSiteStrictMode || strings.Contains(session.Value, testAccessToken) {
+		t.Fatalf("worker command session cookie is missing or unscoped: %+v", session)
+	}
+	// The data worker carries only the scoped cookie, never the bearer token.
+	workerRequest := func(method, body, origin string, cookie *http.Cookie) int {
+		req := httptest.NewRequestWithContext(t.Context(), method, "http://127.0.0.1:8080/__cli_commands", bytes.NewBufferString(body))
+		req.URL.Scheme, req.URL.Host = "", ""
+		req.Header.Set("Content-Type", "application/json")
+		if origin != "" {
+			req.Header.Set("Origin", origin)
+		}
+		req.AddCookie(cookie)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, req)
+		return response.Code
+	}
+	forged := &http.Cookie{
+		Name: localCLISessionCookie, Value: strings.Repeat("0", 64), Path: "/__cli_commands",
+		Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode,
+	}
+	for _, test := range []struct {
+		method, origin string
+		cookie         *http.Cookie
+		status         int
+	}{
+		{http.MethodGet, "", session, 200},
+		{http.MethodPost, "http://127.0.0.1:8080", session, 202},
+		{http.MethodPost, "https://evil.example", session, 403},
+		{http.MethodGet, "", forged, 403},
+		{http.MethodPost, "http://127.0.0.1:8080", forged, 403},
+	} {
+		if code := workerRequest(test.method, valid, test.origin, test.cookie); code != test.status {
+			t.Fatalf("%s %s cookie=%s: got %d expected %d", test.method, test.origin, test.cookie.Value[:4], code, test.status)
+		}
+	}
+	for _, test := range []struct {
+		method, path, origin, token string
+		status                      int
+	}{
+		{http.MethodGet, "/__cli_commands", "", app.localCLISession(), 200},
+		{http.MethodPost, "/__cli_commands", "http://127.0.0.1:8080", app.localCLISession(), 202},
+		{http.MethodPost, "/__cli_commands", "https://evil.example", app.localCLISession(), 403},
+		{http.MethodPost, "/__cli_commands", "", app.localCLISession(), 403},
+		{http.MethodGet, "/__cli_commands", "", testAccessToken, 403},
+		{http.MethodGet, "/__cli_commands", "", "forged", 403},
+		{http.MethodGet, "/__cli_commands", "", "", 403},
+		{http.MethodGet, "/api/v1/diagnostics", "", app.localCLISession(), 401},
+	} {
+		req := httptest.NewRequestWithContext(t.Context(), test.method, "http://127.0.0.1:8080"+test.path, bytes.NewBufferString(valid))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", test.origin)
+		req.Header.Set("X-CAO-CLI-Session", test.token)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, req)
+		if response.Code != test.status {
+			t.Fatalf("%s %s with scoped header returned %d expected %d", test.method, test.path, response.Code, test.status)
+		}
+	}
 }
 
 func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
@@ -191,7 +313,7 @@ func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
 	}))
 	defer adapter.Close()
 	app.config.OperatorActions = &LocalOperatorConfig{
-		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"octo/control"}},
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -203,7 +325,7 @@ func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {
 	go func() {
 		code, err := app.callOperatorAdapter(ctx, operational.CLICommand{
 			ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
-				Command: "gh aw upgrade --repo github/gh-aw --create-pull-request", Repository: "github/gh-aw",
+				Command: "gh aw upgrade --repo octo/control --create-pull-request", Repository: "octo/control",
 			},
 		}, func(string, []byte) {})
 		completed <- result{code, err}
@@ -245,11 +367,11 @@ func TestOperatorDisconnectDoesNotConfirmNativeExit(t *testing.T) {
 	}))
 	defer adapter.Close()
 	app.config.OperatorActions = &LocalOperatorConfig{
-		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"github/gh-aw"}},
+		AdapterURL: adapter.URL, OperatorActions: &LocalOperatorActionsConfig{Repositories: []string{"octo/control"}},
 	}
 	code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{
 		ID: 1, CLICommandInvocation: operational.CLICommandInvocation{
-			Command: "gh aw upgrade --repo github/gh-aw --create-pull-request", Repository: "github/gh-aw",
+			Command: "gh aw upgrade --repo octo/control --create-pull-request", Repository: "octo/control",
 		},
 	}, func(string, []byte) {})
 	if code != nil || err == nil {

@@ -94,6 +94,10 @@ test("CAO Evolution is review-first, role-scoped, and deduplicated", () => {
     icon: "gear",
     mode: "review",
     "max-repositories": 1,
+    targets: {
+      "githubnext/gh-aw-wizard": { mode: "review" },
+      "githubnext/gh-aw-workshop": { mode: "review" },
+    },
     workers: Object.fromEntries(workers.map(([workerName, workflowName]) => [
       workerName,
       { workflow: workflowName },

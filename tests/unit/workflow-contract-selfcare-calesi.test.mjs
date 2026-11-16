@@ -23,7 +23,11 @@ test("Calesi registration enables only the worker within the existing target sco
   assert.equal(campaign.mode, "review");
   assert.equal(campaign["max-repositories"], 1);
   assert.equal(campaign["rollout-percent"], 100);
-  assert.deepEqual(campaign.targets, { "githubnext/gh-cao": { mode: "live" } });
+  assert.deepEqual(campaign.targets, {
+    "githubnext/gh-cao": { mode: "live" },
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
+  });
   assert.equal(controlPolicy["target-authority"].campaigns["self-care"].authority, "githubnext/gh-cao");
   const workers = Object.values(descriptor.workers);
   assert.equal(workers.length, 22);
@@ -50,7 +54,11 @@ test("production policy resolution admits the enabled worker for the existing li
   });
   assert.equal(parent.worker_policies[id].enabled, true);
   assert.equal(parent.safe_output_mode, "review");
-  assert.deepEqual(parent.target_policies, { "githubnext/gh-cao": { mode: "live" } });
+  assert.deepEqual(parent.target_policies, {
+    "githubnext/gh-cao": { mode: "live" },
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
+  });
 });
 
 test("production policy resolution denies the disabled worker in every requested mode", () => {

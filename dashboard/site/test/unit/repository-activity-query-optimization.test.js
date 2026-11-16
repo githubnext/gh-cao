@@ -20,7 +20,10 @@ import overviewContract from '../fixtures/repository-overview-contract.json' wit
 const dashboard = authoritativeDashboard.dashboard;
 /** @type {Query[]} */
 const queries = dashboard.queries;
-const canonicalNames = ['repositories', 'workflows', 'runs', 'outcomes', 'audits', 'domains', 'tools', 'issues'];
+const canonicalNames = [
+  'repositories', 'workflows', 'runs', 'output-lifecycles', 'outcomes',
+  'audits', 'domains', 'tools', 'issues'
+];
 const publicNames = [
   'repository-workflow-totals', 'repository-report-totals',
   'repository-run-totals', 'repository-activity-core', 'repository-activity'
@@ -452,17 +455,17 @@ describe('repository activity query optimization', () => {
     });
   });
 
-  it('preserves weakest quality and oldest provenance for optional imported evidence', async () => {
+  it('fails closed when canonical lifecycle provenance is unavailable', async () => {
     const sources = await canonicalSources();
-    sources.audits.metadata = {
-      ...sources.audits.metadata, completeness: 'partial', freshness: 'stale',
+    sources['output-lifecycles'].metadata = {
+      ...sources['output-lifecycles'].metadata, completeness: 'partial', freshness: 'stale',
       'as-of': '2026-09-01T00:00:00Z', 'retrieved-at': '2026-09-02T00:00:00Z'
     };
     const result = workerQuery(queries, sources);
     expect(result).toEqual(workerQuery(baseline, sources));
     expect(result['repository-activity'].metadata).toMatchObject({
-      completeness: 'partial', freshness: 'stale',
-      'as-of': '2026-09-01T00:00:00Z', 'retrieved-at': '2026-09-02T00:00:00Z'
+      completeness: 'unknown', freshness: 'unknown',
+      'as-of': '1970-01-01T00:00:00.000Z', 'retrieved-at': '1970-01-01T00:00:00.000Z'
     });
   });
 

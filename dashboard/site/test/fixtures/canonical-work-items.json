@@ -56,5 +56,31 @@
       "status": "created", "correlationId": "https://github.com/owner/repo/issues/7",
       "sequence": 1, "timestamp": "2026-09-17T11:20:00Z", "observedAt": "2026-09-17T12:00:00Z"
     }
+  ],
+  "outputLifecycles": [
+    {
+      "id": "output:old", "repositoryId": "repo:owner/repo", "workflowId": "workflow:worker",
+      "runId": "run:42:1", "safeOutputType": "create_issue", "targetRepository": "owner/repo",
+      "targetUrl": "https://github.com/owner/repo/issues/6", "title": "Old issue",
+      "deliveryState": "delivered", "deliverySignal": "safe_output.result",
+      "deliveredAt": "2026-09-17T11:10:00Z", "deliveryObservedAt": "2026-09-17T12:00:00Z",
+      "deliverySource": "safe-output", "deliveryEvidenceId": "issue:old",
+      "adoptionState": "pending", "adoptionSignal": "human_decision_pending",
+      "adoptionObservedAt": "2026-09-17T12:00:00Z", "adoptionSource": "adoption-registry",
+      "ruleVersion": "gh-aw-v1.2.3-adoption-v1", "survivalState": "unknown",
+      "observedAt": "2026-09-17T12:00:00Z"
+    },
+    {
+      "id": "output:current", "repositoryId": "repo:owner/repo", "workflowId": "workflow:worker",
+      "runId": "run:42:2", "safeOutputType": "create_issue", "targetRepository": "owner/repo",
+      "targetUrl": "https://github.com/owner/repo/issues/7", "title": "Current issue",
+      "deliveryState": "delivered", "deliverySignal": "safe_output.result",
+      "deliveredAt": "2026-09-17T11:20:00Z", "deliveryObservedAt": "2026-09-17T12:00:00Z",
+      "deliverySource": "safe-output", "deliveryEvidenceId": "issue:current",
+      "adoptionState": "pending", "adoptionSignal": "human_decision_pending",
+      "adoptionObservedAt": "2026-09-17T12:00:00Z", "adoptionSource": "adoption-registry",
+      "ruleVersion": "gh-aw-v1.2.3-adoption-v1", "survivalState": "unknown",
+      "observedAt": "2026-09-17T12:00:00Z"
+    }
   ]
 }

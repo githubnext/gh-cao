@@ -1903,60 +1903,163 @@
     ]
   },
   {
-    "name": "outcomes",
-    "stores": ["issues", "runs", "workflows", "repositories", "campaigns"],
-    "from": "issues",
-    "filter": {
-      "predicates": [
-        { "field": "event-type", "equals": "safe_output.result" }
-      ]
-    },
+    "name": "output-lifecycles",
+    "stores": ["outputLifecycles", "runs", "workflows", "repositories", "campaigns"],
+    "from": "$outputLifecycles",
     "joins": [
       {
         "source": "workflows",
         "type": "left",
-        "on": [
-          { "left": "organization", "right": "organization" },
-          { "left": "repository", "right": "repository" },
-          { "left": "workflow", "right": "workflow" }
-        ],
+        "on": [{ "left": "workflowId", "right": "id" }],
         "fields": [
-          { "field": "campaign", "as": "campaign" },
-          { "field": "campaign-name", "as": "campaign-name" },
+          { "field": "organization", "as": "organization" },
+          { "field": "repository", "as": "repository" },
+          { "field": "workflow", "as": "workflow" },
           { "field": "workflow-name", "as": "workflow-name" },
           { "field": "workflow-role", "as": "workflow-role" },
-          { "field": "workflow-link", "as": "_outcome-workflow-link" },
-          { "field": "organization-link", "as": "_outcome-organization-link" },
-          { "field": "repository-link", "as": "_outcome-repository-link" }
+          { "field": "campaign", "as": "campaign" },
+          { "field": "campaign-name", "as": "campaign-name" },
+          { "field": "organization-link", "as": "organization-link" },
+          { "field": "repository-link", "as": "repository-link" },
+          { "field": "workflow-link", "as": "workflow-link" }
+        ]
+      },
+      {
+        "source": "runs",
+        "type": "left",
+        "on": [{ "left": "runId", "right": "id" }],
+        "fields": [
+          { "field": "run", "as": "run" },
+          { "field": "run-attempt", "as": "run-attempt" },
+          { "field": "run-conclusion", "as": "run-conclusion" },
+          { "field": "rollout-mode", "as": "rollout-mode" },
+          { "field": "engine", "as": "engine" },
+          { "field": "engine-version", "as": "engine-version" },
+          { "field": "requested-model", "as": "requested-model" },
+          { "field": "resolved-model", "as": "resolved-model" },
+          { "field": "run-link", "as": "run-link" }
         ]
       }
     ],
     "compute": [
       {
-        "as": "outcome-category",
-        "function": "if",
-        "args": [{ "field": "is-pull-request" }, { "value": "pull-request" }, { "value": "issue" }]
-      },
-      {
-        "as": "_outcome-link-label",
-        "function": "if",
-        "args": [{ "field": "is-pull-request" }, { "value": "View pull request" }, { "value": "View issue" }]
-      },
-      {
         "as": "external-link",
         "function": "link",
-        "args": [{ "field": "correlation-id" }, { "field": "_outcome-link-label" }]
-      },
+        "args": [{ "field": "targetUrl" }, { "value": "View output" }]
+      }
+    ],
+    "select": [
+      { "field": "id", "as": "safe-output" },
+      { "field": "repositoryId", "as": "repository-id" },
+      { "field": "workflowId", "as": "workflow-id" },
+      { "field": "runId", "as": "run-id" },
+      { "field": "organization" },
+      { "field": "repository" },
+      { "field": "workflow" },
+      { "field": "workflow-name" },
+      { "field": "workflow-role" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "run" },
+      { "field": "run-attempt" },
+      { "field": "run-conclusion" },
+      { "field": "safeOutputType", "as": "safe-output-type" },
+      { "field": "targetRepository", "as": "target-repository" },
+      { "field": "targetUrl", "as": "target-url" },
+      { "field": "title", "as": "outcome-title" },
+      { "field": "deliveryState", "as": "delivery-state" },
+      { "field": "deliverySignal", "as": "delivery-signal" },
+      { "field": "deliveredAt", "as": "delivered-at" },
+      { "field": "deliveryObservedAt", "as": "delivery-observed-at" },
+      { "field": "deliverySource", "as": "delivery-source" },
+      { "field": "deliveryEvidenceId", "as": "delivery-evidence-id" },
+      { "field": "adoptionState", "as": "adoption-state" },
+      { "field": "adoptionSignal", "as": "adoption-signal" },
+      { "field": "adoptionAt", "as": "adoption-at" },
+      { "field": "adoptionObservedAt", "as": "adoption-observed-at" },
+      { "field": "adoptionSource", "as": "adoption-source" },
+      { "field": "ruleVersion", "as": "rule-version" },
+      { "field": "reversalSignal", "as": "reversal-signal" },
+      { "field": "reversedAt", "as": "reversed-at" },
+      { "field": "survivalState", "as": "survival-state" },
+      { "field": "survivalSignal", "as": "survival-signal" },
+      { "field": "survivalObservedAt", "as": "survival-observed-at" },
+      { "field": "observedAt", "as": "observed-at" },
+      { "field": "rollout-mode" },
+      { "field": "engine" },
+      { "field": "engine-version" },
+      { "field": "requested-model" },
+      { "field": "resolved-model" },
+      { "field": "external-link" },
+      { "field": "run-link" },
+      { "field": "organization-link" },
+      { "field": "repository-link" },
+      { "field": "workflow-link" }
+    ]
+  },
+  {
+    "name": "output-delivery-events",
+    "stores": ["outputLifecycles", "runs", "workflows", "repositories", "campaigns"],
+    "from": "output-lifecycles",
+    "filter": {
+      "predicates": [
+        { "field": "delivery-state", "equals": "delivered" },
+        { "field": "delivered-at", "gte": "0001-01-01T00:00:00Z" }
+      ]
+    },
+    "select": [
+      { "field": "safe-output" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "adoption-state" },
+      { "field": "adoption-signal" },
+      { "field": "adoption-source" },
+      { "field": "delivered-at" },
+      { "field": "delivered-at", "as": "observed-at" }
+    ]
+  },
+  {
+    "name": "output-adoption-events",
+    "stores": ["outputLifecycles", "runs", "workflows", "repositories", "campaigns"],
+    "from": "output-lifecycles",
+    "filter": {
+      "predicates": [
+        { "field": "adoption-state", "equals": "accepted" },
+        { "field": "adoption-at", "gte": "0001-01-01T00:00:00Z" }
+      ]
+    },
+    "select": [
+      { "field": "safe-output" },
+      { "field": "campaign" },
+      { "field": "campaign-name" },
+      { "field": "adoption-state" },
+      { "field": "adoption-signal" },
+      { "field": "adoption-source" },
+      { "field": "adoption-at" },
+      { "field": "adoption-at", "as": "observed-at" }
+    ]
+  },
+  {
+    "name": "outcomes",
+    "stores": ["outputLifecycles", "issues", "runs", "workflows", "repositories", "campaigns"],
+    "from": "output-lifecycles",
+    "joins": [
       {
-        "as": "issue-link",
-        "function": "if",
-        "args": [{ "field": "is-pull-request" }, { "value": null }, { "field": "external-link" }]
-      },
-      {
-        "as": "pull-request-link",
-        "function": "if",
-        "args": [{ "field": "is-pull-request" }, { "field": "external-link" }, { "value": null }]
-      },
+        "source": "issues",
+        "type": "left",
+        "on": [{ "left": "target-url", "right": "correlation-id" }],
+        "fields": [
+          { "field": "number", "as": "outcome-number" },
+          { "field": "is-pull-request", "as": "is-pull-request" },
+          { "field": "issue-state", "as": "issue-state" },
+          { "field": "issue-closed", "as": "issue-closed" },
+          { "field": "issue-state-reason", "as": "issue-state-reason" },
+          { "field": "issue-closed-at", "as": "issue-closed-at" },
+          { "field": "issue-status-observed-at", "as": "issue-status-observed-at" }
+        ]
+      }
+    ],
+    "compute": [
       {
         "as": "_safe-output-is-issue",
         "function": "equals-any",
@@ -1986,14 +2089,54 @@
         ]
       },
       {
+        "as": "_outcome-category-issue",
+        "function": "if",
+        "args": [{ "field": "_safe-output-is-issue" }, { "value": "issue" }, { "field": "safe-output-type" }]
+      },
+      {
+        "as": "outcome-category",
+        "function": "if",
+        "args": [{ "field": "_safe-output-is-pull-request" }, { "value": "pull-request" }, { "field": "_outcome-category-issue" }]
+      },
+      {
+        "as": "_outcome-link-label-issue",
+        "function": "if",
+        "args": [{ "field": "_safe-output-is-issue" }, { "value": "View issue" }, { "value": "View output" }]
+      },
+      {
+        "as": "_outcome-link-label",
+        "function": "if",
+        "args": [{ "field": "_safe-output-is-pull-request" }, { "value": "View pull request" }, { "field": "_outcome-link-label-issue" }]
+      },
+      {
+        "as": "external-link",
+        "function": "link",
+        "args": [{ "field": "target-url" }, { "field": "_outcome-link-label" }]
+      },
+      {
+        "as": "issue-link",
+        "function": "if",
+        "args": [{ "field": "_safe-output-is-issue" }, { "field": "external-link" }, { "value": null }]
+      },
+      {
+        "as": "pull-request-link",
+        "function": "if",
+        "args": [{ "field": "_safe-output-is-pull-request" }, { "field": "external-link" }, { "value": null }]
+      },
+      {
         "as": "outcome-status",
         "function": "coalesce",
-        "args": [{ "field": "event-status" }, { "value": "unknown" }]
+        "args": [{ "field": "adoption-state" }, { "value": "unknown" }]
       },
       {
         "as": "outcome-state",
         "function": "coalesce",
-        "args": [{ "field": "event-status" }, { "value": "unknown" }]
+        "args": [{ "field": "adoption-state" }, { "value": "unknown" }]
+      },
+      {
+        "as": "outcome-summary",
+        "function": "coalesce",
+        "args": [{ "field": "adoption-signal" }, { "field": "outcome-title" }, { "field": "safe-output-type" }]
       },
       {
         "as": "_issue-state-open",
@@ -2042,7 +2185,7 @@
       }
     ],
     "select": [
-      { "field": "id", "as": "safe-output" },
+      { "field": "safe-output" },
       { "field": "organization" },
       { "field": "repository" },
       { "field": "campaign" },
@@ -2054,13 +2197,31 @@
       { "field": "run" },
       { "field": "run-attempt" },
       { "field": "run-conclusion" },
+      { "field": "safe-output-type" },
       { "field": "safe-output-kind" },
-      { "field": "number", "as": "outcome-number" },
-      { "field": "event-summary", "as": "outcome-title" },
-      { "field": "event-summary", "as": "outcome-summary" },
+      { "field": "outcome-number" },
+      { "field": "outcome-title" },
+      { "field": "outcome-summary" },
       { "field": "outcome-category" },
       { "field": "outcome-status" },
       { "field": "outcome-state" },
+      { "field": "delivery-state" },
+      { "field": "delivery-signal" },
+      { "field": "delivered-at" },
+      { "field": "delivery-observed-at" },
+      { "field": "delivery-source" },
+      { "field": "delivery-evidence-id" },
+      { "field": "adoption-state" },
+      { "field": "adoption-signal" },
+      { "field": "adoption-at" },
+      { "field": "adoption-observed-at" },
+      { "field": "adoption-source" },
+      { "field": "rule-version" },
+      { "field": "reversal-signal" },
+      { "field": "reversed-at" },
+      { "field": "survival-state" },
+      { "field": "survival-signal" },
+      { "field": "survival-observed-at" },
       { "field": "issue-state" },
       { "field": "issue-closed" },
       { "field": "issue-state-reason" },
@@ -2074,15 +2235,15 @@
       { "field": "engine-version" },
       { "field": "requested-model" },
       { "field": "resolved-model" },
-      { "field": "event-timestamp", "as": "published-at" },
+      { "field": "delivered-at", "as": "published-at" },
       { "field": "observed-at" },
       { "field": "issue-link" },
       { "field": "pull-request-link" },
       { "field": "external-link" },
       { "field": "run-link" },
-      { "field": "_outcome-organization-link", "as": "organization-link" },
-      { "field": "_outcome-repository-link", "as": "repository-link" },
-      { "field": "_outcome-workflow-link", "as": "workflow-link" }
+      { "field": "organization-link" },
+      { "field": "repository-link" },
+      { "field": "workflow-link" }
     ]
   },
   {
@@ -2166,11 +2327,11 @@
       "values": [
         {
           "field": "safe-output", "as": "_pending-outputs", "reducer": "count",
-          "filter": { "predicates": [{ "field": "issue-state", "equals": "OPEN" }] }
+          "filter": { "predicates": [{ "field": "adoption-state", "equals": "pending" }] }
         },
         {
           "field": "_output-href", "as": "_pending-output-href", "reducer": "unique",
-          "filter": { "predicates": [{ "field": "issue-state", "equals": "OPEN" }] }
+          "filter": { "predicates": [{ "field": "adoption-state", "equals": "pending" }] }
         },
         { "field": "outcome-category", "as": "_output-kind", "reducer": "unique" }
       ]

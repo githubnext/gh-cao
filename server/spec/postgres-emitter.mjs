@@ -289,6 +289,15 @@ ${table.partitioned ? '  run_at TIMESTAMPTZ NOT NULL,\n' : ''}
         statements.push(`CREATE INDEX IF NOT EXISTS operational_values_workflow_route ON operational_values
   (namespace, repository_id, workflow, workflow_slug);`);
       }
+      if (table.collection === 'outputLifecycles') {
+        statements.push(`CREATE INDEX IF NOT EXISTS output_lifecycles_target ON output_lifecycles
+  (namespace, target_url) WHERE target_url IS NOT NULL;`);
+        statements.push(`CREATE INDEX IF NOT EXISTS output_lifecycles_run ON output_lifecycles
+  (namespace, run_id, id);`);
+        statements.push(`CREATE INDEX IF NOT EXISTS output_lifecycles_repair ON output_lifecycles
+  (namespace, repository_id, adoption_observed_at, id)
+  WHERE target_url IS NOT NULL AND safe_output_type IN ('create_issue','create_pull_request');`);
+      }
       if (table.partitioned) statements.push(`CREATE INDEX IF NOT EXISTS ${table.name}_identity ON ${table.name} (namespace, id);`);
       if (table.collection === 'runs') {
         statements.push(`CREATE INDEX IF NOT EXISTS runs_statistical_watermark ON runs

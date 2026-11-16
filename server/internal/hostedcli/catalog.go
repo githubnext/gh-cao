@@ -28,11 +28,12 @@ var catalogLog = logger.New("cao:hostedcli:catalog")
 const MaxInputCharacters = 100000
 
 var (
-	templateToken  = regexp.MustCompile(`\{\{([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\}\}`)
-	actionID       = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
-	repositorySlug = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9_.-]*/[A-Za-z0-9_.][A-Za-z0-9_.-]*$`)
-	safeToken      = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9_.:/@-]*$`)
-	safeURL        = regexp.MustCompile(`^https://[A-Za-z0-9._~:/%+-]+$`)
+	templateToken     = regexp.MustCompile(`\{\{([a-z][a-z0-9]*(?:-[a-z0-9]+)*)\}\}`)
+	actionID          = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
+	repositorySlug    = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9_.-]*/[A-Za-z0-9_.][A-Za-z0-9_.-]*$`)
+	repositoryPattern = regexp.MustCompile(`^[A-Za-z0-9_.*][A-Za-z0-9_.*-]*/[A-Za-z0-9_.*][A-Za-z0-9_.*-]*$`)
+	safeToken         = regexp.MustCompile(`^[A-Za-z0-9_.][A-Za-z0-9_.:/@-]*$`)
+	safeURL           = regexp.MustCompile(`^https://[A-Za-z0-9._~:/%+-]+$`)
 )
 
 var contextFields = map[string]bool{"cao-url": true, "cao-repository": true, "cao-repository-url": true}
@@ -59,10 +60,11 @@ type Argument struct {
 
 // Action is one dashboard-declared CLI action.
 type Action struct {
-	ID        string     `json:"id"`
-	Command   string     `json:"command"`
-	CopyOnly  bool       `json:"copy-only"`
-	Arguments []Argument `json:"arguments"`
+	ID        string              `json:"id"`
+	Command   string              `json:"command"`
+	CopyOnly  bool                `json:"copy-only"`
+	Arguments []Argument          `json:"arguments"`
+	Selector  *RepositorySelector `json:"selector,omitempty"`
 }
 
 // Catalog is the immutable set of declared actions loaded from dashboard.json.
@@ -230,6 +232,8 @@ func render(command string, values map[string]string, context TemplateContext) (
 		}
 		pattern := safeToken
 		switch {
+		case field == "repository-pattern":
+			pattern = repositoryPattern
 		case urlField:
 			pattern = safeURL
 		case field == "repository" || field == "cao-repository":
@@ -244,6 +248,9 @@ func render(command string, values map[string]string, context TemplateContext) (
 				renderErr = err
 				return ""
 			}
+		}
+		if field == "repository-pattern" && strings.Contains(value, "*") {
+			return "'" + value + "'"
 		}
 		return value
 	})

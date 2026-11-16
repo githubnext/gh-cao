@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -347,5 +348,52 @@ func TestCampaignWorkflowFailureIsNotSuccess(t *testing.T) {
 	}
 	if calls != 1 || stdout.Len() != 0 {
 		t.Fatalf("continued or reported success on workflow failure: calls=%d, stdout=%q", calls, stdout)
+	}
+}
+
+func TestNativePolicyValidatesTokenBroker(t *testing.T) {
+	content, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "cao.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := nativeDecodeJSON(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nativeValidatePolicy(value.(map[string]any)); err != nil {
+		t.Fatalf("checked-in policy rejected: %v", err)
+	}
+	rule := map[string]any{
+		"repository-id": "1", "owner-id": "2", "workflow-sha": strings.Repeat("a", 40),
+		"workflow-ref": "octo/control/.github/workflows/agent.lock.yml@refs/heads/main",
+	}
+	broker := func(workflows ...any) map[string]any {
+		policy, _ := nativeDecodeJSON(content)
+		policy.(map[string]any)["control-plane"].(map[string]any)["token-broker"] = map[string]any{"copilot-requests": map[string]any{"workflows": workflows}}
+		return policy.(map[string]any)
+	}
+	if err := nativeValidatePolicy(broker(rule)); err != nil {
+		t.Fatalf("valid broker rejected: %v", err)
+	}
+	for name, mutate := range map[string]func(map[string]any){
+		"zero id": func(r map[string]any) { r["owner-id"] = "0" },
+		"lock ref": func(r map[string]any) {
+			r["workflow-ref"] = "octo/control/.github/workflows/agent.yml@refs/heads/x.lock"
+		},
+		"traversal":   func(r map[string]any) { r["workflow-ref"] = "octo/control/.github/workflows/agent.yml@refs/heads/a..b" },
+		"short sha":   func(r map[string]any) { r["workflow-sha"] = "abc" },
+		"unknown key": func(r map[string]any) { r["extra"] = true },
+	} {
+		invalid := map[string]any{}
+		for key, value := range rule {
+			invalid[key] = value
+		}
+		mutate(invalid)
+		if nativeValidatePolicy(broker(invalid)) == nil {
+			t.Fatalf("%s broker accepted", name)
+		}
+	}
+	if nativeValidatePolicy(broker(rule, rule)) == nil {
+		t.Fatal("duplicate broker workflow accepted")
 	}
 }

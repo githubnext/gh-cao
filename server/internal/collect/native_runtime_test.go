@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
-	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
@@ -18,8 +17,11 @@ type nativeRuntimeHooks struct {
 func (nativeRuntimeHooks) RefreshInventory(context.Context, collectnative.EnrollmentScope) error {
 	return nil
 }
-func (nativeRuntimeHooks) RecordOutcome(context.Context, collectnative.EnrollmentScope, mining.Outcome) error {
-	return nil
+func (nativeRuntimeHooks) Due(context.Context, collectnative.EnrollmentScope, time.Time) (bool, error) {
+	return false, nil
+}
+func (nativeRuntimeHooks) Refresh(context.Context, collectnative.EnrollmentScope, bool) (bool, error) {
+	return false, nil
 }
 func (h nativeRuntimeHooks) InvalidateValue(ctx context.Context, scope collectnative.EnrollmentScope) error {
 	select {

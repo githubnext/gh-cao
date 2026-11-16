@@ -19,7 +19,9 @@
         "github/gh-aw-mcpg",
         "github/gh-aw-actions",
         "github/gh-aw-threat-detection",
-        "githubnext/gh-cao"
+        "githubnext/gh-cao",
+        "githubnext/gh-aw-wizard",
+        "githubnext/gh-aw-workshop"
       ]
     },
     "activity": {
@@ -101,6 +103,14 @@
             "enabled": false,
             "max-mode": "review"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "continuous-architecture-review": {
@@ -112,6 +122,14 @@
           "implementation": {
             "workflow": "continuous-architecture-review-implementation"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "uk-ai-advisory": {
@@ -119,6 +137,14 @@
         "workers": {
           "operational-resilience": {
             "workflow": "uk-ai-advisory-operational-resilience"
+          }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
           }
         }
       },
@@ -145,6 +171,14 @@
           "reliability": {
             "workflow": "cao-evolution-reliability"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "bug-bash": {
@@ -156,6 +190,14 @@
             "workflow": "bug-bash-investigation",
             "max-mode": "review"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "dependabot": {
@@ -166,6 +208,12 @@
         "targets": {
           "github/gh-aw": {
             "mode": "live"
+          },
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
           }
         },
         "workers": {
@@ -182,6 +230,14 @@
           "agents-md-curator": {
             "workflow": "dreaming-agents-md-curator",
             "max-mode": "review"
+          }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
           }
         }
       },
@@ -206,6 +262,14 @@
           "conformity-release-evidence": {
             "workflow": "eu-cra-compliance-conformity-release-evidence"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "eslint-rules": {
@@ -228,6 +292,14 @@
           "librarian": {
             "workflow": "eslint-rules-librarian"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "optimization": {
@@ -243,6 +315,14 @@
             "workflow": "optimization-token-optimizer",
             "max-mode": "review"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "software-development-practices": {
@@ -253,6 +333,14 @@
           },
           "nist-ssdf": {
             "workflow": "software-development-practices-nist-ssdf"
+          }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
           }
         }
       },
@@ -273,6 +361,14 @@
           "pr-upkeep": {
             "workflow": "repo-assist-pr-upkeep"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "self-care": {
@@ -283,6 +379,12 @@
         "targets": {
           "githubnext/gh-cao": {
             "mode": "live"
+          },
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
           }
         },
         "workers": {
@@ -473,7 +575,15 @@
             "repository": "github/gh-aw",
             "workflow": "dependabot-update-planner"
           }
-        ]
+        ],
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
+        }
       }
     }
   },

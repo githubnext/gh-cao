@@ -56,6 +56,13 @@ export function createCanonicalQueries(indexedDB) {
     friction: runLinkedQueries(indexedDB, 'friction'),
     audits: runLinkedQueries(indexedDB, 'audits'),
     issues: runLinkedQueries(indexedDB, 'issues'),
+    outputLifecycles: {
+      list: () => readCollection(indexedDB, 'outputLifecycles'),
+      forWorkflow: (/** @type {string} */ workflowId) =>
+        readIndex(indexedDB, 'outputLifecycles', 'byWorkflow', [workflowId]),
+      forRun: (/** @type {string} */ runId) =>
+        readIndex(indexedDB, 'outputLifecycles', 'byRun', [runId])
+    },
     operationalValues: {
       list: () => readCollection(indexedDB, 'operationalValues'),
       forRepository: (/** @type {string} */ repositoryId) =>

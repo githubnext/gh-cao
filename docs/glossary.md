@@ -80,7 +80,7 @@ The Actions-only `cao-validate.yml` workflow, implemented in the shipped JavaScr
 
 ## CLI command queue
 
-A durable first-in-first-out queue of declared CLI actions, separate from the collection task queue. The Go server owns local maintenance state in the selected PostgreSQL operational namespace, while the native CLI requires fresh terminal approval before execution. Hosted actions have separate enablement and authorization. Queued commands survive restart; uncertain subprocess termination blocks new starts until reconciled. See the [dashboard README](https://github.com/githubnext/gh-cao/blob/main/dashboard/README.md#cli-command-queue) and the [operational storage specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
+A durable first-in-first-out queue of declared CLI actions, separate from the collection task queue. The Go server owns local maintenance state in the selected PostgreSQL operational namespace; dashboard-confirmed commands execute through the native CLI without terminal prompts. Hosted actions have separate enablement and authorization. Queued commands survive restart; uncertain subprocess termination blocks new starts until reconciled. See the [dashboard README](https://github.com/githubnext/gh-cao/blob/main/dashboard/README.md#cli-command-queue) and the [operational storage specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 
 ## Cold-start seed
 
@@ -160,7 +160,7 @@ The control repository's exclusive right to admit a `live` worker for a campaign
 
 ## Local disable
 
-An explicit, locally approved maintenance action in `gh cao dashboard` that disables a repository's or one exact workflow's future agentic runs. Unlike update and upgrade, it publishes no pull request. It first cancels in-progress gh-aw runs, reads the Markdown inventory and cancellation scope from a private checkout of the approved repository, and requires fresh trusted terminal approval. Hosted disable is unsupported, and campaign disable remains a policy deactivation that does not cancel active runs. See the [dashboard data specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md) and [ADR 20949](https://github.com/githubnext/gh-cao/blob/main/adr/20949-local-disable-without-publication.md).
+An explicit, locally approved maintenance action in `gh cao dashboard` that disables a repository's or one exact workflow's future agentic runs. Unlike update and upgrade, it publishes no pull request. It first cancels in-progress gh-aw runs, reads the Markdown inventory and cancellation scope from a private checkout of the approved repository, and requires fresh dashboard confirmation before direct queue execution. Hosted disable is unsupported, and campaign disable remains a policy deactivation that does not cancel active runs. See the [dashboard data specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md) and [ADR 20949](https://github.com/githubnext/gh-cao/blob/main/adr/20949-local-disable-without-publication.md).
 
 ## Local PostgreSQL namespace
 

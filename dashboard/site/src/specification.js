@@ -332,7 +332,10 @@ export const BUILT_IN_PAGE_REQUIRED_FIELDS = {
     'repository-activity': ['repository', 'runs', 'failure-summary', 'aic', 'workflows', 'status']
   },
   campaigns: {
-    'campaign-inventory': ['campaign-name', 'workflows', 'roles', 'modes', 'registration', 'runs', 'aic']
+    'campaign-inventory': [
+      'campaign-name', 'workflows', 'roles', 'modes', 'registration', 'runs', 'aic',
+      'delivered', 'accepted', 'pending', 'rejected-lifecycle', 'unknown-not-applicable', 'first-blocker'
+    ]
   },
   workflows: {
     workflows: ['workflow-active', 'rollout-mode']
@@ -503,6 +506,7 @@ export const TABLE_FIELDS = {
   friction: ['id', 'organization', 'repository', 'workflow', 'run', 'run-attempt', 'event', 'event-timestamp', 'event-source', 'event-type', 'event-summary', 'correlation-id', 'payload-ref', 'measurement-state', 'canonical-unit', 'total-events', 'total-occurrences', 'counted-occurrences', 'suppressed-occurrences', 'linked-invocations', 'unattributed-occurrences', 'aic', 'input-tokens', 'output-tokens', 'cache-read-tokens', 'cache-write-tokens', 'reasoning-tokens', 'total-tokens', 'turns', 'tool-calls', 'latency-ms', 'total-run-aic', 'friction-ratio', 'derived', 'events-truncated', 'decision', 'source-sequence', 'observed-at', 'run-link', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'model-id', 'rollout-mode', 'gh-aw-version', 'run-conclusion', 'agent-id', 'agent-version', 'agent-runtime', 'organization-link', 'repository-link', 'workflow-link', 'evidence-state', 'evidence-confidence', 'cost-grain', 'missing-reason'],
   audits: ['id', 'organization', 'repository', 'workflow', 'run', 'run-attempt', 'event', 'event-timestamp', 'event-source', 'event-type', 'event-summary', 'event-status', 'code', 'correlation-id', 'payload-ref', 'name', 'activation-source', 'measurement-state', 'total-events', 'linked-invocations', 'aic', 'input-tokens', 'output-tokens', 'cache-read-tokens', 'cache-write-tokens', 'reasoning-tokens', 'total-tokens', 'turns', 'tool-calls', 'events-truncated', 'decision', 'source-sequence', 'observed-at', 'run-link', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'model-id', 'rollout-mode', 'gh-aw-version', 'run-conclusion', 'agent-id', 'agent-version', 'agent-runtime', 'organization-link', 'repository-link', 'workflow-link', 'target-repo', 'target-organization', 'target-repository', 'target-workflow-path', 'optimizer-run-attempt', 'optimizer-workflow-path', 'optimizer-workflow-name', 'claim-run-id', 'claim-run-attempt', 'actor', 'opportunity-id', 'opportunity-kind', 'assignment-run', 'experiment', 'evidence-window-start', 'evidence-window-end', 'evidence-state', 'evidence-confidence', 'cost-grain', 'intervention-id', 'lifecycle-observation-id', 'previous-intervention-state', 'intervention-state', 'previous-recommendation-disposition', 'recommendation-disposition', 'supersedes-intervention-id', 'superseded-by-intervention-id', 'recommendation-churn-count', 'recommendation-churn-rate', 'control-variant', 'optimized-variant', 'proposed-savings-aic', 'missing-reason', 'implementation-change-id', 'implementation-pull-request-url', 'accepted-at', 'implementation-started-at', 'implementation-completed-at', 'rejected-at', 'superseded-at'],
   issues: ['id', 'organization', 'repository', 'workflow', 'run', 'run-attempt', 'event', 'event-timestamp', 'event-source', 'event-type', 'event-summary', 'event-status', 'correlation-id', 'payload-ref', 'safe-output-type', 'github-entity-type', 'is-pull-request', 'issue-state', 'issue-closed', 'issue-state-reason', 'issue-closed-at', 'issue-status-observed-at', 'number', 'name', 'source-sequence', 'observed-at', 'run-link', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'model-id', 'rollout-mode', 'gh-aw-version', 'run-conclusion', 'agent-id', 'agent-version', 'agent-runtime', 'organization-link', 'repository-link', 'workflow-link', 'safe-output-id', 'safe-output-url'],
+  'output-lifecycles': ['safe-output', 'repository-id', 'workflow-id', 'run-id', 'organization', 'repository', 'workflow', 'workflow-name', 'run', 'run-attempt', 'safe-output-type', 'target-repository', 'target-url', 'outcome-title', 'delivery-state', 'delivery-signal', 'delivered-at', 'delivery-observed-at', 'delivery-source', 'delivery-evidence-id', 'adoption-state', 'adoption-signal', 'adoption-at', 'adoption-observed-at', 'adoption-source', 'rule-version', 'reversal-signal', 'reversed-at', 'survival-state', 'survival-signal', 'survival-observed-at', 'observed-at', 'run-link', 'organization-link', 'repository-link', 'workflow-link', 'rollout-mode', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'run-conclusion', 'external-link'],
   transactions: ['activity-status', 'id', 'kind', 'createdAt', 'payloadScope', 'payloadHash', 'payloadEtag', 'records', 'committedRecords', 'rawPayloadRecords', 'rawRuns', 'agenticRunRecords', 'agenticRuns', 'duplicateRawRunObservations', 'duplicateAgenticRunObservations', 'unenrichedRuns', 'ingestionStatus', 'ingestionMessage', 'ingestionRepository', 'scannedHours', 'targetHours', 'apiRemaining', 'apiReserve', 'apiResetAt', 'nextAttemptAt', 'error'],
   admissions: ['organization', 'repository', 'workflow', 'run', 'observed-at', 'campaign', 'workflow-role', 'worker', 'target-repository', 'admission-status', 'admission-reason', 'failed-check', 'github-api-status', 'github-api-remaining', 'github-api-required', 'github-api-reset-at', 'runner-disk-status', 'runner-disk-available-mb', 'runner-disk-required-mb', 'run-link'],
   'admission-checks': ['organization', 'repository', 'workflow', 'run', 'observed-at', 'campaign', 'workflow-role', 'worker', 'target-repository', 'admission-status', 'admission-reason', 'failed-check', 'check', 'check-order', 'check-status', 'github-api-status', 'github-api-remaining', 'github-api-required', 'github-api-reset-at', 'runner-disk-status', 'runner-disk-available-mb', 'runner-disk-required-mb', 'run-link'],
@@ -527,7 +531,7 @@ export const TABLE_FIELDS = {
   'source-metadata': ['source', 'row-count', 'source-id', 'source-kind', 'as-of', 'retrieved-at', 'availability', 'completeness', 'freshness', 'collection-operation', 'collection-state', 'collection-progress', 'collection-reason', 'failure-class', 'collector-completed-at', 'coverage-start', 'coverage-end', 'requested-coverage-start', 'requested-coverage-end', 'coverage-expected', 'coverage-observed', 'snapshot-age-seconds', 'fallback-used'],
   'runtime-episode-summary': ['label', 'value'],
   'runtime-attribution-gaps': ['run', 'run-title', 'workflow', 'status', 'control-transition', 'reason-code', 'evidence', 'run-link'],
-  outcomes: ['organization', 'repository', 'campaign', 'runtime-repository', 'workflow', 'workflow-name', 'run', 'run-conclusion', 'safe-output', 'safe-output-kind', 'outcome-number', 'outcome-title', 'outcome-summary', 'outcome-category', 'outcome-status', 'outcome-state', 'issue-state', 'issue-closed', 'issue-state-reason', 'issue-status', 'issue-closing-status', 'issue-status-detail', 'issue-closed-at', 'issue-status-observed-at', 'rollout-mode', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'published-at', 'observed-at', 'issue-link', 'pull-request-link', 'run-link', 'external-link', 'organization-link', 'repository-link', 'workflow-link'],
+  outcomes: ['organization', 'repository', 'campaign', 'runtime-repository', 'workflow', 'workflow-name', 'run', 'run-conclusion', 'safe-output', 'safe-output-kind', 'safe-output-type', 'outcome-number', 'outcome-title', 'outcome-summary', 'outcome-category', 'outcome-status', 'outcome-state', 'delivery-state', 'delivery-signal', 'delivered-at', 'delivery-observed-at', 'delivery-source', 'delivery-evidence-id', 'adoption-state', 'adoption-signal', 'adoption-at', 'adoption-observed-at', 'adoption-source', 'rule-version', 'reversal-signal', 'reversed-at', 'survival-state', 'survival-signal', 'survival-observed-at', 'issue-state', 'issue-closed', 'issue-state-reason', 'issue-status', 'issue-closing-status', 'issue-status-detail', 'issue-closed-at', 'issue-status-observed-at', 'rollout-mode', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'published-at', 'observed-at', 'issue-link', 'pull-request-link', 'run-link', 'external-link', 'organization-link', 'repository-link', 'workflow-link'],
   'safe-output-performance': ['organization', 'repository', 'workflow', 'run', 'run-conclusion', 'rollout-mode', 'safe-output-kind', 'safe-output-label', 'safe-output-status', 'safe-output-count', 'observed-at', 'run-link'],
   findings: ['organization', 'repository', 'workflow', 'run', 'safe-output', 'code', 'finding-kind', 'finding-severity', 'finding-status', 'finding-summary', 'observed-at', 'engine', 'engine-version', 'requested-model', 'resolved-model', 'issue-link', 'pull-request-link', 'run-link', 'external-link', 'organization-link', 'repository-link', 'workflow-link'],
   'operational-values': ['id', 'organization', 'repository', 'repository-name', 'workflow', 'campaign', 'campaign-name', 'campaign-icon', 'evaluator-digest', 'cadence-days', 'window-start', 'window-end', 'measurement-kind', 'coverage-status', 'missing-reason', 'eligible-count', 'population-digest', 'evidence-digest', 'operational-value', 'operational-value-definition', 'operational-value-role', 'operational-value-name', 'operational-value-unit', 'operational-value-direction', 'rollup-numerator', 'rollup-denominator', 'maturity-status', 'adoption-at', 'evaluation-mode', 'workflow-slug', 'workflow-name', 'observed-at', 'organization-link', 'repository-link', 'campaign-link', 'run-link'],
@@ -670,6 +674,8 @@ export const SOURCE_ENTITY_IDENTIFIER_FIELDS = {
   'runtime-episode-summary': ['label'],
   'runtime-episodes': ['run'],
   'runtime-attribution-gaps': ['run'],
+  'output-delivery-events': ['safe-output'],
+  'output-adoption-events': ['safe-output'],
   outcomes: ['safe-output'],
   findings: ['code'],
   'operational-values': ['operational-value-definition', 'observed-at'],
@@ -751,6 +757,14 @@ export const SYNTHETIC_SOURCE_FIELDS = {
 };
 
 export const DATABASE_QUERY_SOURCE_FIELDS = {
+  'output-delivery-events': [
+    'safe-output', 'campaign', 'campaign-name', 'adoption-state', 'adoption-signal',
+    'adoption-source', 'delivered-at', 'observed-at'
+  ],
+  'output-adoption-events': [
+    'safe-output', 'campaign', 'campaign-name', 'adoption-state', 'adoption-signal',
+    'adoption-source', 'adoption-at', 'observed-at'
+  ],
   'workflow-identities': TABLE_FIELDS.workflows,
   'overview-run-identities': TABLE_FIELDS['overview-runs'],
   'workflow-subject-topology': [
@@ -796,6 +810,12 @@ export const TEMPORAL_FIELD_NAMES = [
   'window-end',
   'maturity-at',
   'published-at',
+  'delivered-at',
+  'delivery-observed-at',
+  'adoption-at',
+  'adoption-observed-at',
+  'reversed-at',
+  'survival-observed-at',
   'reset-at',
   'projected-exhaustion-at',
   'evidence-horizon-start',

@@ -1,7 +1,7 @@
 import { createDebug } from "./debug.js";
 import { DEFERRED_STYLE_CLASS_SETS } from "./deferred-style-classes.js";
 
-const debugStyles = createDebug("render:styles");
+const debugStyles = createDebug("deferred-styles");
 
 /** @type {WeakMap<Document, MutationObserver>} */
 const observers = new WeakMap();
@@ -30,14 +30,16 @@ export function requestDeferredStyles(document, reason = "requested") {
   let deferredStyles = document.querySelector("link[data-dashboard-deferred-styles]");
   if (!(deferredStyles instanceof HTMLLinkElement)) {
     const link = document.createElement("link");
-    const settle = () => {
+    /** @param {"loaded" | "error"} status */
+    const settle = (status) => {
+      debugStyles({ event: "deferred-styles-settled", status });
       link.dataset.dashboardDeferredStyles = "loaded";
       observers.get(document)?.disconnect();
       observers.delete(document);
       delete document.documentElement.dataset.deferredStyles;
     };
-    link.addEventListener("load", settle, { once: true });
-    link.addEventListener("error", settle, { once: true });
+    link.addEventListener("load", () => settle("loaded"), { once: true });
+    link.addEventListener("error", () => settle("error"), { once: true });
     link.rel = "stylesheet";
     link.href = startupStyles.dataset.deferredHref ?? "";
     link.dataset.dashboardDeferredStyles = "";

@@ -8,13 +8,21 @@ import (
 )
 
 var maintenanceWorkflow = regexp.MustCompile(`^(?:\.github/workflows/)?[A-Za-z0-9][A-Za-z0-9_.-]*\.md$`)
+var enrollmentPattern = regexp.MustCompile(`^[A-Za-z0-9_.*-]+/[A-Za-z0-9_.*-]+$`)
 
-// PlanLocalMaintenance is for the private, terminal-approved native adapter.
+func LocalRepositoryOperationsAllowed(repository string) bool {
+	return !strings.EqualFold(repository, "github/gh-aw")
+}
+
+// PlanLocalMaintenance is for the private, queue-authorized native adapter.
 // It deliberately does not extend PlanCommand or hosted credential grants.
 func PlanLocalMaintenance(command string) (Plan, error) {
 	tokens, err := Tokenize(command)
 	if err != nil {
 		return Plan{}, err
+	}
+	if hasPrefix(tokens, "gh", "cao", "repos", "add") {
+		return planRepositoryEnrollment(tokens[4:])
 	}
 	if hasPrefix(tokens, "gh", "aw", "upgrade") {
 		return planUpgrade(tokens[3:])
@@ -54,4 +62,18 @@ func PlanLocalMaintenance(command string) (Plan, error) {
 		normalized = append(normalized, strings.TrimSuffix(path.Base(target), ".md"))
 	}
 	return Plan{Program: "gh-aw", Args: append(normalized, args...), Repository: args[1]}, nil
+}
+
+// planRepositoryEnrollment stages review-mode enrollment in the native CLI's
+// local policy checkout. The new target is outside the selected maintenance
+// scope by definition, so Repository is set only for exact names.
+func planRepositoryEnrollment(args []string) (Plan, error) {
+	if len(args) != 1 || len(args[0]) > 200 || strings.Contains(args[0], "..") || !enrollmentPattern.MatchString(args[0]) {
+		return Plan{}, errors.New("repository enrollment requires one OWNER/REPO with optional * wildcards")
+	}
+	plan := Plan{Kind: KindCaoReposAdd, Program: "gh-cao", Args: []string{"repos", "add", args[0]}}
+	if ValidRepository(args[0]) {
+		plan.Repository = strings.ToLower(args[0])
+	}
+	return plan, nil
 }

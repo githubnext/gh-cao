@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "4.1.0",
+    "version": "4.3.0",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -47,6 +47,262 @@
     }
   ],
   "paths": {
+    "/__cli_commands/selector": {
+      "post": {
+        "operationId": "Operations_repositorySelector",
+        "description": "Local native dashboard only. Resolves a declared repository selector through GitHub search using the owning CLI's credentials, without terminal approval or writes. Requires the local bearer capability or scoped HttpOnly CLI cookie and an exact same-origin Origin header. The action declaration owns the fields, mapping and result limit (1–50); lookup takes at most 15 seconds. Wildcards are rejected here and remain explicitly selectable patterns in the UI. Search failures are reported, never replaced with an unverified typed repository. Not registered for hosted OAuth or a dashboard without native operator actions. Responses are not cached.",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositorySelectorResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ingestion and administration"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepositorySelectorRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "LocalCLIResourceSession": []
+          }
+        ]
+      }
+    },
+    "/__cli_commands/{id}/output": {
+      "get": {
+        "operationId": "Operations_commandOutput",
+        "description": "Replay and follow one command as newline-delimited JSON. Requires local bearer/scoped CLI cookie or a freshly assured hosted administrator session. Registered only when the command queue is enabled. Output events carry type=output, sequence, stream and data; after resumes strictly after an output sequence. Active commands send a flushed type=status event with the command on attachment and whenever its status changes, even before output exists. Settled commands end with type=complete, command and result. Failures after streaming starts use type=error and error. Dashboard-confirmed local commands execute directly through the queue without terminal prompts. Repository Update uses gh aw upgrade with pull-request publication for built-in or exact CAO-managed targets; policy scope is checked freshly at admission and native execution. The exact upstream github/gh-aw is excluded from all local operations, including enrollment, even if configured or selected; read-only evidence is retained. Collection and destructive disable scope do not expand. Catalog validation, same-origin authorization and subprocess settlement remain mandatory. Disconnecting only detaches and never cancels or re-enqueues the command.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/x-ndjson; charset=utf-8": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ingestion and administration"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "LocalCLIResourceSession": []
+          }
+        ]
+      }
+    },
     "/api/admin/collection/status": {
       "get": {
         "operationId": "Operations_collectionStatus",
@@ -68,16 +324,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -87,16 +334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -106,16 +344,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -183,16 +412,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -202,16 +422,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -221,16 +432,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -279,16 +481,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -298,16 +491,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -317,16 +501,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -336,16 +511,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -384,16 +550,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -403,16 +560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -564,16 +712,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -738,16 +877,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -757,16 +887,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -776,16 +897,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -795,16 +907,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -847,16 +950,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -871,16 +965,7 @@
                       "$ref": "#/components/schemas/HealthResponse"
                     },
                     {
-                      "type": "object",
-                      "required": [
-                        "error"
-                      ],
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "An error response. The message is diagnostic, not a stable error code."
+                      "$ref": "#/components/schemas/FailureBody"
                     }
                   ]
                 }
@@ -914,16 +999,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -938,16 +1014,7 @@
                       "$ref": "#/components/schemas/ReadinessResponse"
                     },
                     {
-                      "type": "object",
-                      "required": [
-                        "error"
-                      ],
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "An error response. The message is diagnostic, not a stable error code."
+                      "$ref": "#/components/schemas/FailureBody"
                     }
                   ]
                 }
@@ -984,16 +1051,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1003,16 +1061,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1061,16 +1110,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1080,16 +1120,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1099,16 +1130,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1160,16 +1182,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1179,16 +1192,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1198,16 +1202,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1474,16 +1469,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1493,16 +1479,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1542,16 +1519,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1561,16 +1529,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1632,16 +1591,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1651,16 +1601,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1670,16 +1611,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1689,16 +1621,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1708,16 +1631,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1727,16 +1641,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1773,16 +1678,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1792,16 +1688,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1811,16 +1698,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1960,16 +1838,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1979,16 +1848,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -1998,16 +1858,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2017,16 +1868,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2044,21 +1886,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "allOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "error"
-                      ],
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "An error response. The message is diagnostic, not a stable error code."
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2076,21 +1904,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "allOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "error"
-                      ],
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "An error response. The message is diagnostic, not a stable error code."
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2233,16 +2047,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2252,16 +2057,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2271,16 +2067,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2290,16 +2077,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2317,21 +2095,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "allOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "error"
-                      ],
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "An error response. The message is diagnostic, not a stable error code."
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2349,21 +2113,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "allOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "error"
-                      ],
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "An error response. The message is diagnostic, not a stable error code."
-                    }
-                  ]
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2406,16 +2156,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2430,16 +2171,7 @@
                       "$ref": "#/components/schemas/HealthResponse"
                     },
                     {
-                      "type": "object",
-                      "required": [
-                        "error"
-                      ],
-                      "properties": {
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "description": "An error response. The message is diagnostic, not a stable error code."
+                      "$ref": "#/components/schemas/FailureBody"
                     }
                   ]
                 }
@@ -2473,16 +2205,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2492,16 +2215,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2511,16 +2225,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2571,16 +2276,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2590,16 +2286,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2609,16 +2296,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2666,16 +2344,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2685,16 +2354,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2704,16 +2364,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2769,16 +2420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2788,16 +2430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2807,16 +2440,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2826,16 +2450,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2901,16 +2516,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2920,16 +2526,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2939,16 +2536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2958,16 +2546,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -2977,16 +2556,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3036,16 +2606,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3055,16 +2616,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3074,16 +2626,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3103,16 +2646,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3122,16 +2656,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3210,16 +2735,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3229,16 +2745,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3248,16 +2755,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3306,16 +2804,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3325,16 +2814,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3344,16 +2824,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3363,16 +2834,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3382,16 +2844,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3401,16 +2854,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3420,16 +2864,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3479,16 +2914,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3498,16 +2924,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3517,16 +2934,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3536,16 +2944,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3594,16 +2993,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3613,16 +3003,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3632,16 +3013,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3651,16 +3023,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3670,16 +3033,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3689,16 +3043,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3708,16 +3053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3727,16 +3063,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3803,16 +3130,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3822,16 +3140,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3841,16 +3150,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3910,16 +3210,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3929,16 +3220,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -3948,16 +3230,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4043,16 +3316,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4062,16 +3326,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4081,16 +3336,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4100,16 +3346,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4143,16 +3380,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4162,16 +3390,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4181,16 +3400,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4277,16 +3487,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4296,16 +3497,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4315,16 +3507,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4372,16 +3555,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4391,16 +3565,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4508,16 +3673,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4527,16 +3683,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4546,16 +3693,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4565,16 +3703,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4584,16 +3713,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -4603,16 +3723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "description": "An error response. The message is diagnostic, not a stable error code."
+                  "$ref": "#/components/schemas/FailureBody"
                 }
               }
             }
@@ -5214,6 +4325,18 @@
           }
         },
         "description": "Terminal projection of processed rows into at most 64 chart panels. Declare field alone, or row and/or column; as names each panel's ordered row sequence."
+      },
+      "FailureBody": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "description": "An error response. The message is diagnostic, not a stable error code."
       },
       "Filter": {
         "type": "object",
@@ -6426,6 +5549,65 @@
           }
         }
       },
+      "RepositorySelectorOption": {
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "description"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "RepositorySelectorRequest": {
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dashboard-declared action identity; executable text, fields and mappings are never supplied by the browser."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200,
+            "description": "Organization followed by / and at least one repository character; organization-only and unqualified searches are rejected."
+          }
+        },
+        "examples": [
+          {
+            "id": "add-repository",
+            "text": "octo/service"
+          }
+        ]
+      },
+      "RepositorySelectorResult": {
+        "type": "object",
+        "required": [
+          "options"
+        ],
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepositorySelectorOption"
+            },
+            "maxItems": 50
+          }
+        }
+      },
       "RevisionEvent": {
         "type": "object",
         "required": [
@@ -6625,6 +5807,11 @@
             "type": "integer",
             "format": "int32",
             "description": "Independent complete-result budget; an explicit limit must not exceed it."
+          },
+          "chaining": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected."
           }
         }
       },
@@ -6715,15 +5902,19 @@
           "acceptance": {
             "type": "string"
           },
+          "queries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionArchiveDefinition"
+            },
+            "maxItems": 2,
+            "description": "Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. The first reads an archive source, each later one reads its immediate predecessor by name, and this definition reads the last, so no stage is unused. Earlier definitions must aggregate with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, and must not declare queries, select, order-by or limit; their output is their groups, aggregates and computations. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length."
+          },
           "from": {
             "type": "string",
-            "enum": [
-              "archive-events",
-              "archive-objectives",
-              "archive-actions",
-              "archive-states"
-            ],
-            "description": "archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources."
+            "maxLength": 128,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+            "description": "One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
           },
           "filter": {
             "type": "object",
@@ -6793,7 +5984,7 @@
                       "items": {
                         "$ref": "#/components/schemas/OrderField"
                       },
-                      "description": "first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic."
+                      "description": "first requires Sequence ascending and complete trace binding in aggregate.by. Sum of real observations also requires this order, preserving sequential IEEE arithmetic. Over an earlier definition, a real sum instead orders ascending by exactly the earlier aggregate.by fields absent from this aggregate.by, in their declared order."
                     }
                   },
                   "required": [
@@ -8813,6 +8004,12 @@
         "in": "cookie",
         "name": "cao_github_local",
         "description": "Read-only local browser capability; never a GitHub credential."
+      },
+      "LocalCLIResourceSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "cao_cli_local",
+        "description": "Scoped HttpOnly, SameSite=Strict local browser capability. Secure on TLS; plain loopback HTTP omits Secure for WebKit. Never a GitHub credential."
       }
     }
   }

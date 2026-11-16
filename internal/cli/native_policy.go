@@ -23,7 +23,47 @@ var (
 	nativeOwner        = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9-]*$`)
 	nativeSecret       = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,127}$`)
 	nativeLogin        = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$`)
+	nativeNumericID    = regexp.MustCompile(`^[1-9][0-9]{0,19}$`)
+	nativeWorkflowRef  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9][A-Za-z0-9._-]*/\.github/workflows/[A-Za-z0-9_-][A-Za-z0-9._-]*\.ya?ml@refs/(?:heads|tags)/[A-Za-z0-9_-]+(?:[./][A-Za-z0-9_-]+)*$`)
+	nativeWorkflowLock = regexp.MustCompile(`\.lock(?:/|$)`)
+	nativeCommitSHA    = regexp.MustCompile(`^[a-f0-9]{40}$`)
 )
+
+// nativeValidateTokenBroker mirrors $defs.tokenBroker in cao.schema.json.
+func nativeValidateTokenBroker(value any, at string) error {
+	rule := nativePolicyObject(map[string]nativePolicyRule{
+		"repository-id": nativePolicyString(nativeNumericID), "owner-id": nativePolicyString(nativeNumericID),
+		"workflow-ref": func(value any, at string) error {
+			text, _ := value.(string)
+			if strings.Contains(text, "..") || nativeWorkflowLock.MatchString(text[strings.Index(text, "@")+1:]) {
+				return fmt.Errorf("%s must be a valid string", at)
+			}
+			return nativePolicyString(nativeWorkflowRef)(value, at)
+		},
+		"workflow-sha": nativePolicyString(nativeCommitSHA),
+	}, "repository-id", "owner-id", "workflow-ref", "workflow-sha")
+	workflows := func(value any, at string) error {
+		rules, ok := value.([]any)
+		if !ok || len(rules) > 128 {
+			return fmt.Errorf("%s must be a sequence with at most 128 entries", at)
+		}
+		seen := map[string]bool{}
+		for _, entry := range rules {
+			if err := rule(entry, at); err != nil {
+				return err
+			}
+			key, _ := json.Marshal(entry)
+			if seen[string(key)] {
+				return fmt.Errorf("%s contains a duplicate workflow", at)
+			}
+			seen[string(key)] = true
+		}
+		return nil
+	}
+	return nativePolicyObject(map[string]nativePolicyRule{
+		"copilot-requests": nativePolicyObject(map[string]nativePolicyRule{"workflows": workflows}, "workflows"),
+	}, "copilot-requests")(value, at)
+}
 
 // Decode tokens rather than unmarshalling maps so duplicate authority keys never
 // silently turn a malformed document into a different valid policy.
@@ -286,7 +326,8 @@ func nativeValidatePolicy(document map[string]any) error {
 			"enabled": nativePolicyBool, "control-repositories": nativePolicyStrings(repositoryPattern, 0, math.MaxInt),
 			"reviewers": nativePolicyStrings(nativeLogin, 0, math.MaxInt),
 		}),
-		"marketplace": nativeValidateMarketplace,
+		"marketplace":  nativeValidateMarketplace,
+		"token-broker": nativeValidateTokenBroker,
 	})
 	rule := nativePolicyObject(map[string]nativePolicyRule{
 		"$schema": nativeEnum(schemaURL), "version": nativeInteger(1, 1),

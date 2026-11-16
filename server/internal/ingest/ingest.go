@@ -233,7 +233,7 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 		return stateResult(active), nil
 	}
 	if len(records) == 0 {
-		for _, source := range []string{"$domains", "$tools", "$skills", "$friction", "$audits", "$issues", "$graders", "$graderObservations", "$evals", "$evalObservations", "$operationalValues"} {
+		for _, source := range []string{"$domains", "$tools", "$skills", "$friction", "$audits", "$issues", "$outputLifecycles", "$graders", "$graderObservations", "$evals", "$evalObservations", "$operationalValues"} {
 			if err := writer.Quality(ctx, source, model.Metadata{"availability": "unavailable", "completeness": "unknown", "freshness": "unknown"}); err != nil {
 				return Result{}, err
 			}
@@ -302,6 +302,7 @@ func readShard(ctx context.Context, writer *postgresx.Writer, path, expected str
 	scanner.Buffer(make([]byte, 64*1024), 16*1024*1024)
 	line := 0
 	var expectedRecords *int64
+	var schemaVersion int
 	var count int64
 	header := false
 	kind := "records"
@@ -317,11 +318,12 @@ func readShard(ctx context.Context, writer *postgresx.Writer, path, expected str
 			continue
 		}
 		var envelope struct {
-			Kind       string          `json:"kind"`
-			Collection string          `json:"collection"`
-			Record     json.RawMessage `json:"record"`
-			Records    *int64          `json:"records"`
-			Phase      string          `json:"phase"`
+			Kind          string          `json:"kind"`
+			Collection    string          `json:"collection"`
+			Record        json.RawMessage `json:"record"`
+			Records       *int64          `json:"records"`
+			Phase         string          `json:"phase"`
+			SchemaVersion int             `json:"schemaVersion"`
 		}
 		if err := json.Unmarshal(scanner.Bytes(), &envelope); err != nil {
 			return fmt.Errorf("%s:%d must contain valid canonical JSON", path, line)
@@ -334,6 +336,7 @@ func readShard(ctx context.Context, writer *postgresx.Writer, path, expected str
 			}
 			header = true
 			expectedRecords = envelope.Records
+			schemaVersion = envelope.SchemaVersion
 			continue
 		case "record":
 			if !header {
@@ -365,6 +368,11 @@ func readShard(ctx context.Context, writer *postgresx.Writer, path, expected str
 		}
 		if err := writer.Append(ctx, "$"+envelope.Collection, row); err != nil {
 			return fmt.Errorf("%s:%d: %w", path, line, err)
+		}
+		if schemaVersion < 37 && (envelope.Collection == "issues" || envelope.Collection == "audits") {
+			if err := writer.AppendLegacyOutputLifecycle(ctx, "$"+envelope.Collection, row); err != nil {
+				return fmt.Errorf("%s:%d lifecycle: %w", path, line, err)
+			}
 		}
 		count++
 	}

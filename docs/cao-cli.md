@@ -238,20 +238,45 @@ measures requests to that persistent process.
 
 Maintenance
 controls use a separate private, durable command queue, not the canonical snapshot.
-They accept only declared gh-aw maintenance actions for the exact `--repo` scope,
-require pull-request publication, and ask for approval in the owning terminal
-before **each** execution. The pinned gh-aw maintenance commands run inside the
+They accept only declared gh-aw maintenance actions. Repository **Update** runs
+`gh aw upgrade --repo OWNER/REPO --create-pull-request` for every exact CAO-managed
+repository or built-in repository, even without retained version/source evidence.
+Workflow-specific updates still run `gh aw update`. Publishing updates and upgrades
+require pull-request publication and execute directly after confirmation in the
+dashboard. No additional terminal prompt is required. The pinned gh-aw maintenance commands run inside the
 native CLI using the operator's GitHub CLI identity; credentials never reach the
 read-only Go dashboard host. Closing output only detaches; canceling a command
-terminates its owned process tree. Retries require fresh terminal approval.
-Without a trusted interactive terminal, execution fails closed. Native approval
+terminates its owned process tree. Retries require fresh dashboard confirmation.
+An interactive terminal is not required. Native execution
 is currently supported on Unix; Windows cannot execute these actions.
 No maintenance command runs merely because the dashboard starts, and this mode
 does not mutate remote runs, dispatch workflows, change rollout policy or enable
 hosted execution.
 The native adapter uses the ordinary local server. Its
 endpoints require bearer authentication and same-origin mutation requests in
-addition to fresh terminal approval.
+addition to explicit dashboard confirmation.
+
+`github/gh-aw` is a protected upstream source, excluded case-insensitively from
+all local dashboard operations even when configured or explicitly selected.
+Repository/workflow operation lists and bulk targets omit it; admission and the
+native executor enforce the same restriction. Repository enrollment rejects its
+exact name and skips it in wildcard matches. Read-only evidence remains available,
+and sibling repositories such as `github/gh-aw-actions` are not excluded.
+
+The local dashboard watches `.github/workflows/cao.json` for configuration
+changes. Valid exact repository entries refresh through canonical inventory
+ingestion and the existing revision subscription, including after **Add repository**.
+The current checkout and explicitly selected repositories remain built in even
+when omitted from the policy. Configured repositories with no collected workflows
+remain visible with unavailable compiler evidence. Invalid changes retain the
+last validated configuration and report a reload error. Collection and destructive
+disable scope remain selected with `--repo`. Update/upgrade admission and native
+execution each recheck the current validated CAO configuration: exact configured
+repositories and explicit campaign/workflow/operation targets must satisfy owner
+and repository bounds. Owner-wide bounds alone grant no discovery or arbitrary
+repository access. Revoked or invalid policy rejects queued work before execution.
+This grants no workflow activation, credential or hosted execution authority. Authentication
+and storage settings still require an explicit server restart.
 
 For source development, build the server and site and pass both
 `--server-executable PATH` and `--site PATH`. Release builds package these assets
@@ -649,9 +674,9 @@ an explicit dashboard document and its directory-confined fragments.
 
 Evidence queries use a consistent PostgreSQL read session through the bundled
 Go server. They do not bootstrap schemas, migrate storage or repair files.
-Acquire verified canonical JSONL with `gh cao download --url URL` or an
-authenticated Actions artifact, then ingest into the selected PostgreSQL
-namespace. `gh cao dashboard` manages its own local database by default.
+Acquire verified canonical JSONL with `gh cao download --url URL`, then
+ingest into the selected PostgreSQL namespace; no Actions workflow publishes a
+snapshot artifact. `gh cao dashboard` manages its own local database by default.
 Policy mutations still operate on the current
 control checkout; the executable does not grant rollout authority.
 
@@ -1148,11 +1173,12 @@ when diagnosing the CLI itself and an internal stack trace is needed.
 
 ## Inspect Activity
 
-First download a successful Activity run's bounded operational artifact with
-authenticated Actions read access:
+Use `gh cao dashboard --repo OWNER/REPO` to collect and inspect real evidence
+with a managed local database. Alternatively, download an explicitly configured
+operational snapshot:
 
 ```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+gh cao download --url https://SNAPSHOT-HOST/payload-hashes.json
 ```
 
 This supplies normalized canonical JSONL for explicit PostgreSQL ingestion.

@@ -633,6 +633,8 @@ test("checked-in control policy keeps Dependabot scoped with live gh-aw target a
     "github/gh-aw-actions",
     "github/gh-aw-threat-detection",
     "githubnext/gh-cao",
+    "githubnext/gh-aw-wizard",
+    "githubnext/gh-aw-workshop",
   ];
 
   assert.deepEqual(policy["control-plane"].scope["allowed-repositories"], repositories);
@@ -646,6 +648,8 @@ test("checked-in control policy keeps Dependabot scoped with live gh-aw target a
     "github/gh-aw": {
       mode: "live",
     },
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
   });
 
   const dependabotGhAw = effectivePolicy(policy, {
@@ -707,6 +711,25 @@ test("checked-in control policy keeps Dependabot scoped with live gh-aw target a
     "self-care-server-go-logging",
   );
   assert.equal(policy["target-authority"].campaigns["self-care"].authority, "githubnext/gh-cao");
+});
+
+test("newly enrolled repositories remain review-only in every campaign", () => {
+  const policy = parsePolicy(readFileSync(join(root, ".github", "workflows", "cao.json"), "utf8"));
+  for (const [campaignName, campaign] of Object.entries(policy["control-plane"].campaigns)) {
+    for (const targetRepository of ["githubnext/gh-aw-wizard", "githubnext/gh-aw-workshop"]) {
+      assert.deepEqual(campaign.targets[targetRepository], { mode: "review" }, campaignName);
+      const request = { campaignName, role: "orchestrator", controlRepository: "githubnext/gh-cao", targetRepository };
+      const resolved = effectivePolicy(policy, request);
+      if (campaign.enabled === false) {
+        assert.equal(resolved.authorized, false);
+        assert.equal(resolved.reason, "campaign-disabled");
+      } else {
+        assert.equal(resolved.authorized, true);
+        assert.equal(resolved.safe_output_mode, "review", campaignName);
+        assert.throws(() => effectivePolicy(policy, { ...request, requestedMode: "live" }), /exceeds checked-in policy/);
+      }
+    }
+  }
 });
 
 test("control policy applies schema defaults and campaign values", () => {

@@ -42,6 +42,7 @@ function canonicalBatch(overrides = {}) {
     friction: [],
     audits: [],
     issues: [],
+    outputLifecycles: [],
     operationalValues: [],
     marketplacePackages: [],
     ...overrides
@@ -340,8 +341,26 @@ describe('canonical view sources', () => {
           source: 'safe_outputs', summary: 'Maintenance review proposal',
           correlationId: `https://github.com/${issueRepository}/issues/2`,
           repositoryFullName: issueRepository, number: 2,
+          safeOutputType: 'create_issue',
           githubEntityType: 'issue', isPullRequest: false, state: 'open', closed: false,
           sequence: 0
+        }
+      },
+      {
+        collection: 'outputLifecycles',
+        record: {
+          id: `output-lifecycle:test:${encodeURIComponent(issueRepository)}`,
+          repositoryId: 'repository:acme%2Fcontrol', workflowId, runId,
+          safeOutputType: 'create_issue', targetRepository: issueRepository,
+          targetUrl: `https://github.com/${issueRepository}/issues/2`,
+          title: 'Maintenance review proposal',
+          deliveryState: 'delivered', deliverySignal: 'safe_output.result',
+          deliveredAt: metadata['as-of'], deliveryObservedAt: metadata['as-of'],
+          deliverySource: 'safe_outputs', deliveryEvidenceId: 'test-output',
+          adoptionState: 'pending', adoptionSignal: 'human_decision_pending',
+          adoptionObservedAt: metadata['as-of'], adoptionSource: 'adoption-registry',
+          ruleVersion: 'gh-aw-v1.2.3-adoption-v1', survivalState: 'unknown',
+          observedAt: metadata['as-of']
         }
       }
     ];
@@ -355,7 +374,7 @@ describe('canonical view sources', () => {
     await expect(ingestDashboardSources(indexedDB, inventory, { deferMaintenance: true })).resolves.toMatchObject({ skipped: true });
     const result = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (await processDataRequest({
       operation: 'load-dashboard-query-sources', sources: inventory,
-      queries: dashboardQueries, sourceNames: ['campaign-worker-issues', 'campaign-issue-tab-counts']
+      queries: dashboardQueries, sourceNames: ['campaign-worker-issues', 'campaign-issue-tab-counts', 'workflow-reports']
     }));
     expect(result['campaign-worker-issues'].metadata.availability).toBe('available');
     expect(result['campaign-worker-issues'].rows).toEqual([
@@ -367,6 +386,13 @@ describe('canonical view sources', () => {
       })
     ]);
     expect(result['campaign-issue-tab-counts'].rows).toEqual([{ campaign: 'repo-assist', items: 1 }]);
+    expect(result['workflow-reports'].rows).toEqual([
+      expect.objectContaining({
+        'workflow-route': 'acme/control:.github/workflows/repo-assist-maintenance.md',
+        'delivery-state': 'delivered',
+        'adoption-state': 'pending'
+      })
+    ]);
   });
 
   it('summarizes canonical database diagnostics inside the query layer', async () => {
@@ -540,6 +566,20 @@ describe('canonical view sources', () => {
       isPullRequest: false,
       number: 123
     });
+    await putCanonicalRecord('outputLifecycles', {
+      id: 'output-lifecycle:safe-output:issue',
+      repositoryId: 'repository:42', workflowId: 'workflow:42', runId: 'github:run:42:attempt:2',
+      safeOutputType: 'create_issue', targetRepository: 'githubnext/gh-cao',
+      targetUrl: 'https://github.com/githubnext/gh-cao/issues/123', title: 'Created issue',
+      deliveryState: 'delivered', deliverySignal: 'safe_output.result',
+      deliveredAt: '2026-09-09T04:00:10Z', deliveryObservedAt: '2026-09-09T04:00:10Z',
+      deliverySource: 'safe-output', deliveryEvidenceId: 'event:safe-output:issue',
+      adoptionState: 'accepted', adoptionSignal: 'completed',
+      adoptionAt: '2026-09-09T04:10:00Z',
+      adoptionObservedAt: '2026-09-09T04:10:00Z', adoptionSource: 'github-api',
+      ruleVersion: 'gh-aw-v1.2.3-adoption-v1', survivalState: 'unknown',
+      observedAt: '2026-09-09T04:10:00Z'
+    });
     await putCanonicalRecord('issues', {
       id: 'event:safe-output:pull-request',
       runId: 'github:run:42:attempt:2',
@@ -552,8 +592,25 @@ describe('canonical view sources', () => {
       isPullRequest: true,
       number: 124
     });
+    await putCanonicalRecord('outputLifecycles', {
+      id: 'output-lifecycle:safe-output:pull-request',
+      repositoryId: 'repository:42', workflowId: 'workflow:42', runId: 'github:run:42:attempt:2',
+      safeOutputType: 'create_pull_request', targetRepository: 'githubnext/gh-cao',
+      targetUrl: 'https://github.com/githubnext/gh-cao/pull/124', title: 'Created pull request',
+      deliveryState: 'delivered', deliverySignal: 'safe_output.result',
+      deliveredAt: '2026-09-09T04:00:20Z', deliveryObservedAt: '2026-09-09T04:00:20Z',
+      deliverySource: 'safe-output', deliveryEvidenceId: 'event:safe-output:pull-request',
+      adoptionState: 'pending', adoptionSignal: 'human_decision_pending',
+      adoptionObservedAt: '2026-09-09T04:00:20Z', adoptionSource: 'adoption-registry',
+      ruleVersion: 'gh-aw-v1.2.3-adoption-v1', survivalState: 'unknown',
+      observedAt: '2026-09-09T04:00:20Z'
+    });
 
-    const projected = await queryCanonicalViewSources(indexedDB, sources, ['outcomes']);
+    const projected = await queryCanonicalViewSources(
+      indexedDB,
+      sources,
+      ['outcomes', 'output-delivery-events', 'output-adoption-events']
+    );
 
     expect(projected.outcomes.rows).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -569,6 +626,28 @@ describe('canonical view sources', () => {
         'external-link': { href: 'https://github.com/githubnext/gh-cao/pull/124', label: 'View pull request' }
       })
     ]));
+    expect(projected['output-delivery-events'].rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        'safe-output': 'output-lifecycle:safe-output:issue',
+        'delivered-at': '2026-09-09T04:00:10Z',
+        'observed-at': '2026-09-09T04:00:10Z',
+        'adoption-state': 'accepted'
+      }),
+      expect.objectContaining({
+        'safe-output': 'output-lifecycle:safe-output:pull-request',
+        'delivered-at': '2026-09-09T04:00:20Z',
+        'observed-at': '2026-09-09T04:00:20Z',
+        'adoption-state': 'pending'
+      })
+    ]));
+    expect(projected['output-adoption-events'].rows).toEqual([
+      expect.objectContaining({
+        'safe-output': 'output-lifecycle:safe-output:issue',
+        'adoption-at': '2026-09-09T04:10:00Z',
+        'observed-at': '2026-09-09T04:10:00Z',
+        'adoption-state': 'accepted'
+      })
+    ]);
   });
 
   it('returns the same zero counts as declarative execution for empty tables', async () => {
