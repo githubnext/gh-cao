@@ -90,9 +90,14 @@ records or bypass cleanup obligations.
 The TypeSpec `@evidence` annotations generate scalar bindings, Go/Parquet/SQL/KQL
 types and structured-family metadata. Typed projection runs only on the approved,
 redacted original event. The shared preservation transform is
-`cao-approved-events-v2`; it participates in policy/evidence identity, and archive
+`cao-approved-events-v3`; it participates in policy/evidence identity, and archive
 projection identity additionally binds the Parquet contract version. Replay MUST
-NOT reuse a projection produced under previous preservation semantics.
+NOT reuse a projection produced under previous preservation semantics. Version 3
+adds the trajectory-IR `toolCalls`, `observations`, `resources`,
+`provenanceEdges` and `reference` families (Section 2.2): v2 projections never
+recorded their exclusion, redaction or field states, so they are rejected rather
+than read as if those collections were simply absent. The Parquet column layout
+and `ContractVersion` are unchanged.
 
 Every promoted field and declared family has generated-name entries in
 `PresentFields`, `NullFields` and `InvalidFields`. Invalid includes incompatible
@@ -137,7 +142,8 @@ merely to support these candidates.
 
 Approval remains a closed event policy selecting entire **top-level data
 subtrees**, not arbitrary nested paths. Approving `usage`, `objectives`,
-`actions`, `states`, `events`, `attemptResults` or `startupAttemptResults` can
+`actions`, `states`, `events`, `toolCalls`, `observations`, `resources`,
+`provenanceEdges`, `reference`, `attemptResults` or `startupAttemptResults` can
 retain extra nested values; operators MUST explicitly review that actual privacy
 scope. Textual retry messages/objective descriptions and original errors need
 specific event-field approval and retain redaction qualification.
@@ -196,6 +202,28 @@ also retire; exact logical membership remains mandatory for every query.
 Hosted acknowledgement removes local historical bodies and retains private
 receipt/fence metadata only. Hosted limits may be stricter, including at most
 4096 returned rows and one concurrent analytical query.
+
+### 2.2 Trajectory-IR collection approval (user-directed)
+
+The trajectory-IR `toolCalls`, `observations`, `resources`, `provenanceEdges`
+and `reference` collections are approvable top-level `trajectory.ir` data
+subtrees with generated `@evidence` families (`ToolCalls`, `Observations`,
+`Resources`, `ProvenanceEdges` as arrays; `Reference` as an object). This is a
+**user-directed privacy decision** for grader-query extension E1: the user chose
+to approve whole collections ("you can store them all", confirmed as option 1),
+not a narrowed field allowlist. Approving one of these collections admits its
+entire subtree, including any tool-call `arguments`, resource URIs and
+reference trajectories it contains; operators MUST review that actual privacy
+scope before adding them to an event policy.
+
+The decision is bounded. Approval stays explicit per event policy and is off by
+default; no collection is admitted unless the reviewed policy names it. It grants
+nothing outside these five subtrees: tool arguments elsewhere, models, cache
+counters, tool output bodies outside an approved collection and safe-output
+titles/URLs remain unapproved. Exclusion and redaction are recorded under the
+generated family paths, and excluded, redacted, invalid or oversized
+collections keep dependent grader results unavailable. Nothing is derived or
+persisted at capture; dependent graders compute at query time.
 
 ## 3. Durable publication and recovery
 

@@ -580,7 +580,7 @@ exporters. Native collector selection remains fail-closed pending real PG
 enrollment/read-lock/outbox composition, Azure acceptance, and the complete
 integration gates. Native ADX trace tables remain an independently selected
 version 1 physical contract; their approved-evidence identity now binds the
-`cao-approved-events-v2` transform and omission metadata. The transform also
+`cao-approved-events-v3` transform and omission metadata. The transform also
 binds the native spool fingerprint: incompatible existing ledgers fail closed,
 rather than being silently skipped or automatically migrated.
 

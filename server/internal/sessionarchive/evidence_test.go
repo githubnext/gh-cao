@@ -295,3 +295,46 @@ func TestPreviousArchiveSchemaIsRejectedWithoutErasure(t *testing.T) {
 		t.Fatal("schema rejection erased or rewrote old archive state")
 	}
 }
+
+// E1 collections are user-approved whole subtrees, default-off: unapproved
+// collections record exclusion and approved ones keep their field states.
+func TestTrajectoryIRCollectionApproval(t *testing.T) {
+	c := nativeTestConfig(t)
+	raw := []byte(`{"type":"trajectory.ir","provenance":{"phase":"agent"},"data":{"toolCalls":[{"id":"t1","arguments":{"q":"secret-text"}}],` +
+		`"observations":[{"id":"o1","sourceToolCallId":"t1","consumedByActionIds":["a1"]}],"resources":[{"id":"r1","kind":"file","uri":"a.go"}],` +
+		`"provenanceEdges":[{"from":"o1","to":"a1"}],"reference":null}}` + "\n")
+	project := func() Event {
+		t.Helper()
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", "", 1, raw, time.Unix(0, 0))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p.Events[0]
+	}
+	collections := []string{"toolCalls", "observations", "resources", "provenanceEdges", "reference"}
+	families := []string{"ToolCalls", "Observations", "Resources", "ProvenanceEdges", "Reference"}
+	c.Policy.Events["trajectory.ir"] = []string{}
+	excluded := project()
+	for i, collection := range collections {
+		if slices.Contains(excluded.PresentFields, families[i]) || !slices.Contains(excluded.OmissionReasons, "data."+collection+":excluded") ||
+			strings.Contains(excluded.PayloadJSON, collection) {
+			t.Fatalf("unapproved %s was admitted or its exclusion was invisible", collection)
+		}
+	}
+	c.Policy.Events["trajectory.ir"] = collections
+	approved := project()
+	for _, family := range families {
+		if !slices.Contains(approved.PresentFields, family) {
+			t.Fatalf("approved %s lost its field state", family)
+		}
+	}
+	if !slices.Contains(approved.NullFields, "Reference") || len(approved.OmissionReasons) != 0 ||
+		!strings.Contains(approved.PayloadJSON, `"consumedByActionIds":["a1"]`) {
+		t.Fatal("approved collections were not preserved whole")
+	}
+	c.Policy.RedactPatterns = []string{"secret-text"}
+	redacted := project()
+	if !slices.Contains(redacted.OmissionReasons, "data.toolCalls:redacted") || slices.Contains(redacted.OmissionReasons, "data.observations:redacted") {
+		t.Fatal("collection redaction was not recorded per family")
+	}
+}

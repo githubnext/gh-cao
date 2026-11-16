@@ -246,4 +246,9 @@ var evidenceFields = []evidenceField{
 	{"Actions", "data.actions", "array", "array", -1},
 	{"States", "data.states", "array", "array", -1},
 	{"Events", "data.events", "array", "array", -1},
+	{"ToolCalls", "data.toolCalls", "array", "array", -1},
+	{"Observations", "data.observations", "array", "array", -1},
+	{"Resources", "data.resources", "array", "array", -1},
+	{"ProvenanceEdges", "data.provenanceEdges", "array", "array", -1},
+	{"Reference", "data.reference", "object", "object", -1},
 }

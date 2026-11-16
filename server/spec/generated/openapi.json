@@ -7212,7 +7212,12 @@
           "Objectives",
           "Actions",
           "States",
-          "Events"
+          "Events",
+          "ToolCalls",
+          "Observations",
+          "Resources",
+          "ProvenanceEdges",
+          "Reference"
         ],
         "properties": {
           "Provenance": {},
@@ -7224,7 +7229,12 @@
           "Objectives": {},
           "Actions": {},
           "States": {},
-          "Events": {}
+          "Events": {},
+          "ToolCalls": {},
+          "Observations": {},
+          "Resources": {},
+          "ProvenanceEdges": {},
+          "Reference": {}
         },
         "description": "State metadata only. Structured content lives once, on its original event."
       },

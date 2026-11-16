@@ -19,6 +19,6 @@
     "usage.report": ["usage", "durationMs"],
     "execution.result": ["durationMs"],
     "safe_output.result": ["type", "status"],
-    "trajectory.ir": ["objectives", "actions", "states", "events"]
+    "trajectory.ir": ["objectives", "actions", "states", "events", "toolCalls", "observations", "resources", "provenanceEdges", "reference"]
   }
 }

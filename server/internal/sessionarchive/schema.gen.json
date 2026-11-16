@@ -426,6 +426,36 @@
       "kind": "array",
       "path": "data.events",
       "validation": "array"
+    },
+    {
+      "name": "ToolCalls",
+      "kind": "array",
+      "path": "data.toolCalls",
+      "validation": "array"
+    },
+    {
+      "name": "Observations",
+      "kind": "array",
+      "path": "data.observations",
+      "validation": "array"
+    },
+    {
+      "name": "Resources",
+      "kind": "array",
+      "path": "data.resources",
+      "validation": "array"
+    },
+    {
+      "name": "ProvenanceEdges",
+      "kind": "array",
+      "path": "data.provenanceEdges",
+      "validation": "array"
+    },
+    {
+      "name": "Reference",
+      "kind": "object",
+      "path": "data.reference",
+      "validation": "object"
     }
   ]
 }
