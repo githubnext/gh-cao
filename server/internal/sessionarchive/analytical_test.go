@@ -567,7 +567,7 @@ func TestDuckDBAnalyticalItemSourceIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var got []string
+	got := make([]string, 0, len(out.Rows))
 	for _, row := range out.Rows {
 		got = append(got, fmt.Sprint(row["RunId"], "/", row["Sequence"], "/", row["Ordinal"], "/", row["Items"], "/", row["Kind"], "/", row["SatisfiedAtEventIndex"]))
 	}
@@ -594,7 +594,7 @@ func TestDuckDBAnalyticalItemSourceIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got = nil
+	got = make([]string, 0, len(out.Rows))
 	for _, row := range out.Rows {
 		got = append(got, fmt.Sprint(row["Kind"], ":", row["Id"]))
 	}
