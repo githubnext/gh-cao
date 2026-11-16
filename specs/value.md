@@ -102,6 +102,13 @@ included in public envelopes or sent to dashboard components.
 
 ### 2.2 Delivery, adoption, survival, and attributed contribution
 
+Delivery and adoption are universal operational lifecycle facts retained for
+every successful safe output, including workflows with no Value definition.
+The canonical `outputLifecycles` population owns those current facts;
+Operational Value consumes but MUST NOT recreate or replace them. Value-specific
+evidence packets remain separate and add frozen measurement, contribution, and
+window semantics only after lifecycle identity is established.
+
 Value SHALL distinguish three stages:
 
 1. **Delivery** means a safe-output operation completed successfully and created

@@ -41,6 +41,14 @@ func TestOutcomeMergePreservesEvidenceClocksAndConflicts(t *testing.T) {
 			}
 		})
 	}
+	apiRefresh := original
+	apiRefresh.Source = "github-api"
+	apiRefresh.ObservedAt = now.Add(time.Hour)
+	if merged, err := original.Merge(apiRefresh); err != nil ||
+		!merged.ObservedAt.Equal(apiRefresh.ObservedAt) || merged.Source != "github-api" ||
+		!merged.UpdatedAt.Equal(original.UpdatedAt) {
+		t.Fatalf("authoritative API refresh did not advance observation evidence: %+v %v", merged, err)
+	}
 	later := original
 	later.UpdatedAt, later.ObservedAt, later.State, later.StateReason = now.Add(time.Hour), now.Add(time.Hour), "open", "reopened"
 	later.CloseActor, later.DispositionAt = "", nil

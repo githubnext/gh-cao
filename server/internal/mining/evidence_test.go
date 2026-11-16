@@ -2,8 +2,6 @@ package mining
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 	"testing"
 	"time"
 )
@@ -79,31 +77,6 @@ func TestTargetRequiresExactObjectIdentity(t *testing.T) {
 	target, err := ParseTarget("https://github.com/Octo/API/pull/12")
 	if err != nil || target.Repository != "octo/api" || target.Number != 12 || !target.PullRequest {
 		t.Fatalf("target = %+v, %v", target, err)
-	}
-}
-
-func TestWebhookUsesClosingActorNotLaterEditor(t *testing.T) {
-	now := time.Now().UTC().Truncate(time.Microsecond)
-	base := `{"action":"%s","repository":{"full_name":"Octo/API"},"sender":{"type":"Bot"},
-		"issue":{"number":12,"state":"closed","state_reason":"not_planned",
-		"updated_at":"2026-01-02T03:04:05Z","html_url":"https://github.com/octo/api/issues/12"}}`
-	closed, err := ParseWebhook("issues", []byte(fmt.Sprintf(base, "closed")), now)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if status, _ := closed.Evaluation(); status != "lifecycle" {
-		t.Fatalf("bot close = %+v", closed)
-	}
-	edited, err := ParseWebhook("issues", []byte(fmt.Sprintf(base, "edited")), now)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if status, _ := edited.Evaluation(); status != "unknown" {
-		t.Fatalf("editor was treated as closing actor: %+v", edited)
-	}
-	bad := strings.Replace(fmt.Sprintf(base, "closed"), `"state":"closed"`, `"state":"open"`, 1)
-	if _, err := ParseWebhook("issues", []byte(bad), now); err == nil {
-		t.Fatal("contradictory webhook was accepted")
 	}
 }
 

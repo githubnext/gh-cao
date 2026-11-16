@@ -85,15 +85,18 @@ func (w *Writer) AppendOutcome(ctx context.Context, outcome mining.Outcome) erro
 // MiningTargets pages distinct exact output URLs, not repositories or GitHub
 // search results. The server separately verifies current installation enrollment.
 func (s *Store) MiningTargets(ctx context.Context, after string, limit int) ([]string, error) {
+	return s.LifecycleTargets(ctx, "", after, limit)
+}
+
+func (s *Store) LifecycleTargets(ctx context.Context, repository, after string, limit int) ([]string, error) {
 	if limit < 1 || limit > 100 {
 		return nil, errors.New("mining target page must contain 1 to 100 entries")
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT DISTINCT coalesce(nullif(i.safe_output_url,''),i.correlation_id) AS url
-		FROM issues i JOIN runs r ON r.namespace=i.namespace AND r.id=i.run_id AND r.run_at=i.run_at
-		WHERE i.namespace=$1 AND coalesce(nullif(i.safe_output_url,''),i.correlation_id)>$2
-			AND ((i.github_entity_type='issue' AND i.safe_output_type='create_issue')
-				OR (i.github_entity_type='pull_request' AND i.safe_output_type='create_pull_request'))
-		ORDER BY url LIMIT $3`, s.namespace, after, limit)
+	rows, err := s.db.QueryContext(ctx, `SELECT DISTINCT target_url
+		FROM output_lifecycles
+		WHERE namespace=$1 AND target_url>$2 AND ($3='' OR target_repository=$3)
+			AND safe_output_type IN ('create_issue','create_pull_request')
+		ORDER BY target_url LIMIT $4`, s.namespace, after, repository, limit)
 	if err != nil {
 		return nil, err
 	}

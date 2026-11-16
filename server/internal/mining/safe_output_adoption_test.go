@@ -1,6 +1,8 @@
 package mining
 
 import (
+	"encoding/json"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -80,12 +82,45 @@ func TestSafeOutputAdoptionRegistryCoversGHAW123(t *testing.T) {
 		if rule.AttributionEligible && len(rule.HumanDecision) == 0 && !rule.FallbackToDelivery {
 			t.Fatalf("%s has neither human adoption nor delivery fallback", rule.SafeOutputType)
 		}
+		if evaluation := EvaluateSafeOutputDelivery(rule.SafeOutputType, testInstant()); evaluation.Status == "unknown" {
+			t.Fatalf("%s did not receive a registry-derived delivery state: %+v", rule.SafeOutputType, evaluation)
+		}
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("registry types = %#v, want %#v", got, want)
 	}
 	if _, ok := SafeOutputAdoptionRuleFor("future_output"); ok {
 		t.Fatal("unknown safe output did not fail closed")
+	}
+}
+
+func TestDashboardAdoptionRegistryMatchesServerRegistry(t *testing.T) {
+	content, err := os.ReadFile("../../../dashboard/site/src/data/model/safe-output-adoption-rules.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var mirror struct {
+		Version string `json:"version"`
+		Rules   []struct {
+			Type                string `json:"type"`
+			EffectClass         string `json:"effectClass"`
+			FallbackToDelivery  bool   `json:"fallbackToDelivery"`
+			AttributionEligible bool   `json:"attributionEligible"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(content, &mirror); err != nil {
+		t.Fatal(err)
+	}
+	if mirror.Version != AdoptionRegistryVersion || len(mirror.Rules) != len(adoptionRules) {
+		t.Fatalf("dashboard registry version/count = %s/%d", mirror.Version, len(mirror.Rules))
+	}
+	for _, mirrored := range mirror.Rules {
+		rule, ok := SafeOutputAdoptionRuleFor(mirrored.Type)
+		if !ok || string(rule.EffectClass) != mirrored.EffectClass ||
+			rule.FallbackToDelivery != mirrored.FallbackToDelivery ||
+			rule.AttributionEligible != mirrored.AttributionEligible {
+			t.Fatalf("dashboard registry drift for %s: %+v %+v", mirrored.Type, mirrored, rule)
+		}
 	}
 }
 

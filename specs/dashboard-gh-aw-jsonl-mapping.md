@@ -21,6 +21,7 @@ The mapping SHALL preserve these mandatory relationships:
 Workflow -> Repository
 Run -> Repository and Workflow
 Domain, Tool, Skill, Friction, Audit, and Issue -> Run
+OutputLifecycle -> Repository and Workflow, with immutable producing runId
 ```
 
 The mapping SHALL NOT emit Campaign or Transaction observations. Transactions
@@ -353,6 +354,13 @@ When the collector enriches a GitHub issue safe-output item with a
 An item with a resolvable canonical issue or pull-request URL SHALL become an
 Issue record carrying its owner, repository, number, URL, and `isPullRequest`;
 every other safe-output item SHALL remain an Audit record.
+Every successful item SHALL additionally emit one OutputLifecycle record. Its
+identity SHALL use producing Run, safe-output type, and exact target URL for
+created issues/pull requests, otherwise the stable source event identity. It
+SHALL preserve delivery time and provenance and apply the current
+`SafeOutputAdoptionRule` registry without requiring a Value definition. Failed,
+errored, or skipped items SHALL NOT establish delivery. Unknown types SHALL
+produce `adoptionState=unknown`, not be dropped.
 For a `report_incomplete` item, the record summary SHALL preserve its concise
 `reason`, falling back to `Required evidence was unavailable.` when no reason
 is present. The verbose `details` field SHALL NOT be copied into the summary.

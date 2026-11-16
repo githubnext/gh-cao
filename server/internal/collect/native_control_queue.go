@@ -24,17 +24,14 @@ func validNativeControl(task Task) bool {
 	}
 	if task.Scope != nil {
 		return isScopeIntent(task.Scope.Kind) && task.Repository == "installation/"+strconv.FormatInt(task.InstallationID, 10) &&
-			task.ScopeEpoch == 0 && task.Lifecycle == "" && !task.InventoryRefresh && !task.ValueRefresh &&
-			task.Outcome == nil && len(task.Scope.Repositories) == 0
+			task.ScopeEpoch == 0 && task.Lifecycle == "" && !task.InventoryRefresh && !task.LifecycleRefresh &&
+			!task.ValueRefresh && len(task.Scope.Repositories) == 0
 	}
 	if task.Lifecycle != "" {
 		return (task.Lifecycle == "active" || task.Lifecycle == "archived" || task.Lifecycle == "deleted") && task.ScopeEpoch >= 0 &&
-			!task.InventoryRefresh && !task.ValueRefresh && task.Outcome == nil
+			!task.InventoryRefresh && !task.LifecycleRefresh && !task.ValueRefresh
 	}
-	if task.Outcome != nil && (task.Outcome.Validate() != nil || task.Outcome.Repository != task.Repository) {
-		return false
-	}
-	return task.ScopeEpoch > 0 && (task.InventoryRefresh || task.ValueRefresh || task.Outcome != nil)
+	return task.ScopeEpoch > 0 && (task.InventoryRefresh || task.LifecycleRefresh || task.ValueRefresh)
 }
 
 func (q Queue) enqueueNativeControl(ctx context.Context, task Task, kind IntentKind, delivery string, ttl time.Duration) (Admission, error) {
@@ -49,7 +46,14 @@ func (q Queue) enqueueNativeControl(ctx context.Context, task Task, kind IntentK
 	if err != nil {
 		return Admission{}, err
 	}
+	debounce := ""
+	debounceTTL := time.Duration(0)
+	if task.LifecycleRefresh {
+		debounce = task.debounceKey()
+		debounceTTL = max(debounceTTL, 15*time.Minute)
+	}
 	request := operational.EnqueueRequest{Queue: nativeControlStream, Delayed: nativeControlDelayed,
+		Debounce: debounce, DebounceTTL: debounceTTL,
 		Capacity: q.MaxLength, Fields: taskFields(name, content)}
 	if delivery == "" {
 		enqueued, err := q.Tasks.EnqueueTask(ctx, request)
@@ -61,7 +65,8 @@ func (q Queue) enqueueNativeControl(ctx context.Context, task Task, kind IntentK
 	result, err := q.Admission.AdmitDelivery(ctx, operational.DeliveryRequest{
 		EnqueueRequest: request, Delivery: delivery, DeliveryTTL: ttl,
 	})
-	if err == nil && result != operational.DeliveryEnqueued && result != operational.DeliveryDuplicate {
+	if err == nil && result != operational.DeliveryEnqueued && result != operational.DeliveryDuplicate &&
+		result != operational.DeliveryCoalesced {
 		return Admission{}, errors.New("unexpected native control admission result")
 	}
 	return Admission{Kind: kind, Enqueued: result == operational.DeliveryEnqueued,

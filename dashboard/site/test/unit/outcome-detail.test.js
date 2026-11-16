@@ -37,8 +37,17 @@ function context() {
           'outcome-summary': 'Summary fallback',
           'outcome-body-html': '<h2>Summary</h2><ul><li>Passed</li></ul><table><thead><tr><th scope="colgroup">Checks</th></tr></thead></table><script>window.bad = true</script><a href="javascript:alert(1)" onclick="alert(1)">unsafe</a>',
           'outcome-category': 'pull-request',
-          'outcome-status': 'closed',
-          'outcome-state': 'lifecycle-close',
+          'outcome-status': 'lifecycle',
+          'outcome-state': 'lifecycle',
+          'delivery-state': 'delivered',
+          'delivery-signal': 'safe_output.result',
+          'delivered-at': '2026-08-31T01:26:00Z',
+          'adoption-state': 'lifecycle',
+          'adoption-signal': 'lifecycle',
+          'adoption-observed-at': '2026-08-31T01:49:00Z',
+          'adoption-source': 'github-api',
+          'rule-version': 'gh-aw-v1.2.3-adoption-v1',
+          'survival-state': 'unknown',
           'outcome-warning': 'Warning',
           'rollout-mode': 'live',
           'published-at': '2026-08-31T01:26:00Z',
@@ -73,8 +82,8 @@ describe('outcome detail', () => {
     expect(rendered.querySelector('.markdown-body a')?.hasAttribute('href')).toBe(false);
     expect(rendered.querySelector('.markdown-body a')?.hasAttribute('onclick')).toBe(false);
     expect(rendered.querySelector('.markdown-body th')?.getAttribute('scope')).toBe('colgroup');
-    expect(rendered.querySelector('.status')?.textContent).toBe('Closed');
-    expect(rendered.querySelector('.outcome-meta')?.textContent).toContain('DispositionLifecycle Close');
+    expect(rendered.querySelector('.status')?.textContent).toBe('Delivered');
+    expect(rendered.querySelector('.outcome-meta')?.textContent).toContain('AdoptionLifecycle');
     expect(rendered.querySelector('.outcome-meta')?.textContent).toContain('WarningWarning');
     expect(rendered.querySelector('.mode-badge')?.textContent).toBe('Live');
     expect(rendered.querySelector('.outcome-meta')?.textContent).toContain('Pull Request');
@@ -84,7 +93,7 @@ describe('outcome detail', () => {
     expect(allocation).toHaveBeenCalledWith(expect.objectContaining({
       detail: {
         title: 'Parity verification sweep',
-        description: 'Daily review · Pull Request · Closed',
+        description: 'Daily review · Pull Request · Lifecycle',
         titleLink: {
           href: 'https://github.com/octo/repo/pull/1',
           label: 'Open #1 on GitHub'
@@ -111,7 +120,8 @@ describe('outcome detail', () => {
     expect(discussion?.className).toBe('discussion-post');
     expect(discussion?.querySelector('.markdown-body')?.textContent).toContain('SummaryPassedChecksunsafe');
     expect(metadataSection?.className).toBe('outcome-meta');
-    expect(metadataSection?.textContent).toContain('DispositionLifecycle Close');
+    expect(metadataSection?.textContent).toContain('DeliveryDelivered');
+    expect(metadataSection?.textContent).toContain('AdoptionLifecycle');
     expect(metadataSection?.querySelectorAll('a')).toHaveLength(3);
   });
 });

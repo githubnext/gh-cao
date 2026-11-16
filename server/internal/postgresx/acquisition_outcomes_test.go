@@ -53,6 +53,17 @@ func nativeOutcomeAudits(t *testing.T, store *postgresx.Store) []model.Row {
 	return rows
 }
 
+func nativeOutputLifecycles(t *testing.T, store *postgresx.Store) []model.Row {
+	t.Helper()
+	results, _, err := store.ExecuteSQLPlan(t.Context(), []query.Definition{
+		{Name: "lifecycles", From: "$outputLifecycles"},
+	}, []string{"lifecycles"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return results["lifecycles"].Rows
+}
+
 func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing.T) {
 	first, config := testutil.PostgresWithConfig(t, t.Context(), "CAO_TEST_POSTGRES_URL")
 	second, err := postgresx.NewConfig(t.Context(), config)
@@ -74,7 +85,7 @@ func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing
 	dispositionAt := now.Add(-time.Minute)
 	outcome := mining.Outcome{Repository: identity.Repository, Number: 42, URL: "https://github.com/octo/api/issues/42",
 		State: "closed", StateReason: "completed", CloseActor: "User", DispositionAt: &dispositionAt,
-		UpdatedAt: dispositionAt, ObservedAt: now, Source: "github-webhook"}
+		UpdatedAt: dispositionAt, ObservedAt: now, Source: "github-api"}
 	t.Setenv("PATH", "/nonexistent")
 	if err := a.RecordOutcome(t.Context(), scope, outcome); err != nil {
 		t.Fatal(err)
@@ -91,6 +102,10 @@ func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing
 		rows := nativeOutcomeAudits(t, second)
 		if len(rows) != 1 || rows[0]["status"] != status {
 			t.Fatalf("expected one %s safe-output disposition: %+v", status, rows)
+		}
+		lifecycles := nativeOutputLifecycles(t, second)
+		if len(lifecycles) != 1 || lifecycles[0]["adoptionState"] != status {
+			t.Fatalf("expected one %s canonical output lifecycle: %+v", status, lifecycles)
 		}
 	}
 	assertStatus("accepted")
@@ -113,11 +128,16 @@ func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing
 	}
 	reopened := outcome
 	reopened.State, reopened.StateReason, reopened.UpdatedAt = "open", "reopened", now.Add(time.Minute)
+	reopened.ObservedAt = now.Add(2 * time.Minute)
 	reopened.CloseActor, reopened.DispositionAt = "", nil
 	if err := b.RecordOutcome(t.Context(), scope, reopened); err != nil {
 		t.Fatal(err)
 	}
 	assertStatus("pending")
+	if lifecycle := nativeOutputLifecycles(t, second)[0]; lifecycle["reversalSignal"] != "ISS_REOPENED" ||
+		lifecycle["survivalState"] != "reversed" {
+		t.Fatalf("reversal evidence was not retained: %+v", lifecycle)
+	}
 	conflict := reopened
 	conflict.State, conflict.StateReason = "closed", "completed"
 	if err := a.RecordOutcome(t.Context(), scope, conflict); err == nil {
@@ -154,5 +174,9 @@ func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing
 	}
 	if rows := nativeOutcomeAudits(t, second); len(rows) != 0 {
 		t.Fatal("withdrawn disposition reappeared after same-installation reenrollment")
+	}
+	if lifecycles := nativeOutputLifecycles(t, second); len(lifecycles) != 1 ||
+		lifecycles[0]["adoptionState"] != "pending" || lifecycles[0]["adoptionSource"] != "adoption-registry" {
+		t.Fatalf("reenrollment did not rebuild delivery-owned lifecycle: %+v", lifecycles)
 	}
 }

@@ -129,26 +129,30 @@ func decodeNativeOutcome(content []byte, repository string) (mining.Outcome, err
 }
 
 func (s *Store) attributeNativeOutcome(ctx context.Context, tx *sql.Tx, outcome mining.Outcome, runID string) (int, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT i.id,i.run_id,r.run_at,i.safe_output_type FROM issues i
-		JOIN runs r ON r.namespace=i.namespace AND r.id=i.run_id AND r.run_at=i.run_at
-		JOIN repositories repo ON repo.namespace=r.namespace AND repo.id=r.repository_id
-		WHERE i.namespace=$1 AND (i.correlation_id=$2 OR i.safe_output_url=$2)
-		AND coalesce(i.is_pull_request,false)=$3
-		AND ((i.safe_output_type='create_issue' AND NOT $3) OR (i.safe_output_type='create_pull_request' AND $3))
-		AND lower(repo.owner || '/' || repo.name)=$4 AND ($5='' OR r.id=$5)
-		ORDER BY i.id LIMIT 20001`, s.namespace, outcome.URL, outcome.PullRequest, outcome.Repository, runID)
+	rows, err := tx.QueryContext(ctx, `SELECT l.id,l.run_id,r.run_at,l.safe_output_type,coalesce(i.id,'')
+		FROM output_lifecycles l
+		JOIN runs r ON r.namespace=l.namespace AND r.id=l.run_id
+		JOIN repositories repo ON repo.namespace=l.namespace AND repo.id=l.repository_id
+		LEFT JOIN issues i ON i.namespace=l.namespace AND i.run_id=l.run_id
+			AND (i.safe_output_url=l.target_url OR i.correlation_id=l.target_url)
+		WHERE l.namespace=$1 AND l.target_url=$2 AND l.target_repository=$3
+		AND lower(repo.owner || '/' || repo.name)=$3
+		AND ((l.safe_output_type='create_issue' AND NOT $4)
+			OR (l.safe_output_type='create_pull_request' AND $4))
+		AND ($5='' OR l.run_id=$5)
+		ORDER BY l.id LIMIT 20001`, s.namespace, outcome.URL, outcome.Repository, outcome.PullRequest, runID)
 	if err != nil {
 		return 0, err
 	}
 	defer func() { _ = rows.Close() }()
 	type reference struct {
-		issue, run, outputType string
-		runAt                  time.Time
+		lifecycle, run, outputType, issue string
+		runAt                             time.Time
 	}
 	var references []reference
 	for rows.Next() {
 		var ref reference
-		if err := rows.Scan(&ref.issue, &ref.run, &ref.runAt, &ref.outputType); err != nil {
+		if err := rows.Scan(&ref.lifecycle, &ref.run, &ref.runAt, &ref.outputType, &ref.issue); err != nil {
 			_ = rows.Close()
 			return 0, err
 		}
@@ -162,36 +166,59 @@ func (s *Store) attributeNativeOutcome(ctx context.Context, tx *sql.Tx, outcome 
 	if len(references) > nativeOutcomeRows {
 		return 0, collectnative.ErrCapacity
 	}
+	changed := 0
 	for _, ref := range references {
+		previous, err := s.readOutputLifecycle(ctx, tx, ref.lifecycle)
+		if err != nil {
+			return changed, err
+		}
+		next, err := mining.ApplyOutcomeToLifecycle(previous, outcome)
+		if err != nil {
+			return changed, err
+		}
+		updated, err := s.replaceOutputLifecycle(ctx, tx, previous, next, outcome.ObservedAt)
+		if err != nil {
+			return changed, err
+		}
+		if updated {
+			changed++
+		}
+		if ref.issue == "" ||
+			ref.runAt.Before(dayStart(outcome.ObservedAt.AddDate(0, 0, -s.linkedRetentionDays))) {
+			continue
+		}
 		audit := outcome.AuditForSafeOutput(ref.issue, ref.run, ref.outputType)
 		if err := validateAuditProjection(audit); err != nil {
-			return 0, err
+			return changed, err
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM audits WHERE namespace=$1 AND id=$2 AND run_id=$3 AND run_at=$4
 			AND source=$5 AND type='outcome.observed'`, s.namespace, audit["id"], ref.run, ref.runAt, mining.Source); err != nil {
-			return 0, err
+			return changed, err
 		}
 		if err := insertInvocationEntity(ctx, tx, s.namespace, "$audits", audit, ref.runAt); err != nil {
-			return 0, err
+			return changed, err
 		}
 	}
 	if len(references) > 0 {
 		if err := partialInvocationQuality(ctx, tx, s.namespace, "$audits"); err != nil {
-			return 0, err
+			return changed, err
 		}
 	}
-	return len(references), nil
+	return changed, nil
 }
 
 // Replay only dispositions selected by exact safe-output URLs in this run.
 // Run replacement must never erase independently retained observations.
 func (a Acquisition) replayOutcomes(ctx context.Context, tx *sql.Tx, publication AcquisitionPublication, runID string, now time.Time) error {
 	rows, err := tx.QueryContext(ctx, `SELECT o.content FROM cao_acquisition_outcomes o
-		WHERE o.namespace=$1 AND o.repository=$2 AND o.epoch=$3 AND o.observed_at >= $5
-		AND EXISTS (SELECT 1 FROM issues i WHERE i.namespace=o.namespace AND i.run_id=$4
-			AND (i.safe_output_url=o.url OR i.correlation_id=o.url))
-		ORDER BY o.url LIMIT 20001`, a.store.namespace, publication.Identity.Repository, publication.Epoch,
-		runID, now.AddDate(0, 0, -30))
+		JOIN cao_acquisition_scopes s ON s.namespace=o.namespace AND s.repository=o.repository
+			AND s.epoch=o.epoch AND s.installation_id>0
+		WHERE o.namespace=$1 AND o.observed_at >= $3
+		AND EXISTS (SELECT 1 FROM output_lifecycles l WHERE l.namespace=o.namespace
+			AND l.run_id=$2 AND l.target_url=o.url AND l.target_repository=o.repository
+			AND EXISTS(SELECT 1 FROM repositories repo WHERE repo.namespace=l.namespace
+				AND repo.id=l.repository_id AND lower(repo.owner || '/' || repo.name)=o.repository))
+		ORDER BY o.repository,o.url LIMIT 20001`, a.store.namespace, runID, now.AddDate(0, 0, -30))
 	if err != nil {
 		return err
 	}
@@ -224,4 +251,76 @@ func (a Acquisition) replayOutcomes(ctx context.Context, tx *sql.Tx, publication
 		}
 	}
 	return nil
+}
+
+func (a Acquisition) LifecycleRefreshDue(
+	ctx context.Context,
+	scope collectnative.EnrollmentScope,
+	before time.Time,
+) (bool, error) {
+	current, err := a.CurrentScope(ctx, scope.Repository)
+	if err != nil {
+		return false, err
+	}
+	if current.InstallationID != scope.InstallationID || current.Epoch != scope.Epoch {
+		return false, collectnative.ErrClaimLost
+	}
+	var due bool
+	err = a.store.db.QueryRowContext(ctx, `SELECT EXISTS(
+		SELECT 1 FROM output_lifecycles l JOIN repositories repo
+			ON repo.namespace=l.namespace AND repo.id=l.repository_id
+		WHERE l.namespace=$1 AND l.target_repository=$2
+			AND lower(repo.owner || '/' || repo.name)=$2
+			AND l.safe_output_type IN ('create_issue','create_pull_request')
+			AND l.target_url IS NOT NULL AND l.adoption_observed_at<$3
+	)`, a.store.namespace, scope.Repository, before).Scan(&due)
+	return due, err
+}
+
+func (a Acquisition) LifecycleRefreshTargets(
+	ctx context.Context,
+	scope collectnative.EnrollmentScope,
+	before time.Time,
+	limit int,
+) ([]string, bool, error) {
+	if limit < 1 || limit > 100 {
+		return nil, false, collectnative.ErrCapacity
+	}
+	current, err := a.CurrentScope(ctx, scope.Repository)
+	if err != nil {
+		return nil, false, err
+	}
+	if current.InstallationID != scope.InstallationID || current.Epoch != scope.Epoch {
+		return nil, false, collectnative.ErrClaimLost
+	}
+	rows, err := a.store.db.QueryContext(ctx, `SELECT l.target_url,min(l.adoption_observed_at) AS oldest
+		FROM output_lifecycles l JOIN repositories repo
+			ON repo.namespace=l.namespace AND repo.id=l.repository_id
+		WHERE l.namespace=$1 AND l.target_repository=$2
+			AND lower(repo.owner || '/' || repo.name)=$2
+			AND l.safe_output_type IN ('create_issue','create_pull_request')
+			AND l.target_url IS NOT NULL AND ($3 OR l.adoption_observed_at<$4)
+		GROUP BY l.target_url ORDER BY oldest,l.target_url LIMIT $5`,
+		a.store.namespace, scope.Repository, before.IsZero(), before, limit+1)
+	if err != nil {
+		return nil, false, err
+	}
+	defer func() { _ = rows.Close() }()
+	targets := make([]string, 0, limit+1)
+	for rows.Next() {
+		var target string
+		var ignored time.Time
+		if err := rows.Scan(&target, &ignored); err != nil {
+			return nil, false, err
+		}
+		targets = append(targets, target)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	more := len(targets) > limit
+	if more {
+		targets = targets[:limit]
+	}
+	return targets, more, nil
 }

@@ -197,6 +197,28 @@ func copiedTime(value *time.Time) *time.Time {
 	return &copied
 }
 
+func EvaluateSafeOutputDelivery(outputType string, deliveredAt time.Time) AdoptionEvaluation {
+	rule, ok := SafeOutputAdoptionRuleFor(outputType)
+	if !ok {
+		return AdoptionEvaluation{Status: "unknown", Signal: "unsupported_safe_output"}
+	}
+	if !rule.AttributionEligible {
+		return AdoptionEvaluation{Status: "not_applicable", Signal: "no_repository_value_effect"}
+	}
+	if len(rule.HumanDecision) > 0 && !rule.FallbackToDelivery {
+		return AdoptionEvaluation{Status: "pending", Signal: "human_decision_pending",
+			SurvivalRequired: rule.SurvivalRequired}
+	}
+	if rule.FallbackToDelivery {
+		delivered := deliveredAt.UTC()
+		return AdoptionEvaluation{Status: "accepted", Signal: "delivered",
+			AcceptanceKind: "fallback_delivery", AcceptedAt: &delivered,
+			SurvivalRequired: rule.SurvivalRequired}
+	}
+	return AdoptionEvaluation{Status: "unknown", Signal: "missing_acceptance_rule",
+		SurvivalRequired: rule.SurvivalRequired}
+}
+
 func (o Outcome) EvaluateSafeOutput(outputType string) AdoptionEvaluation {
 	rule, ok := SafeOutputAdoptionRuleFor(outputType)
 	if !ok {
@@ -243,16 +265,5 @@ func (o Outcome) EvaluateSafeOutput(outputType string) AdoptionEvaluation {
 			return AdoptionEvaluation{Status: "unknown", Signal: "missing_resolution_evidence", SurvivalRequired: true}
 		}
 	}
-	if len(rule.HumanDecision) > 0 && !rule.FallbackToDelivery {
-		return AdoptionEvaluation{Status: "pending", Signal: "human_decision_pending",
-			SurvivalRequired: rule.SurvivalRequired}
-	}
-	if rule.FallbackToDelivery {
-		deliveredAt := o.UpdatedAt.UTC()
-		return AdoptionEvaluation{Status: "accepted", Signal: "delivered",
-			AcceptanceKind: "fallback_delivery", AcceptedAt: &deliveredAt,
-			SurvivalRequired: rule.SurvivalRequired}
-	}
-	return AdoptionEvaluation{Status: "unknown", Signal: "missing_acceptance_rule",
-		SurvivalRequired: rule.SurvivalRequired}
+	return EvaluateSafeOutputDelivery(outputType, o.UpdatedAt)
 }

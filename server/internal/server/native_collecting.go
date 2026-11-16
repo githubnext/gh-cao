@@ -50,7 +50,7 @@ func newNativeCollector(ctx context.Context, services operational.OperationalSer
 		NativePublications: acquisition, ScopeLimit: config.InventoryLimit, WindowDays: config.WindowDays}
 	native := &nativeCollection{acquisition: acquisition}
 	collector := &Collector{config: config, quota: quota, enrollment: enrollment, queue: queue, backfill: backfill, native: native}
-	collector.admitter = collect.Admitter{Enrollment: enrollment, Queue: queue, Mining: true}
+	collector.admitter = collect.Admitter{Enrollment: enrollment, Queue: queue}
 	collector.reporter = collect.Reporter{Enrollment: enrollment, Queue: queue, Backfill: backfill,
 		Metrics: services.IngestionMetrics, Data: data}
 	if config.AdmitOnly {
@@ -103,8 +103,11 @@ func newNativeCollector(ctx context.Context, services operational.OperationalSer
 	if err := native.collector.Validate(); err != nil {
 		return nil, err
 	}
+	lifecycles := &collect.NativeLifecycleService{
+		Store: acquisition, Client: client, Quota: quota, QuotaApp: quotaApp,
+	}
 	native.worker = collect.NativeWorker{Queue: queue, Enrollment: enrollment, Client: client,
-		Inventory: inventory, Values: acquisition, Outcomes: acquisition,
+		Inventory: inventory, Values: acquisition, Lifecycles: lifecycles,
 		WindowDays: config.WindowDays, RefreshInterval: config.RepositoryRefreshInterval,
 		ScopeRefresher: collect.ScopeRefresher{Client: client, Quota: quota, QuotaApp: quotaApp, RepositoryLimit: config.InventoryLimit},
 		Runs: collect.RunWorker{Collector: native, Discovery: provider, Scopes: enrollment.Authority,

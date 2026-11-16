@@ -56,8 +56,14 @@
       "from": "outcomes",
       "select": [
         { "field": "safe-output" }, { "field": "run" }, { "field": "outcome-title" }, { "field": "outcome-number" },
-        { "field": "outcome-category" }, { "field": "outcome-status" }, { "field": "outcome-state" },
+        { "field": "safe-output-type" }, { "field": "outcome-category" }, { "field": "outcome-status" }, { "field": "outcome-state" },
         { "field": "outcome-summary" },
+        { "field": "delivery-state" }, { "field": "delivery-signal" }, { "field": "delivered-at" },
+        { "field": "delivery-observed-at" }, { "field": "delivery-source" }, { "field": "delivery-evidence-id" },
+        { "field": "adoption-state" }, { "field": "adoption-signal" }, { "field": "adoption-at" },
+        { "field": "adoption-observed-at" }, { "field": "adoption-source" }, { "field": "rule-version" },
+        { "field": "reversal-signal" }, { "field": "reversed-at" },
+        { "field": "survival-state" }, { "field": "survival-signal" }, { "field": "survival-observed-at" },
         { "field": "published-at" }, { "field": "observed-at" }, { "field": "rollout-mode" },
         { "field": "workflow" }, { "field": "workflow-name" }, { "field": "workflow-link" },
         { "field": "external-link" }, { "field": "issue-link" }, { "field": "pull-request-link" }, { "field": "run-link" }
@@ -297,14 +303,11 @@
       "compute": [
         {
           "as": "report-repository",
-          "function": "coalesce",
+          "function": "concat",
           "args": [
-            {
-              "field": "runtime-repository"
-            },
-            {
-              "field": "repository"
-            }
+            { "field": "organization" },
+            { "value": "/" },
+            { "field": "repository" }
           ]
         },
         {
@@ -354,6 +357,21 @@
         {
           "field": "report-status",
           "as": "outcome-status"
+        },
+        {
+          "field": "delivery-state"
+        },
+        {
+          "field": "adoption-state"
+        },
+        {
+          "field": "adoption-signal"
+        },
+        {
+          "field": "adoption-at"
+        },
+        {
+          "field": "rule-version"
         },
         {
           "field": "rollout-mode"
@@ -523,10 +541,10 @@
     {
       "id": "workflow-detail",
       "kind": "custom",
-      "intent": "Inspect durable reports produced by the selected authored workflow.",
-      "subject": "Retained safe-output reports associated with the workflow route parameter.",
-      "objective": "Locate report evidence and reviewer disposition before claiming delivery.",
-      "acceptance": "Preserve report identity, status, timestamps and provenance links; distinguish no retained reports from unavailable evidence. A published report is not automatically an accepted outcome.",
+      "intent": "Inspect safe outputs produced by the selected authored workflow.",
+      "subject": "Retained safe-output delivery and adoption associated with the workflow route parameter.",
+      "objective": "Locate delivery evidence and adoption disposition without confusing either with operational impact.",
+      "acceptance": "Preserve output identity, delivery, adoption, timestamps and provenance links; distinguish no retained outputs from unavailable evidence. Delivery is not automatically human adoption or operational value.",
       "title": "Workflow",
       "description": "Identify durable reports from the selected workflow that require follow-up.",
       "icon": "workflow",
@@ -537,11 +555,11 @@
       "views": [
         {
           "id": "workflow-report-status",
-          "title": "Report status",
-          "subject": "See the disposition of retained reports for this workflow.",
-          "objective": "Identify reports whose durable outputs need follow-up.",
-          "acceptance": "Status is verified against source reports and is not equated with verified impact.",
-          "description": "The disposition of durable outputs is the leading outcome signal for this workflow.",
+          "title": "Adoption status",
+          "subject": "See the adoption disposition of retained outputs for this workflow.",
+          "objective": "Identify delivered outputs that still need an authoritative decision.",
+          "acceptance": "Adoption reflects retained lifecycle evidence and is not equated with verified impact or Value.",
+          "description": "Delivery and adoption are universal lifecycle facts; impact remains separate.",
           "data": {
             "source": "workflow-reports",
             "route-field": "workflow-route"
@@ -565,7 +583,7 @@
         },
         {
           "id": "workflow-reports-route",
-          "title": "Workflow reports",
+          "title": "Workflow outputs",
           "data": {
             "sources": [
               "workflow-route-record"
@@ -588,19 +606,25 @@
           },
           "mark": "table",
           "controls": "interactive",
-          "empty-message": "No reports have been attributed to this workflow.",
+          "empty-message": "No safe outputs have been attributed to this workflow.",
           "encoding": {
             "columns": [
               {
                 "field": "outcome-title",
                 "type": "nominal",
-                "title": "Report",
+                "title": "Output",
                 "display": "outcome-link"
               },
               {
-                "field": "outcome-status",
+                "field": "delivery-state",
                 "type": "nominal",
-                "title": "Status",
+                "title": "Delivery",
+                "display": "status"
+              },
+              {
+                "field": "adoption-state",
+                "type": "nominal",
+                "title": "Adoption",
                 "display": "status"
               },
               {
