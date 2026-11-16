@@ -1717,33 +1717,9 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 		return queryResponse{}, http.StatusServiceUnavailable, errors.New("dashboard data is unavailable")
 	}
 	definitions, requested := a.queryPlan(input)
-	if !active.Ready && !marketplaceOnlyQuery(definitions, requested) {
-		return queryResponse{}, http.StatusServiceUnavailable, errors.New("dashboard data is unavailable")
-	}
 	evaluatedAt := evaluationTime(active)
-	healthRevision := int64(0)
-	if allowCollectionHealth {
-		_, events, healthErr := a.services.IngestionMetrics.IngestionHealth(ctx)
-		if healthErr == nil {
-			healthRevision, _ = strconv.ParseInt(events["healthRevision"], 10, 64)
-		}
-	}
-	if len(input.SourceNames) == 0 && len(input.Aliases) == 0 {
-		return queryResponse{
-			Revision: active.Revision, HealthRevision: healthRevision, EvaluatedAt: evaluatedAt,
-			Sources: map[string]model.Source{},
-			Metrics: model.Metrics{PushedDown: []string{}, FallbackOperations: []string{}},
-		}, http.StatusOK, nil
-	}
 	ResolveQueryContext(definitions, evaluatedAt)
 	started := time.Now()
-	loader := &databaseLoader{
-		ctx: ctx, database: reader, operational: a.services.Cache, dataRevision: active.DataRevision,
-		app: a, allowCollectionHealth: allowCollectionHealth,
-	}
-	if !active.Ready {
-		loader.dataRevision = "marketplace-before-first-snapshot"
-	}
 	pages := map[string]dashboardstore.Page{}
 	requestedSet := make(map[string]bool, len(requested))
 	for _, name := range requested {
@@ -1758,6 +1734,30 @@ func (a *App) executeQueryWithReader(ctx context.Context, input queryRequest, al
 		if planned.Keyset != nil && !requestedSet[planned.Keyset.Boundary] {
 			requested = append(requested, planned.Keyset.Boundary)
 		}
+	}
+	if !active.Ready && !marketplaceOnlyQuery(definitions, requested) {
+		return queryResponse{}, http.StatusServiceUnavailable, errors.New("dashboard data is unavailable")
+	}
+	healthRevision := int64(0)
+	if allowCollectionHealth {
+		_, events, healthErr := a.services.IngestionMetrics.IngestionHealth(ctx)
+		if healthErr == nil {
+			healthRevision, _ = strconv.ParseInt(events["healthRevision"], 10, 64)
+		}
+	}
+	if len(input.SourceNames) == 0 && len(input.Aliases) == 0 {
+		return queryResponse{
+			Revision: active.Revision, HealthRevision: healthRevision, EvaluatedAt: evaluatedAt,
+			Sources: map[string]model.Source{},
+			Metrics: model.Metrics{PushedDown: []string{}, FallbackOperations: []string{}},
+		}, http.StatusOK, nil
+	}
+	loader := &databaseLoader{
+		ctx: ctx, database: reader, operational: a.services.Cache, dataRevision: active.DataRevision,
+		app: a, allowCollectionHealth: allowCollectionHealth,
+	}
+	if !active.Ready {
+		loader.dataRevision = "marketplace-before-first-snapshot"
 	}
 	sources, metrics, err := loader.ExecuteSQLPlan(definitions, requested, pages)
 	if err != nil {

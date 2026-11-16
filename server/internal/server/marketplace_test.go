@@ -163,6 +163,7 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSnapshotOrSecretLeak
 	for _, body := range []string{
 		`{"sourceNames":["runs"]}`,
 		`{"sourceNames":["marketplace-packages","runs"]}`,
+		`{"sourceNames":["marketplace-packages"],"pagination":{"workflow-subject-page":{"limit":1}}}`,
 		`{"sourceNames":["joined"],"queries":[{"name":"joined","from":"marketplace-packages","joins":[{"source":"runs","on":[{"left":"repository","right":"repository"}]}]}]}`,
 		`{"sourceNames":["combined"],"queries":[{"name":"combined","union":["marketplace-packages","runs"]}]}`,
 	} {
@@ -171,7 +172,7 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSnapshotOrSecretLeak
 		authorize(request)
 		response := httptest.NewRecorder()
 		app.Handler().ServeHTTP(response, request)
-		if response.Code != http.StatusServiceUnavailable {
+		if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), "dashboard data is unavailable") {
 			t.Fatalf("canonical query without a snapshot returned %d: %s", response.Code, response.Body.String())
 		}
 	}
