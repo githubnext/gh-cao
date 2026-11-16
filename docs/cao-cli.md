@@ -238,8 +238,11 @@ measures requests to that persistent process.
 
 Maintenance
 controls use a separate private, durable command queue, not the canonical snapshot.
-They accept only declared gh-aw maintenance actions for the exact `--repo` scope,
-require pull-request publication, and execute directly after confirmation in the
+They accept only declared gh-aw maintenance actions. Repository **Update** runs
+`gh aw upgrade --repo OWNER/REPO --create-pull-request` for every exact CAO-managed
+repository or built-in repository, even without retained version/source evidence.
+Workflow-specific updates still run `gh aw update`. Publishing updates and upgrades
+require pull-request publication and execute directly after confirmation in the
 dashboard. No additional terminal prompt is required. The pinned gh-aw maintenance commands run inside the
 native CLI using the operator's GitHub CLI identity; credentials never reach the
 read-only Go dashboard host. Closing output only detaches; canceling a command
@@ -253,15 +256,26 @@ The native adapter uses the ordinary local server. Its
 endpoints require bearer authentication and same-origin mutation requests in
 addition to explicit dashboard confirmation.
 
+`github/gh-aw` is a protected upstream source, excluded case-insensitively from
+all local dashboard operations even when configured or explicitly selected.
+Repository/workflow operation lists and bulk targets omit it; admission and the
+native executor enforce the same restriction. Repository enrollment rejects its
+exact name and skips it in wildcard matches. Read-only evidence remains available,
+and sibling repositories such as `github/gh-aw-actions` are not excluded.
+
 The local dashboard watches `.github/workflows/cao.json` for configuration
 changes. Valid exact repository entries refresh through canonical inventory
 ingestion and the existing revision subscription, including after **Add repository**.
 The current checkout and explicitly selected repositories remain built in even
 when omitted from the policy. Configured repositories with no collected workflows
 remain visible with unavailable compiler evidence. Invalid changes retain the
-last validated configuration and report a reload error. Collection and maintenance
-scope selected with `--repo` do not expand, and configuration reload grants no
-workflow activation, credential or hosted execution authority. Authentication
+last validated configuration and report a reload error. Collection and destructive
+disable scope remain selected with `--repo`. Update/upgrade admission and native
+execution each recheck the current validated CAO configuration: exact configured
+repositories and explicit campaign/workflow/operation targets must satisfy owner
+and repository bounds. Owner-wide bounds alone grant no discovery or arbitrary
+repository access. Revoked or invalid policy rejects queued work before execution.
+This grants no workflow activation, credential or hosted execution authority. Authentication
 and storage settings still require an explicit server restart.
 
 For source development, build the server and site and pass both

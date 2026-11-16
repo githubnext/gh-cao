@@ -75,6 +75,9 @@ func (s RepositorySelector) Options(rows []map[string]any) ([]RepositoryOption, 
 		if !valueOK || !ValidRepository(value) || !labelOK || label == "" {
 			return nil, errors.New("repository search returned an invalid option")
 		}
+		if !LocalRepositoryOperationsAllowed(value) {
+			continue
+		}
 		options = append(options, RepositoryOption{Value: value, Label: label, Description: description})
 	}
 	return options, nil

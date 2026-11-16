@@ -129,6 +129,10 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	if localRepository != "" && !slices.Contains(configuration.builtins, localRepository) {
 		configuration.builtins = append(configuration.builtins, localRepository)
 	}
+	configuration.owner, _, _ = strings.Cut(localRepository, "/")
+	if configuration.owner == "" {
+		configuration.owner, _, _ = strings.Cut(repositories[0], "/")
+	}
 	initialConfiguration, err := readDashboardConfiguration(configuration.path)
 	if err != nil {
 		return err

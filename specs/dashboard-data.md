@@ -1090,8 +1090,20 @@ credential, collection-scope or maintenance-scope authority.
 Separately, declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
 fresh dashboard confirmation per command, same-origin authenticated queue admission,
-and pull-request publication for
-updates and upgrades. Explicit local disable commands MAY omit publication:
+and pull-request publication for updates and upgrades. Repository-level Update
+SHALL use `gh aw upgrade` for every exact CAO-managed or built-in repository,
+without requiring retained compiler or source-version evidence. Workflow-specific
+source updates SHALL continue to use `gh aw update`. Publishing maintenance SHALL
+recheck current validated policy at admission and native execution; exact managed
+repositories must satisfy owner/repository bounds, and owner-only bounds SHALL NOT
+grant arbitrary repository access. Revoked queued commands SHALL fail before
+dispatch without blocking subsequent authorized commands.
+The exact repository `github/gh-aw` SHALL be excluded case-insensitively from all
+local operations, including single and bulk repository/workflow actions and
+enrollment. Queue admission and native execution SHALL enforce the exclusion
+independently of presentation or configured scope. Read-only evidence SHALL
+remain available, and similarly named sibling repositories SHALL NOT be excluded.
+Explicit local disable commands MAY omit publication:
 they SHALL cancel in-progress runs before disabling future runs and SHALL use
 the approved repository's checkout for both Markdown inventory and ambient
 GitHub cancellation scope. An individual workflow target MUST be exact, never a

@@ -27,6 +27,7 @@ type LocalOperatorActionsConfig struct {
 type LocalOperatorConfig struct {
 	AdapterURL      string                      `json:"adapterUrl"`
 	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
+	ManagedUpdates  bool                        `json:"managedUpdates,omitempty"`
 }
 
 func (c *LocalOperatorActionsConfig) allows(repository string) bool {
@@ -80,7 +81,7 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICommandInvocation, error) {
+func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
 	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow", "add-repository":
 	default:
@@ -94,6 +95,9 @@ func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICom
 	if err != nil {
 		return invocation, cliFailure(http.StatusUnprocessableEntity, "Maintenance requires an exact target and supported options; updates and upgrades must publish a pull request.")
 	}
+	if !hostedcli.LocalRepositoryOperationsAllowed(plan.Repository) {
+		return invocation, cliFailure(http.StatusForbidden, "github/gh-aw is excluded from CAO operations.")
+	}
 	if plan.Kind == hostedcli.KindCaoReposAdd {
 		if request.ID != "add-repository" {
 			return invocation, cliFailure(http.StatusForbidden, "Only the declared enrollment action may stage repository policy.")
@@ -101,8 +105,12 @@ func (a *App) admitOperatorAction(request hostedcli.Request) (operational.CLICom
 		invocation.Repository = plan.Repository
 		return invocation, nil
 	}
-	if request.ID == "add-repository" || !a.hostedCLI.local.allows(plan.Repository) {
-		return invocation, cliFailure(http.StatusForbidden, "The command is outside the selected repository scope.")
+	allowed, err := a.operatorAllows(ctx, a.hostedCLI.local, plan)
+	if err != nil {
+		return invocation, err
+	}
+	if request.ID == "add-repository" || !allowed {
+		return invocation, cliFailure(http.StatusForbidden, "The command is outside the approved local CAO maintenance scope.")
 	}
 	invocation.Repository = plan.Repository
 	return invocation, nil
@@ -182,6 +190,10 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 	}()
 	output := hostedcli.NewCommandOutput(ctx, queue, lease, command.ID)
 	code, executionErr := a.callOperatorAdapter(ctx, command, output.Write)
+	var rejected *hostedCLIError
+	if errors.As(executionErr, &rejected) {
+		output.Write("stderr", []byte(rejected.message+"\n"))
+	}
 	output.Close() //nolint:contextcheck // the sink carries the command context, including during cancellation.
 	cancel()
 	<-done
@@ -191,6 +203,9 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 	if executionErr != nil || code == nil || *code != 0 {
 		result.Status = operational.CLICommandFailed
 		result.Error = "Native maintenance failed; inspect command output."
+		if rejected != nil {
+			result.Error = rejected.message
+		}
 	}
 	if command.Deadline != nil && !time.Now().Before(*command.Deadline) {
 		result.Status = operational.CLICommandTimedOut
@@ -213,19 +228,31 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 }
 
 func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICommand, output func(string, []byte)) (*int, error) {
+	rejected := 1 // A pre-dispatch failure is confirmed not to have started a native process.
 	connection := a.operatorConnection()
 	if connection == nil {
-		return nil, errors.New("native operator adapter is unavailable")
+		return &rejected, cliFailure(http.StatusServiceUnavailable, "Native operator adapter is unavailable; no command was started.")
 	}
 	plan, err := hostedcli.PlanLocalMaintenance(command.Command)
 	if err != nil {
-		return nil, err
+		return &rejected, cliFailure(http.StatusUnprocessableEntity, "Queued command is invalid; no command was started.")
+	}
+	if !hostedcli.LocalRepositoryOperationsAllowed(plan.Repository) {
+		return &rejected, cliFailure(http.StatusForbidden, "github/gh-aw is excluded from CAO operations; no command was started.")
 	}
 	// Enrollment only stages local review-mode policy; the native CLI verifies
 	// access after the operator confirms the command in the dashboard.
-	if !strings.EqualFold(plan.Repository, command.Repository) || connection.OperatorActions == nil ||
-		plan.Kind != hostedcli.KindCaoReposAdd && !connection.OperatorActions.allows(plan.Repository) {
-		return nil, errors.New("queued maintenance target is outside the approved repository scope")
+	if !strings.EqualFold(plan.Repository, command.Repository) || connection.OperatorActions == nil {
+		return &rejected, cliFailure(http.StatusForbidden, "Queued command does not match the approved repository; no command was started.")
+	}
+	if plan.Kind != hostedcli.KindCaoReposAdd {
+		allowed, err := a.operatorAllows(ctx, connection.OperatorActions, plan)
+		if err != nil {
+			return &rejected, err
+		}
+		if !allowed {
+			return &rejected, cliFailure(http.StatusForbidden, "The repository is outside the current local CAO maintenance scope; no command was started.")
+		}
 	}
 	content, err := json.Marshal(plan.Args)
 	if err != nil {
@@ -274,6 +301,9 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
+		if response.StatusCode == http.StatusForbidden {
+			return &rejected, cliFailure(http.StatusForbidden, "The native executor rejected the command before execution; check current CAO repository scope.")
+		}
 		return nil, fmt.Errorf("operator adapter returned HTTP %d", response.StatusCode)
 	}
 	decoder := json.NewDecoder(http.MaxBytesReader(nil, response.Body, 2<<20))

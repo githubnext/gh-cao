@@ -42,6 +42,10 @@ var dashboardSourceTarget = regexp.MustCompile(`^https://github\.com/[A-Za-z0-9]
 
 var dashboardEnrollmentPattern = regexp.MustCompile(`^[A-Za-z0-9_.*-]+/[A-Za-z0-9_.*-]+$`)
 
+func nativeRepositoryOperationsAllowed(repository string) bool {
+	return !strings.EqualFold(repository, "github/gh-aw")
+}
+
 // dashboardEnrollmentArgs reports whether args stage local review-mode
 // enrollment. The pattern is new by definition, so scope does not apply.
 func dashboardEnrollmentArgs(args []string) bool {
@@ -51,6 +55,9 @@ func dashboardEnrollmentArgs(args []string) bool {
 
 func dashboardActionArgs(args, repositories []string) error {
 	if dashboardEnrollmentArgs(args) {
+		if !nativeRepositoryOperationsAllowed(args[2]) {
+			return errors.New("github/gh-aw is excluded from CAO operations")
+		}
 		return nil
 	}
 	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable"}, args[0]) {
@@ -92,6 +99,9 @@ func dashboardActionArgs(args, repositories []string) error {
 		default:
 			return errors.New("unsupported maintenance option")
 		}
+	}
+	if !nativeRepositoryOperationsAllowed(repository) {
+		return errors.New("github/gh-aw is excluded from CAO operations")
 	}
 	if (args[0] != "disable" && !publish) || !slices.Contains(repositories, repository) || repository == "" {
 		return errors.New("maintenance requires pull-request publication within the selected repository scope")
@@ -182,6 +192,21 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	canceled := map[string]bool{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST "+adapterPrefix+"/repositories/search", dashboardRepositorySearch)
+	mux.HandleFunc("GET "+adapterPrefix+"/repositories/{owner}/{repo}/update-access", func(w http.ResponseWriter, r *http.Request) {
+		repository := strings.ToLower(r.PathValue("owner") + "/" + r.PathValue("repo"))
+		if !repositoryPattern.MatchString(repository) || strings.Contains(repository, "..") || len(repository) > 200 {
+			http.Error(w, "invalid repository identity", http.StatusBadRequest)
+			return
+		}
+		scope, err := dashboardUpdateRepositories(r.Context(), repositories)
+		if err != nil {
+			http.Error(w, "managed update scope is unavailable; fix the local CAO configuration", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = json.NewEncoder(w).Encode(map[string]bool{"allowed": slices.Contains(scope, repository)})
+	})
 	mux.HandleFunc("POST "+adapterPrefix+"/cancel", func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get("X-Command-ID")
 		if !dashboardRunID.MatchString(id) {
@@ -207,8 +232,20 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	}
 	mux.HandleFunc("POST "+adapterPrefix+"/execute", func(w http.ResponseWriter, r *http.Request) {
 		var args []string
-		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&args) != nil ||
-			dashboardActionArgs(args, repositories) != nil {
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&args) != nil {
+			http.Error(w, "invalid scoped maintenance command", http.StatusForbidden)
+			return
+		}
+		scope := repositories
+		if len(args) > 0 && (args[0] == "update" || args[0] == "upgrade") {
+			var err error
+			scope, err = dashboardUpdateRepositories(r.Context(), repositories)
+			if err != nil {
+				http.Error(w, "managed update scope is unavailable; no command was started", http.StatusForbidden)
+				return
+			}
+		}
+		if dashboardActionArgs(args, scope) != nil {
 			http.Error(w, "invalid scoped maintenance command", http.StatusForbidden)
 			return
 		}
@@ -328,6 +365,8 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 			settings["operatorActions"] = map[string]any{
 				"repositories": repositories,
 			}
+			_, managed := ctx.Value(dashboardConfigurationKey{}).(*dashboardConfiguration)
+			settings["managedUpdates"] = managed
 		}
 		err = json.NewEncoder(config).Encode(settings)
 		err = errors.Join(err, config.Close())

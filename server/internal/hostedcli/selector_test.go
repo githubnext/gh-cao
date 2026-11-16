@@ -26,6 +26,7 @@ func TestRepositorySelectorFailsClosedOnInvalidDeclarations(t *testing.T) {
 			if err := json.Unmarshal([]byte(declaration), &action); err != nil {
 				t.Fatal(err)
 			}
+
 			mutate(&action)
 			catalog := &Catalog{actions: map[string]Action{action.ID: action}}
 			_, err := catalog.ResolveRepositorySelector("add")
@@ -33,5 +34,17 @@ func TestRepositorySelectorFailsClosedOnInvalidDeclarations(t *testing.T) {
 				t.Fatalf("unexpected selector admission: %v", err)
 			}
 		})
+	}
+}
+
+func TestRepositorySelectorExcludesUpstreamOperationTarget(t *testing.T) {
+	selector := RepositorySelector{}
+	selector.Query.Limit = 20
+	selector.Mapping.Value, selector.Mapping.Label = "fullName", "fullName"
+	options, err := selector.Options([]map[string]any{
+		{"fullName": "GitHub/GH-AW"}, {"fullName": "github/gh-aw-actions"},
+	})
+	if err != nil || len(options) != 1 || options[0].Value != "github/gh-aw-actions" {
+		t.Fatalf("upstream exclusion filtered the wrong repository: %+v %v", options, err)
 	}
 }

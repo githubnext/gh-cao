@@ -4,11 +4,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { writeServerArtifact } from './server-fixture.js';
+import { authoritativeDashboard } from '../authoritative-dashboard.js';
 
 const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
-  test(`queued repository enrollment executes without terminal approval and survives detachment at ${width}px`, async ({ page }, testInfo) => {
+  test(`managed repository Update runs upgrade outside collection scope and survives detachment at ${width}px`, async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     const temporaryRoot = fileURLToPath(new URL('../../../../.tmp/', import.meta.url));
     await mkdir(temporaryRoot, { recursive: true });
@@ -16,11 +17,17 @@ for (const width of [1440, 390]) {
     const prefix = '/' + 'b'.repeat(48);
     /** @type {string[][]} */
     const calls = [];
+    let accessChecks = 0;
     /** @type {(() => void) | undefined} */
     let finish;
     /** @type {(() => void) | undefined} */
     let writeOutput;
     const adapter = createServer(async (request, response) => {
+      if (request.url === prefix + '/repositories/octo/managed/update-access') {
+        accessChecks += 1;
+        response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"allowed":true}');
+        return;
+      }
       if (request.url !== prefix + '/execute') {
         response.writeHead(404).end();
         return;
@@ -40,43 +47,45 @@ for (const width of [1440, 390]) {
     const operatorConfig = join(directory, 'operator.json');
     await writeFile(operatorConfig, JSON.stringify({
       adapterUrl: `http://127.0.0.1:${address.port}${prefix}`,
-      operatorActions: { repositories: ['octo/example'] }
+      operatorActions: { repositories: ['octo/control'] },
+      managedUpdates: true
     }));
     let preview;
     try {
       preview = await startDashboardServer({
         operatorConfig,
-        cliActions: [{
-          id: 'add-repository', label: 'Add repository', icon: 'plus', level: 'operate', placement: 'view',
-          command: 'gh cao repos add {{repository-pattern}}',
-          selector: {
-            label: 'Repository', 'debounce-ms': 300, 'allow-patterns': true,
-            query: { command: 'gh search repos', fields: ['fullName'], limit: 20 },
-            mapping: { value: 'fullName', label: 'fullName', target: 'repository-pattern' }
-          }
-        }],
+        cliActions: [authoritativeDashboard.dashboard['cli-actions'].find(
+          (/** @type {{ id: string }} */ action) => action.id === 'update-repository-sources')],
         prepareSnapshot: (/** @type {string} */ destination) => writeServerArtifact(destination, { sources: {
           repositories: { metadata: { 'as-of': new Date().toISOString() },
-            rows: [{ organization: 'octo', repository: 'example' }] }
+            rows: [{ organization: 'octo', repository: 'managed' }, { organization: 'GitHub', repository: 'GH-AW' }] }
         } })
       });
       await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${preview.url}/#page-overview`);
-      await expect(page.locator('#page-title')).toHaveText('Overview');
-      const admitted = await page.evaluate(async () => {
-        const response = await fetch('/__cli_commands', {
+      await page.goto(`${preview.url}/#page-maintenance`);
+      await expect(page.locator('[data-view-id="maintenance-repositories"]')).not.toContainText(/github\/gh-aw\b/i);
+      expect(await page.evaluate(async () => {
+        const response = await fetch('/api/v1/query', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: 'add-repository', values: { 'repository-pattern': 'octo/new-repository' } })
+          body: JSON.stringify({ sourceNames: ['repositories'] })
         });
-        if (response.status !== 202) throw new Error(`Admission failed: ${response.status} ${await response.text()}`);
-        return response.json();
-      });
-      await page.goto(`${preview.url}/#page-command?command=${admitted.id}`);
+        const result = /** @type {{ sources: Record<string, { rows: Record<string, unknown>[] }> }} */ (await response.json());
+        return result.sources.repositories.rows.some((row) =>
+          String(row['repository-coordinate']).toLowerCase() === 'github/gh-aw');
+      })).toBe(true);
+      await page.getByRole('button', { name: 'Update', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Approve Update', exact: true });
+      await expect(dialog.locator('.cli-action-command')).toHaveText('gh aw upgrade --repo octo/managed --create-pull-request');
+      const queued = page.waitForResponse((response) =>
+        new URL(response.url()).pathname === '/__cli_commands' && response.request().method() === 'POST');
+      await dialog.getByRole('button', { name: 'Update', exact: true }).click();
+      const admitted = await (await queued).json();
       const terminal = page.getByRole('region', { name: 'Read-only command terminal' });
       await expect(terminal).toBeVisible();
       await expect.poll(() => calls.length).toBe(1);
-      expect(calls[0]).toEqual(['repos', 'add', 'octo/new-repository']);
+      expect(calls[0]).toEqual(['upgrade', '--repo', 'octo/managed', '--create-pull-request']);
+      expect(accessChecks).toBeGreaterThanOrEqual(2);
       await expect(page.locator('.command-terminal [role="status"]')).toHaveText(`${admitted.id} · running`);
       writeOutput?.();
       await expect(terminal.locator('.xterm-accessibility-tree')).toContainText('Native maintenance output');

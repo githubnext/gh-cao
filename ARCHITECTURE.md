@@ -1088,9 +1088,15 @@ Source builds select existing server/site paths explicitly. The command only
 serves the dashboard, with automatic collection and refresh; it has no
 public subcommands or remote run mutations and grants no rollout authority or
 hosted CLI execution. A private native adapter enables only declared
-repository maintenance commands in the selected exact scope, with mandatory
+repository maintenance commands in an exact scope: built-in and CAO-managed
+repositories for publishing updates/upgrades, and explicitly selected repositories
+for destructive disable. There is mandatory
 pull-request publication for updates/upgrades and explicit dashboard confirmation
 before queue admission. Commands execute directly without terminal prompts.
+The exact upstream repository `github/gh-aw` is excluded from all local operations,
+regardless of configuration or explicit selection. Declarative operation queries,
+queue admission, enrollment and native execution enforce the exclusion; read-only
+evidence and sibling repositories are unaffected.
 Explicit local disable actions are the only publication
 exception: they cancel in-progress runs before disabling future runs in the
 approved repository or individual workflow. The adapter prepares that exact
@@ -1113,8 +1119,12 @@ explicitly selected repositories are permanent built-ins for that session.
 Snapshot publication and ingestion are serialized with collection; the active
 browser view refreshes through normal database revision subscriptions.
 Configuration is local observability input, not deployed rollout authority:
-reload does not widen explicit collection or maintenance scope, activate
-workflows, or reconfigure authentication/storage. Invalid input is reported and
+reload does not widen explicit collection or disable scope, activate
+workflows, or reconfigure authentication/storage. Publishing updates/upgrades
+recheck current validated policy at admission and native execution; canonical
+repository observations never grant that access. Exact managed targets must
+satisfy owner/repository bounds, and owner-only bounds never trigger discovery.
+Invalid input is reported and
 the previous validated configuration remains published.
 
 Local requests use the production PostgreSQL SQL planner and resource limits.

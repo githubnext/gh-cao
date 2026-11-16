@@ -2317,6 +2317,44 @@
       }
     },
     {
+      "id": "maintenance-workflow-operation-flags",
+      "subject": "Retained workflow repository identities.",
+      "objective": "Exclude the upstream gh-aw repository from operational workflow targets.",
+      "acceptance": "Mark only github/gh-aw, case-insensitively; read-only workflow evidence remains unchanged.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-operable-workflows",
+      "subject": "Workflow identities eligible for operational presentation.",
+      "objective": "Keep the upstream source repository out of single and bulk workflow operations.",
+      "acceptance": "Exclude only github/gh-aw; sibling repositories remain eligible for separate service authorization.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflow-operation-flags"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "maintenance-standalone-workflows",
       "subject": "Canonical workflow provenance retained under the legacy standalone query identifier.",
       "objective": "Supply campaign-owned and standalone identities to the maintenance eligibility query without synthetic membership.",
@@ -2324,7 +2362,7 @@
       "description": "",
       "parameters": [],
       "sources": [
-        "workflows"
+        "maintenance-operable-workflows"
       ],
       "used-by-pages": [],
       "execution": {
@@ -2416,6 +2454,25 @@
       }
     },
     {
+      "id": "maintenance-repository-operation-flags",
+      "subject": "Known repository identities.",
+      "objective": "Identify the upstream source repository without changing read-only inventory.",
+      "acceptance": "Mark github/gh-aw case-insensitively, without excluding sibling repositories.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
       "id": "maintenance-repository-coordinates",
       "subject": "Known repository identities, including local configuration.",
       "objective": "Keep configured repositories visible before workflow evidence is collected.",
@@ -2423,7 +2480,7 @@
       "description": "",
       "parameters": [],
       "sources": [
-        "repositories"
+        "maintenance-repository-operation-flags"
       ],
       "used-by-pages": [],
       "execution": {

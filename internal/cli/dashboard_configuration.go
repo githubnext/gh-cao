@@ -23,11 +23,14 @@ type dashboardConfigurationKey struct{}
 type dashboardConfigurationSnapshot struct {
 	digest       string
 	repositories []map[string]any
+	owners       map[string]bool
+	bounds       map[string]bool
 }
 
 type dashboardConfiguration struct {
 	path        string
 	builtins    []string
+	owner       string
 	publication sync.Mutex
 	current     atomic.Pointer[dashboardConfigurationSnapshot]
 }
@@ -106,12 +109,32 @@ func readDashboardConfiguration(path string) (*dashboardConfigurationSnapshot, e
 	control, _ := document["control-plane"].(map[string]any)
 	scope, _ := control["scope"].(map[string]any)
 	repositories := map[string]bool{}
+	if values, exists := scope["allowed-owners"]; exists {
+		snapshot.owners = map[string]bool{}
+		for _, owner := range nativeArray(values) {
+			snapshot.owners[strings.ToLower(nativeText(owner))] = true
+		}
+	}
+	if _, exists := scope["allowed-repositories"]; exists {
+		snapshot.bounds = map[string]bool{}
+	}
 	for _, value := range nativeArray(scope["allowed-repositories"]) {
 		repository := strings.ToLower(nativeText(value))
 		if !repositoryPattern.MatchString(repository) || strings.Contains(repository, "..") {
 			continue // Policy patterns are bounds, not repository discovery.
 		}
 		repositories[repository] = true
+		snapshot.bounds[repository] = true
+	}
+	for _, collection := range []string{"campaigns", "workflows", "operations"} {
+		entries, _ := control[collection].(map[string]any)
+		for _, entry := range entries {
+			policy, _ := entry.(map[string]any)
+			targets, _ := policy["targets"].(map[string]any)
+			for repository := range targets {
+				repositories[strings.ToLower(repository)] = true
+			}
+		}
 	}
 	for _, repository := range slices.Sorted(maps.Keys(repositories)) {
 		owner, name, _ := strings.Cut(repository, "/")
@@ -120,6 +143,39 @@ func readDashboardConfiguration(path string) (*dashboardConfigurationSnapshot, e
 		})
 	}
 	return snapshot, nil
+}
+
+// Update scope is resolved from current policy, never the display watcher's
+// last-valid snapshot or retained canonical repository observations.
+func dashboardUpdateRepositories(ctx context.Context, selected []string) ([]string, error) {
+	configuration, _ := ctx.Value(dashboardConfigurationKey{}).(*dashboardConfiguration)
+	if configuration == nil {
+		return slices.DeleteFunc(slices.Clone(selected), func(repository string) bool {
+			return !nativeRepositoryOperationsAllowed(repository)
+		}), nil
+	}
+	snapshot, err := readDashboardConfiguration(configuration.path)
+	if err != nil {
+		return nil, err
+	}
+	allowed := map[string]bool{}
+	for _, repository := range append(slices.Clone(selected), configuration.builtins...) {
+		if nativeRepositoryOperationsAllowed(repository) {
+			allowed[strings.ToLower(repository)] = true
+		}
+	}
+	for _, row := range snapshot.repositories {
+		owner := nativeText(row["organization"])
+		repository := owner + "/" + nativeText(row["repository"])
+		ownerAllowed := owner == configuration.owner
+		if snapshot.owners != nil {
+			ownerAllowed = snapshot.owners[owner]
+		}
+		if nativeRepositoryOperationsAllowed(repository) && ownerAllowed && (snapshot.bounds == nil || snapshot.bounds[repository]) {
+			allowed[repository] = true
+		}
+	}
+	return slices.Sorted(maps.Keys(allowed)), nil
 }
 
 func dashboardSnapshotGuard(ctx context.Context) func() {

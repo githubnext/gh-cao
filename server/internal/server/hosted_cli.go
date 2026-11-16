@@ -255,7 +255,7 @@ func idempotencyKey(request *http.Request, body string) string {
 // OAuth token. The executor re-checks permission before it runs.
 func (a *App) admit(ctx context.Context, session oauthSession, request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	if a.hostedCLI.local != nil {
-		return a.admitOperatorAction(request)
+		return a.admitOperatorAction(ctx, request)
 	}
 	if session.GitHubID <= 0 || session.Login == "" {
 		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "A verified requester account identity is required. Sign in again before submitting CLI actions.")
@@ -285,9 +285,8 @@ func (a *App) requireRepositoryWrite(request *http.Request, session oauthSession
 		return err
 	}
 	if a.hostedCLI.local != nil {
-		if !a.hostedCLI.local.allows(command.Repository) {
-			return cliFailure(http.StatusForbidden, "The command is outside the selected repository scope.")
-		}
+		// The local capability owns this queue. Cancellation must remain
+		// available after revocation; retries go through fresh admission below.
 		return nil
 	}
 	if !a.requesterCanWrite(request.Context(), session.AccessToken, command.Repository) {

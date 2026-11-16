@@ -1202,11 +1202,31 @@
       "order-by": [{ "field": "campaign-name", "direction": "asc" }, { "field": "campaign-source", "direction": "asc" }]
     },
     {
+      "name": "maintenance-workflow-operation-flags",
+      "subject": "Retained workflow repository identities.",
+      "objective": "Exclude the upstream gh-aw repository from operational workflow targets.",
+      "acceptance": "Mark only github/gh-aw, case-insensitively; read-only workflow evidence remains unchanged.",
+      "from": "workflows",
+      "compute": [
+        { "as": "operation-repository", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "operation-repository-lower", "function": "lower", "args": [{ "field": "operation-repository" }] },
+        { "as": "repository-operations-blocked", "function": "equals-any", "args": [{ "field": "operation-repository-lower" }, { "value": "github/gh-aw" }] }
+      ]
+    },
+    {
+      "name": "maintenance-operable-workflows",
+      "subject": "Workflow identities eligible for operational presentation.",
+      "objective": "Keep the upstream source repository out of single and bulk workflow operations.",
+      "acceptance": "Exclude only github/gh-aw; sibling repositories remain eligible for separate service authorization.",
+      "from": "maintenance-workflow-operation-flags",
+      "filter": { "predicates": [{ "field": "repository-operations-blocked", "equals": false }] }
+    },
+    {
       "name": "maintenance-standalone-workflows",
       "subject": "Canonical workflow provenance retained under the legacy standalone query identifier.",
       "objective": "Supply campaign-owned and standalone identities to the maintenance eligibility query without synthetic membership.",
       "acceptance": "Preserve exact identity, source kind, coordinates and revisions; the consuming maintenance query must gate actions on complete provenance.",
-      "from": "workflows",
+      "from": "maintenance-operable-workflows",
       "compute": [
         {
           "as": "workflow-source-installed-unavailable",
@@ -1560,11 +1580,23 @@
       }
     },
     {
+      "name": "maintenance-repository-operation-flags",
+      "subject": "Known repository identities.",
+      "objective": "Identify the upstream source repository without changing read-only inventory.",
+      "acceptance": "Mark github/gh-aw case-insensitively, without excluding sibling repositories.",
+      "from": "repositories",
+      "compute": [
+        { "as": "operation-repository-lower", "function": "lower", "args": [{ "field": "repository-coordinate" }] },
+        { "as": "repository-operations-blocked", "function": "equals-any", "args": [{ "field": "operation-repository-lower" }, { "value": "github/gh-aw" }] }
+      ]
+    },
+    {
       "name": "maintenance-repository-coordinates",
       "subject": "Known repository identities, including local configuration.",
       "objective": "Keep configured repositories visible before workflow evidence is collected.",
       "acceptance": "Return one coordinate per canonical repository without inventing workflow or version observations.",
-      "from": "repositories",
+      "from": "maintenance-repository-operation-flags",
+      "filter": { "predicates": [{ "field": "repository-operations-blocked", "equals": false }] },
       "select": [{ "field": "repository-coordinate" }]
     },
     {

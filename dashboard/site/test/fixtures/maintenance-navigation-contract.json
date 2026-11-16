@@ -12,6 +12,7 @@
     "when": { "field": "upgrade-action-visible", "equals": true }
   },
   "repositories": [
+    { "organization": "GitHub", "repository": "GH-AW", "repository-coordinate": "GitHub/GH-AW" },
     { "organization": "octo", "repository": "configured-only", "repository-coordinate": "octo/configured-only" },
     { "organization": "octo", "repository": "first", "repository-coordinate": "octo/first" },
     { "organization": "octo", "repository": "unknown", "repository-coordinate": "octo/unknown" },
@@ -19,6 +20,7 @@
     { "organization": "other", "repository": "second", "repository-coordinate": "other/second" }
   ],
   "repository-workflows": [
+    { "organization": "GitHub", "repository": "GH-AW", "workflow": "upstream.md", "gh-aw-version": "v0.91.5", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "update-available" },
     { "organization": "octo", "repository": "first", "workflow": "a.md", "gh-aw-version": "v0.92.0", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "current" },
     { "organization": "octo", "repository": "first", "workflow": "b.md", "gh-aw-version": "v0.92.0", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "current" },
     { "organization": "octo", "repository": "first", "workflow": "historical.md", "gh-aw-update-state": "unknown" },
@@ -39,6 +41,7 @@
     { "campaign": "local", "campaign-name": "Local package", "campaign-source": "", "campaign-version": "unknown", "campaign-current-version": "unknown", "campaign-update-state": "unknown", "campaign-registration": "true" }
   ],
   "standalone-workflows": [
+    { "organization": "GitHub", "repository": "GH-AW", "workflow": ".github/workflows/upstream.md", "workflow-name": "Upstream", "workflow-role": "standalone", "workflow-source-kind": "source-managed", "workflow-source": "acme/workflows/upstream", "workflow-source-version": "111111111111", "workflow-source-current-version": "222222222222", "workflow-source-update-state": "update-available" },
     { "organization": "acme", "repository": "control", "workflow": ".github/workflows/review.md", "workflow-name": "Review", "workflow-role": "standalone", "workflow-source-kind": "source-managed", "workflow-source": "acme/workflows/review", "workflow-source-version": "111111111111", "workflow-source-current-version": "222222222222", "workflow-source-update-state": "update-available" },
     { "organization": "acme", "repository": "control", "workflow": ".github/workflows/local.md", "workflow-name": "Local", "workflow-role": "standalone", "workflow-source-kind": "local", "workflow-source": "", "workflow-source-version": "unknown", "workflow-source-current-version": "unknown", "workflow-source-update-state": "unknown" },
     { "organization": "acme", "repository": "control", "workflow": ".github/workflows/incomplete.md", "workflow-name": "Incomplete", "workflow-role": "standalone", "workflow-source-kind": "source-managed", "workflow-source": "acme/workflows/incomplete", "workflow-source-version": "333333333333", "workflow-source-current-version": "unknown", "workflow-source-update-state": "unknown" }
