@@ -1,36 +1,7 @@
 {
  "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T07:32:36Z",
-   "worker_run_id": "43824162641",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    43814432358,
-    43810351164,
-    43798031034,
-    43792211504,
-    43789359390,
-    43781377358,
-    43781088986,
-    43780290464,
-    43768376457,
-    43766933236,
-    43766019418,
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809,
-    43752704784,
-    43752194225,
-    43746617494,
-    43731625055,
-    43724243400
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43724243400 (push aa73dc6, created 2026-11-15T14:25Z) to 43814432358 (push dbf9df7, created 2026-11-16T06:05Z); gh run list 07:31Z: same 20 IDs, all success (19 push, 1 schedule 43810351164), 0 cancelled or failed, none queued or...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T08:03:28Z",
    "worker_run_id": "43827870159",
@@ -860,6 +831,34 @@
     43877103800
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766019418 (push eccbdd6) excluded by the 20-run cap rule; window 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164); 0 failures; gh run list re-read 18:35Z: no newer docs run, none in progress. Source ac6d75b = local HEAD = source_sha. Stored run_timings rows reused (immutable); Jobs API spot-check of 43877103800 matched (demo step 5 s, build docs 11 s, exec 73 s). Demo step (dashboard:pages:build -> simulate-dashboard-pages.mjs -> buildDashboardSite, then cp to dist/cao) median 5 s, p90 6 s, max 8 s = 6.6 percent of exec median 76 s; ceiling 5 s vs gate 11.4 s and 60 s absolute not met. Reuse blocked by simulate-dashboard-pages.mjs:78 now=Date.now() and daily 05:23Z refresh. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T18:56:27Z",
+   "worker_run_id": "43932968747",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 18:55Z: no newer docs run, none queued or in progress. Source ac6d75b = local HEAD = source_sha; no docs trigger since 0cfeed6. Transfer phase (deploy handoff 5 s + Configure Pages 0 s + Upload artifact 2 s + deploy Set up job 1 s) recomputed from stored transfer_model rows, no refetch: median 8 s, p90 10 s = 10.5 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met; ceiling saving 8 s. Deploy Pages (GitHub-managed, median 7 s) excluded; merging deploy into build saves about 6 to 8 s but removes the Pages environment and id-token boundary. Open #20815 (checkout, other category) not repeated. No suggestion; noop. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
   }
  ],
