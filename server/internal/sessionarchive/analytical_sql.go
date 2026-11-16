@@ -142,6 +142,10 @@ func (e PlannedExpression) sql() string {
 		return "coalesce(" + strings.Join(args, ",") + ")"
 	case "sum":
 		return "(CAST(" + args[0] + " AS DOUBLE)+CAST(" + args[1] + " AS DOUBLE))"
+	case "difference":
+		return "(CAST(" + args[0] + " AS DOUBLE)-CAST(" + args[1] + " AS DOUBLE))"
+	case "product":
+		return "(CAST(" + args[0] + " AS DOUBLE)*CAST(" + args[1] + " AS DOUBLE))"
 	case "quotient":
 		return "(CAST(" + args[0] + " AS DOUBLE)/nullif(CAST(" + args[1] + " AS DOUBLE),0))"
 	}
@@ -263,33 +267,15 @@ SELECT coalesce((SELECT list(struct_pack(` + strings.Join(packed, ",") + `) ORDE
 (SELECT count(DISTINCT TraceId) FROM source WHERE len(Gaps)>0) AS tracesWithGaps`
 }
 
-// sourceSQL resolves only server-owned files and exact pinned membership.
-// Its projection never includes payload JSON, including for empty archives.
-func (s *Snapshot) sourceSQL(ctx context.Context, fields []string) (string, error) {
+// activeSQL resolves only server-owned files and exact pinned membership.
+// An empty membership returns no values and no paths.
+func (s *Snapshot) activeSQL(ctx context.Context) ([]string, []string, error) {
 	members := s.selected()
 	if len(members) > 10000 {
-		return "", ErrLimit
-	}
-	fields = slices.Clone(fields)
-	for _, name := range []string{"TraceId", "Gaps"} {
-		if !slices.Contains(fields, name) {
-			fields = append(fields, name)
-		}
-	}
-	var columns []string
-	for _, name := range fields {
-		columns = append(columns, "e."+identifier(name))
+		return nil, nil, ErrLimit
 	}
 	if len(members) == 0 {
-		var empty []string
-		for _, name := range fields {
-			i := slices.Index(eventColumns, name)
-			if i < 0 {
-				return "", ErrIntegrity
-			}
-			empty = append(empty, "CAST(NULL AS "+eventSQLTypes[i]+") AS "+identifier(name))
-		}
-		return "SELECT " + strings.Join(empty, ",") + " WHERE false", nil
+		return nil, nil, nil
 	}
 	var values, paths []string
 	selected := make(map[Member]bool, len(members))
@@ -304,7 +290,7 @@ func (s *Snapshot) sourceSQL(ctx context.Context, fields []string) (string, erro
 		for _, member := range file.Members {
 			if selected[member] {
 				if found[member] {
-					return "", ErrIntegrity
+					return nil, nil, ErrIntegrity
 				}
 				relevant, found[member] = true, true
 			}
@@ -314,17 +300,125 @@ func (s *Snapshot) sourceSQL(ctx context.Context, fields []string) (string, erro
 		}
 		path := filepath.Join(s.archive.config.Directory, file.Path)
 		if err := verifyPublishedFile(ctx, path, file); err != nil {
-			return "", err
+			return nil, nil, err
 		}
 		paths = append(paths, literal(path))
 	}
 	if len(found) != len(selected) {
-		return "", ErrIntegrity
+		return nil, nil, ErrIntegrity
 	}
-	return `WITH active(Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId) AS (VALUES ` +
+	return values, paths, nil
+}
+
+const activeColumns = "Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId"
+
+// sourceSQL projects exact pinned event rows. Its projection never includes
+// payload JSON, including for empty archives.
+func (s *Snapshot) sourceSQL(ctx context.Context, fields []string) (string, error) {
+	values, paths, err := s.activeSQL(ctx)
+	if err != nil {
+		return "", err
+	}
+	fields = slices.Clone(fields)
+	for _, name := range []string{"TraceId", "Gaps"} {
+		if !slices.Contains(fields, name) {
+			fields = append(fields, name)
+		}
+	}
+	var columns []string
+	for _, name := range fields {
+		columns = append(columns, "e."+identifier(name))
+	}
+	if len(values) == 0 {
+		var empty []string
+		for _, name := range fields {
+			i := slices.Index(eventColumns, name)
+			if i < 0 {
+				return "", ErrIntegrity
+			}
+			empty = append(empty, "CAST(NULL AS "+eventSQLTypes[i]+") AS "+identifier(name))
+		}
+		return "SELECT " + strings.Join(empty, ",") + " WHERE false", nil
+	}
+	return `WITH active(` + activeColumns + `) AS (VALUES ` +
 		strings.Join(values, ",") + `) SELECT ` + strings.Join(columns, ",") +
 		` FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
-INNER JOIN active a USING(Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId)`, nil
+INNER JOIN active a USING(` + activeColumns + `)`, nil
+}
+
+// itemFieldSQL derives one item field's typed value and Present/Null/Invalid
+// membership from approved JSON. Values are set only when upstream graders
+// would accept them, so a numeric or boolean string never becomes valid.
+func itemFieldSQL(item itemSource) (value, invalid string) {
+	raw := "json_extract(Element,'$." + item.Key + "')"
+	kind := "json_type(" + raw + ")"
+	switch item.Element.Type {
+	case "integer":
+		number := "TRY_CAST(" + raw + " AS DOUBLE)"
+		valid := kind + " IN ('BIGINT','UBIGINT','DOUBLE') AND " + number + "=trunc(" + number + ") AND " +
+			number + " BETWEEN 0 AND 9007199254740991"
+		return "CASE WHEN " + valid + " THEN CAST(" + number + " AS BIGINT) END", "NOT coalesce(" + valid + ",false)"
+	case "boolean":
+		return "CASE WHEN " + kind + "='BOOLEAN' THEN CAST(" + raw + " AS BOOLEAN) END", kind + "<>'BOOLEAN'"
+	}
+	// States are visits: a string element is its own id; a record contributes its string id.
+	return "coalesce(CASE WHEN json_type(Element)='VARCHAR' THEN json_extract_string(Element,'$') " +
+			"WHEN json_type(Element)='OBJECT' AND " + kind + "='VARCHAR' THEN json_extract_string(Element,'$." + item.Key + "') END,'')",
+		kind + "<>'VARCHAR'"
+}
+
+// itemSQL flattens one approved collection of each active trace's last
+// agent-phase trajectory.ir event at query time. Payload JSON stays internal.
+func (s *Snapshot) itemSQL(ctx context.Context, item itemSource) (string, error) {
+	values, paths, err := s.activeSQL(ctx)
+	if err != nil {
+		return "", err
+	}
+	columns := append(slices.Clone(itemColumns), item.Element)
+	if len(values) == 0 {
+		types := map[string]string{"string": "VARCHAR", "integer": "BIGINT", "boolean": "BOOLEAN"}
+		var empty []string
+		for _, column := range columns {
+			empty = append(empty, "CAST(NULL AS "+types[column.Type]+") AS "+identifier(column.Name))
+		}
+		for _, name := range append([]string{"Gaps"}, fieldStateInputs...) {
+			empty = append(empty, "CAST(NULL AS VARCHAR[]) AS "+identifier(name))
+		}
+		return "SELECT " + strings.Join(empty, ",") + " WHERE false", nil
+	}
+	ir := " FILTER (WHERE Type='trajectory.ir' AND Phase='agent')"
+	field, invalid := itemFieldSQL(item)
+	elementKey := "json_extract(Element,'$." + item.Key + "')"
+	present := "json_type(Element)='OBJECT' AND " + elementKey + " IS NOT NULL"
+	if item.Element.Type == "string" {
+		present = "(json_type(Element)='VARCHAR' OR " + present + ")"
+	}
+	return `WITH active(` + activeColumns + `) AS (VALUES ` + strings.Join(values, ",") + `),
+events AS (SELECT e.Namespace,e.Repository,e.RunId,e.RunAttempt,e.TraceId,e.ProjectionId,e.Sequence,e.Type,e.Phase,
+e.PolicyDigest,e.Gaps,e.OmissionReasons,e.PayloadJSON FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
+INNER JOIN active a USING(` + activeColumns + `)),
+traces AS (SELECT ` + activeColumns + `,max(PolicyDigest) AS PolicyDigest,list_distinct(flatten(list(Gaps))) AS Gaps,
+max(Sequence)` + ir + ` AS Sequence,max_by(PayloadJSON,Sequence)` + ir + ` AS Payload,
+max_by(OmissionReasons,Sequence)` + ir + ` AS OmissionReasons FROM events GROUP BY ` + activeColumns + `),
+bound AS (SELECT a.Namespace,a.Repository,a.RunId,a.RunAttempt,a.TraceId,a.ProjectionId,t.PolicyDigest,coalesce(t.Gaps,[]) AS Gaps,
+t.Sequence,coalesce(t.OmissionReasons,[]) AS OmissionReasons,json_extract(t.Payload,'$.` + item.Path + `') AS Collection
+FROM active a LEFT JOIN traces t USING(` + activeColumns + `)),
+sized AS (SELECT *,CASE WHEN json_type(Collection)='ARRAY' THEN CAST(json_array_length(Collection) AS BIGINT) END AS Items FROM bound),
+items AS (SELECT *,unnest(CASE WHEN Items>0 THEN range(Items) ELSE [NULL::BIGINT] END) AS Ordinal FROM sized),
+elements AS (SELECT *,CASE WHEN Ordinal IS NOT NULL THEN json_extract(Collection,'$['||Ordinal||']') END AS Element FROM items)
+SELECT Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId,PolicyDigest,Sequence,Ordinal,Items,
+coalesce(CASE json_type(Element) WHEN 'OBJECT' THEN 'object' WHEN 'ARRAY' THEN 'array' WHEN 'VARCHAR' THEN 'string'
+WHEN 'BOOLEAN' THEN 'boolean' WHEN 'NULL' THEN 'null' WHEN 'BIGINT' THEN 'number' WHEN 'UBIGINT' THEN 'number'
+WHEN 'DOUBLE' THEN 'number' END,'') AS Kind,
+` + field + ` AS ` + identifier(item.Element.Name) + `,Gaps,OmissionReasons,
+list_concat(CASE WHEN Collection IS NOT NULL THEN ['Items'] ELSE [] END,
+CASE WHEN ` + present + ` THEN [` + literal(item.Element.Name) + `] ELSE [] END) AS PresentFields,
+list_concat(CASE WHEN json_type(Collection)='NULL' THEN ['Items'] ELSE [] END,
+CASE WHEN json_type(` + elementKey + `)='NULL' THEN [` + literal(item.Element.Name) + `] ELSE [] END) AS NullFields,
+list_concat(CASE WHEN Collection IS NOT NULL AND json_type(Collection) NOT IN ('NULL','ARRAY') THEN ['Items'] ELSE [] END,
+CASE WHEN json_type(Element)='OBJECT' AND ` + elementKey + ` IS NOT NULL AND json_type(` + elementKey + `)<>'NULL' AND ` + invalid + `
+THEN [` + literal(item.Element.Name) + `] ELSE [] END) AS InvalidFields
+FROM elements`, nil
 }
 
 func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (AnalyticalResult, error) {
@@ -332,7 +426,7 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	if err != nil {
 		return AnalyticalResult{}, err
 	}
-	if err := plan.Require(AnalyticalCapabilities(10000)); err != nil {
+	if err := plan.Require(LocalAnalyticalCapabilities(10000)); err != nil {
 		return AnalyticalResult{}, err
 	}
 	if err := s.check(); err != nil {
@@ -342,7 +436,12 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	//nolint:contextcheck // Independent snapshot revocation must cancel verification and the caller-scoped subprocess.
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer func() { stop(); cancel() }()
-	source, err := s.sourceSQL(combined, plan.Inputs)
+	var source string
+	if item, ok := lookupItemSource(plan.Source); ok {
+		source, err = s.itemSQL(combined, item)
+	} else {
+		source, err = s.sourceSQL(combined, plan.Inputs)
+	}
 	if err != nil {
 		if accessErr := s.check(); accessErr != nil {
 			return AnalyticalResult{}, accessErr

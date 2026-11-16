@@ -805,7 +805,7 @@ function validateHrefFieldDefinition(fieldNode, fieldDefinition, sourceName, pat
   if (!LINK_FIELD_NAMES.includes(fieldName) && !DASHBOARD_LINK_FIELD_NAMES.includes(fieldName)) {
     errors.push(createError(
       ERROR_CODES.invalidLinkReference,
-      'href.field must reference one relation-specific link field or one declared campaign, repository, workflow, or command dashboard link field.',
+      'href.field must reference one relation-specific link field or one declared dashboard link field.',
       `${path}.field`
     ));
   }

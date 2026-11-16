@@ -6,6 +6,7 @@ import contract from '../fixtures/workflow-value-view-contract.json' with { type
 import { renderDataView } from '../../src/components/data-view.js';
 import { buildChartPoints, prepareChartPoints } from '../../src/components/view-data.js';
 import { executeDashboardQueries } from '../../src/data/queries/declarative.js';
+import { compileDashboardViewPayloadQueries } from '../../src/data/queries/view-payload-compiler.js';
 import { processDataRequest } from '../../src/data-worker.js';
 
 /** @typedef {{ id: string, mark?: string, chart?: string, data?: { source?: string }, list?: { style?: string, card?: string, drill?: Record<string, unknown> }, "card-drill"?: Record<string, unknown>, "lazy-list"?: boolean, disclosure?: string, layout?: string, encoding?: { card?: string, x?: { field?: string }, y?: { field?: string, aggregate?: string }, href?: { field?: string }, columns?: Array<{ field?: string, title?: string }> } }} View */
@@ -49,7 +50,8 @@ describe('unified Value view contract', () => {
       data: { source: contract.overviewChartQuery },
       encoding: {
         x: { field: 'value-kind' },
-        y: { field: 'value-entries' }
+        y: { field: 'value-entries' },
+        href: { field: 'value-dashboard-link' }
       }
     });
     expect(statusChart).toMatchObject({
@@ -60,7 +62,8 @@ describe('unified Value view contract', () => {
       encoding: {
         x: { field: 'value-plot-status' },
         y: { field: 'value-entries' },
-        color: { field: 'value-kind' }
+        color: { field: 'value-kind' },
+        href: { field: 'value-dashboard-link' }
       }
     });
     expect(table).toMatchObject({
@@ -139,6 +142,7 @@ describe('unified Value view contract', () => {
       'value-campaign-overview',
       'value-standalone-entries',
       'value-overview',
+      'value-overview-kind-counts',
       contract.overviewChartQuery
     ]);
     const queries = fragment.queries.filter(query => names.has(query.name));
@@ -199,9 +203,9 @@ describe('unified Value view contract', () => {
     const result = executeDashboardQueries(queries, sources, ['value-overview', contract.overviewChartQuery]);
     const rows = result['value-overview'].rows;
     expect(rows.map(row => row['value-kind'])).toEqual(contract.overviewKinds);
-    expect(result[contract.overviewChartQuery].rows).toEqual([
-      { 'value-kind': 'Campaign', 'value-entries': 1 },
-      { 'value-kind': 'Standalone workflow', 'value-entries': 1 }
+    expect(result[contract.overviewChartQuery].rows).toMatchObject([
+      { 'value-kind': 'Campaign', 'value-entries': 1, 'value-dashboard-link': { 'dashboard-href': '#page-value-type?kind=Campaign' } },
+      { 'value-kind': 'Standalone workflow', 'value-entries': 1, 'value-dashboard-link': { 'dashboard-href': '#page-value-type?kind=Standalone%20workflow' } }
     ]);
 
     const campaign = rows[0];
@@ -230,7 +234,8 @@ describe('unified Value view contract', () => {
   it('plots entry statuses without splitting campaigns by their worker review count', () => {
     const page = fragment.pages.find(candidate => candidate.id === contract.overviewPage);
     const names = new Set([
-      'value-campaign-overview', 'value-standalone-entries', 'value-overview', contract.overviewStatusChartQuery
+      'value-campaign-overview', 'value-standalone-entries', 'value-overview',
+      'value-overview-status-counts', contract.overviewStatusChartQuery
     ]);
     const queries = fragment.queries.filter(query => names.has(query.name));
     const result = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
@@ -253,13 +258,16 @@ describe('unified Value view contract', () => {
     }));
     const rows = result[contract.overviewStatusChartQuery].rows;
     expect(result[contract.overviewStatusChartQuery].metadata.availability).toBe('available');
-    expect(rows).toEqual([
+    expect(rows).toMatchObject([
       { 'value-kind': 'Campaign', 'value-plot-status': 'Needs review', 'value-entries': 2 },
       { 'value-kind': 'Campaign', 'value-plot-status': 'No review triggered', 'value-entries': 1 },
       { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Better', 'value-entries': 1 },
       { 'value-kind': 'Standalone workflow', 'value-plot-status': 'No result to compare', 'value-entries': 1 },
       { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Status unavailable', 'value-entries': 1 }
     ]);
+    expect(rows[0]['value-dashboard-link']).toMatchObject({
+      'dashboard-href': '#page-value-status?kind=Campaign&status=Needs%20review'
+    });
 
     const view = page?.views.find(candidate => candidate.id === contract.overviewStatusChartView);
     const rendered = renderDataView('chart', {
@@ -277,6 +285,9 @@ describe('unified Value view contract', () => {
       toText: String
     });
     expect(rendered?.querySelectorAll('.bar-chart-bar')).toHaveLength(5);
+    const drill = rendered?.querySelector('.chart-point-link[href="#page-value-status?kind=Campaign&status=Needs%20review"]');
+    expect(drill?.getAttribute('href')).toBe('#page-value-status?kind=Campaign&status=Needs%20review');
+    expect(drill?.getAttribute('aria-label')).toContain('Inspect Value entries by status');
     expect(rendered?.textContent).toContain('Status unavailable');
 
     const unavailable = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
@@ -298,10 +309,11 @@ describe('unified Value view contract', () => {
     expect(chart).toMatchObject({
       mark: 'chart',
       chart: 'bar',
-      data: { source: contract.query },
+      data: { source: contract.movementQuery },
       encoding: {
         x: { field: 'movement' },
-        y: { field: 'report-id', aggregate: 'count' }
+        y: { field: 'value-entries' },
+        href: { field: 'value-dashboard-link' }
       }
     });
     expect(table).toMatchObject({
@@ -332,5 +344,65 @@ describe('unified Value view contract', () => {
       'direction-label', 'comparison-label', 'observed-at'
     ]);
     expect(cardFields.every(field => columns.has(field))).toBe(true);
+  });
+
+  it('scopes plot drill-downs in the worker and fails closed on missing route arguments', () => {
+    const kind = fragment.pages.find(page => page.id === contract.overviewTypePage);
+    const status = fragment.pages.find(page => page.id === contract.overviewStatusPage);
+    const movement = fragment.pages.find(page => page.id === contract.movementPage);
+    if (!kind || !status || !movement) throw new Error('Value drill-down pages must be declared');
+    const rows = [
+      { 'value-kind': 'Campaign', 'value-plot-status': 'Needs review', 'value-title': 'Alpha' },
+      { 'value-kind': 'Campaign', 'value-plot-status': 'No review triggered', 'value-title': 'Beta' },
+      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Needs review', 'value-title': 'Other' }
+    ];
+    const counts = fragment.queries.filter(query => [
+      'value-overview-status-counts', contract.overviewStatusChartQuery
+    ].includes(query.name));
+    const inputs = { 'value-overview': source('value-overview', rows) };
+    /**
+     * @param {(typeof fragment.pages)[number]} page
+     * @param {string} viewId
+     * @param {Record<string, string>} routeParameters
+     * @param {typeof fragment.queries} queries
+     * @param {Record<string, import('../../src/presenter.js').LogicalSourceInput>} sources
+     */
+    const run = (page, viewId, routeParameters, queries, sources) => {
+      const compiled = compileDashboardViewPayloadQueries(page, page.id, {
+        queries, viewId, routeParameters
+      });
+      const result = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (processDataRequest({
+        operation: 'execute-dashboard-queries', queries: compiled.queries, sourceNames: compiled.aliases, sources
+      }));
+      return result[compiled.aliases[0]].rows;
+    };
+    expect(run(kind, 'value-type-status-chart', { kind: 'Campaign' }, counts, inputs))
+      .toMatchObject([
+        { 'value-kind': 'Campaign', 'value-plot-status': 'Needs review', 'value-entries': 1 },
+        { 'value-kind': 'Campaign', 'value-plot-status': 'No review triggered', 'value-entries': 1 }
+      ]);
+    expect(run(kind, 'value-type-entries', { kind: 'Campaign' }, [], inputs).map(row => row['value-title']))
+      .toEqual(['Alpha', 'Beta']);
+    expect(run(status, 'value-status-entries', { kind: 'Campaign', status: 'Needs review' }, [], inputs)
+      .map(row => row['value-title'])).toEqual(['Alpha']);
+    expect(run(status, 'value-status-entries', { kind: 'Campaign' }, [], inputs)).toEqual([]);
+    expect(run(status, 'value-status-evidence', { kind: 'Campaign', status: 'Unknown' }, [], inputs)).toEqual([]);
+
+    const resultRows = [
+      { 'workflow-route': 'octo/one:value', movement: 'Better', 'report-id': 'first' },
+      { 'workflow-route': 'octo/one:value', movement: 'Worse', 'report-id': 'second' },
+      { 'workflow-route': 'octo/two:value', movement: 'Better', 'report-id': 'third' }
+    ];
+    const resultSource = { 'value-workflow-results': source('value-workflow-results', resultRows) };
+    const movementQueries = fragment.queries.filter(query => [
+      'value-workflow-movement-counts', contract.movementQuery
+    ].includes(query.name));
+    const plot = executeDashboardQueries(movementQueries, resultSource, [contract.movementQuery]);
+    expect(plot[contract.movementQuery].rows[0]['value-dashboard-link']).toMatchObject({
+      'dashboard-href': '#page-value-movement?workflow=octo%2Fone%3Avalue&movement=Better'
+    });
+    expect(run(movement, 'value-movement-results', { workflow: 'octo/one:value', movement: 'Better' }, [], resultSource)
+      .map(row => row['report-id'])).toEqual(['first']);
+    expect(run(movement, 'value-movement-results', { workflow: 'octo/one:value' }, [], resultSource)).toEqual([]);
   });
 });

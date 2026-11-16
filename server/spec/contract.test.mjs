@@ -148,7 +148,7 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.equal(input.properties.query.$ref, '#/components/schemas/SessionArchiveDefinition')
   const definition = openapi.components.schemas.SessionArchiveDefinition
   assert.deepEqual(definition.required, ['name', 'subject', 'from'])
-  assert.deepEqual(definition.properties.from.enum, ['archive-events'])
+  assert.deepEqual(definition.properties.from.enum, ['archive-events', 'archive-objectives', 'archive-actions', 'archive-states'])
   assert.equal(definition.properties.limit.maximum, 10000)
   for (const key of ['joins', 'union', 'compute', 'window', 'sql', 'stores', 'parameters']) {
     assert.equal(definition.properties[key], undefined)
@@ -166,6 +166,7 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.deepEqual(capabilities.properties['language-version'].enum, ['0.2.0'])
   assert.deepEqual(capabilities.properties.source.enum, ['archive-events'])
   assert.equal(capabilities.properties.fields.items.$ref, '#/components/schemas/SessionArchiveColumn')
+  assert.deepEqual(openapi.components.schemas.SessionArchiveSourceCapability.properties.name.enum, ['archive-objectives', 'archive-actions', 'archive-states'])
   assert.deepEqual(capabilities.required, ['language-version', 'source', 'fields', 'predicates', 'reducers', 'functions', 'fieldStates', 'maxRows'])
   const result = openapi.components.schemas.SessionArchiveResult
   assert.equal(result.properties.events.items.$ref, '#/components/schemas/Trace.Archive.Event')
@@ -454,7 +455,7 @@ test('the separate server-only session data lake tool preserves the analytical c
   assert.equal(tool.inputSchema.additionalProperties, false)
   const definition = tool.inputSchema.properties.query
   assert.deepEqual(Object.keys(definition.properties).sort(), Object.keys(openapi.components.schemas.SessionArchiveDefinition.properties).sort())
-  assert.deepEqual(definition.properties.from.enum, ['archive-events'])
+  assert.deepEqual(definition.properties.from.enum, ['archive-events', 'archive-objectives', 'archive-actions', 'archive-states'])
   assert.deepEqual(definition.properties.aggregate.properties.values.items.properties.reducer.enum, ['count', 'distinct-count', 'sum', 'max', 'first'])
   assert.deepEqual(definition.properties.filter.properties.predicates.items.properties.equals.type, ['string', 'integer', 'number', 'boolean'])
   assert.equal(definition.properties.limit.maximum, 10000)

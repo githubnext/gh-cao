@@ -102,6 +102,13 @@
                         "$ref": "#/$defs/SessionArchiveColumn"
                     }
                 },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/SessionArchiveSourceCapability"
+                    },
+                    "description": "Additional item sources supported by this backend. Omitted means archive-events only."
+                },
                 "predicates": {
                     "type": "array",
                     "items": {
@@ -174,6 +181,37 @@
             "required": [
                 "name",
                 "type"
+            ]
+        },
+        "SessionArchiveSourceCapability": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "archive-objectives"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-actions"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-states"
+                        }
+                    ]
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/SessionArchiveColumn"
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "fields"
             ]
         }
     }

@@ -20,8 +20,25 @@
             "type": "string"
         },
         "from": {
-            "type": "string",
-            "const": "archive-events"
+            "anyOf": [
+                {
+                    "type": "string",
+                    "const": "archive-events"
+                },
+                {
+                    "type": "string",
+                    "const": "archive-objectives"
+                },
+                {
+                    "type": "string",
+                    "const": "archive-actions"
+                },
+                {
+                    "type": "string",
+                    "const": "archive-states"
+                }
+            ],
+            "description": "archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources."
         },
         "filter": {
             "type": "object",
@@ -151,6 +168,14 @@
                             {
                                 "type": "string",
                                 "const": "sum"
+                            },
+                            {
+                                "type": "string",
+                                "const": "difference"
+                            },
+                            {
+                                "type": "string",
+                                "const": "product"
                             },
                             {
                                 "type": "string",
@@ -472,6 +497,14 @@
                         {
                             "type": "string",
                             "const": "sum"
+                        },
+                        {
+                            "type": "string",
+                            "const": "difference"
+                        },
+                        {
+                            "type": "string",
+                            "const": "product"
                         },
                         {
                             "type": "string",

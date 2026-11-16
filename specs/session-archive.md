@@ -411,7 +411,7 @@ The additional vocabulary is deliberately bounded: at most 16 measures, 64
 predicates across source and measure filters, 32 post-aggregate computations,
 256 expression nodes and nesting depth 8. Functions use the existing
 `function`/`args` and `field`/`value` vocabulary: `if`, `equals`, `gt`, `lte`,
-`and`, `sum`, `quotient`, `coalesce`, and `is-null`. Computations read only group
+`and`, `sum`, `difference`, `product`, `quotient`, `coalesce`, and `is-null`. Computations read only group
 keys, aggregate results and preceding computations. Null is allowed only in a
 typed numeric literal such as `{"value":null,"type":"number"}`, never as a
 missing filter, predicate, selector or argument. Division by zero produces
@@ -427,6 +427,23 @@ ADX uses sorted, serialized, scan-bounded lists, typed conditional aggregates
 and scalar `extend`. No approximate cardinality or unordered `take_any`
 is permitted. ADX's million-row scan fence bounds those internal lists.
 These lowerers are not a universal compiler or a new canonical resolver.
+
+Local DuckDB also accepts three item sources: `archive-objectives`,
+`archive-actions`, and `archive-states`. Each binds the last agent-phase
+`trajectory.ir` event of every complete active trace and flattens its
+`data.objectives`, `data.actions`, or `data.states` array at query time; no
+item rows are persisted. Every trace yields one anchor row with null `Ordinal`
+and `Items` when it has no array, plus one row per element. Rows carry the
+complete trace binding, the bound IR `Sequence`, `Items`, `Ordinal`, element
+`Kind`, and only reviewed typed element fields: `SatisfiedAtEventIndex`
+(objectives; a safe non-negative JSON integer), `ValidAtIssueTime` (actions; a
+JSON boolean) and `Id` (states; a string element or an object's string `id`).
+Wrong JSON types are `invalid`, never coerced. `state` predicates on `Items`
+and element fields are qualified by the collection path, so an excluded or
+redacted collection is reported, not treated as empty. Item sources forbid
+`first` and real-valued `sum`, order ties by `Ordinal`, and never expose
+`PayloadJSON`. Status advertises them in `analytical.sources`; ADX and native
+backends omit them and MUST reject such plans until a reviewed lowering exists.
 
 The `state` predicate accepts only generated promoted scalar names and inspects
 `PresentFields`, `NullFields`, `InvalidFields` and `OmissionReasons` using
@@ -447,7 +464,10 @@ then the first valid agent execution result as fallback. Rebuild accepts only
 complete valid input observations with nonzero peak, including wide cumulative
 totals; context independently requires complete input AND output, safe
 per-direction totals and nonzero original first-record tokens. Limit/order is
-applied only after the metric.
+applied only after the metric. Feasibility and progress for every other upstream
+grader are tracked in
+[`session-archive-grader-queries.md`](session-archive-grader-queries.md); that
+tracker approves no evidence or vocabulary.
 
 Rows expose value, availability, reason, chosen family and exact trace/projection
 identity; policy digest qualifies configuration. Query metadata adds a query
@@ -545,10 +565,11 @@ reader lifetime, source fencing, malformed responses and resource rejection.
 The emulator proves functional KQL behavior,
 not live Blob/external-table access, authentication, retention, or performance.
 The same opt-in harness runs the four full usage definitions against real DuckDB
-and real Kusto using identical synthetic approved events. Without an approved
+and real Kusto using identical synthetic approved events; the four local-only
+item-source definitions are checked to be rejected by ADX capabilities. Without an approved
 real engine endpoint, the replay reports Kusto unavailable; it MUST NOT claim
 backend parity. The ordinary DuckDB gate runs all 15 pinned upstream replays and
-compares the four implemented full metric values, unavailable states and separate
+compares the eight implemented full metric values, unavailable states and separate
 reason labels. An intentionally malformed envelope fixture retains its upstream
 lookup error and cannot establish metric parity; a separate explicit valid
 envelope scenario is compared without normalizing the original.

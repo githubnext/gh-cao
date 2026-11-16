@@ -470,7 +470,81 @@
         "value-collection-health",
         "value-current-measurements",
         "value-measurement-facts",
+        "value-workflow-movement",
         "value-workflow-results"
+      ]
+    },
+    {
+      "id": "value-movement",
+      "title": "Value movement",
+      "description": "Inspect current repository results behind the selected workflow movement bar and open their original evidence reports.",
+      "intent": "Inspect the exact workflow results counted in one movement category.",
+      "subject": "One workflow's current report results with the selected direction-aware movement.",
+      "objective": "Move from a count to native comparisons and their evidence without combining units.",
+      "acceptance": "Both workflow and movement must match; missing route arguments show no results. A missing comparison is not zero value.",
+      "experimental": false,
+      "parameters": [
+        {
+          "name": "workflow",
+          "required": true,
+          "description": "The workflow this page reports on.",
+          "schema": {
+            "type": "string",
+            "description": "The workflow this page reports on."
+          }
+        }
+      ],
+      "queries": [
+        "value-workflow-results"
+      ]
+    },
+    {
+      "id": "value-type",
+      "title": "Value entries by type",
+      "description": "Inspect the status distribution and individual entries behind a Value type bar.",
+      "intent": "Explain the entries counted in one Value type without mixing native measures.",
+      "subject": "Campaign rollups or standalone workflow entries of one selected type.",
+      "objective": "Compare their categorical statuses and open the relevant campaign or workflow.",
+      "acceptance": "The selected type scopes both the status plot and cards; missing type is an empty match.",
+      "experimental": false,
+      "parameters": [
+        {
+          "name": "kind",
+          "required": true,
+          "description": "The kind this page reports on.",
+          "schema": {
+            "type": "string",
+            "description": "The kind this page reports on."
+          }
+        }
+      ],
+      "queries": [
+        "value-overview",
+        "value-overview-by-status"
+      ]
+    },
+    {
+      "id": "value-status",
+      "title": "Value entries by status",
+      "description": "Inspect entries behind a Value status bar while keeping campaign review and standalone movement separate.",
+      "intent": "Explain the entries counted for one Value type and status.",
+      "subject": "Campaign rollups or standalone workflows sharing one categorical status.",
+      "objective": "Inspect collection and evidence details before opening the original Value entry.",
+      "acceptance": "Both type and status must match; unknown status remains a visible category, never an assumed successful result.",
+      "experimental": false,
+      "parameters": [
+        {
+          "name": "kind",
+          "required": true,
+          "description": "The kind this page reports on.",
+          "schema": {
+            "type": "string",
+            "description": "The kind this page reports on."
+          }
+        }
+      ],
+      "queries": [
+        "value-overview"
       ]
     },
     {
@@ -4058,12 +4132,60 @@
       "description": "",
       "parameters": [
         {
+          "name": "movement",
+          "field": "movement"
+        },
+        {
           "name": "workflow",
           "field": "workflow-route"
         }
       ],
       "sources": [
         "value-workflow-result-order"
+      ],
+      "used-by-pages": [
+        "value-movement",
+        "workflow-value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-movement-counts",
+      "subject": "Counts of current native results by movement within each workflow.",
+      "objective": "Open the exact results behind each workflow movement bar.",
+      "acceptance": "Count report identities, not native values; preserve unavailable comparisons as their own category.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-workflow-results"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "operational-value-evidence"
+        ]
+      }
+    },
+    {
+      "id": "value-workflow-movement",
+      "subject": "Navigable workflow movement counts.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "workflow",
+          "field": "workflow-route"
+        }
+      ],
+      "sources": [
+        "value-workflow-movement-counts"
       ],
       "used-by-pages": [
         "workflow-value"
@@ -4467,14 +4589,48 @@
       "objective": "Review one campaign group or one standalone workflow per row without separate entity or review-state sections.",
       "acceptance": "Campaign workers appear only through their campaign entry at the top level. Standalone workflows appear once. Missing and unknown evidence remains explicit and no incompatible native values are combined.",
       "description": "",
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "kind",
+          "field": "value-kind"
+        },
+        {
+          "name": "status",
+          "field": "value-plot-status"
+        }
+      ],
       "sources": [
         "value-campaign-overview",
         "value-standalone-entries"
       ],
       "used-by-pages": [
-        "value"
+        "value",
+        "value-status",
+        "value-type"
       ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-subject-topology",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-overview-kind-counts",
+      "subject": "Counts of top-level campaign rollups and standalone workflow entries.",
+      "objective": "Compare the canonical entry inventory without combining native Value outcomes.",
+      "acceptance": "Count unified entries by canonical type only; do not aggregate or compare their native outcome values.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-overview"
+      ],
+      "used-by-pages": [],
       "execution": {
         "local": true,
         "backend": "postgres",
@@ -4489,13 +4645,11 @@
     },
     {
       "id": "value-overview-by-kind",
-      "subject": "Counts of top-level campaign rollups and standalone workflow entries.",
-      "objective": "Compare the canonical entry inventory without combining native Value outcomes.",
-      "acceptance": "Count unified entries by canonical type only; do not aggregate or compare their native outcome values.",
+      "subject": "Navigable counts of top-level Value entries by canonical type.",
       "description": "",
       "parameters": [],
       "sources": [
-        "value-overview"
+        "value-overview-kind-counts"
       ],
       "used-by-pages": [
         "value"
@@ -4513,7 +4667,7 @@
       }
     },
     {
-      "id": "value-overview-by-status",
+      "id": "value-overview-status-counts",
       "subject": "Status counts for top-level campaign rollups and standalone workflows.",
       "objective": "Compare campaign review state and standalone workflow outcome movement without merging their meanings.",
       "acceptance": "Count each top-level entry once by its own type and categorical status. Campaign worker review counts are not categories or native outcome values; missing standalone status remains explicit.",
@@ -4522,8 +4676,35 @@
       "sources": [
         "value-overview"
       ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "operational-value-evidence",
+          "workflow-subject-topology",
+          "workflow-value-collections",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-overview-by-status",
+      "subject": "Navigable counts of top-level Value entries by type and status.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "kind",
+          "field": "value-kind"
+        }
+      ],
+      "sources": [
+        "value-overview-status-counts"
+      ],
       "used-by-pages": [
-        "value"
+        "value",
+        "value-type"
       ],
       "execution": {
         "local": true,
