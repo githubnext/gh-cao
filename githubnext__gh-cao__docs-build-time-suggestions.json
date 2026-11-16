@@ -1,36 +1,7 @@
 {
  "source_sha": "0cfeed6fae6c5f2dab6432ceaaaf4211d242b6b8",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T04:22:00Z",
-   "worker_run_id": "43803316173",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "43798031034",
-    "43792211504",
-    "43789359390",
-    "43781377358",
-    "43781088986",
-    "43780290464",
-    "43768376457",
-    "43766933236",
-    "43766019418",
-    "43757990961",
-    "43756384109",
-    "43756218347",
-    "43753233809",
-    "43752704784",
-    "43752194225",
-    "43746617494",
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43721157324 (push ac6789f, 2026-11-15T13:51Z, failure) to 43798031034 (push 4121d56, 2026-11-16T03:24Z); same 20 IDs as the 03:42Z window, none newer or queued (re-listed 04:20Z). Source 4121d56 = HEAD = source_sha. Samples: 19 p...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T04:44:05Z",
    "worker_run_id": "43805240866",
@@ -865,6 +836,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 excluded; gh run list re-read 15:56Z shows no newer docs run. Source 0cfeed6 = HEAD = source_sha. Queue median 3 s, p90 4 s, one 64 s outlier (43832040488 behind in-flight 43831980991); queue is latency, not build time. Exec median 78 s, p90 120 s; ceiling of concurrency or trigger change on median = 0 s. cancel-in-progress false preserved: 0 in-flight builds superseded in window (only 43832015521 cancelled pending at 12 s, no compute). Avoidable rebuilds: 18 of 19 push commits touch build-consumed paths (fade88d and 0cfeed6 verified by file list this run; both touch src, dashboard-fragments, generated catalogs, docs); only test-only push 5b8b842 qualifies, about 4 s per push run averaged, below 60 s and 15% (11.7 s) gates; watch item unchanged. Daily 05:23Z schedule (63 s) refreshes synthetic dates; not skippable. Checkout (median 25 s, 32% of exec) remains tracked by OPEN #20815 (0 comments, updated 2026-11-13); not repeated. Next category: dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T16:22:30Z",
+   "worker_run_id": "43905975553",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 push + 1 schedule 43810351164; all success; cancelled 43832015521 excluded; gh run list at 16:2xZ: no newer docs run, none queued or in progress. Source 0cfeed6 = HEAD = source_sha. Dependency phase recomputed from stored Jobs API rows (no refetch): setup-node median 3 s p90 6; install (root npm ci then dashboard/site npm ci) median 8 s p90 11; post-setup-node median 0 s p90 1; setup+install+post median 13 s p90 17 = 16.7 percent of exec median 78 s (gate 11.7 s; 60 s absolute not met). Cache: caches API shows main key node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57Z, 263 MB, last accessed 2026-11-16T16:18Z); post step 0-1 s in 20/20 rows (exact hit inferred; no miss in window). Whole-phase removal unreachable (npm ci cannot be skipped); node_modules restore est. 3-6 s net, unmeasured, below gate. Open #20815 is checkout (other category), not repeated. No suggestion; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -879,7 +879,7 @@
   "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
   "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
   "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-  "live_entry_last_accessed": "2026-11-16T11:58:40Z (Actions caches API; run 43862265708 post step 0 s); window post-step 0-1 s",
+  "live_entry_last_accessed": "2026-11-16T16:18:10Z (Actions caches API at 16:2xZ; run 43877103800 post step 0 s)",
   "window_2026_11_15T1930Z": {
    "n_success": 8,
    "setup_node_median_s": 4,
@@ -1732,8 +1732,8 @@
   }
  },
  "dependency_phase": {
-  "evaluated_at": "2026-11-16T14:38:23Z",
-  "window": "43766933236 (push e75f80a) .. 43877103800 (push 0cfeed6); 20 completed runs incl. cancelled 43832015521 (excluded); 19 successes; recomputed from run_timings rows, no refetch",
+  "evaluated_at": "2026-11-16T16:22:30Z",
+  "window": "43766019418 (push eccbdd6) .. 43877103800 (push 0cfeed6); 20 completed non-cancelled runs; cancelled 43832015521 excluded; 20 successes; recomputed from run_timings rows, no refetch",
   "setup_node_s": {
    "median": 3,
    "p90": 6
@@ -1748,12 +1748,12 @@
   },
   "setup_install_post_s": {
    "median": 13,
-   "p90": 18
+   "p90": 17
   },
-  "share_of_exec_median_pct": 17.1,
+  "share_of_exec_median_pct": 16.7,
   "exec_s": {
-   "median": 76,
-   "p90": 129
+   "median": 78,
+   "p90": 120
   },
   "gate_15pct_s": 11.4,
   "note": "Whole-phase removal is an unreachable ceiling (npm ci cannot be skipped). node_modules restore est 3-6 s net, unmeasured, below gate. Not actionable."
