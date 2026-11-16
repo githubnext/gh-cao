@@ -128,6 +128,42 @@ describe('campaign route shell debug logging', () => {
     resetStoreForTest();
   });
 
+  it('logs partial-loading and empty source states under distinct statuses', async () => {
+    const output = { debug: vi.fn() };
+    vi.doMock('../../src/debug.js', async () => {
+      const actual = /** @type {typeof import('../../src/debug.js')} */ (
+        await vi.importActual('../../src/debug.js')
+      );
+      return {
+        ...actual,
+        createDebug: (/** @type {string} */ category) =>
+          actual.createDebug(category, { search: () => '?debug=campaign-route-shell', output })
+      };
+    });
+    vi.resetModules();
+    const { renderCampaignRouteVariant } = await import('../../src/components/campaign-route-view.js');
+    const { resetSourceStore: resetStoreForTest } = await import('../../src/source-store.js');
+
+    for (const [status, sourceMetadata] of /** @type {const} */ ([
+      ['loading-partial', { ...metadata, completeness: 'partial' }],
+      ['empty', { ...metadata, completeness: 'unknown', availability: 'empty' }]
+    ])) {
+      output.debug.mockClear();
+      resetStoreForTest();
+      const rendered = renderCampaignRouteVariant({
+        ...context(),
+        sources: { workflows: { source: 'workflows', metadata: sourceMetadata, rows: [] } }
+      }, 'overview');
+      rendered.dispatchEvent(new CustomEvent('dashboard-route-change', {
+        detail: { parameter: 'campaign', value: 'ambient-context' }
+      }));
+      expect(output.debug).toHaveBeenCalledWith(
+        '[cao:campaign-route-shell]',
+        { event: 'route-render', tab: 'overview', status }
+      );
+    }
+  });
+
   it('never logs sensitive payload content, only scalar route metadata', async () => {
     const output = { debug: vi.fn() };
     vi.doMock('../../src/debug.js', async () => {

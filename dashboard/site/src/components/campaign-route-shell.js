@@ -104,6 +104,7 @@ export function renderCampaignRouteShell(context, config) {
         const stillCollecting = workflowsSource?.metadata?.availability !== 'unavailable'
           && workflowsSource?.metadata?.completeness !== 'complete';
         if (stillCollecting && workflowsSource?.metadata?.completeness === 'partial') {
+          debugCampaignRouteShell({ event: 'route-render', tab: config.currentTab, status: 'loading-partial' });
           const campaignName = campaignNameForRoute(campaignId, workflows);
           return {
             allocation: {
@@ -115,6 +116,7 @@ export function renderCampaignRouteShell(context, config) {
           };
         }
         if (bindings.workflows.empty()) {
+          debugCampaignRouteShell({ event: 'route-render', tab: config.currentTab, status: 'empty' });
           const campaignName = campaignNameForRoute(campaignId, workflows);
           return {
             allocation: {
