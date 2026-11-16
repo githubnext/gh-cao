@@ -211,11 +211,14 @@ func validDisposition(audit model.Row, pull bool) bool {
 	if state != "closed" {
 		return false
 	}
+	if status == "lifecycle" && signal == "lifecycle" || status == "unknown" && signal == "missing_human_resolution_evidence" {
+		return true
+	}
 	if pull {
 		return status == "accepted" && signal == "merged" || status == "rejected" && signal == "closed_without_merge"
 	}
 	return status == "accepted" && signal == "completed" || status == "rejected" && signal == "closed_not_planned" ||
-		status == "lifecycle" && signal == "lifecycle" || status == "unknown" && signal == "missing_resolution_evidence"
+		status == "unknown" && signal == "missing_resolution_evidence"
 }
 
 // A Run-level output link alone does not identify its producing attempt.
