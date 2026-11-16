@@ -238,7 +238,10 @@ func TestGraderReplayEvidence(t *testing.T) {
 					t.Fatalf("%s attempted full metric unexpectedly accepted", attempt.ID)
 				}
 
-				if !errors.Is(err, ErrQuery) && !strings.Contains(err.Error(), "unknown field") {
+				// Invented syntax fails strict decoding: unknown keys, or a shape that is
+				// not the Dashboard Language compute/window array.
+				var shape *json.UnmarshalTypeError
+				if !errors.Is(err, ErrQuery) && !strings.Contains(err.Error(), "unknown field") && !errors.As(err, &shape) {
 					t.Fatalf("unexpected full-query failure: %v", err)
 				}
 				result.Queries = append(result.Queries, graderQueryReplay{

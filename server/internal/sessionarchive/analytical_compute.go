@@ -83,7 +83,7 @@ func computationNulls(value any, expression bool) bool {
 					continue
 				}
 			}
-			if !computationNulls(child, expression || key == "post-aggregate") {
+			if !computationNulls(child, expression || key == "post-aggregate" || key == "compute") {
 				return false
 			}
 		}
@@ -201,6 +201,26 @@ func (e Expression) plan(fields map[string]string, depth int, nodes *int) (Plann
 		}
 	}
 	return p, nil
+}
+
+// rowLevel rejects null tests over strings: archive strings use "" for
+// absence, and KQL coalesce treats "" as missing while DuckDB does not.
+func (e PlannedExpression) rowLevel() bool {
+	for _, arg := range e.Args {
+		if (e.Function == "is-null" || e.Function == "coalesce") && arg.Type == "string" || !arg.rowLevel() {
+			return false
+		}
+	}
+	return true
+}
+
+func (e PlannedExpression) visitFields(visit func(string)) {
+	if e.Field != "" {
+		visit(e.Field)
+	}
+	for _, arg := range e.Args {
+		arg.visitFields(visit)
+	}
 }
 
 func (e PlannedExpression) require(functions []string) bool {

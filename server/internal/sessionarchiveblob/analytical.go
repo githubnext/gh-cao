@@ -263,6 +263,7 @@ func stageKQL(plan sessionarchive.Plan) (string, error) {
 	if len(predicates) > 0 {
 		kql += "| where " + strings.Join(predicates, " and ") + "\n"
 	}
+	kql += rowKQL(plan)
 	if len(reductions) > 0 {
 		if ordered {
 			sourceOrder := make([]string, 0, len(plan.By)+len(order)+1)
@@ -277,7 +278,7 @@ func stageKQL(plan sessionarchive.Plan) (string, error) {
 				name := kqlIdentifier(key.Name)
 				if key.Type == "string" {
 					// Matches DuckDB nullif(key,'') ASC NULLS LAST.
-					empty := kqlIdentifier("__archive_order_" + strconv.Itoa(len(emptyKeys)))
+					empty := kqlIdentifier("archive_order_" + strconv.Itoa(len(emptyKeys)))
 					emptyKeys = append(emptyKeys, empty+"=iff(isempty("+name+"),1,0)")
 					sourceOrder = append(sourceOrder, empty+" asc")
 				}
@@ -301,6 +302,52 @@ func stageKQL(plan sessionarchive.Plan) (string, error) {
 		kql += "| extend " + kqlIdentifier(computation.As) + "=" + kqlExpression(computation.Expression) + "\n"
 	}
 	return kql, nil
+}
+
+// rowKQL lowers row-level compute and previous/row-number windows. Each
+// window sorts globally by partition then order keys, restarting its row
+// number where any partition value changes; the planner guarantees groupby
+// plus order-by covers the row key, so the order is total.
+func rowKQL(plan sessionarchive.Plan) string {
+	kql := ""
+	for _, computation := range plan.RowComputations {
+		kql += "| extend " + kqlIdentifier(computation.As) + "=" + kqlExpression(computation.Expression) + "\n"
+	}
+	for _, window := range plan.Windows {
+		var order, empties, same []string
+		for _, column := range window.Partition {
+			name := kqlIdentifier(column.Name)
+			order = append(order, name+" asc nulls last")
+			equal := "coalesce(" + name + "==prev(" + name + "),false)"
+			if column.Type != "string" {
+				equal = "(" + equal + " or (isnull(" + name + ") and isnull(prev(" + name + "))))"
+			}
+			same = append(same, equal)
+		}
+		for _, key := range window.Order {
+			name := kqlIdentifier(key.Field.Name)
+			if key.Field.Type == "string" {
+				// Matches DuckDB nullif(key,'') NULLS LAST in either direction.
+				empty := kqlIdentifier("archive_window_" + strconv.Itoa(len(empties)))
+				empties = append(empties, empty+"=iff(isempty("+name+"),1,0)")
+				order = append(order, empty+" asc")
+			}
+			order = append(order, name+" "+key.Direction+" nulls last")
+		}
+		if len(empties) > 0 {
+			kql += "| extend " + strings.Join(empties, ",") + "\n"
+		}
+		kql += "| order by " + strings.Join(order, ",") + "\n" +
+			"| extend archive_restart=row_number()==1 or not(" + strings.Join(same, " and ") + ")\n"
+		as := kqlIdentifier(window.As)
+		if window.Operation == "row-number" {
+			kql += "| extend " + as + "=row_number(1,archive_restart)\n"
+		} else {
+			first := map[string]string{"number": "real(null)", "integer": "long(null)", "boolean": "bool(null)", "string": `""`}[window.Type]
+			kql += "| extend " + as + "=iff(archive_restart," + first + ",prev(" + kqlIdentifier(window.Field.Name) + "))\n"
+		}
+	}
+	return kql
 }
 
 // analyticalKQL lowers a reviewed plan over exact pinned events. Item sources
@@ -357,12 +404,20 @@ func analyticalKQL(plan sessionarchive.Plan, events string) (string, error) {
 		packed = append(packed, literal(column.Name), kqlIdentifier(column.Name))
 	}
 	kql := lets + "let source=materialize(" + source + "| project " + strings.Join(projected, ",") + ");\nsource\n"
-	for _, stage := range stages {
+	for i, stage := range stages {
 		text, err := stageKQL(stage)
 		if err != nil {
 			return "", err
 		}
 		kql += text
+		if i < len(stages)-1 && !stage.Aggregate() {
+			// A row-level stage exposes only its selected row, including its key.
+			selected := make([]string, 0, len(stage.Selections))
+			for _, selection := range stage.Selections {
+				selected = append(selected, kqlIdentifier(selection.As)+"="+kqlIdentifier(selection.Field.Name))
+			}
+			kql += "| project " + strings.Join(selected, ",") + "\n"
+		}
 	}
 	kql += "| project " + strings.Join(selections, ",") + "\n"
 	if len(emptyKeys) > 0 {

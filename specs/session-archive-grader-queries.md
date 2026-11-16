@@ -17,7 +17,7 @@ grader's semantics.
 | Upstream pin | `github/gh-aw` `5ac122295e5e839aa15a727ecf4762f3e680cc24` ([`grader-source-pins.json`](../server/internal/sessionarchive/testdata/grader-source-pins.json)) |
 | Last upstream review | `main` `789cc9c2` (2026-11-16); grader code identical to the pin. Previously `a25e38ee6b9740b10008559bd2c9290ef1f925aa`, where `graders-specification.md` changed one link only |
 | Upstream sources | `actions/setup/js/builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs`, `working_set_metrics.cjs`, `operational_value_grader.cjs`, `custom_graders.cjs` |
-| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); local DuckDB also advertises the Phase 1 item sources and Phase 2 chaining (`LocalAnalyticalCapabilities`) |
+| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1 item sources, Phase 2 chaining and Phase 4 row-level compute, windows and structured-family states |
 | Graders in scope | 35 built-ins; operational-value and custom graders are listed as out of scope |
 
 Re-review when the pin moves: compare the pin with upstream `main` through
@@ -412,7 +412,7 @@ development hosts lack the emulator. Phases 1b and 2b were accepted in
 - [x] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728), §7).
 - [x] **Phase 2b:** KQL lowering of L3 chaining, accepted in the same run. Brings hosted ADX to all 10 `implemented` graders (§8).
 - [x] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). Resume mapping is linear, but the FIFO pointer's skips are sequential state, so the three tool graders are `vocabulary-gated` (G3). Phase 4 still delivers L2, L5 and L6 for Phase 5.
-- [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `tool-failure-count`, `tool-success-rate` and `trajectory-efficiency` if the reconciliation fixture passes.
+- [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. L2, L5 and L6 replay on local DuckDB and lower to KQL (§9); hosted ADX advertises them only after the job accepts the corpus. The reconciliation fixture made the three tool graders G3, so Phase 4 unlocks no grader and delivers its vocabulary for Phase 5.
 - [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
 - [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
 - [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
@@ -492,20 +492,53 @@ outside the current graders' replay:
 - `bag_has_key` is assumed to report JSON-null members as present, matching
   the DuckDB `null` field state.
 
-## 9. Smallest next delta
+## 9. Phase 4 implementation notes
+
+L2 adds row-level `compute` before `aggregate`. L5 adds `previous` and
+`row-number` windows whose `groupby` includes the complete trace binding and
+whose `groupby` plus `order-by` covers the input row key, so every order is
+total and both engines agree without tie-breaking. A row-level definition with
+no `aggregate` returns one row per input row; as an earlier stage it selects its
+key unrenamed, so a later stage can window or aggregate it. L6 extends `state`
+predicates to the structured `Error`, `Usage` and `Provenance` families. No
+family value is exposed.
+
+Gaps-and-islands needs no extra operator: one row-level stage numbers rows per
+trace and per value, the next groups by the difference, and the outer
+definition counts islands. The shared corpus case `gaps-and-islands` runs the
+three-stage plan.
+
+The DuckDB lowering uses `row_number` and `lag` window functions. The KQL
+lowering sorts by partition then order keys, marks a restart where any
+partition value changes, and uses `row_number(1, restart)` and `prev`. Empty
+strings sort last in both engines. Computed `is-null` and `coalesce` over
+strings are rejected because the two engines encode an absent string
+differently.
+
+Declared limits, all rejected rather than approximated:
+
+- Every backend advertises `compute`, `windows` and `stateFamilies` only
+  because the `session-archive-kusto` job accepted the four row-level corpus
+  cases through `TestKustoAnalyticalCorpus` ([run 43917614253](https://github.com/githubnext/gh-cao/actions/runs/43917614253)).
+- The corpus has no `Usage` or `Provenance` values, so on Kusto only absent
+  and zero-count paths are exercised for them. The `Error`-present path is
+  covered on DuckDB by `TestDuckDBStructuredFamilyStates` and on Kusto by the
+  `structured-family-error-present` subtest of `TestKustoAnalyticalCorpus`.
+- Tool reconciliation stays G3 (§6): the FIFO pointer's skips are sequential
+  state that no bounded window composition expresses.
+
+## 10. Smallest next delta
 
 Hosted parity is done: Phases 1b and 2b brought ADX to all 10 `implemented`
 graders. Every later phase must be accepted on DuckDB and in the
 `session-archive-kusto` job together, so the backends do not diverge again.
 
-Next is the reconciliation fixture. Tool reconciliation (`tool-failure-count`,
-`tool-success-rate`, `trajectory-efficiency`) needs more than L5 `previous`:
-upstream collapses resume-strategy attempts to the last non-resume attempt in
-each invocation, which is a gaps-and-islands construction (`row-number`
-differences plus L3). The fixture decides whether that is enough or whether
-resume mapping needs transitive closure (G3).
+The reconciliation fixture is done. Resume mapping is linear, but the FIFO
+pointer's skips are sequential state, so `tool-failure-count`,
+`tool-success-rate` and `trajectory-efficiency` are G3 (§6).
 
-L2, L5 and L6 then follow as Phase 4. Phase 4 alone does not unlock
+Phase 4 lands L2, L5 and L6 (§9), with hosted support gated on the
+Kusto job. Phase 4 alone does not unlock
 `recurrence-laminarity`: its visit order follows state `firstEventIndex`
 through the IR `events`, which needs nested S1 and L4 (Phase 5). The three RQA
 graders then share one linear plan, already executed on DuckDB in

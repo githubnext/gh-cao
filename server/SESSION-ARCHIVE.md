@@ -319,13 +319,18 @@ fail without fallback. See the [analytical contract](../specs/session-archive.md
 for filtered aggregates, generated field-state predicates, numeric ordered
 `first`, wide versus sequential sums and the explicit bounded post-aggregate
 phase. No reducer reads `PayloadJSON`; null first values are retained.
-Local DuckDB status also lists `analytical.sources`: `archive-objectives`,
+Status also lists `analytical.sources`: `archive-objectives`,
 `archive-actions`, and `archive-states` flatten each trace's last agent-phase
 `trajectory.ir` collection at query time, and `analytical.chaining`: a
 definition may read up to two earlier definitions in `queries`, each keyed by
-complete trace and projection identity, lowered to one DuckDB statement with no
-persisted intermediate. ADX does not advertise item sources or chaining and
-rejects those plans until a KQL lowering is accepted against real Kusto.
+complete trace and projection identity, lowered to one DuckDB statement or
+one KQL query of materialized `let` stages with no persisted intermediate.
+Status also advertises `analytical.compute`, `analytical.windows`
+(`previous`, `row-number`) and `analytical.stateFamilies` (`Error`, `Usage`,
+`Provenance`): row-level computations, trace-bound windows over a total row
+order, and field-state predicates over structured families without exposing
+their values. DuckDB and ADX advertise each construct only after its lowering
+passed the real Kusto acceptance job; otherwise they reject such plans.
 Results include
 typed columns, rows, and metadata separating intentional top-N selection from
 known evidence gaps and unknown upstream coverage, plus query digest and compiler

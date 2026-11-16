@@ -602,7 +602,9 @@ acceptance independently binds the additional analytical plan version, without
 changing capture acceptance or native privacy-ledger destination identity.
 The `0.2.0` analytical profile adds filtered numeric reducers, original-sequence
 first selection, generated field-state predicates and bounded post-aggregate
-scalar expressions. Four separate reviewed usage queries preserve per-trace
+scalar expressions, plus row-level compute, trace-bound
+`previous`/`row-number` windows and structured-family state predicates, which
+both backends advertise after real Kusto accepted their lowering. Four separate reviewed usage queries preserve per-trace
 proxy-presence precedence, completeness, duration fallback, and distinct rebuild
 versus context overflow behavior. They produce qualified recomputed values,
 not persisted scores, recorded grader observations or acquisition proof.

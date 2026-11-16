@@ -144,6 +144,33 @@
                     "minimum": -2147483648,
                     "maximum": 2147483647,
                     "description": "Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected."
+                },
+                "compute": {
+                    "type": "boolean",
+                    "description": "Row-level compute before aggregate. Omitted means compute is rejected."
+                },
+                "windows": {
+                    "type": "array",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "const": "previous"
+                            },
+                            {
+                                "type": "string",
+                                "const": "row-number"
+                            }
+                        ]
+                    },
+                    "description": "Supported window operations. Omitted means window is rejected."
+                },
+                "stateFamilies": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Structured evidence families accepted as state-predicate fields. Omitted means none."
                 }
             },
             "required": [

@@ -12,7 +12,7 @@ model SessionArchivePredicate {
   @minItems(1) @maxItems(32) in?: (string | int64 | float64 | boolean)[];
   gte?: string | int64 | float64;
   lt?: string | int64 | float64;
-  /** State of a declared promoted field, inspected through generated evidence metadata only. Exclusive with comparison operands. */
+  /** State of a declared promoted field, inspected through generated evidence metadata only. Exclusive with comparison operands. On archive-events, field may also name an approved structured evidence family (for example Error, Usage or Provenance) advertised in analytical.stateFamilies; a family is never a comparison, selection, grouping or computation field. */
   state?: "present" | "absent" | "null" | "invalid" | "excluded" | "redacted" | "valid";
 }
 
@@ -47,11 +47,15 @@ model SessionArchiveDefinition {
   @minLength(1) @maxLength(512) subject: string;
   objective?: string;
   acceptance?: string;
-  /** Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. The first reads an archive source, each later one reads its immediate predecessor by name, and this definition reads the last, so no stage is unused. Earlier definitions must aggregate with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, and must not declare queries, select, order-by or limit; their output is their groups, aggregates and computations. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length. */
+  /** Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. The first reads an archive source, each later one reads its immediate predecessor by name, and this definition reads the last, so no stage is unused. An earlier definition either aggregates with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, outputting its groups, aggregates and computations, or is row-level and selects its input key unrenamed (the trace and projection identity plus Sequence for archive-events, Ordinal for item sources), outputting the selected fields. Earlier definitions must not declare queries, order-by or limit, and aggregating ones must not declare select. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length. */
   @maxItems(2) queries?: SessionArchiveDefinition[];
   /** One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there. */
   @pattern("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$") @maxLength(128) from: string;
   filter?: { @minItems(1) @maxItems(64) predicates: SessionArchivePredicate[] };
+  /** Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. Rejected unless status advertises analytical.compute. */
+  @maxItems(32) compute?: { as: string; function: SessionArchiveFunction; @maxItems(3) args: SessionArchiveExpression[] }[];
+  /** Dashboard Language previous and row-number windows (DLS §5.5.4) over row-level queries only; forbidden with aggregate. groupby must include every trace and projection identity field, and groupby with order-by must cover the input key so window order is total. previous returns the field from the preceding row in its partition, or null (empty string for strings) on the first row. Rejected unless status advertises each operation in analytical.windows. */
+  @maxItems(8) window?: SessionArchiveWindow[];
   aggregate?: {
     @maxItems(16) by?: string[];
     @minItems(1) @maxItems(16) values: {
@@ -147,6 +151,15 @@ model SessionArchiveSourceCapability {
   fields: SessionArchiveColumn[];
 }
 
+model SessionArchiveWindow {
+  /** Required for previous; optional for row-number. */
+  field?: string;
+  as: string;
+  operation: "previous" | "row-number";
+  @encodedName("application/json", "order-by") @minItems(1) @maxItems(8) orderBy: OrderField[];
+  @minItems(1) @maxItems(8) groupby: string[];
+}
+
 model SessionArchiveCapabilities {
   `language-version`: "0.2.0";
   source: "archive-events";
@@ -161,6 +174,12 @@ model SessionArchiveCapabilities {
   maxRows: int32;
   /** Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected. */
   chaining?: int32;
+  /** Row-level compute before aggregate. Omitted means compute is rejected. */
+  compute?: boolean;
+  /** Supported window operations. Omitted means window is rejected. */
+  windows?: ("previous" | "row-number")[];
+  /** Structured evidence families accepted as state-predicate fields. Omitted means none. */
+  stateFamilies?: string[];
 }
 
 @jsonSchema

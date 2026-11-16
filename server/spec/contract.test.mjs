@@ -182,12 +182,22 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.equal(definition.properties.queries.items.$ref, '#/components/schemas/SessionArchiveDefinition')
   assert.match(definition.properties.queries.description, /DLS-QUERY-017/)
   assert.equal(definition.properties.limit.maximum, 10000)
-  for (const key of ['joins', 'union', 'compute', 'window', 'sql', 'stores', 'parameters']) {
+  for (const key of ['joins', 'union', 'sql', 'stores', 'parameters']) {
     assert.equal(definition.properties[key], undefined)
   }
   assert.deepEqual(Object.keys(definition.properties).sort(), [
-    'acceptance', 'aggregate', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'post-aggregate', 'queries', 'select', 'subject'
+    'acceptance', 'aggregate', 'compute', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'post-aggregate', 'queries', 'select', 'subject', 'window'
   ])
+  assert.equal(definition.properties.compute.maxItems, 32)
+  assert.equal(definition.properties.window.maxItems, 8)
+  const sessionWindow = openapi.components.schemas.SessionArchiveWindow
+  assert.deepEqual(sessionWindow.properties.operation.enum, ['previous', 'row-number'])
+  assert.deepEqual(sessionWindow.required.sort(), ['as', 'groupby', 'operation', 'order-by'])
+  const archiveCapabilities = openapi.components.schemas.SessionArchiveCapabilities
+  for (const key of ['compute', 'windows', 'stateFamilies']) {
+    assert.ok(archiveCapabilities.properties[key])
+    assert.equal(archiveCapabilities.required.includes(key), false)
+  }
   assert.match(definition.description, /UTF-8 lexical string order/)
   assert.match(query.description, /shared session-query/)
   assert.match(query.description, /session-query/)
