@@ -1,36 +1,7 @@
 {
   "source_sha": "1a03d2195e80526ad057bbb01f0f8f575d5b255a",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T01:35:30Z",
-      "worker_run_id": "43786830539",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43781377358,
-        43781088986,
-        43780290464,
-        43768376457,
-        43766933236,
-        43766019418,
-        43757990961,
-        43756384109,
-        43756218347,
-        43753233809,
-        43752704784,
-        43752194225,
-        43746617494,
-        43731625055,
-        43724243400,
-        43721484176,
-        43721157324,
-        43706435376,
-        43698271571,
-        43682264332
-      ],
-      "outcome": "complete, not actionable. Window = latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43Z) to 43781377358 (push 86f6047, created 2026-11-16T00:36Z); 16 successes, 4 failures excluded and disclosed (Build documentation: 43682264332, 43698271571, 43706435376, 4372115...",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T01:55:26Z",
       "worker_run_id": "43788644922",
@@ -866,6 +837,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43757990961 (push 24f570e, 2026-11-15T20:25Z) to 43862265708 (push 1a03d21, 2026-11-16T11:57Z); 20/20 success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 12:45Z shows no newer docs.yml run. Build documentation step median 11.5 s, p90 14 s, 14.7% of exec median 78 s (15% gate 11.7 s; 60 s gate not met). Whole-step removal ceiling 11.5 s and would drop validate-agent-docs and the discovery test; Astro output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). No Astro-only change can clear the gate without weakening correctness.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T13:06:39Z",
+      "worker_run_id": "43871978894",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "43757990961",
+        "43766019418",
+        "43766933236",
+        "43768376457",
+        "43780290464",
+        "43781088986",
+        "43781377358",
+        "43789359390",
+        "43792211504",
+        "43798031034",
+        "43810351164",
+        "43814432358",
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43757990961 (push 24f570e, 2026-11-15T20:25Z) to 43862265708 (push 1a03d21, 2026-11-16T11:57Z); 20/20 success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded and disclosed; gh run list 13:05Z shows no newer docs run and none queued or in progress. Dashboard generation = Build synthetic enterprise demo step (simulate-dashboard-pages.mjs -> buildDashboardSite; docs:build does not build the dashboard; no dashboard job): median 5 s, p90 6 s, 6.4% of exec median 78 s (15% gate 11.7 s; 60 s gate not met); ceiling saving at most 6 s. Reuse blocked: prepareDashboardPages defaults now=Date.now() (scripts/simulate-dashboard-pages.mjs:78) so skipping would freeze synthetic dates; dist/cao is deployed. Open issue 20815 (blobless checkout) is unrelated to this category; no suggestion.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1634,23 +1634,23 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-16T11:22:56Z",
-    "window": "43757990961..43854851689 (19 successes of latest 20 completed docs.yml runs; cancelled 43832015521 excluded); recomputed from run_timings rows plus the Jobs API row of 43854851689; no refetch of stored rows",
+    "verified_at": "2026-11-16T13:06:39Z",
+    "window": "43757990961..43862265708 (20 non-cancelled runs: 19 push + 1 schedule 43810351164; all success; cancelled 43832015521 excluded); recomputed from run_timings rows, no refetch",
     "demo_step_s": {
       "median": 5,
       "p90": 6,
       "min": 3,
-      "max": 6
+      "max": 8
     },
     "exec_s": {
-      "median": 76,
-      "p90": 129
+      "median": 78,
+      "p90": 120
     },
-    "demo_share_of_exec_median_pct": 6.6,
-    "gate_15pct_s": 11.4,
+    "demo_share_of_exec_median_pct": 6.4,
+    "gate_15pct_s": 11.7,
     "ceiling_saving_s": 6,
-    "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 now = Date.now() (re-read 11:2xZ); 05:23Z daily schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
-    "note": "Dashboard site is built only by the demo step (simulate-dashboard-pages.mjs -> buildDashboardSite); docs:build does not build the dashboard; no dashboard job exists; no dashboard cache in docs.yml. Commit fade88d touches dashboard/site/src/data/** and docs/dashboard-data-*.md (build-consumed) but demo stayed 6 s."
+    "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
+    "note": "Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists; no dashboard cache in docs.yml. Step is 5 s median, so no reuse or parallelization clears the gate (a separate dashboard job would re-pay about 12 s setup+install)."
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
@@ -1741,7 +1741,7 @@
       "median": 12.5,
       "p90": 17
     },
-    "share_of_exec_median_pct": 16.0,
+    "share_of_exec_median_pct": 16,
     "exec_s": {
       "median": 78,
       "p90": 120
@@ -1758,7 +1758,7 @@
       "min": 8,
       "max": 16
     },
-    "exec_median_s": 78.0,
+    "exec_median_s": 78,
     "build_docs_share_exec_median_pct": 14.7,
     "gate_15pct_s": 11.7,
     "ceiling_saving_s": 11.5,
