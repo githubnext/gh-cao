@@ -28,11 +28,16 @@ for (const width of [1440, 390]) {
         queries: ${JSON.stringify(queries)},
         sourceNames: ['value-overview-by-kind', 'value-overview-by-status', 'value-overview'],
         sources: {
+          'value-campaign-measurement-summary': { source: 'value-campaign-measurement-summary', metadata, rows: [
+            { campaign: 'alpha', 'campaign-name': 'Alpha', 'value-diagnosis': 'Worsening',
+              'value-coverage': '1/2 worker repositories measured',
+              'value-movement-summary': '0 improving · 1 worsening · 0 unchanged · 0 mixed · 1 insufficient' }
+          ] },
           'value-campaign-totals': { source: 'value-campaign-totals', metadata, rows: [
             { campaign: 'alpha', 'campaign-name': 'Alpha', 'review-deployments': 2 }
           ] },
           'value-workflow-overview': { source: 'value-workflow-overview', metadata, rows: [
-            { 'workflow-role': 'standalone', 'overview-title': 'Solo', 'trend-movement': 'Better' }
+            { 'workflow-role': 'standalone', 'overview-title': 'Solo', 'trend-movement': 'Improving' }
           ] }
         }
       });
@@ -48,8 +53,8 @@ for (const width of [1440, 390]) {
     const statuses = value.locator('[data-view-id="value-overview-status-chart"]');
     await expect(types.locator('.bar-chart-bar')).toHaveCount(2);
     await expect(statuses.locator('.bar-chart-bar')).toHaveCount(2);
-    await expect(statuses).toContainText('Needs review');
-    await expect(statuses).toContainText('Better');
+    await expect(statuses).toContainText('Worsening');
+    await expect(statuses).toContainText('Improving');
     if (width > 600) {
       await expect(value.locator('[data-view-id="value-overview-table"]')).toBeHidden();
       await value.getByRole('button', { name: 'Table' }).click();
