@@ -1,36 +1,7 @@
 {
   "source_sha": "0cfeed6fae6c5f2dab6432ceaaaf4211d242b6b8",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T02:26:27Z",
-      "worker_run_id": "43791688786",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43789359390,
-        43781377358,
-        43781088986,
-        43780290464,
-        43768376457,
-        43766933236,
-        43766019418,
-        43757990961,
-        43756384109,
-        43756218347,
-        43753233809,
-        43752704784,
-        43752194225,
-        43746617494,
-        43731625055,
-        43724243400,
-        43721484176,
-        43721157324,
-        43706435376,
-        43698271571
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43698271571 (push f8da6f2, created 2026-11-15T09:14Z) to 43789359390 (push 67a8568, 2026-11-16T01:58:40Z), all within 14 days; no cancelled, queued, or in-progress runs; no schedule run in window. Source 67a8568 = HEAD (one commi...",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T02:38:13Z",
       "worker_run_id": "43793001673",
@@ -866,6 +837,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 20/20 success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded; no docs run queued or in progress at 13:39Z. Source 0cfeed6 = HEAD = new source_sha (compare 1a03d21...0cfeed6: 1 commit, build-consumed dashboard/site and docs paths). Removable transfer time (deploy handoff 5 s + Configure Pages 0 s + Upload Pages artifact 2 s + deploy setup 1 s) median 8 s, p90 10 s, max 10 s = 10.3% of exec median 78 s (build start to deploy end; p90 120 s); 15% gate 11.7 s and 60 s gate not met; ceiling saving 8 s. Deploy Pages (GitHub-managed, median 7 s) excluded. Merging deploy into build would save only about 6 s and weakens the separate Pages environment and permission boundary; not actionable. Artifact github-pages 9233422 B (run 43854851689). Checkout (largest step, outside this category) remains covered by open issue 20815; not re-proposed.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T14:09:27Z",
+      "worker_run_id": "43882054274",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43766019418,
+        43766933236,
+        43768376457,
+        43780290464,
+        43781088986,
+        43781377358,
+        43789359390,
+        43792211504,
+        43798031034,
+        43810351164,
+        43814432358,
+        43825070138,
+        43829639369,
+        43831754585,
+        43831980991,
+        43832040488,
+        43840581457,
+        43854851689,
+        43862265708,
+        43877103800
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z): 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 excluded (superseded in documentation-pages group by 43832040488). gh run list at 14:08Z: no newer docs run, none queued or in progress; source 0cfeed6 = HEAD = source_sha. Queue (run created to build start) median 3 s, p90 4 s, max 64 s (43832040488 waited for prior group run). Exec median 78 s, p90 120 s. Group serialises builds with cancel-in-progress false (deliberate Pages ordering) and already coalesces the pending slot. Avoidable rebuilds: 1 of 19 push runs test-only (5b8b842, exec 76 s); removing it saves 0 s at median, so the 60 s and 15 percent (11.7 s) gates are not met; watch unchanged. Schedule run 43810351164 is the intentional synthetic-date refresh. Checkout remains covered by open #20815; not repeated. Next: dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -963,8 +963,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-16T12:29:00Z",
-    "window": "43757990961 (push 24f570e, 2026-11-15T20:25Z) .. 43862265708 (push 1a03d21, 2026-11-16T11:57Z); 20 completed non-cancelled runs: 19 push, 1 schedule 43810351164; all success; cancelled 43832015521 excluded",
+    "evaluated_at": "2026-11-16T14:09:27Z",
+    "window": "43766019418 (push eccbdd6, 2026-11-15T21:51Z) .. 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 20 completed non-cancelled runs: 19 push, 1 schedule 43810351164; all success; cancelled 43832015521 excluded",
     "columns": [
       "run",
       "event",
@@ -984,23 +984,6 @@
     ],
     "note": "Jobs API step timestamps; completed runs immutable; reuse rows instead of refetching. exec = build job start to deploy job end. queue = run created to build start.",
     "rows": [
-      [
-        "43757990961",
-        "push",
-        "success",
-        "24f570e",
-        3,
-        47,
-        19,
-        3,
-        6,
-        1,
-        8,
-        4,
-        2,
-        9,
-        61
-      ],
       [
         "43766019418",
         "push",
@@ -1323,6 +1306,23 @@
         2,
         9,
         80
+      ],
+      [
+        "43877103800",
+        "push",
+        "success",
+        "0cfeed6",
+        3,
+        59,
+        23,
+        6,
+        8,
+        0,
+        11,
+        5,
+        2,
+        9,
+        73
       ]
     ]
   },
@@ -1685,54 +1685,46 @@
     "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
   },
   "scheduling_verified": {
-    "verified_at": "2026-11-16T11:55:48Z",
-    "window": "43757990961 (push 24f570e) .. 43854851689 (push fade88d); 19 successes; cancelled 43832015521 excluded; no docs run newer than 11:06Z at re-list",
+    "verified_at": "2026-11-16T14:09:27Z",
+    "window": "43766019418 (push eccbdd6, 2026-11-15T21:51Z) .. 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 20 completed non-cancelled runs: 19 push, 1 schedule 43810351164; all success; cancelled 43832015521 excluded",
+    "method": "gh run list + memory run_timings rows (immutable) + Jobs API for 43877103800 (only new run in window)",
     "queue_s": {
       "median": 3,
-      "p90_nearest_rank": 5,
+      "p90_nearest_rank": 4,
       "max": 64
     },
     "exec_build_start_to_deploy_end_s": {
-      "median": 76,
-      "p90": 129,
+      "median": 78,
+      "p90": 120,
       "min": 63,
       "max": 132
     },
-    "total_created_to_deploy_end_s": {
-      "median": 80,
-      "p90": 114
-    },
     "build_job_s": {
       "median": 62.5,
-      "p90": 95
+      "p90": 104
     },
     "deploy_job_s": {
-      "median": 9,
-      "p90": 11
+      "median": 9.5,
+      "p90": 12
     },
     "handoff_s": {
       "median": 5,
       "p90": 6
     },
     "test_only_pushes_in_window": [
-      "5b8b842 (43780290464), 1 of 19"
+      "5b8b842 (43780290464), 1 of 19 push runs"
     ],
+    "superseded_cancellations_in_window": [
+      "43832015521 (cancelled by 43832040488)"
+    ],
+    "queue_outlier": "43832040488 queue 64 s while prior group run 43831980991 finished",
+    "decision": "not actionable: no repeated per-run saving meets 60 s or 15 pct of median exec (11.7 s); trigger/concurrency changes save 0 s median; watch test-only trigger (second test-only run would re-open)",
     "commit_map_additions": {
       "17a3b7a": "build-consumed (dashboard/site/src, dashboard-fragments, docs/**-adjacent)",
       "fa5faeb": "build-consumed (docs/operational-value.md); server/specs outside filter",
       "f343b8b": "build-consumed (dashboard/site/src/agent/mcp-contract.json); server/specs outside filter",
       "70f59d2": "build-consumed (dashboard/site/src/data/github-resource.js)"
-    },
-    "method": "gh run list + memory run_timings rows (immutable) + commit file lists (immutable)",
-    "exec_s": {
-      "median": 76,
-      "p90_nearest_rank": 129
-    },
-    "superseded_cancellations_in_window": [
-      "43832015521 (cancelled by 43832040488)"
-    ],
-    "stale_queued_workflow_run": "37642403569 (created 2026-10-07, headSha 6206962) still queued at 2026-11-16T11:55:48Z",
-    "decision": "not actionable: no repeated per-run saving meets 60 s or 15 pct of median exec; trigger/concurrency changes save 0 s median"
+    }
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-16T12:29:00Z",
