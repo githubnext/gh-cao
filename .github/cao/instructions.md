@@ -2,7 +2,7 @@
 
 ## Campaign categories
 
-Treat top-level Central Agentic Ops campaigns as operational campaigns by default. They contain an orchestrator and at least one independently dispatchable worker, use `shared/control.md`, and follow `skills/create-cao-campaign/SKILL.md`.
+Treat top-level Central Agentic Ops campaigns as operational campaigns by default. They contain an orchestrator and at least one independently dispatchable worker, use `shared/control.md`, and follow `.github/cao/tasks/operations/create-campaign.md`.
 
 The `dashboard/` directory contains the shared Dashboard Language runtime,
 not an installable campaign. The legacy Activity, dashboard artifact, and local
@@ -52,7 +52,7 @@ requires one explicit target and target-bound compiled safe outputs. Direct
 operations cannot discover targets, dispatch downstream work or carry a
 dispatcher envelope. See `docs/authority-envelopes.md`.
 
-For an operational campaign, apply `skills/create-cao-campaign/SKILL.md`. It defines the CAO orchestrator/worker topology, rollout boundary, and required `.github/workflows/shared/control.md` imports.
+For an operational campaign, apply `.github/cao/tasks/operations/create-campaign.md`. It defines the CAO orchestrator/worker topology, rollout boundary, and required `.github/workflows/shared/control.md` imports.
 
 For a standalone agentic workflow, import `shared/control.md` with
 `role: standalone` and `workflow: <exact-workflow-slug>` instead of campaign and
@@ -73,7 +73,7 @@ build or install the `gh cao` extension as a missing-evidence fallback.
 The root `install-gh-cao.sh` remains an operator tool, not a workflow bootstrap.
 
 For Activity-backed analysis, follow
-`skills/cao-cli/references/workflow-runtime.md`: use the restored cache with an
+`.github/cao/tasks/gh-cao/workflow-runtime.md`: use the restored cache with an
 explicit database path, or fall back to bounded read-only tools when the runtime
 or evidence is unavailable. Do not install the operator extension as a fallback.
 

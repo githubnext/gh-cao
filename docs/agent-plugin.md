@@ -16,16 +16,24 @@ and enable it in that client. Install the complete plugin bundle:
 `com.github.copilot/extensions/` is not automatically discovered as a
 repository-local extension, and its extension folder is not a standalone package.
 
-Use the portable skill for the task:
+Use the `central-agentic-ops` skill for every CAO task. It is a lightweight
+router: it loads the shared `.github/cao/instructions.md`, then only the task
+guide that matches the request.
 
-| Task | Skill |
-| --- | --- |
-| Bootstrap a control plane | `setup-cao` |
-| Diagnose a deployment failure and preserve evidence | `debug-cao` |
-| Discover or install an existing campaign | `add-cao-campaign` |
-| Describe an outcome, scope, and execution requirements for new work | `create-cao-campaign` |
-| Download and query activity evidence | `analyze-cao` |
-| Select or extend CLI commands | `cao-cli` |
+| Task | Guide under `.github/cao/tasks/` | Former skill |
+| --- | --- | --- |
+| Bootstrap a control plane | `setup.md` | `setup-cao` |
+| Discover or install an existing campaign | `operations.md` → `operations/add-campaign.md` | `add-cao-campaign` |
+| Describe an outcome, scope, and execution requirements for new work | `operations.md` → `operations/create-campaign.md` | `create-cao-campaign` |
+| Select or extend `gh cao` commands | `gh-cao.md` | `cao-cli` |
+| Author, compile, or inspect gh-aw workflows | `gh-aw.md` | — |
+| Inspect GitHub state with `gh` | `gh.md` | — |
+| Answer questions from dashboard queries and activity evidence | `dashboard-analysis.md` | `analyze-cao` |
+| Diagnose a deployment failure and preserve evidence | `diagnostics.md` | `debug-cao` |
+
+The skill source is `skills/central-agentic-ops/`; control repositories receive
+it at `.github/skills/central-agentic-ops/` and the guides through the CAO
+runtime. The separate `agentic-workflows` skill remains the gh-aw router.
 
 For human setup instructions, start with [Set Up CAO](setup-quickstarts.md).
 For shell or MCP analysis, see [Agent analysis](agent-analysis.md).

@@ -148,7 +148,7 @@ test("native setup hands off to outcome and scope rather than pattern selection"
   assert.ok(readFileSync("internal/cli/setup_publish.go", "utf8")
     .includes("Actions pending; setup is not waiting for workflow completion."));
   assert.doesNotMatch(source, /Add your first campaign separately|Choose an operation pattern/);
-  const skill = readFileSync("skills/setup-cao/SKILL.md", "utf8");
+  const skill = readFileSync(".github/cao/tasks/setup.md", "utf8");
   assert.match(skill, /operation-patterns\.md/);
 });
 
@@ -174,9 +174,9 @@ test("outcome-to-execution guidance derives structures without granting authorit
   assert.match(normalized, /exact workflow SHA/);
   assert.match(normalized, /Ask only for genuinely missing requirements/);
   for (const filename of [
-    "skills/setup-cao/SKILL.md",
-    "skills/create-cao-campaign/SKILL.md",
-    "skills/add-cao-campaign/SKILL.md",
+    ".github/cao/tasks/setup.md",
+    ".github/cao/tasks/operations/create-campaign.md",
+    ".github/cao/tasks/operations/add-campaign.md",
   ]) {
     const skill = readFileSync(filename, "utf8").replace(/\s+/g, " ");
     assert.match(skill, /operation-patterns\.md/, filename);
@@ -185,7 +185,7 @@ test("outcome-to-execution guidance derives structures without granting authorit
   }
   const authoring = readFileSync(".github/cao/instructions.md", "utf8");
   assert.match(authoring, /Infer execution structure, never authority/);
-  const installation = readFileSync("skills/add-cao-campaign/SKILL.md", "utf8");
+  const installation = readFileSync(".github/cao/tasks/operations/add-campaign.md", "utf8");
   assert.match(installation, /Keep exact package selection and installation approval explicit/);
 });
 
@@ -218,10 +218,10 @@ test("active documentation and architecture do not advertise the retired Quickst
     "docs/cao-cli.md", "docs/repo-assist-quickstart.md", "docs/glossary.md",
     "docs/authentication.md", "docs/setup-quickstarts.md", "README.md",
     "repo-assist/README.md", "ARCHITECTURE.md",
-    "specs/repository-layout-and-installation.md", "skills/setup-cao/SKILL.md",
-    "skills/setup-cao/references/implementation-details.md",
-    "skills/setup-cao/references/non-interactive.md",
-    "skills/setup-cao/references/public-control-repositories.md",
+    "specs/repository-layout-and-installation.md", ".github/cao/tasks/setup.md",
+    ".github/cao/tasks/setup/implementation-details.md",
+    ".github/cao/tasks/setup/non-interactive.md",
+    ".github/cao/tasks/setup/public-control-repositories.md",
   ]) {
     assert.doesNotMatch(
       readFileSync(filename, "utf8"),

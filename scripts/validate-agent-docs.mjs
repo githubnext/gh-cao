@@ -16,15 +16,19 @@ const artifactSizeLimits = {
   "llms-small.txt": 64 * 1024,
 };
 export const MAX_SKILL_ENTRY_BYTES = 6 * 1024;
-const commonTaskRoutes = [
-  ["Set up a CAO control plane", "setup-cao"],
-  ["Debug a CAO failure", "debug-cao"],
-  ["Add an existing campaign", "add-cao-campaign"],
-  ["Create a new campaign", "create-cao-campaign"],
-  ["Analyze CAO activity", "analyze-cao"],
-  ["Use or extend the CAO CLI", "cao-cli"],
+export const CAO_SKILL = "central-agentic-ops";
+const caoSkillPath = `skills/${CAO_SKILL}/SKILL.md`;
+// Each common task routes in one hop to the central-agentic-ops skill or one of its task guides.
+export const commonTaskRoutes = [
+  ["Use the Central Agentic Ops skill", caoSkillPath],
+  ["Set up a CAO control plane", ".github/cao/tasks/setup.md"],
+  ["Debug a CAO failure", ".github/cao/tasks/diagnostics.md"],
+  ["Add an existing campaign", ".github/cao/tasks/operations/add-campaign.md"],
+  ["Create a new campaign", ".github/cao/tasks/operations/create-campaign.md"],
+  ["Analyze CAO activity", ".github/cao/tasks/dashboard-analysis.md"],
+  ["Use or extend the CAO CLI", ".github/cao/tasks/gh-cao.md"],
 ];
-const requiredSkills = commonTaskRoutes.map(([, skill]) => skill);
+const caoRoutePattern = /\/(?:skills\/[^/]+\/SKILL\.md|\.github\/cao\/tasks\/[^#?]+\.md)$/;
 const demotedHeadings = [
   "Activity cache compression analysis",
   "Weekly rhythm",
@@ -195,14 +199,14 @@ export async function validateAgentDocs({
     if (!links.includes(dashboardAgentGuide)) {
       errors.push("llms.txt must route directly to the dashboard agent access guide");
     }
-    for (const [task, skill] of commonTaskRoutes) {
-      const expected = `https://github.com/githubnext/gh-cao/blob/main/skills/${skill}/SKILL.md`;
+    for (const [task, route] of commonTaskRoutes) {
+      const expected = `https://github.com/githubnext/gh-cao/blob/main/${route}`;
       const taskLine = index.split("\n").find((line) => line.includes(`[${task}]`));
-      const skillLinks = taskLine
-        ? markdownLinks(taskLine).filter((link) => /\/skills\/[^/]+\/SKILL\.md$/.test(link))
+      const routeLinks = taskLine
+        ? markdownLinks(taskLine).filter((link) => caoRoutePattern.test(link))
         : [];
-      if (skillLinks.length !== 1 || skillLinks[0] !== expected) {
-        errors.push(`llms.txt task "${task}" must route to only the ${skill} skill`);
+      if (routeLinks.length !== 1 || routeLinks[0] !== expected) {
+        errors.push(`llms.txt task "${task}" must route to only ${route}`);
       }
     }
     if (links.some((link) => /\/(?:specs|operational-value\/reports)\//.test(link))) {
@@ -262,25 +266,21 @@ export async function validateAgentDocs({
     }
   }
 
-  for (const skill of requiredSkills) {
-    const skillPath = path.join(root, "skills", skill, "SKILL.md");
-    if (!await isRegularNonemptyFile(skillPath)) {
-      errors.push(`missing routed skill: ${skill}`);
-      continue;
+  for (const [, route] of commonTaskRoutes) {
+    if (!await isRegularNonemptyFile(path.join(root, route))) {
+      errors.push(`missing routed resource: ${route}`);
     }
-    const skillBytes = (await stat(skillPath)).size;
-    if (skillBytes > MAX_SKILL_ENTRY_BYTES) {
-      errors.push(`${skill}/SKILL.md exceeds the ${MAX_SKILL_ENTRY_BYTES} byte entry-point limit`);
+  }
+  const skillPath = path.join(root, caoSkillPath);
+  if (await isRegularNonemptyFile(skillPath)) {
+    if ((await stat(skillPath)).size > MAX_SKILL_ENTRY_BYTES) {
+      errors.push(`${CAO_SKILL}/SKILL.md exceeds the ${MAX_SKILL_ENTRY_BYTES} byte entry-point limit`);
     }
-    if (skill !== "setup-cao") continue;
+    // The router names repository-root guide paths so they resolve from skills/ and .github/skills/.
     const skillSource = await readFile(skillPath, "utf8");
-    for (const link of markdownLinks(skillSource)) {
-      if (/^(?:[a-z]+:|#)/i.test(link)) continue;
-      const localPath = link.split("#", 1)[0];
-      if (!localPath) continue;
-      const resolvedPath = path.resolve(path.dirname(skillPath), localPath);
-      if (!await isRegularNonemptyFile(resolvedPath)) {
-        errors.push(`${skill}/SKILL.md references missing local file: ${link}`);
+    for (const [, guide] of skillSource.matchAll(/`(\.github\/cao\/[^`\s]+\.md)`/g)) {
+      if (!await isRegularNonemptyFile(path.join(root, guide))) {
+        errors.push(`${CAO_SKILL}/SKILL.md references missing guide: ${guide}`);
       }
     }
   }

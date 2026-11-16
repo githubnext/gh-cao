@@ -19,25 +19,16 @@ test("Agent Plugins manifest exposes portable skills and Copilot namespace", asy
   assert.match(manifest.description, /execute dashboard queries/);
   assert.doesNotMatch(manifest.description, /canvas|previews/);
   assert.deepEqual(manifest.extensions, { "com.github.copilot": {} });
-  for (const skillName of [
-    "setup-cao",
-    "debug-cao",
-    "add-cao-campaign",
-    "create-cao-campaign",
-    "analyze-cao",
-    "cao-cli",
-  ]) {
-    const skill = await readFile(
-      new URL(`skills/${skillName}/SKILL.md`, root),
-      "utf8",
-    );
-    assert.match(skill, new RegExp(`^---\\nname: ${skillName}\\n`));
-  }
+  const skill = await readFile(
+    new URL("skills/central-agentic-ops/SKILL.md", root),
+    "utf8",
+  );
+  assert.match(skill, /^---\nname: central-agentic-ops\n/);
 });
 
-test("add-cao-campaign requires discovery, consent, and review-safe installation", async () => {
+test("add-campaign guide requires discovery, consent, and review-safe installation", async () => {
   const skill = await readFile(
-    new URL("skills/add-cao-campaign/SKILL.md", root),
+    new URL(".github/cao/tasks/operations/add-campaign.md", root),
     "utf8",
   );
 

@@ -3,12 +3,13 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SKILLS = [
-  ["Set up CAO", "setup-cao", "Bootstrap a control plane, repository scope, and authentication."],
-  ["Diagnose CAO", "debug-cao", "Investigate policy, credential, workflow, Activity, dashboard, or safe-output failures."],
-  ["Analyze CAO", "analyze-cao", "Choose an access path and analyze deployed Activity evidence."],
-  ["Use the CAO CLI", "cao-cli", "Acquire canonical JSONL and query PostgreSQL."],
-  ["Create a campaign", "create-cao-campaign", "Author a new governed orchestrator and worker campaign."],
-  ["Add a campaign", "add-cao-campaign", "Discover, compare, and install an existing catalog campaign."],
+  ["Central Agentic Ops skill", "skills/central-agentic-ops/SKILL.md", "Route any CAO task; loads shared instructions and one task guide."],
+  ["Set up CAO", ".github/cao/tasks/setup.md", "Bootstrap a control plane, repository scope, and authentication."],
+  ["Diagnose CAO", ".github/cao/tasks/diagnostics.md", "Investigate policy, credential, workflow, Activity, dashboard, or safe-output failures."],
+  ["Analyze CAO", ".github/cao/tasks/dashboard-analysis.md", "Answer questions from named dashboard queries and deployed Activity evidence."],
+  ["Use the CAO CLI", ".github/cao/tasks/gh-cao.md", "Acquire canonical JSONL and query PostgreSQL."],
+  ["Create a campaign", ".github/cao/tasks/operations/create-campaign.md", "Author a new governed orchestrator and worker campaign."],
+  ["Add a campaign", ".github/cao/tasks/operations/add-campaign.md", "Discover, compare, and install an existing catalog campaign."],
 ];
 
 const REQUIRED_SECTIONS = [
@@ -61,7 +62,7 @@ export async function generateDashboardLlms({ outputPath, activityDataPath } = {
   const stats = await artifactStats(activityDataPath);
   const runShards = stats["gh-aw-logs-runs"] ?? {};
   const recordShards = stats["gh-aw-logs-records"] ?? {};
-  const raw = (name) => `https://raw.githubusercontent.com/githubnext/gh-cao/main/skills/${name}/SKILL.md`;
+  const raw = (route) => `https://raw.githubusercontent.com/githubnext/gh-cao/main/${route}`;
   const lines = [
     "# Central Agentic Ops Dashboard",
     "",
@@ -74,7 +75,7 @@ export async function generateDashboardLlms({ outputPath, activityDataPath } = {
     "## Choose the cheapest access path",
     "",
     "1. Read this file.",
-    "2. For a procedure, read the matching raw skill.",
+    "2. For a procedure, read the central-agentic-ops skill and only the matching raw task guide.",
     "3. Discover a reviewed named query for the required metric.",
     "4. For one campaign, workflow, run, repository, or session, use the named-query MCP tools.",
     "5. For bulk analysis, acquire verified canonical JSONL and explicitly ingest it into provisioned PostgreSQL.",
@@ -131,9 +132,9 @@ export async function validateDashboardAgentArtifacts({ sitePath } = {}) {
   for (const section of REQUIRED_SECTIONS) {
     if (!llms.includes(section)) throw new Error(`dashboard llms.txt is missing section: ${section}`);
   }
-  for (const [, name] of SKILLS) {
-    if (!llms.includes(`https://raw.githubusercontent.com/githubnext/gh-cao/main/skills/${name}/SKILL.md`)) {
-      throw new Error(`dashboard llms.txt is missing raw skill URL: ${name}`);
+  for (const [, route] of SKILLS) {
+    if (!llms.includes(`https://raw.githubusercontent.com/githubnext/gh-cao/main/${route}`)) {
+      throw new Error(`dashboard llms.txt is missing raw skill URL: ${route}`);
     }
   }
 

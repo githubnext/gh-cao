@@ -252,7 +252,7 @@ Evaluate exactly these ten tasks:
 7. Debug a failed CAO deployment.
 8. Configure hosted Redis.
 9. Add a CAO CLI command.
-10. Set up CAO through the `setup-cao` skill.
+10. Set up CAO through the `central-agentic-ops` skill setup guide.
 
 For every task record the first selected document, optional next document,
 document-hop count, whether routing was unambiguous, whether the documentation

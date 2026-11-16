@@ -70,9 +70,9 @@ test("agentic and deterministic CAO workflows never invoke the retired JavaScrip
 test("agent guidance documents prepared native queries without runtime installation fallbacks", () => {
   for (const file of [
     ".github/cao/instructions.md",
-    "skills/cao-cli/SKILL.md",
-    "skills/analyze-cao/SKILL.md",
-    "skills/cao-cli/references/workflow-runtime.md",
+    ".github/cao/tasks/gh-cao.md",
+    ".github/cao/tasks/dashboard-analysis.md",
+    ".github/cao/tasks/gh-cao/workflow-runtime.md",
   ]) {
     const source = readFileSync(join(root, file), "utf8");
     assert.match(source, /gh cao/);

@@ -1625,7 +1625,8 @@ and removal remain authenticated and never hydrate notification payloads.
 | `.github/workflows/cao.json` | Sole persistent, non-secret rollout policy for this source-managed control plane. |
 | `.github/aw/` | gh-aw instruction, package, and generated campaign-ownership metadata only; CAO executable resources stay at their canonical catalog source paths. |
 | `.github/cao/instructions.md` | CAO-specific operator and authoring guidance; it does not grant rollout authority or execution capabilities. |
-| `skills/` | Portable Agent Plugin skills exposed by this repository. |
+| `.github/cao/tasks/` | Task guides (setup, operations, gh cao, gh aw, gh, dashboard analysis, diagnostics) loaded on demand by the `central-agentic-ops` skill; guidance only, never authority. |
+| `skills/` | Portable Agent Plugin skills exposed by this repository: `agentic-workflows` and the `central-agentic-ops` router, also discoverable at `.github/skills/central-agentic-ops/`. |
 | `specs/` | Normative control, Activity, dashboard, and data contracts. |
 | `docs/` | Explanatory and operator-facing documentation site. |
 | `adr/` | Durable architectural decision history; normative contracts remain in `specs/` and specification-style documentation. |
@@ -1829,8 +1830,8 @@ repository-only dashboard authoring skills. Materialization preserves
 pre-existing plugin resources outside its owned runtime destinations. The
 installer adds the repository-root `aw.yml` package. That manifest explicitly
 composes only the Activity, dashboard, and validation workflows, seven shared
-control-plane resources, seven portable control-repository skills (including
-the Agentic Workflows router), one Agentic Workflows agent, and the gh-aw
+control-plane resources, two portable control-repository skills (the Agentic
+Workflows router and the `central-agentic-ops` task router), one Agentic Workflows agent, and the gh-aw
 project settings. The portable router is a thin adapter to the current
 canonical upstream Agentic Workflows skill on `main`, rather than a copied
 routing table, and delegates deterministic operations to `gh aw`, `cao`, and

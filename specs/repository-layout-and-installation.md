@@ -55,6 +55,7 @@ control repository, or more than one of those roles.
 | `.github/workflows/cao.json` | Control repository | Persistent non-secret rollout policy |
 | `.github/actions/setup-gh-aw/` | CAO bootstrap | Local policy-pinned gh-aw setup action |
 | `.github/cao/instructions.md` | Control repository | Optional CAO operator guidance |
+| `.github/cao/tasks/` | CAO materializer | Task guides loaded on demand by the `central-agentic-ops` skill |
 | `.github/aw/` | gh-aw | Instructions, campaign records, ownership metadata, and gh-aw runtime data |
 
 An executable CAO resource MUST use the same repository-relative path in a
@@ -129,8 +130,9 @@ preflighted before the first replacement.
 
 ### 4.2 Replacement
 
-Root materialization owns `activity/`, `dashboard/`, `.github/actions/setup-gh-aw/`, and
-`.github/cao/instructions.md`. Every repository-local action referenced by a
+Root materialization owns `activity/`, `dashboard/`, `.github/actions/setup-gh-aw/`,
+`.github/cao/instructions.md`, and the `.github/cao/tasks/` guides loaded by the
+`central-agentic-ops` skill. Every repository-local action referenced by a
 workflow that the root campaign installs MUST be provided at its canonical path
 by the root installation; installed workflow files MUST NOT be rewritten to
 reference the catalog, because gh-aw records their content hashes.
@@ -186,8 +188,8 @@ pre-existing resources outside its owned destination set, including separately
 installed plugin resources and skills.
 The installer MUST add the repository-root `aw.yml` package. That manifest MUST
 explicitly compose only the Activity, dashboard, and validation workflows, the
-five shared control-plane resources, seven portable control-repository skills
-(including the Agentic Workflows router), one Agentic Workflows agent, and the
+five shared control-plane resources, two portable control-repository skills
+(the Agentic Workflows router and the `central-agentic-ops` task router), one Agentic Workflows agent, and the
 gh-aw project settings. The router skill MUST load current routing guidance
 through the canonical upstream Agentic Workflows skill on `main` instead of
 copying its routing table. The custom agent MUST delegate to the installed
@@ -201,7 +203,7 @@ validation commands. It MUST declare only
 `.github/agents/agentic-workflows.md` in its nonempty `agents` list so agent
 auto-discovery cannot install repository-only agents. Because gh-aw v0.91.5
 auto-scans root `skills/` even when `skills` entries are explicit, that
-directory MUST contain only the seven portable skills declared by the root
+directory MUST contain only the two portable skills declared by the root
 manifest. Additional package manifests MUST live only in campaign or component
 directories.
 

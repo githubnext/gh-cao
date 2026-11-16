@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
-import { escapedGhAwVersion, ghAwVersion, portableSkill, root, script, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
+import { escapedGhAwVersion, ghAwVersion, caoTaskGuide, portableSkill, root, script, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
 
 // Campaign manifest, bundle, and catalog ownership contracts.
 
@@ -300,23 +300,18 @@ test("root campaign provides default control-repository agent context", () => {
   const rootManifestSource = readFileSync(join(root, "aw.yml"), "utf8");
   const rootManifest = parse(rootManifestSource);
   const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
-  const setupSkill = readFileSync(join(root, "skills", "setup-cao", "SKILL.md"), "utf8");
-  const debugSkill = readFileSync(join(root, "skills", "debug-cao", "SKILL.md"), "utf8");
+  const setupSkill = caoTaskGuide("setup");
+  const caoSkill = readFileSync(join(root, "skills", "central-agentic-ops", "SKILL.md"), "utf8");
 
   assert.doesNotMatch(rootManifestSource, /source: AGENTS\.md|default-AGENTS\.md/);
   assert.equal(rootManifest.resources.length, 8);
   assert.equal(rootManifest.resources.some(({ destination }) => destination.startsWith(".github/skills/")), false);
   assert.deepEqual(rootManifest.skills, [
     "skills/agentic-workflows",
-    "skills/setup-cao",
-    "skills/add-cao-campaign",
-    "skills/create-cao-campaign",
-    "skills/debug-cao",
-    "skills/analyze-cao",
-    "skills/cao-cli",
+    "skills/central-agentic-ops",
   ]);
   assert.deepEqual(rootManifest.agents, [".github/agents/agentic-workflows.md"]);
-  assert.match(debugSkill, /^---\r?\nname: debug-cao\r?\n/);
+  assert.match(caoSkill, /^---\r?\nname: central-agentic-ops\r?\n/);
   assert.deepEqual(
     readdirSync(join(root, "skills"), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
@@ -327,24 +322,15 @@ test("root campaign provides default control-repository agent context", () => {
       .map((skill) => skill.slice("skills/".length))
       .sort(),
   );
-  for (const file of MarkdownFiles(join(root, "skills"))) {
+  for (const file of [...MarkdownFiles(join(root, "skills")), ...MarkdownFiles(join(root, ".github", "cao", "tasks"))]) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/\]\((?!https?:|mailto:|#)([^)#]+)(?:#[^)]+)?\)/g)) {
       assert.equal(existsSync(join(dirname(file), match[1])), true, `${file} links to missing ${match[1]}`);
     }
   }
-  for (const skill of [
-    "agentic-workflows",
-    "setup-cao",
-    "add-cao-campaign",
-    "create-cao-campaign",
-    "debug-cao",
-    "analyze-cao",
-    "cao-cli",
-  ]) {
+  for (const skill of ["agentic-workflows", "central-agentic-ops"]) {
     const portableSkill = join(root, "skills", skill);
     assert.equal(lstatSync(portableSkill).isDirectory(), true);
-    assert.equal(existsSync(join(root, ".github", "skills", skill, "SKILL.md")), false);
     assert.match(
       readFileSync(join(portableSkill, "SKILL.md"), "utf8"),
       new RegExp(`^---\\r?\\nname: ${skill}\\r?\\n`),
@@ -367,7 +353,7 @@ test("root campaign provides default control-repository agent context", () => {
 test("root campaign resolves the single CAO bootstrap runtime", () => {
   const rootManifest = readFileSync(join(root, "aw.yml"), "utf8");
   const controlPlaneManifest = parse(rootManifest);
-  const setupSkill = readFileSync(join(root, "skills", "setup-cao", "SKILL.md"), "utf8");
+  const setupSkill = caoTaskGuide("setup");
   const quickstart = readFileSync(join(root, "docs", "setup-quickstarts.md"), "utf8");
   const operations = readFileSync(join(root, "docs", "operations.md"), "utf8");
   const authentication = readFileSync(join(root, "docs", "authentication.md"), "utf8");
@@ -529,15 +515,9 @@ test("compiled workflow locks are not ignored", () => {
 test("Agent customizations preserve deterministic core campaign boundaries", () => {
   const agent = readFileSync(join(root, ".github", "agents", "agentic-workflows.md"), "utf8");
   const agenticWorkflowsSkill = portableSkill("agentic-workflows");
-  const campaignSkill = portableSkill("create-cao-campaign");
-  const workflowContract = readFileSync(
-    join(root, "skills", "create-cao-campaign", "references", "workflow-contract.md"),
-    "utf8",
-  );
-  const packageExtensions = readFileSync(
-    join(root, "skills", "create-cao-campaign", "references", "package-extensions.md"),
-    "utf8",
-  );
+  const campaignSkill = caoTaskGuide("operations");
+  const workflowContract = readFileSync(join(root, ".github", "cao", "tasks", "operations", "workflow-contract.md"), "utf8");
+  const packageExtensions = readFileSync(join(root, ".github", "cao", "tasks", "operations", "package-extensions.md"), "utf8");
   const repositoryInstructions = readFileSync(join(root, ".github", "cao", "instructions.md"), "utf8");
 
   assert.match(agent, /installed `agentic-workflows` skill/);
@@ -575,14 +555,14 @@ test("Agent customizations preserve deterministic core campaign boundaries", () 
   assert.match(repositoryInstructions, /Do not reinstall the retired component workflows or their manifests/);
   assert.match(repositoryInstructions, /Do not discover legacy dashboard bundles or treat Pages as operational evidence/);
   assert.match(repositoryInstructions, /Keep data collection and cache publication out of operational campaigns and dashboard build jobs/);
-  assert.match(repositoryInstructions, /follow `skills\/create-cao-campaign\/SKILL\.md`/);
-  assert.match(repositoryInstructions, /apply `skills\/create-cao-campaign\/SKILL\.md`/);
+  assert.match(repositoryInstructions, /follow `\.github\/cao\/tasks\/operations\/create-campaign\.md`/);
+  assert.match(repositoryInstructions, /apply `\.github\/cao\/tasks\/operations\/create-campaign\.md`/);
   assert.match(repositoryInstructions, /required `\.github\/workflows\/shared\/control\.md` imports/);
   assert.doesNotMatch(repositoryInstructions, /operational-value-designer\/SKILL\.md/);
 });
 
 test("campaign creation guidance defines optional package problem clustering", () => {
-  const campaignSkill = portableSkill("create-cao-campaign");
+  const campaignSkill = caoTaskGuide("operations");
 
   assert.match(campaignSkill, /<campaign-slug>\/problem-clustering\.mjs/);
   assert.match(campaignSkill, /Emit a JSONL sequence: zero or more newline-delimited JSON objects/);
@@ -592,7 +572,7 @@ test("campaign creation guidance defines optional package problem clustering", (
 });
 
 test("campaign creation guidance gives dispatchers campaign-scoped repo-memory", () => {
-  const campaignSkill = portableSkill("create-cao-campaign");
+  const campaignSkill = caoTaskGuide("operations");
 
   assert.match(campaignSkill, /repo-memory:\n  branch-name: "memory\/<campaign-slug>"/);
   assert.match(campaignSkill, /orchestrator prompt must read and use `\$GH_AW_MEMORY_DIR` before selecting dispatches/);
@@ -600,9 +580,9 @@ test("campaign creation guidance gives dispatchers campaign-scoped repo-memory",
   assert.match(campaignSkill, /never as policy, target authority, credential storage/);
 });
 
-test("README routes zero-to-CAO requests to the setup skill", () => {
+test("README routes zero-to-CAO requests to the setup guide", () => {
   const readme = readFileSync(join(root, "README.md"), "utf8");
-  const setupSkillPath = join(root, "skills", "setup-cao", "SKILL.md");
+  const setupSkillPath = join(root, ".github", "cao", "tasks", "setup.md");
   const setupSkill = readFileSync(setupSkillPath, "utf8");
   const setupQuickstart = readFileSync(join(root, "docs", "setup-quickstarts.md"), "utf8");
   const setupReferences = Object.fromEntries([
@@ -613,15 +593,15 @@ test("README routes zero-to-CAO requests to the setup skill", () => {
     "topology",
   ].map((name) => [
     name,
-    readFileSync(join(root, "skills", "setup-cao", "references", `${name}.md`), "utf8"),
+    readFileSync(join(root, ".github", "cao", "tasks", "setup", `${name}.md`), "utf8"),
   ]));
-  const addCampaignSkillPath = join(root, "skills", "add-cao-campaign", "SKILL.md");
-  const readmeEntry = "skills/setup-cao/SKILL.md";
+  const addCampaignSkillPath = join(root, ".github", "cao", "tasks", "operations", "add-campaign.md");
+  const readmeEntry = "skills/central-agentic-ops/SKILL.md";
 
   assert.ok(readme.split("\n").slice(0, 20).some((line) => line.includes(readmeEntry)));
   assert.ok(existsSync(setupSkillPath));
   assert.ok(existsSync(addCampaignSkillPath));
-  assert.match(setupSkill, /^---\r?\nname: setup-cao\r?\n/);
+  assert.match(setupSkill, /^# Set Up Central Agentic Ops/);
   assert.match(setupSkill, /control-plane\.campaigns.*empty object/);
   assert.match(setupSkill, /No operation enrollment,\s+live rollout or dispatch/);
   assert.match(setupSkill, /Install, enroll, enable, and execute no agentic operation during setup/);
@@ -631,11 +611,11 @@ test("README routes zero-to-CAO requests to the setup skill", () => {
   assert.match(setupSkill, /rollout authority only in `\.github\/workflows\/cao\.json`/);
   assert.match(setupSkill, /Never edit generated `\.lock\.yml` files directly/);
   assert.match(setupSkill, /Preserve root `AGENTS\.md`/);
-  assert.match(setupSkill, /references\/topology\.md/);
-  assert.match(setupSkill, /references\/authentication\.md/);
-  assert.match(setupSkill, /references\/non-interactive\.md/);
-  assert.match(setupSkill, /references\/public-control-repositories\.md/);
-  assert.match(setupSkill, /references\/implementation-details\.md/);
+  assert.match(setupSkill, /\]\(setup\/topology\.md\)/);
+  assert.match(setupSkill, /\]\(setup\/authentication\.md\)/);
+  assert.match(setupSkill, /\]\(setup\/non-interactive\.md\)/);
+  assert.match(setupSkill, /\]\(setup\/public-control-repositories\.md\)/);
+  assert.match(setupSkill, /\]\(setup\/implementation-details\.md\)/);
   assert.match(setupSkill, /Preferred human flow/i);
   assert.match(setupSkill, /setup guide/);
   assert.match(setupSkill, /gh cao setup/);
@@ -677,14 +657,15 @@ test("README routes zero-to-CAO requests to the setup skill", () => {
   assert.match(setupReferences.topology, /source-managed control repository/);
 });
 
-test("README routes CAO failures to the debug skill", () => {
+test("README routes CAO failures to the diagnostics guide", () => {
   const readme = readFileSync(join(root, "README.md"), "utf8");
-  const skill = portableSkill("debug-cao");
+  const skill = caoTaskGuide("diagnostics");
+  const router = readFileSync(join(root, "skills", "central-agentic-ops", "SKILL.md"), "utf8");
 
-  assert.ok(readme.split("\n").slice(0, 20).some((line) =>
-    line.includes("skills/debug-cao/SKILL.md")
-  ));
-  assert.match(skill, /^---\r?\nname: debug-cao\r?\n/);
+  const readmeHead = readme.split("\n").slice(0, 20).join("\n");
+  assert.match(readmeHead, /skills\/central-agentic-ops\/SKILL\.md[\s\S]*debug CAO/);
+  assert.match(router, /Diagnose a failed run[^\n]*`\.github\/cao\/tasks\/diagnostics\.md`/);
+  assert.match(skill, /^# Debug Central Agentic Ops/);
   assert.match(skill, /resolvedCommit/);
   assert.match(skill, /GITHUB_WORKFLOW_SHA/);
   assert.match(skill, /Redaction statement/);
