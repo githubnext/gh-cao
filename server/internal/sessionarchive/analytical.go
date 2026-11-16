@@ -144,6 +144,13 @@ func lookupItemSource(name string) (itemSource, bool) {
 	return itemSource{}, false
 }
 
+// ItemSourceSpec exposes one approved item source's collection path, element
+// key and typed element column, so every backend lowers the same contract.
+func ItemSourceSpec(name string) (path, key string, element Column, ok bool) {
+	item, ok := lookupItemSource(name)
+	return item.Path, item.Key, item.Element, ok
+}
+
 // sourceColumns returns the ordered public vocabulary of one analytical source.
 func sourceColumns(source string) ([]Column, bool) {
 	if source == eventSource {

@@ -355,8 +355,11 @@ func TestKustoArchiveMembership(t *testing.T) {
 	if !slices.Equal(actual, []int64{2, 0, 1}) {
 		t.Fatal("real Kusto did not enforce exact selected generation/projection membership")
 	}
+	// Production verification binds every event to its file's completion day.
+	events := fixtureEvents(t, member)
+	file.Day = events[0].CompletionDay
 	verification := strings.Replace(fileVerificationKQL("Events", file), `external_table("Events")`,
-		kustoEventSource(fixtureEvents(t, member), file), 1)
+		kustoEventSource(events, file), 1)
 	content, err = engine.Execute(t.Context(), "/v1/rest/query", verification)
 	if err != nil {
 		t.Fatal(err)

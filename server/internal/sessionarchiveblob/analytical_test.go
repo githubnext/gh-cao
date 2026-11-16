@@ -263,7 +263,11 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 			if err := plan.Require(sessionarchive.AnalyticalCapabilities(4096)); err != nil {
 				t.Fatal(err)
 			}
-			content, err := engine.Execute(t.Context(), "/v1/rest/query", prefix+";\n"+analyticalKQL(plan, source))
+			kql, err := analyticalKQL(plan, source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			content, err := engine.Execute(t.Context(), "/v1/rest/query", prefix+";\n"+kql)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -300,7 +304,11 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 		if err := plan.Require(sessionarchive.AnalyticalCapabilities(4096)); err != nil {
 			t.Fatal(err)
 		}
-		content, err := engine.Execute(t.Context(), "/v1/rest/query", analyticalKQL(plan, "datatable("+EventSchema()+")[]\n"))
+		kql, err := analyticalKQL(plan, "datatable("+EventSchema()+")[]\n")
+		if err != nil {
+			t.Fatal(err)
+		}
+		content, err := engine.Execute(t.Context(), "/v1/rest/query", kql)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -317,6 +325,40 @@ func TestKustoAnalyticalCorpus(t *testing.T) {
 		if json.Compact(&compact, response.Tables[0].Rows[0][0]) != nil ||
 			compact.String() != expected || string(response.Tables[0].Rows[0][1]) != "0" {
 			t.Fatal("real Kusto fabricated empty archive rows or coverage")
+		}
+	}
+}
+
+func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
+	entries, err := os.ReadDir("../sessionarchive/testdata/graders")
+	if err != nil || len(entries) != 10 {
+		t.Fatal("missing reviewed grader definitions")
+	}
+	for _, entry := range entries {
+		content, err := os.ReadFile("../sessionarchive/testdata/graders/" + entry.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		var definition sessionarchive.Definition
+		if err := json.Unmarshal(content, &definition); err != nil {
+			t.Fatal(err)
+		}
+		plan, err := definition.Plan()
+		if err != nil {
+			t.Fatal(err)
+		}
+		kql, err := analyticalKQL(plan, "EVENTS\n")
+		if err != nil {
+			t.Fatalf("%s: %v", entry.Name(), err)
+		}
+		lets, query, _ := strings.Cut(kql, "\nsource\n")
+		_, source, _ := strings.Cut(lets, "let source=materialize(")
+		if strings.Contains(query, "PayloadJSON") || strings.Count(source, "PayloadJSON") != 0 ||
+			strings.Contains(kql, "dcount(") || strings.Count(kql, "join ") != strings.Count(kql, "join kind=") {
+			t.Fatalf("%s: payload escaped the item source or a join/count is implicit", entry.Name())
+		}
+		if plan.Input != nil && strings.Count(query, "| summarize ") != plan.Stages()+3 {
+			t.Fatalf("%s: chained stages were not lowered in order", entry.Name())
 		}
 	}
 }
