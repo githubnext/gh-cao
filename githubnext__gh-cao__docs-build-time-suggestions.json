@@ -1,36 +1,7 @@
 {
  "source_sha": "0cfeed6fae6c5f2dab6432ceaaaf4211d242b6b8",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T03:23:30Z",
-   "worker_run_id": "43797398977",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "43792211504",
-    "43789359390",
-    "43781377358",
-    "43781088986",
-    "43780290464",
-    "43768376457",
-    "43766933236",
-    "43766019418",
-    "43757990961",
-    "43756384109",
-    "43756218347",
-    "43753233809",
-    "43752704784",
-    "43752194225",
-    "43746617494",
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43706435376 (push 7b092ad, created 2026-11-15T10:55Z, failure) to 43792211504 (push 0599943, created 2026-11-16T02:26Z, success); gh run list 03:21Z: same 20 IDs, all completed, 0 cancelled, none queued or in progress, no docs ru...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T03:42:21Z",
    "worker_run_id": "43799337403",
@@ -865,6 +836,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z): 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 excluded; gh run list 15:00Z: no newer run, none queued or in progress; source 0cfeed6 = HEAD = source_sha. Build documentation step (astro build && validate-agent-docs && agent-docs-discovery test per package.json docs:build): median 11.5 s, p90 14 s, 14.7% of exec median 78 s; 15% gate 11.7 s and 60 s gate not met. Ceiling: removing the entire step saves at most 11.5 s and would drop validation and tests. Live Jobs API spot-check of 43877103800 matched stored row (11 s). Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT embedded in SiteFooter.astro:9, validated at validate-agent-docs.mjs:571). Next: reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T15:24:38Z",
+   "worker_run_id": "43895357438",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "43766019418",
+    "43766933236",
+    "43768376457",
+    "43780290464",
+    "43781088986",
+    "43781377358",
+    "43789359390",
+    "43792211504",
+    "43798031034",
+    "43810351164",
+    "43814432358",
+    "43825070138",
+    "43829639369",
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 excluded; no newer run at 15:23Z. Source 0cfeed6 = HEAD = source_sha. Demo step (Build synthetic enterprise demo = dashboard:pages:build -> buildDashboardSite): median 5 s, p90 6 s, 6.4% of exec median 78 s; 15% gate 11.7 s and 60 s gate not met; ceiling 6 s. Live Jobs API spot-check of 43877103800 matched stored row (demo 5 s). Reuse still blocked: scripts/simulate-dashboard-pages.mjs:78 defaults now=Date.now(); dist/cao is deployed. Next: artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1649,8 +1649,8 @@
   "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
  },
  "dashboard_generation_verified": {
-  "verified_at": "2026-11-16T13:06:39Z",
-  "window": "43757990961..43862265708 (20 non-cancelled runs: 19 push + 1 schedule 43810351164; all success; cancelled 43832015521 excluded); recomputed from run_timings rows, no refetch",
+  "verified_at": "2026-11-16T15:24:38Z",
+  "window": "43766019418..43877103800 (20 non-cancelled runs: 19 push + 1 schedule 43810351164; all success; cancelled 43832015521 excluded); recomputed from run_timings rows; Jobs API spot-check of 43877103800",
   "demo_step_s": {
    "median": 5,
    "p90": 6,
