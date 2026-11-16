@@ -148,13 +148,17 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.equal(input.properties.query.$ref, '#/components/schemas/SessionArchiveDefinition')
   const definition = openapi.components.schemas.SessionArchiveDefinition
   assert.deepEqual(definition.required, ['name', 'subject', 'from'])
-  assert.deepEqual(definition.properties.from.enum, ['archive-events', 'archive-objectives', 'archive-actions', 'archive-states'])
+  assert.equal(definition.properties.from.pattern, '^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')
+  assert.match(definition.properties.from.description, /archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition/)
+  assert.equal(definition.properties.queries.maxItems, 2)
+  assert.equal(definition.properties.queries.items.$ref, '#/components/schemas/SessionArchiveDefinition')
+  assert.match(definition.properties.queries.description, /DLS-QUERY-017/)
   assert.equal(definition.properties.limit.maximum, 10000)
   for (const key of ['joins', 'union', 'compute', 'window', 'sql', 'stores', 'parameters']) {
     assert.equal(definition.properties[key], undefined)
   }
   assert.deepEqual(Object.keys(definition.properties).sort(), [
-    'acceptance', 'aggregate', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'post-aggregate', 'select', 'subject'
+    'acceptance', 'aggregate', 'filter', 'from', 'limit', 'name', 'objective', 'order-by', 'post-aggregate', 'queries', 'select', 'subject'
   ])
   assert.match(definition.description, /UTF-8 lexical string order/)
   assert.match(query.description, /shared session-query/)
@@ -168,6 +172,7 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.equal(capabilities.properties.fields.items.$ref, '#/components/schemas/SessionArchiveColumn')
   assert.deepEqual(openapi.components.schemas.SessionArchiveSourceCapability.properties.name.enum, ['archive-objectives', 'archive-actions', 'archive-states'])
   assert.deepEqual(capabilities.required, ['language-version', 'source', 'fields', 'predicates', 'reducers', 'functions', 'fieldStates', 'maxRows'])
+  assert.equal(capabilities.properties.chaining.type, 'integer')
   const result = openapi.components.schemas.SessionArchiveResult
   assert.equal(result.properties.events.items.$ref, '#/components/schemas/Trace.Archive.Event')
   assert.equal(openapi.components.schemas['Trace.Archive.Event'].properties.PayloadJSON.type, 'string')
@@ -455,7 +460,9 @@ test('the separate server-only session data lake tool preserves the analytical c
   assert.equal(tool.inputSchema.additionalProperties, false)
   const definition = tool.inputSchema.properties.query
   assert.deepEqual(Object.keys(definition.properties).sort(), Object.keys(openapi.components.schemas.SessionArchiveDefinition.properties).sort())
-  assert.deepEqual(definition.properties.from.enum, ['archive-events', 'archive-objectives', 'archive-actions', 'archive-states'])
+  assert.equal(definition.properties.from.pattern, openapi.components.schemas.SessionArchiveDefinition.properties.from.pattern)
+  assert.equal(definition.properties.queries.items.$ref, '#/properties/query')
+  assert.equal(definition.properties.queries.maxItems, 2)
   assert.deepEqual(definition.properties.aggregate.properties.values.items.properties.reducer.enum, ['count', 'distinct-count', 'sum', 'max', 'first'])
   assert.deepEqual(definition.properties.filter.properties.predicates.items.properties.equals.type, ['string', 'integer', 'number', 'boolean'])
   assert.equal(definition.properties.limit.maximum, 10000)

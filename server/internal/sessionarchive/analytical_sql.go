@@ -160,14 +160,12 @@ func sqlOrder(field Column, direction string) string {
 	return expression + " " + direction + " NULLS LAST"
 }
 
-func (p Plan) sql(source string) string {
+// stageSQL lowers filter, reduce, and post-aggregate phases to CTEs named
+// with prefix that read from. It returns the CTE text and the last CTE name.
+func (p Plan) stageSQL(prefix, from string) (string, string) {
 	filter := "true"
 	predicates := make([]string, 0, len(p.Predicates))
 	groups := make([]string, 0, len(p.By))
-	projections := make([]string, 0, len(p.Selections)+len(p.Ties))
-	orders := make([]string, 0, len(p.Orders)+len(p.Ties))
-	columns := make([]string, 0, len(p.Columns))
-	packed := make([]string, 0, len(p.Columns))
 	for _, predicate := range p.Predicates {
 		predicates = append(predicates, predicate.sql())
 	}
@@ -175,9 +173,6 @@ func (p Plan) sql(source string) string {
 		filter = strings.Join(predicates, " AND ")
 	}
 	expressions := map[string]string{}
-	for _, name := range p.Inputs {
-		expressions[name] = identifier(name)
-	}
 	for _, value := range p.Values {
 		expression := identifier(value.Field.Name)
 		if value.Field.Type == "string" {
@@ -198,9 +193,17 @@ func (p Plan) sql(source string) string {
 				// sum(BIGINT) is wide integer arithmetic; convert once like upstream BigInt -> Number.
 				expression = "CAST(sum(" + expression + ")" + filter + " AS DOUBLE)"
 			} else {
+				order := "Sequence"
+				if p.Input != nil {
+					keys := make([]string, 0, len(value.Order))
+					for _, key := range value.Order {
+						keys = append(keys, sqlOrder(key, "asc"))
+					}
+					order = strings.Join(keys, ",")
+				}
 				valid := predicatesSQL(value.Predicates) + " AND " + expression + " IS NOT NULL"
 				expression = "(CASE WHEN count(" + expression + ")" + filter + ">0 THEN list_reduce(list(" +
-					expression + " ORDER BY Sequence) FILTER (WHERE " + valid + "),lambda a,b: a+b,0::DOUBLE) ELSE NULL END)"
+					expression + " ORDER BY " + order + ") FILTER (WHERE " + valid + "),lambda a,b: a+b,0::DOUBLE) ELSE NULL END)"
 			}
 		}
 		expressions[value.As] = expression
@@ -208,9 +211,50 @@ func (p Plan) sql(source string) string {
 	base := make([]string, 0, len(p.By)+len(p.Values))
 	for _, field := range p.By {
 		base = append(base, identifier(field.Name))
+		groups = append(groups, identifier(field.Name))
 	}
 	for _, value := range p.Values {
 		base = append(base, expressions[value.As]+" AS "+identifier(value.As))
+	}
+	group := ""
+	if len(groups) > 0 {
+		group = " GROUP BY " + strings.Join(groups, ",")
+	}
+	reduced := "SELECT * FROM " + prefix + "filtered"
+	if len(p.Values) > 0 {
+		reduced = "SELECT " + strings.Join(base, ",") + " FROM " + prefix + "filtered" + group
+	}
+	ctes := prefix + "filtered AS (SELECT * FROM " + from + " WHERE " + filter + "),\n" + prefix + "reduced AS (" + reduced + ")"
+	last := prefix + "reduced"
+	for i, computed := range p.Computations {
+		next := prefix + "computed_" + strconv.Itoa(i)
+		ctes += ",\n" + next + " AS (SELECT *," + computed.Expression.sql() + " AS " + identifier(computed.As) + " FROM " + last + ")"
+		last = next
+	}
+	return ctes, last
+}
+
+func (p Plan) sql(source string) string {
+	projections := make([]string, 0, len(p.Selections)+len(p.Ties))
+	orders := make([]string, 0, len(p.Orders)+len(p.Ties))
+	columns := make([]string, 0, len(p.Columns))
+	packed := make([]string, 0, len(p.Columns))
+	// Earlier stages lower first; each reads the CTE its predecessor produced.
+	stages := []Plan{}
+	for stage := p.Input; stage != nil; stage = stage.Input {
+		stages = append([]Plan{*stage}, stages...)
+	}
+	ctes, from := "", "source"
+	for i, stage := range stages {
+		text, last := stage.stageSQL("stage_"+strconv.Itoa(i)+"_", from)
+		ctes += text + ",\n"
+		from = last
+	}
+	text, last := p.stageSQL("", from)
+	ctes += text
+	expressions := map[string]string{}
+	for _, name := range p.Inputs {
+		expressions[name] = identifier(name)
 	}
 	// Select after the explicit post-aggregate phase, including computed fields.
 	if len(p.Values) > 0 {
@@ -232,13 +276,7 @@ func (p Plan) sql(source string) string {
 		projections = append(projections, identifier(tie.Name)+" AS "+identifier(hidden.Name))
 		orders = append(orders, sqlOrder(hidden, "asc"))
 	}
-	for _, field := range p.By {
-		groups = append(groups, identifier(field.Name))
-	}
-	group, order := "", ""
-	if len(groups) > 0 {
-		group = " GROUP BY " + strings.Join(groups, ",")
-	}
+	order := ""
 	if len(orders) > 0 {
 		order = " ORDER BY " + strings.Join(orders, ",")
 	}
@@ -246,20 +284,8 @@ func (p Plan) sql(source string) string {
 		columns = append(columns, identifier(column.Name))
 		packed = append(packed, identifier(column.Name)+":=r."+identifier(column.Name))
 	}
-	reduced := "SELECT * FROM filtered"
-	if len(p.Values) > 0 {
-		reduced = "SELECT " + strings.Join(base, ",") + " FROM filtered" + group
-	}
-	computations := ""
-	last := "reduced"
-	for i, computed := range p.Computations {
-		next := "computed_" + strconv.Itoa(i)
-		computations += ",\n" + next + " AS (SELECT *," + computed.Expression.sql() + " AS " + identifier(computed.As) + " FROM " + last + ")"
-		last = next
-	}
 	return `WITH source AS MATERIALIZED (` + source + `),
-filtered AS (SELECT * FROM source WHERE ` + filter + `),
-reduced AS (` + reduced + `)` + computations + `,
+` + ctes + `,
 projected AS (SELECT ` + strings.Join(projections, ",") + ` FROM ` + last + `),
 page AS (SELECT ` + strings.Join(columns, ",") + `,row_number() OVER (` + order + `) AS __archive_order FROM projected` + order +
 		` LIMIT ` + strconv.Itoa(p.Limit+1) + `)
@@ -437,10 +463,11 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer func() { stop(); cancel() }()
 	var source string
-	if item, ok := lookupItemSource(plan.Source); ok {
+	base := plan.Base()
+	if item, ok := lookupItemSource(base.Source); ok {
 		source, err = s.itemSQL(combined, item)
 	} else {
-		source, err = s.sourceSQL(combined, plan.Inputs)
+		source, err = s.sourceSQL(combined, base.Inputs)
 	}
 	if err != nil {
 		if accessErr := s.check(); accessErr != nil {
