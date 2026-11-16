@@ -30,3 +30,32 @@ export const primerStyles = [
   responsiveStyles,
   accessibilityStyles
 ].join('');
+
+// Built sites inline only the styles needed to paint the shell and first page.
+export const eagerPrimerStyles = [
+  baseStyles,
+  shellStyles,
+  viewStyles,
+  componentStyles,
+  inboxStyles,
+  overviewStyles,
+  contentStyles,
+  responsiveStyles,
+  accessibilityStyles
+].join('');
+
+// Data-rendered charts, tables, and feature views load after startup.
+export const deferredFeatureStyles = [
+  chartStyles,
+  operationStyles,
+  governanceStyles,
+  promptWizardStyles,
+  workflowValueStyles
+].join('');
+
+// The overrides are repeated so they still follow the deferred rules they target.
+export const deferredPrimerStyles = [
+  deferredFeatureStyles,
+  responsiveStyles,
+  accessibilityStyles
+].join('');

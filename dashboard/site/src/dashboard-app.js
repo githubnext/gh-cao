@@ -1,5 +1,6 @@
       import { dashboardPagePaginatedSourceBindings, dashboardPageSourceNames, disposeDashboard, renderDashboard } from "./presenter.js";
       import { setLoadingProgressState } from "./loading-progress.js";
+      import { observeDeferredStyles, prefetchDeferredStylesWhenIdle } from "./deferred-styles.js";
       import { isDataProcessingCancellation, offerCancelCommand, offerStartupRecovery } from "./cancel-command.js";
       import { resetBrowserDashboardData } from "./components/reset-dashboard-control.js";
       import { loadDashboardQuerySources, processDashboardQueries, subscribeWorkerLoadingProgress } from "./data-processor.js";
@@ -35,6 +36,7 @@
         ? await import("./webmcp/runtime.js") : null;
 
       startConsoleLogCapture();
+      observeDeferredStyles(document);
 
       /** @type {Window & { collectFullDiagnostics?: typeof import('./diagnostics.js').collectFullDiagnostics }} */ (window).collectFullDiagnostics =
         () => import("./diagnostics.js").then(({ collectFullDiagnostics }) => collectFullDiagnostics());
@@ -305,6 +307,7 @@
         const previousDashboard = root.firstElementChild;
         if (previousDashboard instanceof HTMLElement) disposeDashboard(previousDashboard);
         root.replaceChildren(dashboard);
+        if (state === "ready" || state === "stale") prefetchDeferredStylesWhenIdle(document);
         syncDashboardWebMCP();
         return dashboard;
       };

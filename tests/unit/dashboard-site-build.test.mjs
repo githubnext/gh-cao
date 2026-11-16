@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import {
   buildDashboardSite,
   collectStaticModules,
+  deferredStyleClassSets,
   embedDashboardVersion,
   embedDashboardVersions,
   filterExperimentalDashboardViews,
@@ -19,6 +20,17 @@ import { loadDashboardSource } from "../../dashboard/report/bundle-dashboards.mj
 import { agentCatalog } from "../../dashboard/site/src/agent/catalog.js";
 
 const execFileAsync = promisify(execFile);
+
+test("deferred style triggers list the minimal class sets each selector requires", () => {
+  assert.deepEqual(deferredStyleClassSets(`
+    /* .ignored { color: red; } */
+    .chart-widget svg, .legend:not(.hidden) .item { fill: red; }
+    .chart-widget .bar { fill: blue; }
+    @media (max-width: 700px) { .treemap > :is(.cell, .label) { gap: 0; } }
+    @keyframes fade { from { opacity: 0; } }
+  `), ["chart-widget", "treemap", "item legend"]);
+  assert.throws(() => deferredStyleClassSets("main > svg { fill: red; }"), /names no class/);
+});
 
 test("startup dependencies resolve Windows paths without preloading lazy or external imports", () => {
   const outputs = {
@@ -315,10 +327,15 @@ test("docs dashboard installs renderer assets without experimental campaign page
     assert.ok(mainHash, "entry module includes the site content SHA");
     assert.ok(builtIndex.includes(`rel="modulepreload" href="./src/main.js?sha=${mainHash}"`));
     const stylesheet = await readFile(new URL("styles.css", destination), "utf8");
-    assert.ok(builtIndex.includes(`<style data-dashboard-styles>${stylesheet}</style>`));
+    const deferredHref = builtIndex.match(/<style data-dashboard-styles data-deferred-href="(\.\/styles-deferred\.css\?sha=[a-f0-9]{64})">/)?.[1];
+    assert.ok(deferredHref, "the inline stylesheet names its cache-busted deferred stylesheet");
+    assert.ok(builtIndex.includes(`data-deferred-href="${deferredHref}">${stylesheet}</style>`));
     assert.ok(!builtIndex.includes('rel="stylesheet"'), "startup does not block on a separate CSS request");
     assert.ok(stylesheet.includes(".sidebar") && stylesheet.includes(".dashboard-notifications"),
       "compiled stylesheet preserves the dashboard and notification styles");
+    const deferredStylesheet = await readFile(new URL("styles-deferred.css", destination), "utf8");
+    assert.ok(!stylesheet.includes(".treemap") && deferredStylesheet.includes(".treemap"),
+      "chart styles stay off the startup path");
     assert.match(
       builtIndex,
       new RegExp(`script\\.src = './src/main\\.js\\?sha=${mainHash}'`),

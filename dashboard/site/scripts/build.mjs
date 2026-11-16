@@ -9,7 +9,7 @@ import { loadPolicyFile } from "../../../.github/workflows/shared/policy.mjs";
 import { buildDashboardPageChunkPath, splitDashboardDocument } from "../src/dashboard-chunks.js";
 import { generateDashboardLlms } from "./llms.mjs";
 import { agentCatalog } from "../src/agent/catalog.js";
-import { primerStyles } from "../src/styles-primer.js";
+import { deferredFeatureStyles, deferredPrimerStyles, eagerPrimerStyles } from "../src/styles-primer.js";
 import { notificationStyles } from "../src/styles-notifications.js";
 import { OCTICON_SPRITE } from "../src/octicon-sprite.js";
 import octiconNames from "../src/octicon-names.json" with { type: "json" };
@@ -246,13 +246,85 @@ export function collectStaticModules(outputs, outputPath, modules = new Set()) {
   return modules;
 }
 
+/**
+ * Lists the minimal sets of classes that deferred selectors require. A
+ * selector can match only after every positive class it names is rendered,
+ * so the deferred stylesheet is needed once any listed set is complete.
+ * @param {string} css
+ * @returns {string[]} Space-separated class sets.
+ */
+export function deferredStyleClassSets(css) {
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  /** @type {Map<string, string[]>} */
+  const sets = new Map();
+  /** @param {number} start @returns {number} */
+  const blockEnd = (start) => {
+    let depth = 0;
+    for (let index = start; index < source.length; index += 1) {
+      if (source[index] === "{") depth += 1;
+      else if (source[index] === "}" && --depth === 0) return index;
+    }
+    return source.length;
+  };
+  /** @param {string} selector */
+  const addSelector = (selector) => {
+    /** @type {string[]} */
+    const positive = [];
+    let depth = 0;
+    for (const token of selector.matchAll(/[()]|\.(-?[_a-zA-Z][\w-]*)/g)) {
+      if (token[0] === "(") depth += 1;
+      else if (token[0] === ")") depth -= 1;
+      else if (depth === 0) positive.push(token[1]);
+    }
+    if (!positive.length) throw new Error(`Deferred selector names no class: ${selector.trim()}`);
+    const classes = [...new Set(positive)].sort();
+    sets.set(classes.join(" "), classes);
+  };
+  /** @param {number} start @param {number} end */
+  const visit = (start, end) => {
+    let cursor = start;
+    while (cursor < end) {
+      const open = source.indexOf("{", cursor);
+      if (open < 0 || open >= end) return;
+      const prelude = source.slice(cursor, open).trim();
+      const close = blockEnd(open);
+      if (/^@(media|supports|container|layer)\b/.test(prelude)) visit(open + 1, close);
+      else if (!prelude.startsWith("@")) {
+        let depth = 0;
+        let selectorStart = 0;
+        for (let index = 0; index <= prelude.length; index += 1) {
+          const character = prelude[index];
+          if (character === "(") depth += 1;
+          else if (character === ")") depth -= 1;
+          else if (index === prelude.length || (character === "," && depth === 0)) {
+            addSelector(prelude.slice(selectorStart, index));
+            selectorStart = index + 1;
+          }
+        }
+      }
+      cursor = close + 1;
+    }
+  };
+  visit(0, source.length);
+  /** @type {string[][]} */
+  const minimal = [];
+  for (const classes of [...sets.values()].sort((left, right) => left.length - right.length || left.join(" ").localeCompare(right.join(" ")))) {
+    if (!minimal.some((subset) => subset.every((name) => classes.includes(name)))) minimal.push(classes);
+  }
+  return minimal.map((classes) => classes.join(" "));
+}
+
 async function bundleSiteJavascript(destinationPath) {
   const bundlePath = join(destinationPath, ".bundle");
   try {
-    const stylesheet = await transform(`${primerStyles}\n${notificationStyles}`, {
-      loader: "css", minify: true, legalComments: "none", target: "es2022",
-    });
+    const cssOptions = { loader: "css", minify: true, legalComments: "none", target: "es2022" };
+    const [stylesheet, deferredStylesheet] = await Promise.all([
+      transform(`${eagerPrimerStyles}\n${notificationStyles}`, cssOptions),
+      transform(deferredPrimerStyles, cssOptions),
+    ]);
     await writeFile(join(destinationPath, "styles.css"), stylesheet.code);
+    await writeFile(join(destinationPath, "styles-deferred.css"), deferredStylesheet.code);
+    const deferredClassSets = deferredStyleClassSets(deferredFeatureStyles);
     const supportedIcons = new Set(octiconNames);
     const inlineIcons = new Set(["question"]);
     for (const file of await listFiles(destinationPath)) {
@@ -298,6 +370,10 @@ async function bundleSiteJavascript(destinationPath) {
           setup(builder) {
             builder.onLoad({ filter: /[/\\]src[/\\]styles\.js$/ }, () => ({
               contents: 'export function primerStylesheet() { return ""; } export function notificationStylesheet() { return ""; } export const getPrimerStyles = primerStylesheet;',
+              loader: "js",
+            }));
+            builder.onLoad({ filter: /[/\\]src[/\\]deferred-style-classes\.js$/ }, () => ({
+              contents: `export const DEFERRED_STYLE_CLASS_SETS = ${JSON.stringify(deferredClassSets)};`,
               loader: "js",
             }));
             builder.onLoad({ filter: /[/\\]src[/\\]octicon-sprite\.js$/ }, () => ({
@@ -382,7 +458,8 @@ async function bundleSiteJavascript(destinationPath) {
       '    <link rel="modulepreload" href="./src/main.js" fetchpriority="low">',
       ...startupChunks.map((chunk) => `    <link rel="modulepreload" href="./src/${chunk}" fetchpriority="low">`),
       // Avoid a render-blocking CSS round trip without delaying module discovery.
-      `    <style data-dashboard-styles>${stylesheet.code}</style>`,
+      // Chart and feature styles stay off the startup path; the app requests them once it renders the classes they style.
+      `    <style data-dashboard-styles data-deferred-href="./styles-deferred.css">${stylesheet.code}</style>`,
     ];
     const indexPath = join(destinationPath, "index.html");
     const index = await readFile(indexPath, "utf8");
@@ -411,7 +488,7 @@ async function cacheBustSiteImports(destinationPath) {
     writeFile(indexPath, index
       .replace(/(script\.src = ["'])(\.\/src\/main\.js)(["'];)/, `$1$2?sha=${sha}$3`)
       .replace('href="./src/main.js"', `href="./src/main.js?sha=${sha}"`)
-      .replace('href="./styles.css"', `href="./styles.css?sha=${sha}"`)),
+      .replaceAll('href="./styles-deferred.css"', `href="./styles-deferred.css?sha=${sha}"`)),
     writeFile(
       serviceWorkerPath,
       serviceWorker.replace("const VERSION = 'development';", `const VERSION = '${sha}';`),
