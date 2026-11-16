@@ -1,36 +1,7 @@
 {
-  "source_sha": "dbf9df719daf10bcf2987776ce773c7a022c5dc1",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "2fdf4a0a5a66e48d09e51d7ba8b2554cc913ffa0",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T20:53:51Z",
-      "worker_run_id": "43760259435",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43757990961,
-        43756384109,
-        43756218347,
-        43753233809,
-        43752704784,
-        43752194225,
-        43746617494,
-        43731625055,
-        43724243400,
-        43721484176,
-        43721157324,
-        43706435376,
-        43698271571,
-        43682264332,
-        43681861583,
-        43680980929,
-        43655786695,
-        43639680929,
-        43623754509,
-        43621919773
-      ],
-      "outcome": "complete, not actionable; reliability state unchanged. Window: latest 20 completed docs.yml runs 43621919773 (push 93c64ff, created 2026-11-14T17:35Z) to 43757990961 (push 24f570e, created 2026-11-15T20:25Z), all within 14 days; list re-read 20:52Z: no newer docs run, 0 cancelled, none queued or in progress; source 24f570e = HEAD = source_sha. Gate: 10 successes (all push) >= 5. Excluded and disclosed: 10 failures (deploy skipped; Build documentation per prior Jobs API reads; logs HTTP 403 DIFC). Scheduling: avoidable pushes 0 of 20. Commit file lists fetched for the three window pushes missing from commit_paths: 24f570e touches dashboard/site/src/agent/mcp-contract.json (trigger path; imported by dashboard/site/src/agent/query-executor.js, so build-consumed) plus server/docs-unrelated files that do not match the paths filter; 8c2dd68 touches only docs/glossary.md (docs/** = Astro srcDir, consumed); 10f5e57 touches dashboard/site/src/data/github-service.js (source, consumed) and a unit test. Test-only pushes 0. Concurrency: documentation-pages is docs.yml-only, cancel-in-progress false (required to protect Pages publication); queue run-created to build-started median 3 s, p90 4 s, so no in-window queueing. Exec (10 successes) median 75.5 s, p90 80; build_job median 60.5 s, p90 65; 15 percent gate 11.3 s and 60 s gate unmet; path narrowing cannot reduce per-run median and would avoid zero of the window's runs. Observation: stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) still queued at 20:52Z; maintainer should verify and cancel it, since a start would deploy an old commit. No suggestion; no create_issue; noop used. next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T21:17:57Z",
       "worker_run_id": "43762524618",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43724243400 (push aa73dc6, created 2026-11-15T14:25Z) to 43814432358 (push dbf9df7, created 2026-11-16T06:05Z); gh run list 07:31Z: same 20 IDs, all success (19 push, 1 schedule 43810351164), 0 cancelled or failed, none queued or in progress; source dbf9df7 = HEAD = source_sha. Gate: 20 successes >= 5. Jobs API fetched for the 2 new runs (43814432358: handoff 5 s, configure 0 s, upload 3 s, deploy setup 1 s; 43810351164: 6, 0, 2, 1); 18 stored transfer rows reused. Removable transfer (handoff build-complete to deploy-start + Configure Pages + Upload Pages artifact + deploy Set up job): median 8 s, p90 10 s, max 10 s = 10.9 percent of exec median 73.5 s (p90 111 s); 15 percent gate 11.0 s and 60 s gate unmet. Deploy Pages (GitHub-managed) median 7 s; removing it drops publication. Merging deploy into build saves about 5.5 s median and moves id-token and github-pages environment onto the npm ci build job: rejected. Artifact shrink saves about 1 s. Checkout median 24.5 s (p90 51 s) remains under OPEN #20815, not repeated. Stale queued run 37642403569 (workflow_run, created 2026-10-07) still queued at 07:32Z; observation only. No suggestion; no create_issue; noop used; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T08:03:28Z",
+      "worker_run_id": "43827870159",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        43825070138,
+        43814432358,
+        43810351164,
+        43798031034,
+        43792211504,
+        43789359390,
+        43781377358,
+        43781088986,
+        43780290464,
+        43768376457,
+        43766933236,
+        43766019418,
+        43757990961,
+        43756384109,
+        43756218347,
+        43753233809,
+        43752704784,
+        43752194225,
+        43746617494,
+        43731625055
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43731625055 (push 88f046c, created 2026-11-15T15:45Z) to 43825070138 (push 2fdf4a0, created 2026-11-16T07:36Z), all within 14 days; 0 cancelled; none in progress; source 2fdf4a0 = HEAD = new source_sha. Gate: 20 successes (19 push + schedule 43810351164) >= 5; no exclusions. Queue run-created to build-started: median 3 s, p90 4 s, max 4 (all 20); documentation-pages serialization costs ~0 s; cancel-in-progress false kept (protects Pages publication). Exec (build start to deploy end) median 76.5 s, p90 111; 15 percent gate 11.5 s and 60 s gate unmet. Avoidable rebuilds: 1 test-only push in window (5b8b842 = run 43780290464; dashboard/site/test, tests/, server test only); 2fdf4a0, dbf9df7, 0599943 are build-consumed (src/docs/fragments). Negating dashboard/site/test/** would save ~77 s on 1 of 20 runs and 0 s on the median; not repeated (watch item unchanged). Schedule 05:23 cron kept (Date.now() synthetic-date refresh); schedule run 43810351164 created 05:27:28Z, exec 63 s. Observation: stale queued workflow_run 37642403569 (headSha 6206962, created 2026-10-07) still queued at 08:03Z; maintainer should verify and cancel (read-only worker). No suggestion; no create_issue; noop used; next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1024,11 +1024,11 @@
   "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
   "observations_pending": [
     {
-      "observed_at": "2026-11-16T07:32:36Z",
-      "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07T15:12Z) still queued at 07:32Z; no docs run queued or in progress. Maintainer should verify and cancel; this worker is read-only."
+      "observed_at": "2026-11-16T08:03:28Z",
+      "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07T15:12Z) still queued at 08:03Z; no docs run queued or in progress; does not block window runs. Maintainer should verify and cancel; this worker is read-only."
     },
     {
-      "observed_at": "2026-11-16T06:36:53Z",
+      "observed_at": "2026-11-16T08:03:28Z",
       "note": "Watch (unchanged): test-only push 5b8b842 (43780290464) is the only test-only docs run in the 20-run window. Candidate change only if a second test-only docs run appears in a later window: negated trigger for dashboard/site/test/** in docs.yml, validated with a docs run."
     }
   ],
@@ -1803,5 +1803,45 @@
       "gate_15pct_s": 11
     },
     "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
+  },
+  "scheduling_verified": {
+    "verified_at": "2026-11-16T08:03:28Z",
+    "window": "43731625055 (push 88f046c, 2026-11-15T15:45Z) .. 43825070138 (push 2fdf4a0, 2026-11-16T07:36Z); 20 successes (19 push, 1 schedule 43810351164)",
+    "queue_s": {
+      "median": 3,
+      "p90": 4,
+      "max": 4
+    },
+    "exec_build_start_to_deploy_end_s": {
+      "median": 76.5,
+      "p90": 111,
+      "min": 61,
+      "max": 129
+    },
+    "total_created_to_deploy_end_s": {
+      "median": 80,
+      "p90": 114
+    },
+    "build_job_s": {
+      "median": 62.5,
+      "p90": 95
+    },
+    "deploy_job_s": {
+      "median": 9,
+      "p90": 11
+    },
+    "handoff_s": {
+      "median": 5,
+      "p90": 6
+    },
+    "test_only_pushes_in_window": [
+      "5b8b842 (run 43780290464)"
+    ],
+    "commit_map_additions": {
+      "0599943": "build-consumed (dashboard/site/src, build copies src)",
+      "dbf9df7": "build-consumed (docs/**, specs, fragments)",
+      "2fdf4a0": "build-consumed (dashboard/site/src/styles-responsive.js)"
+    },
+    "method": "gh run list + Jobs API step timestamps; commit file lists immutable; reuse commit_paths map"
   }
 }
