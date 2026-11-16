@@ -1,36 +1,7 @@
 {
   "source_sha": "1a03d2195e80526ad057bbb01f0f8f575d5b255a",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T01:24:04Z",
-      "worker_run_id": "43785643024",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "43781377358",
-        "43781088986",
-        "43780290464",
-        "43768376457",
-        "43766933236",
-        "43766019418",
-        "43757990961",
-        "43756384109",
-        "43756218347",
-        "43753233809",
-        "43752704784",
-        "43752194225",
-        "43746617494",
-        "43731625055",
-        "43724243400",
-        "43721484176",
-        "43721157324",
-        "43706435376",
-        "43698271571",
-        "43682264332"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43682264332 (push 29e63d1, created 2026-11-15T05:43Z) to 43781377358 (push 86f6047, created 2026-11-16T00:36Z), all within 14 days; gh run list re-read 01:22Z: same 20 IDs, all completed, none queued or in progress in window, 0 c...",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T01:35:30Z",
       "worker_run_id": "43786830539",
@@ -865,6 +836,35 @@
         "43757990961"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43757990961 (push 24f570e, 2026-11-15T20:25Z) to 43862265708 (push 1a03d21, 2026-11-16T11:57Z); 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 excluded; none queued or in progress. Source 1a03d21 = HEAD = new source_sha. Gate 20>=5 met. Setup+install+post median 12.5 s, p90 17 s = 16.0% of exec median 78 s (p90 120 s); 15% gate 11.7 s. Medians: setup 3 s, install 8 s, post 0 s. Cache hit inferred (main key node-cache-Linux-x64-npm-7808ecf8 last accessed 11:58:40Z by run 43862265708; post step 0 s; logs API not readable). No package-lock change since 2026-11-13T21:00Z. Whole phase is a ceiling; node_modules restore est. net 3-6 s, unmeasured; below gate. Cache usage 10.57 GB > 10 GB default quota: watch item only. Next category: Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T12:47:18Z",
+      "worker_run_id": "43869157609",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "43757990961",
+        "43766019418",
+        "43766933236",
+        "43768376457",
+        "43780290464",
+        "43781088986",
+        "43781377358",
+        "43789359390",
+        "43792211504",
+        "43798031034",
+        "43810351164",
+        "43814432358",
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43757990961 (push 24f570e, 2026-11-15T20:25Z) to 43862265708 (push 1a03d21, 2026-11-16T11:57Z); 20/20 success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 12:45Z shows no newer docs.yml run. Build documentation step median 11.5 s, p90 14 s, 14.7% of exec median 78 s (15% gate 11.7 s; 60 s gate not met). Whole-step removal ceiling 11.5 s and would drop validate-agent-docs and the discovery test; Astro output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). No Astro-only change can clear the gate without weakening correctness.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1750,19 +1750,19 @@
     "note": "Whole-phase removal is an unreachable ceiling (npm ci cannot be skipped). Concrete option: node_modules restore replacing setup-node restore + npm ci: est. net 3-6 s after restore, unmeasured, below gate. Adding dashboard/site lock to cache path changes the key (one miss) and saves seconds. Not actionable."
   },
   "astro_step_verified": {
-    "verified_at": "2026-11-16T10:37:30Z",
-    "window": "43756218347..43840581457 (20 successes; 19 push + 1 schedule 43810351164); recomputed from run_timings rows, no refetch",
+    "verified_at": "2026-11-16T12:47:18Z",
+    "window": "43757990961 (push 24f570e) .. 43862265708 (push 1a03d21); 20 successes (19 push + 1 schedule 43810351164); cancelled 43832015521 excluded; recomputed from run_timings rows, no refetch",
     "build_docs_s": {
-      "median": 11,
+      "median": 11.5,
       "p90": 14,
       "min": 8,
       "max": 16
     },
-    "exec_median_s": 77,
-    "build_docs_share_exec_median_pct": 14.3,
-    "gate_15pct_s": 11.55,
-    "ceiling_saving_s": 11,
-    "decision": "not actionable: full removal of Build documentation step (includes validate-agent-docs and agent-docs-discovery test) saves at most 11 s, below 60 s and 15% gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
-    "denominator_note": "exec = build job start to deploy job end (workflow execution). Against build-job median 62.5 s the 11 s step would be 17.6%; the mission gate uses workflow execution time."
+    "exec_median_s": 78.0,
+    "build_docs_share_exec_median_pct": 14.7,
+    "gate_15pct_s": 11.7,
+    "ceiling_saving_s": 11.5,
+    "decision": "not actionable: whole-step removal (includes validate-agent-docs and agent-docs-discovery test) saves at most 11.5 s, below 60 s and the 15% gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
+    "denominator_note": "exec = build job start to deploy job end; docs.yml has no separate dashboard job (dashboard generation is the Build synthetic enterprise demo step in build)"
   }
 }
