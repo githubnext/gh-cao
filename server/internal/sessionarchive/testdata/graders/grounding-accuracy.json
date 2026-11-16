@@ -1,0 +1,20 @@
+{
+  "name":"grounding-accuracy",
+  "subject":"Recompute gh-aw grounding accuracy.",
+  "from":"archive-actions",
+  "aggregate":{
+    "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],
+    "values":[
+      {"field":"Items","as":"n","reducer":"max"},
+      {"field":"TraceId","as":"excluded","reducer":"count","filter":{"predicates":[{"field":"Items","state":"excluded"}]}},
+      {"field":"ValidAtIssueTime","as":"valid","reducer":"count"},
+      {"field":"ValidAtIssueTime","as":"grounded","reducer":"count","filter":{"predicates":[{"field":"ValidAtIssueTime","equals":true}]}}
+    ]
+  },
+  "post-aggregate":[
+    {"as":"reason","function":"if","args":[{"function":"gt","args":[{"field":"excluded"},{"value":0}]},{"value":"excluded"},{"function":"if","args":[{"function":"gt","args":[{"field":"n"},{"value":5000}]},{"value":"oversized"},{"function":"if","args":[{"function":"gt","args":[{"field":"n"},{"value":0}]},{"function":"if","args":[{"function":"equals","args":[{"field":"valid"},{"field":"n"}]},{"value":"measured"},{"value":"invalid-validity"}]},{"value":"no-actions"}]}]}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"function":"quotient","args":[{"field":"grounded"},{"field":"n"}]},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"value":"measured"},{"value":"unavailable"}]}
+  ],
+  "select":[{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

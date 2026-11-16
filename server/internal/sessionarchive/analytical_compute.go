@@ -5,7 +5,7 @@ import (
 	"slices"
 )
 
-var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "quotient", "coalesce", "is-null", "and"}
+var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "difference", "product", "quotient", "coalesce", "is-null", "and"}
 
 // Expressions use Dashboard Language's function/args and field/value vocabulary,
 // with strict decoding rather than the dashboard's contextual argument resolver.
@@ -186,7 +186,7 @@ func (e Expression) plan(fields map[string]string, depth int, nodes *int) (Plann
 			return p, ErrQuery
 		}
 		p.Type = "boolean"
-	case "sum", "quotient":
+	case "sum", "difference", "product", "quotient":
 		if n != 2 || !numeric(p.Args[0].Type) || !numeric(p.Args[1].Type) {
 			return p, ErrQuery
 		}

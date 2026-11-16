@@ -17,7 +17,7 @@ grader's semantics.
 | Upstream pin | `github/gh-aw` `5ac122295e5e839aa15a727ecf4762f3e680cc24` ([`grader-source-pins.json`](../server/internal/sessionarchive/testdata/grader-source-pins.json)) |
 | Last upstream review | `main` `a25e38ee6b9740b10008559bd2c9290ef1f925aa` (2026-11-16); grader code identical, `graders-specification.md` changed one link only |
 | Upstream sources | `actions/setup/js/builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs`, `working_set_metrics.cjs`, `operational_value_grader.cjs`, `custom_graders.cjs` |
-| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`) |
+| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); local DuckDB also advertises the Phase 1 item sources (`LocalAnalyticalCapabilities`) |
 | Graders in scope | 35 built-ins; operational-value and custom graders are listed as out of scope |
 
 Re-review when the pin moves: compare the pin with upstream `main` through
@@ -37,16 +37,18 @@ source or `builtin_graders.json` entry changed, and update both this tracker and
 - One `aggregate` stage with reducers `count`, `distinct-count`, `sum`, `max`,
   and ordered `first`. Filtered measures are supported.
 - `post-aggregate` with the functions `if`, `equals`, `gt`, `lte`, `and`,
-  `sum`, `quotient`, `coalesce` and `is-null`.
+  `sum`, `difference`, `product`, `quotient`, `coalesce` and `is-null`.
+- On local DuckDB only, the item sources `archive-objectives`,
+  `archive-actions` and `archive-states` (Phase 1).
 - Ordering and limits.
 
-It has no joins, query chaining, windows, pre-aggregate computation,
-`difference`, `product`, regex, logarithms or structured-element rows.
+It has no joins, query chaining, windows, pre-aggregate computation, regex,
+logarithms, or hosted structured-element rows.
 
 The full Dashboard Language already standardizes several of the missing
 capabilities:
 
-- `difference` and `product` (§5.5.1).
+- `difference` and `product` (§5.5.1), now ported as L1.
 - Row-level `compute`.
 - Equality joins, including `inner-many`, with at most four per query
   (DLS-QUERY-005..008).
@@ -108,7 +110,7 @@ marks the 15 candidates in the
 | `tool-failure-count` | Reconciled calls whose completion is false, success is false, `isError` is set, status is error or failure, or error is non-null | yes | `extension-ready` | L2, L3, L5, L6 | L |
 | `tool-success-rate` | (calls − failed) ÷ calls, or 1 when there are no calls | yes | `extension-ready` | L1, L2, L3, L5, L6 | L |
 | `trajectory-efficiency` | Distinct tool names ÷ reconciled calls, or 1 | yes | `extension-ready` | L2, L3, L5, L6 | L |
-| `artifact-production` | Applied `safe_output.result` with success or absent status, minus absent-status types with a safe-outputs-phase outcome | yes | `extension-ready` | L2, L3 | M |
+| `artifact-production` | Applied `safe_output.result` with success or absent status, minus absent-status types with a safe-outputs-phase outcome | yes | `extension-ready` | L3 | M |
 | `retries` | MCP retry events (event, `retryHint` or a message regex) plus deduplicated harness attempts | yes | `vocabulary-gated` | G1. The non-regex part needs L3, L6 and S1 (`attemptResults`) | — |
 | `loops` | Consecutive identical session, tool name and arguments | no | `out-of-scope` | Tool arguments are not approved | — |
 
@@ -137,20 +139,21 @@ No reconciliation result is persisted at capture.
 
 All rows below read the S2-selected `trajectory.ir` collections. Upstream
 reports unavailable above 5,000 items, and S1 sources must preserve that
-guard.
+guard. S1 (`objectives`, `actions`, `states`), S2 and L1 shipped in Phase 1
+and are no longer listed as needs.
 
 | Grader | Upstream formula | CAO | Status | Needs | Effort |
 | --- | --- | --- | --- | --- | --- |
-| `objective-coverage` | Satisfied objectives ÷ objectives; unavailable on an invalid index | yes | `extension-ready` | S1, S2 | S |
-| `premature-termination-gap` | Count of objectives with a null or absent `satisfiedAtEventIndex`; unavailable on an invalid index | yes | `extension-ready` | S1, S2 | S |
-| `grounding-accuracy` | Actions with `validAtIssueTime` true ÷ actions; unavailable unless every flag is boolean | yes | `extension-ready` | S1, S2 | S |
-| `state-revisit-probability-rep` | (visits − distinct states) ÷ visits, for at least 2 visits. Order only affects diagnostics | yes | `extension-ready` | S1, S2, L1 | S |
-| `recurrence-rate` | Σ c(c−1) over per-state counts ÷ n(n−1), for at least 2 visits | yes | `extension-ready` | S1, S2, L1, L3 | M |
-| `recurrence-laminarity` | Vertical-line recurrent points ÷ recurrent points (vmin 2, n ≥ 4) | no | `extension-ready` | S1, S2, L1, L2, L3, L4, L5 | M |
-| `recurrence-determinism` | Diagonal-line recurrent points ÷ recurrent points (lmin 2, n ≥ 4) | no | `extension-ready` | S1, S2, L1, L2, L3, L4, L5 | L, quadratic |
-| `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `extension-ready` | S1, S2, L1, L3, L4, L5 | L, quadratic |
-| `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `extension-ready` | S1 (nested `dependsOn`), S2, L2, L3, L4 | M |
-| `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `extension-ready` | S1, S2, L2, L3, L4 | M |
+| `objective-coverage` | Satisfied objectives ÷ objectives; unavailable on an invalid index | yes | `implemented` (local DuckDB) | — | — |
+| `premature-termination-gap` | Count of objectives with a null or absent `satisfiedAtEventIndex`; unavailable on an invalid index | yes | `implemented` (local DuckDB) | — | — |
+| `grounding-accuracy` | Actions with `validAtIssueTime` true ÷ actions; unavailable unless every flag is boolean | yes | `implemented` (local DuckDB) | — | — |
+| `state-revisit-probability-rep` | (visits − distinct states) ÷ visits, for at least 2 visits. Order only affects diagnostics | yes | `implemented` (local DuckDB) | — | — |
+| `recurrence-rate` | Σ c(c−1) over per-state counts ÷ n(n−1), for at least 2 visits | yes | `extension-ready` | L3 | M |
+| `recurrence-laminarity` | Vertical-line recurrent points ÷ recurrent points (vmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L4, L5 | M |
+| `recurrence-determinism` | Diagonal-line recurrent points ÷ recurrent points (lmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L4, L5 | L, quadratic |
+| `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `extension-ready` | L3, L4, L5 | L, quadratic |
+| `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `extension-ready` | S1 (nested `dependsOn`), L2, L3, L4 | M |
+| `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `extension-ready` | S1 (IR `events`), L2, L3, L4 | M |
 | `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
 | `exploitation-error` | Unused observations ÷ observations when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
 | `tool-output-consumption-rate` | Tool-originated observations that were consumed ÷ tool-originated observations | no | `evidence-gated` | E1 (`observations`, `toolCalls`), L4 | — |
@@ -194,8 +197,8 @@ queries MUST fail closed rather than return partial lines.
 
 | Status | Count | Graders |
 | --- | ---: | --- |
-| `implemented` | 4 | step count, duration, rebuild factor, context growth |
-| `extension-ready` | 14 | Tool reconciliation (3), artifact production, objective and action rows (3), state recurrence (5), objective ordering (2) |
+| `implemented` | 8 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit (local DuckDB) |
+| `extension-ready` | 10 | Tool reconciliation (3), artifact production, state recurrence (4), objective ordering (2) |
 | `evidence-gated` | 3 | exploration error, exploitation error, tool-output consumption |
 | `vocabulary-gated` | 13 | retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6) |
 | `out-of-scope` | 1 | loops |
@@ -225,11 +228,56 @@ when its definitions replay with parity.
 
 - [x] Inventory the 35 upstream built-ins and classify feasibility at the pin and at `main` `a25e38ee`.
 - [x] Implement the usage family: `execution-step-count`, `execution-duration`, `working-set-rebuild-factor`, `context-growth` (#21020).
-- [ ] **Phase 1:** S1 (`objectives`, `actions`, `states`), S2 and L1. Unlocks `objective-coverage`, `premature-termination-gap`, `grounding-accuracy` and `state-revisit-probability-rep`.
-- [ ] **Phase 2:** L3 and the L1 `product` function. Unlocks `recurrence-rate`.
-- [ ] **Phase 3:** L2 and L3. Unlocks `artifact-production`.
-- [ ] **Phase 4:** L5 and L6. Unlocks `tool-failure-count`, `tool-success-rate`, `trajectory-efficiency` and `recurrence-laminarity`.
+- [x] **Phase 1:** S1 (`objectives`, `actions`, `states`), S2 and L1. Unlocks `objective-coverage`, `premature-termination-gap`, `grounding-accuracy` and `state-revisit-probability-rep` on local DuckDB (§7).
+- [ ] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted against the Kusto emulator or a real ADX cluster. Until then hosted backends reject them.
+- [ ] **Phase 2:** L3. Unlocks `recurrence-rate` and `artifact-production` (§8).
+- [ ] **Phase 4:** L5 (with gaps-and-islands over `row-number`) and L6. Unlocks `tool-failure-count`, `tool-success-rate`, `trajectory-efficiency` and `recurrence-laminarity`.
 - [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR events). Unlocks `dependency-order-violation-rate` and `evidence-saturation-stopping-lag`.
 - [ ] **Phase 6:** Prototype `recurrence-determinism` and `recurrence-trapping-time` under row budgets, or reclassify them as `vocabulary-gated`.
 - [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
 - [ ] Revisit `retries` and `policy-near-miss` if upstream emits typed retry or guard flags that replace regex matching.
+
+## 7. Phase 1 implementation notes
+
+S1 is query-time flattening, not a persisted schema change. The trusted DuckDB
+lowerer groups each complete active trace, binds the `PayloadJSON` of its
+highest-`Sequence` `trajectory.ir` event with `Phase` `agent` (S2), and expands
+the `data.objectives`, `data.actions` or `data.states` array into one row per
+element plus one anchor row per trace. `PayloadJSON` is never exposed. Item
+fields are typed without coercion: `SatisfiedAtEventIndex` must be a safe
+non-negative JSON integer, `ValidAtIssueTime` a JSON boolean, and `Id` a string
+element or an object's string `id`. State predicates on `Items` and element
+fields are qualified by the collection path, so omissions surface as `excluded`
+or `redacted`.
+
+Declared divergences, all failing towards `unavailable`:
+
+- An excluded collection, or a redacted `states` collection, reports
+  `unavailable` with reason `excluded` or `redacted`. Live upstream sees the
+  original data.
+- The 5,000-item cap is checked only on the queried collection, not on
+  upstream's synthesized event list.
+- ADX and native backends do not advertise item sources and reject such plans.
+  The KQL lowering is Phase 1b because the Kusto emulator does not run on the
+  ARM development host used for Phase 1.
+
+## 8. Smallest next delta
+
+L3 (query chaining) is the smallest single extension that unlocks more
+graders, without L2:
+
+- `artifact-production`: a first stage aggregates `safe_output.result` rows
+  per trace and `DataType` with filtered measures (applied with success or
+  absent status, and absent-status types with a `safe_outputs`-phase outcome
+  whose status is defined). A second stage sums per trace the counts of types
+  not excluded. Filtered measures and `state` predicates already provide the
+  classification, so L2 is unnecessary.
+- `recurrence-rate`: a first stage counts visits per trace and state `Id` over
+  `archive-states`. A second stage sums c(c−1) with L1 `product` and divides by
+  n(n−1).
+
+Tool reconciliation (`tool-failure-count`, `tool-success-rate`,
+`trajectory-efficiency`) needs more than L5 `previous`: upstream collapses
+resume-strategy attempts to the last non-resume attempt in each invocation,
+which is a gaps-and-islands construction (`row-number` differences plus L3).
+Those three graders stay in Phase 4.

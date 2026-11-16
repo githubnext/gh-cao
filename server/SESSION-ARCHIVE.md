@@ -30,7 +30,10 @@ for original structured evidence. Physical empty strings are not proof of source
 absence, and nullable/invalid measurements are not zero. The
 [fresh evidence contract](../specs/session-archive.md#21-fresh-original-evidence-contract)
 defines the 15 conditional grader-evidence families. Four scalar usage formulas
-are reviewed declarative queries; the remaining eleven are unsupported. The
+are reviewed declarative queries on DuckDB and ADX, and four trajectory formulas
+(objective coverage, premature termination, grounding accuracy, state revisit)
+are reviewed local DuckDB queries over item sources; the remaining seven are
+unsupported. The
 [grader query feasibility tracker](../specs/session-archive-grader-queries.md)
 classifies all 35 upstream built-ins and the extensions each one needs.
 It preserves every original observation rather than reconciling invocations,
@@ -153,10 +156,10 @@ Parquet reconstructions. The focused Go regression is
 Reports separate approved-input preservation, pinned-grader replay, and attempted
 full public JSON query support. The four definitions in
 `internal/sessionarchive/testdata/graders/` execute in real DuckDB and compare
-step count, duration, rebuild factor and context growth to the pinned upstream
-values and unavailable states. Reason codes are query qualifications; upstream
+step count, duration, rebuild factor, context growth and the four trajectory
+item-source metrics to the pinned upstream values and unavailable states. Reason codes are query qualifications; upstream
 v2 provides status but no reason codes. Successful scalar component queries for
-the remaining eleven are not complete metrics. Missing provenance, invalid measurements, missing/null inputs,
+the remaining seven are not complete metrics. Missing provenance, invalid measurements, missing/null inputs,
 excluded fields and redacted descriptions are not normalized to make replay
 succeed. Reports are private ignored test artifacts, not persisted archive
 scores, dashboard sources, live collection or Kusto/Azure acceptance evidence.
@@ -314,6 +317,10 @@ fail without fallback. See the [analytical contract](../specs/session-archive.md
 for filtered aggregates, generated field-state predicates, numeric ordered
 `first`, wide versus sequential sums and the explicit bounded post-aggregate
 phase. No reducer reads `PayloadJSON`; null first values are retained.
+Local DuckDB status also lists `analytical.sources`: `archive-objectives`,
+`archive-actions`, and `archive-states` flatten each trace's last agent-phase
+`trajectory.ir` collection at query time. ADX does not advertise them and rejects
+those plans.
 Results include
 typed columns, rows, and metadata separating intentional top-N selection from
 known evidence gaps and unknown upstream coverage, plus query digest and compiler

@@ -123,6 +123,10 @@ func kqlExpression(e sessionarchive.PlannedExpression) string {
 		return "coalesce(" + strings.Join(args, ",") + ")"
 	case "sum":
 		return "(toreal(" + args[0] + ")+toreal(" + args[1] + "))"
+	case "difference":
+		return "(toreal(" + args[0] + ")-toreal(" + args[1] + "))"
+	case "product":
+		return "(toreal(" + args[0] + ")*toreal(" + args[1] + "))"
 	case "quotient":
 		return "iff(toreal(" + args[1] + ")==0.0,real(null),toreal(" + args[0] + ")/toreal(" + args[1] + "))"
 	}
