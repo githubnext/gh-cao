@@ -58,7 +58,7 @@ Before filing a contribution request, use an agent to:
 - Create a complete plan for implementation and validation.
 
 For CAO deployment failures, use the
-[diagnostics guide](.github/cao/tasks/diagnostics.md) of the
+[diagnostics guide](.github/cao/instructions/diagnostics.md) of the
 `central-agentic-ops` skill to preserve the failing revision,
 narrow the fault to one system boundary, and collect reproducible evidence.
 

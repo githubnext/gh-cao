@@ -13,8 +13,8 @@ entry point. Workflow agents may use an explicitly installed `gh cao`, or the
 bounded read-only GitHub and agentic-workflow tools already available to them.
 Server hosting and administration belong to `cao-dashboard`.
 
-Agents follow the `central-agentic-ops` skill's [gh cao guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/gh-cao.md)
-for command ownership and its [dashboard analysis guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/dashboard-analysis.md)
+Agents follow the `central-agentic-ops` skill's [gh cao guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/gh-cao.md)
+for command ownership and its [dashboard analysis guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/dashboard-analysis.md)
 for evidence interpretation. Run policy commands from the control repository
 root. Use `gh cao --help` and `gh cao COMMAND --help` for the supported surface.
 Failures exit nonzero without substituting a retired runtime.

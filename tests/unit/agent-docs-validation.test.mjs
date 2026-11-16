@@ -194,7 +194,7 @@ test("rejects a missing required route", async () => {
   const indexPath = path.join(root, "dist", "llms.txt");
   const index = await import("node:fs/promises").then(({ readFile }) => readFile(indexPath, "utf8"));
   await writeFile(indexPath, index.replace(
-    "- [Analyze CAO activity](https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/dashboard-analysis.md)\n",
+    "- [Analyze CAO activity](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/dashboard-analysis.md)\n",
     "",
   ));
   assert.ok((await validateAgentDocs({ root })).some((error) => error.includes("Analyze CAO activity")));
@@ -205,11 +205,11 @@ test("rejects an ambiguous one-hop task route", async () => {
   const indexPath = path.join(root, "dist", "llms.txt");
   const index = await readFile(indexPath, "utf8");
   await writeFile(indexPath, index.replace(
-    ".github/cao/tasks/dashboard-analysis.md)",
-    ".github/cao/tasks/dashboard-analysis.md) [debug](https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/diagnostics.md)",
+    ".github/cao/instructions/dashboard-analysis.md)",
+    ".github/cao/instructions/dashboard-analysis.md) [debug](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/diagnostics.md)",
   ));
   assert.ok((await validateAgentDocs({ root })).some((error) =>
-    error.includes("Analyze CAO activity\" must route to only .github/cao/tasks/dashboard-analysis.md")
+    error.includes("Analyze CAO activity\" must route to only .github/cao/instructions/dashboard-analysis.md")
   ));
 });
 
@@ -228,13 +228,13 @@ test("rejects oversized routing, context, and skill entry points", async () => {
 test("accepts the compact router and rejects missing task guides", async () => {
   const root = await createFixture();
   const skill = path.join(root, "skills", "central-agentic-ops", "SKILL.md");
-  await writeFile(skill, "# central-agentic-ops\n\nRead `.github/cao/tasks/gh.md`.\n");
+  await writeFile(skill, "# central-agentic-ops\n\nRead `.github/cao/instructions/gh.md`.\n");
   let errors = await validateAgentDocs({ root });
   assert.ok(errors.some((error) =>
-    error.includes("central-agentic-ops/SKILL.md references missing guide: .github/cao/tasks/gh.md")
+    error.includes("central-agentic-ops/SKILL.md references missing guide: .github/cao/instructions/gh.md")
   ));
 
-  await writeFile(path.join(root, ".github", "cao", "tasks", "gh.md"), "# gh\n");
+  await writeFile(path.join(root, ".github", "cao", "instructions", "gh.md"), "# gh\n");
   errors = await validateAgentDocs({ root });
   assert.deepEqual(errors, []);
 });

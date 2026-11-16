@@ -98,32 +98,32 @@ export default defineConfig({
             },
             {
               label: "Set up a CAO control plane",
-              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/setup.md",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/setup.md",
               description: "Bootstrap, repository scope, and authentication.",
             },
             {
               label: "Debug a CAO failure",
-              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/diagnostics.md",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/diagnostics.md",
               description: "Policy, credential, workflow, Activity, dashboard, or safe-output failures.",
             },
             {
               label: "Add an existing campaign",
-              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/operations/add-campaign.md",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/operations/add-campaign.md",
               description: "Discover, compare, and install a catalog campaign.",
             },
             {
               label: "Create a new campaign",
-              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/operations/create-campaign.md",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/operations/create-campaign.md",
               description: "Author an orchestrator and its workers.",
             },
             {
               label: "Analyze CAO activity",
-              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/dashboard-analysis.md",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/dashboard-analysis.md",
               description: "Answer questions from named dashboard queries and operational evidence.",
             },
             {
               label: "Use or extend the CAO CLI",
-              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/gh-cao.md",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/gh-cao.md",
               description: "Command selection, workflow invocation, and CLI development.",
             },
             {

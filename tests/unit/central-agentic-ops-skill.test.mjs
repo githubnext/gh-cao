@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -9,22 +9,13 @@ const skill = readFileSync(skillPath, "utf8");
 const read = (path) => readFileSync(join(root, path), "utf8");
 
 const taskGuides = {
-  setup: ".github/cao/tasks/setup.md",
-  operations: ".github/cao/tasks/operations.md",
-  "gh cao": ".github/cao/tasks/gh-cao.md",
-  "gh aw": ".github/cao/tasks/gh-aw.md",
-  gh: ".github/cao/tasks/gh.md",
-  "dashboard analysis": ".github/cao/tasks/dashboard-analysis.md",
-  diagnostics: ".github/cao/tasks/diagnostics.md",
-};
-
-const formerSkills = {
-  "setup-cao": ".github/cao/tasks/setup.md",
-  "add-cao-campaign": ".github/cao/tasks/operations/add-campaign.md",
-  "create-cao-campaign": ".github/cao/tasks/operations/create-campaign.md",
-  "cao-cli": ".github/cao/tasks/gh-cao.md",
-  "analyze-cao": ".github/cao/tasks/dashboard-analysis.md",
-  "debug-cao": ".github/cao/tasks/diagnostics.md",
+  setup: ".github/cao/instructions/setup.md",
+  operations: ".github/cao/instructions/operations.md",
+  "gh cao": ".github/cao/instructions/gh-cao.md",
+  "gh aw": ".github/cao/instructions/gh-aw.md",
+  gh: ".github/cao/instructions/gh.md",
+  "dashboard analysis": ".github/cao/instructions/dashboard-analysis.md",
+  diagnostics: ".github/cao/instructions/diagnostics.md",
 };
 
 test("central-agentic-ops is a discoverable, packaged, compact skill", () => {
@@ -38,6 +29,29 @@ test("central-agentic-ops is a discoverable, packaged, compact skill", () => {
   const manifest = read("aw.yml");
   assert.match(manifest, /^\s+- skills\/central-agentic-ops$/m);
   assert.match(read("docs/agent-plugin.md"), /central-agentic-ops/);
+});
+
+test("central-agentic-ops resolves guides outside a checkout for gh skill installs", () => {
+  const frontmatter = skill.slice(0, skill.indexOf("\n---", 4));
+  assert.match(frontmatter, /^license: MIT$/m);
+  assert.match(frontmatter, /^compatibility: "[^"\n]+"$/m);
+  assert.ok(skill.includes("https://raw.githubusercontent.com/githubnext/gh-cao/REF/PATH"));
+  assert.match(skill, /metadata\.github-ref/);
+  assert.doesNotMatch(skill, /Former skill|setup-cao|debug-cao/);
+});
+
+test("task guides do not collide with control-repository steering", () => {
+  const steering = new Set();
+  for (const name of readdirSync(join(root, ".github", "workflows")).filter((file) => file.endsWith(".md"))) {
+    for (const [, operation] of read(`.github/workflows/${name}`).matchAll(/runtime-import\? \.github\/cao\/([^/\s}]+)\.md/g)) {
+      steering.add(operation);
+    }
+  }
+  assert.ok(steering.size > 0);
+  for (const guide of Object.values(taskGuides)) {
+    assert.match(guide, /^\.github\/cao\/instructions\//);
+  }
+  assert.equal(steering.has("instructions"), false);
 });
 
 test("central-agentic-ops loads shared instructions first, then one task guide", () => {
@@ -62,16 +76,7 @@ test("task guides travel with the control-repository runtime", () => {
     "internal/cli/native_management_runtime.go",
     "internal/cli/setup_runtime.go",
   ]) {
-    assert.match(read(file), /"\.github\/cao\/tasks"/, `${file} must ship task guides`);
-  }
-});
-
-test("former CAO skill names route to preserved guides", () => {
-  for (const [name, guide] of Object.entries(formerSkills)) {
-    assert.match(skill, new RegExp(`\\| \`${name}\` \\| \`${guide.replaceAll(".", "\\.")}\` \\|`));
-    assert.ok(existsSync(join(root, guide)), `${name} guidance must be preserved`);
-    assert.equal(existsSync(join(root, "skills", name)), false, `${name} skill must be consolidated`);
-    assert.doesNotMatch(read("aw.yml"), new RegExp(`skills/${name}\\b`));
+    assert.match(read(file), /"\.github\/cao\/instructions"/, `${file} must ship task guides`);
   }
 });
 

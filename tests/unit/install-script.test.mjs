@@ -96,7 +96,7 @@ const archiveResources = [
   ".github/skills/author-dashboard-intent/SKILL.md",
   ".github/actions/setup-gh-aw",
   ".github/cao/instructions.md",
-  ".github/cao/tasks",
+  ".github/cao/instructions",
   ".github/workflows/shared/control.md",
   ".github/workflows/shared/operation.md",
   ".github/workflows/shared/review-bundle.md",

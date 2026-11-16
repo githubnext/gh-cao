@@ -9,8 +9,8 @@ const debugViewSemantics = createDebug('view-semantics');
 const CONTEXT_ROOT = 'https://github.com/githubnext/gh-cao';
 const ANALYSIS_CONTEXT = [
   `CAO skill router: ${CONTEXT_ROOT}/blob/main/skills/central-agentic-ops/SKILL.md`,
-  `Dashboard analysis guide: ${CONTEXT_ROOT}/blob/main/.github/cao/tasks/dashboard-analysis.md`,
-  `CLI installation and command reference: ${CONTEXT_ROOT}/blob/main/.github/cao/tasks/gh-cao.md`,
+  `Dashboard analysis guide: ${CONTEXT_ROOT}/blob/main/.github/cao/instructions/dashboard-analysis.md`,
+  `CLI installation and command reference: ${CONTEXT_ROOT}/blob/main/.github/cao/instructions/gh-cao.md`,
   `CLI/MCP acquisition, query discovery and availability: ${CONTEXT_ROOT}/blob/main/docs/agent-analysis.md`,
   `Canonical data and metric semantics: ${CONTEXT_ROOT}/blob/main/specs/dashboard-data.md`,
   `Dashboard Language and query contracts: ${CONTEXT_ROOT}/blob/main/docs/dashboard-language-specification.md`,

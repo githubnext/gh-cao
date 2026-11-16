@@ -13,10 +13,10 @@ to choose a pattern name. Use this campaign-specific guide when independent
 per-target execution, history, retries, or specialized workers are needed and
 the [catalog](catalog.md) does not already produce the outcome, or when you
 explicitly want to author a campaign. Agents should follow the
-[create-a-campaign guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/operations/create-campaign.md)
+[create-a-campaign guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/operations/create-campaign.md)
 of the `central-agentic-ops` skill;
 to install an existing campaign instead, use the
-[add-a-campaign guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/tasks/operations/add-campaign.md).
+[add-a-campaign guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/operations/add-campaign.md).
 Before implementation, read [Orchestrators and Workers](orchestrators-and-workers.md)
 and the [control architecture specification](https://github.com/githubnext/gh-cao/blob/main/specs/control-architecture.md).
 
@@ -58,7 +58,7 @@ Keep the outcome to one sentence. If it needs unrelated outputs or success measu
 Open the CAO source or control repository in a coding agent and use:
 
 ```text
-Use the central-agentic-ops skill and follow .github/cao/tasks/operations/create-campaign.md.
+Use the central-agentic-ops skill and follow .github/cao/instructions/operations/create-campaign.md.
 
 Outcome:
 [What should measurably improve?]

@@ -20,20 +20,25 @@ Use the `central-agentic-ops` skill for every CAO task. It is a lightweight
 router: it loads the shared `.github/cao/instructions.md`, then only the task
 guide that matches the request.
 
-| Task | Guide under `.github/cao/tasks/` | Former skill |
-| --- | --- | --- |
-| Bootstrap a control plane | `setup.md` | `setup-cao` |
-| Discover or install an existing campaign | `operations.md` → `operations/add-campaign.md` | `add-cao-campaign` |
-| Describe an outcome, scope, and execution requirements for new work | `operations.md` → `operations/create-campaign.md` | `create-cao-campaign` |
-| Select or extend `gh cao` commands | `gh-cao.md` | `cao-cli` |
-| Author, compile, or inspect gh-aw workflows | `gh-aw.md` | — |
-| Inspect GitHub state with `gh` | `gh.md` | — |
-| Answer questions from dashboard queries and activity evidence | `dashboard-analysis.md` | `analyze-cao` |
-| Diagnose a deployment failure and preserve evidence | `diagnostics.md` | `debug-cao` |
+| Task | Guide under `.github/cao/instructions/` |
+| --- | --- |
+| Bootstrap a control plane | `setup.md` |
+| Discover or install an existing campaign | `operations.md` → `operations/add-campaign.md` |
+| Describe an outcome, scope, and execution requirements for new work | `operations.md` → `operations/create-campaign.md` |
+| Select or extend `gh cao` commands | `gh-cao.md` |
+| Author, compile, or inspect gh-aw workflows | `gh-aw.md` |
+| Inspect GitHub state with `gh` | `gh.md` |
+| Answer questions from dashboard queries and activity evidence | `dashboard-analysis.md` |
+| Diagnose a deployment failure and preserve evidence | `diagnostics.md` |
 
 The skill source is `skills/central-agentic-ops/`; control repositories receive
 it at `.github/skills/central-agentic-ops/` and the guides through the CAO
 runtime. The separate `agentic-workflows` skill remains the gh-aw router.
+
+The skill also installs standalone with `gh skill install githubnext/gh-cao
+central-agentic-ops`. That copies only `SKILL.md`; when a guide is absent
+locally, the skill fetches it from `raw.githubusercontent.com` at the installed
+`metadata.github-ref`, or `main` when none is recorded.
 
 For human setup instructions, start with [Set Up CAO](setup-quickstarts.md).
 For shell or MCP analysis, see [Agent analysis](agent-analysis.md).

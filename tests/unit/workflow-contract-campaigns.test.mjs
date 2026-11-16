@@ -322,7 +322,7 @@ test("root campaign provides default control-repository agent context", () => {
       .map((skill) => skill.slice("skills/".length))
       .sort(),
   );
-  for (const file of [...MarkdownFiles(join(root, "skills")), ...MarkdownFiles(join(root, ".github", "cao", "tasks"))]) {
+  for (const file of [...MarkdownFiles(join(root, "skills")), ...MarkdownFiles(join(root, ".github", "cao", "instructions"))]) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/\]\((?!https?:|mailto:|#)([^)#]+)(?:#[^)]+)?\)/g)) {
       assert.equal(existsSync(join(dirname(file), match[1])), true, `${file} links to missing ${match[1]}`);
@@ -516,8 +516,8 @@ test("Agent customizations preserve deterministic core campaign boundaries", () 
   const agent = readFileSync(join(root, ".github", "agents", "agentic-workflows.md"), "utf8");
   const agenticWorkflowsSkill = portableSkill("agentic-workflows");
   const campaignSkill = caoTaskGuide("operations");
-  const workflowContract = readFileSync(join(root, ".github", "cao", "tasks", "operations", "workflow-contract.md"), "utf8");
-  const packageExtensions = readFileSync(join(root, ".github", "cao", "tasks", "operations", "package-extensions.md"), "utf8");
+  const workflowContract = readFileSync(join(root, ".github", "cao", "instructions", "operations", "workflow-contract.md"), "utf8");
+  const packageExtensions = readFileSync(join(root, ".github", "cao", "instructions", "operations", "package-extensions.md"), "utf8");
   const repositoryInstructions = readFileSync(join(root, ".github", "cao", "instructions.md"), "utf8");
 
   assert.match(agent, /installed `agentic-workflows` skill/);
@@ -555,8 +555,8 @@ test("Agent customizations preserve deterministic core campaign boundaries", () 
   assert.match(repositoryInstructions, /Do not reinstall the retired component workflows or their manifests/);
   assert.match(repositoryInstructions, /Do not discover legacy dashboard bundles or treat Pages as operational evidence/);
   assert.match(repositoryInstructions, /Keep data collection and cache publication out of operational campaigns and dashboard build jobs/);
-  assert.match(repositoryInstructions, /follow `\.github\/cao\/tasks\/operations\/create-campaign\.md`/);
-  assert.match(repositoryInstructions, /apply `\.github\/cao\/tasks\/operations\/create-campaign\.md`/);
+  assert.match(repositoryInstructions, /follow `\.github\/cao\/instructions\/operations\/create-campaign\.md`/);
+  assert.match(repositoryInstructions, /apply `\.github\/cao\/instructions\/operations\/create-campaign\.md`/);
   assert.match(repositoryInstructions, /required `\.github\/workflows\/shared\/control\.md` imports/);
   assert.doesNotMatch(repositoryInstructions, /operational-value-designer\/SKILL\.md/);
 });
@@ -582,7 +582,7 @@ test("campaign creation guidance gives dispatchers campaign-scoped repo-memory",
 
 test("README routes zero-to-CAO requests to the setup guide", () => {
   const readme = readFileSync(join(root, "README.md"), "utf8");
-  const setupSkillPath = join(root, ".github", "cao", "tasks", "setup.md");
+  const setupSkillPath = join(root, ".github", "cao", "instructions", "setup.md");
   const setupSkill = readFileSync(setupSkillPath, "utf8");
   const setupQuickstart = readFileSync(join(root, "docs", "setup-quickstarts.md"), "utf8");
   const setupReferences = Object.fromEntries([
@@ -593,9 +593,9 @@ test("README routes zero-to-CAO requests to the setup guide", () => {
     "topology",
   ].map((name) => [
     name,
-    readFileSync(join(root, ".github", "cao", "tasks", "setup", `${name}.md`), "utf8"),
+    readFileSync(join(root, ".github", "cao", "instructions", "setup", `${name}.md`), "utf8"),
   ]));
-  const addCampaignSkillPath = join(root, ".github", "cao", "tasks", "operations", "add-campaign.md");
+  const addCampaignSkillPath = join(root, ".github", "cao", "instructions", "operations", "add-campaign.md");
   const readmeEntry = "skills/central-agentic-ops/SKILL.md";
 
   assert.ok(readme.split("\n").slice(0, 20).some((line) => line.includes(readmeEntry)));
@@ -664,7 +664,7 @@ test("README routes CAO failures to the diagnostics guide", () => {
 
   const readmeHead = readme.split("\n").slice(0, 20).join("\n");
   assert.match(readmeHead, /skills\/central-agentic-ops\/SKILL\.md[\s\S]*debug CAO/);
-  assert.match(router, /Diagnose a failed run[^\n]*`\.github\/cao\/tasks\/diagnostics\.md`/);
+  assert.match(router, /Diagnose a failed run[^\n]*`\.github\/cao\/instructions\/diagnostics\.md`/);
   assert.match(skill, /^# Debug Central Agentic Ops/);
   assert.match(skill, /resolvedCommit/);
   assert.match(skill, /GITHUB_WORKFLOW_SHA/);

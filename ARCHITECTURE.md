@@ -1625,7 +1625,7 @@ and removal remain authenticated and never hydrate notification payloads.
 | `.github/workflows/cao.json` | Sole persistent, non-secret rollout policy for this source-managed control plane. |
 | `.github/aw/` | gh-aw instruction, package, and generated campaign-ownership metadata only; CAO executable resources stay at their canonical catalog source paths. |
 | `.github/cao/instructions.md` | CAO-specific operator and authoring guidance; it does not grant rollout authority or execution capabilities. |
-| `.github/cao/tasks/` | Task guides (setup, operations, gh cao, gh aw, gh, dashboard analysis, diagnostics) loaded on demand by the `central-agentic-ops` skill; guidance only, never authority. |
+| `.github/cao/instructions/` | Task guides (setup, operations, gh cao, gh aw, gh, dashboard analysis, diagnostics) loaded on demand by the `central-agentic-ops` skill; guidance only, never authority. |
 | `skills/` | Portable Agent Plugin skills exposed by this repository: `agentic-workflows` and the `central-agentic-ops` router, also discoverable at `.github/skills/central-agentic-ops/`. |
 | `specs/` | Normative control, Activity, dashboard, and data contracts. |
 | `docs/` | Explanatory and operator-facing documentation site. |

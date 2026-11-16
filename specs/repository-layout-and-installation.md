@@ -55,7 +55,7 @@ control repository, or more than one of those roles.
 | `.github/workflows/cao.json` | Control repository | Persistent non-secret rollout policy |
 | `.github/actions/setup-gh-aw/` | CAO bootstrap | Local policy-pinned gh-aw setup action |
 | `.github/cao/instructions.md` | Control repository | Optional CAO operator guidance |
-| `.github/cao/tasks/` | CAO materializer | Task guides loaded on demand by the `central-agentic-ops` skill |
+| `.github/cao/instructions/` | CAO materializer | Task guides loaded on demand by the `central-agentic-ops` skill |
 | `.github/aw/` | gh-aw | Instructions, campaign records, ownership metadata, and gh-aw runtime data |
 
 An executable CAO resource MUST use the same repository-relative path in a
@@ -131,7 +131,7 @@ preflighted before the first replacement.
 ### 4.2 Replacement
 
 Root materialization owns `activity/`, `dashboard/`, `.github/actions/setup-gh-aw/`,
-`.github/cao/instructions.md`, and the `.github/cao/tasks/` guides loaded by the
+`.github/cao/instructions.md`, and the `.github/cao/instructions/` guides loaded by the
 `central-agentic-ops` skill. Every repository-local action referenced by a
 workflow that the root campaign installs MUST be provided at its canonical path
 by the root installation; installed workflow files MUST NOT be rewritten to

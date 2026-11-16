@@ -52,7 +52,7 @@ describe('semantic view prompts', () => {
       expect(prompt).toContain(`Page ${field}:\n${page[field]}`);
     }
     for (const path of [
-      'skills/central-agentic-ops/SKILL.md', '.github/cao/tasks/dashboard-analysis.md', 'docs/agent-analysis.md', 'specs/dashboard-data.md',
+      'skills/central-agentic-ops/SKILL.md', '.github/cao/instructions/dashboard-analysis.md', 'docs/agent-analysis.md', 'specs/dashboard-data.md',
       'docs/dashboard-language-specification.md', 'dashboard/site/dashboard.json', 'ARCHITECTURE.md'
     ]) expect(prompt).toContain(`https://github.com/githubnext/gh-cao/blob/main/${path}`);
     expect(prompt).toContain('https://github.com/githubnext/gh-cao/tree/main/dashboard/site/dashboard-fragments');

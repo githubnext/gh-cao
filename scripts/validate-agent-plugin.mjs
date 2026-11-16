@@ -143,7 +143,7 @@ export async function validateAgentPlugin(pluginRoot) {
     }
   };
   await walk(join(root, "skills"));
-  await walk(join(root, ".github", "cao", "tasks"));
+  await walk(join(root, ".github", "cao", "instructions"));
   for (const resource of Object.values(bundledResources)) {
     await checkPath(join(root, resource));
   }

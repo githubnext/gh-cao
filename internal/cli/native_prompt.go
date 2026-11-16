@@ -137,8 +137,8 @@ func nativePrompt(cmd *cobra.Command, id string) (err error) {
 func nativeAnalysisContext() string {
 	lines := [][2]string{
 		{"CAO skill router", "/blob/main/skills/central-agentic-ops/SKILL.md"},
-		{"Dashboard analysis guide", "/blob/main/.github/cao/tasks/dashboard-analysis.md"},
-		{"CLI installation and command reference", "/blob/main/.github/cao/tasks/gh-cao.md"},
+		{"Dashboard analysis guide", "/blob/main/.github/cao/instructions/dashboard-analysis.md"},
+		{"CLI installation and command reference", "/blob/main/.github/cao/instructions/gh-cao.md"},
 		{"CLI/MCP acquisition, query discovery and availability", "/blob/main/docs/agent-analysis.md"},
 		{"Canonical data and metric semantics", "/blob/main/specs/dashboard-data.md"},
 		{"Dashboard Language and query contracts", "/blob/main/docs/dashboard-language-specification.md"},

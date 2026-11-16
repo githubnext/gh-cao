@@ -35,13 +35,13 @@ export function portableSkill(name) {
   return `${guidance}\n${guidance.replace(/\s+/g, " ")}`;
 }
 
-// Central Agentic Ops task guide: .github/cao/tasks/<name>.md plus the Markdown
-// references in its .github/cao/tasks/<name>/ directory.
-export const caoTasksDirectory = join(root, ".github", "cao", "tasks");
+// Central Agentic Ops task guide: .github/cao/instructions/<name>.md plus the Markdown
+// references in its .github/cao/instructions/<name>/ directory.
+export const caoInstructionsDirectory = join(root, ".github", "cao", "instructions");
 
 export function caoTaskGuide(name) {
-  const references = join(caoTasksDirectory, name);
-  const guide = join(caoTasksDirectory, `${name}.md`);
+  const references = join(caoInstructionsDirectory, name);
+  const guide = join(caoInstructionsDirectory, `${name}.md`);
   const guidance = [
     ...(existsSync(guide) ? [readFileSync(guide, "utf8")] : []),
     ...(existsSync(references)

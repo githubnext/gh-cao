@@ -90,7 +90,7 @@ without running more work.
 
 For agents, install the [CAO plugin](docs/agent-plugin.md) and use the
 `central-agentic-ops` skill, which routes each task to one guide under
-[`.github/cao/tasks/`](.github/cao/tasks/).
+[`.github/cao/instructions/`](.github/cao/instructions/).
 
 ## Read the docs
 

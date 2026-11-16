@@ -4,12 +4,12 @@ import { fileURLToPath } from "node:url";
 
 const SKILLS = [
   ["Central Agentic Ops skill", "skills/central-agentic-ops/SKILL.md", "Route any CAO task; loads shared instructions and one task guide."],
-  ["Set up CAO", ".github/cao/tasks/setup.md", "Bootstrap a control plane, repository scope, and authentication."],
-  ["Diagnose CAO", ".github/cao/tasks/diagnostics.md", "Investigate policy, credential, workflow, Activity, dashboard, or safe-output failures."],
-  ["Analyze CAO", ".github/cao/tasks/dashboard-analysis.md", "Answer questions from named dashboard queries and deployed Activity evidence."],
-  ["Use the CAO CLI", ".github/cao/tasks/gh-cao.md", "Acquire canonical JSONL and query PostgreSQL."],
-  ["Create a campaign", ".github/cao/tasks/operations/create-campaign.md", "Author a new governed orchestrator and worker campaign."],
-  ["Add a campaign", ".github/cao/tasks/operations/add-campaign.md", "Discover, compare, and install an existing catalog campaign."],
+  ["Set up CAO", ".github/cao/instructions/setup.md", "Bootstrap a control plane, repository scope, and authentication."],
+  ["Diagnose CAO", ".github/cao/instructions/diagnostics.md", "Investigate policy, credential, workflow, Activity, dashboard, or safe-output failures."],
+  ["Analyze CAO", ".github/cao/instructions/dashboard-analysis.md", "Answer questions from named dashboard queries and deployed Activity evidence."],
+  ["Use the CAO CLI", ".github/cao/instructions/gh-cao.md", "Acquire canonical JSONL and query PostgreSQL."],
+  ["Create a campaign", ".github/cao/instructions/operations/create-campaign.md", "Author a new governed orchestrator and worker campaign."],
+  ["Add a campaign", ".github/cao/instructions/operations/add-campaign.md", "Discover, compare, and install an existing catalog campaign."],
 ];
 
 const REQUIRED_SECTIONS = [

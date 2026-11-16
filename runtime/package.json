@@ -28,7 +28,7 @@
     "dashboard/site/service-worker.js",
     ".github/actions/setup-gh-aw",
     ".github/cao/instructions.md",
-    ".github/cao/tasks",
+    ".github/cao/instructions",
     ".github/workflows/shared/control.md",
     ".github/workflows/shared/operation.md",
     ".github/workflows/shared/review-bundle.md",

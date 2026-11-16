@@ -21,14 +21,14 @@ const caoSkillPath = `skills/${CAO_SKILL}/SKILL.md`;
 // Each common task routes in one hop to the central-agentic-ops skill or one of its task guides.
 export const commonTaskRoutes = [
   ["Use the Central Agentic Ops skill", caoSkillPath],
-  ["Set up a CAO control plane", ".github/cao/tasks/setup.md"],
-  ["Debug a CAO failure", ".github/cao/tasks/diagnostics.md"],
-  ["Add an existing campaign", ".github/cao/tasks/operations/add-campaign.md"],
-  ["Create a new campaign", ".github/cao/tasks/operations/create-campaign.md"],
-  ["Analyze CAO activity", ".github/cao/tasks/dashboard-analysis.md"],
-  ["Use or extend the CAO CLI", ".github/cao/tasks/gh-cao.md"],
+  ["Set up a CAO control plane", ".github/cao/instructions/setup.md"],
+  ["Debug a CAO failure", ".github/cao/instructions/diagnostics.md"],
+  ["Add an existing campaign", ".github/cao/instructions/operations/add-campaign.md"],
+  ["Create a new campaign", ".github/cao/instructions/operations/create-campaign.md"],
+  ["Analyze CAO activity", ".github/cao/instructions/dashboard-analysis.md"],
+  ["Use or extend the CAO CLI", ".github/cao/instructions/gh-cao.md"],
 ];
-const caoRoutePattern = /\/(?:skills\/[^/]+\/SKILL\.md|\.github\/cao\/tasks\/[^#?]+\.md)$/;
+const caoRoutePattern = /\/(?:skills\/[^/]+\/SKILL\.md|\.github\/cao\/instructions\/[^#?]+\.md)$/;
 const demotedHeadings = [
   "Activity cache compression analysis",
   "Weekly rhythm",

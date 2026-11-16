@@ -321,7 +321,7 @@ test("docs dashboard installs renderer assets without experimental campaign page
       assert.match(llms, new RegExp(section));
     }
     assert.match(llms, /raw\.githubusercontent\.com\/githubnext\/gh-cao\/main\/skills\/central-agentic-ops\/SKILL\.md/);
-    assert.match(llms, /raw\.githubusercontent\.com\/githubnext\/gh-cao\/main\/\.github\/cao\/tasks\/diagnostics\.md/);
+    assert.match(llms, /raw\.githubusercontent\.com\/githubnext\/gh-cao\/main\/\.github\/cao\/instructions\/diagnostics\.md/);
     assert.match(llms, /Pages is a synthetic-only demo/);
     assert.doesNotMatch(llms, /gh-aw-logs\.sqlite/);
     const mainHash = builtIndex.match(/script\.src = '\.\/src\/main\.js\?sha=([a-f0-9]{64})'/)?.[1];
@@ -497,9 +497,9 @@ test("dashboard agent guide describes and validates the assembled public artifac
     assert.match(llms, /Inventory sources.*3 bytes/);
     assert.doesNotMatch(llms, /(?:token|secret|password|private[-_ ]key)\s*[:=]\s*\S+/i);
     await writeFile(path.join(destination, "llms.txt"), llms.replace(
-      "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/cao/tasks/setup.md", "missing-skill-url",
+      "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/cao/instructions/setup.md", "missing-skill-url",
     ));
-    await assert.rejects(validateDashboardAgentArtifacts({ sitePath: destination }), /missing raw skill URL: \.github\/cao\/tasks\/setup\.md/);
+    await assert.rejects(validateDashboardAgentArtifacts({ sitePath: destination }), /missing raw skill URL: \.github\/cao\/instructions\/setup\.md/);
     await writeFile(path.join(destination, "llms.txt"), llms);
 
     await assert.rejects(

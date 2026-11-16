@@ -28,7 +28,7 @@ test("Agent Plugins manifest exposes portable skills and Copilot namespace", asy
 
 test("add-campaign guide requires discovery, consent, and review-safe installation", async () => {
   const skill = await readFile(
-    new URL(".github/cao/tasks/operations/add-campaign.md", root),
+    new URL(".github/cao/instructions/operations/add-campaign.md", root),
     "utf8",
   );
 
