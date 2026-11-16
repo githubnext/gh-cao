@@ -1309,7 +1309,8 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
       ...points.map((point, index) => {
         const x = BAR_CHART_LEFT + (((index + 0.5) / Math.max(points.length, 1)) * plotWidth) - (barWidth / 2);
         const height = Math.max(1, (Math.max(0, toNumber(point.y)) / maximum) * BAR_CHART_HEIGHT);
-        return h('rect', {
+        const label = chartPointLabel(point, unit);
+        const bar = h('rect', {
           className: `bar-chart-bar ${seriesClassNames.get(point.color ?? 'value') ?? 'chart-series-1'}`,
           style: `--chart-entry-index: ${index}`,
           x,
@@ -1317,10 +1318,16 @@ export function renderChartWidget(chartType, points, series, pieSummary = null, 
           width: barWidth,
           height,
           rx: 0.75,
-          tabIndex: 0,
-          role: 'img',
-          'aria-label': chartPointLabel(point, unit)
-        }, h('title', null, chartPointLabel(point, unit)));
+          ...(point.link ? {} : { tabIndex: 0, role: 'img', 'aria-label': label })
+        }, h('title', null, label));
+        return point.link
+          ? svgAnchor({
+            ...externalAnchorAttrs(point.link.href, `${label}: ${point.link.label}`),
+            ...(point.link.href.startsWith('#') ? { target: undefined, rel: undefined } : {}),
+            tabindex: 0,
+            className: 'chart-point-link'
+          }, bar)
+          : bar;
       }),
       h(
         'g',

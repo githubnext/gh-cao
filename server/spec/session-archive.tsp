@@ -16,7 +16,7 @@ model SessionArchivePredicate {
   state?: "present" | "absent" | "null" | "invalid" | "excluded" | "redacted" | "valid";
 }
 
-alias SessionArchiveFunction = "if" | "equals" | "gt" | "lte" | "sum" | "quotient" | "coalesce" | "is-null" | "and";
+alias SessionArchiveFunction = "if" | "equals" | "gt" | "lte" | "sum" | "difference" | "product" | "quotient" | "coalesce" | "is-null" | "and";
 model SessionArchiveFieldArgument {
   field: string;
 }
@@ -47,7 +47,8 @@ model SessionArchiveDefinition {
   @minLength(1) @maxLength(512) subject: string;
   objective?: string;
   acceptance?: string;
-  from: "archive-events";
+  /** archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources. */
+  from: "archive-events" | "archive-objectives" | "archive-actions" | "archive-states";
   filter?: { @minItems(1) @maxItems(64) predicates: SessionArchivePredicate[] };
   aggregate?: {
     @maxItems(16) by?: string[];
@@ -139,10 +140,17 @@ model SessionArchiveCounters {
   stagingBytes: int64;
 }
 
+model SessionArchiveSourceCapability {
+  name: "archive-objectives" | "archive-actions" | "archive-states";
+  fields: SessionArchiveColumn[];
+}
+
 model SessionArchiveCapabilities {
   `language-version`: "0.2.0";
   source: "archive-events";
   fields: SessionArchiveColumn[];
+  /** Additional item sources supported by this backend. Omitted means archive-events only. */
+  sources?: SessionArchiveSourceCapability[];
   predicates: string[];
   reducers: string[];
   functions: string[];

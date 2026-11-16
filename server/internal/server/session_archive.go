@@ -88,7 +88,7 @@ func (archive *hostedSessionArchive) QueryKinds() []string {
 }
 
 func (*localSessionArchive) AnalyticalCapabilities() sessionarchive.Capabilities {
-	return sessionarchive.AnalyticalCapabilities(10000)
+	return sessionarchive.LocalAnalyticalCapabilities(10000)
 }
 
 func (*hostedSessionArchive) AnalyticalCapabilities() sessionarchive.Capabilities {

@@ -88,7 +88,7 @@ test("Parquet CI requires real DuckDB, independent local capture, and the millio
     assert.match(step.run, /if grep -q '"Action":"skip"'[\s\S]*exit 1/);
   }
   const results = job.steps.find(step => step.name === "Retain archive conformance results");
-  const replay = job.steps.find(step => step.name === "Compare four full usage queries to pinned upstream graders");
+  const replay = job.steps.find(step => step.name === "Compare full reviewed queries to pinned upstream graders");
   assert.equal(replay.env.GH_TOKEN, "${{ github.token }}");
   assert.match(replay.run, /node scripts\/replay-session-archive-graders\.mjs/);
   assert.equal(replay["continue-on-error"], undefined);

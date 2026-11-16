@@ -5772,6 +5772,13 @@
               "$ref": "#/components/schemas/SessionArchiveColumn"
             }
           },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionArchiveSourceCapability"
+            },
+            "description": "Additional item sources supported by this backend. Omitted means archive-events only."
+          },
           "predicates": {
             "type": "array",
             "items": {
@@ -5893,8 +5900,12 @@
           "from": {
             "type": "string",
             "enum": [
-              "archive-events"
-            ]
+              "archive-events",
+              "archive-objectives",
+              "archive-actions",
+              "archive-states"
+            ],
+            "description": "archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources."
           },
           "filter": {
             "type": "object",
@@ -5997,6 +6008,8 @@
                     "gt",
                     "lte",
                     "sum",
+                    "difference",
+                    "product",
                     "quotient",
                     "coalesce",
                     "is-null",
@@ -6088,6 +6101,8 @@
               "gt",
               "lte",
               "sum",
+              "difference",
+              "product",
               "quotient",
               "coalesce",
               "is-null",
@@ -6364,6 +6379,29 @@
           }
         },
         "description": "One authorized pinned generation. Approved payload JSON, explicit nulls, sequence, identity, omissions and provenance follow the shared trace contract, not another HTTP-only evidence model."
+      },
+      "SessionArchiveSourceCapability": {
+        "type": "object",
+        "required": [
+          "name",
+          "fields"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "archive-objectives",
+              "archive-actions",
+              "archive-states"
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionArchiveColumn"
+            }
+          }
+        }
       },
       "SessionArchiveStatus": {
         "type": "object",
