@@ -18,6 +18,7 @@ vi.mock('../../src/components/cli-terminal-runtime.js', () => ({
 const SECRET_PROMPT = 'confidential prompt text';
 const SECRET_REPOSITORY = 'octo/confidential-repository';
 const SECRET_ERROR = 'confidential error message';
+const SECRET_SELECTION = 'confidential/selection;value';
 
 /** @param {string} search */
 async function loadCliActions(search) {
@@ -137,5 +138,63 @@ describe('cli-actions debug logging', () => {
     for (const [, metadata] of enabled.output.debug.mock.calls) {
       expect(Object.values(metadata).every((value) => typeof value !== 'object')).toBe(true);
     }
+  });
+
+  it('logs batch resolution and unavailable actions without row values', async () => {
+    const enabled = await loadCliActions('?debug=cli-actions');
+    expect(enabled.renderDeclaredCliAction('missing')).toBeNull();
+    expect(enabled.output.debug).toHaveBeenCalledWith('[cao:cli-actions]', {
+      event: 'action-unavailable', scope: 'declared', reason: 'unknown-action'
+    });
+
+    enabled.renderDeclaredCliAction('upgrade', {}, {
+      rows: [{ repository: SECRET_REPOSITORY }, { repository: 7 }], fields: ['repository'], available: true
+    });
+    enabled.renderDeclaredCliAction('upgrade', {}, {
+      rows: [{ repository: SECRET_REPOSITORY }, { repository: 'octo/second' }], fields: ['repository'], available: true
+    });
+    const batchCalls = enabled.output.debug.mock.calls.filter(([, metadata]) => metadata.event === 'batch-resolved');
+    expect(batchCalls.map(([, metadata]) => metadata)).toEqual([
+      { event: 'batch-resolved', actionId: 'upgrade', status: 'rejected', targetCount: 0, available: true },
+      { event: 'batch-resolved', actionId: 'upgrade', status: 'ready', targetCount: 2, available: true }
+    ]);
+    expect(JSON.stringify(enabled.output.debug.mock.calls)).not.toContain(SECRET_REPOSITORY);
+
+    const disabled = await loadCliActions('?debug=cli-actions,-cli-actions');
+    disabled.renderDeclaredCliAction('missing');
+    disabled.renderDeclaredCliAction('upgrade', {}, {
+      rows: [{ repository: 'octo/second' }], fields: ['repository'], available: true
+    });
+    expect(disabled.output.debug).not.toHaveBeenCalled();
+  });
+
+  it('logs only the action id when a selector choice is rejected', async () => {
+    const enabled = await loadCliActions('?debug=cli-actions');
+    enabled.setDeclaredCliActions([{
+      id: 'add-repository', label: 'Add repository', icon: 'plus', placement: 'view',
+      command: 'gh cao repos add {{repository}}',
+      selector: {
+        label: 'Repository', 'debounce-ms': 300,
+        query: { command: 'gh search repos', fields: ['fullName'], limit: 20 },
+        mapping: { value: 'fullName', label: 'fullName', target: 'repository' }
+      }
+    }], { canExecute: true });
+    const root = enabled.renderDeclaredCliAction('add-repository');
+    if (!root) throw new Error('Missing selector action');
+    document.body.append(root);
+    /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-trigger')).click();
+    const input = /** @type {HTMLInputElement} */ (root.querySelector('input'));
+    input.value = SECRET_SELECTION;
+    input.dispatchEvent(new Event('input'));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ options: [{ value: SECRET_SELECTION, label: SECRET_SELECTION, description: '' }] })
+    }));
+    await vi.waitFor(() => expect(root.querySelector('.dialog-selector-option')).not.toBeNull(), { timeout: 2000 });
+    /** @type {HTMLButtonElement} */ (root.querySelector('.dialog-selector-option')).click();
+    expect(enabled.output.debug).toHaveBeenCalledWith('[cao:cli-actions]', {
+      event: 'selection-rejected', actionId: 'add-repository'
+    });
+    expect(JSON.stringify(enabled.output.debug.mock.calls)).not.toContain(SECRET_SELECTION);
+    vi.unstubAllGlobals();
   });
 });
