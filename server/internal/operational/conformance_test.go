@@ -240,6 +240,32 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("canceled operation: %v", err)
 		}
 	})
+	t.Run("quota-rejects-pre-epoch-instants", func(t *testing.T) {
+		quota := services.GitHubQuota
+		now := time.Now().UTC()
+		for _, tc := range []struct {
+			name, bucket string
+			observation  operational.GitHubQuotaObservation
+		}{
+			{"epoch reset", "github-app-1:installation-2:epoch", operational.GitHubQuotaObservation{Limit: 5000, Remaining: 4000, ResetAt: time.Unix(0, 0)}},
+			{"pre-epoch reset", "github-app-1:installation-2:reset", operational.GitHubQuotaObservation{Limit: 5000, Remaining: 4000, ResetAt: time.Unix(-5, 0)}},
+			{"pre-epoch observed", "github-app-1:installation-2:observed", operational.GitHubQuotaObservation{Limit: 5000, Remaining: 4000, ResetAt: now.Add(time.Hour), ObservedAt: time.Unix(-5, 0)}},
+		} {
+			if _, _, _, err := quota.ObserveGitHubQuota(ctx, tc.bucket, tc.observation, ""); err == nil {
+				t.Fatalf("%s: observation was accepted", tc.name)
+			}
+			state, err := quota.GitHubQuotaSnapshot(ctx, tc.bucket)
+			if err != nil || state.Known {
+				t.Fatalf("%s: rejected observation changed state: %+v, %v", tc.name, state, err)
+			}
+		}
+		bucket := "github-app-1:installation-2:park"
+		for _, until := range []time.Time{time.Unix(0, 0), time.Unix(-5, 0)} {
+			if _, _, err := quota.ParkGitHubQuota(ctx, bucket, until, "invalid"); err == nil {
+				t.Fatalf("parking until %v was accepted", until)
+			}
+		}
+	})
 	t.Run("in-flight-blocking-read-cancellation", func(t *testing.T) {
 		queue := services.Queue
 		if err := queue.EnsureQueue(ctx, "cancel-blocking-read", "workers"); err != nil {

@@ -81,6 +81,27 @@ func TestGitHubQuotaRejectsInvalidArguments(t *testing.T) {
 	}
 }
 
+func TestGitHubQuotaRejectsPreEpochInstants(t *testing.T) {
+	client := &rateLimitCommandClient{value: quotaReply(0, 0, "")}
+	store := NewStore(client, "quota-test")
+	ctx := t.Context()
+	future := time.Now().Add(time.Hour)
+	for _, at := range []time.Time{time.Unix(0, 0), time.Unix(-5, 0)} {
+		if _, _, _, err := store.ObserveGitHubQuota(ctx, "a:1:core", GitHubQuotaObservation{Limit: 1, Remaining: 1, ResetAt: at}, ""); err == nil {
+			t.Fatalf("reset at %v was accepted", at)
+		}
+		if _, _, _, err := store.ObserveGitHubQuota(ctx, "a:1:core", GitHubQuotaObservation{Limit: 1, Remaining: 1, ResetAt: future, ObservedAt: at}, ""); err == nil {
+			t.Fatalf("observation at %v was accepted", at)
+		}
+		if _, _, err := store.ParkGitHubQuota(ctx, "a:1:core", at, "x"); err == nil {
+			t.Fatalf("parking until %v was accepted", at)
+		}
+	}
+	if client.command != nil {
+		t.Fatalf("rejected input reached Redis: %v", client.command)
+	}
+}
+
 func TestParseGitHubQuotaReply(t *testing.T) {
 	code, extra, state, err := parseGitHubQuotaReply(quotaReply(2, 1, "retry-after"))
 	if err != nil {
