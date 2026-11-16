@@ -216,7 +216,7 @@ test("sample-only build produces verified canonical enterprise data and no opera
     "gh-aw-logs-shards", "control-settings.json", "activity"]) assert.ok(!names.includes(name), name);
   const dashboard = JSON.parse(await readFile(path.join(output, "dashboard.json"), "utf8"));
   assert.equal(dashboard.dashboard.title, "CAO synthetic enterprise demo");
-  assert.ok(!dashboard.dashboard.callouts?.some(callout => callout.id === "synthetic-demo"));
+  assert.ok(dashboard.dashboard.callouts.some(callout => callout.id === "synthetic-demo" && !callout["visible-when"]));
   const overviewPage = dashboard.dashboard.pages.find(page => page.id === "overview");
   const overviewChunk = JSON.parse(await readFile(path.join(output, overviewPage.chunk), "utf8"));
   assert.ok(overviewChunk.page.views.some(view => view.id === "synthetic-demo" && view.mark === "callout" && !view["visible-when"]));
