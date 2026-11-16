@@ -1,36 +1,7 @@
 {
  "source_sha": "f0e71a1b4512de16e35b34fe6348365dc378ec81",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T22:34:13Z",
-   "worker_run_id": "43769569513",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43768376457",
-    "43766933236",
-    "43766019418",
-    "43757990961",
-    "43756384109",
-    "43756218347",
-    "43753233809",
-    "43752704784",
-    "43752194225",
-    "43746617494",
-    "43731625055",
-    "43724243400",
-    "43721484176",
-    "43721157324",
-    "43706435376",
-    "43698271571",
-    "43682264332",
-    "43681861583",
-    "43680980929",
-    "43655786695"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43655786695 (push d55c91b, created 2026-11-14T23:57Z) to 43768376457 (push 14a39d4, created 2026-11-15T22:16Z), all within 14 days; 0 cancelled; none queued or in progress at 22:32Z; source 14a39d4 = HEAD = source_sha. Gate: 13 s...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T22:53:17Z",
    "worker_run_id": "43771365159",
@@ -871,6 +842,34 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43756218347 (push 10f5e57, created 2026-11-15T20:07Z) to 43840581457 (push f0e71a1, created 2026-11-16T09:31Z), all within 14 days; cancelled 43832015521 excluded; no failures in window; latest-30 run list read this run shows none in progress. Source f0e71a1 = HEAD = new source_sha. Gate: 20 successes (19 push, 1 schedule 43810351164) >= 5. Transfer phase via Jobs API step timestamps for 6 runs lacking transfer columns (43825070138, 43829639369, 43831754585, 43831980991, 43832040488, 43840581457); 14 rows reused from memory. Handoff (deploy start minus build end) median 5 s p90 6 s; Configure Pages median 0 s p90 1 s; Upload Pages artifact median 2 s p90 3 s; deploy Set up job median 1 s p90 1 s. Removable (handoff+configure+upload+deploy setup) median 8 s, p90 10 s, max 10 s = 10.4% of exec median 77 s (exec p90 120 s). Gates (60 s; 15% = 11.55 s) not met. Deploy Pages (median 7 s) is GitHub-managed and excluded. Even eliminating all removable steps would save under 11 s; no concrete change qualifies. Next category: scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T09:57:35Z",
+   "worker_run_id": "43843745897",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418",
+    "43757990961",
+    "43756384109"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43756384109 (push 8c2dd68, created 2026-11-15T20:08Z) to 43840581457 (push f0e71a1, created 2026-11-16T09:31Z); 19 successes sampled (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded (superseded pending run, cancelled after 12 s); no newer run at 09:55Z; source f0e71a1 = HEAD = source_sha. Queue (created to build start) median 3 s, p90 5 s; outlier 64 s on 43832040488 behind 43831980991 in documentation-pages group. Exec (build start to deploy end) median 76 s, p90 129 s (nearest-rank). Concurrency: cancel-in-progress false protects in-flight Pages deploys; superseded pending runs already cancelled (1 in window); cancel-in-progress true rejected. Avoidable rebuilds: 17 of 18 push commits touch build-consumed paths (17a3b7a, fa5faeb, f343b8b, 70f59d2 verified by file list this run); only test-only push 5b8b842 (run 43780290464, exec 76 s) qualifies: about 4 s per run averaged, below 60 s and 15 percent (11.4 s) gates; watch item unchanged. Daily 05:23Z schedule (run 43810351164, exec 63 s) refreshes synthetic dates and is not skippable. Stale queued workflow_run 37642403569 (created 2026-10-07) still queued; not blocking; maintainer housekeeping. No suggestion. next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1682,18 +1681,18 @@
   "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
  },
  "scheduling_verified": {
-  "verified_at": "2026-11-16T08:03:28Z",
-  "window": "43731625055 (push 88f046c, 2026-11-15T15:45Z) .. 43825070138 (push 2fdf4a0, 2026-11-16T07:36Z); 20 successes (19 push, 1 schedule 43810351164)",
+  "verified_at": "2026-11-16T09:57:35Z",
+  "window": "43756384109..43840581457 (19 successes; cancelled 43832015521 excluded; 18 push + 1 schedule)",
   "queue_s": {
    "median": 3,
-   "p90": 4,
-   "max": 4
+   "p90": 5,
+   "max": 64
   },
   "exec_build_start_to_deploy_end_s": {
-   "median": 76.5,
-   "p90": 111,
-   "min": 61,
-   "max": 129
+   "median": 76,
+   "p90": 129,
+   "min": 63,
+   "max": 132
   },
   "total_created_to_deploy_end_s": {
    "median": 80,
@@ -1712,14 +1711,15 @@
    "p90": 6
   },
   "test_only_pushes_in_window": [
-   "5b8b842 (run 43780290464)"
+   "5b8b842 (43780290464)"
   ],
   "commit_map_additions": {
-   "0599943": "build-consumed (dashboard/site/src, build copies src)",
-   "dbf9df7": "build-consumed (docs/**, specs, fragments)",
-   "2fdf4a0": "build-consumed (dashboard/site/src/styles-responsive.js)"
+   "17a3b7a": "build-consumed (dashboard/site/src, dashboard-fragments, docs/**-adjacent)",
+   "fa5faeb": "build-consumed (docs/operational-value.md); server/specs outside filter",
+   "f343b8b": "build-consumed (dashboard/site/src/agent/mcp-contract.json); server/specs outside filter",
+   "70f59d2": "build-consumed (dashboard/site/src/data/github-resource.js)"
   },
-  "method": "gh run list + Jobs API step timestamps; commit file lists immutable; reuse commit_paths map"
+  "method": "gh run list + memory run_timings rows (immutable) + commit file lists (immutable)"
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-16T08:37:32Z",
