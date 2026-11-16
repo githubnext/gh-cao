@@ -43,19 +43,23 @@ source or `builtin_graders.json` entry changed, and update both this tracker and
 - On local DuckDB and hosted ADX, query chaining through at most two earlier
   definitions, each grouped by exact trace and projection identity (L3,
   Phases 2 and 2b).
+- On local DuckDB and hosted ADX, row-level `compute` before `aggregate`
+  (L2), `previous` and `row-number` windows over a total, trace-bound order
+  (L5), and `state` over the `Error`, `Usage` and `Provenance` families (L6)
+  (Phase 4).
 - Ordering and limits.
 
-It has no joins, windows, pre-aggregate computation, regex or logarithms.
+It has no joins, regex or logarithms.
 
 The full Dashboard Language already standardizes several of the missing
 capabilities:
 
 - `difference` and `product` (§5.5.1), now ported as L1.
-- Row-level `compute`.
+- Row-level `compute`, now ported as L2.
 - Equality joins, including `inner-many`, with at most four per query
   (DLS-QUERY-005..008).
 - Queries that read earlier queries (DLS-QUERY-017), now ported as L3.
-- `previous` and `row-number` observation windows (§5.5.4).
+- `previous` and `row-number` observation windows (§5.5.4), now ported as L5.
 
 Porting those constructs is preferred over inventing archive-specific
 vocabulary. No Dashboard Language construct provides regex, logarithm or
@@ -199,7 +203,7 @@ marks the 15 candidates in the
 | `tool-failure-count` | Reconciled calls whose completion is false, success is false, `isError` is set, status is error or failure, or error is non-null | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L2–L6 and text `first` | — |
 | `tool-success-rate` | (calls − failed) ÷ calls, or 1 when there are no calls | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L1–L6 and text `first` | — |
 | `trajectory-efficiency` | Distinct tool names ÷ reconciled calls, or 1 | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L2–L5 | — |
-| `artifact-production` | Applied `safe_output.result` with success or absent status, minus absent-status types with a safe-outputs-phase outcome | yes | `implemented` (local DuckDB) | — | — |
+| `artifact-production` | Applied `safe_output.result` with success or absent status, minus absent-status types with a safe-outputs-phase outcome | yes | `implemented` | — | — |
 | `retries` | MCP retry events (event, `retryHint` or a message regex) plus deduplicated harness attempts | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the message field. The non-regex part needs L3, L6 and S1 (`attemptResults`) | — |
 | `loops` | Consecutive identical session, tool name and arguments | no | `out-of-scope` | Tool arguments are not approved | — |
 
@@ -258,11 +262,11 @@ for graders that also need other extensions.
 
 | Grader | Upstream formula | CAO | Status | Needs | Effort |
 | --- | --- | --- | --- | --- | --- |
-| `objective-coverage` | Satisfied objectives ÷ objectives; unavailable on an invalid index | yes | `implemented` (local DuckDB) | — | — |
-| `premature-termination-gap` | Count of objectives with a null or absent `satisfiedAtEventIndex`; unavailable on an invalid index | yes | `implemented` (local DuckDB) | — | — |
-| `grounding-accuracy` | Actions with `validAtIssueTime` true ÷ actions; unavailable unless every flag is boolean | yes | `implemented` (local DuckDB) | — | — |
-| `state-revisit-probability-rep` | (visits − distinct states) ÷ visits, for at least 2 visits. Order only affects diagnostics | yes | `implemented` (local DuckDB) | — | — |
-| `recurrence-rate` | Σ c(c−1) over per-state counts ÷ n(n−1), for at least 2 visits | yes | `implemented` (local DuckDB) | — | — |
+| `objective-coverage` | Satisfied objectives ÷ objectives; unavailable on an invalid index | yes | `implemented` | — | — |
+| `premature-termination-gap` | Count of objectives with a null or absent `satisfiedAtEventIndex`; unavailable on an invalid index | yes | `implemented` | — | — |
+| `grounding-accuracy` | Actions with `validAtIssueTime` true ÷ actions; unavailable unless every flag is boolean | yes | `implemented` | — | — |
+| `state-revisit-probability-rep` | (visits − distinct states) ÷ visits, for at least 2 visits. Order only affects diagnostics | yes | `implemented` | — | — |
+| `recurrence-rate` | Σ c(c−1) over per-state counts ÷ n(n−1), for at least 2 visits | yes | `implemented` | — | — |
 | `recurrence-laminarity` | Vertical-line recurrent points ÷ recurrent points (vmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
 | `recurrence-determinism` | Diagonal-line recurrent points ÷ recurrent points (lmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
 | `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
@@ -356,7 +360,7 @@ not executed (§3.1).
 
 | Status | Count | Graders |
 | --- | ---: | --- |
-| `implemented` | 10 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit (local DuckDB); recurrence rate, artifact production (local DuckDB, chained) |
+| `implemented` | 10 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained) |
 | `extension-ready` | 5 | State recurrence (3), objective ordering (2) |
 | `evidence-gated` | 3 | exploration error, exploitation error, tool-output consumption |
 | `vocabulary-gated` | 16 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6) |
