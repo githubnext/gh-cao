@@ -17,12 +17,12 @@ import (
 )
 
 // LocalOperatorActionsConfig is supplied only by the owning native CLI.
-// Credentials and terminal approval stay in that process, not in this server.
+// Credentials stay in that process; confirmed commands execute from the queue.
 type LocalOperatorActionsConfig struct {
 	Repositories []string `json:"repositories"`
 }
 
-// LocalOperatorConfig binds terminal-approved maintenance independently of
+// LocalOperatorConfig binds queue-authorized maintenance independently of
 // the canonical PostgreSQL ingestion connection.
 type LocalOperatorConfig struct {
 	AdapterURL      string                      `json:"adapterUrl"`
@@ -190,7 +190,7 @@ func (a *App) executeOperatorCommand(parent context.Context, lease operational.C
 	result := operational.CLICommandResult{Status: operational.CLICommandCompleted, ExitCode: code}
 	if executionErr != nil || code == nil || *code != 0 {
 		result.Status = operational.CLICommandFailed
-		result.Error = "Maintenance failed or terminal approval was declined; inspect command output."
+		result.Error = "Native maintenance failed; inspect command output."
 	}
 	if command.Deadline != nil && !time.Now().Before(*command.Deadline) {
 		result.Status = operational.CLICommandTimedOut
@@ -222,7 +222,7 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 		return nil, err
 	}
 	// Enrollment only stages local review-mode policy; the native CLI verifies
-	// access and the operator approves it in the terminal.
+	// access after the operator confirms the command in the dashboard.
 	if !strings.EqualFold(plan.Repository, command.Repository) || connection.OperatorActions == nil ||
 		plan.Kind != hostedcli.KindCaoReposAdd && !connection.OperatorActions.allows(plan.Repository) {
 		return nil, errors.New("queued maintenance target is outside the approved repository scope")

@@ -2,14 +2,66 @@ package cli
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
+
+func dashboardTestActionExecutable(t *testing.T) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("native dashboard commands are unavailable on Windows")
+	}
+	executable := filepath.Join(t.TempDir(), "native-command")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\nprintf 'Native command executed without terminal input\\n'\nprintf '%s\\n' \"$@\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return executable
+}
+
+func TestDashboardEnrollmentExecutesWithoutTerminalApproval(t *testing.T) {
+	filename, cleanup, err := startDashboardActionAdapterWithExecutable(t.Context(), []string{"octo/control"}, t.TempDir(),
+		dashboardTestActionExecutable(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config struct{ AdapterURL string }
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, config.AdapterURL+"/execute",
+		strings.NewReader(`["repos","add","octo/new-repository"]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("X-Command-ID", "1")
+	client := &http.Client{Timeout: 5 * time.Second}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("queued enrollment did not execute without terminal input: %v", err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, err := io.ReadAll(response.Body)
+	if err != nil || response.StatusCode != http.StatusOK ||
+		!bytes.Contains(body, []byte("Native command executed without terminal input")) ||
+		!bytes.Contains(body, []byte(`"data":"repos\n"`)) ||
+		!bytes.Contains(body, []byte(`"data":"add\n"`)) ||
+		!bytes.Contains(body, []byte(`"data":"octo/new-repository\n"`)) ||
+		!bytes.Contains(body, []byte(`"complete":true,"exitCode":0`)) {
+		t.Fatalf("enrollment did not execute through the native queue adapter: %s %v", body, err)
+	}
+}
 
 func TestDashboardActionScopeAndPublication(t *testing.T) {
 	scope := []string{"github/gh-aw"}
@@ -102,10 +154,9 @@ func TestDashboardActionOutputRedactsSplitCredentials(t *testing.T) {
 	}
 }
 
-func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T) {
-	approvals := 0
-	filename, cleanup, err := startDashboardActionAdapterWithApproval(t.Context(), []string{"github/gh-aw"}, t.TempDir(),
-		func(context.Context, []string) (bool, error) { approvals++; return false, nil }, nil)
+func TestDashboardActionAdapterRequiresScopeAndPrivateCapability(t *testing.T) {
+	filename, cleanup, err := startDashboardActionAdapterWithExecutable(t.Context(), []string{"github/gh-aw"}, t.TempDir(),
+		dashboardTestActionExecutable(t), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,12 +193,9 @@ func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T
 			t.Fatalf("adapter status: %d %v", response.StatusCode, readErr)
 		}
 		if test.status == 200 && (!bytes.Contains(body, []byte(`"complete":true`)) ||
-			!bytes.Contains(body, []byte(`"exitCode":1`))) {
-			t.Fatalf("declined approval must return a failed execution receipt: %s", body)
+			!bytes.Contains(body, []byte(`"exitCode":0`))) {
+			t.Fatalf("scoped queued command must execute without terminal approval: %s", body)
 		}
-	}
-	if approvals != 1 {
-		t.Fatalf("out-of-scope command reached terminal approval: %d", approvals)
 	}
 	response, err := http.Post(config.AdapterURL+"/ingest", "application/json", nil)
 	if err != nil {
@@ -161,8 +209,7 @@ func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T
 
 func TestDashboardActionAdapterCoalescesIngestionRequests(t *testing.T) {
 	trigger := make(chan struct{}, 1)
-	filename, cleanup, err := startDashboardActionAdapterWithApproval(t.Context(), []string{"github/gh-aw"}, t.TempDir(),
-		func(context.Context, []string) (bool, error) { return false, nil }, trigger)
+	filename, cleanup, err := startDashboardActionAdapter(t.Context(), []string{"github/gh-aw"}, t.TempDir(), trigger)
 	if err != nil {
 		t.Fatal(err)
 	}

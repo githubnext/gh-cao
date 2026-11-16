@@ -239,19 +239,19 @@ measures requests to that persistent process.
 Maintenance
 controls use a separate private, durable command queue, not the canonical snapshot.
 They accept only declared gh-aw maintenance actions for the exact `--repo` scope,
-require pull-request publication, and ask for approval in the owning terminal
-before **each** execution. The pinned gh-aw maintenance commands run inside the
+require pull-request publication, and execute directly after confirmation in the
+dashboard. No additional terminal prompt is required. The pinned gh-aw maintenance commands run inside the
 native CLI using the operator's GitHub CLI identity; credentials never reach the
 read-only Go dashboard host. Closing output only detaches; canceling a command
-terminates its owned process tree. Retries require fresh terminal approval.
-Without a trusted interactive terminal, execution fails closed. Native approval
+terminates its owned process tree. Retries require fresh dashboard confirmation.
+An interactive terminal is not required. Native execution
 is currently supported on Unix; Windows cannot execute these actions.
 No maintenance command runs merely because the dashboard starts, and this mode
 does not mutate remote runs, dispatch workflows, change rollout policy or enable
 hosted execution.
 The native adapter uses the ordinary local server. Its
 endpoints require bearer authentication and same-origin mutation requests in
-addition to fresh terminal approval.
+addition to explicit dashboard confirmation.
 
 For source development, build the server and site and pass both
 `--server-executable PATH` and `--site PATH`. Release builds package these assets

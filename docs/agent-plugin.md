@@ -44,9 +44,9 @@ skills and query/specification tools from the conversation.
 
 ## Open the dashboard
 
-Run `gh cao dashboard` in an interactive terminal and open its private loopback
+Run `gh cao dashboard` and open its private loopback
 URL in a browser. The native CLI owns bounded acquisition, managed PostgreSQL,
-cached canonical evidence, and scoped maintenance with trusted terminal approval.
+cached canonical evidence, and scoped maintenance after dashboard confirmation.
 See [the dashboard guide](dashboard.md) for prerequisites and collection limits.
 The plugin does not manage that process or approve its commands.
 

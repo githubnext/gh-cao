@@ -598,6 +598,68 @@ func TestHostedCLIListDetailCancelAndOutput(t *testing.T) {
 	}
 }
 
+func TestLocalCLIOutputStreamsStatusBeforeAnyOutput(t *testing.T) {
+	queue := newHostedCLITestQueue()
+	if _, err := queue.Enqueue(t.Context(), operational.CLICommandInvocation{
+		ActionID: "add-repository", Command: "gh cao repos add octo/new-repository",
+	}, "queued-command", 0); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{
+		accessToken: testAccessToken,
+		config:      Config{OperatorActions: &LocalOperatorConfig{}},
+		hostedCLI:   &hostedCLI{queue: queue, local: &LocalOperatorActionsConfig{}},
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.SetPathValue("id", "1")
+		app.hostedCLIOutput(w, r)
+	}))
+	defer server.Close()
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL+"/__cli_commands/1/output", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Authorization", "Bearer "+testAccessToken)
+	client := &http.Client{Timeout: 10 * time.Second}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("queued status was not flushed without command output: %v", err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	decoder := json.NewDecoder(response.Body)
+	read := func(wantType, wantStatus string) {
+		t.Helper()
+		var event struct {
+			Type    string `json:"type"`
+			Data    string `json:"data"`
+			Command struct {
+				Status string `json:"status"`
+			} `json:"command"`
+		}
+		if err := decoder.Decode(&event); err != nil || event.Type != wantType || event.Command.Status != wantStatus {
+			t.Fatalf("stream got %+v %v, want %s %s", event, err, wantType, wantStatus)
+		}
+		if wantType == "output" && event.Data != "Native command output.\n" {
+			t.Fatalf("unexpected output: %q", event.Data)
+		}
+	}
+	read("status", "queued")
+	queue.mutex.Lock()
+	queue.commands[1].Status = operational.CLICommandRunning
+	queue.mutex.Unlock()
+	read("status", "running")
+	queue.mutex.Lock()
+	queue.output[1] = []operational.CLICommandOutput{{Sequence: 1, Stream: "stdout", Data: "Native command output.\n"}}
+	queue.mutex.Unlock()
+	read("output", "")
+	code := 0
+	queue.mutex.Lock()
+	queue.commands[1].Status = operational.CLICommandCompleted
+	queue.commands[1].ExitCode = &code
+	queue.mutex.Unlock()
+	read("complete", "completed")
+}
+
 func TestHostedCLIIndexAdvertisesQueueOnlyWhenEnabled(t *testing.T) {
 	fixture := newHostedCLIFixture(t, []string{"octocat"})
 	if err := os.WriteFile(filepath.Join(fixture.app.config.SiteDirectory, "index.html"), []byte("<html><head></head></html>"), 0o600); err != nil {

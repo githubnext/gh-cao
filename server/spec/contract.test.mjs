@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '4.2.0')
+  assert.equal(openapi.info.version, '4.2.1')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -124,6 +124,19 @@ test('repository suggestions use the bounded local native selector contract', ()
   for (const status of ['400', '403', '404', '415', '429', '502', '504']) assert.ok(operation.responses[status])
   assert.match(operation.description, /owning CLI's credentials/)
   assert.match(operation.description, /Wildcards are rejected/)
+})
+
+test('command output describes live status before any subprocess output', () => {
+  const operation = openapi.paths['/__cli_commands/{id}/output'].get
+  assert.ok(operation.security.some(entry => 'BearerAuth' in entry))
+  assert.ok(operation.security.some(entry => 'LocalCLIResourceSession' in entry))
+  assert.ok(operation.security.some(entry => 'ApiKeyAuth' in entry))
+  const response = operation.responses['200']
+  assert.ok(response.content['application/x-ndjson; charset=utf-8'])
+  assert.deepEqual(response.headers['cache-control'].schema.enum, ['no-store'])
+  assert.match(operation.description, /whenever its status changes, even before output exists/)
+  assert.match(operation.description, /without terminal prompts/)
+  assert.match(operation.description, /Disconnecting only detaches/)
 })
 
 test('token broker exposes only the OIDC exchange and exact credential response', () => {

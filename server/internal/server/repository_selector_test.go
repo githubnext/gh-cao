@@ -66,17 +66,17 @@ func TestRepositorySelectorUsesDeclaredGitHubLookupAndLocalCapability(t *testing
 			t.Errorf("unexpected lookup request: %+v %v", input, err)
 		}
 		switch input.Text {
-		case "failed":
+		case "octo/failed":
 			http.Error(w, "private upstream diagnostics", http.StatusBadGateway)
-		case "malformed":
+		case "octo/malformed":
 			_, _ = io.WriteString(w, "{")
-		case "empty":
+		case "octo/empty":
 			_, _ = io.WriteString(w, "[]")
-		case "null":
+		case "octo/null":
 			_, _ = io.WriteString(w, "null")
-		case "oversized":
+		case "octo/oversized":
 			_, _ = io.WriteString(w, `[{"fullName":"octo/a"},{"fullName":"octo/b"},{"fullName":"octo/c"}]`)
-		case "invalid":
+		case "octo/invalid":
 			_, _ = io.WriteString(w, `[{"fullName":"--repo"}]`)
 		default:
 			if input.Text != "octo/ser" {
@@ -105,15 +105,17 @@ func TestRepositorySelectorUsesDeclaredGitHubLookupAndLocalCapability(t *testing
 		{"unknown action", `{"id":"other","text":"octo/ser"}`, "http://127.0.0.1:8080", "cookie", 404, false},
 		{"wildcard", `{"id":"add-repository","text":"octo/*"}`, "http://127.0.0.1:8080", "cookie", 400, false},
 		{"short text", `{"id":"add-repository","text":"o"}`, "http://127.0.0.1:8080", "cookie", 400, false},
+		{"org only", `{"id":"add-repository","text":"octo"}`, "http://127.0.0.1:8080", "cookie", 400, false},
+		{"no repo character", `{"id":"add-repository","text":"octo/"}`, "http://127.0.0.1:8080", "cookie", 400, false},
 		{"control text", `{"id":"add-repository","text":"octo\nrepo"}`, "http://127.0.0.1:8080", "cookie", 400, false},
 		{"browser command", `{"id":"add-repository","text":"octo/ser","command":"gh repo delete"}`, "http://127.0.0.1:8080", "cookie", 400, false},
 		{"browser limit", `{"id":"add-repository","text":"octo/ser","limit":1000}`, "http://127.0.0.1:8080", "cookie", 400, false},
-		{"upstream failure", `{"id":"add-repository","text":"failed"}`, "http://127.0.0.1:8080", "cookie", 502, true},
-		{"bad response", `{"id":"add-repository","text":"malformed"}`, "http://127.0.0.1:8080", "cookie", 502, true},
-		{"null response", `{"id":"add-repository","text":"null"}`, "http://127.0.0.1:8080", "cookie", 502, true},
-		{"over limit", `{"id":"add-repository","text":"oversized"}`, "http://127.0.0.1:8080", "cookie", 502, true},
-		{"invalid option", `{"id":"add-repository","text":"invalid"}`, "http://127.0.0.1:8080", "cookie", 502, true},
-		{"no matches", `{"id":"add-repository","text":"empty"}`, "http://127.0.0.1:8080", "cookie", 200, true},
+		{"upstream failure", `{"id":"add-repository","text":"octo/failed"}`, "http://127.0.0.1:8080", "cookie", 502, true},
+		{"bad response", `{"id":"add-repository","text":"octo/malformed"}`, "http://127.0.0.1:8080", "cookie", 502, true},
+		{"null response", `{"id":"add-repository","text":"octo/null"}`, "http://127.0.0.1:8080", "cookie", 502, true},
+		{"over limit", `{"id":"add-repository","text":"octo/oversized"}`, "http://127.0.0.1:8080", "cookie", 502, true},
+		{"invalid option", `{"id":"add-repository","text":"octo/invalid"}`, "http://127.0.0.1:8080", "cookie", 502, true},
+		{"no matches", `{"id":"add-repository","text":"octo/empty"}`, "http://127.0.0.1:8080", "cookie", 200, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "http://127.0.0.1:8080/__cli_commands/selector", bytes.NewBufferString(test.body))

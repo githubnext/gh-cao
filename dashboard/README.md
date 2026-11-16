@@ -133,9 +133,9 @@ Hosted deployments invoke `go -C server run ./cmd/cao-dashboard serve-hosted`.
 PostgreSQL owns canonical entities and query execution; OAuth, authorization,
 and HTTPS/proxy protections remain required. See [`../server/README.md`](../server/README.md).
 
-The plugin registers no canvas. Run `gh cao dashboard` in an interactive terminal
+The plugin registers no canvas. Run `gh cao dashboard`
 and open its private loopback URL in a browser. The native CLI owns acquisition,
-managed PostgreSQL, cached evidence, and terminal-approved maintenance. There is
+managed PostgreSQL, cached evidence, and dashboard-confirmed queued maintenance. There is
 no Node authoring server, preview reload socket, staged site, or execution adapter.
 
 ### CLI command queue

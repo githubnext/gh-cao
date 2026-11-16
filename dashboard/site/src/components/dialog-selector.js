@@ -3,7 +3,7 @@ import { debounce } from '../debounce.js';
 import { createDebug, diagnosticErrorName } from '../debug.js';
 import { effect, render, state } from '../reactive.js';
 import { renderLiveRegion } from './ui-primitives.js';
-import { REPOSITORY_PATTERN } from '../dialog-selector.js';
+import { REPOSITORY_PATTERN, REPOSITORY_SEARCH_PATTERN } from '../dialog-selector.js';
 
 const debugSelector = createDebug('components:dialog-selector');
 
@@ -17,7 +17,8 @@ const debugSelector = createDebug('components:dialog-selector');
 export function createDialogSelector(actionId, definition, { signal, select }) {
   const choices = state(/** @type {Array<{ value: string, label: string, description: string }>} */ ([]));
   const selected = state(/** @type {string | null} */ (null));
-  const message = state('Type at least 2 characters to search GitHub repositories.');
+  const searchHint = 'Enter an organization followed by / and at least one repository character, for example octo/s.';
+  const message = state(searchHint);
   const busy = state(false);
   const disabled = state(false);
   let generation = 0;
@@ -92,8 +93,9 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
         message.set('Enter an owner/repository pattern, for example octo/* or octo/service-*.');
         return;
       }
-      message.set(text.length < 2 ? 'Type at least 2 characters to search GitHub repositories.' : 'Waiting to search...');
-      if (text.length >= 2) lookup(text);
+      const ready = REPOSITORY_SEARCH_PATTERN.test(text);
+      message.set(ready ? 'Waiting to search...' : searchHint);
+      if (ready) lookup(text);
     }
   }));
   input.setAttribute('autocorrect', 'off');
@@ -123,7 +125,7 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       results.scrollTop = 0;
       selected.set(null);
       choices.set([]);
-      message.set('Type at least 2 characters to search GitHub repositories.');
+      message.set(searchHint);
       select(null);
     }
   };

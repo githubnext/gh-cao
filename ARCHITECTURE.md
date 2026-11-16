@@ -315,9 +315,9 @@ namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
 The plugin contributes read-only Dashboard Language query and specification tools.
 It registers no canvas, requests no GitHub credentials, and starts no dashboard
-or command executor. Operators run `gh cao dashboard` in an interactive terminal
+or command executor. Operators run `gh cao dashboard`
 and use the private browser URL. The native CLI owns acquisition, managed
-PostgreSQL, and scoped maintenance with trusted terminal approval; the Go server
+PostgreSQL, and scoped maintenance after dashboard confirmation; the Go server
 owns command admission, durable queue state, output, and cancellation.
 The Node authoring host, canvas adapter routes, preview reload socket, and local
 quota helper are removed. Hosted execution retains its separate reviewed
@@ -1089,8 +1089,9 @@ serves the dashboard, with automatic collection and refresh; it has no
 public subcommands or remote run mutations and grants no rollout authority or
 hosted CLI execution. A private native adapter enables only declared
 repository maintenance commands in the selected exact scope, with mandatory
-pull-request publication for updates/upgrades and trusted terminal approval for
-every execution. Explicit local disable actions are the only publication
+pull-request publication for updates/upgrades and explicit dashboard confirmation
+before queue admission. Commands execute directly without terminal prompts.
+Explicit local disable actions are the only publication
 exception: they cancel in-progress runs before disabling future runs in the
 approved repository or individual workflow. The adapter prepares that exact
 repository's private checkout for gh-aw's inventory and ambient cancellation
@@ -1101,8 +1102,9 @@ The ordinary bearer-authenticated server owns that queue, requires same-origin
 mutation requests, and proxies validated execution plans to
 the native CLI; only the CLI holds credentials and invokes the embedded gh-aw
 maintenance commands. Subprocess completion must be confirmed before settlement.
-Unix terminal approval is cancellation-scoped; unsupported platforms and missing
-terminals fail closed. Ordinary local serving and hosted administration are unchanged.
+Execution does not require an interactive terminal. Cancellation remains scoped
+to the owned process tree; unsupported platforms fail closed. Ordinary local
+serving and hosted administration are unchanged.
 
 Local requests use the production PostgreSQL SQL planner and resource limits.
 The local profile retains a 300-unit/minute weighted admission bucket while

@@ -8,7 +8,7 @@ import { writeServerArtifact } from './server-fixture.js';
 const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
-  test(`server-owned maintenance survives browser detachment at ${width}px`, async ({ page }, testInfo) => {
+  test(`queued repository enrollment executes without terminal approval and survives detachment at ${width}px`, async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     const temporaryRoot = fileURLToPath(new URL('../../../../.tmp/', import.meta.url));
     await mkdir(temporaryRoot, { recursive: true });
@@ -18,6 +18,8 @@ for (const width of [1440, 390]) {
     const calls = [];
     /** @type {(() => void) | undefined} */
     let finish;
+    /** @type {(() => void) | undefined} */
+    let writeOutput;
     const adapter = createServer(async (request, response) => {
       if (request.url !== prefix + '/execute') {
         response.writeHead(404).end();
@@ -27,6 +29,7 @@ for (const width of [1440, 390]) {
       for await (const chunk of request) body += chunk;
       calls.push(JSON.parse(body));
       response.writeHead(200, { 'Content-Type': 'application/x-ndjson' });
+      await new Promise((resolve) => { writeOutput = () => resolve(undefined); });
       response.write(JSON.stringify({ stream: 'stdout', data: 'Native maintenance output\n' }) + '\n');
       await new Promise((resolve) => { finish = () => resolve(undefined); });
       response.end(JSON.stringify({ complete: true, exitCode: 0 }) + '\n');
@@ -44,7 +47,13 @@ for (const width of [1440, 390]) {
       preview = await startDashboardServer({
         operatorConfig,
         cliActions: [{
-          id: 'upgrade-repository', command: 'gh aw upgrade --repo {{repository}} --create-pull-request'
+          id: 'add-repository', label: 'Add repository', icon: 'plus', level: 'operate', placement: 'view',
+          command: 'gh cao repos add {{repository-pattern}}',
+          selector: {
+            label: 'Repository', 'debounce-ms': 300, 'allow-patterns': true,
+            query: { command: 'gh search repos', fields: ['fullName'], limit: 20 },
+            mapping: { value: 'fullName', label: 'fullName', target: 'repository-pattern' }
+          }
         }],
         prepareSnapshot: (/** @type {string} */ destination) => writeServerArtifact(destination, { sources: {
           repositories: { metadata: { 'as-of': new Date().toISOString() },
@@ -58,16 +67,18 @@ for (const width of [1440, 390]) {
       const admitted = await page.evaluate(async () => {
         const response = await fetch('/__cli_commands', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: 'upgrade-repository', values: { repository: 'octo/example' } })
+          body: JSON.stringify({ id: 'add-repository', values: { 'repository-pattern': 'octo/new-repository' } })
         });
         if (response.status !== 202) throw new Error(`Admission failed: ${response.status} ${await response.text()}`);
         return response.json();
       });
-      await expect.poll(() => calls.length).toBe(1);
-      expect(calls[0]).toEqual(['upgrade', '--repo', 'octo/example', '--create-pull-request']);
       await page.goto(`${preview.url}/#page-command?command=${admitted.id}`);
       const terminal = page.getByRole('region', { name: 'Read-only command terminal' });
       await expect(terminal).toBeVisible();
+      await expect.poll(() => calls.length).toBe(1);
+      expect(calls[0]).toEqual(['repos', 'add', 'octo/new-repository']);
+      await expect(page.locator('.command-terminal [role="status"]')).toHaveText(`${admitted.id} · running`);
+      writeOutput?.();
       await expect(terminal.locator('.xterm-accessibility-tree')).toContainText('Native maintenance output');
       await page.goto(`${preview.url}/#page-overview`);
       expect(calls).toHaveLength(1);
@@ -82,6 +93,7 @@ for (const width of [1440, 390]) {
       await page.screenshot({ path: screenshot, fullPage: true });
       await testInfo.attach(`native-command-${width}`, { path: screenshot, contentType: 'image/png' });
     } finally {
+      writeOutput?.();
       finish?.();
       await page.goto('about:blank');
       await preview?.close();

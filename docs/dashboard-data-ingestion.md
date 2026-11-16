@@ -50,7 +50,7 @@ operational source, repair path or hosted fallback.
 
 Native command execution is separate from ingestion. Ordinary read-only Go
 serving and synthetic Pages previews enable no commands. `gh cao dashboard`
-uses the scoped native maintenance adapter with trusted terminal approval;
+uses the scoped native maintenance adapter after dashboard confirmation, without terminal prompts;
 see [the native dashboard guide](cao-cli.md#on-demand-local-dashboard).
 
 ## Hosted server data pipeline
@@ -365,10 +365,10 @@ server reader. Node cao retains artifact preparation and catalog discovery, not 
 second local database backend. Removed ingestion and repair commands have no
 compatibility path.
 
-Run the installed `gh cao dashboard` command in an interactive terminal. It
+Run the installed `gh cao dashboard` command. It
 acquires bounded recent activity and manages local PostgreSQL unless an explicit
 connection is supplied. Open its private loopback URL in a browser. Maintenance
-requires trusted terminal approval; viewing evidence grants no rollout,
+requires dashboard confirmation before direct queue execution; viewing evidence grants no rollout,
 credential, or hosted execution authority.
 
 ### Query the private session archive

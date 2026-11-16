@@ -37,7 +37,8 @@ With `allow-patterns: true`, `mapping.target` must be `repository-pattern`.
 The selector offers a typed `owner/repository` pattern containing `*` for explicit
 selection without issuing a search for that pattern. All non-wildcard text,
 including complete `owner/repository` names, uses GitHub search results rather than
-an unverified typed option.
+an unverified typed option. Lookup starts only after a valid organization prefix
+and `/` are present and at least one repository character is entered.
 Command rendering quotes wildcard values as one literal argument. Ordinary
 `repository` tokens remain exact-only. Enrollment resolves current accessible
 matches to exact policy entries, rejects incomplete discovery or more than 100
@@ -52,8 +53,11 @@ and an exact same-origin header. Its HttpOnly, SameSite=Strict cookie is scoped
 to `/__cli_commands` and uses Secure on TLS, not plain loopback HTTP, so WebKit
 can send it locally. It resolves bounded read-only GitHub search
 through the owning CLI's credentials, not canonical dashboard evidence, and
-requires no terminal approval for lookup. Adding a repository still requires
-per-command terminal approval and only stages review-mode policy.
+requires no confirmation for lookup. Adding a repository requires dashboard
+confirmation and only stages review-mode policy. The local queue executes the
+confirmed command directly, without terminal prompts.
+The command console follows queued/running status changes without a manual refresh.
+Background collection output does not imply the command is executing.
 For a qualified name such as `octo/serv`, lookup scopes the search to `octo`
 and searches for `serv`, so partial repository names can resolve to suggestions.
 The server resolves the query and mapping from the declared action ID;

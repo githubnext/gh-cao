@@ -117,7 +117,8 @@ model ServerLogSnapshot {
 model RepositorySelectorRequest {
   /** Dashboard-declared action identity; executable text, fields and mappings are never supplied by the browser. */
   id: string;
-  @minLength(2) @maxLength(200) text: string;
+  /** Organization followed by / and at least one repository character; organization-only and unqualified searches are rejected. */
+  @minLength(3) @maxLength(200) text: string;
 }
 
 model RepositorySelectorOption {
@@ -141,6 +142,13 @@ namespace Operations {
   @post op repositorySelector(@header origin: string, @body body: RepositorySelectorRequest):
     { @header cacheControl: "no-store"; @body body: RepositorySelectorResult } |
     BadRequest | Forbidden | NotFound | Failure<415> | TooManyRequests | Failure<502> | Failure<504>;
+
+  /** Replay and follow one command as newline-delimited JSON. Requires local bearer/scoped CLI cookie or a freshly assured hosted administrator session. Registered only when the command queue is enabled. Output events carry type=output, sequence, stream and data; after resumes strictly after an output sequence. Active commands send a flushed type=status event with the command on attachment and whenever its status changes, even before output exists. Settled commands end with type=complete, command and result. Failures after streaming starts use type=error and error. Dashboard-confirmed local commands execute directly through the queue without terminal prompts. Catalog validation, exact maintenance scope, same-origin authorization and subprocess settlement remain mandatory. Disconnecting only detaches and never cancels or re-enqueues the command. */
+  @useAuth(DashboardAuth | LocalCLIResourceSession)
+  @route("/__cli_commands/{id}/output")
+  @get op commandOutput(@path @minValue(1) id: int64, @query @minValue(0) after?: int64):
+    { @header contentType: "application/x-ndjson; charset=utf-8"; @header cacheControl: "no-store"; @body body: string } |
+    BadRequest | Unauthorized | Forbidden | NotFound | TooManyRequests | Unavailable;
 
   /** Public signed GitHub delivery (maximum 10 MiB); validated with HMAC-SHA256 over the raw body. Repository created, deleted, archived and unarchived deliveries durably queue repository lifecycle updates; a successful acknowledgement does not mean the database update has completed. Never use dashboard bearer/session credentials for webhook authentication. The body is a GitHub event-specific JSON object. */
   @route("/api/github/webhook")

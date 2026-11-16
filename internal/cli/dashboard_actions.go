@@ -22,7 +22,6 @@ import (
 
 	ghaw "github.com/github/gh-aw/pkg/cli"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 func dashboardActionCommand() *cobra.Command {
@@ -100,35 +99,6 @@ func dashboardActionArgs(args, repositories []string) error {
 	return nil
 }
 
-func approveDashboardAction(ctx context.Context, args []string) (bool, error) {
-	inputName, outputName := "/dev/tty", "/dev/tty"
-	if runtime.GOOS == "windows" {
-		inputName, outputName = "CONIN$", "CONOUT$"
-	}
-	input, err := os.Open(inputName)
-	if err != nil {
-		return false, errors.New("trusted terminal approval is unavailable; run gh cao dashboard from an interactive terminal")
-	}
-	defer func() { _ = input.Close() }()
-	if !term.IsTerminal(int(input.Fd())) {
-		return false, errors.New("trusted terminal approval requires a terminal")
-	}
-	output, err := os.OpenFile(outputName, os.O_WRONLY, 0)
-	if err != nil {
-		return false, err
-	}
-	defer func() { _ = output.Close() }()
-	program := "gh aw"
-	if dashboardEnrollmentArgs(args) {
-		program = "gh cao"
-	}
-	if _, err := fmt.Fprintf(output, "\nDashboard maintenance requests:\n  %s %s\nApprove this command using your local GitHub CLI identity? [y/N] ", program, strings.Join(args, " ")); err != nil {
-		return false, err
-	}
-	text, err := readDashboardApproval(ctx, input)
-	return strings.EqualFold(strings.TrimSpace(text), "y") && err == nil, err
-}
-
 type dashboardActionEvent struct {
 	Stream   string `json:"stream,omitempty"`
 	Data     string `json:"data,omitempty"`
@@ -182,12 +152,16 @@ func (w *dashboardActionWriter) flush() error {
 }
 
 func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string, ingest chan<- struct{}) (string, func(), error) {
-	return startDashboardActionAdapterWithApproval(ctx, repositories, cache, approveDashboardAction, ingest)
+	executable, err := os.Executable()
+	if err != nil {
+		return "", nil, err
+	}
+	return startDashboardActionAdapterWithExecutable(ctx, repositories, cache, executable, ingest)
 }
 
 // ingest, when non-nil, receives coalesced operator requests to start an
 // ingestion pass now. It must be buffered; requests never block the adapter.
-func startDashboardActionAdapterWithApproval(ctx context.Context, repositories []string, cache string, approve func(context.Context, []string) (bool, error), ingest chan<- struct{}) (string, func(), error) {
+func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories []string, cache, executable string, ingest chan<- struct{}) (string, func(), error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, err
@@ -203,7 +177,6 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		return "", nil, err
 	}
 	adapterCtx, cancel := context.WithCancel(ctx)
-	var approval sync.Mutex
 	var executions sync.Mutex
 	active := map[string]context.CancelFunc{}
 	canceled := map[string]bool{}
@@ -276,22 +249,13 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 			return http.NewResponseController(w).Flush()
 		}
 		code := 1
-		approval.Lock()
-		approved, approvalErr := approve(executionCtx, args)
-		approval.Unlock()
-		if !approved || executionCtx.Err() != nil {
-			message := "Terminal approval declined."
-			if approvalErr != nil {
-				message = approvalErr.Error()
-			}
-			_ = send(dashboardActionEvent{Stream: "stderr", Data: message + "\n"})
+		if executionCtx.Err() != nil {
+			code = 130
+			_ = send(dashboardActionEvent{Stream: "stderr", Data: "Command canceled before execution.\n"})
 			_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
 			return
 		}
-		executable, err := os.Executable()
-		if err != nil {
-			_ = send(dashboardActionEvent{Stream: "stderr", Data: "Native maintenance executable is unavailable.\n"})
-			_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
+		if err := send(dashboardActionEvent{Stream: "stdout", Data: "Executing queued command using the local GitHub CLI identity.\n"}); err != nil {
 			return
 		}
 		childArgs := append([]string{"__dashboard_aw"}, args...)
@@ -325,7 +289,7 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		stdout := &dashboardActionWriter{stream: "stdout", send: send, secrets: secrets}
 		stderr := &dashboardActionWriter{stream: "stderr", send: send, secrets: secrets}
 		child.Stdout, child.Stderr = stdout, stderr
-		err = child.Run()
+		err := child.Run()
 		if len(stdout.buffer) > 0 || stdout.suppressed {
 			_ = stdout.flush()
 		}

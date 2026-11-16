@@ -68,11 +68,7 @@ func TestDashboardRepositoryLookupIsPrivateReadOnlyAndBounded(t *testing.T) {
 	}
 	t.Setenv("GH_PATH", executable)
 	t.Setenv("CAO_TEST_SEARCH_ARGS", argsPath)
-	filename, cleanup, err := startDashboardActionAdapterWithApproval(t.Context(), []string{"octo/control"}, directory,
-		func(context.Context, []string) (bool, error) {
-			t.Error("read-only search requested approval")
-			return false, nil
-		}, nil)
+	filename, cleanup, err := startDashboardActionAdapter(t.Context(), []string{"octo/control"}, directory, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +86,9 @@ func TestDashboardRepositoryLookupIsPrivateReadOnlyAndBounded(t *testing.T) {
 		code int
 	}{
 		{`{"text":"octo/ser","limit":20}`, 200},
-		{`{"text":"--limit=1000","limit":2}`, 200},
+		{`{"text":"octo/-repo","limit":2}`, 200},
+		{`{"text":"octo","limit":20}`, 400},
+		{`{"text":"octo/","limit":20}`, 400},
 		{`{"text":"octo/*","limit":20}`, 400},
 		{`{"text":"octo","limit":51}`, 400},
 		{`{"text":"o","limit":20}`, 400},
@@ -113,7 +111,7 @@ func TestDashboardRepositoryLookupIsPrivateReadOnlyAndBounded(t *testing.T) {
 			if strings.Contains(test.body, "octo/ser") && !strings.HasSuffix(string(args), "--limit\n20\n--owner\nocto\n--\nser\n") {
 				t.Fatalf("qualified partial repository was not scoped to its owner: %s", args)
 			}
-			if strings.Contains(test.body, "--limit=1000") && !strings.HasSuffix(string(args), "--limit\n2\n--\n--limit=1000\n") {
+			if strings.Contains(test.body, "octo/-repo") && !strings.HasSuffix(string(args), "--limit\n2\n--owner\nocto\n--\n-repo\n") {
 				t.Fatalf("query text escaped its positional argument: %s", args)
 			}
 		}

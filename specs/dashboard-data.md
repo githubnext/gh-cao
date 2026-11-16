@@ -1082,7 +1082,8 @@ Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
 NOT grant local rollout, dispatch or hosted execution authority. Separately,
 declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
-fresh trusted terminal approval per command, and pull-request publication for
+fresh dashboard confirmation per command, same-origin authenticated queue admission,
+and pull-request publication for
 updates and upgrades. Explicit local disable commands MAY omit publication:
 they SHALL cancel in-progress runs before disabling future runs and SHALL use
 the approved repository's checkout for both Markdown inventory and ambient

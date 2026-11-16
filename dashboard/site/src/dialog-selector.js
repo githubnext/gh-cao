@@ -3,6 +3,7 @@ import { createDebug } from './debug.js';
 /** @typedef {{ label: string, placeholder?: string, 'allow-patterns'?: boolean, 'debounce-ms': number, query: { command: 'gh search repos', fields: string[], limit: number }, mapping: { value: string, label: string, description?: string, target: string } }} DialogSelector */
 
 export const REPOSITORY_PATTERN = /^[A-Za-z0-9_.*][A-Za-z0-9_.*-]*\/[A-Za-z0-9_.*][A-Za-z0-9_.*-]*$/;
+export const REPOSITORY_SEARCH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/;
 
 const repositoryFields = ['fullName', 'description', 'name', 'owner', 'url', 'visibility', 'isArchived', 'isPrivate'];
 const debugDialogSelector = createDebug('src:dialog-selector');

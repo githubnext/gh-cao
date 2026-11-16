@@ -37,7 +37,7 @@ export default defineConfig({
     },
     {
       name: 'desktop-safari',
-      testMatch: ['**/pwa-compatibility.spec.js', '**/indexeddb-stress.spec.js', '**/service-worker-app-mode.spec.js', '**/repositories-configure.spec.js'],
+      testMatch: ['**/pwa-compatibility.spec.js', '**/indexeddb-stress.spec.js', '**/service-worker-app-mode.spec.js', '**/repositories-configure.spec.js', '**/commands-queue.spec.js'],
       use: devices['Desktop Safari']
     },
     {

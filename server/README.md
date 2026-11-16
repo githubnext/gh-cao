@@ -381,8 +381,8 @@ disabled. The local profile requires loopback listeners and bearer authenticatio
 Database credentials remain in the Go process.
 
 Copilot canvas support and the --canvas-config adapter are removed.
-Use gh cao dashboard in an interactive terminal and open its private browser URL.
-The native CLI retains acquisition and terminal-approved maintenance; the Go
+Use gh cao dashboard and open its private browser URL.
+The native CLI retains acquisition and dashboard-confirmed queued maintenance; the Go
 server retains durable queue ownership. Missing evidence remains partial or unavailable.
 
 ## Single-process memory operational storage

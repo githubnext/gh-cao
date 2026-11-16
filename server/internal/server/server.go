@@ -855,6 +855,9 @@ func (a *App) Handler() http.Handler {
 	register("GET /api/v1/github-quota/usage", a.gitHubQuotaUsage)
 	register("GET /api/v1/github/repos/{owner}/{repo}", a.gitHubRepositoryResource)
 	register("GET /api/v1/github/repos/{owner}/{repo}/releases/latest", a.gitHubReleaseResource)
+	if a.hostedCLI != nil {
+		register("GET /__cli_commands/{id}/output", a.hostedCLIOutput)
+	}
 	a.registerHostedCLIRoutes(register)
 	mux.HandleFunc("/", a.static)
 	handler := a.preAuthRateLimit(a.cors(a.requireAccess(a.rateLimit(mux))))

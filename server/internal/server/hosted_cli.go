@@ -113,7 +113,6 @@ func (a *App) registerHostedCLIRoutes(register func(string, http.HandlerFunc)) {
 	register("POST /__cli_commands", a.hostedCLIEnqueue)
 	register("GET /__cli_commands", a.hostedCLIList)
 	register("GET /__cli_commands/{id}", a.hostedCLIDetail)
-	register("GET /__cli_commands/{id}/output", a.hostedCLIOutput)
 	register("POST /__cli_commands/{id}/cancel", a.hostedCLICancel)
 	register("POST /__cli_commands/{id}/retry", a.hostedCLIRetry)
 }
@@ -527,6 +526,7 @@ func (a *App) hostedCLIOutput(response http.ResponseWriter, request *http.Reques
 		}
 		return controller.Flush() == nil
 	}
+	var lastStatus operational.CLICommandStatus
 	for ctx.Err() == nil {
 		chunks, err := a.hostedCLI.queue.Output(ctx, id, cursor, 128)
 		if err != nil {
@@ -554,6 +554,12 @@ func (a *App) hostedCLIOutput(response http.ResponseWriter, request *http.Reques
 			payload := hostedCLICommandJSON(command)
 			write(map[string]any{"type": "complete", "command": payload, "result": payload["result"]})
 			return
+		}
+		if command.Status != lastStatus {
+			if !write(map[string]any{"type": "status", "command": hostedCLICommandJSON(command)}) {
+				return
+			}
+			lastStatus = command.Status
 		}
 		select {
 		case <-ctx.Done():

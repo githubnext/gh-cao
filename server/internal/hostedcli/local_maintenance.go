@@ -10,7 +10,7 @@ import (
 var maintenanceWorkflow = regexp.MustCompile(`^(?:\.github/workflows/)?[A-Za-z0-9][A-Za-z0-9_.-]*\.md$`)
 var enrollmentPattern = regexp.MustCompile(`^[A-Za-z0-9_.*-]+/[A-Za-z0-9_.*-]+$`)
 
-// PlanLocalMaintenance is for the private, terminal-approved native adapter.
+// PlanLocalMaintenance is for the private, queue-authorized native adapter.
 // It deliberately does not extend PlanCommand or hosted credential grants.
 func PlanLocalMaintenance(command string) (Plan, error) {
 	tokens, err := Tokenize(command)

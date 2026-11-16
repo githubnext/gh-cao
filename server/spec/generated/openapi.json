@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "4.2.0",
+    "version": "4.2.1",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -170,6 +170,132 @@
         "security": [
           {
             "BearerAuth": []
+          },
+          {
+            "LocalCLIResourceSession": []
+          }
+        ]
+      }
+    },
+    "/__cli_commands/{id}/output": {
+      "get": {
+        "operationId": "Operations_commandOutput",
+        "description": "Replay and follow one command as newline-delimited JSON. Requires local bearer/scoped CLI cookie or a freshly assured hosted administrator session. Registered only when the command queue is enabled. Output events carry type=output, sequence, stream and data; after resumes strictly after an output sequence. Active commands send a flushed type=status event with the command on attachment and whenever its status changes, even before output exists. Settled commands end with type=complete, command and result. Failures after streaming starts use type=error and error. Dashboard-confirmed local commands execute directly through the queue without terminal prompts. Catalog validation, exact maintenance scope, same-origin authorization and subprocess settlement remain mandatory. Disconnecting only detaches and never cancels or re-enqueues the command.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/x-ndjson; charset=utf-8": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ingestion and administration"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
           },
           {
             "LocalCLIResourceSession": []
@@ -5455,8 +5581,9 @@
           },
           "text": {
             "type": "string",
-            "minLength": 2,
-            "maxLength": 200
+            "minLength": 3,
+            "maxLength": 200,
+            "description": "Organization followed by / and at least one repository character; organization-only and unqualified searches are rejected."
           }
         },
         "examples": [

@@ -9,14 +9,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/githubnext/gh-cao/internal/ghcli"
 )
 
 // Only this native adapter holds the CLI identity. Lookup does not enqueue a
-// command or require terminal approval; enrollment still does.
+// command or require confirmation; enrollment requires dashboard confirmation.
 func dashboardRepositorySearch(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Text  string `json:"text"`
@@ -33,8 +31,9 @@ func dashboardRepositorySearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Text = strings.TrimSpace(input.Text)
-	if !utf8.ValidString(input.Text) || utf8.RuneCountInString(input.Text) < 2 || utf8.RuneCountInString(input.Text) > 200 ||
-		strings.Contains(input.Text, "*") || strings.ContainsFunc(input.Text, unicode.IsControl) || input.Limit < 1 || input.Limit > 50 {
+	owner, query, qualified := strings.Cut(input.Text, "/")
+	if !qualified || query == "" || !nativeOwner.MatchString(owner) || !nativeSetupRepositoryPattern.MatchString(input.Text) ||
+		len(input.Text) > 200 || strings.Contains(input.Text, "*") || input.Limit < 1 || input.Limit > 50 {
 		http.Error(w, "invalid repository lookup", http.StatusBadRequest)
 		return
 	}
@@ -42,13 +41,7 @@ func dashboardRepositorySearch(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	args := []string{"search", "repos",
 		"--json", "fullName,description,name,owner,url,visibility,isArchived,isPrivate",
-		"--limit", strconv.Itoa(input.Limit)}
-	query := input.Text
-	if owner, name, qualified := strings.Cut(input.Text, "/"); qualified && name != "" &&
-		nativeOwner.MatchString(owner) && nativeSetupRepositoryPattern.MatchString(input.Text) {
-		args = append(args, "--owner", owner)
-		query = name
-	}
+		"--limit", strconv.Itoa(input.Limit), "--owner", owner}
 	output, err := ghcli.ExecBounded(ctx, 1<<20, append(args, "--", query)...)
 	if err != nil {
 		status := http.StatusBadGateway

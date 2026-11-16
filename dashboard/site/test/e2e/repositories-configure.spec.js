@@ -23,12 +23,12 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
         for await (const chunk of request) body += chunk;
         const input = JSON.parse(body);
         lookups.push(input);
-        if (input.text.startsWith('slow-')) {
+        if (input.text.startsWith('octo/slow-')) {
           response.on('close', () => canceledLookups.push(input.text));
           return;
         }
         response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(
-          input.text === 'octo/ex' ? [{ fullName: 'Octo/Example', description: 'Repository returned by GitHub' }] : []));
+          input.text === 'octo/e' ? [{ fullName: 'Octo/Example', description: 'Repository returned by GitHub' }] : []));
       } else if (request.url?.endsWith('/execute')) {
         executions += 1;
         response.writeHead(200, { 'Content-Type': 'application/x-ndjson' })
@@ -80,32 +80,38 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       await expect(input).toHaveAttribute('autocapitalize', 'none');
       await expect(input).toHaveAttribute('autocorrect', 'off');
       await expect(confirm).toBeDisabled();
-      await input.pressSequentially('octo/ex', { delay: 30 });
+      await input.fill('octo');
+      await page.waitForTimeout(400);
+      expect(lookups).toHaveLength(0);
+      await input.fill('octo/');
+      await page.waitForTimeout(400);
+      expect(lookups).toHaveLength(0);
+      await input.pressSequentially('e', { delay: 30 });
       await expect(confirm).toBeDisabled();
       await dialog.getByRole('button', { name: /Octo\/Example Repository returned by GitHub/ }).click();
-      expect(lookups).toEqual([{ text: 'octo/ex', limit: 20 }]);
+      expect(lookups).toEqual([{ text: 'octo/e', limit: 20 }]);
       await expect(dialog.locator('.cli-action-command')).toHaveText('gh cao repos add Octo/Example');
       await expect(confirm).toBeEnabled();
       await input.fill('octo/missing');
       await expect(dialog.locator('.dialog-selector-status')).toHaveText('No repositories found.');
       await expect(dialog.locator('.dialog-selector-option')).toHaveCount(0);
       await expect(confirm).toBeDisabled();
-      await input.fill('slow-switch');
-      await expect.poll(() => lookups.at(-1)?.text).toBe('slow-switch');
+      await input.fill('octo/slow-switch');
+      await expect.poll(() => lookups.at(-1)?.text).toBe('octo/slow-switch');
       await input.fill('octo/service-*');
       await expect(confirm).toBeDisabled();
       await dialog.getByRole('button', { name: /octo\/service-\* Use wildcard/ }).click();
       await expect(dialog.locator('.cli-action-command')).toHaveText("gh cao repos add 'octo/service-*'");
       expect(executions).toBe(0);
-      await expect.poll(() => canceledLookups).toContain('slow-switch');
+      await expect.poll(() => canceledLookups).toContain('octo/slow-switch');
       expect(lookups).toHaveLength(3);
       await page.screenshot({ path: testInfo.outputPath(`repository-pattern-${width}.png`), fullPage: true });
       await testInfo.attach(`repository-pattern-${width}`, { path: testInfo.outputPath(`repository-pattern-${width}.png`), contentType: 'image/png' });
       await expect(confirm).toBeInViewport();
-      await input.fill('slow-close');
-      await expect.poll(() => lookups.at(-1)?.text).toBe('slow-close');
+      await input.fill('octo/slow-close');
+      await expect.poll(() => lookups.at(-1)?.text).toBe('octo/slow-close');
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-      await expect.poll(() => canceledLookups).toContain('slow-close');
+      await expect.poll(() => canceledLookups).toContain('octo/slow-close');
       await add.click();
       await input.fill('octo/service-*');
       await dialog.getByRole('button', { name: /octo\/service-\* Use wildcard/ }).click();

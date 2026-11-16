@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
+
+	"github.com/githubnext/gh-cao/server/internal/hostedcli"
 )
 
 func (a *App) repositorySelector(w http.ResponseWriter, r *http.Request) {
@@ -27,9 +27,8 @@ func (a *App) repositorySelector(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	input.Text = strings.TrimSpace(input.Text)
-	if !utf8.ValidString(input.Text) || utf8.RuneCountInString(input.Text) < 2 || utf8.RuneCountInString(input.Text) > 200 ||
-		strings.Contains(input.Text, "*") || strings.ContainsFunc(input.Text, unicode.IsControl) {
-		writeError(r.Context(), w, http.StatusBadRequest, "Repository search requires 2 to 200 characters without wildcards or control characters.")
+	if len(input.Text) > 200 || !hostedcli.ValidRepository(input.Text) {
+		writeError(r.Context(), w, http.StatusBadRequest, "Repository search requires an organization followed by / and at least one repository character, without wildcards.")
 		return
 	}
 	selector, err := a.hostedCLI.catalog.ResolveRepositorySelector(input.ID)

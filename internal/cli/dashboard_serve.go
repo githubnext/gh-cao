@@ -441,9 +441,9 @@ func dashboardPostgresNamespace(repositories []string) string {
 }
 
 func printDashboardReady(output io.Writer, address string, repositories []string, cache string, options dashboardOptions) {
-	maintenance := "every command requires approval in this terminal."
+	maintenance := "dashboard-confirmed commands execute through the local queue; no terminal prompt."
 	if runtime.GOOS == "windows" {
-		maintenance = "copy-only; trusted native terminal approval is unavailable on Windows."
+		maintenance = "copy-only; native command execution is unavailable on Windows."
 	}
 	_, _ = fmt.Fprintf(output,
 		"\nCAO dashboard is ready. Open this URL in your browser:\n\n"+
