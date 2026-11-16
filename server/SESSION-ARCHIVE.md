@@ -30,7 +30,9 @@ for original structured evidence. Physical empty strings are not proof of source
 absence, and nullable/invalid measurements are not zero. The
 [fresh evidence contract](../specs/session-archive.md#21-fresh-original-evidence-contract)
 defines the 15 conditional grader-evidence families. Four scalar usage formulas
-are reviewed declarative queries; the remaining eleven are unsupported.
+are reviewed declarative queries; the remaining eleven are unsupported. The
+[grader query feasibility tracker](../specs/session-archive-grader-queries.md)
+classifies all 35 upstream built-ins and the extensions each one needs.
 It preserves every original observation rather than reconciling invocations,
 usage totals, receipts or trajectory visits.
 

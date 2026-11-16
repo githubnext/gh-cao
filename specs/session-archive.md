@@ -447,7 +447,10 @@ then the first valid agent execution result as fallback. Rebuild accepts only
 complete valid input observations with nonzero peak, including wide cumulative
 totals; context independently requires complete input AND output, safe
 per-direction totals and nonzero original first-record tokens. Limit/order is
-applied only after the metric.
+applied only after the metric. Feasibility and progress for every other upstream
+grader are tracked in
+[`session-archive-grader-queries.md`](session-archive-grader-queries.md); that
+tracker approves no evidence or vocabulary.
 
 Rows expose value, availability, reason, chosen family and exact trace/projection
 identity; policy digest qualifies configuration. Query metadata adds a query
