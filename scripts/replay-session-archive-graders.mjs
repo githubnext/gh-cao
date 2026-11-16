@@ -55,7 +55,33 @@ function replaySessionArchiveGraders() {
     writeFileSync(join(output, "evidence.json"), JSON.stringify(cases) + "\n", { mode: 0o600 });
     const require = createRequire(import.meta.url);
     const graders = require(join(upstream, "trace_graders.cjs"));
-    const supported = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"]);
+    const supported = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
+      "objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep"]);
+    const itemGraders = new Set(["objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep"]);
+    // Item sources read the last agent-phase trajectory.ir, matching grader_session.cjs IR selection.
+    function lastIR(evidence) {
+      const irs = evidence.filter((event) => event.type === "trajectory.ir" && event.provenance?.phase === "agent");
+      return irs.length ? irs.at(-1).data ?? {} : {};
+    }
+    function itemReason(id, evidence, omissions) {
+      const ir = lastIR(evidence);
+      const key = { "grounding-accuracy": "actions", "state-revisit-probability-rep": "states" }[id] ?? "objectives";
+      if (omissions.includes(`data.${key}:excluded`) || omissions.includes("data:excluded")) return "excluded";
+      if (key === "states" && omissions.includes("data.states:redacted")) return "redacted";
+      const items = ir[key];
+      if (Array.isArray(items) && items.length > 5000) return "oversized";
+      if (key === "states") {
+        const visits = (Array.isArray(items) ? items : []).filter((state) => typeof state === "string" ||
+          state && typeof state === "object" && !Array.isArray(state) && typeof state.id === "string" && state.id !== "");
+        return visits.length < 2 ? "fewer-than-two-visits" : "measured";
+      }
+      const record = (item) => item !== null && typeof item === "object" && !Array.isArray(item);
+      if (!Array.isArray(items) || items.length === 0) return key === "actions" ? "no-actions" : "no-objectives";
+      if (key === "actions") return items.every((action) => record(action) && typeof action.validAtIssueTime === "boolean") ? "measured" : "invalid-validity";
+      if (!items.every(record)) return "malformed-objective";
+      return items.some(({ satisfiedAtEventIndex: index }) => index !== null && index !== undefined && (!Number.isSafeInteger(index) || index < 0))
+        ? "invalid-satisfaction-index" : "measured";
+    }
     function grade(events) {
       let lookups;
       try {
@@ -96,7 +122,7 @@ function replaySessionArchiveGraders() {
           assert.equal(row.availability, expected.status === "unavailable" ? "unavailable" : "measured");
           const lookups = graders.createSessionLookups(evidence);
           const selected = lookups.trace.tokenUsageEntries;
-          let reason;
+          let reason = itemGraders.has(query.id) ? itemReason(query.id, evidence, runId === "123" ? scenario.omissions ?? [] : []) : undefined;
           switch (query.id) {
             case "execution-step-count": reason = selected.length ? "measured" : "no-requests"; break;
             case "execution-duration": {
@@ -115,8 +141,10 @@ function replaySessionArchiveGraders() {
               break;
           }
           assert.equal(row.reason, reason, `${scenario.name}/${runId}/${query.id}: qualified lookup reason`);
-          const proxy = evidence.some((event) => event.provenance.phase === "agent" && event.type === "firewall.token_usage");
-          assert.equal(row.family, proxy ? "firewall.token_usage" : "usage.report");
+          if (!itemGraders.has(query.id)) {
+            const proxy = evidence.some((event) => event.provenance.phase === "agent" && event.type === "firewall.token_usage");
+            assert.equal(row.family, proxy ? "firewall.token_usage" : "usage.report");
+          }
         }
       }
       return {
@@ -155,7 +183,7 @@ function replaySessionArchiveGraders() {
       upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources, kustoReplay,
       verification: ["CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1",
         "node scripts/replay-session-archive-graders.mjs [private-report-directory]"],
-      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Four full declarative scalar metrics execute through real DuckDB; the other eleven remain unsupported. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its explicitly separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are separately checked against pinned lookup state. No missing provenance is filled. Live Azure acceptance is not exercised.",
+      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Eight full declarative metrics execute through real DuckDB, four of them over local-only trajectory.ir item sources; the other seven remain unsupported. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its explicitly separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are separately checked against pinned lookup state. No missing provenance is filled. Live Azure acceptance is not exercised.",
       matrix, scenarios: replays,
     };
     writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });

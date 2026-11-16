@@ -1,0 +1,21 @@
+{
+  "name":"premature-termination-gap",
+  "subject":"Recompute gh-aw premature termination gap.",
+  "from":"archive-objectives",
+  "aggregate":{
+    "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],
+    "values":[
+      {"field":"Items","as":"n","reducer":"max"},
+      {"field":"TraceId","as":"excluded","reducer":"count","filter":{"predicates":[{"field":"Items","state":"excluded"}]}},
+      {"field":"Ordinal","as":"records","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"}]}},
+      {"field":"SatisfiedAtEventIndex","as":"satisfied","reducer":"count"},
+      {"field":"Ordinal","as":"invalid","reducer":"count","filter":{"predicates":[{"field":"SatisfiedAtEventIndex","state":"invalid"}]}}
+    ]
+  },
+  "post-aggregate":[
+    {"as":"reason","function":"if","args":[{"function":"gt","args":[{"field":"excluded"},{"value":0}]},{"value":"excluded"},{"function":"if","args":[{"function":"gt","args":[{"field":"n"},{"value":5000}]},{"value":"oversized"},{"function":"if","args":[{"function":"gt","args":[{"field":"n"},{"value":0}]},{"function":"if","args":[{"function":"equals","args":[{"field":"records"},{"field":"n"}]},{"function":"if","args":[{"function":"gt","args":[{"field":"invalid"},{"value":0}]},{"value":"invalid-satisfaction-index"},{"value":"measured"}]},{"value":"malformed-objective"}]},{"value":"no-objectives"}]}]}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"function":"difference","args":[{"field":"n"},{"field":"satisfied"}]},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"value":"measured"},{"value":"unavailable"}]}
+  ],
+  "select":[{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

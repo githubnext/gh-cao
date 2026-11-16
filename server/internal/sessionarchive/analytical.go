@@ -106,6 +106,76 @@ func (d Definition) Validate() error {
 var queryName = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
 var outputName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]{0,127}$`)
 
+const eventSource = "archive-events"
+
+// itemSource flattens one approved structured collection from each active
+// trace's last agent-phase trajectory.ir event. Every active trace yields an
+// anchor row (null Ordinal) when the collection is absent, empty or invalid,
+// so complete trace bindings remain visible without fabricating elements.
+type itemSource struct {
+	Name, Path, Key string
+	Element         Column
+}
+
+var itemSources = []itemSource{
+	{"archive-objectives", "data.objectives", "satisfiedAtEventIndex", Column{"SatisfiedAtEventIndex", "integer"}},
+	{"archive-actions", "data.actions", "validAtIssueTime", Column{"ValidAtIssueTime", "boolean"}},
+	{"archive-states", "data.states", "id", Column{"Id", "string"}},
+}
+
+var itemColumns = []Column{
+	{"Namespace", "string"}, {"Repository", "string"}, {"RunId", "string"}, {"RunAttempt", "integer"},
+	{"TraceId", "string"}, {"ProjectionId", "string"}, {"PolicyDigest", "string"}, {"Sequence", "integer"},
+	{"Ordinal", "integer"}, {"Items", "integer"}, {"Kind", "string"},
+}
+
+var fieldStateInputs = []string{"PresentFields", "NullFields", "InvalidFields", "OmissionReasons"}
+
+func lookupItemSource(name string) (itemSource, bool) {
+	for _, item := range itemSources {
+		if item.Name == name {
+			return item, true
+		}
+	}
+	return itemSource{}, false
+}
+
+// sourceColumns returns the ordered public vocabulary of one analytical source.
+func sourceColumns(source string) ([]Column, bool) {
+	if source == eventSource {
+		fields := analyticalColumns()
+		var columns []Column
+		for _, name := range eventColumns {
+			if kind := fields[name]; kind != "" {
+				columns = append(columns, Column{Name: name, Type: kind})
+			}
+		}
+		return columns, true
+	}
+	item, ok := lookupItemSource(source)
+	if !ok {
+		return nil, false
+	}
+	return append(slices.Clone(itemColumns), item.Element), true
+}
+
+// statePath returns the generated evidence path whose field states qualify a
+// column. Item fields are qualified by their whole approved collection path.
+func statePath(source, name string) string {
+	if source == eventSource {
+		for _, promoted := range evidenceFields {
+			if promoted.Name == name && promoted.Index >= 0 {
+				return promoted.Path
+			}
+		}
+		return ""
+	}
+	if item, ok := lookupItemSource(source); ok && (name == "Items" || name == item.Element.Name) {
+		return item.Path
+	}
+	return ""
+}
+
 // Column names and types come from the generated evidence contract, not a
 // second archive schema. Content and structured fields are not analytical inputs.
 func analyticalColumns() map[string]string {
@@ -165,6 +235,7 @@ type PlannedOrder struct {
 // Plan contains typed operations only. Storage membership and backend syntax
 // belong to the archive adapters, never the caller's query definition.
 type Plan struct {
+	Source        string
 	Columns       []Column
 	Inputs        []string
 	Predicates    []PlannedPredicate
@@ -178,41 +249,68 @@ type Plan struct {
 	ExplicitLimit bool
 }
 
+type SourceCapability struct {
+	Name   string   `json:"name"`
+	Fields []Column `json:"fields"`
+}
+
 type Capabilities struct {
 	LanguageVersion string   `json:"language-version"`
 	Source          string   `json:"source"`
 	Fields          []Column `json:"fields"`
-	Predicates      []string `json:"predicates"`
-	Reducers        []string `json:"reducers"`
-	Functions       []string `json:"functions"`
-	FieldStates     []string `json:"fieldStates"`
-	MaxRows         int      `json:"maxRows"`
+	// Sources lists additional item sources. Backends without a reviewed
+	// lowering omit them, so Require rejects those plans before execution.
+	Sources     []SourceCapability `json:"sources,omitempty"`
+	Predicates  []string           `json:"predicates"`
+	Reducers    []string           `json:"reducers"`
+	Functions   []string           `json:"functions"`
+	FieldStates []string           `json:"fieldStates"`
+	MaxRows     int                `json:"maxRows"`
 }
 
 func AnalyticalCapabilities(maxRows int) Capabilities {
-	c := Capabilities{LanguageVersion: "0.2.0", Source: "archive-events",
+	c := Capabilities{LanguageVersion: "0.2.0", Source: eventSource,
 		Predicates: []string{"equals", "in", "gte", "lt", "state"},
 		Reducers:   []string{"count", "distinct-count", "sum", "max", "first"},
 		Functions:  scalarFunctions, FieldStates: fieldStates, MaxRows: maxRows}
-	fields := analyticalColumns()
-	for _, name := range eventColumns {
-		if kind := fields[name]; kind != "" {
-			c.Fields = append(c.Fields, Column{Name: name, Type: kind})
-		}
+	c.Fields, _ = sourceColumns(eventSource)
+	return c
+}
+
+// LocalAnalyticalCapabilities additionally advertises the DuckDB-only item
+// sources. Hosted ADX has no reviewed item lowering and must not advertise them.
+func LocalAnalyticalCapabilities(maxRows int) Capabilities {
+	c := AnalyticalCapabilities(maxRows)
+	for _, item := range itemSources {
+		fields, _ := sourceColumns(item.Name)
+		c.Sources = append(c.Sources, SourceCapability{Name: item.Name, Fields: fields})
 	}
 	return c
 }
 
 func (p *Plan) Require(c Capabilities) error {
-	if c.LanguageVersion != "0.2.0" || c.Source != "archive-events" || c.MaxRows < 1 {
+	if c.LanguageVersion != "0.2.0" || c.Source != eventSource || c.MaxRows < 1 {
 		return ErrQuery
 	}
-	fields := analyticalColumns()
+	advertised, found := c.Fields, p.Source == c.Source
+	for _, source := range c.Sources {
+		if !found && source.Name == p.Source {
+			advertised, found = source.Fields, true
+		}
+	}
+	columns, known := sourceColumns(p.Source)
+	if !found || !known {
+		return ErrQuery
+	}
+	fields := map[string]string{}
+	for _, column := range columns {
+		fields[column.Name] = column.Type
+	}
 	for _, name := range p.Inputs {
-		if slices.Contains([]string{"PresentFields", "NullFields", "InvalidFields", "OmissionReasons"}, name) {
+		if slices.Contains(fieldStateInputs, name) {
 			continue
 		}
-		if !slices.ContainsFunc(c.Fields, func(field Column) bool { return field.Name == name && field.Type == fields[name] }) {
+		if !slices.ContainsFunc(advertised, func(field Column) bool { return field.Name == name && field.Type == fields[name] }) {
 			return ErrQuery
 		}
 	}
@@ -255,8 +353,9 @@ func (p *Plan) Require(c Capabilities) error {
 }
 
 func (d Definition) Plan() (Plan, error) {
-	p := Plan{Limit: 10000, ExplicitLimit: d.Limit != nil}
-	if d.From != "archive-events" || len(d.Name) > 128 || !queryName.MatchString(d.Name) ||
+	p := Plan{Source: d.From, Limit: 10000, ExplicitLimit: d.Limit != nil}
+	columns, known := sourceColumns(d.From)
+	if !known || len(d.Name) > 128 || !queryName.MatchString(d.Name) ||
 		strings.TrimSpace(d.Subject) == "" || utf8.RuneCountInString(d.Subject+d.Objective+d.Acceptance) > 512 ||
 		len(d.Select) > 32 || (d.Select != nil && len(d.Select) == 0) || len(d.OrderBy) > 16 ||
 		(d.Limit != nil && (*d.Limit < 1 || *d.Limit > 10000)) {
@@ -265,7 +364,10 @@ func (d Definition) Plan() (Plan, error) {
 	if d.Limit != nil {
 		p.Limit = *d.Limit
 	}
-	fields, needed := analyticalColumns(), map[string]bool{}
+	fields, needed := map[string]string{}, map[string]bool{}
+	for _, column := range columns {
+		fields[column.Name] = column.Type
+	}
 	reserved := map[string]bool{}
 	for name := range fields {
 		reserved[strings.ToLower(name)] = true
@@ -278,7 +380,7 @@ func (d Definition) Plan() (Plan, error) {
 		return Column{Name: name, Type: fields[name]}, nil
 	}
 	planFilter := func(filter *AnalyticalFilter) ([]PlannedPredicate, error) {
-		return planPredicates(filter, read, needed)
+		return planPredicates(filter, read, func(name string) string { return statePath(d.From, name) }, needed)
 	}
 	if d.Filter != nil {
 		var err error
@@ -297,6 +399,9 @@ func (d Definition) Plan() (Plan, error) {
 			available[name] = kind
 		}
 		ties = []string{"Repository", "RunId", "RunAttempt", "TraceId", "ProjectionId", "Sequence"}
+		if d.From != eventSource {
+			ties[len(ties)-1] = "Ordinal"
+		}
 	} else {
 		a := d.Aggregate
 		if len(a.By) > 16 || len(a.Values) < 1 || len(a.Values) > 16 {
@@ -336,6 +441,10 @@ func (d Definition) Plan() (Plan, error) {
 			}
 			ordered := value.Reducer == "first" || value.Reducer == "sum" && field.Type == "number"
 			if ordered {
+				// Item rows have no reviewed element order; ordered reducers stay event-only.
+				if d.From != eventSource {
+					return p, ErrQuery
+				}
 				if len(value.OrderBy) != 1 || value.OrderBy[0].Field != "Sequence" ||
 					(value.OrderBy[0].Direction != "" && value.OrderBy[0].Direction != "asc") {
 					return p, ErrQuery
@@ -423,7 +532,15 @@ func (d Definition) Plan() (Plan, error) {
 		}
 		p.Ties = append(p.Ties, field)
 	}
-	for _, name := range eventColumns {
+	inputs := eventColumns
+	if d.From != eventSource {
+		inputs = nil
+		for _, column := range columns {
+			inputs = append(inputs, column.Name)
+		}
+		inputs = append(inputs, fieldStateInputs...)
+	}
+	for _, name := range inputs {
 		if needed[name] {
 			p.Inputs = append(p.Inputs, name)
 		}
@@ -472,7 +589,7 @@ func parseScalar(raw json.RawMessage, kind string) (*Scalar, error) {
 	return value, nil
 }
 
-func (predicate AnalyticalPredicate) plan(field Column) (PlannedPredicate, error) {
+func (predicate AnalyticalPredicate) plan(field Column, path string) (PlannedPredicate, error) {
 	p := PlannedPredicate{Field: field}
 	modes := 0
 	for _, present := range []bool{predicate.Equals != nil, predicate.In != nil, predicate.GTE != nil || predicate.LT != nil, predicate.State != ""} {
@@ -487,13 +604,11 @@ func (predicate AnalyticalPredicate) plan(field Column) (PlannedPredicate, error
 		if !slices.Contains(fieldStates, predicate.State) {
 			return p, ErrQuery
 		}
-		for _, promoted := range evidenceFields {
-			if promoted.Name == field.Name && promoted.Index >= 0 {
-				p.State, p.Path = predicate.State, promoted.Path
-				return p, nil
-			}
+		if path == "" {
+			return p, ErrQuery
 		}
-		return p, ErrQuery
+		p.State, p.Path = predicate.State, path
+		return p, nil
 	}
 	if field.Type == "boolean" && (predicate.GTE != nil || predicate.LT != nil) {
 		return p, ErrQuery
@@ -531,7 +646,7 @@ func (predicate AnalyticalPredicate) plan(field Column) (PlannedPredicate, error
 var traceBinding = []string{"Namespace", "Repository", "RunId", "RunAttempt", "TraceId", "ProjectionId"}
 var fieldStates = []string{"present", "absent", "null", "invalid", "excluded", "redacted", "valid"}
 
-func planPredicates(filter *AnalyticalFilter, read func(string) (Column, error), needed map[string]bool) ([]PlannedPredicate, error) {
+func planPredicates(filter *AnalyticalFilter, read func(string) (Column, error), path func(string) string, needed map[string]bool) ([]PlannedPredicate, error) {
 	if filter == nil {
 		return nil, nil
 	}
@@ -544,12 +659,12 @@ func planPredicates(filter *AnalyticalFilter, read func(string) (Column, error),
 		if err != nil {
 			return nil, err
 		}
-		planned, err := predicate.plan(field)
+		planned, err := predicate.plan(field, path(field.Name))
 		if err != nil {
 			return nil, err
 		}
 		if planned.State != "" {
-			for _, name := range []string{"PresentFields", "NullFields", "InvalidFields", "OmissionReasons"} {
+			for _, name := range fieldStateInputs {
 				needed[name] = true
 			}
 		}
