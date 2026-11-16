@@ -40,6 +40,9 @@ func TestRepositorySelectorCookieIsSecureOnBothLocalTransports(t *testing.T) {
 		if session == nil || !session.Secure || !session.HttpOnly || session.Path != "/__cli_commands" || session.SameSite != http.SameSiteStrictMode {
 			t.Fatalf("%s session cookie is missing required protections: %+v", scheme, session)
 		}
+		if !strings.Contains(response.Body.String(), `localStorage.setItem("cao-dashboard-cli-session","`+app.localCLISession()+`")`) {
+			t.Fatalf("%s bootstrap omitted the worker's queue-only capability", scheme)
+		}
 	}
 }
 
@@ -98,6 +101,10 @@ func TestRepositorySelectorUsesDeclaredGitHubLookupAndLocalCapability(t *testing
 	}{
 		{"cookie", `{"id":"add-repository","text":"octo/ser"}`, "http://127.0.0.1:8080", "cookie", 200, true},
 		{"bearer", `{"id":"add-repository","text":"octo/ser"}`, "http://127.0.0.1:8080", "bearer", 200, true},
+		{"scoped header", `{"id":"add-repository","text":"octo/ser"}`, "http://127.0.0.1:8080", "header", 200, true},
+		{"forged header", `{"id":"add-repository","text":"octo/ser"}`, "http://127.0.0.1:8080", "forged header", 403, false},
+		{"cross origin header", `{"id":"add-repository","text":"octo/ser"}`, "https://evil.example", "header", 403, false},
+		{"missing origin header", `{"id":"add-repository","text":"octo/ser"}`, "", "header", 403, false},
 		{"no auth", `{"id":"add-repository","text":"octo/ser"}`, "http://127.0.0.1:8080", "", 403, false},
 		{"forged cookie", `{"id":"add-repository","text":"octo/ser"}`, "http://127.0.0.1:8080", "forged", 403, false},
 		{"cross origin", `{"id":"add-repository","text":"octo/ser"}`, "https://evil.example", "cookie", 403, false},
@@ -134,6 +141,10 @@ func TestRepositorySelectorUsesDeclaredGitHubLookupAndLocalCapability(t *testing
 				})
 			case "bearer":
 				request.Header.Set("Authorization", "Bearer "+testAccessToken)
+			case "header":
+				request.Header.Set("X-CAO-CLI-Session", app.localCLISession())
+			case "forged header":
+				request.Header.Set("X-CAO-CLI-Session", "wrong")
 			}
 			before := calls
 			response := httptest.NewRecorder()

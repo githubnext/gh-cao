@@ -63,7 +63,7 @@ for (const width of [1440, 390]) {
       });
       await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${preview.url}/#page-maintenance`);
+      await page.goto(`${preview.url}/?access_token=${preview.headers.Authorization.slice('Bearer '.length)}#page-maintenance`);
       await expect(page.locator('[data-view-id="maintenance-repositories"]')).not.toContainText(/github\/gh-aw\b/i);
       expect(await page.evaluate(async () => {
         const response = await fetch('/api/v1/query', {
@@ -74,6 +74,8 @@ for (const width of [1440, 390]) {
         return result.sources.repositories.rows.some((row) =>
           String(row['repository-coordinate']).toLowerCase() === 'github/gh-aw');
       })).toBe(true);
+      await page.setExtraHTTPHeaders({});
+      await page.context().clearCookies();
       await page.getByRole('button', { name: 'Update', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Approve Update', exact: true });
       await expect(dialog.locator('.cli-action-command')).toHaveText('gh aw upgrade --repo octo/managed --create-pull-request');

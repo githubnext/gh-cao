@@ -267,6 +267,29 @@ func TestOperatorActionsUseScopedDurableQueueAndNativeAdapter(t *testing.T) {
 			t.Fatalf("%s %s cookie=%s: got %d expected %d", test.method, test.origin, test.cookie.Value[:4], code, test.status)
 		}
 	}
+	for _, test := range []struct {
+		method, path, origin, token string
+		status                      int
+	}{
+		{http.MethodGet, "/__cli_commands", "", app.localCLISession(), 200},
+		{http.MethodPost, "/__cli_commands", "http://127.0.0.1:8080", app.localCLISession(), 202},
+		{http.MethodPost, "/__cli_commands", "https://evil.example", app.localCLISession(), 403},
+		{http.MethodPost, "/__cli_commands", "", app.localCLISession(), 403},
+		{http.MethodGet, "/__cli_commands", "", testAccessToken, 403},
+		{http.MethodGet, "/__cli_commands", "", "forged", 403},
+		{http.MethodGet, "/__cli_commands", "", "", 403},
+		{http.MethodGet, "/api/v1/diagnostics", "", app.localCLISession(), 401},
+	} {
+		req := httptest.NewRequestWithContext(t.Context(), test.method, "http://127.0.0.1:8080"+test.path, bytes.NewBufferString(valid))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", test.origin)
+		req.Header.Set("X-CAO-CLI-Session", test.token)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, req)
+		if response.Code != test.status {
+			t.Fatalf("%s %s with scoped header returned %d expected %d", test.method, test.path, response.Code, test.status)
+		}
+	}
 }
 
 func TestOperatorCancellationWaitsForNativeExitReceipt(t *testing.T) {

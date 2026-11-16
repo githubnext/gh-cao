@@ -17,7 +17,7 @@ import {
 import { githubResourcePath } from './data/github-resource.js';
 import { isGitHubQuerySource } from './data/github-query-sources.js';
 import { invalidateGitHubResourceAuthentication } from './auth.js';
-import { cliQueueAvailable } from './backend-mode.js';
+import { cliQueueAvailable, localCliQueueCapability } from './backend-mode.js';
 import { DEMO_MODE } from './deployment-profile.js';
 import {
   configureStatisticalRefresh, requestsStatisticalSources,
@@ -146,6 +146,15 @@ function usesCliQueueSources(names, context) {
     .some((name) => name === 'cli-commands' || name === 'cli-command-summary' || name === 'cli-command-statuses');
 }
 
+/** @param {Worker | null} processor */
+function configureWorkerCliQueue(processor) {
+  processor?.postMessage({
+    operation: 'configure-cli-queue', enabled: cliQueueAvailable(),
+    endpoint: new URL('./__cli_commands', globalThis.location.href).href,
+    capability: localCliQueueCapability()
+  });
+}
+
 /**
  * All command lifecycle and output traffic stays in the data worker.
  * @param {Record<string, unknown>} payload
@@ -154,10 +163,7 @@ function usesCliQueueSources(names, context) {
  */
 export function requestCliQueue(payload, options = {}) {
   if (!cliQueueAvailable()) return Promise.reject(new Error('Command queue is unavailable in this dashboard.'));
-  getWorker()?.postMessage({
-    operation: 'configure-cli-queue', enabled: true,
-    endpoint: new URL('./__cli_commands', globalThis.location.href).href
-  });
+  configureWorkerCliQueue(getWorker());
   return Promise.resolve(processRequest({
     operation: 'cli-queue', ...payload, cliQueueOutput: options.onOutput
   }, () => { throw new Error('Command queue requires the data worker.'); }, false, options.signal));
@@ -1135,10 +1141,7 @@ function getWorker() {
     operation: 'configure-dashboard-data',
     configuration: { statisticalRefreshIntervalMs: statisticalRefreshConfiguration() }
   });
-  processor.postMessage({
-    operation: 'configure-cli-queue', enabled: cliQueueAvailable(),
-    endpoint: new URL('./__cli_commands', globalThis.location.href).href
-  });
+  configureWorkerCliQueue(processor);
   debugDataProcessor({ event: 'worker-created' });
   worker.addEventListener('message', (event) => {
     if (event.data?.type === 'cli-queue-output') {

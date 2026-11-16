@@ -162,6 +162,9 @@ func (a *App) localCLISession() string {
 }
 
 func (a *App) localCLISessionAuthorized(request *http.Request) bool {
+	if token := request.Header.Get("X-CAO-CLI-Session"); token != "" {
+		return a.accessToken != "" && constantTimeTokenEqual(token, a.localCLISession())
+	}
 	cookie, err := request.Cookie(localCLISessionCookie)
 	return err == nil && a.accessToken != "" && constantTimeTokenEqual(cookie.Value, a.localCLISession())
 }

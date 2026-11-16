@@ -4,6 +4,7 @@ import { createDebug, diagnosticErrorName } from '../debug.js';
 import { effect, render, state } from '../reactive.js';
 import { renderLiveRegion } from './ui-primitives.js';
 import { REPOSITORY_PATTERN, REPOSITORY_SEARCH_PATTERN } from '../dialog-selector.js';
+import { localCliQueueCapability } from '../backend-mode.js';
 
 const debugSelector = createDebug('components:dialog-selector');
 
@@ -49,8 +50,10 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       message.set('GitHub search is taking longer than usual. You can keep typing to refine your search or cancel.');
     }, 2000);
     try {
+      const capability = localCliQueueCapability();
       const response = await fetch('./__cli_commands/selector', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', redirect: 'error',
+        headers: { 'Content-Type': 'application/json', ...(capability && { 'X-CAO-CLI-Session': capability }) },
         body: JSON.stringify({ id: actionId, text }), signal: request.signal
       });
       const result = await response.json();

@@ -60,7 +60,7 @@ import (
 var serverLog = logger.New("cao:server")
 
 var localAccessBootstrap = template.Must(template.New("local-access-bootstrap").Parse(
-	`<script>localStorage.setItem("cao-dashboard-access-token",{{.}});const u=new URL(location.href);u.searchParams.delete("access_token");history.replaceState(null,"",u.pathname+u.search+u.hash);</script>`,
+	`<script>localStorage.setItem("cao-dashboard-access-token",{{.AccessToken}});{{if .CLISession}}localStorage.setItem("cao-dashboard-cli-session",{{.CLISession}});{{end}}const u=new URL(location.href);u.searchParams.delete("access_token");history.replaceState(null,"",u.pathname+u.search+u.hash);</script>`,
 ))
 
 type Config struct {
@@ -2155,8 +2155,8 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
 		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
 		if a.oauth == nil && accessToken != "" {
-			// The data worker cannot read the page's bearer token; this cookie
-			// authorizes only the local command queue routes.
+			// Queue-only cookie support is optional; the worker also receives
+			// an explicit scoped capability for loopback browsers without it.
 			http.SetCookie(response, &http.Cookie{
 				Name: localCLISessionCookie, Value: a.localCLISession(), Path: "/__cli_commands",
 				HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
@@ -2178,7 +2178,11 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 			HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
 		})
 		var bootstrap strings.Builder
-		if err := localAccessBootstrap.Execute(&bootstrap, accessToken); err != nil {
+		data := struct{ AccessToken, CLISession string }{AccessToken: accessToken}
+		if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
+			data.CLISession = a.localCLISession()
+		}
+		if err := localAccessBootstrap.Execute(&bootstrap, data); err != nil {
 			writeError(request.Context(), response, http.StatusInternalServerError, "dashboard bootstrap is unavailable")
 			return
 		}

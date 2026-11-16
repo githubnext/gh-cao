@@ -12,6 +12,11 @@ export function localCliQueueAvailable() {
   return cliQueueAvailable() && Reflect.get(globalThis, '__LOCAL_CLI_QUEUE__') === true;
 }
 
+/** @returns {string | null} */
+export function localCliQueueCapability() {
+  return localCliQueueAvailable() ? globalThis.localStorage?.getItem('cao-dashboard-cli-session') ?? null : null;
+}
+
 /** @param {Document} [document] */
 export function usesRemoteDataBackend(document = globalThis.document) {
   const remote = document?.querySelector?.('meta[name="dashboard-data-backend"]')?.getAttribute("content") === "server-http";

@@ -1525,7 +1525,7 @@ if (typeof document === 'undefined' && workerScope) {
       return;
     }
     if (event.data?.operation === 'configure-cli-queue') {
-      configureCliQueue(event.data.enabled === true, event.data.endpoint);
+      configureCliQueue(event.data.enabled === true, event.data.endpoint, event.data.capability);
       return;
     }
     if (event.data?.operation === 'invalidate-github-authentication') {

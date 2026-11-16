@@ -64,6 +64,7 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${preview.url}/?access_token=${preview.headers.Authorization.slice('Bearer '.length)}#page-repositories`);
       await page.setExtraHTTPHeaders({});
+      await page.context().clearCookies();
       const add = page.getByRole('button', { name: 'Add repository', exact: true });
       await expect(add).toBeVisible({ timeout: 30_000 });
       await page.screenshot({ path: testInfo.outputPath(`repositories-${width}.png`), fullPage: true });

@@ -41,10 +41,31 @@ afterEach(() => {
   document.body.replaceChildren();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  localStorage.clear();
   setDeclaredCliActions([]);
 });
 
 describe('declarative external dialog selector', () => {
+  it('uses only the queue-scoped local capability and rejects redirects', async () => {
+    vi.stubGlobal('__CLI_QUEUE__', true);
+    vi.stubGlobal('__LOCAL_CLI_QUEUE__', true);
+    localStorage.setItem('cao-dashboard-cli-session', 'queue-only-capability');
+    localStorage.setItem('cao-dashboard-access-token', 'must-not-be-forwarded');
+    const fetch = vi.fn().mockResolvedValue(response());
+    vi.stubGlobal('fetch', fetch);
+    const control = picker();
+    control.type('octo/repo');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(fetch).toHaveBeenLastCalledWith('./__cli_commands/selector', expect.objectContaining({
+      headers: { 'Content-Type': 'application/json', 'X-CAO-CLI-Session': 'queue-only-capability' },
+      redirect: 'error'
+    }));
+    vi.stubGlobal('__LOCAL_CLI_QUEUE__', false);
+    control.type('octo/other');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(fetch.mock.lastCall?.[1].headers).toEqual({ 'Content-Type': 'application/json' });
+  });
+
   it('disables spelling, capitalization, and correction for repository identifiers', () => {
     const { input } = picker();
     expect(input.getAttribute('spellcheck')).toBe('false');
