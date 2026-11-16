@@ -72,7 +72,7 @@ data.
 | --- | --- |
 | `implemented` | A reviewed definition under `server/internal/sessionarchive/testdata/graders/` matches the pinned upstream values and unavailable states in real DuckDB (`TestGraderReplayEvidence`) and, when configured, Kusto (`TestKustoUsageGraderReplay`). |
 | `extension-ready` | Required evidence is already in the approved archive contract. Only the listed `L*` and `S*` extensions are needed. Feasibility is a reviewed hypothesis until a definition replays. |
-| `evidence-gated` | Requires IR collections outside the approved families (`objectives`, `actions`, `states`, `events`, `attemptResults`, `startupAttemptResults`, and since E1 `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference`). A separate privacy review is needed before any query work. |
+| `evidence-gated` | Requires evidence that no approved family covers. The approved IR families are `objectives`, `actions`, `states`, `events`, `attemptResults` and `startupAttemptResults`, plus, since E1, `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference`. Any other evidence needs a separate privacy review before any query work. |
 | `vocabulary-gated` | Requires a capability that Dashboard Language does not define or that this profile rejects (`G*`). |
 | `out-of-scope` | Excluded by privacy policy, or executes arbitrary code. |
 
