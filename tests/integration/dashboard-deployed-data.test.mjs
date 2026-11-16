@@ -37,7 +37,7 @@ async function fetchDeployedData(url) {
 async function ingestDeployedShards() {
   assert.ok(
     Boolean(deployedManifestUrl) !== Boolean(artifactDirectory),
-    "Select exactly one operational source: DASHBOARD_DATA_URL (explicit manifest) or DASHBOARD_DATA_DIR (cao-activity-index Actions artifact).",
+    "Select exactly one operational source: DASHBOARD_DATA_URL (explicit manifest) or DASHBOARD_DATA_DIR (verified snapshot directory).",
   );
   const load = async (name) => {
     if (artifactDirectory) return readFile(resolve(artifactDirectory, name));

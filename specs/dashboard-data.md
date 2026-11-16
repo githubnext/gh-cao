@@ -453,8 +453,8 @@ explicitly selected, access-controlled input, never a Pages transport.
 Native and JavaScript snapshot acquisition SHALL have no default Pages source.
 An explicit `DASHBOARD_DATA_URL` or URL argument SHALL name an operational
 `payload-hashes.json` directly, not a site root or directory-discovery endpoint.
-Authenticated Actions artifact acquisition followed by PostgreSQL ingestion
-remains supported. This contract does not introduce a hosted export API.
+No Actions workflow publishes an operational snapshot artifact; native
+`gh cao dashboard` collection ingests real evidence into PostgreSQL. This contract does not introduce a hosted export API.
 Operational downloaders SHALL reject synthetic manifests and manifests without
 canonical shard checksums. No canvas acquisition or serving path is supported.
 
@@ -1079,11 +1079,31 @@ typed unavailable evidence rather than failing independent page queries or
 fabricating zero counts. Unknown sources and real query/storage errors SHALL
 still fail. Daily observations SHALL remain explicitly partial, exclude undated
 Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
-NOT grant local rollout, dispatch or hosted execution authority. Separately,
-declared repository maintenance MAY use a private operational command queue
+NOT grant local rollout, dispatch or hosted execution authority.
+Local configuration MAY contribute exact repository identities through the
+canonical inventory ingestion boundary, without inventing collected workflow or
+compiler evidence. The current checkout and explicitly selected repositories
+SHALL remain visible independently of local policy membership. Valid configuration
+changes SHALL refresh subscribed views; invalid changes SHALL be reported without
+replacing the last validated input. These identities grant no activation,
+credential, collection-scope or maintenance-scope authority.
+Separately, declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
-fresh trusted terminal approval per command, and pull-request publication for
-updates and upgrades. Explicit local disable commands MAY omit publication:
+fresh dashboard confirmation per command, same-origin authenticated queue admission,
+and pull-request publication for updates and upgrades. Repository-level Update
+SHALL use `gh aw upgrade` for every exact CAO-managed or built-in repository,
+without requiring retained compiler or source-version evidence. Workflow-specific
+source updates SHALL continue to use `gh aw update`. Publishing maintenance SHALL
+recheck current validated policy at admission and native execution; exact managed
+repositories must satisfy owner/repository bounds, and owner-only bounds SHALL NOT
+grant arbitrary repository access. Revoked queued commands SHALL fail before
+dispatch without blocking subsequent authorized commands.
+The exact repository `github/gh-aw` SHALL be excluded case-insensitively from all
+local operations, including single and bulk repository/workflow actions and
+enrollment. Queue admission and native execution SHALL enforce the exclusion
+independently of presentation or configured scope. Read-only evidence SHALL
+remain available, and similarly named sibling repositories SHALL NOT be excluded.
+Explicit local disable commands MAY omit publication:
 they SHALL cancel in-progress runs before disabling future runs and SHALL use
 the approved repository's checkout for both Markdown inventory and ambient
 GitHub cancellation scope. An individual workflow target MUST be exact, never a

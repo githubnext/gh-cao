@@ -6,7 +6,7 @@ agent:
   prominent: true
 ---
 
-# CAO intelligence
+## CAO intelligence
 
 The CAO intelligence layer turns canonical Activity and Campaign inventory
 evidence into compact, deterministic findings for operators. It answers:
@@ -54,15 +54,10 @@ GitHub during evaluation.
 
 ## Run the current layer
 
-Select a successful Activity run and acquire its operational artifact with
-Actions read access:
-
-```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-```
-
-Provisioned PostgreSQL namespaces can be queried without further GitHub acquisition. For a trusted explicit
-operational manifest URL, use `gh cao download --url URL`. There is no public
+Provisioned PostgreSQL namespaces, including the one managed by
+`gh cao dashboard`, can be queried without further GitHub acquisition. For a
+trusted explicit operational manifest URL, use `gh cao download --url URL`; no
+Actions workflow publishes a snapshot artifact. There is no public
 snapshot default; the Pages demo is synthetic and cannot establish operational
 facts. See [Agent analysis](agent-analysis.md).
 

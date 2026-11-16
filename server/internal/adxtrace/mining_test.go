@@ -27,8 +27,10 @@ func (s *miningSource) ReadMining(_ context.Context, repository, run string, att
 	canonical := "github:run:" + repository + ":" + run
 	member := mining.Membership{Repository: repository, RunID: run, Attempt: int(attempt), ObservedAt: clock.Add(-time.Hour),
 		Context: mining.Context{EpisodeID: "episode", HopID: "hop", ParentHopID: "parent", RootRunID: "1", RootRepo: "octo/root"}}
+	dispositionAt := clock.Add(-2 * time.Hour)
 	outcome := mining.Outcome{Repository: "octo/target", Number: 12, PullRequest: true, URL: "https://github.com/octo/target/pull/12",
-		State: "closed", Merged: true, UpdatedAt: clock.Add(-2 * time.Hour), ObservedAt: clock.Add(-time.Hour), Source: "github-webhook"}
+		State: "closed", Merged: true, CloseActor: "User", DispositionAt: &dispositionAt,
+		UpdatedAt: dispositionAt, ObservedAt: clock.Add(-time.Hour), Source: "github-webhook"}
 	result := sessionexport.MiningSnapshot{Namespace: "canonical-source", Revision: s.revision,
 		Run:     model.Row{"id": canonical, "repositoryId": "repository:" + model.EncodeCoordinate(repository), "attempt": attempt},
 		Audits:  append(member.Audits(), outcome.Audit("output", canonical)),

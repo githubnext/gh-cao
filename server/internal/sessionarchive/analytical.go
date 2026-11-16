@@ -19,10 +19,14 @@ import (
 var ErrQuery = errors.New("invalid archive analytical query")
 
 type Definition struct {
-	Name          string                `json:"name"`
-	Subject       string                `json:"subject"`
-	Objective     string                `json:"objective,omitempty"`
-	Acceptance    string                `json:"acceptance,omitempty"`
+	Name       string `json:"name"`
+	Subject    string `json:"subject"`
+	Objective  string `json:"objective,omitempty"`
+	Acceptance string `json:"acceptance,omitempty"`
+	// Queries are earlier definitions in the same request. Each reads its
+	// immediate predecessor (the first reads an archive source) and the
+	// outer definition reads the last one, so a chain has no unused stages.
+	Queries       []Definition          `json:"queries,omitempty"`
 	From          string                `json:"from"`
 	Filter        *AnalyticalFilter     `json:"filter,omitempty"`
 	Aggregate     *AnalyticalAggregate  `json:"aggregate,omitempty"`
@@ -220,6 +224,8 @@ type PlannedValue struct {
 	As         string
 	Reducer    string
 	Predicates []PlannedPredicate
+	// Order is the explicit input-key order of a real sum over a stage.
+	Order []Column
 }
 
 type PlannedSelection struct {
@@ -235,7 +241,9 @@ type PlannedOrder struct {
 // Plan contains typed operations only. Storage membership and backend syntax
 // belong to the archive adapters, never the caller's query definition.
 type Plan struct {
-	Source        string
+	Source string
+	// Input is the earlier stage this plan reads, or nil for an archive source.
+	Input         *Plan
 	Columns       []Column
 	Inputs        []string
 	Predicates    []PlannedPredicate
@@ -266,6 +274,9 @@ type Capabilities struct {
 	Functions   []string           `json:"functions"`
 	FieldStates []string           `json:"fieldStates"`
 	MaxRows     int                `json:"maxRows"`
+	// Chaining is the maximum number of earlier definitions a query may read
+	// through queries. Zero means the backend rejects chained queries.
+	Chaining int `json:"chaining,omitempty"`
 }
 
 func AnalyticalCapabilities(maxRows int) Capabilities {
@@ -277,10 +288,15 @@ func AnalyticalCapabilities(maxRows int) Capabilities {
 	return c
 }
 
+// maxStages bounds the earlier definitions of one chained query.
+const maxStages = 2
+
 // LocalAnalyticalCapabilities additionally advertises the DuckDB-only item
-// sources. Hosted ADX has no reviewed item lowering and must not advertise them.
+// sources and query chaining. Hosted ADX has no reviewed lowering for either
+// and must not advertise them.
 func LocalAnalyticalCapabilities(maxRows int) Capabilities {
 	c := AnalyticalCapabilities(maxRows)
+	c.Chaining = maxStages
 	for _, item := range itemSources {
 		fields, _ := sourceColumns(item.Name)
 		c.Sources = append(c.Sources, SourceCapability{Name: item.Name, Fields: fields})
@@ -291,6 +307,43 @@ func LocalAnalyticalCapabilities(maxRows int) Capabilities {
 func (p *Plan) Require(c Capabilities) error {
 	if c.LanguageVersion != "0.2.0" || c.Source != eventSource || c.MaxRows < 1 {
 		return ErrQuery
+	}
+	if p.Stages() > c.Chaining {
+		return ErrQuery
+	}
+	for stage := p; stage != nil; stage = stage.Input {
+		if err := stage.require(c); err != nil {
+			return err
+		}
+	}
+	if p.ExplicitLimit && p.Limit > c.MaxRows {
+		return ErrLimit
+	}
+	p.Limit = min(p.Limit, c.MaxRows)
+	return nil
+}
+
+// Stages counts the earlier definitions this plan reads.
+func (p *Plan) Stages() int {
+	n := 0
+	for stage := p.Input; stage != nil; stage = stage.Input {
+		n++
+	}
+	return n
+}
+
+// Base returns the archive source plan at the start of a chain.
+func (p *Plan) Base() *Plan {
+	for p.Input != nil {
+		p = p.Input
+	}
+	return p
+}
+
+func (p *Plan) require(c Capabilities) error {
+	if p.Input != nil {
+		// Stage fields were checked against the stage that produced them.
+		return p.requireOperators(c)
 	}
 	advertised, found := c.Fields, p.Source == c.Source
 	for _, source := range c.Sources {
@@ -314,6 +367,10 @@ func (p *Plan) Require(c Capabilities) error {
 			return ErrQuery
 		}
 	}
+	return p.requireOperators(c)
+}
+
+func (p *Plan) requireOperators(c Capabilities) error {
 	predicates := slices.Clone(p.Predicates)
 	for _, value := range p.Values {
 		predicates = append(predicates, value.Predicates...)
@@ -345,16 +402,54 @@ func (p *Plan) Require(c Capabilities) error {
 			return ErrQuery
 		}
 	}
-	if p.ExplicitLimit && p.Limit > c.MaxRows {
-		return ErrLimit
-	}
-	p.Limit = min(p.Limit, c.MaxRows)
 	return nil
 }
 
+// Plan validates the whole chain before any rows are read (DLS-QUERY-017):
+// stage names are unique and never shadow a source, every stage reads only its
+// immediate predecessor, and every stage output stays keyed by exact trace
+// and projection identity.
 func (d Definition) Plan() (Plan, error) {
-	p := Plan{Source: d.From, Limit: 10000, ExplicitLimit: d.Limit != nil}
+	if len(d.Queries) > maxStages {
+		return Plan{}, ErrQuery
+	}
+	names := map[string]bool{d.Name: true}
+	var input *Plan
+	for i, stage := range d.Queries {
+		_, shadows := sourceColumns(stage.Name)
+		if names[stage.Name] || shadows || len(stage.Queries) != 0 || stage.Aggregate == nil ||
+			stage.Select != nil || stage.OrderBy != nil || stage.Limit != nil ||
+			(i > 0 && stage.From != d.Queries[i-1].Name) || !bindsTrace(stage.Aggregate.By) {
+			return Plan{}, ErrQuery
+		}
+		names[stage.Name] = true
+		planned, err := stage.plan(input)
+		if err != nil {
+			return Plan{}, err
+		}
+		input = &planned
+	}
+	if input != nil && d.From != d.Queries[len(d.Queries)-1].Name {
+		return Plan{}, ErrQuery
+	}
+	return d.plan(input)
+}
+
+func bindsTrace(by []string) bool {
+	for _, binding := range traceBinding {
+		if !slices.Contains(by, binding) {
+			return false
+		}
+	}
+	return true
+}
+
+func (d Definition) plan(input *Plan) (Plan, error) {
+	p := Plan{Source: d.From, Input: input, Limit: 10000, ExplicitLimit: d.Limit != nil}
 	columns, known := sourceColumns(d.From)
+	if input != nil {
+		columns, known = input.Columns, true
+	}
 	if !known || len(d.Name) > 128 || !queryName.MatchString(d.Name) ||
 		strings.TrimSpace(d.Subject) == "" || utf8.RuneCountInString(d.Subject+d.Objective+d.Acceptance) > 512 ||
 		len(d.Select) > 32 || (d.Select != nil && len(d.Select) == 0) || len(d.OrderBy) > 16 ||
@@ -380,7 +475,13 @@ func (d Definition) Plan() (Plan, error) {
 		return Column{Name: name, Type: fields[name]}, nil
 	}
 	planFilter := func(filter *AnalyticalFilter) ([]PlannedPredicate, error) {
-		return planPredicates(filter, read, func(name string) string { return statePath(d.From, name) }, needed)
+		// Stage outputs have no field-state metadata, so state predicates are rejected there.
+		return planPredicates(filter, read, func(name string) string {
+			if input != nil {
+				return ""
+			}
+			return statePath(d.From, name)
+		}, needed)
 	}
 	if d.Filter != nil {
 		var err error
@@ -399,12 +500,17 @@ func (d Definition) Plan() (Plan, error) {
 			available[name] = kind
 		}
 		ties = []string{"Repository", "RunId", "RunAttempt", "TraceId", "ProjectionId", "Sequence"}
-		if d.From != eventSource {
+		if input != nil {
+			ties = nil
+			for _, key := range input.By {
+				ties = append(ties, key.Name)
+			}
+		} else if d.From != eventSource {
 			ties[len(ties)-1] = "Ordinal"
 		}
 	} else {
 		a := d.Aggregate
-		if len(a.By) > 16 || len(a.Values) < 1 || len(a.Values) > 16 {
+		if len(a.By) > 16 || len(a.Values) < 1 || len(a.Values) > 16 || input != nil && !bindsTrace(a.By) {
 			return p, ErrQuery
 		}
 		for _, name := range a.By {
@@ -440,7 +546,34 @@ func (d Definition) Plan() (Plan, error) {
 				return p, ErrQuery
 			}
 			ordered := value.Reducer == "first" || value.Reducer == "sum" && field.Type == "number"
-			if ordered {
+			var order []Column
+			switch {
+			case ordered && input != nil:
+				// A stage row is unique by its input key; a real sum orders by the
+				// key fields not grouped here, preserving sequential IEEE arithmetic.
+				if value.Reducer == "first" {
+					return p, ErrQuery
+				}
+				var remaining []string
+				for _, key := range input.By {
+					if !slices.Contains(a.By, key.Name) {
+						remaining = append(remaining, key.Name)
+					}
+				}
+				if len(value.OrderBy) != len(remaining) {
+					return p, ErrQuery
+				}
+				for i, item := range value.OrderBy {
+					if item.Field != remaining[i] || item.Direction != "" && item.Direction != "asc" {
+						return p, ErrQuery
+					}
+					column, err := read(item.Field)
+					if err != nil {
+						return p, err
+					}
+					order = append(order, column)
+				}
+			case ordered:
 				// Item rows have no reviewed element order; ordered reducers stay event-only.
 				if d.From != eventSource {
 					return p, ErrQuery
@@ -455,7 +588,7 @@ func (d Definition) Plan() (Plan, error) {
 					}
 				}
 				needed["Sequence"] = true
-			} else if len(value.OrderBy) != 0 {
+			case len(value.OrderBy) != 0:
 				return p, ErrQuery
 			}
 			predicates, err := planFilter(value.Filter)
@@ -464,7 +597,7 @@ func (d Definition) Plan() (Plan, error) {
 			}
 			available[value.As] = kind
 			reserved[strings.ToLower(value.As)] = true
-			p.Values = append(p.Values, PlannedValue{Field: field, As: value.As, Reducer: value.Reducer, Predicates: predicates})
+			p.Values = append(p.Values, PlannedValue{Field: field, As: value.As, Reducer: value.Reducer, Predicates: predicates, Order: order})
 		}
 	}
 	if len(d.PostAggregate) > 32 || len(d.PostAggregate) > 0 && d.Aggregate == nil {
@@ -533,7 +666,12 @@ func (d Definition) Plan() (Plan, error) {
 		p.Ties = append(p.Ties, field)
 	}
 	inputs := eventColumns
-	if d.From != eventSource {
+	if input != nil {
+		inputs = nil
+		for _, column := range columns {
+			inputs = append(inputs, column.Name)
+		}
+	} else if d.From != eventSource {
 		inputs = nil
 		for _, column := range columns {
 			inputs = append(inputs, column.Name)

@@ -20,7 +20,11 @@ test("CLI consistency is continuously fed within the existing SelfCare authority
   assert.ok(manifest.includes.includes(`.github/workflows/${id}.md`));
   assert.equal(campaign.mode, "review");
   assert.equal(campaign["max-repositories"], 1);
-  assert.deepEqual(campaign.targets, { "githubnext/gh-cao": { mode: "live" } });
+  assert.deepEqual(campaign.targets, {
+    "githubnext/gh-cao": { mode: "live" },
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
+  });
   assert.equal(dispatch.on.schedule, "every 20 minutes");
   assert.equal(config.on.schedule, undefined);
   assert.equal(config.on["skip-if-match"], `is:pr is:open "gh-aw-workflow-id: ${id}" in:body`);

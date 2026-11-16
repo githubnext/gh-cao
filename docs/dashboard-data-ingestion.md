@@ -40,8 +40,8 @@ existing PostgreSQL storage without DDL, automatic file conversion or synthetic
 bootstrap data. Readiness remains incomplete until an explicitly verified artifact
 or authorized collector publishes canonical evidence.
 
-Use a selected authenticated Actions artifact, a trusted direct manifest URL, or
-the explicitly scoped native collection profile. Structural-only observations may
+Use a trusted direct manifest URL or the explicitly scoped native collection
+profile; no Actions workflow publishes a snapshot artifact. Structural-only observations may
 be available while Run and artifact coverage remain unknown or partial; absence
 must not become healthy zero activity. The synthetic Pages demo is never an
 operational source, repair path or hosted fallback.
@@ -50,7 +50,7 @@ operational source, repair path or hosted fallback.
 
 Native command execution is separate from ingestion. Ordinary read-only Go
 serving and synthetic Pages previews enable no commands. `gh cao dashboard`
-uses the scoped native maintenance adapter with trusted terminal approval;
+uses the scoped native maintenance adapter after dashboard confirmation, without terminal prompts;
 see [the native dashboard guide](cao-cli.md#on-demand-local-dashboard).
 
 ## Hosted server data pipeline
@@ -119,7 +119,7 @@ node scripts/fit-aw-behavior.mjs \
   --output /private/operational/behavior-model.json
 ```
 
-Acquire evidence through authenticated Actions artifacts or bounded `gh aw logs`
+Acquire evidence through a trusted direct manifest or bounded `gh aw logs`
 collection, never the synthetic Pages demo. The estimator uses the production
 gh-aw adapter, canonical normalizer and Dashboard Language query engine. It
 selects the exact execution repository and half-open UTC creation-time window,
@@ -351,8 +351,7 @@ backend, import conversion, writable overlay, or browser fallback.
 
 1. Start an explicitly selected local PostgreSQL instance and configure CAO_POSTGRES_URL.
 2. Provision canonical and operational storage separately with schema-owner credentials.
-3. Acquire an operational cao-activity-index Actions artifact or a trusted direct
-   payload-hashes.json manifest. Acquisition does not select a public Pages source.
+3. Acquire a trusted direct payload-hashes.json manifest with gh cao download --url URL. Acquisition does not select a public Pages source.
 4. Ingest its verified normalized JSONL with cao-dashboard ingest --source DIRECTORY.
 5. Run npm run dashboard:local against that namespace. Set --namespace to the
    exact provisioned namespace when using a non-default dataset.
@@ -366,10 +365,10 @@ server reader. Node cao retains artifact preparation and catalog discovery, not 
 second local database backend. Removed ingestion and repair commands have no
 compatibility path.
 
-Run the installed `gh cao dashboard` command in an interactive terminal. It
+Run the installed `gh cao dashboard` command. It
 acquires bounded recent activity and manages local PostgreSQL unless an explicit
 connection is supplied. Open its private loopback URL in a browser. Maintenance
-requires trusted terminal approval; viewing evidence grants no rollout,
+requires dashboard confirmation before direct queue execution; viewing evidence grants no rollout,
 credential, or hosted execution authority.
 
 ### Query the private session archive

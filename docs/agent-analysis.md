@@ -81,19 +81,20 @@ Do you have shell access?
 ## For a shell-capable agent
 
 1. Verify `gh cao --version`, using the [CAO installer](cao-cli.md#github-cli-extension)
-   if needed. Select a successful default-branch Activity run in the intended
-   control repository and download its operational artifact with Actions read access:
+   if needed. Collect real evidence natively for the intended repositories:
 
    ```bash
-   gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+   gh cao dashboard --repo OWNER/REPO
    ```
 
-   The artifact supplies `.cao/payload-hashes.json`, normalized shards, and
-   no database file. Explicit PostgreSQL ingestion is required before querying.
-   Keep the source run, repository, timestamp, and coverage with your analysis.
+   This manages a local PostgreSQL database and ingests collected evidence.
+   No Actions workflow publishes a snapshot artifact.
 
    If an operator already provides a trusted operational payload location, use
    `gh cao download --url URL` or `DASHBOARD_DATA_URL=URL gh cao download`.
+   The snapshot supplies `.cao/payload-hashes.json`, normalized shards, and
+   no database file. Explicit PostgreSQL ingestion is required before querying.
+   Keep the source, repository, timestamp, and coverage with your analysis.
    The URL must end in `/payload-hashes.json`; no default Pages source,
    site-root discovery, or hosted export API is implied. Synthetic manifests
    and manifests missing canonical shard or inventory checksums are rejected.

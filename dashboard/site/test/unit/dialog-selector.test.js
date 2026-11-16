@@ -41,15 +41,43 @@ afterEach(() => {
   document.body.replaceChildren();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  localStorage.clear();
   setDeclaredCliActions([]);
 });
 
 describe('declarative external dialog selector', () => {
-  it('offers exact input and wildcard patterns only when declared and clears selection on edits', async () => {
+  it('uses only the queue-scoped local capability and rejects redirects', async () => {
+    vi.stubGlobal('__CLI_QUEUE__', true);
+    vi.stubGlobal('__LOCAL_CLI_QUEUE__', true);
+    localStorage.setItem('cao-dashboard-cli-session', 'queue-only-capability');
+    localStorage.setItem('cao-dashboard-access-token', 'must-not-be-forwarded');
+    const fetch = vi.fn().mockResolvedValue(response());
+    vi.stubGlobal('fetch', fetch);
+    const control = picker();
+    control.type('octo/repo');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(fetch).toHaveBeenLastCalledWith('./__cli_commands/selector', expect.objectContaining({
+      headers: { 'Content-Type': 'application/json', 'X-CAO-CLI-Session': 'queue-only-capability' },
+      redirect: 'error'
+    }));
+    vi.stubGlobal('__LOCAL_CLI_QUEUE__', false);
+    control.type('octo/other');
+    await vi.advanceTimersByTimeAsync(300);
+    expect(fetch.mock.lastCall?.[1].headers).toEqual({ 'Content-Type': 'application/json' });
+  });
+
+  it('disables spelling, capitalization, and correction for repository identifiers', () => {
+    const { input } = picker();
+    expect(input.getAttribute('spellcheck')).toBe('false');
+    expect(input.getAttribute('autocapitalize')).toBe('none');
+    expect(input.getAttribute('autocorrect')).toBe('off');
+  });
+
+  it('offers only declared wildcard patterns without GitHub lookup and clears selection on edits', async () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const control = picker({ ...definition, 'allow-patterns': true, mapping: { ...definition.mapping, target: 'repository-pattern' } });
-    for (const value of ['octo/repo', 'octo/service-*', 'octo/*']) {
+    for (const value of ['octo/service-*', 'octo/*']) {
       control.type(value);
       expect(control.select).toHaveBeenLastCalledWith(null);
       control.root.querySelector('button')?.click();
@@ -66,21 +94,56 @@ describe('declarative external dialog selector', () => {
     expect(control.root.querySelector('button')).toBeNull();
   });
 
+  it('resolves typed repository names through GitHub rather than offering unverified exact input', async () => {
+    const fetch = vi.fn().mockResolvedValue(response([{ ...option, value: 'Octo/Repository', label: 'Octo/Repository' }]));
+    vi.stubGlobal('fetch', fetch);
+    const control = picker({ ...definition, 'allow-patterns': true, mapping: { ...definition.mapping, target: 'repository-pattern' } });
+    control.type('octo/repo');
+    expect(control.root.querySelector('button')).toBeNull();
+    expect(control.select).toHaveBeenLastCalledWith(null);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(fetch).toHaveBeenCalledWith('./__cli_commands/selector', expect.objectContaining({
+      body: JSON.stringify({ id: action.id, text: 'octo/repo' })
+    }));
+    control.root.querySelector('button')?.click();
+    expect(control.select).toHaveBeenLastCalledWith('Octo/Repository');
+  });
+
+  it('aborts in-flight search when switching to a wildcard and ignores its late results', async () => {
+    /** @type {((value: ReturnType<typeof response>) => void) | undefined} */
+    let resolveSearch;
+    const fetch = vi.fn().mockImplementation(() => new Promise((resolve) => { resolveSearch = resolve; }));
+    vi.stubGlobal('fetch', fetch);
+    const control = picker({ ...definition, 'allow-patterns': true, mapping: { ...definition.mapping, target: 'repository-pattern' } });
+    control.type('octo/repo');
+    await vi.advanceTimersByTimeAsync(300);
+    control.type('octo/*');
+    expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
+    resolveSearch?.(response());
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(control.root.textContent).toContain('octo/*');
+    expect(control.root.textContent).not.toContain('octo/repo');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('debounces input and uses only action identity and opaque text in requests', async () => {
     const fetch = vi.fn().mockResolvedValue(response());
     vi.stubGlobal('fetch', fetch);
     const control = picker();
-    control.type('o');
-    await vi.advanceTimersByTimeAsync(400);
-    expect(fetch).not.toHaveBeenCalled();
-    control.type('oc');
+    for (const text of ['o', 'octo', 'octo/', '/r']) {
+      control.type(text);
+      await vi.advanceTimersByTimeAsync(400);
+      expect(fetch).not.toHaveBeenCalled();
+    }
+    control.type('octo/ra');
     await vi.advanceTimersByTimeAsync(200);
-    control.type('octo');
+    control.type('octo/r');
     await vi.advanceTimersByTimeAsync(299);
     expect(fetch).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ id: action.id, text: 'octo' });
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ id: action.id, text: 'octo/r' });
     expect(control.root.querySelector('input')?.getAttribute('aria-label')).toBe('Repository');
     control.root.querySelector('button')?.click();
     expect(control.select).toHaveBeenLastCalledWith('octo/repo');
@@ -97,10 +160,10 @@ describe('declarative external dialog selector', () => {
       .mockResolvedValueOnce(response([{ ...option, value: 'octo/new', label: 'octo/new' }]));
     vi.stubGlobal('fetch', fetch);
     const control = picker();
-    control.type('first');
+    control.type('octo/first');
     await vi.advanceTimersByTimeAsync(300);
     const signal = fetch.mock.calls[0][1].signal;
-    control.type('new');
+    control.type('octo/new');
     expect(signal.aborted).toBe(true);
     await vi.advanceTimersByTimeAsync(300);
     resolveFirst?.(response());
@@ -116,7 +179,7 @@ describe('declarative external dialog selector', () => {
     }));
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(options)));
     const control = picker({ ...definition, query: { ...definition.query, limit } });
-    control.type('repo');
+    control.type('octo/repo');
     await vi.advanceTimersByTimeAsync(300);
     expect(control.root.querySelectorAll('.dialog-selector-option')).toHaveLength(limit);
     expect(control.root.textContent).toContain('Showing the first 50 repositories. Refine your search');
@@ -134,7 +197,7 @@ describe('declarative external dialog selector', () => {
     vi.stubGlobal('fetch', fetch);
     const control = picker();
     const results = control.root.querySelector('.dialog-selector-options');
-    control.type('first');
+    control.type('octo/first');
     await vi.advanceTimersByTimeAsync(300);
     expect(control.root.textContent).toContain('Searching repositories...');
     expect(results?.getAttribute('aria-busy')).toBe('true');
@@ -145,7 +208,7 @@ describe('declarative external dialog selector', () => {
     expect(control.root.textContent).toContain('taking longer than usual');
     expect(control.root.textContent).toContain('keep typing');
     expect(control.root.querySelector('button')).toBeNull();
-    control.type('new');
+    control.type('octo/new');
     expect(fetch.mock.calls[0][1].signal.aborted).toBe(true);
     expect(results?.getAttribute('aria-busy')).toBe('false');
     await vi.advanceTimersByTimeAsync(300);
@@ -164,18 +227,18 @@ describe('declarative external dialog selector', () => {
     const fetch = vi.fn().mockImplementation(() => new Promise((_, reject) => { rejectSearch = reject; }));
     vi.stubGlobal('fetch', fetch);
     const control = picker();
-    control.type('failed');
+    control.type('octo/failed');
     await vi.advanceTimersByTimeAsync(300);
     rejectSearch?.(new Error('GitHub search timed out'));
     await vi.advanceTimersByTimeAsync(0);
     expect(control.root.textContent).toContain('GitHub search timed out');
     expect(vi.getTimerCount()).toBe(0);
-    control.type('cancelled');
+    control.type('octo/cancelled');
     await vi.advanceTimersByTimeAsync(300);
     control.cancel();
     expect(fetch.mock.calls[1][1].signal.aborted).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
-    control.type('disposed');
+    control.type('octo/disposed');
     await vi.advanceTimersByTimeAsync(300);
     control.lifetime.abort();
     expect(fetch.mock.calls[2][1].signal.aborted).toBe(true);
@@ -187,17 +250,17 @@ describe('declarative external dialog selector', () => {
       .mockRejectedValueOnce(new Error('Lookup unavailable'));
     vi.stubGlobal('fetch', fetch);
     const control = picker();
-    control.type('empty');
+    control.type('octo/empty');
     await vi.advanceTimersByTimeAsync(300);
     expect(control.root.textContent).toContain('No repositories found.');
-    control.type('failed');
+    control.type('octo/failed');
     await vi.advanceTimersByTimeAsync(300);
     expect(control.root.textContent).toContain('Lookup unavailable');
-    control.type('cancelled');
+    control.type('octo/cancelled');
     control.cancel();
     await vi.advanceTimersByTimeAsync(300);
     expect(fetch).toHaveBeenCalledTimes(2);
-    control.type('disposed');
+    control.type('octo/disposed');
     control.lifetime.abort();
     await vi.advanceTimersByTimeAsync(300);
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -228,7 +291,7 @@ describe('declarative external dialog selector', () => {
     const input = /** @type {HTMLInputElement} */ (root.querySelector('input'));
     expect(confirm.textContent).toBe('Add repository');
     expect(confirm.disabled).toBe(true);
-    input.value = 'octo';
+    input.value = 'octo/r';
     input.dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
     root.querySelector('.dialog-selector-option')?.dispatchEvent(new MouseEvent('click'));

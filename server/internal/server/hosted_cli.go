@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -111,7 +113,6 @@ func (a *App) registerHostedCLIRoutes(register func(string, http.HandlerFunc)) {
 	register("POST /__cli_commands", a.hostedCLIEnqueue)
 	register("GET /__cli_commands", a.hostedCLIList)
 	register("GET /__cli_commands/{id}", a.hostedCLIDetail)
-	register("GET /__cli_commands/{id}/output", a.hostedCLIOutput)
 	register("POST /__cli_commands/{id}/cancel", a.hostedCLICancel)
 	register("POST /__cli_commands/{id}/retry", a.hostedCLIRetry)
 }
@@ -150,13 +151,31 @@ func writeHostedCLIError(ctx context.Context, response http.ResponseWriter, err 
 	}
 }
 
+const localCLISessionCookie = "cao_cli_local"
+
+func (a *App) localCLISession() string {
+	if a.accessToken == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte("cao-cli-command-session\x00" + a.accessToken))
+	return hex.EncodeToString(sum[:])
+}
+
+func (a *App) localCLISessionAuthorized(request *http.Request) bool {
+	if token := request.Header.Get("X-CAO-CLI-Session"); token != "" {
+		return a.accessToken != "" && constantTimeTokenEqual(token, a.localCLISession())
+	}
+	cookie, err := request.Cookie(localCLISessionCookie)
+	return err == nil && a.accessToken != "" && constantTimeTokenEqual(cookie.Value, a.localCLISession())
+}
+
 // authorizeHostedCLI requires a configured administrator with a fresh,
 // assured OAuth step-up. Every hosted CLI route, including reads, exposes
 // operator commands and output.
 func (a *App) authorizeHostedCLI(response http.ResponseWriter, request *http.Request) (oauthSession, bool) {
 	if a.hostedCLI.local != nil {
 		if a.config.OperatorActions == nil ||
-			!a.authorized(request) ||
+			!a.authorized(request) && !a.localCLISessionAuthorized(request) ||
 			(request.Method != http.MethodGet && request.Header.Get("Origin") != "http://"+request.Host) {
 			writeError(request.Context(), response, http.StatusForbidden, "Local command capability and same-origin approval are required.")
 			return oauthSession{}, false
@@ -239,7 +258,7 @@ func idempotencyKey(request *http.Request, body string) string {
 // OAuth token. The executor re-checks permission before it runs.
 func (a *App) admit(ctx context.Context, session oauthSession, request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	if a.hostedCLI.local != nil {
-		return a.admitOperatorAction(request)
+		return a.admitOperatorAction(ctx, request)
 	}
 	if session.GitHubID <= 0 || session.Login == "" {
 		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "A verified requester account identity is required. Sign in again before submitting CLI actions.")
@@ -269,9 +288,8 @@ func (a *App) requireRepositoryWrite(request *http.Request, session oauthSession
 		return err
 	}
 	if a.hostedCLI.local != nil {
-		if !a.hostedCLI.local.allows(command.Repository) {
-			return cliFailure(http.StatusForbidden, "The command is outside the selected repository scope.")
-		}
+		// The local capability owns this queue. Cancellation must remain
+		// available after revocation; retries go through fresh admission below.
 		return nil
 	}
 	if !a.requesterCanWrite(request.Context(), session.AccessToken, command.Repository) {
@@ -510,6 +528,7 @@ func (a *App) hostedCLIOutput(response http.ResponseWriter, request *http.Reques
 		}
 		return controller.Flush() == nil
 	}
+	var lastStatus operational.CLICommandStatus
 	for ctx.Err() == nil {
 		chunks, err := a.hostedCLI.queue.Output(ctx, id, cursor, 128)
 		if err != nil {
@@ -537,6 +556,12 @@ func (a *App) hostedCLIOutput(response http.ResponseWriter, request *http.Reques
 			payload := hostedCLICommandJSON(command)
 			write(map[string]any{"type": "complete", "command": payload, "result": payload["result"]})
 			return
+		}
+		if command.Status != lastStatus {
+			if !write(map[string]any{"type": "status", "command": hostedCLICommandJSON(command)}) {
+				return
+			}
+			lastStatus = command.Status
 		}
 		select {
 		case <-ctx.Done():

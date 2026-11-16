@@ -174,7 +174,10 @@ test("neither bug bash workflow runs without CAO admission", () => {
   assert.equal(policy["max-repositories"], 1);
   assert.equal(policy.workers.investigation["max-mode"], "review", "the worker must be review-capped");
   assert.equal(policy.workers.investigation.workflow, "bug-bash-investigation");
-  assert.equal(policy.targets, undefined, "bug bash must not pin per-repository mode overrides");
+  assert.deepEqual(policy.targets, {
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
+  }, "bug bash enrollment must not grant live mode");
   assert.equal(
     controlPolicy["target-authority"]?.campaigns?.["bug-bash"],
     undefined,
@@ -195,7 +198,7 @@ test("registering bug bash does not broaden unrelated campaigns", () => {
   assert.equal(campaigns.dreaming.mode, "review");
   assert.equal(campaigns.dreaming["max-repositories"], 1);
   assert.equal(campaigns.dependabot.mode, "review");
-  assert.deepEqual(Object.keys(campaigns["bug-bash"]).toSorted(), ["icon", "max-repositories", "mode", "workers"]);
+  assert.deepEqual(Object.keys(campaigns["bug-bash"]).toSorted(), ["icon", "max-repositories", "mode", "targets", "workers"]);
 });
 
 // 3. Bounded dispatch.

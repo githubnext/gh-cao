@@ -3,7 +3,8 @@ import { debounce } from '../debounce.js';
 import { createDebug, diagnosticErrorName } from '../debug.js';
 import { effect, render, state } from '../reactive.js';
 import { renderLiveRegion } from './ui-primitives.js';
-import { REPOSITORY_PATTERN } from '../dialog-selector.js';
+import { REPOSITORY_PATTERN, REPOSITORY_SEARCH_PATTERN } from '../dialog-selector.js';
+import { localCliQueueCapability } from '../backend-mode.js';
 
 const debugSelector = createDebug('components:dialog-selector');
 
@@ -17,7 +18,8 @@ const debugSelector = createDebug('components:dialog-selector');
 export function createDialogSelector(actionId, definition, { signal, select }) {
   const choices = state(/** @type {Array<{ value: string, label: string, description: string }>} */ ([]));
   const selected = state(/** @type {string | null} */ (null));
-  const message = state('Type at least 2 characters to search GitHub repositories.');
+  const searchHint = 'Enter an organization followed by / and at least one repository character, for example octo/s.';
+  const message = state(searchHint);
   const busy = state(false);
   const disabled = state(false);
   let generation = 0;
@@ -48,8 +50,10 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       message.set('GitHub search is taking longer than usual. You can keep typing to refine your search or cancel.');
     }, 2000);
     try {
-      const response = await fetch('./__dialog_selector', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const capability = localCliQueueCapability();
+      const response = await fetch('./__cli_commands/selector', {
+        method: 'POST', redirect: 'error',
+        headers: { 'Content-Type': 'application/json', ...(capability && { 'X-CAO-CLI-Session': capability }) },
         body: JSON.stringify({ id: actionId, text }), signal: request.signal
       });
       const result = await response.json();
@@ -73,6 +77,7 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
   }, definition['debounce-ms']);
   const input = /** @type {HTMLInputElement} */ (h('input', {
     type: 'search', className: 'dialog-selector-input', 'aria-label': definition.label,
+    spellcheck: false, autocapitalize: 'none',
     placeholder: definition.placeholder ?? 'Search repositories', maxLength: 200,
     onInput: () => {
       invalidate();
@@ -81,21 +86,22 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       selected.set(null);
       select(null);
       const text = input.value.trim();
-      if (definition['allow-patterns'] && REPOSITORY_PATTERN.test(text)) {
-        choices.set([{ value: text, label: text, description: text.includes('*')
-          ? 'Use wildcard: resolve accessible matches to exact repositories in review mode.'
-          : 'Use this exact repository; access is verified before enrollment.' }]);
-        message.set('Select this repository or pattern to review the command. No policy changes have been made.');
-        return;
-      }
       if (definition['allow-patterns'] && text.includes('*')) {
+        if (REPOSITORY_PATTERN.test(text)) {
+          choices.set([{ value: text, label: text,
+            description: 'Use wildcard: resolve accessible matches to exact repositories in review mode.' }]);
+          message.set('Select this pattern to review the command. No policy changes have been made.');
+          return;
+        }
         message.set('Enter an owner/repository pattern, for example octo/* or octo/service-*.');
         return;
       }
-      message.set(text.length < 2 ? 'Type at least 2 characters to search GitHub repositories.' : 'Waiting to search...');
-      if (text.length >= 2) lookup(text);
+      const ready = REPOSITORY_SEARCH_PATTERN.test(text);
+      message.set(ready ? 'Waiting to search...' : searchHint);
+      if (ready) lookup(text);
     }
   }));
+  input.setAttribute('autocorrect', 'off');
   const status = renderLiveRegion('output', 'dialog-selector-status');
   const results = h('div', { className: 'dialog-selector-options', role: 'group', 'aria-label': 'Search results' });
   const root = h('div', { className: 'dialog-selector' }, h('label', null, definition.label, input), status, results);
@@ -122,7 +128,7 @@ export function createDialogSelector(actionId, definition, { signal, select }) {
       results.scrollTop = 0;
       selected.set(null);
       choices.set([]);
-      message.set('Type at least 2 characters to search GitHub repositories.');
+      message.set(searchHint);
       select(null);
     }
   };

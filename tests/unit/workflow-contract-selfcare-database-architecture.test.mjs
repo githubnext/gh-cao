@@ -23,7 +23,11 @@ test("database architecture worker is registered without widening SelfCare autho
   assert.deepEqual(campaign.workers["database-architecture"], { workflow: id, enabled: true });
   assert.equal(campaign.mode, "review");
   assert.equal(campaign["max-repositories"], 1);
-  assert.deepEqual(campaign.targets, { "githubnext/gh-cao": { mode: "live" } });
+  assert.deepEqual(campaign.targets, {
+    "githubnext/gh-cao": { mode: "live" },
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
+  });
   const workers = Object.values(descriptor.workers);
   assert.deepEqual([...dispatch["safe-outputs"]["dispatch-workflow"].workflows].sort(), workers.sort());
   assert.equal(dispatch["safe-outputs"]["dispatch-workflow"].max, workers.length);

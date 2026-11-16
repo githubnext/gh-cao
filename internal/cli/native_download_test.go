@@ -60,8 +60,8 @@ func TestNativeDownloadRequiresExplicitSource(t *testing.T) {
 	nativeManagementDirectory(t)
 	t.Setenv("DASHBOARD_DATA_URL", "")
 	cmd, _ := nativeManagementCommand()
-	if err := nativeDownload(cmd, nil); err == nil || !strings.Contains(err.Error(), "gh run download") {
-		t.Fatalf("missing source must explain authenticated artifact acquisition: %v", err)
+	if err := nativeDownload(cmd, nil); err == nil || !strings.Contains(err.Error(), "gh cao dashboard") {
+		t.Fatalf("missing source must explain native collection: %v", err)
 	}
 	if _, err := os.Stat(".cao"); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("unconfigured acquisition created a cache")

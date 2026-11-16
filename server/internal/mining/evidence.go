@@ -14,7 +14,7 @@ import (
 )
 
 const Source = "server-mining"
-const OutcomeRuleVersion = "github-disposition-v1"
+const OutcomeRuleVersion = AdoptionRegistryVersion
 
 type Context struct {
 	EpisodeID      string `json:"episode_id"`
@@ -64,25 +64,30 @@ type Object struct {
 	State       string     `json:"state"`
 	StateReason string     `json:"state_reason"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+	ClosedAt    *time.Time `json:"closed_at"`
 	Merged      bool       `json:"merged"`
 	MergedAt    *time.Time `json:"merged_at"`
 	ClosedBy    *struct {
 		Type string `json:"type"`
 	} `json:"closed_by"`
+	MergedBy *struct {
+		Type string `json:"type"`
+	} `json:"merged_by"`
 }
 
 type Outcome struct {
-	Repository  string    `json:"repository"`
-	Number      int64     `json:"number"`
-	PullRequest bool      `json:"pullRequest"`
-	URL         string    `json:"url"`
-	State       string    `json:"state"`
-	StateReason string    `json:"stateReason,omitempty"`
-	Merged      bool      `json:"merged"`
-	CloseActor  string    `json:"closeActor,omitempty"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	ObservedAt  time.Time `json:"observedAt"`
-	Source      string    `json:"source"`
+	Repository    string     `json:"repository"`
+	Number        int64      `json:"number"`
+	PullRequest   bool       `json:"pullRequest"`
+	URL           string     `json:"url"`
+	State         string     `json:"state"`
+	StateReason   string     `json:"stateReason,omitempty"`
+	Merged        bool       `json:"merged"`
+	CloseActor    string     `json:"closeActor,omitempty"`
+	DispositionAt *time.Time `json:"dispositionAt,omitempty"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+	ObservedAt    time.Time  `json:"observedAt"`
+	Source        string     `json:"source"`
 }
 
 // Target accepts only exact issue/PR URLs; it never follows a payload-supplied
@@ -125,7 +130,8 @@ func (o Outcome) Validate() error {
 	if target.Repository != o.Repository || target.Number != o.Number || target.PullRequest != o.PullRequest ||
 		(o.State != "open" && o.State != "closed") || o.UpdatedAt.IsZero() || o.ObservedAt.IsZero() ||
 		(o.Source != "github-webhook" && o.Source != "github-api") ||
-		(o.Merged && (!o.PullRequest || o.State != "closed")) {
+		(o.Merged && (!o.PullRequest || o.State != "closed")) ||
+		(o.DispositionAt != nil && (o.DispositionAt.IsZero() || o.State != "closed" || o.DispositionAt.After(o.UpdatedAt))) {
 		return errors.New("inconsistent outcome observation")
 	}
 	return nil
@@ -147,17 +153,32 @@ func (o Outcome) Merge(next Outcome) (Outcome, error) {
 		return o, nil
 	}
 	if next.UpdatedAt.After(o.UpdatedAt) {
+		if o.State == next.State && o.StateReason == next.StateReason && o.Merged == next.Merged {
+			if o.CloseActor != "" && next.CloseActor != "" && o.CloseActor != next.CloseActor {
+				return Outcome{}, errors.New("conflicting disposition actor")
+			}
+			if next.CloseActor == "" {
+				next.CloseActor = o.CloseActor
+			}
+			if next.DispositionAt == nil {
+				next.DispositionAt = copiedTime(o.DispositionAt)
+			}
+		}
 		return next, nil
 	}
 	if o.State != next.State || o.StateReason != next.StateReason || o.Merged != next.Merged ||
-		(o.CloseActor != "" && next.CloseActor != "" && o.CloseActor != next.CloseActor) {
+		(o.CloseActor != "" && next.CloseActor != "" && o.CloseActor != next.CloseActor) ||
+		(o.DispositionAt != nil && next.DispositionAt != nil && !o.DispositionAt.Equal(*next.DispositionAt)) {
 		return Outcome{}, errors.New("conflicting same-time outcome observations")
 	}
-	if o.CloseActor != "" || next.CloseActor == "" {
-		return o, nil
+	merged := o
+	if merged.CloseActor == "" {
+		merged.CloseActor = next.CloseActor
 	}
-	next.ObservedAt = o.ObservedAt
-	return next, nil
+	if merged.DispositionAt == nil {
+		merged.DispositionAt = copiedTime(next.DispositionAt)
+	}
+	return merged, nil
 }
 
 func (m Membership) Validate() error {
@@ -203,34 +224,36 @@ func (m Membership) Audits() []model.Row {
 }
 
 func (o Outcome) Evaluation() (status, signal string) {
-	switch {
-	case o.PullRequest && o.Merged:
-		return "accepted", "merged"
-	case o.PullRequest && o.State == "closed":
-		return "rejected", "closed_without_merge"
-	case o.State == "closed" && o.StateReason == "completed":
-		return "accepted", "completed"
-	case o.State == "closed" && o.StateReason == "not_planned" && o.CloseActor == "Bot":
-		return "lifecycle", "lifecycle"
-	case o.State == "closed" && o.StateReason == "not_planned" && o.CloseActor == "User":
-		return "rejected", "closed_not_planned"
-	case o.State == "open":
-		return "pending", "open"
-	default:
-		return "unknown", "missing_resolution_evidence"
+	outputType := "create_issue"
+	if o.PullRequest {
+		outputType = "create_pull_request"
 	}
+	evaluation := o.EvaluateSafeOutput(outputType)
+	return evaluation.Status, evaluation.Signal
 }
 
 func (o Outcome) Audit(issueID, runID string) model.Row {
-	status, signal := o.Evaluation()
+	outputType := "create_issue"
+	if o.PullRequest {
+		outputType = "create_pull_request"
+	}
+	return o.AuditForSafeOutput(issueID, runID, outputType)
+}
+
+func (o Outcome) AuditForSafeOutput(issueID, runID, outputType string) model.Row {
+	evaluation := o.EvaluateSafeOutput(outputType)
+	eventAt := o.UpdatedAt
+	if evaluation.AcceptedAt != nil {
+		eventAt = *evaluation.AcceptedAt
+	}
 	return model.Row{
 		"id":    "audit:server-mining:outcome:" + model.EncodeCoordinate(issueID),
 		"runId": runID, "source": Source, "type": "outcome.observed",
 		"correlationId": issueID, "targetRepository": o.Repository,
 		"payloadRef": o.URL, "name": OutcomeRuleVersion,
-		"status": status, "code": signal, "decision": o.State,
+		"status": evaluation.Status, "code": evaluation.Signal, "decision": o.State,
 		"scope": "selected_outputs", "evidenceState": "partial",
-		"observedAt": o.ObservedAt, "timestamp": o.UpdatedAt,
+		"observedAt": o.ObservedAt, "timestamp": eventAt,
 		"summary": o.Source,
 	}
 }

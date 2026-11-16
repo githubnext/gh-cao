@@ -1213,9 +1213,9 @@
         "id": "update-repository-sources",
         "level": "operate",
         "label": "Update",
-        "description": "Update all workflows with retained source declarations in this exact repository and publish a pull request. Workflows without source declarations are not updated.",
+        "description": "Upgrade Agentic Workflows tooling, action versions, codemods, and compiled workflows in this exact repository and publish a pull request. Available for every CAO-managed repository, without requiring retained compiler or source-version evidence.",
         "icon": "sync",
-        "command": "gh aw update --repo {{repository}} --create-pull-request",
+        "command": "gh aw upgrade --repo {{repository}} --create-pull-request",
         "placement": "row"
       },
       {

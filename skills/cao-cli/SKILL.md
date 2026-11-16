@@ -52,7 +52,7 @@ below; do not build or install the extension when the runtime or cache is absent
 | Install and register one standalone workflow | `gh cao add WORKFLOW [--force] [--engine ENGINE]` |
 | Install a campaign package | `gh cao add CAMPAIGN` |
 | Enroll one exact repository in review mode | `gh cao repos add OWNER/REPO` |
-| Acquire Activity evidence | `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao` |
+| Collect and view real evidence locally | `gh cao dashboard --repo OWNER/REPO` |
 | Download an explicit operational manifest | `gh cao download --url URL` |
 | Inspect source coverage | Preserve the query result's availability, completeness, and freshness metadata |
 | Discover reviewed dashboard queries | `gh cao pages`, `gh cao queries`, `gh cao query-info QUERY_ID` |

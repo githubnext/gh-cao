@@ -283,6 +283,40 @@ func TestNativeManagementWildcardEnrollment(t *testing.T) {
 	}
 }
 
+func TestNativeManagementEnrollmentExcludesUpstreamFromWildcardMatches(t *testing.T) {
+	nativeManagementDirectory(t)
+	writeTestFile(t, policyPath, nativeManagementPolicy)
+	gh := func(_ context.Context, args ...string) (string, string, error) {
+		if args[0] == "repo" && args[1] == "list" {
+			return `[{"nameWithOwner":"GitHub/gh-aw","visibility":"PUBLIC"},{"nameWithOwner":"GitHub/gh-aw-actions","visibility":"PUBLIC"}]`, "", nil
+		}
+		if args[0] == "repo" && args[1] == "view" && args[2] == "GitHub/gh-aw-actions" {
+			return args[2], "", nil
+		}
+		t.Fatalf("excluded repository reached lookup or an unexpected operation: %v", args)
+		return "", "", nil
+	}
+	cmd, output, _ := testCommand(t, gh, nil)
+	cmd.SetArgs([]string{"repos", "add", "github/gh-aw*"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	policy, err := nativeReadValidatedPolicy()
+	if err != nil {
+		t.Fatal(err)
+	}
+	scope := policy["control-plane"].(map[string]any)["scope"].(map[string]any)
+	if !reflect.DeepEqual(scope["allowed-repositories"], []any{"owner/repo", "GitHub/gh-aw-actions"}) ||
+		!strings.Contains(output.String(), `"excludedRepositories": [`) {
+		t.Fatalf("wildcard enrollment did not filter the upstream repository: %s", output.String())
+	}
+	cmd, _, _ = testCommand(t, gh, nil)
+	cmd.SetArgs([]string{"repos", "add", "GitHub/GH-AW"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("exact upstream enrollment was not rejected")
+	}
+}
+
 func TestNativeManagementEnrollmentRequiresExistingPolicy(t *testing.T) {
 	t.Chdir(t.TempDir())
 	cmd, output, _ := testCommand(t, nil, nil)

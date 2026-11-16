@@ -713,7 +713,16 @@ describe('declarative dashboard queries', () => {
 
     const result = executeDashboardQueries(
       dashboardQueries,
-      { workflows: compilerWorkflows },
+      {
+        repositories: {
+          source: 'repositories', metadata: metadata('repositories'), rows: [
+            { organization: 'acme', repository: 'current', 'repository-coordinate': 'acme/current' },
+            { organization: 'acme', repository: 'service', 'repository-coordinate': 'acme/service' },
+            { organization: 'acme', repository: 'unknown', 'repository-coordinate': 'acme/unknown' }
+          ]
+        },
+        workflows: compilerWorkflows
+      },
       ['maintenance-repositories']
     );
 

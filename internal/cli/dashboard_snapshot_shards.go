@@ -485,7 +485,7 @@ func publishDashboardSnapshotCheckpoint(ctx context.Context, cache string, manif
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	inventory, err := dashboardSnapshotInventory(batch)
+	inventory, err := dashboardSnapshotInventory(ctx, batch)
 	if err != nil {
 		return err
 	}

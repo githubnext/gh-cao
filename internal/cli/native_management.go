@@ -27,6 +27,9 @@ func nativeRepositoryAdd(cmd *cobra.Command, repository string, gh ghExecutor) e
 	if len(repository) > 200 || !nativeSetupRepositoryPattern.MatchString(repository) {
 		return errors.New("repos add requires OWNER/REPO with optional * wildcards")
 	}
+	if !nativeRepositoryOperationsAllowed(repository) {
+		return errors.New("github/gh-aw is excluded from CAO operations")
+	}
 	policy, err := nativeReadValidatedPolicy()
 	if errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("%s is required for repository enrollment", policyPath)
@@ -56,7 +59,12 @@ func nativeRepositoryAdd(cmd *cobra.Command, repository string, gh ghExecutor) e
 		}
 	}
 	canonicals := make([]string, 0, len(requested))
+	excluded := []string{}
 	for _, target := range requested {
+		if !nativeRepositoryOperationsAllowed(target) {
+			excluded = append(excluded, target)
+			continue
+		}
 		stdout, stderr, err := gh(cmd.Context(), "repo", "view", target, "--json", "nameWithOwner", "--jq", ".nameWithOwner")
 		if err != nil {
 			return commandError("Repository access could not be verified", stderr, err)
@@ -66,6 +74,9 @@ func nativeRepositoryAdd(cmd *cobra.Command, repository string, gh ghExecutor) e
 			return nativeErrorf("Repository lookup did not resolve the exact requested repository.")
 		}
 		canonicals = append(canonicals, canonical)
+	}
+	if len(canonicals) == 0 {
+		return errors.New("no eligible repositories remain; github/gh-aw is excluded from CAO operations")
 	}
 	alreadyEnrolled := true
 	message := "Repository is already enrolled; existing policy was preserved."
@@ -113,7 +124,10 @@ func nativeRepositoryAdd(cmd *cobra.Command, repository string, gh ghExecutor) e
 	if !strings.Contains(repository, "*") {
 		identity = canonicals[0]
 	}
-	return printJSON(cmd, map[string]any{"command": "add", "repository": identity, "repositories": canonicals, "policy": policyPath, "alreadyEnrolled": alreadyEnrolled, "message": message})
+	if len(excluded) > 0 {
+		message += " Skipped github/gh-aw because it is excluded from CAO operations."
+	}
+	return printJSON(cmd, map[string]any{"command": "add", "repository": identity, "repositories": canonicals, "excludedRepositories": excluded, "policy": policyPath, "alreadyEnrolled": alreadyEnrolled, "message": message})
 }
 
 func nativeVersion(ctx context.Context, gh ghExecutor) (string, error) {

@@ -432,13 +432,15 @@ func runDashboardServingCLIProcess(t *testing.T, parent context.Context, cli, bi
 	if err := os.Mkdir(directory, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(parent, 45*time.Second)
+	policy := filepath.Join(directory, policyPath)
+	dashboardConfigurationTestPolicy(t, policy, "octo/configured-first")
+	ctx, cancel := context.WithTimeout(parent, 60*time.Second)
 	defer cancel()
 	output := &dashboardServingOutput{ready: make(chan string, 1)}
 	command := exec.CommandContext(ctx, cli, "dashboard", "--repo", "octo/api",
 		"--cache-dir", filepath.Join(directory, "offline canonical cache"),
 		"--server-executable", binary, "--site", builtSite,
-		"--listen", "127.0.0.1:0", "--duration", "10s", "--count", "2")
+		"--listen", "127.0.0.1:0", "--duration", "30s", "--count", "2")
 	command.Dir = directory
 	// No gh executable, inherited credentials, or operator configuration: this
 	// checks offline process serving, not successful GitHub acquisition.
@@ -495,6 +497,60 @@ func runDashboardServingCLIProcess(t *testing.T, parent context.Context, cli, bi
 	if err != nil || response.StatusCode != http.StatusOK ||
 		!bytes.Contains(shell, []byte(`<meta name="dashboard-data-backend" content="server-http">`)) {
 		t.Fatalf("native gh-cao shell bootstrap failed: status=%d error=%v", response.StatusCode, err)
+	}
+	waitConfigured := func(present, absent string) {
+		t.Helper()
+		deadline := time.Now().Add(8 * time.Second)
+		for {
+			request, err := http.NewRequestWithContext(ctx, http.MethodPost, origin+"/api/v1/query",
+				strings.NewReader(`{"sourceNames":["maintenance-repositories"]}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			request.Header.Set("Authorization", "Bearer "+capability.Query().Get("access_token"))
+			request.Header.Set("Content-Type", "application/json")
+			response, err := client.Do(request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var result struct {
+				Sources map[string]struct {
+					Rows []map[string]any `json:"rows"`
+				} `json:"sources"`
+			}
+			decodeErr := json.NewDecoder(response.Body).Decode(&result)
+			_ = response.Body.Close()
+			found, removed, builtin := false, true, false
+			for _, row := range result.Sources["maintenance-repositories"].Rows {
+				found = found || row["repository"] == present
+				removed = removed && row["repository"] != absent
+				builtin = builtin || row["repository"] == "octo/api"
+			}
+			if response.StatusCode == http.StatusOK && decodeErr == nil && found && removed {
+				if !builtin {
+					t.Fatal("current dashboard repository disappeared when local configuration changed")
+				}
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("configuration did not reload repository=%s absent=%s: status=%d %v\n%s",
+					present, absent, response.StatusCode, decodeErr, output.diagnostics())
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	waitConfigured("octo/configured-first", "")
+	dashboardConfigurationTestPolicy(t, policy, "octo/configured-first", "octo/configured-second")
+	waitConfigured("octo/configured-second", "")
+	dashboardConfigurationTestPolicy(t, policy, "octo/configured-second")
+	waitConfigured("octo/configured-second", "octo/configured-first")
+	if err := os.WriteFile(policy, []byte(`{"version":`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1200 * time.Millisecond)
+	waitConfigured("octo/configured-second", "octo/configured-first")
+	if !strings.Contains(output.diagnostics(), "configuration reload failed") {
+		t.Fatal("invalid configuration was not reported")
 	}
 	select {
 	case err := <-done:

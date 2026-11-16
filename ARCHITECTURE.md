@@ -315,9 +315,9 @@ namespace; operators can explicitly clear the affected site's legacy storage.
 There is no standalone Node dashboard CLI, admin server or process replacement.
 The plugin contributes read-only Dashboard Language query and specification tools.
 It registers no canvas, requests no GitHub credentials, and starts no dashboard
-or command executor. Operators run `gh cao dashboard` in an interactive terminal
+or command executor. Operators run `gh cao dashboard`
 and use the private browser URL. The native CLI owns acquisition, managed
-PostgreSQL, and scoped maintenance with trusted terminal approval; the Go server
+PostgreSQL, and scoped maintenance after dashboard confirmation; the Go server
 owns command admission, durable queue state, output, and cancellation.
 The Node authoring host, canvas adapter routes, preview reload socket, and local
 quota helper are removed. Hosted execution retains its separate reviewed
@@ -988,10 +988,10 @@ ownership and production dependencies independent of the implementations.
 Acquisition requires `DASHBOARD_DATA_URL` or an explicit URL naming an operational
 `payload-hashes.json` directly. Site-root and `cao/` discovery are not supported;
 the synthetic Pages site is not an operational snapshot source.
-An authorized operator downloads the Activity artifact
-with `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao`
-and ingests its canonical shards into the selected PostgreSQL namespace. This
-requires Actions read access and introduces no hosted snapshot-export API.
+No Actions workflow publishes a snapshot artifact; `gh cao dashboard` collects
+real evidence natively. An authorized operator ingests a downloaded snapshot's
+canonical shards into the selected PostgreSQL namespace. This introduces no
+hosted snapshot-export API.
 Manifest SHA-256 verification and canonical-version validation precede atomic
 publication; failed ingestion preserves the prior committed state.
 The profile is loopback-only and bearer-authenticated. Database credentials
@@ -1088,9 +1088,16 @@ Source builds select existing server/site paths explicitly. The command only
 serves the dashboard, with automatic collection and refresh; it has no
 public subcommands or remote run mutations and grants no rollout authority or
 hosted CLI execution. A private native adapter enables only declared
-repository maintenance commands in the selected exact scope, with mandatory
-pull-request publication for updates/upgrades and trusted terminal approval for
-every execution. Explicit local disable actions are the only publication
+repository maintenance commands in an exact scope: built-in and CAO-managed
+repositories for publishing updates/upgrades, and explicitly selected repositories
+for destructive disable. There is mandatory
+pull-request publication for updates/upgrades and explicit dashboard confirmation
+before queue admission. Commands execute directly without terminal prompts.
+The exact upstream repository `github/gh-aw` is excluded from all local operations,
+regardless of configuration or explicit selection. Declarative operation queries,
+queue admission, enrollment and native execution enforce the exclusion; read-only
+evidence and sibling repositories are unaffected.
+Explicit local disable actions are the only publication
 exception: they cancel in-progress runs before disabling future runs in the
 approved repository or individual workflow. The adapter prepares that exact
 repository's private checkout for gh-aw's inventory and ambient cancellation
@@ -1101,8 +1108,24 @@ The ordinary bearer-authenticated server owns that queue, requires same-origin
 mutation requests, and proxies validated execution plans to
 the native CLI; only the CLI holds credentials and invokes the embedded gh-aw
 maintenance commands. Subprocess completion must be confirmed before settlement.
-Unix terminal approval is cancellation-scoped; unsupported platforms and missing
-terminals fail closed. Ordinary local serving and hosted administration are unchanged.
+Execution does not require an interactive terminal. Cancellation remains scoped
+to the owned process tree; unsupported platforms fail closed. Ordinary local
+serving and hosted administration are unchanged.
+
+The native owner watches local `cao.json` configuration, validates complete
+documents, and republishes exact configured repository identities through the
+existing inventory snapshot and canonical ingestion boundary. The checkout and
+explicitly selected repositories are permanent built-ins for that session.
+Snapshot publication and ingestion are serialized with collection; the active
+browser view refreshes through normal database revision subscriptions.
+Configuration is local observability input, not deployed rollout authority:
+reload does not widen explicit collection or disable scope, activate
+workflows, or reconfigure authentication/storage. Publishing updates/upgrades
+recheck current validated policy at admission and native execution; canonical
+repository observations never grant that access. Exact managed targets must
+satisfy owner/repository bounds, and owner-only bounds never trigger discovery.
+Invalid input is reported and
+the previous validated configuration remains published.
 
 Local requests use the production PostgreSQL SQL planner and resource limits.
 The local profile retains a 300-unit/minute weighted admission bucket while

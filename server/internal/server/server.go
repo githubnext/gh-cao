@@ -60,7 +60,7 @@ import (
 var serverLog = logger.New("cao:server")
 
 var localAccessBootstrap = template.Must(template.New("local-access-bootstrap").Parse(
-	`<script>localStorage.setItem("cao-dashboard-access-token",{{.}});const u=new URL(location.href);u.searchParams.delete("access_token");history.replaceState(null,"",u.pathname+u.search+u.hash);</script>`,
+	`<script>localStorage.setItem("cao-dashboard-access-token",{{.AccessToken}});{{if .CLISession}}localStorage.setItem("cao-dashboard-cli-session",{{.CLISession}});{{end}}const u=new URL(location.href);u.searchParams.delete("access_token");history.replaceState(null,"",u.pathname+u.search+u.hash);</script>`,
 ))
 
 type Config struct {
@@ -835,6 +835,9 @@ func (a *App) Handler() http.Handler {
 	register("POST /api/v1/refresh", a.refresh)
 	if a.oauth == nil {
 		register("POST /api/v1/ingestion/start", a.startIngestion)
+		if a.hostedCLI != nil && a.hostedCLI.local != nil {
+			register("POST /__cli_commands/selector", a.repositorySelector)
+		}
 	}
 	register("GET /api/repositories", a.repositories)
 	register("GET /api/repositories/{id}", a.repository)
@@ -852,6 +855,9 @@ func (a *App) Handler() http.Handler {
 	register("GET /api/v1/github-quota/usage", a.gitHubQuotaUsage)
 	register("GET /api/v1/github/repos/{owner}/{repo}", a.gitHubRepositoryResource)
 	register("GET /api/v1/github/repos/{owner}/{repo}/releases/latest", a.gitHubReleaseResource)
+	if a.hostedCLI != nil {
+		register("GET /__cli_commands/{id}/output", a.hostedCLIOutput)
+	}
 	a.registerHostedCLIRoutes(register)
 	mux.HandleFunc("/", a.static)
 	handler := a.preAuthRateLimit(a.cors(a.requireAccess(a.rateLimit(mux))))
@@ -2148,6 +2154,14 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 	}
 	if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
 		injections += `<script>globalThis.__CLI_QUEUE__ = true; globalThis.__LOCAL_CLI_QUEUE__ = true;</script>`
+		if a.oauth == nil && accessToken != "" {
+			// Queue-only cookie support is optional; the worker also receives
+			// an explicit scoped capability for loopback browsers without it.
+			http.SetCookie(response, &http.Cookie{
+				Name: localCLISessionCookie, Value: a.localCLISession(), Path: "/__cli_commands",
+				HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
+			})
+		}
 	}
 	if a.oauth != nil {
 		injections += `<meta name="cao-auth-mode" content="github">`
@@ -2164,7 +2178,11 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 			HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
 		})
 		var bootstrap strings.Builder
-		if err := localAccessBootstrap.Execute(&bootstrap, accessToken); err != nil {
+		data := struct{ AccessToken, CLISession string }{AccessToken: accessToken}
+		if a.config.OperatorActions != nil && a.config.OperatorActions.OperatorActions != nil {
+			data.CLISession = a.localCLISession()
+		}
+		if err := localAccessBootstrap.Execute(&bootstrap, data); err != nil {
 			writeError(request.Context(), response, http.StatusInternalServerError, "dashboard bootstrap is unavailable")
 			return
 		}

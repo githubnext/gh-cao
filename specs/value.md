@@ -100,6 +100,80 @@ collector invocation; recurring remote reads require admitted transport.
 Canonical query access is read-only. Private proof and credentials MUST NOT be
 included in public envelopes or sent to dashboard components.
 
+### 2.2 Delivery, adoption, survival, and attributed contribution
+
+Value SHALL distinguish three stages:
+
+1. **Delivery** means a safe-output operation completed successfully and created
+   or applied its declared effect. A recorded request, staged preview, deferred
+   output, delegated placeholder, skipped action, or failed handler is not
+   delivery.
+2. **Adoption** means the delivered effect satisfied its versioned human-decision
+   rule. When GitHub exposes no authoritative human-decision channel for that
+   output type, successful delivery is the frozen fallback adoption event.
+3. **Attributed contribution** means the frozen operational-value function was
+   evaluated around the adoption event and the adopted effect survived the
+   complete post-adoption measurement window.
+
+The implementation registry is
+`server/internal/mining/safe_output_adoption.go`, versioned as
+`gh-aw-v1.2.3-adoption-v1`. It covers all 51 tools shipped in gh-aw v1.2.3 plus
+the dynamic `dispatch_workflow`, `dispatch_repository`, `call_workflow`, and
+processor-owned `comment_memory` types. Unknown, custom, action-mounted, or
+connector-owned types MUST fail closed until a reviewed provider rule is added.
+
+The registry groups the complete tool inventory as follows:
+
+| Effect class | Safe-output types | Adoption rule |
+| --- | --- | --- |
+| Proposal | `create_issue`, `create_pull_request`, `create_discussion`, `create_security_advisory`, `create_code_scanning_alert` | Wait for the authoritative human lifecycle marker. Do not fall back merely because the proposal exists. |
+| Publication | `add_comment`, `add_security_advisory_comment`, `create_check_run`, `create_project`, `create_project_status_update`, `create_pull_request_review_comment`, `reply_to_pull_request_review_comment`, `submit_pull_request_review`, `update_release`, `upload_artifact`, `upload_asset` | Use a verified human marker when available; otherwise adoption falls back to successful delivery. |
+| Mutation | `add_labels`, `add_reviewer`, `assign_milestone`, `assign_to_user`, `autofix_code_scanning_alert`, `close_discussion`, `close_issue`, `close_pull_request`, `dismiss_pull_request_review`, `hide_comment`, `link_sub_issue`, `mark_pull_request_as_ready_for_review`, `merge_pull_request`, `push_to_pull_request_branch`, `remove_labels`, `replace_label`, `resolve_pull_request_review_thread`, `set_issue_field`, `set_issue_type`, `unassign_from_user`, `update_discussion`, `update_issue`, `update_project`, `update_pull_request` | Approved issue suggestions or parent-resource decisions take precedence; without one, successful application is fallback adoption. |
+| Delegation | `approve_workflow_run`, `assign_to_agent`, `call_workflow`, `create_agent_session`, `dispatch_repository`, `dispatch_workflow` | Delivery is fallback adoption, but downstream failure, cancellation, timeout, an unmerged produced pull request, or missing lineage fails the survival gate. |
+| Infrastructure or diagnostics | `comment_memory`, `ledger_append`, `ledger_request_compaction`, `noop`, `push_repo_memory`, `report_incomplete`, `report_missing_data`, `report_missing_tool`, `upload_code_coverage` | Ineligible for attributed Value because they establish no independently observable repository outcome. |
+
+The authoritative human-decision markers are:
+
+| Delivered output | Accepted | Rejected or reversed | Event clock |
+| --- | --- | --- | --- |
+| Created issue | Human closure as completed, or closure by an explicitly linked merged pull request | Human closure as not planned or duplicate; deletion; later reopening | `ClosedEvent.createdAt` or authoritative `closed_at`, never webhook receipt |
+| Created pull request | Human merge, human-enabled auto-merge, or a current-head human approval followed by merge | Closed without merge; reverted accepted change; forced head rewrite that removes the delivered change | `merged_at` or the authoritative decision event |
+| Created discussion | Human-selected answer or human resolution | Duplicate/outdated resolution, deletion, removed answer | `answer_chosen_at`, `closed_at`, or the authoritative event |
+| Draft security advisory | Human publication | Closure or later withdrawal | `published_at`, `closed_at`, or `withdrawn_at` |
+| Code-scanning alert | Fix tied to an accepted commit or pull request | Human dismissal; later reopening | `fixed_at`, `dismissed_at`, or reopening event |
+| Suggested issue mutation | Human approval of the exact pending suggestion | Human dismissal or invalidation | Suggestion `updated_at` and `resolved_by` |
+| Pull-request child output | Applied suggestion, human-resolved review thread, or adoption of the parent pull request | Thread unresolved, review dismissed, parent closed unmerged, or delivered commit removed | Exact review/thread/commit event, then parent merge time |
+| Comment or review publication | Human pin, reply, reaction, applied suggestion, or resolved thread when that marker is part of the frozen rule | Deletion, minimization, dismissal, unresolved thread, or parent rejection | Exact event time; bounded polling is explicit when GitHub exposes no webhook timestamp |
+
+An actor SHALL count as human only when the observed identity is a GitHub
+`User`, is not any recorded safe-output publisher identity, and has the
+authorization required for that decision. A PAT or machine user MUST NOT count
+as human merely because GitHub reports `type: User`. Automation decisions remain
+separate `explicit_automation` evidence.
+
+Every adopted effect SHALL pass a survival gate over the half-open post-event
+window `(acceptedAt, windowEnd]`. A human reversal, unknown-actor reversal,
+resource deletion, content removal, reopened decision, parent rejection,
+downstream failure, or loss of complete observation coverage prevents positive
+attributed Value. Workflow lifecycle cleanup and configured expiry are not human
+rejection, but they end survival; they support Value only when they occur after
+`windowEnd`. A later reversal after the window remains visible as
+`post_window_reversal` and MUST NOT rewrite the finalized historical result.
+
+For an interval metric with duration `D`, maturation `M`, and adoption time `T`,
+the contribution diagnostic evaluates the frozen rule over `[T-D,T)` and
+`[T+M,T+M+D)`. Snapshot metrics instead compare the immutable state immediately
+before the accepted revision with that revision after maturation. Webhooks only
+invalidate and schedule collection; the collector MUST re-read authoritative
+state and use the decision timestamp, not delivery receipt time. Overlapping
+adoptions MUST be grouped or marked shared/ambiguous rather than receiving
+exclusive duplicate credit.
+
+Attributed contribution remains a diagnostic alongside the actor-independent
+primary repository measure. Event alignment supports an operational attribution
+claim, not exclusive causation. Zero and negative measured effects SHALL be
+retained.
+
 The compact adapter exchange is one UTF-8 JSON request on stdin and JSONL
 records on stdout. For example, an orchestrator requests one observation:
 

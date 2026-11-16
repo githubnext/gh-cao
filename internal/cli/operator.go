@@ -33,12 +33,11 @@ func addOperatorCommands(root *cobra.Command, execute runtimeExecutor, github gh
 		textFlag("output", "Local output directory (default .cao)"),
 		textFlag("manifest-sha256", "Trusted SHA-256 digest of the manifest"),
 	}, execute)
-	download.Long = `Download and checksum-verify an operational Activity snapshot.
+	download.Long = `Download and checksum-verify an operational evidence snapshot.
 
 Pass --url or set DASHBOARD_DATA_URL to an explicit payload-hashes.json URL.
 Public Pages demos are synthetic-only and cannot supply operational evidence.
-Alternatively, import the cao-activity-index artifact from a selected CAO Activity run:
-  gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao
+To collect real evidence without a snapshot, run gh cao dashboard --repo OWNER/REPO.
 Ingest the verified artifacts with cao-dashboard ingest --source .cao, then
 query PostgreSQL with --postgres-url or CAO_POSTGRES_URL.`
 	pages := operatorCommand("pages [PAGE_ID]", "List or describe agent-facing dashboard pages", cobra.MaximumNArgs(1), []operatorFlag{dashboardFlag, jsonFlag}, execute)
