@@ -263,6 +263,46 @@ test('mobile title bar keeps the dashboard subtitle adjacent to the page title',
   expect(titleGap).toBeLessThanOrEqual(adjacentTitleGapTolerancePx);
 });
 
+test('mobile title bar stays anchored to the top while the page scrolls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(async (presenterModuleUrl) => {
+    const { renderDashboard } = await import(presenterModuleUrl);
+    document.querySelector('#root')?.append(renderDashboard({
+      document: {
+        languageVersion: '0.1.0',
+        dashboard: {
+          id: 'mobile-sticky-title-dashboard',
+          title: 'gh-cao',
+          repository: 'githubnext/gh-cao',
+          pages: [
+            { id: 'overview', kind: 'custom', title: 'Overview', description: 'Operational dashboard', views: [], sections: [] }
+          ]
+        }
+      },
+      sources: {}
+    }));
+    const filler = document.createElement('div');
+    filler.style.height = '3000px';
+    document.querySelector('.dashboard-page:not([hidden])')?.append(filler);
+  }, 'http://dashboard.test/src/presenter.js');
+
+  const header = page.locator('.org-sidebar');
+  await expect(header.getByRole('heading', { name: 'Overview', level: 1 })).toBeVisible();
+  await page.evaluate(() => window.scrollTo({ top: 1200, behavior: 'instant' }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+  await expect.poll(() => header.evaluate((element) => element.getBoundingClientRect().top)).toBe(0);
+  await expect(header.getByRole('heading', { name: 'Overview', level: 1 })).toBeInViewport();
+
+  const skipLink = page.locator('.skip-link');
+  await skipLink.focus();
+  await expect.poll(() => skipLink.evaluate((element) => element.getBoundingClientRect().top)).toBe(8);
+  await expect.poll(() => skipLink.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return hit !== null && element.contains(hit);
+  })).toBe(true);
+});
+
 test('notification filters and view controls are hidden on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(async ({ documentModel, presenterModuleUrl }) => {
