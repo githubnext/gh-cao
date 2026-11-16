@@ -9,26 +9,59 @@ import (
 )
 
 func TestOutcomeDispositionIsIndependentOfExecution(t *testing.T) {
+	at := testInstant()
 	for _, tc := range []struct {
 		name, state, reason, actor string
-		pr, merged                 bool
+		pr, merged, resolved       bool
 		status, signal             string
 	}{
-		{"merged", "closed", "", "", true, true, "accepted", "merged"},
-		{"unmerged", "closed", "", "", true, false, "rejected", "closed_without_merge"},
-		{"completed", "closed", "completed", "", false, false, "accepted", "completed"},
-		{"bot close", "closed", "not_planned", "Bot", false, false, "lifecycle", "lifecycle"},
-		{"human close", "closed", "not_planned", "User", false, false, "rejected", "closed_not_planned"},
-		{"actor missing", "closed", "not_planned", "", false, false, "unknown", "missing_resolution_evidence"},
-		{"reason missing", "closed", "", "User", false, false, "unknown", "missing_resolution_evidence"},
-		{"open", "open", "", "", false, false, "pending", "open"},
+		{"merged", "closed", "", "User", true, true, true, "accepted", "merged"},
+		{"unmerged", "closed", "", "User", true, false, true, "rejected", "closed_without_merge"},
+		{"completed", "closed", "completed", "User", false, false, true, "accepted", "completed"},
+		{"bot close", "closed", "not_planned", "Bot", false, false, true, "lifecycle", "lifecycle"},
+		{"human close", "closed", "not_planned", "User", false, false, true, "rejected", "closed_not_planned"},
+		{"actor missing", "closed", "not_planned", "", false, false, true, "unknown", "missing_human_resolution_evidence"},
+		{"clock missing", "closed", "not_planned", "User", false, false, false, "unknown", "missing_human_resolution_evidence"},
+		{"reason missing", "closed", "", "User", false, false, true, "unknown", "missing_resolution_evidence"},
+		{"open", "open", "", "", false, false, false, "pending", "open"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			o := Outcome{State: tc.state, StateReason: tc.reason, CloseActor: tc.actor, PullRequest: tc.pr, Merged: tc.merged}
+			if tc.resolved {
+				o.DispositionAt = &at
+			}
 			if status, signal := o.Evaluation(); status != tc.status || signal != tc.signal {
 				t.Fatalf("evaluation = %s/%s, want %s/%s", status, signal, tc.status, tc.signal)
 			}
 		})
+	}
+}
+
+func testInstant() time.Time {
+	return time.Date(2026, 11, 16, 8, 0, 0, 0, time.UTC)
+}
+
+func TestOutcomeRejectsInvalidDispositionClock(t *testing.T) {
+	now := testInstant()
+	base := Outcome{
+		Repository: "octo/api", Number: 1, URL: "https://github.com/octo/api/issues/1",
+		State: "closed", UpdatedAt: now, ObservedAt: now, Source: "github-webhook",
+	}
+	for _, change := range []func(*Outcome){
+		func(o *Outcome) {
+			future := now.Add(time.Minute)
+			o.DispositionAt = &future
+		},
+		func(o *Outcome) {
+			o.State = "open"
+			o.DispositionAt = &now
+		},
+	} {
+		outcome := base
+		change(&outcome)
+		if err := outcome.Validate(); err == nil {
+			t.Fatalf("accepted invalid disposition clock: %+v", outcome)
+		}
 	}
 }
 

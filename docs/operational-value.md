@@ -191,6 +191,21 @@ capture. Ordinary Activity projection and bounded local Value remain
 independent. The default Actions profile has no inbound webhook receiver and
 continues its existing scheduled collection.
 
+Value uses a versioned safe-output adoption registry. Delivery is a successfully
+created or applied safe output. Adoption uses an authoritative human decision
+when GitHub exposes one—such as an issue completed by a human, a merged pull
+request, an answered discussion, or a published advisory. Where no human
+decision channel exists, successful delivery is the explicit fallback. Unknown
+or custom types remain ineligible until reviewed.
+
+Accepted outputs are measured only after a survival window. The collector
+rechecks that the accepted effect was not reverted, removed, reopened,
+unpublished, unassigned, hidden, expired before the cutoff, or invalidated by a
+failed downstream run or session. The before/after diagnostic is anchored to
+the authoritative acceptance time, not webhook receipt time. A surviving zero
+or negative result remains valid evidence; a reversed or unobservable effect
+cannot support positive attributed Value.
+
 The hosted Go worker keeps the installation token out of policy, packets and
 private proof. Its repository-confined API bridge admits REST/core, search and GraphQL
 requests against the same shared installation quota used by Activity; GraphQL

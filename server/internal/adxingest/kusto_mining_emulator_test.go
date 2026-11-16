@@ -33,6 +33,7 @@ func (s *kustoMiningSource) ReadMining(_ context.Context, repository, run string
 	}
 	outcome := mining.Outcome{Repository: "octo/target", Number: number, PullRequest: true,
 		URL: "https://github.com/octo/target/pull/" + run, State: "closed", Merged: true,
+		CloseActor: "User", DispositionAt: &s.updated,
 		UpdatedAt: s.updated, ObservedAt: s.observed, Source: "github-webhook"}
 	output := "output-" + run
 	snapshot := sessionexport.MiningSnapshot{Namespace: "synthetic-canonical", Revision: s.revision,

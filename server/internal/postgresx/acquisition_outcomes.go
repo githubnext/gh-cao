@@ -129,7 +129,7 @@ func decodeNativeOutcome(content []byte, repository string) (mining.Outcome, err
 }
 
 func (s *Store) attributeNativeOutcome(ctx context.Context, tx *sql.Tx, outcome mining.Outcome, runID string) (int, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT i.id,i.run_id,r.run_at FROM issues i
+	rows, err := tx.QueryContext(ctx, `SELECT i.id,i.run_id,r.run_at,i.safe_output_type FROM issues i
 		JOIN runs r ON r.namespace=i.namespace AND r.id=i.run_id AND r.run_at=i.run_at
 		JOIN repositories repo ON repo.namespace=r.namespace AND repo.id=r.repository_id
 		WHERE i.namespace=$1 AND (i.correlation_id=$2 OR i.safe_output_url=$2)
@@ -142,13 +142,13 @@ func (s *Store) attributeNativeOutcome(ctx context.Context, tx *sql.Tx, outcome 
 	}
 	defer func() { _ = rows.Close() }()
 	type reference struct {
-		issue, run string
-		runAt      time.Time
+		issue, run, outputType string
+		runAt                  time.Time
 	}
 	var references []reference
 	for rows.Next() {
 		var ref reference
-		if err := rows.Scan(&ref.issue, &ref.run, &ref.runAt); err != nil {
+		if err := rows.Scan(&ref.issue, &ref.run, &ref.runAt, &ref.outputType); err != nil {
 			_ = rows.Close()
 			return 0, err
 		}
@@ -163,7 +163,7 @@ func (s *Store) attributeNativeOutcome(ctx context.Context, tx *sql.Tx, outcome 
 		return 0, collectnative.ErrCapacity
 	}
 	for _, ref := range references {
-		audit := outcome.Audit(ref.issue, ref.run)
+		audit := outcome.AuditForSafeOutput(ref.issue, ref.run, ref.outputType)
 		if err := validateAuditProjection(audit); err != nil {
 			return 0, err
 		}

@@ -71,8 +71,10 @@ func TestNativeOutcomesSurviveHandoffReprojectionAndConsentWithdrawal(t *testing
 		t.Fatal(err)
 	}
 	now := time.Now().UTC()
+	dispositionAt := now.Add(-time.Minute)
 	outcome := mining.Outcome{Repository: identity.Repository, Number: 42, URL: "https://github.com/octo/api/issues/42",
-		State: "closed", StateReason: "completed", UpdatedAt: now.Add(-time.Minute), ObservedAt: now, Source: "github-webhook"}
+		State: "closed", StateReason: "completed", CloseActor: "User", DispositionAt: &dispositionAt,
+		UpdatedAt: dispositionAt, ObservedAt: now, Source: "github-webhook"}
 	t.Setenv("PATH", "/nonexistent")
 	if err := a.RecordOutcome(t.Context(), scope, outcome); err != nil {
 		t.Fatal(err)
