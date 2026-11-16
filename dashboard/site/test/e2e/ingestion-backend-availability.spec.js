@@ -100,7 +100,7 @@ test(`stale data links to ingested shards without hosted telemetry at ${viewport
     await route.fulfill({ status: 404, body: 'Not found' });
   });
   await page.goto(`${origin}/#page-runs`);
-  const banner = page.locator('[data-notification-id="site-callout:stale-data"]');
+  const banner = page.locator('[data-notification-id="site-callout:stale-data"]:not(.dashboard-notification-exit)');
   await expect(banner).toBeVisible();
   const bannerBounds = await banner.boundingBox();
   const noticesBounds = await page.getByRole('region', { name: 'Notifications' }).boundingBox();
