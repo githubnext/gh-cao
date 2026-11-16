@@ -6,7 +6,7 @@ agent:
   prominent: true
 ---
 
-# CAO intelligence
+## CAO intelligence
 
 The CAO intelligence layer turns canonical Activity and Campaign inventory
 evidence into compact, deterministic findings for operators. It answers:
