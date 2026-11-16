@@ -136,14 +136,19 @@ or a real cluster before hosted support is advertised.
 - **G1 keyword matching.**
   - **Regex dialects:** DuckDB `regexp_matches` is RE2. KQL `matches regex`
     uses Rust `regex` semantics, where `\b` and `\w` are Unicode-aware, while
-    RE2 and JavaScript non-`u` `\b` are ASCII. RE2 `(?i)` also folds `ſ` to
-    `s`, which JavaScript `/i` does not.
+    RE2 and JavaScript non-`u` `\b` are ASCII. RE2 `(?i)` also applies Unicode
+    simple case folding (Kelvin sign `K` to `k`, `ſ` to `s`), which JavaScript
+    non-`u` `/i` does not. On DuckDB, `(?i)\bcheck\b` matches `checKx` where
+    upstream does not. `(?i)\bretry(ing)?\b` is exact on DuckDB only because
+    no letter of `retry(ing)` has a non-ASCII fold, and it still differs on
+    KQL through Unicode `\b`.
   - **Lowering:** a closed keyword list must therefore never be lowered with
     `\b`, `\w` or `(?i)`. It is lowered to explicit ASCII classes, for example
     `(^|[^A-Za-z0-9_])[rR][eE][tT][rR][yY]([iI][nN][gG])?([^A-Za-z0-9_]|$)`.
   - **Measured parity:** on 20,000 fuzzed strings with non-ASCII letters,
     Kelvin sign, long s and dotted or dotless `i`, that DuckDB pattern matched
-    upstream `/\bretry(?:ing)?\b/i` exactly.
+    upstream `/\bretry(?:ing)?\b/i` exactly. The executable evidence in §4.2
+    checks both upstream patterns on DuckDB.
   - **Cost and exclusions:** both engines match in linear time. KQL `has` uses
     different term tokenization and is not an equivalent. Caller-supplied
     JavaScript regex cannot be translated faithfully to either dialect and
@@ -278,6 +283,36 @@ visits (two for RR) is not applicable. These closed forms matched the upstream
 loops on 3,000 random sequences with no mismatch. On DuckDB, DET over 1,000,000
 visits took 113 ms. Counts stay integral until the last division, so results
 are identical across engines (§3.1).
+
+**Executable evidence.** `TestDuckDBLoweringEvidenceIntegration` runs
+reference DuckDB lowerings from
+[`testdata/lowering/`](../server/internal/sessionarchive/testdata/lowering/)
+on every required DuckDB CI run:
+- **Recurrence:** `recurrence.sql` computes RR, DET, LAM and TT with only L2
+  expressions, L3 stages, L4 joins on the trace key and L5
+  `previous`/`row-number` windows.
+- **Keywords:** `keywords.sql` holds the ASCII G1 lowering of the `retries`
+  and `policy-near-miss` keyword patterns.
+
+[`scripts/generate-session-query-lowering-cases.mjs`](../scripts/generate-session-query-lowering-cases.mjs)
+regenerates `cases.json` from the pinned, hash-verified upstream graders. Every
+status and the exact bits of every float64 value must match. The fixture
+covers:
+- Event-order ties and repeated event indexes (last position wins).
+- Dropped elements and the 5,000 and 5,001 item cap.
+- 40 random sequences.
+- About 430 keyword texts with the Kelvin sign, long s and dotted or dotless
+  `i` next to word characters.
+
+Seeded mutations (a changed DET, LAM or TT term, first-wins event order, an
+unstable tiebreak, an off-by-one cap, or `(?i)\b` matching) each fail it.
+
+The reference lowering is stricter than upstream in one declared way.
+Upstream coerces `firstEventIndex` and event `index` with `Number()`, so `null`
+and numeric strings still order visits. Strict S1 typing reports such a trace
+unavailable instead, and the fixture records both outcomes. This SQL is
+evidence for the closed forms, not the production lowerer. The KQL side is
+not executed (§3.1).
 
 ### 4.3 Other graders
 
