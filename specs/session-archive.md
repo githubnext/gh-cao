@@ -577,8 +577,9 @@ The CI gate alone MUST NOT be described as completing those deployment gates.
 
 Real Kusto membership conformance uses the pinned official emulator through
 `scripts/test-kusto-emulator.sh`, with `CAO_SESSION_ARCHIVE_REQUIRE_KUSTO=1`.
-Its manual Actions job requires an explicit default-false EULA acceptance input;
-ordinary CI does not accept terms. The shared `server/internal/sessionarchive/testdata/analytical.json` corpus
+Parquet and Session Archive CI runs it on every trigger on an x86-64 runner,
+under the repository's reviewed license acceptance recorded in the workflow;
+local runs still require explicit `ACCEPT_EULA=Y`. The shared `server/internal/sessionarchive/testdata/analytical.json` corpus
 executes through production DuckDB archive queries and the production KQL
 lowerer against the real emulator. It covers exact counts, integer precision,
 case-sensitive filters, lexical ordering, empty strings, aliases, hidden ties,

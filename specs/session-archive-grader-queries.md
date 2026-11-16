@@ -379,12 +379,13 @@ windows. Phase IDs are stable because ADRs cite them; there is no Phase 3, it
 was folded into Phase 2. Mark an item done only when its definitions replay
 with parity.
 
-Hosted acceptance runs in the opt-in `session-archive-kusto` job of
-`.github/workflows/session-archive.yml`. Dispatching it with
-`accept_kusto_emulator_eula` accepts the Kusto emulator license. The job runs
-`scripts/test-kusto-emulator.sh` against the real emulator on `ubuntu-latest`,
-including the pinned grader replay. Only local ARM development hosts lack the
-emulator. Phases 1b and 2b were accepted in
+Hosted acceptance runs in the `session-archive-kusto` job of
+`.github/workflows/session-archive.yml`, on every pull request and push to `main`
+that touches the archive paths, and in daily CI. The repository's license
+acceptance is recorded in the workflow. The job runs
+`scripts/test-kusto-emulator.sh` against the real emulator on an x86-64
+`ubuntu-latest` runner, including the pinned grader replay. Only local ARM
+development hosts lack the emulator. Phases 1b and 2b were accepted in
 [run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728).
 
 - [x] Inventory the 35 upstream built-ins and classify feasibility at the pin, at `main` `a25e38ee`, and at `main` `789cc9c2`.
