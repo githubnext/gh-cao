@@ -68,11 +68,15 @@ export const viewStyles = `.dashboard-pages { display: flex; flex-direction: col
   from { --metric-number: 0; }
   to { --metric-number: var(--metric-number-target); }
 }
+.view-description { margin: 3px 0 0; color: var(--muted); }
 .metric-card-widget-value { min-height: 1em; align-self: center; color: var(--muted); font-size: 2.5rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 @supports (property: --metric-number) {
   .metric-number-animated { --metric-number: 0; position: relative; color: transparent; counter-reset: metric-number var(--metric-number); animation: metric-number-count 700ms ease-out both; }
   .metric-number-animated::after { content: counter(metric-number); position: absolute; inset: 0; color: var(--metric-card-color, var(--muted)); }
   .factory-station .metric-number-animated::after { color: var(--fg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .metric-number-animated { animation: none; --metric-number: var(--metric-number-target); }
 }
 .metric-card-widget-active .metric-card-widget-value { color: var(--metric-card-color); }
 .metric-card-widget-label { min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; margin: 0; color: var(--muted); font-size: .8125rem; font-weight: 600; letter-spacing: .04em; line-height: 1.35; text-transform: uppercase; }
@@ -167,4 +171,6 @@ export const viewStyles = `.dashboard-pages { display: flex; flex-direction: col
 .view-disclosure[open] .view-disclosure-hint { font-size: 0; }
 .view-disclosure[open] .view-disclosure-hint::after { content: "Hide details"; font-size: .75rem; }
 .view-disclosure > .page-section { padding: 0 14px 14px; }
+.dashboard-full-view .custom-view-grid > .custom-view { padding-inline: var(--dashboard-page-padding-inline); }
+.chart-view-pie { display: grid; gap: 16px; }
 `;
