@@ -1,36 +1,7 @@
 {
  "source_sha": "f0e71a1b4512de16e35b34fe6348365dc378ec81",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T23:18:00Z",
-   "worker_run_id": "43773722096",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43768376457,
-    43766933236,
-    43766019418,
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809,
-    43752704784,
-    43752194225,
-    43746617494,
-    43731625055,
-    43724243400,
-    43721484176,
-    43721157324,
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695
-   ],
-   "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 43655786695 (push d55c91b, 2026-11-14T23:57Z) to 43768376457 (push 14a39d4, 2026-11-15T22:16Z); no queued or in-progress docs run; 0 cancelled; source 14a39d4 = HEAD = source_sha. Gate: 13 successes >= 5. Jobs API re-re...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T23:35:11Z",
    "worker_run_id": "43775326360",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43756384109 (push 8c2dd68, 2026-11-15T20:08Z) to 43840581457 (push f0e71a1, 2026-11-16T09:31Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; no queued or in-progress docs run (10:23Z). Jobs API spot-check of 43840581457 matched stored rows. Cache: docs.yml key node-cache-Linux-x64-npm-7808ecf8 (root lock only; hash re-derived) is live on main (created 2026-11-13T20:57Z); post Set up Node.js 0-1 s in 19/19 (inferred hit; logs API 403 DIFC, not bypassed). Setup+install+post median 13 s (p90 18), 17.1% of exec median 76 s; gate 11.4 s. Realistic levers (node_modules cache est. 3-6 s net, unmeasured; dashboard/site lock in cache path, 34 non-dev packages) fall below gate. Dashboard/deploy job stats: no dashboard job exists (demo is a build step); deploy median 10 s, p90 12 s.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T10:37:30Z",
+   "worker_run_id": "43849991318",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585",
+    "43829639369",
+    "43825070138",
+    "43814432358",
+    "43810351164",
+    "43798031034",
+    "43792211504",
+    "43789359390",
+    "43781377358",
+    "43781088986",
+    "43780290464",
+    "43768376457",
+    "43766933236",
+    "43766019418",
+    "43757990961",
+    "43756384109",
+    "43756218347"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43756218347 (push 10f5e57, 2026-11-15T20:07Z) to 43840581457 (push f0e71a1, 2026-11-16T09:31Z); 20 success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 10:36Z: no newer docs run, none in progress, only stale queued 37642403569. Source f0e71a1 = HEAD = source_sha. Astro step = Build documentation (astro build + validate-agent-docs + agent-docs-discovery test): median 11 s, p90 14 s, 14.3% of exec median 77 s; ceiling 11 s < 60 s and < 15% gate 11.55 s. Output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Not actionable.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -945,8 +945,8 @@
  "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
   {
-   "observed_at": "2026-11-16T10:24:00Z",
-   "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued at 10:23Z; no docs run queued or in progress; new runs unaffected. Maintainer should verify and cancel; this worker is read-only."
+   "observed_at": "2026-11-16T10:37:30Z",
+   "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued at 10:36Z; no docs run queued or in progress; new runs unaffected. Maintainer should verify and cancel; this worker is read-only."
   },
   {
    "observed_at": "2026-11-16T10:24:00Z",
@@ -1749,11 +1749,11 @@
   "note": "Whole-phase removal is a ceiling, not a concrete change. Root lock 656 non-dev packages; dashboard/site lock 34 non-dev packages (--omit=dev), so adding it to the cache path can save only seconds and changes the key (one miss). node_modules restore est. 3-6 s net after restore (unmeasured). Not actionable."
  },
  "astro_step_verified": {
-  "verified_at": "2026-11-16T09:01:16Z",
-  "window": "43753233809..43832040488 (20 completed non-cancelled; 19 push + 1 schedule 43810351164)",
+  "verified_at": "2026-11-16T10:37:30Z",
+  "window": "43756218347..43840581457 (20 successes; 19 push + 1 schedule 43810351164); recomputed from run_timings rows, no refetch",
   "build_docs_s": {
    "median": 11,
-   "p90": 15,
+   "p90": 14,
    "min": 8,
    "max": 16
   },
@@ -1761,7 +1761,7 @@
   "build_docs_share_exec_median_pct": 14.3,
   "gate_15pct_s": 11.55,
   "ceiling_saving_s": 11,
-  "decision": "not actionable: ceiling below 60 s and 15% gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance; partial .astro caching unmeasured",
+  "decision": "not actionable: full removal of Build documentation step (includes validate-agent-docs and agent-docs-discovery test) saves at most 11 s, below 60 s and 15% gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
   "denominator_note": "exec = build job start to deploy job end (workflow execution). Against build-job median 62.5 s the 11 s step would be 17.6%; the mission gate uses workflow execution time."
  }
 }
