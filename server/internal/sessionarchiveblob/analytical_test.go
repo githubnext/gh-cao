@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -356,6 +357,10 @@ func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 		if strings.Contains(query, "PayloadJSON") || strings.Count(source, "PayloadJSON") != 0 ||
 			strings.Contains(kql, "dcount(") || strings.Count(kql, "join ") != strings.Count(kql, "join kind=") {
 			t.Fatalf("%s: payload escaped the item source or a join/count is implicit", entry.Name())
+		}
+		// KQL reserves bare identifiers that start with "__"; only bracket-quoted names may.
+		if regexp.MustCompile(`(^|[^"'\w])__\w`).MatchString(kql) {
+			t.Fatalf("%s: lowering uses a reserved bare KQL identifier", entry.Name())
 		}
 		if plan.Input != nil && strings.Count(query, "| summarize ") != plan.Stages()+3 {
 			t.Fatalf("%s: chained stages were not lowered in order", entry.Name())

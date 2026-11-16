@@ -141,56 +141,56 @@ const traceKeyKQL = "Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId"
 // traces whose collection is absent, empty or invalid. Payload JSON is read only
 // inside these let statements and never reaches the projected source.
 func itemSourceKQL(path, key string, element sessionarchive.Column, events string) (string, string) {
-	walk := "| extend __archive_has=true,__archive_value=parse_json(PayloadJSON)\n"
+	walk := "| extend archive_has=true,archive_value=parse_json(PayloadJSON)\n"
 	for _, segment := range strings.Split(path, ".") {
-		walk += "| extend __archive_has=__archive_has and gettype(__archive_value)==\"dictionary\" and bag_has_key(__archive_value," + literal(segment) + ")\n" +
-			"| extend __archive_value=iff(__archive_has,__archive_value[" + literal(segment) + "],dynamic(null))\n"
+		walk += "| extend archive_has=archive_has and gettype(archive_value)==\"dictionary\" and bag_has_key(archive_value," + literal(segment) + ")\n" +
+			"| extend archive_value=iff(archive_has,archive_value[" + literal(segment) + "],dynamic(null))\n"
 	}
-	lets := "let __archive_events=materialize(" + events + "| project " + traceKeyKQL +
-		",Sequence,PolicyDigest,Gaps,OmissionReasons,__archive_ir=(Type==\"trajectory.ir\" and Phase==\"agent\"),PayloadJSON\n" +
-		"| extend PayloadJSON=iff(__archive_ir,PayloadJSON,\"\"));\n" +
-		"let __archive_traces=materialize(__archive_events\n" +
+	lets := "let archive_events=materialize(" + events + "| project " + traceKeyKQL +
+		",Sequence,PolicyDigest,Gaps,OmissionReasons,archive_ir=(Type==\"trajectory.ir\" and Phase==\"agent\"),PayloadJSON\n" +
+		"| extend PayloadJSON=iff(archive_ir,PayloadJSON,\"\"));\n" +
+		"let archive_traces=materialize(archive_events\n" +
 		// make_set flattens per-event Gaps into their distinct union.
 		"| summarize PolicyDigest=tostring(array_sort_desc(make_set(PolicyDigest))[0]),Gaps=make_set(Gaps) by " + traceKeyKQL + "\n" +
-		"| join kind=leftouter (__archive_events | where __archive_ir | summarize arg_max(Sequence,PayloadJSON,OmissionReasons) by " + traceKeyKQL + ") on " + traceKeyKQL + "\n" +
+		"| join kind=leftouter (archive_events | where archive_ir | summarize arg_max(Sequence,PayloadJSON,OmissionReasons) by " + traceKeyKQL + ") on " + traceKeyKQL + "\n" +
 		"| project-away Namespace1,Repository1,RunId1,RunAttempt1,TraceId1,ProjectionId1\n" + walk +
-		"| extend __archive_collection=iff(__archive_has,gettype(__archive_value),\"\")\n" +
-		"| extend Items=iff(__archive_collection==\"array\",array_length(__archive_value),long(null)));\n"
+		"| extend archive_collection=iff(archive_has,gettype(archive_value),\"\")\n" +
+		"| extend Items=iff(archive_collection==\"array\",array_length(archive_value),long(null)));\n"
 	name := literal(element.Name)
 	numeric := "(\"int\",\"long\",\"real\",\"decimal\")"
 	var value, valid string
-	present := "__archive_has_key"
+	present := "archive_has_key"
 	switch element.Type {
 	case "integer":
-		number := "iff(__archive_raw_kind in " + numeric + ",toreal(__archive_raw),real(null))"
+		number := "iff(archive_raw_kind in " + numeric + ",toreal(archive_raw),real(null))"
 		valid = "(isnotnull(" + number + ") and " + number + "==floor(" + number + ",1.0) and " + number + ">=0.0 and " + number + "<=9007199254740991.0)"
 		value = "iff(" + valid + ",tolong(" + number + "),long(null))"
 	case "boolean":
-		valid = "(__archive_raw_kind==\"bool\")"
-		value = "iff(" + valid + ",tobool(__archive_raw),bool(null))"
+		valid = "(archive_raw_kind==\"bool\")"
+		value = "iff(" + valid + ",tobool(archive_raw),bool(null))"
 	default:
 		// States are visits: a string element is its own id; a record contributes its string id.
-		valid = "(__archive_raw_kind==\"string\")"
-		value = "case(__archive_kind==\"string\",tostring(Element),__archive_kind==\"dictionary\" and " + valid + ",tostring(__archive_raw),\"\")"
-		present = "(__archive_kind==\"string\" or __archive_has_key)"
+		valid = "(archive_raw_kind==\"string\")"
+		value = "case(archive_kind==\"string\",tostring(Element),archive_kind==\"dictionary\" and " + valid + ",tostring(archive_raw),\"\")"
+		present = "(archive_kind==\"string\" or archive_has_key)"
 	}
 	fields := func(collection, item string) string {
 		return "array_concat(iff(" + collection + ",pack_array(\"Items\"),dynamic([])),iff(" + item + ",pack_array(" + name + "),dynamic([])))"
 	}
-	source := "(union (__archive_traces | where coalesce(Items,0)==0 | extend Ordinal=long(null),Element=dynamic(null)),\n" +
-		"(__archive_traces | where Items>0 | mv-expand with_itemindex=Ordinal Element=__archive_value to typeof(dynamic)))\n" +
-		"| extend __archive_kind=iff(isnull(Ordinal),\"\",gettype(Element))\n" +
-		"| extend __archive_has_key=__archive_kind==\"dictionary\" and bag_has_key(Element," + literal(key) + ")\n" +
-		"| extend __archive_raw=iff(__archive_has_key,Element[" + literal(key) + "],dynamic(null))\n" +
-		"| extend __archive_raw_kind=iff(__archive_has_key,gettype(__archive_raw),\"\")\n" +
-		"| extend Kind=case(__archive_kind==\"dictionary\",\"object\",__archive_kind==\"array\",\"array\",__archive_kind==\"string\",\"string\"," +
-		"__archive_kind==\"bool\",\"boolean\",__archive_kind==\"null\",\"null\",__archive_kind in " + numeric + ",\"number\",\"\")\n" +
+	source := "(union (archive_traces | where coalesce(Items,0)==0 | extend Ordinal=long(null),Element=dynamic(null)),\n" +
+		"(archive_traces | where Items>0 | mv-expand with_itemindex=Ordinal Element=archive_value to typeof(dynamic)))\n" +
+		"| extend archive_kind=iff(isnull(Ordinal),\"\",gettype(Element))\n" +
+		"| extend archive_has_key=archive_kind==\"dictionary\" and bag_has_key(Element," + literal(key) + ")\n" +
+		"| extend archive_raw=iff(archive_has_key,Element[" + literal(key) + "],dynamic(null))\n" +
+		"| extend archive_raw_kind=iff(archive_has_key,gettype(archive_raw),\"\")\n" +
+		"| extend Kind=case(archive_kind==\"dictionary\",\"object\",archive_kind==\"array\",\"array\",archive_kind==\"string\",\"string\"," +
+		"archive_kind==\"bool\",\"boolean\",archive_kind==\"null\",\"null\",archive_kind in " + numeric + ",\"number\",\"\")\n" +
 		"| extend " + kqlIdentifier(element.Name) + "=" + value + ",\n" +
 		"OmissionReasons=iff(isnull(OmissionReasons),dynamic([]),OmissionReasons),\n" +
-		"PresentFields=" + fields("__archive_collection!=\"\"", present) + ",\n" +
-		"NullFields=" + fields("__archive_collection==\"null\"", "__archive_raw_kind==\"null\"") + ",\n" +
-		"InvalidFields=" + fields("__archive_collection!=\"\" and __archive_collection!=\"null\" and __archive_collection!=\"array\"",
-		"(__archive_has_key and __archive_raw_kind!=\"null\" and not"+valid+")") + "\n" +
+		"PresentFields=" + fields("archive_collection!=\"\"", present) + ",\n" +
+		"NullFields=" + fields("archive_collection==\"null\"", "archive_raw_kind==\"null\"") + ",\n" +
+		"InvalidFields=" + fields("archive_collection!=\"\" and archive_collection!=\"null\" and archive_collection!=\"array\"",
+		"(archive_has_key and archive_raw_kind!=\"null\" and not"+valid+")") + "\n" +
 		"| project " + traceKeyKQL + ",PolicyDigest,Sequence,Ordinal,Items,Kind," + kqlIdentifier(element.Name) +
 		",Gaps,OmissionReasons,PresentFields,NullFields,InvalidFields\n"
 	return lets, source
