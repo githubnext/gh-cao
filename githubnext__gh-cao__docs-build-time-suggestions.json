@@ -1,36 +1,7 @@
 {
  "source_sha": "0599943dee6451b5cd116095e883d4859eda2dfe",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T16:32:42Z",
-   "worker_run_id": "43735683502",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43731625055,
-    43724243400,
-    43721484176,
-    43721157324,
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695,
-    43639680929,
-    43623754509,
-    43621919773,
-    43616204011,
-    43613020723,
-    43611206032,
-    43608206381,
-    43593405440,
-    43561388555,
-    43536796952
-   ],
-   "outcome": "complete, not actionable; reliability streak ended. Window: latest 20 completed docs.yml runs 43536796952 (push 54e08aa, created 2026-11-14T00:50Z) to 43731625055 (push 88f046c, created 2026-11-15T15:45Z); 0 cancelled, 0 queued or in progress; gh run list re-read 16:30Z: no newer docs run; source c0bfef8 = HEAD = source_sha. Samples: 8 successes (7 push + schedule 43561388555) meet the 5-run gate; 12 failures excluded and disclosed (Build documentation, 43613020723..43721157324). Category step 'Build documentation' (npm run docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery): success median 11.5 s, p90 15 s, range 8-15 s = 14.9 percent of exec median 77 s (p90 92); 15 percent gate 11.55 s. Removing the entire step saves at most 11.5 s, and removal is invalid (deploy consumes dist; validation gates correctness), so no Astro-internal change can clear the gate; 60 s gate unreachable. Astro vs validation split unmeasurable (step logs HTTP 403 DIFC, not bypassed). docs.yml has no Astro output cache (only setup-node cache npm, line 48). Checkout median 24.5 s remains OPEN 20815 (0 comments, unchanged since 2026-11-13T17:41:19Z), not repeated. Reliability, not timing: Build documentation green on 43721484176, 43724243400, 43731625055; no schedule green since 43561388555; 2026-11-16 schedule unverified. No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T16:51:00Z",
    "worker_run_id": "43737576461",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43706435376 (push 7b092ad, created 2026-11-15T10:55Z) to 43792211504 (push 0599943, created 2026-11-16T02:26:49Z), all within 14 days; 0 cancelled, none queued or in progress; newest run 43792211504 is new since the 02:26Z evaluation. Source 0599943 = HEAD = source_sha. Samples: 18 successes meet the 5-run gate; 2 failures (43721157324, 43706435376, both Build documentation) excluded and disclosed. Dependency phase (Set up Node.js + Install dependencies + Post Set up Node.js) median 11 s, p90 15 = 14.7 percent of exec median 75 s; 15 percent gate 11.25 s; the whole phase is the ceiling and removing it is invalid (dist needs node_modules); Install dependencies alone median 8 s p90 11 = 10.7 percent; 60 s gate unreachable. Realistic node_modules restore replacing setup-node + install (restore unmeasured, est. 3-5 s) nets about 6-8 s, below gate. Cache key node-cache-Linux-x64-npm-7808ecf8 unchanged: live entry 263412733 B, created 2026-11-13T20:57:12Z, last accessed 02:31:02Z; root and dashboard lockfiles last changed 7c8faf4 (2026-11-13T20:56Z), so no staleness effect; exact-key hit inferred from Post step 0 s (logs HTTP 403 DIFC, not bypassed). Checkout median 25 s (33 percent of exec) remains OPEN issue 20815 (0 comments, unchanged since 2026-11-13T17:41:19Z), not repeated. Stale queued run 37642403569 still queued (not cancelled; read-only). No suggestion; no create_issue; noop used; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T02:56:01Z",
+   "worker_run_id": "43794401215",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43792211504,
+    43789359390,
+    43781377358,
+    43781088986,
+    43780290464,
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109,
+    43756218347,
+    43753233809,
+    43752704784,
+    43752194225,
+    43746617494,
+    43731625055,
+    43724243400,
+    43721484176,
+    43721157324,
+    43706435376
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43706435376 (push 7b092ad, created 2026-11-15T10:55Z, failure) to 43792211504 (push 0599943, created 2026-11-16T02:26Z, success); fresh gh run list 02:51Z: same 20 IDs, all completed, 0 cancelled, none queued; source 0599943 = HEAD = source_sha. Samples: 18 successes (all push; no schedule in window) meet the 5-run gate; 2 failures (Build documentation, 43706435376 and 43721157324) excluded and disclosed. Category step Build documentation (npm run docs:build): n=18 median 11.5 s, p90 15 s, range 8-16 s = 14.7 percent of run created-to-completed median 78 s and 15.3 percent of build-job-start-to-deploy-end median 75 s; 15 percent gate 11.25-11.7 s; 60 s gate unreachable. Any Astro-internal change saves only part of the 11.5 s; whole-step removal is invalid (deploy consumes dist; validation gates correctness). Read limits: gh transport refused connections from about 02:52Z through 02:56Z (6 failed attempts, not bypassed), so step timings are the immutable-run Jobs API reads stored at 02:38Z in run_timings, cross-checked against the fresh run list (conclusions and wall times match all 20 runs). Cache hits not re-verified this run (logs HTTP 403 DIFC). Outliers disclosed, not excluded: 43789359390 (checkout 70 s, exec 129 s) and 43752194225 (checkout 51 s, exec 111 s); their build-docs step is normal (14 s each), and excluding them leaves the median at 11.5 s. Open 20815 (blobless checkout, OPEN, unchanged since 2026-11-13) not repeated. No suggestion; noop used; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -898,7 +898,7 @@
   "last_accessed_checked": "2026-11-16T02:38:13Z"
  },
  "run_samples": {
-  "evaluated_at": "2026-11-16T02:38:13Z",
+  "evaluated_at": "2026-11-16T02:56:01Z",
   "window": "43706435376 (push 2026-11-15T10:55Z) .. 43792211504 (push 0599943, 2026-11-16T02:26Z)",
   "n_success": 18,
   "n_failed": 2,
@@ -970,10 +970,10 @@
    ]
   },
   "queue_all_20_median_p90_s": [
-   3.0,
+   3,
    4
   ],
-  "note": "Jobs API step timings; step logs unavailable (HTTP 403 DIFC). Nearest-rank p90. Failures excluded: Build documentation on 43721157324, 43706435376. Window has no schedule runs."
+  "note": "Jobs API step timings; step logs unavailable (HTTP 403 DIFC). Nearest-rank p90. Failures excluded: Build documentation on 43721157324, 43706435376. Window has no schedule runs. Re-validated 02:51Z by worker 43794401215: fresh run list matches the window; Jobs API unavailable this run."
  },
  "checkout_probe": {
   "measured_at": "2026-11-13T17:38:10Z",
@@ -1018,8 +1018,8 @@
   ]
  },
  "reliability_blocker": {
-  "observed_at": "2026-11-16T02:38:13Z",
-  "status": "Build documentation green on 18 consecutive docs.yml push runs since fix f02efd0 (43721484176, 13:54Z 2026-11-15; latest 43792211504, 02:26Z 2026-11-16). Last schedule failure 43680980929 (2026-11-15T05:24Z). The 2026-11-16 ~05:23Z schedule is unverified (not yet due at evaluation). Root cause not verified (logs HTTP 403 DIFC)."
+  "observed_at": "2026-11-16T02:56:01Z",
+  "status": "Build documentation green on 18 consecutive docs.yml push runs (re-checked 02:51Z with fresh run list) since fix f02efd0 (43721484176, 13:54Z 2026-11-15; latest 43792211504, 02:26Z 2026-11-16). Last schedule failure 43680980929 (2026-11-15T05:24Z). The 2026-11-16 ~05:23Z schedule is unverified (not yet due at evaluation). Root cause not verified (logs HTTP 403 DIFC)."
  },
  "etag_note": "23:52Z: gh api -i (docs.yml runs endpoint, per_page=1) returned no ETag header; reads not conditional. Completed-run rows are immutable: reuse run_timings and transfer_model.",
  "observations_pending": [
