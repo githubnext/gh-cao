@@ -74,6 +74,12 @@ export async function buildDashboardSite({
   dashboard = filterExperimentalDashboardViews(dashboard, controlSettings.web?.experimental === true);
   if (profile === "demo") {
     dashboard.dashboard.title = "CAO synthetic enterprise demo";
+    dashboard.dashboard.callouts.unshift({
+      id: "synthetic-demo",
+      title: "Synthetic enterprise demo",
+      description: "Fictional enterprise activity, not operational evidence. No live services or commands.",
+      icon: "info",
+    });
     const overview = dashboard.dashboard.pages.find((page) => page.id === "overview");
     if (!overview || !Array.isArray(overview.views)) throw new Error("demo overview page is missing");
     overview.views.unshift({

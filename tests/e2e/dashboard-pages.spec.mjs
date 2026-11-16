@@ -174,7 +174,8 @@ for (const width of [1440, 390]) {
     });
     expect(demoRunIds).toHaveLength(expectedRuns);
     expect(demoRunIds.every(id => String(id).includes("sample-enterprise/"))).toBe(true);
-    await expect(page.locator("body")).toContainText("Synthetic enterprise demo");
+    const demoNotice = page.getByRole("status").filter({ hasText: "Synthetic enterprise demo" });
+    await expect(demoNotice).toBeVisible();
     await expect(page.locator('meta[name="dashboard-deployment"]')).toHaveAttribute("content", "synthetic-demo");
     const screenshot = testInfo.outputPath(`pages-indexeddb-${width}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
@@ -182,6 +183,10 @@ for (const width of [1440, 390]) {
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("#page-title")).toHaveText("Overview");
     await expect(page.locator(".first-load-overlay")).toHaveCount(0);
+    await expect(demoNotice).toBeVisible();
+    await page.evaluate(() => { window.location.hash = "page-runs"; });
+    await expect(page.locator("#page-title")).toHaveText("Runs");
+    await expect(demoNotice).toBeVisible();
     expect(hostedRequests).toEqual([]);
     expect(errors).toEqual([]);
     for (const name of ["payload-hashes.json", "inventory-sources.json"]) {

@@ -202,7 +202,7 @@ test("server build ignores legacy campaign bundles and preserves the standard da
   }
 });
 
-test("Pages demo labels Overview without showing a site-wide demo notification", async () => {
+test("Pages demo labels Overview and declares an unconditional site-wide demo callout", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "dashboard-demo-callout-"));
   try {
     await buildDashboardSite({
@@ -211,7 +211,12 @@ test("Pages demo labels Overview without showing a site-wide demo notification",
       profile: "demo",
     });
     const dashboard = JSON.parse(await readFile(path.join(root, "output/dashboard.json"), "utf8"));
-    assert.ok(!dashboard.dashboard.callouts?.some((callout) => callout.id === "synthetic-demo"));
+    assert.deepEqual(dashboard.dashboard.callouts.filter((callout) => callout.id === "synthetic-demo"), [{
+      id: "synthetic-demo",
+      title: "Synthetic enterprise demo",
+      description: "Fictional enterprise activity, not operational evidence. No live services or commands.",
+      icon: "info",
+    }]);
     const overview = dashboard.dashboard.pages.find((page) => page.id === "overview");
     const chunk = JSON.parse(await readFile(path.join(root, "output", overview.chunk), "utf8"));
     assert.deepEqual(chunk.page.views[0], {
