@@ -649,9 +649,9 @@ an explicit dashboard document and its directory-confined fragments.
 
 Evidence queries use a consistent PostgreSQL read session through the bundled
 Go server. They do not bootstrap schemas, migrate storage or repair files.
-Acquire verified canonical JSONL with `gh cao download --url URL` or an
-authenticated Actions artifact, then ingest into the selected PostgreSQL
-namespace. `gh cao dashboard` manages its own local database by default.
+Acquire verified canonical JSONL with `gh cao download --url URL`, then
+ingest into the selected PostgreSQL namespace; no Actions workflow publishes a
+snapshot artifact. `gh cao dashboard` manages its own local database by default.
 Policy mutations still operate on the current
 control checkout; the executable does not grant rollout authority.
 
@@ -1148,11 +1148,12 @@ when diagnosing the CLI itself and an internal stack trace is needed.
 
 ## Inspect Activity
 
-First download a successful Activity run's bounded operational artifact with
-authenticated Actions read access:
+Use `gh cao dashboard --repo OWNER/REPO` to collect and inspect real evidence
+with a managed local database. Alternatively, download an explicitly configured
+operational snapshot:
 
 ```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+gh cao download --url https://SNAPSHOT-HOST/payload-hashes.json
 ```
 
 This supplies normalized canonical JSONL for explicit PostgreSQL ingestion.

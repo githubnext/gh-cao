@@ -368,8 +368,8 @@ legacy import, conversion, or fallback. Set CAO_POSTGRES_URL explicitly and
 provision canonical and operational namespaces as described in
 [POSTGRES.md](POSTGRES.md). Runtime credentials never bootstrap storage.
 
-Acquire operational evidence explicitly with gh run download, then ingest its
-verified canonical JSONL shards with cao-dashboard ingest --source DIRECTORY.
+Collect real evidence with gh cao dashboard, or download an explicit
+payload-hashes.json snapshot and ingest its verified canonical JSONL shards with cao-dashboard ingest --source DIRECTORY.
 Start the local server with npm run dashboard:local. Paths passed through
 Go's -C server option resolve from server/.
 

@@ -988,10 +988,10 @@ ownership and production dependencies independent of the implementations.
 Acquisition requires `DASHBOARD_DATA_URL` or an explicit URL naming an operational
 `payload-hashes.json` directly. Site-root and `cao/` discovery are not supported;
 the synthetic Pages site is not an operational snapshot source.
-An authorized operator downloads the Activity artifact
-with `gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao`
-and ingests its canonical shards into the selected PostgreSQL namespace. This
-requires Actions read access and introduces no hosted snapshot-export API.
+No Actions workflow publishes a snapshot artifact; `gh cao dashboard` collects
+real evidence natively. An authorized operator ingests a downloaded snapshot's
+canonical shards into the selected PostgreSQL namespace. This introduces no
+hosted snapshot-export API.
 Manifest SHA-256 verification and canonical-version validation precede atomic
 publication; failed ingestion preserves the prior committed state.
 The profile is loopback-only and bearer-authenticated. Database credentials

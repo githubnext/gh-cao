@@ -81,12 +81,6 @@ Use the **same exact repository and workflow** when comparing deployments.
 First confirm that the frozen definition and original packet were validated;
 an evaluation artifact by itself is not a published dashboard result.
 
-- **Pages:** Confirm that the default-branch Activity run accepted the packet
-  and that the subsequent CAO Dashboard build deployed its snapshot. If another
-  workflow owns Pages (as with Documentation Pages), confirm that it mounted
-  that dashboard artifact too. Open **Value** and the workflow report on the
-  deployed site, not a local preview. A completed collector run or dashboard
-  build without a successful deployment does not establish Pages freshness.
 - **Hosted PostgreSQL:** Publish through the authenticated Value API above and
   confirm that the receipt advanced the canonical revision (`updated: true`)
   or was an exact idempotent retry (`updated: false`). Open the same workflow's
@@ -269,11 +263,10 @@ deployed together. Its reviewed `api-requests: 700` ceiling allows Activity to
 refresh it automatically only when that full grant fits above ordinary
 collection's protected reserve.
 
-Collected packets remain in bounded operational artifacts and canonical
-operational stores. Verify the packet in the successful Activity snapshot or
-authorized hosted query result; acquisition or merge alone does not prove
-canonical publication. Download the selected Activity run's `cao-activity-index`
-artifact as described in [Agent analysis](agent-analysis.md).
+Collected packets remain in canonical operational stores. Verify the packet in
+an authorized hosted or local query result; acquisition or merge alone does not
+prove canonical publication. See [Agent analysis](agent-analysis.md) for local
+evidence collection.
 Documentation Pages independently builds a synthetic enterprise demo, not a
 view of this repository's measurements. It consumes no operational artifact,
 and the former `campaigns.dashboard.deploy` setting is removed. Direct hosted

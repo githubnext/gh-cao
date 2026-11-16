@@ -54,7 +54,7 @@ func nativeDownload(cmd *cobra.Command, _ ghExecutor) error {
 
 func nativeDownloadURL(raw string) (*url.URL, error) {
 	if strings.TrimSpace(raw) == "" {
-		return nil, nativeErrorf("An explicit Activity snapshot manifest URL is required: pass --url or set DASHBOARD_DATA_URL to a payload-hashes.json URL. Alternatively, download the cao-activity-index artifact with gh run download RUN_ID --repo OWNER/REPO --name cao-activity-index --dir .cao, then ingest it with cao-dashboard ingest --source .cao.")
+		return nil, nativeErrorf("An explicit snapshot manifest URL is required: pass --url or set DASHBOARD_DATA_URL to a payload-hashes.json URL. To collect real evidence without a snapshot, run gh cao dashboard --repo OWNER/REPO.")
 	}
 	value, err := url.Parse(raw)
 	if err != nil || value.Host == "" || (value.Scheme != "https" && value.Scheme != "http") {

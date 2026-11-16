@@ -453,8 +453,8 @@ explicitly selected, access-controlled input, never a Pages transport.
 Native and JavaScript snapshot acquisition SHALL have no default Pages source.
 An explicit `DASHBOARD_DATA_URL` or URL argument SHALL name an operational
 `payload-hashes.json` directly, not a site root or directory-discovery endpoint.
-Authenticated Actions artifact acquisition followed by PostgreSQL ingestion
-remains supported. This contract does not introduce a hosted export API.
+No Actions workflow publishes an operational snapshot artifact; native
+`gh cao dashboard` collection ingests real evidence into PostgreSQL. This contract does not introduce a hosted export API.
 Operational downloaders SHALL reject synthetic manifests and manifests without
 canonical shard checksums. No canvas acquisition or serving path is supported.
 

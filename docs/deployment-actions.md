@@ -11,15 +11,12 @@ description: Keep operational evidence in bounded Actions artifacts and publish 
 GitHub Actions runs the control plane and collects operational evidence.
 It is not a real-data Pages hosting option:
 
-1. **CAO Activity** collects bounded evidence and publishes the
-   `cao-activity-index` artifact, including verified normalized shards.
-2. **CAO Dashboard** builds and retains an operational
-   `central-agentic-ops-dashboard` artifact for authorized consumers. It does
-   not deploy the artifact to Pages.
-3. Production dashboards use the same-origin **Go/PostgreSQL** host. Local
-   development and analysis use the same Go server with a provisioned **PostgreSQL** namespace
-   snapshot.
-4. The catalog's **Documentation Pages** workflow builds documentation and a
+1. No Actions workflow publishes an operational snapshot or dashboard
+   artifact; the legacy CAO Activity and CAO Dashboard workflows are removed.
+2. Production dashboards use the same-origin **Go/PostgreSQL** host. Local
+   development and analysis use the same Go server with a provisioned
+   **PostgreSQL** namespace; `gh cao dashboard` collects evidence natively.
+3. The catalog's **Documentation Pages** workflow builds documentation and a
    **Synthetic enterprise demo**. It never downloads operational artifacts.
 
 The demo exercises the production canonical pipeline, Dashboard Language
@@ -50,32 +47,28 @@ authentication, and publish reviewed monitoring files. Setup does not configure
 Pages or ask for public-publication consent. Keep a private control repository
 when evidence is non-public.
 
-CAO Activity runs hourly, on manual dispatch, and on relevant default-branch
-pushes. Each successful default-branch Activity run triggers a Dashboard build.
-Automatic Dashboard builds restore the exact triggering run and attempt's cache,
-falling back only to that run's artifact; they cannot substitute another run.
-Manual builds may reuse the latest successful retained snapshot.
-
 Failed or cancelled collection does not publish an invalid replacement.
 Capacity-limited collection may publish explicitly partial coverage; missing
 selected credentials, failed visibility checks, or invalid data remain failures.
-Before the first collection, a manual Dashboard build can produce partial local
-inventory with an empty activity set. This is
-[bootstrap evidence](dashboard-data-ingestion.md#before-the-first-activity-snapshot),
-not proof that remote repositories have no activity.
+Partial coverage is not proof that remote repositories have no activity.
 
-### Reading a snapshot locally
+### Reading evidence locally
 
-Select a successful Activity run and download its artifact with Actions read
-access:
+Collect and serve real evidence with a managed local PostgreSQL database:
 
 ```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+gh cao dashboard --repo OWNER/REPO
+```
+
+For an explicitly configured snapshot, download it and serve it from a catalog
+checkout:
+
+```bash
+gh cao download --url https://SNAPSHOT-HOST/payload-hashes.json
 npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
 ```
 
-The npm command runs from a catalog checkout; relative Go paths resolve from
-`server/`. The selected snapshot is served read-only. For native CLI queries,
+Relative Go paths resolve from `server/`. The selected snapshot is served read-only. For native CLI queries,
 use `gh cao query --postgres-url "$CAO_POSTGRES_URL" ...`.
 
 If an operator already provides a trusted operational payload location,
@@ -124,7 +117,7 @@ none are presenter fixtures. Missing hosted-only commands, administration, or
 live telemetry remain unavailable rather than being fabricated for the demo.
 
 `docs.yml` rebuilds the documentation and demo daily, independently of
-operational Activity or Dashboard freshness. Its deployment uses the ordinary
+operational collection freshness. Its deployment uses the ordinary
 Pages environment and OIDC permissions; agents receive no deployment authority.
 The legacy dashboard artifact workflow is removed, and there is no
 `control-plane.campaigns.dashboard.deploy` setting.
@@ -135,9 +128,9 @@ Isolation, offline recovery, quota behavior, and query conformance still matter.
 
 ## Monitoring and retention
 
-- Inspect Activity and Dashboard workflow logs for artifact, integrity, and
-  coverage failures; inspect Documentation Pages separately for demo failures.
-- Keep operational artifacts bounded and access-controlled. They remain needed
+- Inspect collection logs for integrity and coverage failures; inspect
+  Documentation Pages separately for demo failures.
+- Keep operational snapshots bounded and access-controlled. They remain needed
   for authorized local analysis and hosted ingestion.
 - Actions caches are evictable and artifacts expire. Neither is an archive or
   evidence of complete collection. GitHub history and retained source evidence

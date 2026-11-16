@@ -150,13 +150,13 @@ dashboard queries, Docker Desktop, HA or production deployment acceptance.
 
 ## Real evidence and native login
 
-Acquire an explicitly authorized successful Actions snapshot separately. Retain
-its repository, workflow/run/attempt, source SHA, artifact identity/digest and
-manifest. For example, after verifying the selected run in GitHub:
+Acquire an explicitly authorized operational snapshot separately; no Actions
+workflow publishes one. Retain its source, digest and manifest. For example,
+from an explicitly configured `payload-hashes.json` URL:
 
 ```sh
-gh run download RUN_ID --repo githubnext/gh-cao \
-  --name central-agentic-ops-dashboard --dir /private/path/to/artifact
+DASHBOARD_DATA_URL=https://SNAPSHOT-HOST/payload-hashes.json \
+  go run ./cmd/gh-cao download --output /private/path/to/artifact
 bash server/kubernetes/local.sh ingest /private/path/to/artifact
 ```
 

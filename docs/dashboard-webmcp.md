@@ -133,15 +133,14 @@ WebMCP requires a secure context, so use `https://` or `localhost`.
 1. Use a Chromium-based browser that supports WebMCP and turn on the WebMCP
    testing flag at `chrome://flags/#enable-webmcp-testing`, then restart the
    browser.
-2. Open a dashboard. For real data, select a successful Activity run and
-   download its artifact with Actions read access. From a catalog checkout:
+2. Open a dashboard. For real data, collect natively with a managed local
+   database:
 
    ```bash
-   gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
-   npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
+   gh cao dashboard --repo OWNER/REPO
    ```
 
-   Relative Go paths resolve from `server/`. Pages is only the synthetic
+   No Actions workflow publishes a snapshot artifact. Pages is only the synthetic
    enterprise demo, not an operational snapshot source. To explore WebMCP with
    that sample, use `npm run dashboard:pages:build` followed by
    `npm run dashboard:pages -- --base-path /gh-cao/`.

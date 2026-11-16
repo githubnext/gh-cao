@@ -292,7 +292,7 @@ func nativeSetup(cmd *cobra.Command, gh ghExecutor) error {
 		_, err = io.WriteString(cmd.OutOrStdout(), setupPublishOutput(publication, nativeSetupColorEnabled(cmd.OutOrStdout())))
 		return err
 	}
-	_, err = fmt.Fprint(cmd.OutOrStdout(), "Monitoring configured locally. No commit or push was performed.\nNext: gh cao doctor, then review, commit and push the installed files.\nActions produces operational artifacts for the local or cloud dashboard.\nOptional automation: https://githubnext.github.io/gh-cao/operation-patterns/\n")
+	_, err = fmt.Fprint(cmd.OutOrStdout(), "Monitoring configured locally. No commit or push was performed.\nNext: gh cao doctor, then review, commit and push the installed files.\nView collected evidence with gh cao dashboard or the cloud dashboard.\nOptional automation: https://githubnext.github.io/gh-cao/operation-patterns/\n")
 	return err
 }
 
@@ -574,7 +574,7 @@ func nativeSetupControl(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPro
 	}
 	if prompt == nil {
 		result["nonInteractive"] = true
-		if err := nativeSetupNote(cmd, "Non-interactive setup applied to %s.\nRead and Activity scope: %s\nAuthentication: repository GITHUB_TOKEN (workflow-token)\nEvidence: Actions operational artifacts for the local or cloud dashboard\nCampaigns: none\n", repo, strings.Join(repositories, ", ")); err != nil {
+		if err := nativeSetupNote(cmd, "Non-interactive setup applied to %s.\nRead and Activity scope: %s\nAuthentication: repository GITHUB_TOKEN (workflow-token)\nEvidence: gh cao dashboard or the cloud dashboard\nCampaigns: none\n", repo, strings.Join(repositories, ", ")); err != nil {
 			// The policy has been saved at this point; do not imply rollback.
 			return result, nativeErrorf("Configuration was saved, but completion could not be displayed; run gh cao doctor and review the installed files")
 		}

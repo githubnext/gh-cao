@@ -75,14 +75,15 @@ the dashboard through the Go server:
 ```bash
 npm ci
 npm --prefix dashboard/site ci
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+DASHBOARD_DATA_URL=https://SNAPSHOT-HOST/payload-hashes.json go run ./cmd/gh-cao download
 npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
 ```
 
 `npm run dev` is the same entrypoint. The build composes the campaign documents
 and fragments. Go `serve` ingests verified canonical JSONL into the selected,
-provisioned PostgreSQL namespace. Explicit artifact acquisition can use
-`DASHBOARD_DATA_URL`; there is no default Pages source or database-file import.
+provisioned PostgreSQL namespace. Snapshot acquisition requires an explicit
+`DASHBOARD_DATA_URL`; no Actions workflow publishes a snapshot artifact, and
+there is no default Pages source or database-file import.
 URLs must end in `/payload-hashes.json`, not a site root. Synthetic manifests,
 missing canonical checksums and invalid inputs fail closed.
 Use `--listen 127.0.0.1:8443`, `--postgres-url URL`, or `--site PATH` to override the
