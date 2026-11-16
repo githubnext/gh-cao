@@ -72,7 +72,7 @@ data.
 | --- | --- |
 | `implemented` | A reviewed definition under `server/internal/sessionarchive/testdata/graders/` matches the pinned upstream values and unavailable states in real DuckDB (`TestGraderReplayEvidence`) and, when configured, Kusto (`TestKustoUsageGraderReplay`). |
 | `extension-ready` | Required evidence is already in the approved archive contract. Only the listed `L*` and `S*` extensions are needed. Feasibility is a reviewed hypothesis until a definition replays. |
-| `evidence-gated` | Requires IR collections outside the approved families (`objectives`, `actions`, `states`, `events`, `attemptResults`, `startupAttemptResults`). A separate privacy review is needed before any query work. |
+| `evidence-gated` | Requires IR collections outside the approved families (`objectives`, `actions`, `states`, `events`, `attemptResults`, `startupAttemptResults`, and since E1 `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference`). A separate privacy review is needed before any query work. |
 | `vocabulary-gated` | Requires a capability that Dashboard Language does not define or that this profile rejects (`G*`). |
 | `out-of-scope` | Excluded by privacy policy, or executes arbitrary code. |
 
@@ -98,7 +98,7 @@ MUST reject the query rather than approximate it.
 | G3 | Recursion, graph reachability, or iterative or dynamic-programming algorithms | — | Rejected. Blocks provenance lineage, LZ76 and DTW. The RQA graders do not need it (§4.2). |
 | G4 | Caller-supplied grader configuration or reference data (constraints, reference trajectories or patches, process models) | — | Rejected for the authenticated archive profile. Would need separately reviewed reference evidence. |
 | G5 | Window partitions over eight fields, or definitions over the 4,096-byte request budget | — | Profile budgets, not Dashboard Language gaps. Raising either is a reviewed profile change with new Kusto acceptance. Blocks `recurrence-determinism` (§10). |
-| E1 | Approval of IR `observations`, `toolCalls`, `provenanceEdges`, `resources` or `reference` | — | Privacy review. Observations can carry tool output, which stays excluded. |
+| E1 | Approval of IR `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference` | User decision | **Decided (user-directed).** The user chose to approve the five whole collections ("you can store them all", confirmed as option 1) rather than a field allowlist. They are generated `@evidence` families under transform `cao-approved-events-v3` ([`session-archive.md` §2.2](session-archive.md#22-trajectory-ir-collection-approval-user-directed)). Approval stays explicit per event policy and default-off. It does not approve tool arguments outside these collections, models, cache counters or safe-output titles and URLs. |
 
 ### 3.1 Backend lowering constraints
 
@@ -274,21 +274,39 @@ S1 sources in Phase 5 (§10).
 | `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `implemented` | — | — |
 | `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `implemented` | — | — |
 | `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `implemented` | — | — |
-| `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
-| `exploitation-error` | Unused observations ÷ observations when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
-| `tool-output-consumption-rate` | Tool-originated observations that were consumed ÷ tool-originated observations | no | `evidence-gated` | E1 (`observations`, `toolCalls`), L4 | — |
+| `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet. Distinct states are distinct `ref` of IR `state_change` events, falling back to the state count | no | `extension-ready` | S1 (`observations`, IR `events`), L3, L4 | S |
+| `exploitation-error` | Unused observations ÷ observations when an objective is unmet and observations ≥ distinct visited states. Unused means `consumedByActionIds` is not a non-empty array | no | `extension-ready` | S1 (`observations`, IR `events`), L3, L4 | S |
+| `tool-output-consumption-rate` | Tool-originated observations that were consumed ÷ tool-originated observations. Tool-originated means `sourceToolCallId` names an IR `toolCalls[].id` | no | `extension-ready` | S1 (`observations`, `toolCalls`, nested `consumedByActionIds`), L3, L4 | S |
 | `policy-near-miss` | Unmet guard objectives ÷ guard objectives, where guard objectives are matched by a keyword regex on the description | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the objective `description` field. Also needs S1 (IR `events`) for the safe-output check, L2 and L3 | — |
 | `skill-constraint-coverage` | Configured regex constraints that were exercised and passed | no | `vocabulary-gated` | G1, G4 | — |
 | `event-entropy-rate` | Bigram conditional entropy ÷ log2 of the alphabet size | no | `vocabulary-gated` | G2. Otherwise needs L3, L5 and `concat` | — |
 | `lempel-ziv-trajectory-complexity` | Normalized LZ76 complexity | no | `vocabulary-gated` | G2, G3 | — |
-| `end-to-end-lineage-completeness` | Safe outputs with a provenance path to tool or observation roots | no | `vocabulary-gated` | G3, E1 | — |
-| `action-provenance-coverage` | Consequential actions with a provenance path to evidence roots | no | `vocabulary-gated` | G3, E1 | — |
-| `tool-wise-score` | Longest correct prefix against a reference, with argument credit | no | `vocabulary-gated` | G4, E1, arguments | — |
+| `end-to-end-lineage-completeness` | Safe outputs with a provenance path to tool or observation roots | no | `vocabulary-gated` | G3 (reachability over `provenanceEdges`). E1 is resolved | — |
+| `action-provenance-coverage` | Consequential actions with a provenance path to evidence roots | no | `vocabulary-gated` | G3 (reachability over `provenanceEdges`). E1 is resolved | — |
+| `tool-wise-score` | Longest correct prefix against a reference, with argument credit | no | `vocabulary-gated` | G3 (recursive canonical-JSON argument comparison). Also accumulates fractional per-step credit, so it is not one final integer division. G4 no longer applies: `reference.toolCalls` and the IR `toolCalls` arguments are E1 evidence | — |
 | `trajectory-ndtw` | exp(−DTW ÷ (reference length × threshold)) | no | `vocabulary-gated` | G2, G3, G4 | — |
-| `code-search-recall` | Reference patch files that were located ÷ reference patch files | no | `vocabulary-gated` | G4, E1 (`resources`) | — |
-| `code-read-precision` | Read files in the reference patch ÷ distinct read files | no | `vocabulary-gated` | G4, E1 | — |
-| `code-edit-precision` | Edited files in the reference patch ÷ distinct edited files | no | `vocabulary-gated` | G4, E1 | — |
+| `code-search-recall` | Reference patch files that were located ÷ reference patch files | no | `vocabulary-gated` | G1 (upstream `normalizeFilePath` strips a leading `./` and then every leading `/` by regex; Dashboard Language has `trim` but no prefix stripping). G4 no longer applies: `reference.patch.files` is E1 evidence | — |
+| `code-read-precision` | Read files in the reference patch ÷ distinct read files | no | `vocabulary-gated` | G1 (upstream `normalizeFilePath` strips a leading `./` and then every leading `/` by regex; Dashboard Language has `trim` but no prefix stripping). G4 no longer applies: `reference.patch.files` is E1 evidence | — |
+| `code-edit-precision` | Edited files in the reference patch ÷ distinct edited files | no | `vocabulary-gated` | G1 (upstream `normalizeFilePath` strips a leading `./` and then every leading `/` by regex; Dashboard Language has `trim` but no prefix stripping). G4 no longer applies: `reference.patch.files` is E1 evidence | — |
 | `process-alignment-fitness` | Satisfied checks against a configured process model | no | `vocabulary-gated` | G4 | — |
+
+E1 reclassification notes:
+
+- **Reference source.** For the `reference` graders, upstream searches the
+  trace record itself before the IR (`irCandidates(trace, { includeTrace: true })`).
+  CAO archives only the S2-bound IR `reference`. A trace-level `reference`
+  therefore reports `unavailable` in CAO, a declared S2-style divergence.
+- **Size guard.** Upstream's 5,000-item guard (`withTrajectoryLimits`) covers
+  every IR collection (`events`, `states`, `actions`, `toolCalls`,
+  `observations`, `resources`, `provenanceEdges`, `objectives`, `outputs`) and
+  every `reference` array, whichever collection the grader reads. The Phase 1
+  sources check only the queried collection (§7), so an oversized sibling
+  collection leaves a CAO result `measured` where upstream reports
+  `unavailable`. E1 graders must apply the guard to every IR collection they
+  can bind. Retrofitting the implemented graders is a separate change.
+- **No approximation.** The lineage graders need reachability, and
+  `tool-wise-score` needs recursive canonical JSON. Both stay rejected as G3,
+  with no bounded-depth substitute.
 
 Upstream orders visits by the position of `firstEventIndex` in the IR
 `events`, falling back to `firstEventIndex` and then to the array position,
@@ -363,8 +381,8 @@ not executed (§3.1).
 | Status | Count | Graders |
 | --- | ---: | --- |
 | `implemented` | 14 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained); laminarity, trapping time, dependency order, evidence saturation (joined) |
-| `extension-ready` | 0 | — |
-| `evidence-gated` | 3 | exploration error, exploitation error, tool-output consumption |
+| `extension-ready` | 3 | exploration error, exploitation error, tool-output consumption |
+| `evidence-gated` | 0 | — (E1 decided) |
 | `vocabulary-gated` | 17 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6), determinism (G5) |
 | `out-of-scope` | 1 | loops |
 
@@ -379,7 +397,10 @@ Every backend advertises the item sources, chaining and joins through
 ## 5. Invariants for every new definition
 
 - No new arguments, tool output bodies, models, cache counters, or safe-output
-  titles or URLs are approved to support a grader. Excluded or redacted
+  titles or URLs are approved to support a grader. The only exception is the
+  user-directed E1 decision, which approves the five whole IR collections
+  `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference`
+  and nothing outside them. Excluded or redacted
   evidence keeps the result unavailable and is never normalized to make replay
   pass.
 - Computation happens at query time. No reconciliation, state identity, guard
@@ -420,7 +441,8 @@ development hosts lack the emulator. Phases 1b and 2b were accepted in
 - [x] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). Resume mapping is linear, but the FIFO pointer's skips are sequential state, so the three tool graders are `vocabulary-gated` (G3). Phase 4 still delivers L2, L5 and L6 for Phase 5.
 - [x] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. L2, L5 and L6 replay on DuckDB and real Kusto (§9; [run 43917614253](https://github.com/githubnext/gh-cao/actions/runs/43917614253), and after rebasing with an `Error`-present subtest, [run 43920740101](https://github.com/githubnext/gh-cao/actions/runs/43920740101)), so every backend advertises them. The reconciliation fixture made the three tool graders G3, so Phase 4 unlocks no grader and delivers its vocabulary for Phase 5.
 - [x] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job ([run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793)). Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag`, `recurrence-laminarity` and `recurrence-trapping-time`. `recurrence-determinism` is exact but needs G5, so it is reclassified (§10).
-- [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
+- [x] Decide on E1. User-directed: "you can store them all", confirmed as option 1 (whole collections). The five IR collections are generated `@evidence` families under transform `cao-approved-events-v3`, default-off per event policy ([`session-archive.md` §2.2](session-archive.md#22-trajectory-ir-collection-approval-user-directed)). `exploration-error`, `exploitation-error` and `tool-output-consumption-rate` become `extension-ready`; the lineage, `tool-wise-score` and `code-*` graders stay `vocabulary-gated` on G3 or G1 only (§4.2).
+- [ ] **E1 graders:** S1 `archive-observations` and `archive-tool-calls` with nested `consumedByActionIds`, on top of Phase 5's L4 and IR `events`. Unlocks `exploration-error`, `exploitation-error` and `tool-output-consumption-rate`.
 - [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
 
 ## 7. Phase 1 implementation notes
@@ -442,7 +464,9 @@ Declared divergences, all failing towards `unavailable`:
   `unavailable` with reason `excluded` or `redacted`. Live upstream sees the
   original data.
 - The 5,000-item cap is checked only on the queried collection, not on
-  upstream's synthesized event list.
+  upstream's synthesized event list or the other IR collections. Unlike the
+  other divergences, this one can leave a result `measured` where upstream
+  reports `unavailable` (§4.2, E1 notes).
 
 Phase 1b lowers the same sources to KQL. Two `let` statements bind the active
 archive events and, per trace, the last agent-phase `trajectory.ir` payload.
