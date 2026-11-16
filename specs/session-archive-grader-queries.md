@@ -85,16 +85,92 @@ MUST reject the query rather than approximate it.
 | L1 | `difference` and `product` post-aggregate and compute functions | DL §5.5.1 | Same null and finite-number rules as `quotient`. |
 | L2 | Row-level `compute` before `aggregate`, with `if`, `equals-any`, `greater-than` and `and` | DL `compute` | Classifies rows before counting, for example a disjunctive tool failure. Avoids adding OR predicates. |
 | L3 | Query chaining: a definition reads one earlier definition in the same request | DLS-QUERY-017 | Supports two-stage aggregation, such as per call key then per trace, or per state id then per trace. Every stage keeps exact trace and projection identity. |
-| L4 | Equality joins (`inner`, `left`, `inner-many`), at most four per query | DLS-QUERY-005..008 | Applies only within one trace and projection. Expansion fails closed at the row budget. No cross joins. |
-| L5 | `previous` and `row-number` windows with `groupby`, usable before aggregation through L3 | DL §5.5.4 | Ordering must be on `Sequence` or a preserved element ordinal, never on ingestion order. |
+| L4 | Equality joins (`inner`, `left`, `inner-many`), at most four per query | DLS-QUERY-005..008 | Applies only within one trace and projection. Expansion fails closed at the row budget. No cross joins. Lowering constraints are in §3.1. |
+| L5 | `previous` and `row-number` windows with `groupby`, usable before aggregation through L3 | DL §5.5.4 | Ordering must be on `Sequence` or a preserved element ordinal, never on ingestion order. Lowering constraints are in §3.1. |
 | L6 | `state` predicate over approved structured families, for example `Error` non-null or `RetryHint` present | Archive-specific | Reads the existing presence metadata only. Never exposes or stringifies values. |
 | S1 | Child-row sources that flatten approved arrays: `archive-objectives`, `archive-actions`, `archive-states`, `archive-ir-events`, `archive-attempt-results`, and nested `archive-objective-dependencies` | Archive-specific | One row per original element, with parent trace, projection, `Sequence` and element ordinal. Element scalars come from generated `@evidence` paths with the same state metadata. Preserves values without deriving state identity or scores. Changes the generated archive schema and contract version. |
 | S2 | `trajectory-ir` binding of S1 sources to upstream's `trajectoryIR` (the last agent-phase `trajectory.ir` per trace) | Archive-specific | The trusted lowerer selects the binding at query time, not at capture. Traces whose upstream value would come from a synthesized fallback collection report `unavailable`, which is a declared and tested divergence. |
-| G1 | Regex or keyword matching over text | — | Rejected. Blocks message-based retries, guard-objective detection and skill constraints. |
-| G2 | `log` and `exp` functions | — | Not in Dashboard Language. Adding them is a language change, not a profile port. |
-| G3 | Recursion, graph reachability, or iterative or dynamic-programming algorithms | — | Rejected. Blocks provenance lineage, LZ76 and DTW. |
+| G1 | Regex or keyword matching over text | — | General and caller-supplied regex stays rejected. A closed, reviewed ASCII keyword-word-match predicate is feasible on both backends (§3.1), but it is a language change and also needs approval of each text field it reads. Blocks message-based retries, guard-objective detection and skill constraints. |
+| G2 | `log` and `exp` functions | — | Not in Dashboard Language. Adding them is a language change, not a profile port. Rejected while replay requires exact equality, because DuckDB and V8 results differ in the last bit (§3.1). |
+| G3 | Recursion, graph reachability, or iterative or dynamic-programming algorithms | — | Rejected. Blocks provenance lineage, LZ76 and DTW. The RQA graders do not need it (§4.2). |
 | G4 | Caller-supplied grader configuration or reference data (constraints, reference trajectories or patches, process models) | — | Rejected for the authenticated archive profile. Would need separately reviewed reference evidence. |
 | E1 | Approval of IR `observations`, `toolCalls`, `provenanceEdges`, `resources` or `reference` | — | Privacy review. Observations can carry tool output, which stays excluded. |
+
+### 3.1 Backend lowering constraints
+
+Every extension must run efficiently and give identical results on local
+DuckDB and hosted Kusto (ADX). Replay compares values with exact equality, so
+"close" floating-point results are failures. The DuckDB findings below were
+measured with the CLI at one thread and 256 MiB. The Kusto findings rely on
+the Microsoft Learn KQL reference only, because the Kusto emulator does not
+run on the ARM development host. They must be confirmed against the emulator
+or a real cluster before hosted support is advertised.
+
+- **L5 windows.**
+  - **DuckDB lowering:** `row_number()` and `lag()`
+    `OVER (PARTITION BY <trace key>, <groupby> ORDER BY …)`. Both windows over
+    1,000,000 rows (200 traces × 5,000 items) took 56 ms.
+  - **KQL lowering:** `partition` by the trace key, with `hint.strategy=native`
+    or `shuffle` by key cardinality, containing `sort`, `row_number()` and
+    `prev()`. A global `serialize` funnels every row to one node and MUST NOT
+    be used.
+  - **Unique order key:** Kusto `sort` is not stable. The order key must end
+    with a unique tiebreak (`Sequence`, then the element ordinal), and hosted
+    plans whose order key is not unique are rejected rather than relying on
+    "ties keep input order".
+  - **Explicit null placement:** the lowerers emit null placement explicitly
+    because the engines' defaults differ.
+  - **First-row nulls:** Kusto strings cannot be null, so the KQL lowerer
+    derives the null first-row `previous` from a `row_number() == 1` flag, not
+    from `prev()`'s default value.
+- **L4 joins.**
+  - **DuckDB lowering:** hash joins.
+  - **KQL lowering:** an explicit `kind` (`inner` or `leftouter`) with
+    `hint.strategy=shuffle` on the trace key. KQL's default `innerunique`
+    silently deduplicates the left side and MUST NOT be emitted.
+  - **Trace and projection key:** every join key includes the trace and
+    projection key.
+  - **Missing keys:** missing keys are excluded explicitly, because DuckDB
+    NULL never matches but a KQL `""` key matches `""`.
+- **L2 and L6.** Lower to `CASE` and `extend` expressions and reuse the
+  existing presence metadata. The cost is negligible. Integer arithmetic stays
+  in `BIGINT` and `long`. An integer-over-integer quotient is one correctly
+  rounded IEEE division, so it is identical across engines and V8.
+- **G1 keyword matching.**
+  - **Regex dialects:** DuckDB `regexp_matches` is RE2. KQL `matches regex`
+    uses Rust `regex` semantics, where `\b` and `\w` are Unicode-aware, while
+    RE2 and JavaScript non-`u` `\b` are ASCII. RE2 `(?i)` also applies Unicode
+    simple case folding (Kelvin sign `K` to `k`, `ſ` to `s`), which JavaScript
+    non-`u` `/i` does not. On DuckDB, `(?i)\bcheck\b` matches `checKx` where
+    upstream does not. `(?i)\bretry(ing)?\b` is exact on DuckDB only because
+    no letter of `retry(ing)` has a non-ASCII fold, and it still differs on
+    KQL through Unicode `\b`.
+  - **Lowering:** a closed keyword list must therefore never be lowered with
+    `\b`, `\w` or `(?i)`. It is lowered to explicit ASCII classes, for example
+    `(^|[^A-Za-z0-9_])[rR][eE][tT][rR][yY]([iI][nN][gG])?([^A-Za-z0-9_]|$)`.
+  - **Measured parity:** on 20,000 fuzzed strings with non-ASCII letters,
+    Kelvin sign, long s and dotted or dotless `i`, that DuckDB pattern matched
+    upstream `/\bretry(?:ing)?\b/i` exactly. The executable evidence in §4.2
+    checks both upstream patterns on DuckDB.
+  - **Cost and exclusions:** both engines match in linear time. KQL `has` uses
+    different term tokenization and is not an equivalent. Caller-supplied
+    JavaScript regex cannot be translated faithfully to either dialect and
+    stays rejected with G4.
+- **G2 logarithms.** Over 80,199 rationals `t ÷ c` with `t ≤ 400`, DuckDB
+  differed from V8 in the last bit for 1,110 `log2` results (1.4%), 5,790 `ln`
+  results (7.2%) and 7,007 `exp` results (8.7%). ADX uses a third math library
+  (untested). Upstream entropy also sums terms in `Map` first-occurrence
+  order. G2 can be revisited only if replay adopts an explicit tolerance
+  contract.
+- **G3 algorithms.**
+  - **LZ76:** Kaspar–Schuster parsing is sequential, with a prefix substring
+    search. A DuckDB recursive CTE would take about n iterations of O(n) work,
+    and KQL `scan` has no prefix lookback.
+  - **Provenance lineage:** needs unbounded reachability, which a DuckDB
+    recursive CTE and bounded-hop KQL `graph-match` do not express
+    identically.
+  - **DTW:** an O(n·m) dynamic program.
+  - **Conclusion:** none has an efficient, identical lowering on both engines.
 
 ## 4. Per-grader feasibility
 
@@ -114,7 +190,7 @@ marks the 15 candidates in the
 | `tool-success-rate` | (calls − failed) ÷ calls, or 1 when there are no calls | yes | `extension-ready` | L1, L2, L3, L5, L6 | L |
 | `trajectory-efficiency` | Distinct tool names ÷ reconciled calls, or 1 | yes | `extension-ready` | L2, L3, L5, L6 | L |
 | `artifact-production` | Applied `safe_output.result` with success or absent status, minus absent-status types with a safe-outputs-phase outcome | yes | `implemented` (local DuckDB) | — | — |
-| `retries` | MCP retry events (event, `retryHint` or a message regex) plus deduplicated harness attempts | yes | `vocabulary-gated` | G1. The non-regex part needs L3, L6 and S1 (`attemptResults`) | — |
+| `retries` | MCP retry events (event, `retryHint` or a message regex) plus deduplicated harness attempts | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the message field. The non-regex part needs L3, L6 and S1 (`attemptResults`) | — |
 | `loops` | Consecutive identical session, tool name and arguments | no | `out-of-scope` | Tool arguments are not approved | — |
 
 Tool-call reconciliation is the shared prerequisite for the first three
@@ -138,6 +214,13 @@ The declarative plan follows the same steps:
 
 No reconciliation result is persisted at capture.
 
+Upstream reconciliation is stateful: completions that are already paired or
+have a mismatched ID are skipped, gateway calls are deduplicated against
+native IDs, and resumed attempts map through `previousScopes`. Before relying
+on L5 FIFO keys alone, a parity fixture MUST cover out-of-order completions,
+duplicate and mismatched IDs, gateway duplicates and resume chains on both
+backends.
+
 ### 4.2 Trajectory graders
 
 All rows below read the S2-selected `trajectory.ir` collections. Upstream
@@ -153,15 +236,15 @@ for graders that also need other extensions.
 | `grounding-accuracy` | Actions with `validAtIssueTime` true ÷ actions; unavailable unless every flag is boolean | yes | `implemented` (local DuckDB) | — | — |
 | `state-revisit-probability-rep` | (visits − distinct states) ÷ visits, for at least 2 visits. Order only affects diagnostics | yes | `implemented` (local DuckDB) | — | — |
 | `recurrence-rate` | Σ c(c−1) over per-state counts ÷ n(n−1), for at least 2 visits | yes | `implemented` (local DuckDB) | — | — |
-| `recurrence-laminarity` | Vertical-line recurrent points ÷ recurrent points (vmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L4, L5 | M |
-| `recurrence-determinism` | Diagonal-line recurrent points ÷ recurrent points (lmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L4, L5 | L, quadratic |
-| `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `extension-ready` | L3, L4, L5 | L, quadratic |
+| `recurrence-laminarity` | Vertical-line recurrent points ÷ recurrent points (vmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
+| `recurrence-determinism` | Diagonal-line recurrent points ÷ recurrent points (lmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
+| `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
 | `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `extension-ready` | S1 (nested `dependsOn`), L2, L3, L4 | M |
 | `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `extension-ready` | S1 (IR `events`), L2, L3, L4 | M |
 | `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
 | `exploitation-error` | Unused observations ÷ observations when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
 | `tool-output-consumption-rate` | Tool-originated observations that were consumed ÷ tool-originated observations | no | `evidence-gated` | E1 (`observations`, `toolCalls`), L4 | — |
-| `policy-near-miss` | Unmet guard objectives ÷ guard objectives, where guard objectives are matched by a keyword regex on the description | yes | `vocabulary-gated` | G1 | — |
+| `policy-near-miss` | Unmet guard objectives ÷ guard objectives, where guard objectives are matched by a keyword regex on the description | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the objective `description` field. Also needs S1 (IR `events`) for the safe-output check, L2 and L3 | — |
 | `skill-constraint-coverage` | Configured regex constraints that were exercised and passed | no | `vocabulary-gated` | G1, G4 | — |
 | `event-entropy-rate` | Bigram conditional entropy ÷ log2 of the alphabet size | no | `vocabulary-gated` | G2. Otherwise needs L3, L5 and `concat` | — |
 | `lempel-ziv-trajectory-complexity` | Normalized LZ76 complexity | no | `vocabulary-gated` | G2, G3 | — |
@@ -174,21 +257,66 @@ for graders that also need other extensions.
 | `code-edit-precision` | Edited files in the reference patch ÷ distinct edited files | no | `vocabulary-gated` | G4, E1 | — |
 | `process-alignment-fitness` | Satisfied checks against a configured process model | no | `vocabulary-gated` | G4 | — |
 
-The RQA rows decompose as follows over ordered visits:
+Upstream orders visits by the position of `firstEventIndex` in the IR
+`events`, falling back to `firstEventIndex` and then to the array position,
+with a stable sort. The declarative order key is therefore that derived order
+followed by the element ordinal, which also satisfies the unique-order rule in
+§3.1. Write `C2(x) = x(x − 1) ÷ 2`. Every RQA row is a sum of per-visit or
+per-group integer terms followed by one final division, so no recurrence
+matrix, self-join or quadratic expansion is needed:
 
-- **LAM** is linear. A visit `i` of a state with `c` visits contributes:
+- **LAM.** A visit of a state with `c` visits contributes:
   - `c − 1` points when its previous and next visits share its state.
   - `c − 2` points when only one neighbor does.
   - Zero points otherwise.
 
   LAM is the sum of those contributions ÷ Σ c(c−1). Previous and next state
   come from L5 windows in both orders.
-- **DET and TT** need recurrent-pair or block expansion. DET uses an
-  `inner-many` self-join plus diagonal-neighbor joins. TT uses gaps-and-islands
-  blocks from `row-number` differences, joined per column.
+- **DET.** The recurrent points on diagonal lines of length ≥ 2 equal
+  `2 · Σ C2(bigram count) − Σ C2(trigram count)`. Bigrams and trigrams come
+  from `previous` at lags 1 and 2, so DET is that value ÷ Σ C2(state count).
+- **TT.** Gaps-and-islands (`row-number` minus `row-number` per state) yields
+  maximal runs. A run of length `L` of a state with `c` visits contributes:
+  - **Lines:** `(c − L) · [L ≥ 2] + 2 · max(0, L − 2)`.
+  - **Points:** `(c − L) · L · [L ≥ 2] + 2 · (C2(L) − 1) · [L ≥ 3]`.
 
-At the upstream 5,000-visit cap, DET and TT can exceed row budgets. Those
-queries MUST fail closed rather than return partial lines.
+  TT is total points ÷ total lines, or 0 when there are no lines.
+
+Upstream's `ratio` helper returns 0 on a zero denominator, and fewer than four
+visits (two for RR) is not applicable. These closed forms matched the upstream
+loops on 3,000 random sequences with no mismatch. On DuckDB, DET over 1,000,000
+visits took 113 ms. Counts stay integral until the last division, so results
+are identical across engines (§3.1).
+
+**Executable evidence.** `TestDuckDBLoweringEvidenceIntegration` runs
+reference DuckDB lowerings from
+[`testdata/lowering/`](../server/internal/sessionarchive/testdata/lowering/)
+on every required DuckDB CI run:
+- **Recurrence:** `recurrence.sql` computes RR, DET, LAM and TT with only L2
+  expressions, L3 stages, L4 joins on the trace key and L5
+  `previous`/`row-number` windows.
+- **Keywords:** `keywords.sql` holds the ASCII G1 lowering of the `retries`
+  and `policy-near-miss` keyword patterns.
+
+[`scripts/generate-session-query-lowering-cases.mjs`](../scripts/generate-session-query-lowering-cases.mjs)
+regenerates `cases.json` from the pinned, hash-verified upstream graders. Every
+status and the exact bits of every float64 value must match. The fixture
+covers:
+- Event-order ties and repeated event indexes (last position wins).
+- Dropped elements and the 5,000 and 5,001 item cap.
+- 40 random sequences.
+- About 430 keyword texts with the Kelvin sign, long s and dotted or dotless
+  `i` next to word characters.
+
+Seeded mutations (a changed DET, LAM or TT term, first-wins event order, an
+unstable tiebreak, an off-by-one cap, or `(?i)\b` matching) each fail it.
+
+The reference lowering is stricter than upstream in one declared way.
+Upstream coerces `firstEventIndex` and event `index` with `Number()`, so `null`
+and numeric strings still order visits. Strict S1 typing reports such a trace
+unavailable instead, and the fixture records both outcomes. This SQL is
+evidence for the closed forms, not the production lowerer. The KQL side is
+not executed (§3.1).
 
 ### 4.3 Other graders
 
@@ -206,6 +334,16 @@ queries MUST fail closed rather than return partial lines.
 | `evidence-gated` | 3 | exploration error, exploitation error, tool-output consumption |
 | `vocabulary-gated` | 13 | retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6) |
 | `out-of-scope` | 1 | loops |
+
+Support differs by backend because the item sources and chaining are
+advertised only by `LocalAnalyticalCapabilities`:
+
+| Backend | Recomputed graders | Rejected until |
+| --- | --- | --- |
+| Local DuckDB | All 10 `implemented` graders | — |
+| Hosted ADX (Kusto) | The usage family: step count, duration, rebuild factor, context growth (`TestKustoUsageGraderReplay`, when configured) | Phase 1b for the item-source graders; Phase 2b for `recurrence-rate` and `artifact-production` |
+
+Native backends also reject item-source and chained plans.
 
 ## 5. Invariants for every new definition
 
@@ -236,11 +374,10 @@ when its definitions replay with parity.
 - [ ] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted against the Kusto emulator or a real ADX cluster. Until then hosted backends reject them.
 - [x] **Phase 2:** L3. Unlocks `recurrence-rate` and `artifact-production` on local DuckDB (§8).
 - [ ] **Phase 2b:** KQL lowering of L3 chaining, accepted against the Kusto emulator or a real ADX cluster. Until then hosted backends reject chained plans.
-- [ ] **Phase 4:** L5 (with gaps-and-islands over `row-number`) and L6. Unlocks `tool-failure-count`, `tool-success-rate`, `trajectory-efficiency` and `recurrence-laminarity`.
-- [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR events). Unlocks `dependency-order-violation-rate` and `evidence-saturation-stopping-lag`.
-- [ ] **Phase 6:** Prototype `recurrence-determinism` and `recurrence-trapping-time` under row budgets, or reclassify them as `vocabulary-gated`.
+- [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL. Unlocks `tool-failure-count`, `tool-success-rate` and `trajectory-efficiency` after the reconciliation parity fixture (§4.1).
+- [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`). Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
 - [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
-- [ ] Revisit `retries` and `policy-near-miss` if upstream emits typed retry or guard flags that replace regex matching.
+- [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
 
 ## 7. Phase 1 implementation notes
 
@@ -306,6 +443,9 @@ Tool reconciliation (`tool-failure-count`, `tool-success-rate`,
 `trajectory-efficiency`) needs more than L5 `previous`: upstream collapses
 resume-strategy attempts to the last non-resume attempt in each invocation,
 which is a gaps-and-islands construction (`row-number` differences plus L3).
-L5 plus L6, building on L3, is therefore the next delta (Phase 4). It also
-unlocks `recurrence-laminarity`. The hosted lowerings in Phases 1b and 2b are
-independent of that work.
+L2, L5 and L6, building on L3, are therefore the next delta (Phase 4).
+Phase 4 alone does not unlock `recurrence-laminarity`: its visit order
+follows state `firstEventIndex` through the IR `events`, which needs nested S1
+and L4 (Phase 5). The three RQA graders then share one linear plan, already
+executed on DuckDB in `TestDuckDBLoweringEvidenceIntegration` (§4.2). The
+hosted lowerings in Phases 1b and 2b are independent of that work.
