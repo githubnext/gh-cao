@@ -1,36 +1,7 @@
 {
  "source_sha": "70f59d2198be304016522d78a8351df5f23767d3",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-15T21:32:12Z",
-   "worker_run_id": "43763897516",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    43757990961,
-    43756384109,
-    43756218347,
-    43753233809,
-    43752704784,
-    43752194225,
-    43746617494,
-    43731625055,
-    43724243400,
-    43721484176,
-    43721157324,
-    43706435376,
-    43698271571,
-    43682264332,
-    43681861583,
-    43680980929,
-    43655786695,
-    43639680929,
-    43623754509,
-    43621919773
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43621919773 (push 93c64ff, created 2026-11-14T17:35Z) to 43757990961 (push 24f570e, created 2026-11-15T20:25Z), all within 14 days; gh run list re-read 21:31Z: same 20 IDs, all completed, none queued or in progress, 0 cancelled, ...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-15T21:52:29Z",
    "worker_run_id": "43765687936",
@@ -870,6 +841,35 @@
     43753233809
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43753233809 (push de1fbfc, 2026-11-15T19:35Z) to 43832040488 (push 70f59d2, 2026-11-16T08:32Z): 20 success (19 push, 1 schedule 43810351164), 0 failures; cancelled 43832015521 excluded (pending run superseded in documentation-pages group). Gate 20>=5 met. Dependency phase (Set up Node + Install + Post) median 13 s, p90 17 s = 16.9 percent of exec median 77 s (p90 92 s); 15 percent gate 11.6 s. Whole-phase removal is a ceiling, not a concrete change. Concrete option (node_modules restore replacing npm ci) saves at most install median 8 s (p90 11) before restore cost, est. 3-6 s net, unmeasured: below 11.6 s and 60 s gates. Cache: main exact key node-cache-Linux-x64-npm-7808ecf8 (created 2026-11-13T20:57Z) last accessed 08:35Z; post-step 0-1 s in window (exact hit inferred). No lockfile change in window heads. A 2026-11-16 Linux entry 798b3cf6 is feature-branch scoped and not visible to main. Checkout median 25 s (32.5 percent of exec) stays under OPEN #20815 (0 comments, updatedAt 2026-11-13); not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T09:01:16Z",
+   "worker_run_id": "43835481375",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    43832040488,
+    43831980991,
+    43831754585,
+    43829639369,
+    43825070138,
+    43814432358,
+    43810351164,
+    43798031034,
+    43792211504,
+    43789359390,
+    43781377358,
+    43781088986,
+    43780290464,
+    43768376457,
+    43766933236,
+    43766019418,
+    43757990961,
+    43756384109,
+    43756218347,
+    43753233809
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43753233809 (push de1fbfc, created 2026-11-15T19:35Z) to 43832040488 (push 70f59d2, 2026-11-16T08:32Z); all success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list re-read 09:00Z: same 20 IDs, none newer, none queued or in progress; source 70f59d2 = HEAD = source_sha. Samples reused from immutable 08:37Z Jobs API rows; live spot-check of 43832040488 and 43814432358 matched. Astro step 'Build documentation' (= astro build && validate-agent-docs && node --test agent-docs-discovery): median 11 s, p90 15 s, 14.3% of workflow exec median 77 s (gate 11.55 s; 60 s absolute not met). Ceiling: removing the whole step saves 11 s. Output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT embedded: docs/components/SiteFooter.astro:9, scripts/validate-agent-docs.mjs:571). Partial .astro caching unmeasured and bounded by the same ceiling; sub-step split unavailable from Jobs API. Open issue 20815 (checkout blobless) is another category and not repeated. Next: reusable dashboard generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1743,5 +1743,21 @@
   },
   "gate_15pct_s": 11.6,
   "note": "Whole-phase removal is a ceiling (not a concrete change). node_modules restore replacing npm ci est. saves 3-6 s net after restore (unmeasured)."
+ },
+ "astro_step_verified": {
+  "verified_at": "2026-11-16T09:01:16Z",
+  "window": "43753233809..43832040488 (20 completed non-cancelled; 19 push + 1 schedule 43810351164)",
+  "build_docs_s": {
+   "median": 11,
+   "p90": 15,
+   "min": 8,
+   "max": 16
+  },
+  "exec_median_s": 77,
+  "build_docs_share_exec_median_pct": 14.3,
+  "gate_15pct_s": 11.55,
+  "ceiling_saving_s": 11,
+  "decision": "not actionable: ceiling below 60 s and 15% gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance; partial .astro caching unmeasured",
+  "denominator_note": "exec = build job start to deploy job end (workflow execution). Against build-job median 62.5 s the 11 s step would be 17.6%; the mission gate uses workflow execution time."
  }
 }
