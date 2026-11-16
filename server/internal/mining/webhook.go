@@ -37,9 +37,17 @@ func ParseWebhook(event string, payload []byte, observedAt time.Time) (*Outcome,
 		UpdatedAt: object.UpdatedAt, ObservedAt: observedAt.UTC().Truncate(time.Microsecond),
 		Source: "github-webhook",
 	}
-	if object.ClosedBy != nil {
+	if outcome.Merged && object.MergedAt != nil {
+		outcome.DispositionAt = copiedTime(object.MergedAt)
+	} else if outcome.State == "closed" && object.ClosedAt != nil {
+		outcome.DispositionAt = copiedTime(object.ClosedAt)
+	}
+	switch {
+	case outcome.Merged && object.MergedBy != nil:
+		outcome.CloseActor = object.MergedBy.Type
+	case object.ClosedBy != nil:
 		outcome.CloseActor = object.ClosedBy.Type
-	} else if envelope.Action == "closed" {
+	case envelope.Action == "closed":
 		outcome.CloseActor = envelope.Sender.Type
 	}
 	if envelope.Action == "closed" && outcome.State != "closed" ||

@@ -56,7 +56,14 @@ func (c *Client) ReadOutcome(ctx context.Context, installationID int64, target m
 		Merged: object.Merged || object.MergedAt != nil, UpdatedAt: object.UpdatedAt,
 		ObservedAt: time.Now().UTC().Truncate(time.Microsecond), Source: "github-api",
 	}
-	if object.ClosedBy != nil {
+	if outcome.Merged && object.MergedAt != nil {
+		outcome.DispositionAt = object.MergedAt
+	} else if outcome.State == "closed" && object.ClosedAt != nil {
+		outcome.DispositionAt = object.ClosedAt
+	}
+	if outcome.Merged && object.MergedBy != nil {
+		outcome.CloseActor = object.MergedBy.Type
+	} else if object.ClosedBy != nil {
 		outcome.CloseActor = object.ClosedBy.Type
 	}
 	return outcome, quota, outcome.Validate()

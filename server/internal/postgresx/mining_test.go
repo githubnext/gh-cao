@@ -52,8 +52,10 @@ func TestMiningProjectsOnlyExactOutputsAndSelectedAttempts(t *testing.T) {
 	if err := w.AppendEpisode(ctx, member); err != nil {
 		t.Fatal(err)
 	}
+	dispositionAt := now
 	outcome := mining.Outcome{Repository: "octo/target", Number: 12, PullRequest: true,
 		URL: "https://github.com/octo/target/pull/12", State: "closed", Merged: true,
+		CloseActor: "User", DispositionAt: &dispositionAt,
 		UpdatedAt: now, ObservedAt: now, Source: "github-webhook"}
 	if err := w.AppendOutcome(ctx, outcome); err != nil {
 		t.Fatal(err)

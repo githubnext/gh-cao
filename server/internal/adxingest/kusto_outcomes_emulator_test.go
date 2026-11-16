@@ -20,7 +20,7 @@ func TestKustoEmulatorOutcomeDenominator(t *testing.T) {
 			pull                 bool
 			state, reason, actor string
 		}{
-			{true, "closed", "", ""},
+			{true, "closed", "", "User"},
 			{true, "open", "", ""},
 			{false, "closed", "not_planned", "Bot"},
 			{false, "closed", "not_planned", ""},
@@ -36,6 +36,9 @@ func TestKustoEmulatorOutcomeDenominator(t *testing.T) {
 				URL:   fmt.Sprintf("https://github.com/octo/target/%s/%d", category, number),
 				State: variant.state, StateReason: variant.reason, CloseActor: variant.actor,
 				UpdatedAt: source.updated, ObservedAt: source.observed, Source: "github-api"}
+			if variant.state == "closed" {
+				observation.DispositionAt = &source.updated
+			}
 			snapshot.Outputs = append(snapshot.Outputs, model.Row{"id": output, "runId": canonical,
 				"safeOutputType": outputType, "isPullRequest": variant.pull, "safeOutputUrl": observation.URL})
 			snapshot.Audits = append(snapshot.Audits, observation.Audit(output, canonical))
@@ -53,5 +56,5 @@ func TestKustoEmulatorOutcomeDenominator(t *testing.T) {
 	k.assert(t, `cao_TraceOutcomes() | where OutputType=="create_issue"
         | project Status, Signal, ProducingAttempt | order by Status asc`,
 		[][]any{{"accepted", "completed", 0}, {"lifecycle", "lifecycle", 0},
-			{"rejected", "closed_not_planned", 0}, {"unknown", "missing_resolution_evidence", 0}})
+			{"rejected", "closed_not_planned", 0}, {"unknown", "missing_human_resolution_evidence", 0}})
 }

@@ -14,7 +14,8 @@ func miningOutcome(t *testing.T) mining.Outcome {
 	t.Helper()
 	now := time.Now().UTC().Truncate(time.Second)
 	return mining.Outcome{Repository: "octo/api", Number: 12, URL: "https://github.com/octo/api/issues/12",
-		State: "closed", StateReason: "completed", UpdatedAt: now, ObservedAt: now, Source: "github-webhook"}
+		State: "closed", StateReason: "completed", CloseActor: "User", DispositionAt: &now,
+		UpdatedAt: now, ObservedAt: now, Source: "github-webhook"}
 }
 
 func TestMinedEvidenceIsDurableOrderedAndErased(t *testing.T) {
@@ -25,7 +26,7 @@ func TestMinedEvidenceIsDurableOrderedAndErased(t *testing.T) {
 	}
 	newer := miningOutcome(t)
 	older := newer
-	older.State, older.StateReason = "open", ""
+	older.State, older.StateReason, older.CloseActor, older.DispositionAt = "open", "", "", nil
 	older.UpdatedAt = newer.UpdatedAt.Add(-time.Second)
 	for _, observation := range []mining.Outcome{newer, older, newer} {
 		if err := lake.recordMining(ctx, "octo/api", nil, &observation); err != nil {
