@@ -103,28 +103,6 @@ func (d Definition) Validate() error {
 	return err
 }
 
-// Existing count-only requests remain usable without granting new operators.
-func (d Definition) BaseProfile() bool {
-	if len(d.PostAggregate) > 0 {
-		return false
-	}
-	if d.Filter != nil {
-		for _, predicate := range d.Filter.Predicates {
-			if predicate.State != "" {
-				return false
-			}
-		}
-	}
-	if d.Aggregate != nil {
-		for _, value := range d.Aggregate.Values {
-			if value.Filter != nil || len(value.OrderBy) > 0 || value.Reducer != "count" && value.Reducer != "distinct-count" {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 var queryName = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
 var outputName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9-]{0,127}$`)
 

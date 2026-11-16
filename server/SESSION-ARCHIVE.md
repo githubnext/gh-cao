@@ -306,8 +306,8 @@ Status advertises supported `queryKinds` and `analytical` capabilities, includin
 the generated scalar field vocabulary, predicates, exact reducers, and output
 budget (10000 rows on DuckDB, 4096 on ADX). Both backends execute the same
 versioned JSON profile through a typed plan and their own trusted SQL/KQL
-lowerers. The count-only `0.1.0` request subset remains supported but does not
-grant filtered reducers or computation. Unsupported operators or explicit limits
+lowerers. HTTP and MCP accept only `0.2.0`; `0.1.0` and other versions are
+rejected without compatibility fallback. Unsupported operators or explicit limits
 fail without fallback. See the [analytical contract](../specs/session-archive.md#5-authenticated-analytical-access)
 for filtered aggregates, generated field-state predicates, numeric ordered
 `first`, wide versus sequential sums and the explicit bounded post-aggregate
@@ -315,7 +315,8 @@ phase. No reducer reads `PayloadJSON`; null first values are retained.
 Results include
 typed columns, rows, and metadata separating intentional top-N selection from
 known evidence gaps and unknown upstream coverage, plus query digest and compiler
-implementation/profile identity. The reviewed grader rows retain policy digest,
+implementation/profile identity (`0.2.0`, the only accepted request version).
+The reviewed grader rows retain policy digest,
 chosen usage family and explicit measurement qualification. These counts are event
 records, not tool calls or sessions. Full approved payloads remain available
 through `timeline`, not the analytical projection.

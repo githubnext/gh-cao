@@ -38,17 +38,9 @@
             "description": "Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace."
         },
         "language-version": {
-            "anyOf": [
-                {
-                    "type": "string",
-                    "const": "0.1.0"
-                },
-                {
-                    "type": "string",
-                    "const": "0.2.0"
-                }
-            ],
-            "description": "Required only for kind=session-query on both DuckDB and ADX."
+            "type": "string",
+            "const": "0.2.0",
+            "description": "Required only for kind=session-query on both DuckDB and ADX. Only 0.2.0 is accepted; older versions are rejected."
         },
         "query": {
             "$ref": "SessionArchiveDefinition.json",
@@ -59,5 +51,5 @@
         "kind",
         "repository"
     ],
-    "description": "Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on legacy templates and vice versa. Optional fields must be omitted rather than null."
+    "description": "Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on timeline/summary templates and vice versa. Optional fields must be omitted rather than null."
 }

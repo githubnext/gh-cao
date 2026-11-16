@@ -394,8 +394,8 @@ The analytical operation is explicitly named `session-query`, not the generic
 typed conjunctive predicates, explicit projection, grouping, exact `count` and
 `distinct-count`, numeric `sum`/`max`, filtered measures, ordered `first`,
 bounded `post-aggregate` scalar computation, deterministic ordering, and optional
-top-N selection. The count-only `0.1.0` request subset remains supported;
-it MUST reject the additional operators rather than implicitly grant them.
+top-N selection. Only `0.2.0` requests are accepted over HTTP or MCP;
+`0.1.0` and other versions MUST be rejected without compatibility fallback.
 `PayloadJSON`, arbitrary JSON paths, joins, scripts, and caller-selected storage
 are not supported. An explicit `query.limit` reports omitted matching rows with
 `metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
@@ -452,9 +452,8 @@ applied only after the metric.
 Rows expose value, availability, reason, chosen family and exact trace/projection
 identity; policy digest qualifies configuration. Query metadata adds a query
 digest and compiler implementation/profile provenance. Its `language-version`
-reports the implementing analytical profile (`0.2.0`), not an echo of the request:
-count-only compatibility requests using `0.1.0` also receive `0.2.0` metadata.
-These are recomputed
+reports the implementing analytical profile (`0.2.0`), which is also the only
+accepted request version. These are recomputed
 scalar observations, distinct from recorded `grader.result`, threshold
 assessment and acquisition proof. Upstream v2 emits unavailable status but no
 reason codes; query reason labels are explicitly separate qualifications

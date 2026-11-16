@@ -133,7 +133,7 @@ func TestSessionArchiveLocalCaptureIntegration(t *testing.T) {
 		strings.Contains(response.Body.String(), "full approved acquired message") {
 		t.Fatalf("real analytical HTTP roundtrip: %d %s %v", response.Code, response.Body.String(), err)
 	}
-	selection := `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+	selection := `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"event-selection","subject":"Select recorded event metadata.","from":"archive-events",
 "filter":{"predicates":[{"field":"Sequence","gte":2,"lt":4}]},
 "select":[{"field":"Sequence","as":"sequence"},{"field":"RunId"}],"limit":1}}`
@@ -248,7 +248,7 @@ func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
 	}{
 		{
 			name: "run-event-metadata",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"run-event-metadata","subject":"Inspect event metadata for one exact run attempt.","from":"archive-events",
 "filter":{"predicates":[{"field":"RunId","equals":"124"},{"field":"RunAttempt","equals":1}]},
 "select":[{"field":"Sequence","as":"sequence"},{"field":"Type","as":"event-type"}],
@@ -260,7 +260,7 @@ func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
 		},
 		{
 			name: "event-type-counts",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"event-type-counts","subject":"Count retained events by native type.","from":"archive-events",
 "aggregate":{"by":["Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]},
 "order-by":[{"field":"events","direction":"desc"},{"field":"Type","direction":"asc"}]}}`,
@@ -270,7 +270,7 @@ func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
 		},
 		{
 			name: "run-attempt-activity",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"run-attempt-activity","subject":"Compare event volume and distinct event types per run attempt.","from":"archive-events",
 "aggregate":{"by":["RunId","RunAttempt"],"values":[{"field":"Sequence","as":"events","reducer":"count"},
 {"field":"Type","as":"event-types","reducer":"distinct-count"}]},
@@ -283,7 +283,7 @@ func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
 		},
 		{
 			name: "selected-message-events",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"selected-message-events","subject":"Select two message events with the highest sequence numbers.","from":"archive-events",
 "filter":{"predicates":[{"field":"Type","in":["user.message","assistant.message"]},{"field":"Sequence","gte":2,"lt":5}]},
 "select":[{"field":"RunId","as":"run-id"},{"field":"RunAttempt","as":"attempt"},{"field":"Sequence","as":"sequence"}],
@@ -295,7 +295,7 @@ func TestSessionArchiveQueryExamplesIntegration(t *testing.T) {
 		},
 		{
 			name: "session-event-totals",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"session-event-totals","subject":"Distinguish retained run attempts, runs and event records.","from":"archive-events",
 "aggregate":{"values":[{"field":"TraceId","as":"sessions","reducer":"distinct-count"},
 {"field":"RunId","as":"runs","reducer":"distinct-count"},{"field":"Sequence","as":"events","reducer":"count"}]}}}`,

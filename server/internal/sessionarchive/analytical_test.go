@@ -108,9 +108,6 @@ func TestAnalyticalScalarValidation(t *testing.T) {
 		`{"as":"score","function":"quotient","args":[{"field":"n"},{"value":0}]}`,
 	} {
 		definition := analyticalDefinition(t, base+`,"post-aggregate":[`+expression+`]`)
-		if definition.BaseProfile() {
-			t.Fatal("new computation granted through old profile")
-		}
 		plan, err := definition.Plan()
 		if err != nil {
 			t.Fatal(err)

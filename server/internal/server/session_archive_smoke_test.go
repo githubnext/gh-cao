@@ -125,7 +125,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 	}{
 		{
 			name: "captured-event-order",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"synthetic-session-smoke","subject":"Verify captured synthetic events are queryable.","from":"archive-events",
 "filter":{"predicates":[{"field":"RunId","equals":"123"},{"field":"RunAttempt","equals":1}]},
 "select":[{"field":"Sequence"},{"field":"Type"}],"order-by":[{"field":"Sequence","direction":"asc"}],"limit":10}}`,
@@ -135,7 +135,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 		},
 		{
 			name: "large-integer-identity",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"large-integer-identity","subject":"Preserve acquired run and attempt precision.","from":"archive-events",
 "filter":{"predicates":[{"field":"RunAttempt","equals":9007199254740993}]},
 "select":[{"field":"RunId"},{"field":"RunAttempt"},{"field":"Sequence"}]}}`,
@@ -146,7 +146,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 		},
 		{
 			name: "observed-clock-range",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"observed-clock-range","subject":"Filter supplied event clocks without inventing missing timestamps.","from":"archive-events",
 "filter":{"predicates":[{"field":"Type","in":["user.message","USER.MESSAGE"]},
 {"field":"Timestamp","gte":"2026-11-14T00:00:00Z","lt":"2026-11-15T00:00:00Z"}]},
@@ -156,7 +156,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 		},
 		{
 			name: "exact-counts-and-missing-values",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"exact-counts","subject":"Count acquired event identity and clocks at their own grain.","from":"archive-events",
 "aggregate":{"values":[{"field":"Sequence","as":"events","reducer":"count"},
 {"field":"EventId","as":"event-ids","reducer":"count"},{"field":"EventId","as":"unique-ids","reducer":"distinct-count"},
@@ -169,7 +169,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 		},
 		{
 			name: "quoted-literal-and-reserved-alias",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"quoted-literal","subject":"Treat quoted acquired identifiers as data and quote output aliases.","from":"archive-events",
 "filter":{"predicates":[{"field":"EventId","equals":"x' OR true --"}]},
 "select":[{"field":"EventId","as":"where"},{"field":"Sequence","as":"event-count"}]}}`,
@@ -178,7 +178,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 		},
 		{
 			name: "lexical-order-empty-last-at-limit",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"lexical-event-ids","subject":"Order captured event identifiers with missing values last.","from":"archive-events",
 "select":[{"field":"EventId"}],"order-by":[{"field":"EventId","direction":"asc"}],"limit":7}}`,
 			columns: []sessionarchive.Column{{Name: "EventId", Type: "string"}},
@@ -186,7 +186,7 @@ func TestSessionArchiveLocalHTTPIntegration(t *testing.T) {
 		},
 		{
 			name: "disclosed-top-n",
-			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":{
+			body: `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":{
 "name":"top-event-ids","subject":"Select the two highest event identifiers and disclose omitted rows.","from":"archive-events",
 "select":[{"field":"EventId"}],"order-by":[{"field":"EventId","direction":"desc"}],"limit":2}}`,
 			columns: []sessionarchive.Column{{Name: "EventId", Type: "string"}},

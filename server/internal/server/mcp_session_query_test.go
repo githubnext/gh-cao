@@ -16,7 +16,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
 
-var sessionMCPArguments = json.RawMessage(`{"repository":"octo/one","language-version":"0.1.0","query":{
+var sessionMCPArguments = json.RawMessage(`{"repository":"octo/one","language-version":"0.2.0","query":{
 "name":"session-events","subject":"Inspect retained synthetic events.","from":"archive-events",
 "select":[{"field":"Sequence"}]}}`)
 
@@ -178,14 +178,15 @@ func TestMCPSessionDataLakeDiscoveryAndValidation(t *testing.T) {
 		}
 	}
 	for _, arguments := range []json.RawMessage{
-		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"0.1.0"`, `"2.0.0"`, 1)),
+		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"0.2.0"`, `"0.1.0"`, 1)),
+		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"0.2.0"`, `"2.0.0"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"Sequence"`, `"PayloadJSON"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"octo/one"`, `"octo/two"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"octo/one"`, `"Octo/One"`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"kind":"timeline","query":`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"sql":"SELECT 1","query":`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"path":"/private/archive.parquet","query":`, 1)),
-		json.RawMessage(`{"repository":"octo/one","language-version":"0.1.0","query":null}`),
+		json.RawMessage(`{"repository":"octo/one","language-version":"0.2.0","query":null}`),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"Inspect retained synthetic events."`, `"`+strings.Repeat("x", 4096)+`"`, 1)),
 	} {
 		request := mcpLogsRequest(t, "tools/call", map[string]any{"name": "cao_session_query", "arguments": arguments})

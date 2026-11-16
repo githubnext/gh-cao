@@ -144,7 +144,7 @@ test('private archive queries preserve explicit full-content authority and the s
   }
   assert.equal(input.properties.limit.maximum, 10000)
   assert.equal(input.properties.limit.minimum, 1)
-  assert.deepEqual(input.properties['language-version'].enum, ['0.1.0', '0.2.0'])
+  assert.deepEqual(input.properties['language-version'].enum, ['0.2.0'])
   assert.equal(input.properties.query.$ref, '#/components/schemas/SessionArchiveDefinition')
   const definition = openapi.components.schemas.SessionArchiveDefinition
   assert.deepEqual(definition.required, ['name', 'subject', 'from'])
@@ -450,7 +450,7 @@ test('the separate server-only session data lake tool preserves the analytical c
   assert.ok(tool)
   assert.equal(contract.tools.some(tool => tool.name === 'cao_session_query'), false)
   assert.deepEqual(tool.inputSchema.required, ['repository', 'language-version', 'query'])
-  assert.deepEqual(tool.inputSchema.properties['language-version'].enum, ['0.1.0', '0.2.0'])
+  assert.deepEqual(tool.inputSchema.properties['language-version'].enum, ['0.2.0'])
   assert.equal(tool.inputSchema.additionalProperties, false)
   const definition = tool.inputSchema.properties.query
   assert.deepEqual(Object.keys(definition.properties).sort(), Object.keys(openapi.components.schemas.SessionArchiveDefinition.properties).sort())

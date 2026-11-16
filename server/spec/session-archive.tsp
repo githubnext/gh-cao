@@ -70,7 +70,7 @@ model SessionArchiveDefinition {
   @minValue(1) @maxValue(10000) limit?: int32;
 }
 
-/** Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on legacy templates and vice versa. Optional fields must be omitted rather than null. */
+/** Trusted archive queries. No SQL/KQL, object names, filesystem paths, or cross-store joins are accepted. Query-only fields are forbidden on timeline/summary templates and vice versa. Optional fields must be omitted rather than null. */
 @jsonSchema
 model SessionArchiveQuery {
   kind: "timeline" | "summary" | "session-query";
@@ -82,8 +82,8 @@ model SessionArchiveQuery {
   attempt?: int64;
   /** Maximum complete output rows, 1-10000 (default 10000). Exceeding a limit fails, never truncates a full approved trace. */
   @minValue(1) @maxValue(10000) limit?: int32;
-  /** Required only for kind=session-query on both DuckDB and ADX. */
-  `language-version`?: "0.1.0" | "0.2.0";
+  /** Required only for kind=session-query on both DuckDB and ADX. Only 0.2.0 is accepted; older versions are rejected. */
+  `language-version`?: "0.2.0";
   /** Required only for kind=session-query; runId, attempt and envelope limit are forbidden. */
   query?: SessionArchiveDefinition;
 }

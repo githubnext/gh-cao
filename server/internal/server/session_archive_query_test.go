@@ -12,7 +12,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/sessionarchiveblob"
 )
 
-const analyticalArchiveRequest = `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0",
+const analyticalArchiveRequest = `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0",
 "query":{"name":"event-counts","subject":"Count approved retained events.","from":"archive-events",
 "aggregate":{"by":["Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]}}}`
 
@@ -78,10 +78,11 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 		t.Fatalf("analytical queries bypassed authentication: %d", response.Code)
 	}
 	for name, body := range map[string]string{
-		"missing-version": strings.Replace(analyticalArchiveRequest, `"language-version":"0.1.0",`, "", 1),
-		"unknown-version": strings.Replace(analyticalArchiveRequest, `"0.1.0"`, `"2.0.0"`, 1),
-		"missing-query":   `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0"}`,
-		"null-query":      `{"kind":"session-query","repository":"octo/one","language-version":"0.1.0","query":null}`,
+		"missing-version": strings.Replace(analyticalArchiveRequest, `"language-version":"0.2.0",`, "", 1),
+		"old-version":     strings.Replace(analyticalArchiveRequest, `"0.2.0"`, `"0.1.0"`, 1),
+		"unknown-version": strings.Replace(analyticalArchiveRequest, `"0.2.0"`, `"2.0.0"`, 1),
+		"missing-query":   `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0"}`,
+		"null-query":      `{"kind":"session-query","repository":"octo/one","language-version":"0.2.0","query":null}`,
 		"generic-query":   strings.Replace(analyticalArchiveRequest, `"kind":"session-query"`, `"kind":"query"`, 1),
 		"run-selector":    strings.Replace(analyticalArchiveRequest, `"kind":"session-query"`, `"kind":"session-query","runId":"123"`, 1),
 		"null-run-selector": strings.Replace(analyticalArchiveRequest, `"kind":"session-query"`,
@@ -97,14 +98,13 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 			`"kind":"summary"`, 1),
 		"query-on-timeline": strings.Replace(analyticalArchiveRequest, `"kind":"session-query"`,
 			`"kind":"timeline","runId":"123","attempt":1`, 1),
-		"version-on-summary":      `{"kind":"summary","repository":"octo/one","language-version":"0.1.0"}`,
-		"payload-field":           strings.Replace(analyticalArchiveRequest, `"Sequence"`, `"PayloadJSON"`, 1),
-		"file-source":             strings.Replace(analyticalArchiveRequest, `"archive-events"`, `"/private/data.parquet"`, 1),
-		"unknown-key":             strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"joins":[],"aggregate":`, 1),
-		"malformed-filter":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":{"predicates":[]},"aggregate":`, 1),
-		"null-filter":             strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":null,"aggregate":`, 1),
-		"new-reducer-old-profile": strings.Replace(analyticalArchiveRequest, `"reducer":"count"`, `"reducer":"sum"`, 1),
-		"body-budget":             strings.Replace(analyticalArchiveRequest, `"subject":`, `"description":"`+strings.Repeat("x", 4096)+`","subject":`, 1),
+		"version-on-summary": `{"kind":"summary","repository":"octo/one","language-version":"0.2.0"}`,
+		"payload-field":      strings.Replace(analyticalArchiveRequest, `"Sequence"`, `"PayloadJSON"`, 1),
+		"file-source":        strings.Replace(analyticalArchiveRequest, `"archive-events"`, `"/private/data.parquet"`, 1),
+		"unknown-key":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"joins":[],"aggregate":`, 1),
+		"malformed-filter":   strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":{"predicates":[]},"aggregate":`, 1),
+		"null-filter":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":null,"aggregate":`, 1),
+		"body-budget":        strings.Replace(analyticalArchiveRequest, `"subject":`, `"description":"`+strings.Repeat("x", 4096)+`","subject":`, 1),
 	} {
 		t.Run(name, func(t *testing.T) {
 			response := archiveRequest(t, app, body, true)
