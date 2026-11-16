@@ -113,8 +113,43 @@ model ServerLogSnapshot {
   operational: ServerLogOperational;
 }
 
+@example(#{id: "add-repository", text: "octo/service"})
+model RepositorySelectorRequest {
+  /** Dashboard-declared action identity; executable text, fields and mappings are never supplied by the browser. */
+  id: string;
+  /** Organization followed by / and at least one repository character; organization-only and unqualified searches are rejected. */
+  @minLength(3) @maxLength(200) text: string;
+}
+
+model RepositorySelectorOption {
+  value: string;
+  label: string;
+  description: string;
+}
+
+model RepositorySelectorResult {
+  @maxItems(50) options: RepositorySelectorOption[];
+}
+
+/** Scoped HttpOnly, SameSite=Strict local browser capability. Secure on TLS; plain loopback HTTP omits Secure for WebKit. Never a GitHub credential. */
+model LocalCLIResourceSession is ApiKeyAuth<ApiKeyLocation.cookie, "cao_cli_local">;
+
 @tag("Ingestion and administration")
 namespace Operations {
+  /** Local native dashboard only. Resolves a declared repository selector through GitHub search using the owning CLI's credentials, without terminal approval or writes. Requires the local bearer capability or scoped HttpOnly CLI cookie and an exact same-origin Origin header. The action declaration owns the fields, mapping and result limit (1–50); lookup takes at most 15 seconds. Wildcards are rejected here and remain explicitly selectable patterns in the UI. Search failures are reported, never replaced with an unverified typed repository. Not registered for hosted OAuth or a dashboard without native operator actions. Responses are not cached. */
+  @useAuth(BearerAuth | LocalCLIResourceSession)
+  @route("/__cli_commands/selector")
+  @post op repositorySelector(@header origin: string, @body body: RepositorySelectorRequest):
+    { @header cacheControl: "no-store"; @body body: RepositorySelectorResult } |
+    BadRequest | Forbidden | NotFound | Failure<415> | TooManyRequests | Failure<502> | Failure<504>;
+
+  /** Replay and follow one command as newline-delimited JSON. Requires local bearer/scoped CLI cookie or a freshly assured hosted administrator session. Registered only when the command queue is enabled. Output events carry type=output, sequence, stream and data; after resumes strictly after an output sequence. Active commands send a flushed type=status event with the command on attachment and whenever its status changes, even before output exists. Settled commands end with type=complete, command and result. Failures after streaming starts use type=error and error. Dashboard-confirmed local commands execute directly through the queue without terminal prompts. Repository Update uses gh aw upgrade with pull-request publication for built-in or exact CAO-managed targets; policy scope is checked freshly at admission and native execution. The exact upstream github/gh-aw is excluded from all local operations, including enrollment, even if configured or selected; read-only evidence is retained. Collection and destructive disable scope do not expand. Catalog validation, same-origin authorization and subprocess settlement remain mandatory. Disconnecting only detaches and never cancels or re-enqueues the command. */
+  @useAuth(DashboardAuth | LocalCLIResourceSession)
+  @route("/__cli_commands/{id}/output")
+  @get op commandOutput(@path @minValue(1) id: int64, @query @minValue(0) after?: int64):
+    { @header contentType: "application/x-ndjson; charset=utf-8"; @header cacheControl: "no-store"; @body body: string } |
+    BadRequest | Unauthorized | Forbidden | NotFound | TooManyRequests | Unavailable;
+
   /** Public signed GitHub delivery (maximum 10 MiB); validated with HMAC-SHA256 over the raw body. Repository created, deleted, archived and unarchived deliveries durably queue repository lifecycle updates; a successful acknowledgement does not mean the database update has completed. Never use dashboard bearer/session credentials for webhook authentication. The body is a GitHub event-specific JSON object. */
   @route("/api/github/webhook")
   @post op webhook(

@@ -374,10 +374,11 @@ operational snapshot. No legacy dashboard bundle or Actions cache is discovered.
 Keep operational evidence bounded and access-controlled. Missing evidence is
 unavailable, never a reason to use the synthetic Pages demo.
 
-To inspect an operational snapshot in a catalog checkout:
+To inspect real evidence, run `gh cao dashboard --repo OWNER/REPO`. To inspect
+an explicitly configured operational snapshot in a catalog checkout:
 
 ```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+gh cao download --url https://SNAPSHOT-HOST/payload-hashes.json
 npm run dashboard:local -- --source ../.cao --postgres-url "$CAO_POSTGRES_URL"
 ```
 

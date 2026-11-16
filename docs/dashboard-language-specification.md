@@ -1567,11 +1567,12 @@ checkbox, unchecked by default, which adds `--auto-merge` only when selected.
 This gh-aw option requires **Create pull request**.
 
 CLI-action presentation requires an explicitly enabled local or hosted command
-service. Local maintenance additionally requires fresh approval in the owning
-native terminal. There is no Copilot canvas or standalone Node admin preview.
+service. Local maintenance executes directly from the durable queue after
+dashboard confirmation, without an additional terminal prompt.
+There is no Copilot canvas or standalone Node admin preview.
 These capabilities do not change the document vocabulary, copy-only
 restrictions, action authority, or per-run confirmation requirements. Hosted commands start after web confirmation and server authorization; local
-maintenance starts only after native terminal approval.
+maintenance starts after dashboard confirmation and scoped server authorization.
 Local repository maintenance provides separate Repository, Workflow, and
 Campaign pages under the **Updates** navigation section, each with its own
 navigation entry and evidence-backed update indicator rather than shared tabs.

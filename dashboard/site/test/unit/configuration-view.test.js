@@ -90,7 +90,8 @@ describe('Configuration dashboard view', () => {
       }
       const sourceNames = pages.flatMap((page) => page['navigation-indicator'].any);
       for (const [index, sources] of [
-        { workflows: { source: 'workflows', rows: maintenanceNavigationContract['repository-workflows'], metadata } },
+        { repositories: { source: 'repositories', rows: maintenanceNavigationContract.repositories, metadata },
+          workflows: { source: 'workflows', rows: maintenanceNavigationContract['repository-workflows'], metadata } },
         { workflows: { source: 'workflows', rows: maintenanceNavigationContract['standalone-workflows'], metadata } },
         { campaigns: { source: 'campaigns', rows: maintenanceNavigationContract.campaigns, metadata } }
       ].entries()) {
@@ -120,7 +121,7 @@ describe('Configuration dashboard view', () => {
     setDeclaredCliActions(dashboard['cli-actions'], { context });
     try {
       for (const [pageId, viewId, expectedCommands] of [
-        ['maintenance', 'maintenance-repositories', ['gh aw upgrade --repo acme/control', 'gh aw upgrade --repo octo/first', 'gh aw upgrade --repo octo/unknown', 'gh aw upgrade --repo octo/unreleased', 'gh aw upgrade --repo other/second']],
+        ['maintenance', 'maintenance-repositories', ['gh aw upgrade --repo acme/control', 'gh aw upgrade --repo octo/configured-only', 'gh aw upgrade --repo octo/first', 'gh aw upgrade --repo octo/unknown', 'gh aw upgrade --repo octo/unreleased', 'gh aw upgrade --repo other/second']],
         ['maintenance-workflows', 'maintenance-workflow-sweep', ['gh aw update .github/workflows/incomplete.md --repo acme/control', 'gh aw update .github/workflows/review.md --repo acme/control']],
         ['maintenance-campaigns', 'maintenance-campaign-sweep', ['gh aw update https://github.com/acme/catalog/operations --repo acme/control']]
       ]) {
@@ -134,6 +135,7 @@ describe('Configuration dashboard view', () => {
             processDataRequest({
               operation: 'execute-dashboard-queries', queries: payload.queries, sourceNames: payload.aliases,
               sources: available ? {
+                repositories: { source: 'repositories', rows: [...maintenanceNavigationContract.repositories, { organization: 'acme', repository: 'control', 'repository-coordinate': 'acme/control' }], metadata },
                 campaigns: { source: 'campaigns', rows: maintenanceNavigationContract.campaigns, metadata },
                 workflows: { source: 'workflows', rows: [...maintenanceNavigationContract['repository-workflows'], ...maintenanceNavigationContract['standalone-workflows']], metadata }
               } : {}
@@ -222,6 +224,7 @@ describe('Configuration dashboard view', () => {
         queries: payload.queries,
         sourceNames: payload.aliases,
         sources: available ? {
+          repositories: { source: 'repositories', rows: maintenanceNavigationContract.repositories, metadata },
           workflows: { source: 'workflows', rows: maintenanceNavigationContract['repository-workflows'], metadata }
         } : {}
       }));
@@ -247,7 +250,7 @@ describe('Configuration dashboard view', () => {
           const cards = [...(rendered?.querySelectorAll('.entity-card-list-card') ?? [])];
           expect(cards).toHaveLength(maintenanceNavigationContract['repository-homes'].length);
           expect(cards.map((card) => card.querySelectorAll('.entity-card-list-actions .cli-action-trigger').length))
-            .toEqual([2, 2, 2, 3]);
+            .toEqual([2, 2, 2, 2, 3]);
         } finally {
           setDeclaredCliActions([]);
           vi.unstubAllGlobals();

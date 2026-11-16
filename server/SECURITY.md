@@ -330,6 +330,15 @@ may be loaded without the capability.
 - The server does not place the bearer capability in a cookie; loopback cookies
   are host-scoped rather than port-scoped and could leak to another local HTTPS
   service.
+- The optional native maintenance queue issues a separate opaque cookie scoped
+  to `/__cli_commands`, with `Secure`, `HttpOnly`, and `SameSite=Strict`.
+  The authenticated bootstrap also saves this queue-only capability in
+  origin-scoped `localStorage` and passes it explicitly to the data worker.
+  Queue requests send it in `X-CAO-CLI-Session` to the same-origin endpoint and
+  reject redirects. This supports loopback HTTP in WebKit without relaxing
+  cookie protections or sharing the general bearer capability with the worker.
+  The queue capability is JavaScript-readable, like the existing local bearer;
+  it never authorizes other APIs. Hosted OAuth authentication is unchanged.
 - Token comparisons use constant-time comparison.
 - The unauthenticated health response contains only operational connectivity,
   per-feature guarantees, recovery readiness, and whether PostgreSQL has ready dashboard data.

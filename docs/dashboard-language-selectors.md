@@ -34,8 +34,11 @@ by the query; `target` must name one command template token. For example:
 ## Repository patterns
 
 With `allow-patterns: true`, `mapping.target` must be `repository-pattern`.
-The selector additionally offers a typed exact name or `owner/repository` pattern
-containing `*` for explicit selection, without issuing a search for that pattern.
+The selector offers a typed `owner/repository` pattern containing `*` for explicit
+selection without issuing a search for that pattern. All non-wildcard text,
+including complete `owner/repository` names, uses GitHub search results rather than
+an unverified typed option. Lookup starts only after a valid organization prefix
+and `/` are present and at least one repository character is entered.
 Command rendering quotes wildcard values as one literal argument. Ordinary
 `repository` tokens remain exact-only. Enrollment resolves current accessible
 matches to exact policy entries, rejects incomplete discovery or more than 100
@@ -44,22 +47,33 @@ matches, and does not enroll future matches or grant credential access.
 ## Lookup and interaction
 
 Selectors render only when a command service is explicitly available. Declaring
-one does not authorize lookup or enrollment, and the native maintenance service
-does not execute `gh cao repos add`. No canvas execution or search server is
-provided. A service that supports lookup must expose bounded read-only GitHub
-search, not a query over canonical dashboard evidence. It resolves the query
-and mapping from the declared action ID;
+one does not authorize lookup or enrollment. The local native dashboard serves
+`POST /__cli_commands/selector`, authenticated by the local command capability
+and an exact same-origin header. Its HttpOnly, SameSite=Strict cookie is scoped
+to `/__cli_commands` and uses Secure on TLS, not plain loopback HTTP, so WebKit
+can send it locally. It resolves bounded read-only GitHub search
+through the owning CLI's credentials, not canonical dashboard evidence, and
+requires no confirmation for lookup. Adding a repository requires dashboard
+confirmation and only stages review-mode policy. The local queue executes the
+confirmed command directly, without terminal prompts.
+The command console follows queued/running status changes without a manual refresh.
+Background collection output does not imply the command is executing.
+For a qualified name such as `octo/serv`, lookup scopes the search to `octo`
+and searches for `serv`, so partial repository names can resolve to suggestions.
+The server resolves the query and mapping from the declared action ID;
 clients cannot supply a command, fields, or mapping. Search input is a separate
 argv value, never shell-interpolated. These transient external choices do not
 become dashboard sources. Changing input immediately invalidates prior selection
 and cancels stale lookups. Closing or detaching the dialog cancels pending work.
-The presenter must label the textbox, announce loading, empty, and failed lookup
+The presenter must label the textbox and disable spellcheck, automatic
+capitalization, and autocorrect for repository identifiers. It must announce loading, empty, and failed lookup
 states, and keep results in a viewport-bounded, independently scrollable list.
 Queries return at most their declared `limit`, even when hundreds of repositories
 match. At that limit, the presenter tells users to refine their search rather
 than implying that every match is shown. Slow lookups retain an explicit loading
 state and, after two seconds, explain that users can continue typing or cancel.
-The server bounds each GitHub CLI lookup to 15 seconds. Search input and
+The server bounds each GitHub CLI lookup to 15 seconds and never substitutes
+unverified input when GitHub is unavailable or returns no matches. Search input and
 cancellation remain available while waiting; abandoned lookups and their
 slow-search timers must not update later searches. Presenters support keyboard
 selection and disable execution until a mapped value

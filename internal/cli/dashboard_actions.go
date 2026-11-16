@@ -22,7 +22,6 @@ import (
 
 	ghaw "github.com/github/gh-aw/pkg/cli"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 func dashboardActionCommand() *cobra.Command {
@@ -41,7 +40,26 @@ func dashboardActionCommand() *cobra.Command {
 var dashboardWorkflowTarget = regexp.MustCompile(`^(?:\.github/workflows/)?[A-Za-z0-9][A-Za-z0-9_.-]*(?:\.md)?$`)
 var dashboardSourceTarget = regexp.MustCompile(`^https://github\.com/[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$`)
 
+var dashboardEnrollmentPattern = regexp.MustCompile(`^[A-Za-z0-9_.*-]+/[A-Za-z0-9_.*-]+$`)
+
+func nativeRepositoryOperationsAllowed(repository string) bool {
+	return !strings.EqualFold(repository, "github/gh-aw")
+}
+
+// dashboardEnrollmentArgs reports whether args stage local review-mode
+// enrollment. The pattern is new by definition, so scope does not apply.
+func dashboardEnrollmentArgs(args []string) bool {
+	return len(args) == 3 && args[0] == "repos" && args[1] == "add" && len(args[2]) <= 200 &&
+		!strings.Contains(args[2], "..") && dashboardEnrollmentPattern.MatchString(args[2])
+}
+
 func dashboardActionArgs(args, repositories []string) error {
+	if dashboardEnrollmentArgs(args) {
+		if !nativeRepositoryOperationsAllowed(args[2]) {
+			return errors.New("github/gh-aw is excluded from CAO operations")
+		}
+		return nil
+	}
 	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable"}, args[0]) {
 		return errors.New("only gh-aw maintenance commands are supported")
 	}
@@ -82,35 +100,13 @@ func dashboardActionArgs(args, repositories []string) error {
 			return errors.New("unsupported maintenance option")
 		}
 	}
+	if !nativeRepositoryOperationsAllowed(repository) {
+		return errors.New("github/gh-aw is excluded from CAO operations")
+	}
 	if (args[0] != "disable" && !publish) || !slices.Contains(repositories, repository) || repository == "" {
 		return errors.New("maintenance requires pull-request publication within the selected repository scope")
 	}
 	return nil
-}
-
-func approveDashboardAction(ctx context.Context, args []string) (bool, error) {
-	inputName, outputName := "/dev/tty", "/dev/tty"
-	if runtime.GOOS == "windows" {
-		inputName, outputName = "CONIN$", "CONOUT$"
-	}
-	input, err := os.Open(inputName)
-	if err != nil {
-		return false, errors.New("trusted terminal approval is unavailable; run gh cao dashboard from an interactive terminal")
-	}
-	defer func() { _ = input.Close() }()
-	if !term.IsTerminal(int(input.Fd())) {
-		return false, errors.New("trusted terminal approval requires a terminal")
-	}
-	output, err := os.OpenFile(outputName, os.O_WRONLY, 0)
-	if err != nil {
-		return false, err
-	}
-	defer func() { _ = output.Close() }()
-	if _, err := fmt.Fprintf(output, "\nDashboard maintenance requests:\n  gh aw %s\nApprove this command using your local GitHub CLI identity? [y/N] ", strings.Join(args, " ")); err != nil {
-		return false, err
-	}
-	text, err := readDashboardApproval(ctx, input)
-	return strings.EqualFold(strings.TrimSpace(text), "y") && err == nil, err
 }
 
 type dashboardActionEvent struct {
@@ -166,12 +162,16 @@ func (w *dashboardActionWriter) flush() error {
 }
 
 func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string, ingest chan<- struct{}) (string, func(), error) {
-	return startDashboardActionAdapterWithApproval(ctx, repositories, cache, approveDashboardAction, ingest)
+	executable, err := os.Executable()
+	if err != nil {
+		return "", nil, err
+	}
+	return startDashboardActionAdapterWithExecutable(ctx, repositories, cache, executable, ingest)
 }
 
 // ingest, when non-nil, receives coalesced operator requests to start an
 // ingestion pass now. It must be buffered; requests never block the adapter.
-func startDashboardActionAdapterWithApproval(ctx context.Context, repositories []string, cache string, approve func(context.Context, []string) (bool, error), ingest chan<- struct{}) (string, func(), error) {
+func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories []string, cache, executable string, ingest chan<- struct{}) (string, func(), error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, err
@@ -187,11 +187,26 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		return "", nil, err
 	}
 	adapterCtx, cancel := context.WithCancel(ctx)
-	var approval sync.Mutex
 	var executions sync.Mutex
 	active := map[string]context.CancelFunc{}
 	canceled := map[string]bool{}
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST "+adapterPrefix+"/repositories/search", dashboardRepositorySearch)
+	mux.HandleFunc("GET "+adapterPrefix+"/repositories/{owner}/{repo}/update-access", func(w http.ResponseWriter, r *http.Request) {
+		repository := strings.ToLower(r.PathValue("owner") + "/" + r.PathValue("repo"))
+		if !repositoryPattern.MatchString(repository) || strings.Contains(repository, "..") || len(repository) > 200 {
+			http.Error(w, "invalid repository identity", http.StatusBadRequest)
+			return
+		}
+		scope, err := dashboardUpdateRepositories(r.Context(), repositories)
+		if err != nil {
+			http.Error(w, "managed update scope is unavailable; fix the local CAO configuration", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = json.NewEncoder(w).Encode(map[string]bool{"allowed": slices.Contains(scope, repository)})
+	})
 	mux.HandleFunc("POST "+adapterPrefix+"/cancel", func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get("X-Command-ID")
 		if !dashboardRunID.MatchString(id) {
@@ -217,8 +232,20 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 	}
 	mux.HandleFunc("POST "+adapterPrefix+"/execute", func(w http.ResponseWriter, r *http.Request) {
 		var args []string
-		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&args) != nil ||
-			dashboardActionArgs(args, repositories) != nil {
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&args) != nil {
+			http.Error(w, "invalid scoped maintenance command", http.StatusForbidden)
+			return
+		}
+		scope := repositories
+		if len(args) > 0 && (args[0] == "update" || args[0] == "upgrade") {
+			var err error
+			scope, err = dashboardUpdateRepositories(r.Context(), repositories)
+			if err != nil {
+				http.Error(w, "managed update scope is unavailable; no command was started", http.StatusForbidden)
+				return
+			}
+		}
+		if dashboardActionArgs(args, scope) != nil {
 			http.Error(w, "invalid scoped maintenance command", http.StatusForbidden)
 			return
 		}
@@ -259,25 +286,21 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 			return http.NewResponseController(w).Flush()
 		}
 		code := 1
-		approval.Lock()
-		approved, approvalErr := approve(executionCtx, args)
-		approval.Unlock()
-		if !approved || executionCtx.Err() != nil {
-			message := "Terminal approval declined."
-			if approvalErr != nil {
-				message = approvalErr.Error()
-			}
-			_ = send(dashboardActionEvent{Stream: "stderr", Data: message + "\n"})
+		if executionCtx.Err() != nil {
+			code = 130
+			_ = send(dashboardActionEvent{Stream: "stderr", Data: "Command canceled before execution.\n"})
 			_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
 			return
 		}
-		executable, err := os.Executable()
-		if err != nil {
-			_ = send(dashboardActionEvent{Stream: "stderr", Data: "Native maintenance executable is unavailable.\n"})
-			_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
+		if err := send(dashboardActionEvent{Stream: "stdout", Data: "Executing queued command using the local GitHub CLI identity.\n"}); err != nil {
 			return
 		}
-		child := exec.CommandContext(executionCtx, executable, append([]string{"__dashboard_aw"}, args...)...)
+		childArgs := append([]string{"__dashboard_aw"}, args...)
+		if dashboardEnrollmentArgs(args) {
+			// Stages review-mode policy in the dashboard's control checkout.
+			childArgs = slices.Clone(args)
+		}
+		child := exec.CommandContext(executionCtx, executable, childArgs...)
 		if args[0] == "disable" {
 			directory, prepareErr := prepareDashboardDisableCheckout(executionCtx, cache, args)
 			if prepareErr != nil {
@@ -303,7 +326,7 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 		stdout := &dashboardActionWriter{stream: "stdout", send: send, secrets: secrets}
 		stderr := &dashboardActionWriter{stream: "stderr", send: send, secrets: secrets}
 		child.Stdout, child.Stderr = stdout, stderr
-		err = child.Run()
+		err := child.Run()
 		if len(stdout.buffer) > 0 || stdout.suppressed {
 			_ = stdout.flush()
 		}
@@ -342,6 +365,8 @@ func startDashboardActionAdapterWithApproval(ctx context.Context, repositories [
 			settings["operatorActions"] = map[string]any{
 				"repositories": repositories,
 			}
+			_, managed := ctx.Value(dashboardConfigurationKey{}).(*dashboardConfiguration)
+			settings["managedUpdates"] = managed
 		}
 		err = json.NewEncoder(config).Encode(settings)
 		err = errors.Join(err, config.Close())

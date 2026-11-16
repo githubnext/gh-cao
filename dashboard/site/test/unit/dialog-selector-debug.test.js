@@ -20,7 +20,7 @@ async function search(debug, fetchResult) {
   const lifetime = new AbortController();
   const control = createDialogSelector('add', definition, { signal: lifetime.signal, select: () => {} });
   const input = /** @type {HTMLInputElement} */ (control.root.querySelector('input'));
-  input.value = 'secret-term';
+  input.value = 'octo/secret-term';
   input.dispatchEvent(new Event('input'));
   await vi.advanceTimersByTimeAsync(400);
   lifetime.abort();
@@ -45,7 +45,7 @@ describe('dialog selector debug logging', () => {
     const ok = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ options: [{ value: 'o/r', label: 'o/r', description: 'private' }] }) });
     const output = await search('components:dialog-selector', ok);
     expect(output.mock.calls).toEqual([
-      ['[cao:components:dialog-selector]', { event: 'search.start', textLength: 11 }],
+      ['[cao:components:dialog-selector]', { event: 'search.start', textLength: 16 }],
       ['[cao:components:dialog-selector]', { event: 'search.result', status: 'ok', count: 1, limit: 20 }]
     ]);
     expect(JSON.stringify(output.mock.calls)).not.toMatch(/secret-term|private|o\/r/);

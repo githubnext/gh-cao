@@ -248,7 +248,7 @@ func TestSetupPublicationLinkStyling(t *testing.T) {
 				t.Fatalf("missing link %q in output %q", link, output)
 			}
 		}
-		if !strings.Contains(output, "Actions operational artifacts with the local or cloud dashboard") {
+		if !strings.Contains(output, "View collected evidence with gh cao dashboard or the cloud dashboard") {
 			t.Fatal("output must direct operators to real-data dashboards")
 		}
 		if styled {

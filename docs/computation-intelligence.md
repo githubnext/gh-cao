@@ -27,16 +27,14 @@ The current measure contract is:
 
 ## Run it
 
-Acquire a successful Activity run's operational snapshot with Actions read
-access. There is no implicit public snapshot; Pages contains only synthetic data.
+Download an explicitly provided operational snapshot. There is no implicit
+public snapshot, and no Actions workflow publishes one; Pages contains only
+synthetic data. See [Agent analysis](agent-analysis.md).
 
 ```bash
-gh run download RUN_ID --repo OWNER/CONTROL --name cao-activity-index --dir .cao
+gh cao download --url https://SNAPSHOT-HOST/payload-hashes.json
 gh cao computation intelligence
 ```
-
-For an explicitly provided operational manifest URL, use
-`gh cao download --url URL`; see [Agent analysis](agent-analysis.md).
 
 Evaluate one Campaign:
 

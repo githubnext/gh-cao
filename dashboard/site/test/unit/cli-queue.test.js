@@ -107,6 +107,26 @@ describe('worker command queue', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('uses the scoped header without forwarding bearer credentials or following redirects', async () => {
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(Response.json({ commands: [] })));
+    vi.stubGlobal('fetch', fetch);
+    const endpoint = new URL('/__cli_commands', location.href).href;
+    configureCliQueue(true, endpoint, 'queue-only-capability');
+    await cliQueueOperation({ action: 'list' });
+    await cliQueueOperation({ action: 'enqueue', command: { id: 'compile' } });
+    for (const [url, options] of fetch.mock.calls) {
+      expect(new URL(url).origin).toBe(location.origin);
+      expect(options.headers.get('X-CAO-CLI-Session')).toBe('queue-only-capability');
+      expect(options.headers.has('Authorization')).toBe(false);
+      expect(options.redirect).toBe('error');
+    }
+    expect(() => configureCliQueue(true, 'https://other.example/__cli_commands', 'secret')).toThrow('same-origin');
+    await expect(cliQueueOperation({ action: 'list' })).rejects.toThrow('unavailable');
+    configureCliQueue(true, endpoint);
+    await cliQueueOperation({ action: 'list' });
+    expect(fetch.mock.lastCall?.[1].headers.has('X-CAO-CLI-Session')).toBe(false);
+  });
+
   it('runs real declared queries over server pages with authoritative counts', async () => {
     configureCliQueue(true);
     const states = ['queued', 'running', 'completed', 'failed', 'canceled', 'timed-out'];

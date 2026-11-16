@@ -77,7 +77,7 @@ or local Node.js.
 
 Setup offers authentication choices based on that scope.
 A separate default-No prompt can publish reviewed CAO files; declining/CI stays
-local. Push links to Actions artifacts. Setup never configures synthetic-only Pages.
+local. Push links to the Actions run. Setup never configures synthetic-only Pages.
 
 ## Agent procedure
 

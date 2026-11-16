@@ -650,7 +650,7 @@ test("README routes zero-to-CAO requests to the setup skill", () => {
   assert.match(setupSkill, /Node\.js 24\+/);
   assert.match(setupSkill, /separate default-No prompt can publish reviewed CAO files/);
   assert.match(setupSkill, /declining\/CI stays\s+local/);
-  assert.match(setupSkill, /Push links to Actions artifacts/);
+  assert.match(setupSkill, /Push links to the Actions run/);
   assert.match(setupSkill, /gh extension install githubnext\/gh-cao/);
   assert.ok(setupSkill.indexOf("gh extension install") < setupSkill.indexOf("curl -fsSL"));
   assert.match(setupReferences["implementation-details"], /primary operator path is `gh extension install githubnext\/gh-cao`/);

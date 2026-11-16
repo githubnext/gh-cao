@@ -2391,6 +2391,44 @@
       }
     },
     {
+      "id": "maintenance-workflow-operation-flags",
+      "subject": "Retained workflow repository identities.",
+      "objective": "Exclude the upstream gh-aw repository from operational workflow targets.",
+      "acceptance": "Mark only github/gh-aw, case-insensitively; read-only workflow evidence remains unchanged.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-operable-workflows",
+      "subject": "Workflow identities eligible for operational presentation.",
+      "objective": "Keep the upstream source repository out of single and bulk workflow operations.",
+      "acceptance": "Exclude only github/gh-aw; sibling repositories remain eligible for separate service authorization.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflow-operation-flags"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "maintenance-standalone-workflows",
       "subject": "Canonical workflow provenance retained under the legacy standalone query identifier.",
       "objective": "Supply campaign-owned and standalone identities to the maintenance eligibility query without synthetic membership.",
@@ -2398,7 +2436,7 @@
       "description": "",
       "parameters": [],
       "sources": [
-        "workflows"
+        "maintenance-operable-workflows"
       ],
       "used-by-pages": [],
       "execution": {
@@ -2471,7 +2509,7 @@
       }
     },
     {
-      "id": "maintenance-repository-versions",
+      "id": "maintenance-observed-repository-versions",
       "subject": "Group installed and current gh-aw compiler versions and upgrade evidence by repository.",
       "objective": "Identify repositories with declared Markdown workflows whose retained compiler-version evidence warrants upgrade review.",
       "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct known installed/current version lists, distinct counts, upgrade-required evidence, and separate missing-installed/missing-latest flags. Never infer unavailable versions.",
@@ -2485,6 +2523,65 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-operation-flags",
+      "subject": "Known repository identities.",
+      "objective": "Identify the upstream source repository without changing read-only inventory.",
+      "acceptance": "Mark github/gh-aw case-insensitively, without excluding sibling repositories.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-coordinates",
+      "subject": "Known repository identities, including local configuration.",
+      "objective": "Keep configured repositories visible before workflow evidence is collected.",
+      "acceptance": "Return one coordinate per canonical repository without inventing workflow or version observations.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-repository-operation-flags"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-versions",
+      "subject": "Configured and observed repositories with retained compiler evidence.",
+      "objective": "Expose missing evidence without hiding newly configured repositories.",
+      "acceptance": "Left join compiler observations by repository. Missing versions remain null, counts and upgrade-required are zero, and unavailable flags are one. Configuration never establishes upgrade evidence.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-observed-repository-versions",
+        "maintenance-repository-coordinates"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories",
           "workflows"
         ]
       }
@@ -2512,6 +2609,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "repositories",
           "workflows"
         ]
       }
@@ -2569,6 +2667,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "repositories",
           "workflows"
         ]
       }

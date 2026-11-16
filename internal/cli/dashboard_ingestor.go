@@ -8,11 +8,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"sync"
 	"time"
 )
 
-// Calls are serialized by the owning collection loop.
+// Collection and local configuration changes share this owned transport.
 type dashboardIngestor struct {
+	mutex      sync.Mutex
 	child      *exec.Cmd
 	input      io.WriteCloser
 	output     io.ReadCloser
@@ -79,6 +81,8 @@ func (w *dashboardIngestor) IngestRunBundles() error {
 }
 
 func (w *dashboardIngestor) ingest(mode string) error {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	if w.closed {
 		return errors.New("canonical ingestion process is closed")
 	}
@@ -99,6 +103,8 @@ func (w *dashboardIngestor) ingest(mode string) error {
 }
 
 func (w *dashboardIngestor) Close() error {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	if w.closed {
 		return nil
 	}

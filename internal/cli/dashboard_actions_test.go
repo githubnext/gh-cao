@@ -2,27 +2,81 @@ package cli
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
+func dashboardTestActionExecutable(t *testing.T) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("native dashboard commands are unavailable on Windows")
+	}
+	executable := filepath.Join(t.TempDir(), "native-command")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\nprintf 'Native command executed without terminal input\\n'\nprintf '%s\\n' \"$@\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return executable
+}
+
+func TestDashboardEnrollmentExecutesWithoutTerminalApproval(t *testing.T) {
+	filename, cleanup, err := startDashboardActionAdapterWithExecutable(t.Context(), []string{"octo/control"}, t.TempDir(),
+		dashboardTestActionExecutable(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config struct{ AdapterURL string }
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, config.AdapterURL+"/execute",
+		strings.NewReader(`["repos","add","octo/new-repository"]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("X-Command-ID", "1")
+	client := &http.Client{Timeout: 5 * time.Second}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("queued enrollment did not execute without terminal input: %v", err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, err := io.ReadAll(response.Body)
+	if err != nil || response.StatusCode != http.StatusOK ||
+		!bytes.Contains(body, []byte("Native command executed without terminal input")) ||
+		!bytes.Contains(body, []byte(`"data":"repos\n"`)) ||
+		!bytes.Contains(body, []byte(`"data":"add\n"`)) ||
+		!bytes.Contains(body, []byte(`"data":"octo/new-repository\n"`)) ||
+		!bytes.Contains(body, []byte(`"complete":true,"exitCode":0`)) {
+		t.Fatalf("enrollment did not execute through the native queue adapter: %s %v", body, err)
+	}
+}
+
 func TestDashboardActionScopeAndPublication(t *testing.T) {
-	scope := []string{"github/gh-aw"}
+	scope := []string{"octo/control"}
 	for _, args := range [][]string{
-		{"upgrade", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"upgrade", "--repo", "github/gh-aw", "--create-pull-request", "--pre-releases"},
-		{"update", "https://github.com/octo/source/workflow", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"update", ".github/workflows/review.md", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"update", "review.v2.md", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"disable", "review.v2", "--repo", "github/gh-aw"},
-		{"update", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"disable", "review", "--repo", "github/gh-aw"},
-		{"disable", "--repo", "github/gh-aw"},
+		{"upgrade", "--repo", "octo/control", "--create-pull-request"},
+		{"upgrade", "--repo", "octo/control", "--create-pull-request", "--pre-releases"},
+		{"update", "https://github.com/octo/source/workflow", "--repo", "octo/control", "--create-pull-request"},
+		{"update", ".github/workflows/review.md", "--repo", "octo/control", "--create-pull-request"},
+		{"update", "review.v2.md", "--repo", "octo/control", "--create-pull-request"},
+		{"disable", "review.v2", "--repo", "octo/control"},
+		{"update", "--repo", "octo/control", "--create-pull-request"},
+		{"disable", "review", "--repo", "octo/control"},
+		{"disable", "--repo", "octo/control"},
+		{"repos", "add", "octo/new-service"},
+		{"repos", "add", "octo/service-*"},
 	} {
 		if err := dashboardActionArgs(args, scope); err != nil {
 			t.Fatalf("valid maintenance rejected: %v", err)
@@ -30,26 +84,48 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 	}
 	for _, args := range [][]string{
 		{"upgrade", "--repo", "octo/other", "--create-pull-request"},
-		{"upgrade", "--repo", "github/gh-aw"},
-		{"upgrade", "--repo", "github/gh-aw", "--repo", "octo/other", "--create-pull-request"},
+		{"upgrade", "--repo", "octo/control"},
+		{"upgrade", "--repo", "octo/control", "--repo", "octo/other", "--create-pull-request"},
 		{"upgrade", "--org", "github", "--create-pull-request"},
-		{"upgrade", "--repo", "github/gh-aw", "--create-pull-request", "--auto-merge"},
-		{"update", "review.md", "--repo", "github/gh-aw", "--pr-message", "Reviewed update", "--create-pull-request"},
-		{"update", "https://evil.example/source", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"update", "https://github.com/octo/source/../other", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"update", "https://github.com/octo/source", "--repo", "github/gh-aw", "--create-pull-request", "--pre-releases"},
-		{"workflow", "run", "agent.yml", "--repo", "github/gh-aw"},
+		{"upgrade", "--repo", "octo/control", "--create-pull-request", "--auto-merge"},
+		{"update", "review.md", "--repo", "octo/control", "--pr-message", "Reviewed update", "--create-pull-request"},
+		{"update", "https://evil.example/source", "--repo", "octo/control", "--create-pull-request"},
+		{"update", "https://github.com/octo/source/../other", "--repo", "octo/control", "--create-pull-request"},
+		{"update", "https://github.com/octo/source", "--repo", "octo/control", "--create-pull-request", "--pre-releases"},
+		{"workflow", "run", "agent.yml", "--repo", "octo/control"},
 		{"disable"},
-		{"disable", "review* ", "--repo", "github/gh-aw"},
-		{"disable", "review..v2", "--repo", "github/gh-aw"},
-		{"disable", "review", "review-more", "--repo", "github/gh-aw"},
+		{"disable", "review* ", "--repo", "octo/control"},
+		{"disable", "review..v2", "--repo", "octo/control"},
+		{"disable", "review", "review-more", "--repo", "octo/control"},
 		{"disable", "review", "--repo", "octo/other"},
-		{"disable", "review", "--repo", "github/gh-aw", "--create-pull-request"},
-		{"update", "../review.md", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"disable", "review", "--repo", "octo/control", "--create-pull-request"},
+		{"update", "../review.md", "--repo", "octo/control", "--create-pull-request"},
+		{"repos", "add"},
+		{"repos", "add", "octo/a", "octo/b"},
+		{"repos", "add", "octo/../other"},
+		{"repos", "add", "--repo", "octo/api"},
+		{"repos", "add", "octo"},
 	} {
 		if dashboardActionArgs(args, scope) == nil {
 			t.Fatalf("unscoped or unsupported maintenance accepted: %v", args)
 		}
+	}
+}
+
+func TestDashboardOperationsExcludeUpstreamButNotSiblingRepositories(t *testing.T) {
+	scope := []string{"github/gh-aw", "github/gh-aw-actions"}
+	for _, args := range [][]string{
+		{"upgrade", "--repo", "github/gh-aw", "--create-pull-request"},
+		{"update", "--repo", "GitHub/GH-AW", "--create-pull-request"},
+		{"disable", "--repo", "github/gh-aw"},
+		{"repos", "add", "github/gh-aw"},
+	} {
+		if dashboardActionArgs(args, scope) == nil {
+			t.Fatalf("upstream repository operation was allowed: %v", args)
+		}
+	}
+	if err := dashboardActionArgs([]string{"upgrade", "--repo", "github/gh-aw-actions", "--create-pull-request"}, scope); err != nil {
+		t.Fatalf("upstream exclusion incorrectly blocked a sibling repository: %v", err)
 	}
 }
 
@@ -95,10 +171,9 @@ func TestDashboardActionOutputRedactsSplitCredentials(t *testing.T) {
 	}
 }
 
-func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T) {
-	approvals := 0
-	filename, cleanup, err := startDashboardActionAdapterWithApproval(t.Context(), []string{"github/gh-aw"}, t.TempDir(),
-		func(context.Context, []string) (bool, error) { approvals++; return false, nil }, nil)
+func TestDashboardActionAdapterRequiresScopeAndPrivateCapability(t *testing.T) {
+	filename, cleanup, err := startDashboardActionAdapterWithExecutable(t.Context(), []string{"octo/control"}, t.TempDir(),
+		dashboardTestActionExecutable(t), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +193,7 @@ func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T
 		status int
 	}{
 		{`["upgrade","--repo","octo/other","--create-pull-request"]`, 403},
-		{`["upgrade","--repo","github/gh-aw","--create-pull-request"]`, 200},
+		{`["upgrade","--repo","octo/control","--create-pull-request"]`, 200},
 	} {
 		request, err := http.NewRequest(http.MethodPost, config.AdapterURL+"/execute", bytes.NewBufferString(test.args))
 		if err != nil {
@@ -135,12 +210,9 @@ func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T
 			t.Fatalf("adapter status: %d %v", response.StatusCode, readErr)
 		}
 		if test.status == 200 && (!bytes.Contains(body, []byte(`"complete":true`)) ||
-			!bytes.Contains(body, []byte(`"exitCode":1`))) {
-			t.Fatalf("declined approval must return a failed execution receipt: %s", body)
+			!bytes.Contains(body, []byte(`"exitCode":0`))) {
+			t.Fatalf("scoped queued command must execute without terminal approval: %s", body)
 		}
-	}
-	if approvals != 1 {
-		t.Fatalf("out-of-scope command reached terminal approval: %d", approvals)
 	}
 	response, err := http.Post(config.AdapterURL+"/ingest", "application/json", nil)
 	if err != nil {
@@ -154,8 +226,7 @@ func TestDashboardActionAdapterRequiresApprovalAndPrivateCapability(t *testing.T
 
 func TestDashboardActionAdapterCoalescesIngestionRequests(t *testing.T) {
 	trigger := make(chan struct{}, 1)
-	filename, cleanup, err := startDashboardActionAdapterWithApproval(t.Context(), []string{"github/gh-aw"}, t.TempDir(),
-		func(context.Context, []string) (bool, error) { return false, nil }, trigger)
+	filename, cleanup, err := startDashboardActionAdapter(t.Context(), []string{"octo/control"}, t.TempDir(), trigger)
 	if err != nil {
 		t.Fatal(err)
 	}

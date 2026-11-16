@@ -19,7 +19,11 @@ test("SOC2 worker is registered consistently without expanding target authority"
   assert.deepEqual(campaign.workers["server-soc2"], { workflow: id });
   assert.ok(manifest.includes.includes(`.github/workflows/${id}.md`));
   assert.equal(campaign.mode, "review");
-  assert.deepEqual(campaign.targets, { "githubnext/gh-cao": { mode: "live" } });
+  assert.deepEqual(campaign.targets, {
+    "githubnext/gh-cao": { mode: "live" },
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
+  });
   assert.equal(controlPolicy["target-authority"].campaigns["self-care"].authority, "githubnext/gh-cao");
   assert.equal(campaign["max-repositories"], 1);
   const workers = Object.values(descriptor.workers);

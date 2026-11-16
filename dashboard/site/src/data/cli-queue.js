@@ -7,10 +7,12 @@ const debugCliQueue = createDebug('cli-queue');
 const COMMAND_STATUSES = ['queued', 'running', 'completed', 'failed', 'canceled', 'timed-out'];
 let enabled = false;
 let endpoint = '';
+let capability = '';
 
-/** @param {boolean} value @param {string} [url] */
-export function configureCliQueue(value, url) {
-  enabled = value === true;
+/** @param {boolean} value @param {string} [url] @param {string | null} [token] */
+export function configureCliQueue(value, url, token) {
+  enabled = false;
+  capability = '';
   if (url) {
     const parsed = new URL(url);
     if (globalThis.location?.origin && parsed.origin !== globalThis.location.origin) {
@@ -18,6 +20,8 @@ export function configureCliQueue(value, url) {
     }
     endpoint = parsed.href;
   }
+  enabled = value === true;
+  capability = enabled && typeof token === 'string' ? token : '';
 }
 
 export function cliQueueEnabled() { return enabled; }
@@ -36,8 +40,10 @@ export function isCliQueueQuery(queries, names) {
  */
 async function request(path, options = {}) {
   if (!enabled) throw new Error('Command queue is unavailable in this dashboard.');
+  const headers = new Headers(options.headers);
+  if (capability) headers.set('X-CAO-CLI-Session', capability);
   const response = await fetch(`${endpoint || './__cli_commands'}${path}`, {
-    cache: 'no-store', credentials: 'same-origin', ...options
+    cache: 'no-store', credentials: 'same-origin', ...options, headers, redirect: 'error'
   });
   if (!response.ok) {
     debugCliQueue({ event: 'request-failed', method: options.method ?? 'GET', status: response.status });
