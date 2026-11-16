@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -22,9 +22,13 @@ test("central-agentic-ops is a discoverable, packaged, compact skill", () => {
   assert.match(skill, /^---\nname: central-agentic-ops\ndescription: "[^"\n]+"\n/);
   assert.ok(Buffer.byteLength(skill) <= 6 * 1024, "router must stay lightweight");
 
-  const link = join(root, ".github", "skills", "central-agentic-ops");
-  assert.equal(lstatSync(link).isSymbolicLink(), true);
-  assert.equal(realpathSync(join(link, "SKILL.md")), realpathSync(skillPath));
+  const local = join(root, ".github", "skills", "central-agentic-ops");
+  assert.equal(lstatSync(local).isSymbolicLink(), false, "repository-local skill must not be a symlink");
+  assert.deepEqual(readdirSync(local), ["SKILL.md"]);
+  const router = read(".github/skills/central-agentic-ops/SKILL.md");
+  assert.match(router, /^---\nname: central-agentic-ops\ndescription: "[^"\n]+"\n---\n/);
+  assert.match(router, /\]\(\.\.\/\.\.\/\.\.\/skills\/central-agentic-ops\/SKILL\.md\)/);
+  assert.ok(Buffer.byteLength(router) <= 1024, "repository-local router must stay tiny");
 
   const manifest = read("aw.yml");
   assert.match(manifest, /^\s+- skills\/central-agentic-ops$/m);
