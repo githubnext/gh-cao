@@ -1,0 +1,252 @@
+{
+  "card-templates": [
+    {
+      "id": "ops-attention",
+      "icon": "alert",
+      "drill": { "type": "external", "field": "ops-evidence-href" },
+      "title": { "field": "name", "title": "Workflow" },
+      "subtitle": { "field": "scope", "title": "Control repository" },
+      "status": { "field": "lifecycle-state", "title": "Recorded state" },
+      "labels": [{ "field": "workflow-role", "title": "Role" }],
+      "detail-labels": "visible",
+      "details": [
+        { "field": "ops-reason", "title": "Review basis" },
+        { "field": "next-actor", "title": "Next actor" }
+      ],
+      "timing": [{ "field": "observed-at", "type": "temporal", "title": "Observed", "format": "human-friendly-timestamp", "icon": "clock" }]
+    },
+    {
+      "id": "ops-output",
+      "icon": "archive",
+      "drill": { "type": "external", "field": "ops-output-href" },
+      "title": { "field": "ops-output-title", "title": "Output" },
+      "subtitle": { "field": "ops-producer", "title": "Control repository" },
+      "status": { "field": "delivery-state", "title": "Delivery" },
+      "labels": [{ "field": "safe-output-type", "title": "Type" }],
+      "detail-labels": "visible",
+      "details": [
+        { "field": "ops-producer", "title": "Control repository" },
+        { "field": "workflow-name", "title": "Workflow" },
+        { "field": "adoption-state", "title": "Adoption" },
+        { "field": "adoption-signal", "title": "Adoption basis" },
+        { "field": "adoption-source", "title": "Adoption source" },
+        { "field": "survival-state", "title": "Survival" }
+      ],
+      "timing": [{ "field": "delivered-at", "type": "temporal", "title": "Delivered", "format": "human-friendly-timestamp", "icon": "clock" }]
+    }
+  ],
+  "queries": [
+    {
+      "name": "ops-attention",
+      "subject": "Latest retained workflow states in the selected scope and horizon.",
+      "objective": "Inspect blockers, pending review and missing run evidence.",
+      "acceptance": "Order blocked, review, unknown, then newest observation and identity. Preserve evidence links. Unknown is not idle; pending delivery is not acceptance.",
+      "from": "work-items",
+      "filter": { "predicates": [{ "field": "lifecycle-state", "in": ["blocked", "review", "unknown"] }] },
+      "compute": [
+        { "as": "ops-evidence-href", "function": "link-href", "args": [{ "field": "evidence-link" }] },
+        { "as": "_blocked", "function": "equals-any", "args": [{ "field": "lifecycle-state" }, { "value": "blocked" }] },
+        { "as": "_unknown", "function": "equals-any", "args": [{ "field": "lifecycle-state" }, { "value": "unknown" }] },
+        { "as": "_review-priority", "function": "if", "args": [{ "field": "_unknown" }, { "value": 2 }, { "value": 1 }] },
+        { "as": "ops-priority", "function": "if", "args": [{ "field": "_blocked" }, { "value": 0 }, { "field": "_review-priority" }] },
+        { "as": "ops-reason", "function": "if", "args": [{ "field": "_unknown" }, { "value": "Latest run state is unknown or no run evidence is retained." }, { "field": "reason" }] }
+      ],
+      "order-by": [
+        { "field": "ops-priority", "direction": "asc" },
+        { "field": "observed-at", "direction": "desc" },
+        { "field": "work-item-id", "direction": "asc" }
+      ]
+    },
+    {
+      "name": "ops-in-flight",
+      "subject": "Retained run attempts with a nonterminal native status.",
+      "objective": "Inspect the last recorded execution state, not a live queue.",
+      "acceptance": "Include queued, requested, pending, waiting and in-progress attempts; order newest creation then identity. Keep attempts distinct, missing timestamps and links unknown, and completed runs out.",
+      "from": "runs",
+      "filter": { "predicates": [{ "field": "run-status", "in": ["queued", "requested", "pending", "waiting", "in-progress"] }] },
+      "order-by": [
+        { "field": "created-at", "direction": "desc" },
+        { "field": "id", "direction": "asc" }
+      ]
+    },
+    {
+      "name": "ops-repository-work",
+      "subject": "Latest retained workflow states grouped by control repository.",
+      "objective": "Compare observed workflow coverage and unresolved work.",
+      "acceptance": "Count one work item per workflow and native state, keyed by organization and repository. Run coverage counts workflows with a timed latest run, not all attempts or target coverage; untimed evidence is excluded.",
+      "from": "work-items",
+      "aggregate": {
+        "by": ["organization", "repository"],
+        "values": [
+          { "field": "work-item-id", "as": "observed-workflows", "reducer": "count" },
+          { "field": "started-at", "as": "workflows-with-runs", "reducer": "count" },
+          { "field": "work-item-id", "as": "blocked", "reducer": "count", "filter": { "predicates": [{ "field": "lifecycle-state", "equals": "blocked" }] } },
+          { "field": "work-item-id", "as": "review", "reducer": "count", "filter": { "predicates": [{ "field": "lifecycle-state", "equals": "review" }] } },
+          { "field": "work-item-id", "as": "unknown", "reducer": "count", "filter": { "predicates": [{ "field": "lifecycle-state", "equals": "unknown" }] } }
+        ]
+      }
+    },
+    {
+      "name": "ops-repositories",
+      "subject": "Retained repository inventory with latest workflow-state counts.",
+      "objective": "Find repositories needing investigation without claiming farm health.",
+      "acceptance": "Keep repositories without workflows; unmatched counts remain null, not zero. Join on organization and repository. Link to repository details and label missing run evidence; no enrollment or live-status claim.",
+      "from": "repositories",
+      "joins": [{
+        "source": "ops-repository-work", "type": "left",
+        "on": [{ "left": "organization", "right": "organization" }, { "left": "repository", "right": "repository" }],
+        "fields": [
+          { "field": "observed-workflows", "as": "observed-workflows" },
+          { "field": "workflows-with-runs", "as": "workflows-with-runs" },
+          { "field": "blocked", "as": "blocked" },
+          { "field": "review", "as": "review" },
+          { "field": "unknown", "as": "unknown" }
+        ]
+      }],
+      "compute": [
+        { "as": "ops-repository", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "_encoded", "function": "url-encode", "args": [{ "field": "ops-repository" }] },
+        { "as": "_href", "function": "concat", "args": [{ "value": "#page-repository-detail?repository=" }, { "field": "_encoded" }] },
+        { "as": "repository-dashboard-link", "function": "dashboard-link", "args": [{ "field": "repository-link" }, { "field": "_href" }, { "field": "ops-repository" }, { "field": "ops-repository" }] },
+        { "as": "_has-runs", "function": "greater-than", "args": [{ "field": "workflows-with-runs" }, { "value": 0 }] },
+        { "as": "ops-coverage", "function": "if", "args": [{ "field": "_has-runs" }, { "value": "Run evidence retained" }, { "value": "No retained run evidence" }] }
+      ],
+      "order-by": [{ "field": "ops-repository", "direction": "asc" }]
+    },
+    {
+      "name": "ops-recent-outputs",
+      "subject": "Retained output lifecycle evidence in the selected scope and horizon.",
+      "objective": "Inspect delivery, adoption basis and survival independently.",
+      "acceptance": "Order by delivery clock descending then output identity. Preserve producing repository, adoption signal/source and evidence links. Delivery and registry fallback acceptance never imply human acceptance or operational Value.",
+      "from": "outcomes",
+      "compute": [
+        { "as": "ops-producer", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "ops-output-href", "function": "link-href", "args": [{ "field": "external-link" }] },
+        { "as": "ops-output-title", "function": "coalesce", "args": [{ "field": "outcome-title" }, { "field": "safe-output-type" }] }
+      ],
+      "order-by": [{ "field": "delivered-at", "direction": "desc" }, { "field": "safe-output", "direction": "asc" }]
+    }
+  ],
+  "pages": [{
+    "id": "ops",
+    "kind": "custom",
+    "experimental": true,
+    "title": "Ops",
+    "icon": "pulse",
+    "intent": "Give operators an attention-first, read-only view of the retained CAO farm, inspired by Merge Harbor. Inspect blockers and review work before execution, repository coverage and output evidence. This page observes; it cannot install, dispatch, alter rollout or merge.",
+    "subject": "Retained CAO evidence in the selected scope and horizon.",
+    "objective": "Choose the next evidence-backed investigation across the farm.",
+    "acceptance": "Show attention, nonterminal attempts, repository coverage and output lifecycles. Preserve partial, stale, unavailable and empty states. Missing evidence is not idle; delivery or run success is not human acceptance or operational Value.",
+    "description": "Inspect retained farm evidence and choose the next investigation without changing execution or rollout.",
+    "query-binding": "page",
+    "sections": [{
+      "id": "ops-watch",
+      "title": "Read-only farm watch",
+      "description": "Coverage: retained evidence in the selected scope and horizon, not a live queue or a complete enrolled-farm census. Missing evidence is not an idle farm. Delivery and run success are not human acceptance or operational Value; adoption may use a registry delivery fallback.",
+      "layout": "full",
+      "views": ["ops-attention", "ops-in-flight", "ops-repositories", "ops-recent-outputs"]
+    }],
+    "views": [
+      {
+        "id": "ops-attention",
+        "title": "Attention needed",
+        "description": "Latest recorded workflow state: blockers first, then pending review, then unknown run evidence. Open the source before deciding what to do.",
+        "mark": "table",
+        "locked": true,
+        "layout": "half",
+        "controls": "interactive",
+        "lazy-list": true,
+        "column-summaries": false,
+        "data": { "source": "ops-attention" },
+        "empty-message": "No blocked, review or unknown workflow states were observed. Missing or partial coverage does not establish a healthy farm.",
+        "encoding": {
+          "card": "ops-attention",
+          "href": { "field": "evidence-link", "type": "nominal" },
+          "columns": [
+            { "field": "name", "type": "nominal", "title": "Workflow" },
+            { "field": "scope", "type": "nominal", "title": "Control repository" },
+            { "field": "lifecycle-state", "type": "nominal", "title": "Recorded state", "display": "status" },
+            { "field": "ops-reason", "type": "nominal", "title": "Review basis" }
+          ]
+        }
+      },
+      {
+        "id": "ops-in-flight",
+        "title": "Work in flight",
+        "description": "Last recorded nonterminal run attempts. Retained status may be stale; this is not live execution telemetry.",
+        "mark": "table",
+        "locked": true,
+        "layout": "half",
+        "controls": "interactive",
+        "lazy-list": true,
+        "column-summaries": false,
+        "data": { "source": "ops-in-flight" },
+        "empty-message": "No nonterminal run attempts are retained in this selection. This does not prove that no work is running.",
+        "encoding": {
+          "card": "run",
+          "columns": [
+            { "field": "organization", "type": "nominal", "title": "Organization" },
+            { "field": "repository", "type": "nominal", "title": "Control repository" },
+            { "field": "workflow", "type": "nominal", "title": "Workflow" },
+            { "field": "run-status", "type": "nominal", "title": "Recorded status", "display": "status" },
+            { "field": "run", "type": "nominal", "title": "Run", "display": "run-link" },
+            { "field": "run-attempt", "type": "nominal", "title": "Attempt" }
+          ]
+        }
+      },
+      {
+        "id": "ops-repositories",
+        "title": "Repository status",
+        "description": "Retained control-repository inventory and latest state per workflow, not target enrollment or upstream completeness. Missing counts remain unknown.",
+        "mark": "table",
+        "locked": true,
+        "layout": "full",
+        "controls": "interactive",
+        "lazy-list": true,
+        "column-summaries": false,
+        "data": { "source": "ops-repositories" },
+        "empty-message": "No repository evidence is retained in this selection. Farm coverage is unknown; no operational snapshot may have been ingested yet.",
+        "encoding": {
+          "href": { "field": "repository-dashboard-link", "type": "nominal" },
+          "columns": [
+            { "field": "ops-repository", "type": "nominal", "title": "Repository" },
+            { "field": "ops-coverage", "type": "nominal", "title": "Evidence coverage" },
+            { "field": "observed-workflows", "type": "quantitative", "title": "Observed workflows" },
+            { "field": "workflows-with-runs", "type": "quantitative", "title": "With timed run evidence" },
+            { "field": "blocked", "type": "quantitative", "title": "Blocked" },
+            { "field": "review", "type": "quantitative", "title": "Review" },
+            { "field": "unknown", "type": "quantitative", "title": "Unknown state" }
+          ]
+        }
+      },
+      {
+        "id": "ops-recent-outputs",
+        "title": "Recent safe outputs",
+        "description": "Output Lifecycle evidence, newest delivery first. Adoption may be registry-derived rather than a human decision; inspect its basis and source. Survival is separate and is not operational Value.",
+        "mark": "table",
+        "locked": true,
+        "layout": "full",
+        "controls": "interactive",
+        "lazy-list": true,
+        "column-summaries": false,
+        "data": { "source": "ops-recent-outputs" },
+        "empty-message": "No safe-output lifecycle evidence is retained in this selection. Delivery, adoption and operational Value remain unknown.",
+        "encoding": {
+          "card": "ops-output",
+          "href": { "field": "external-link", "type": "nominal" },
+          "columns": [
+            { "field": "ops-output-title", "type": "nominal", "title": "Output" },
+            { "field": "safe-output-type", "type": "nominal", "title": "Type" },
+            { "field": "ops-producer", "type": "nominal", "title": "Control repository" },
+            { "field": "delivery-state", "type": "nominal", "title": "Delivery" },
+            { "field": "adoption-state", "type": "nominal", "title": "Adoption" },
+            { "field": "adoption-signal", "type": "nominal", "title": "Adoption basis" },
+            { "field": "adoption-source", "type": "nominal", "title": "Adoption source" },
+            { "field": "survival-state", "type": "nominal", "title": "Survival" },
+            { "field": "delivered-at", "type": "temporal", "title": "Delivered", "format": "human-friendly-timestamp" }
+          ]
+        }
+      }
+    ]
+  }]
+}

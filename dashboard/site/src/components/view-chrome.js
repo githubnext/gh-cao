@@ -110,7 +110,13 @@ export function renderViewChrome(lines) {
  * @returns {HTMLElement[]}
  */
 export function renderViewSectionChrome(metadata, contextDetails) {
-  return renderContextChrome(contextDetails);
+  const context = renderContextChrome(contextDetails);
+  if (metadata.completeness === 'complete' && metadata.freshness === 'fresh') return context;
+  return [
+    h('p', { className: 'view-metadata', role: 'status' },
+      `Evidence completeness: ${metadata.completeness}; freshness: ${metadata.freshness}.`),
+    ...context
+  ];
 }
 
 /**

@@ -94,6 +94,28 @@ data is about or intended to show. Its optional `objective` explains why the que
 exists or what to improve or understand; `acceptance` states the conditions for
 the query to be acceptable. Views use the same three semantic fields.
 
+### Watch the retained farm
+
+**Experimental → Ops** is a read-only, attention-first view of retained CAO
+evidence. It shows the latest recorded workflow blockers, pending review and
+unknown states; nonterminal run attempts; repository inventory and workflow
+coverage; and recent safe-output lifecycles with evidence links. Its queries and
+cards live in `dashboard/site/dashboard-fragments/ops.json` and use the shared
+page subscription through the worker or Go/PostgreSQL query boundary.
+
+The selected scope and horizon bound the evidence, not a live execution queue
+or a complete enrolled-target census. Repository counts describe latest
+workflow states; timed-run coverage excludes untimed runs. Missing, partial,
+stale and unavailable evidence does not establish an idle or healthy farm.
+Delivery, registry-derived adoption, human acceptance and operational Value are
+distinct. The page enables no installation, rollout, dispatch or merge actions.
+Before the first local snapshot, it remains navigable with explicit missing-data
+states; it does not collect evidence or supply sample rows.
+
+Source metadata cannot be projected as row data by these declarative views.
+The shared view chrome therefore exposes incomplete or stale evidence metadata
+directly, including unknown states, without a view-specific query or UI element.
+
 ## A small query
 
 This query answers “Which workflows used the most AI Credits?” It groups usage

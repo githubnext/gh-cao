@@ -1456,6 +1456,7 @@
         "label": "Experimental",
         "experimental": true,
         "pages": [
+          "ops",
           "wizard",
           "model-routing",
           "steering",
@@ -1491,6 +1492,7 @@
     ]
   },
   "fragments": [
+    "dashboard-fragments/ops.json",
     "dashboard-fragments/wizard.json",
     "dashboard-fragments/commands.json",
     "dashboard-fragments/governance.json",
