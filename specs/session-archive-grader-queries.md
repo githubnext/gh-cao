@@ -196,40 +196,57 @@ marks the 15 candidates in the
 | `execution-duration` | Sum of complete selected durations, with execution-result fallback | yes | `implemented` | — | — |
 | `working-set-rebuild-factor` | Total input ÷ peak input | yes | `implemented` | — | — |
 | `context-growth` | Total tokens ÷ first-record tokens | yes | `implemented` | — | — |
-| `tool-failure-count` | Reconciled calls whose completion is false, success is false, `isError` is set, status is error or failure, or error is non-null | yes | `extension-ready` | L2, L3, L5, L6 | L |
-| `tool-success-rate` | (calls − failed) ÷ calls, or 1 when there are no calls | yes | `extension-ready` | L1, L2, L3, L5, L6 | L |
-| `trajectory-efficiency` | Distinct tool names ÷ reconciled calls, or 1 | yes | `extension-ready` | L2, L3, L5, L6 | L |
+| `tool-failure-count` | Reconciled calls whose completion is false, success is false, `isError` is set, status is error or failure, or error is non-null | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L2–L6 and text `first` | — |
+| `tool-success-rate` | (calls − failed) ÷ calls, or 1 when there are no calls | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L1–L6 and text `first` | — |
+| `trajectory-efficiency` | Distinct tool names ÷ reconciled calls, or 1 | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L2–L5 | — |
 | `artifact-production` | Applied `safe_output.result` with success or absent status, minus absent-status types with a safe-outputs-phase outcome | yes | `implemented` (local DuckDB) | — | — |
 | `retries` | MCP retry events (event, `retryHint` or a message regex) plus deduplicated harness attempts | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the message field. The non-regex part needs L3, L6 and S1 (`attemptResults`) | — |
 | `loops` | Consecutive identical session, tool name and arguments | no | `out-of-scope` | Tool arguments are not approved | — |
 
-Tool-call reconciliation is the shared prerequisite for the first three
-extension-ready rows. Upstream `createSessionLookups` reconciles calls in five
-steps:
+Tool-call reconciliation is the shared prerequisite for the three tool
+graders. Upstream `createSessionLookups` reconciles calls in five steps:
 
 1. Pair native starts and completions by `ToolCallId`.
-2. Pair calls without an ID FIFO by tool name, within session, agent and harness
-   attempt scopes.
+2. Pair calls without an ID match FIFO by tool name, within session, agent and
+   harness attempt scopes.
 3. Collapse resume-strategy attempts to their root scope.
 4. Add gateway `mcp.tool_call` and `tools/call` RPCs.
 5. Drop gateway calls whose IDs match a native call.
 
-The declarative plan follows the same steps:
-
-1. An L5 `row-number` over starts and completions per scope and name yields
-   FIFO keys.
-2. An L3 stage groups by scope and call key.
-3. L2 and L6 classify each completion as a failure.
-4. The final stage counts per trace.
-
 No reconciliation result is persisted at capture.
 
-Upstream reconciliation is stateful: completions that are already paired or
-have a mismatched ID are skipped, gateway calls are deduplicated against
-native IDs, and resumed attempts map through `previousScopes`. Before relying
-on L5 FIFO keys alone, a parity fixture MUST cover out-of-order completions,
-duplicate and mismatched IDs, gateway duplicates and resume chains on both
-backends.
+The pinned parity fixture decides the status. The generator
+`scripts/generate-session-query-lowering-cases.mjs` runs upstream
+`BUILTIN_GRADERS` on 35 hand cases covering each rule and 60 seeded random
+traces. `TestDuckDBLoweringEvidenceIntegration/reconciliation` runs the
+reference plan in
+`server/internal/sessionarchive/testdata/lowering/reconciliation.sql` on
+DuckDB and requires identical values. The plan has no recursion:
+
+- **Resume mapping:** linear gaps-and-islands, not transitive closure. Within
+  each `[path, layer]` invocation ordered by attempt, a resume attempt maps to
+  the first attempt of its island. The island number is the count of
+  non-resume attempts so far, a `row-number` difference. The plan also needs
+  L4 to join the root and text `first` to pick the last mapping of an id.
+- **ID pairing:** a completion whose scoped `ToolCallId` appeared earlier
+  re-merges into the latest earlier start with that id. Otherwise it takes the
+  call of the first completion with that id.
+- **FIFO pairing:** once a name queue has a start, the k-th remaining
+  completion takes the k-th start if it is queued, otherwise it is an orphan
+  call. This includes pointer overshoot.
+- **Gateway calls:** grouped by server, id (JSON-typed, so `7` ≠ `"7"`) or
+  event index, and attempt scope. Unnamed rows count only after a named row;
+  requests do not complete. Native-ID deduplication uses the resolved attempt.
+- **Outcomes:** last present value per field, using L6 presence for `error`.
+
+Every non-divergent case matches upstream exactly. Three declared cases
+differ, and the test requires them to: upstream's FIFO pointer skips calls
+already completed by ID and calls with a mismatched ID, and never revisits
+them. Which start a completion takes then depends on the whole prior pairing
+history, which is sequential state. Expressing it needs iteration (G3), so
+the three tool graders are `vocabulary-gated`. Resume mapping alone would not
+have required this. Harness-retry attempt results and startup attempt scopes
+are outside the fixture; they need S1 over `attemptResults`.
 
 ### 4.2 Trajectory graders
 
@@ -340,9 +357,9 @@ not executed (§3.1).
 | Status | Count | Graders |
 | --- | ---: | --- |
 | `implemented` | 10 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit (local DuckDB); recurrence rate, artifact production (local DuckDB, chained) |
-| `extension-ready` | 8 | Tool reconciliation (3), state recurrence (3), objective ordering (2) |
+| `extension-ready` | 5 | State recurrence (3), objective ordering (2) |
 | `evidence-gated` | 3 | exploration error, exploitation error, tool-output consumption |
-| `vocabulary-gated` | 13 | retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6) |
+| `vocabulary-gated` | 16 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6) |
 | `out-of-scope` | 1 | loops |
 
 Every backend advertises the item sources and chaining through
@@ -394,7 +411,7 @@ development hosts lack the emulator. Phases 1b and 2b were accepted in
 - [x] **Phase 2:** L3. Unlocks `recurrence-rate` and `artifact-production` on local DuckDB (§8, #21059).
 - [x] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728), §7).
 - [x] **Phase 2b:** KQL lowering of L3 chaining, accepted in the same run. Brings hosted ADX to all 10 `implemented` graders (§8).
-- [ ] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). If resume mapping needs transitive closure, reclassify the three tool graders as `vocabulary-gated` (G3); Phase 4 then still delivers L2, L5 and L6 for Phase 5.
+- [x] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). Resume mapping is linear, but the FIFO pointer's skips are sequential state, so the three tool graders are `vocabulary-gated` (G3). Phase 4 still delivers L2, L5 and L6 for Phase 5.
 - [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `tool-failure-count`, `tool-success-rate` and `trajectory-efficiency` if the reconciliation fixture passes.
 - [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
 - [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
