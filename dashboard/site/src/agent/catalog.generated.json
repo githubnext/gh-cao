@@ -2397,7 +2397,7 @@
       }
     },
     {
-      "id": "maintenance-repository-versions",
+      "id": "maintenance-observed-repository-versions",
       "subject": "Group installed and current gh-aw compiler versions and upgrade evidence by repository.",
       "objective": "Identify repositories with declared Markdown workflows whose retained compiler-version evidence warrants upgrade review.",
       "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct known installed/current version lists, distinct counts, upgrade-required evidence, and separate missing-installed/missing-latest flags. Never infer unavailable versions.",
@@ -2411,6 +2411,46 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-coordinates",
+      "subject": "Known repository identities, including local configuration.",
+      "objective": "Keep configured repositories visible before workflow evidence is collected.",
+      "acceptance": "Return one coordinate per canonical repository without inventing workflow or version observations.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-versions",
+      "subject": "Configured and observed repositories with retained compiler evidence.",
+      "objective": "Expose missing evidence without hiding newly configured repositories.",
+      "acceptance": "Left join compiler observations by repository. Missing versions remain null, counts and upgrade-required are zero, and unavailable flags are one. Configuration never establishes upgrade evidence.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-observed-repository-versions",
+        "maintenance-repository-coordinates"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories",
           "workflows"
         ]
       }
@@ -2438,6 +2478,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "repositories",
           "workflows"
         ]
       }
@@ -2495,6 +2536,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "repositories",
           "workflows"
         ]
       }

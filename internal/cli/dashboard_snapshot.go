@@ -103,6 +103,8 @@ func writeDashboardSnapshot(ctx context.Context, cache string, batch map[string]
 }
 
 func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch map[string][]map[string]any, keepHistory bool, bundles []byte) (err error) {
+	unlock := dashboardSnapshotGuard(ctx)
+	defer unlock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -167,7 +169,7 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 		hash := sha256.Sum256(content.Bytes())
 		manifest[name] = hex.EncodeToString(hash[:])
 	}
-	inventory, err := dashboardSnapshotInventory(batch)
+	inventory, err := dashboardSnapshotInventory(ctx, batch)
 	if err != nil {
 		return err
 	}
@@ -198,7 +200,7 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 	return cleanupDashboardSnapshotOrphans(ctx, cache, manifest)
 }
 
-func dashboardSnapshotInventory(batch map[string][]map[string]any) ([]byte, error) {
+func dashboardSnapshotInventory(ctx context.Context, batch map[string][]map[string]any) ([]byte, error) {
 	var local, ingestion map[string]any
 	for _, row := range batch["transactions"] {
 		switch row["id"] {
@@ -215,8 +217,18 @@ func dashboardSnapshotInventory(batch map[string][]map[string]any) ([]byte, erro
 	if ingestion != nil {
 		quality["local-dashboard-ingestion"] = ingestion
 	}
+	repositories := []map[string]any{}
+	if configuration, _ := ctx.Value(dashboardConfigurationKey{}).(*dashboardConfiguration); configuration != nil {
+		snapshot := configuration.current.Load()
+		repositories = configuration.repositoryRows()
+		quality["local-configuration"] = map[string]any{
+			"path": policyPath, "digest": snapshot.digest,
+			"scope":                "local configuration, not deployed rollout authority",
+			"builtin-repositories": configuration.builtins,
+		}
+	}
 	return json.Marshal(map[string]any{
-		"repositories": map[string]any{"rows": []any{}, "metadata": quality},
+		"repositories": map[string]any{"rows": repositories, "metadata": quality},
 		"workflows":    map[string]any{"rows": []any{}, "metadata": quality},
 	})
 }
@@ -438,6 +450,8 @@ func dashboardIngestionRecord(state dashboardIngestion) (map[string]any, error) 
 }
 
 func writeDashboardIngestion(ctx context.Context, cache string, state dashboardIngestion) error {
+	unlock := dashboardSnapshotGuard(ctx)
+	defer unlock()
 	manifest, err := readDashboardSnapshotManifest(ctx, cache)
 	if err != nil {
 		return err

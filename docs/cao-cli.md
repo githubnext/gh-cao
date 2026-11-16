@@ -253,6 +253,17 @@ The native adapter uses the ordinary local server. Its
 endpoints require bearer authentication and same-origin mutation requests in
 addition to explicit dashboard confirmation.
 
+The local dashboard watches `.github/workflows/cao.json` for configuration
+changes. Valid exact repository entries refresh through canonical inventory
+ingestion and the existing revision subscription, including after **Add repository**.
+The current checkout and explicitly selected repositories remain built in even
+when omitted from the policy. Configured repositories with no collected workflows
+remain visible with unavailable compiler evidence. Invalid changes retain the
+last validated configuration and report a reload error. Collection and maintenance
+scope selected with `--repo` do not expand, and configuration reload grants no
+workflow activation, credential or hosted execution authority. Authentication
+and storage settings still require an explicit server restart.
+
 For source development, build the server and site and pass both
 `--server-executable PATH` and `--site PATH`. Release builds package these assets
 automatically; source builds deliberately do not fetch or build tools at runtime.

@@ -46,15 +46,19 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       operatorActions: { repositories: ['acme/control'] }
     }));
     let preview;
+    let snapshotDirectory = '';
     try {
       preview = await startDashboardServer({
         repository: 'acme/control', operatorConfig,
-        prepareSnapshot: async (/** @type {string} */ destination) => writeServerArtifact(destination, { sources: {
-          repositories: {
-            metadata: { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' },
-            rows: empty ? [] : [{ organization: 'acme', repository: 'control' }]
-          }
-        } })
+        prepareSnapshot: async (/** @type {string} */ destination) => {
+          snapshotDirectory = destination;
+          return writeServerArtifact(destination, { sources: {
+            repositories: {
+              metadata: { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' },
+              rows: empty ? [] : [{ organization: 'acme', repository: 'control' }]
+            }
+          } });
+        }
       });
       await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize({ width, height: 900 });
@@ -120,6 +124,18 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       await confirm.click();
       expect((await queued).status()).toBe(202);
       await expect.poll(() => executions).toBe(1);
+      await page.goto(`${preview.url}/#page-maintenance`);
+      const repositories = page.locator('[data-view-id="maintenance-repositories"]');
+      await expect(repositories).not.toContainText('octo/new-configured');
+      await writeServerArtifact(snapshotDirectory, { sources: {
+        repositories: {
+          metadata: { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' },
+          rows: [{ organization: 'acme', repository: 'control' }, { organization: 'octo', repository: 'new-configured' }]
+        }
+      } });
+      await preview.ingestSnapshot();
+      await expect(repositories).toContainText('octo/new-configured', { timeout: 20_000 });
+      await expect(page).toHaveURL(/#page-maintenance$/);
     } finally {
       await page.goto('about:blank');
       await preview?.close();

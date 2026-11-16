@@ -1106,6 +1106,17 @@ Execution does not require an interactive terminal. Cancellation remains scoped
 to the owned process tree; unsupported platforms fail closed. Ordinary local
 serving and hosted administration are unchanged.
 
+The native owner watches local `cao.json` configuration, validates complete
+documents, and republishes exact configured repository identities through the
+existing inventory snapshot and canonical ingestion boundary. The checkout and
+explicitly selected repositories are permanent built-ins for that session.
+Snapshot publication and ingestion are serialized with collection; the active
+browser view refreshes through normal database revision subscriptions.
+Configuration is local observability input, not deployed rollout authority:
+reload does not widen explicit collection or maintenance scope, activate
+workflows, or reconfigure authentication/storage. Invalid input is reported and
+the previous validated configuration remains published.
+
 Local requests use the production PostgreSQL SQL planner and resource limits.
 The local profile retains a 300-unit/minute weighted admission bucket while
 preserving explicit overrides and other request policies. Revision subscriptions

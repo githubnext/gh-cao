@@ -1395,7 +1395,7 @@
       "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
     },
     {
-      "name": "maintenance-repository-versions",
+      "name": "maintenance-observed-repository-versions",
       "subject": "Group installed and current gh-aw compiler versions and upgrade evidence by repository.",
       "objective": "Identify repositories with declared Markdown workflows whose retained compiler-version evidence warrants upgrade review.",
       "acceptance": "Group Markdown workflow declarations by repository coordinate and return distinct known installed/current version lists, distinct counts, upgrade-required evidence, and separate missing-installed/missing-latest flags. Never infer unavailable versions.",
@@ -1558,6 +1558,41 @@
           }
         ]
       }
+    },
+    {
+      "name": "maintenance-repository-coordinates",
+      "subject": "Known repository identities, including local configuration.",
+      "objective": "Keep configured repositories visible before workflow evidence is collected.",
+      "acceptance": "Return one coordinate per canonical repository without inventing workflow or version observations.",
+      "from": "repositories",
+      "select": [{ "field": "repository-coordinate" }]
+    },
+    {
+      "name": "maintenance-repository-versions",
+      "subject": "Configured and observed repositories with retained compiler evidence.",
+      "objective": "Expose missing evidence without hiding newly configured repositories.",
+      "acceptance": "Left join compiler observations by repository. Missing versions remain null, counts and upgrade-required are zero, and unavailable flags are one. Configuration never establishes upgrade evidence.",
+      "from": "maintenance-repository-coordinates",
+      "joins": [{
+        "source": "maintenance-observed-repository-versions", "type": "left",
+        "on": [{ "left": "repository-coordinate", "right": "repository-coordinate" }],
+        "fields": [
+          { "field": "gh-aw-version", "as": "gh-aw-version" },
+          { "field": "gh-aw-current-version", "as": "gh-aw-current-version" },
+          { "field": "installed-version-count", "as": "observed-installed-version-count" },
+          { "field": "current-version-count", "as": "observed-current-version-count" },
+          { "field": "upgrade-required", "as": "observed-upgrade-required" },
+          { "field": "installed-version-unavailable", "as": "observed-installed-version-unavailable" },
+          { "field": "current-version-unavailable", "as": "observed-current-version-unavailable" }
+        ]
+      }],
+      "compute": [
+        { "as": "installed-version-count", "function": "coalesce", "args": [{ "field": "observed-installed-version-count" }, { "value": 0 }] },
+        { "as": "current-version-count", "function": "coalesce", "args": [{ "field": "observed-current-version-count" }, { "value": 0 }] },
+        { "as": "upgrade-required", "function": "coalesce", "args": [{ "field": "observed-upgrade-required" }, { "value": 0 }] },
+        { "as": "installed-version-unavailable", "function": "coalesce", "args": [{ "field": "observed-installed-version-unavailable" }, { "value": 1 }] },
+        { "as": "current-version-unavailable", "function": "coalesce", "args": [{ "field": "observed-current-version-unavailable" }, { "value": 1 }] }
+      ]
     },
     {
       "name": "maintenance-repositories",

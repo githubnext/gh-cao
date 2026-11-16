@@ -1079,8 +1079,15 @@ typed unavailable evidence rather than failing independent page queries or
 fabricating zero counts. Unknown sources and real query/storage errors SHALL
 still fail. Daily observations SHALL remain explicitly partial, exclude undated
 Runs, and retain aggregate provenance; visible fleet maintenance views SHALL
-NOT grant local rollout, dispatch or hosted execution authority. Separately,
-declared repository maintenance MAY use a private operational command queue
+NOT grant local rollout, dispatch or hosted execution authority.
+Local configuration MAY contribute exact repository identities through the
+canonical inventory ingestion boundary, without inventing collected workflow or
+compiler evidence. The current checkout and explicitly selected repositories
+SHALL remain visible independently of local policy membership. Valid configuration
+changes SHALL refresh subscribed views; invalid changes SHALL be reported without
+replacing the last validated input. These identities grant no activation,
+credential, collection-scope or maintenance-scope authority.
+Separately, declared repository maintenance MAY use a private operational command queue
 outside the canonical database. Execution MUST require an exact selected repository,
 fresh dashboard confirmation per command, same-origin authenticated queue admission,
 and pull-request publication for

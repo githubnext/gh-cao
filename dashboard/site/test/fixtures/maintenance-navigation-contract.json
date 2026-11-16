@@ -11,6 +11,13 @@
     "context": ["repository"],
     "when": { "field": "upgrade-action-visible", "equals": true }
   },
+  "repositories": [
+    { "organization": "octo", "repository": "configured-only", "repository-coordinate": "octo/configured-only" },
+    { "organization": "octo", "repository": "first", "repository-coordinate": "octo/first" },
+    { "organization": "octo", "repository": "unknown", "repository-coordinate": "octo/unknown" },
+    { "organization": "octo", "repository": "unreleased", "repository-coordinate": "octo/unreleased" },
+    { "organization": "other", "repository": "second", "repository-coordinate": "other/second" }
+  ],
   "repository-workflows": [
     { "organization": "octo", "repository": "first", "workflow": "a.md", "gh-aw-version": "v0.92.0", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "current" },
     { "organization": "octo", "repository": "first", "workflow": "b.md", "gh-aw-version": "v0.92.0", "gh-aw-current-version": "v0.92.0", "gh-aw-update-state": "current" },
@@ -21,6 +28,7 @@
     { "organization": "octo", "repository": "unreleased", "workflow": "e.md", "gh-aw-version": "v0.92.0", "gh-aw-update-state": "unknown" }
   ],
   "repository-homes": [
+    { "repository": "octo/configured-only", "repository-url": "https://github.com/octo/configured-only", "upgrade-required": 0, "upgrade-state": "Upgrade status unavailable", "upgrade-status-reason": "Installed compiler version and latest stable gh-aw release are unavailable.", "upgrade-action-visible": false },
     { "repository": "octo/first", "repository-url": "https://github.com/octo/first", "upgrade-required": 0, "upgrade-state": "Upgrade status unavailable", "upgrade-status-reason": "Installed compiler version and latest stable gh-aw release are unavailable.", "upgrade-action-visible": false },
     { "repository": "octo/unknown", "repository-url": "https://github.com/octo/unknown", "upgrade-required": 0, "upgrade-state": "Upgrade status unavailable", "upgrade-status-reason": "Installed compiler version and latest stable gh-aw release are unavailable.", "upgrade-action-visible": false },
     { "repository": "octo/unreleased", "repository-url": "https://github.com/octo/unreleased", "upgrade-required": 0, "upgrade-state": "Upgrade status unavailable", "upgrade-status-reason": "Latest stable gh-aw release unavailable.", "upgrade-action-visible": false },
