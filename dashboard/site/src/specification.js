@@ -196,7 +196,7 @@ export const RELATION_LINK_FIELD_RELATIONS = {
   'external-link': 'external'
 };
 export const LINK_FIELD_NAMES = Object.keys(RELATION_LINK_FIELD_RELATIONS);
-export const DASHBOARD_LINK_FIELD_NAMES = ['campaign-dashboard-link', 'repository-dashboard-link', 'workflow-dashboard-link', 'command-dashboard-link', 'routing-dashboard-link'];
+export const DASHBOARD_LINK_FIELD_NAMES = ['campaign-dashboard-link', 'repository-dashboard-link', 'workflow-dashboard-link', 'command-dashboard-link', 'routing-dashboard-link', 'value-dashboard-link'];
 export const DATASET_METADATA_KEYS = [
   'source-id',
   'source-kind',

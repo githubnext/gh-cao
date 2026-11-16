@@ -75,7 +75,6 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 				if replay.FullResult == nil {
 					continue
 				}
-				count++
 				reviewed, err := os.ReadFile("../sessionarchive/testdata/graders/" + replay.ID + ".json")
 				if err != nil {
 					t.Fatal(err)
@@ -85,9 +84,17 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 					t.Fatal("replay does not bind the current reviewed definition")
 				}
 				plan, err := current.Plan()
-				if err != nil || plan.Require(sessionarchive.AnalyticalCapabilities(4096)) != nil {
+				if err != nil {
 					t.Fatal("reviewed scalar plan unavailable")
 				}
+				if err := plan.Require(sessionarchive.AnalyticalCapabilities(4096)); err != nil {
+					// Item sources are local-only until a reviewed KQL lowering exists; ADX must reject them.
+					if plan.Require(sessionarchive.LocalAnalyticalCapabilities(4096)) != nil {
+						t.Fatal("reviewed scalar plan unavailable")
+					}
+					continue
+				}
+				count++
 				table := execute(t.Context(), prefix+";\n"+analyticalKQL(plan, source))
 				if len(table.Columns) != 2 || len(table.Rows) != 1 || len(table.Rows[0]) != 2 {
 					t.Fatal("real Kusto scalar query broke bounded result envelope")

@@ -180,7 +180,8 @@ func TestGraderReplayEvidence(t *testing.T) {
 			result.Omissions = slices.Compact(result.Omissions)
 			for _, attempt := range attempts {
 				component, full := replayQuery(t, attempt.ID+"-component", attempt.Component), replayQuery(t, attempt.ID+"-full", attempt.Full)
-				supported := slices.Contains([]string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"}, attempt.ID)
+				supported := slices.Contains([]string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
+					"objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {
@@ -219,7 +220,7 @@ func TestGraderReplayEvidence(t *testing.T) {
 						if row["availability"] != "measured" && row["availability"] != "unavailable" || row["reason"] == "" {
 							t.Fatal("missing measurement qualification")
 						}
-						if row["RunId"] == "456" && row["family"] != "usage.report" {
+						if _, family := row["family"]; family && row["RunId"] == "456" && row["family"] != "usage.report" {
 							t.Fatal("proxy presence leaked across trace/run-attempt bindings")
 						}
 					}

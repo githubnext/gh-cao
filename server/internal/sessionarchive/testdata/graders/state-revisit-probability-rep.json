@@ -1,0 +1,25 @@
+{
+  "name":"state-revisit-probability-rep",
+  "subject":"Recompute gh-aw state revisit probability.",
+  "from":"archive-states",
+  "aggregate":{
+    "by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],
+    "values":[
+      {"field":"Items","as":"n","reducer":"max"},
+      {"field":"TraceId","as":"excluded","reducer":"count","filter":{"predicates":[{"field":"Items","state":"excluded"}]}},
+      {"field":"TraceId","as":"redacted","reducer":"count","filter":{"predicates":[{"field":"Items","state":"redacted"}]}},
+      {"field":"Ordinal","as":"strings","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"string"}]}},
+      {"field":"Id","as":"ids","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"}]}},
+      {"field":"Id","as":"distinct","reducer":"distinct-count"},
+      {"field":"Ordinal","as":"blanks","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"string"},{"field":"Id","equals":""}]}}
+    ]
+  },
+  "post-aggregate":[
+    {"as":"visits","function":"sum","args":[{"field":"strings"},{"field":"ids"}]},
+    {"as":"unique","function":"sum","args":[{"field":"distinct"},{"function":"if","args":[{"function":"gt","args":[{"field":"blanks"},{"value":0}]},{"value":1},{"value":0}]}]},
+    {"as":"reason","function":"if","args":[{"function":"gt","args":[{"field":"excluded"},{"value":0}]},{"value":"excluded"},{"function":"if","args":[{"function":"gt","args":[{"field":"redacted"},{"value":0}]},{"value":"redacted"},{"function":"if","args":[{"function":"gt","args":[{"field":"n"},{"value":5000}]},{"value":"oversized"},{"function":"if","args":[{"function":"lte","args":[{"field":"visits"},{"value":1}]},{"value":"fewer-than-two-visits"},{"value":"measured"}]}]}]}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"function":"quotient","args":[{"function":"difference","args":[{"field":"visits"},{"field":"unique"}]},{"field":"visits"}]},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"value":"measured"},{"value":"unavailable"}]}
+  ],
+  "select":[{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}

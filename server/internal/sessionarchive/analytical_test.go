@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
 	"slices"
@@ -489,5 +490,115 @@ func TestDuckDBAnalyticalBudgetIntegration(t *testing.T) {
 	out, err := snapshot.Analytical(t.Context(), definition)
 	if err != nil || len(out.Rows) != 10000 || !out.Metadata.Limited || out.Rows[9999]["Sequence"] != json.Number("9999") {
 		t.Fatalf("explicit 10000-row selection failed: %d %#v %v", len(out.Rows), out.Metadata, err)
+	}
+}
+
+func itemDefinition(t *testing.T, source, clauses string) Definition {
+	t.Helper()
+	var definition Definition
+	content := `{"name":"test-items","subject":"Inspect approved trajectory items.","from":"` + source + `",` + clauses + `}`
+	if err := json.Unmarshal([]byte(content), &definition); err != nil {
+		t.Fatal(err)
+	}
+	return definition
+}
+
+func TestAnalyticalItemSourcePlans(t *testing.T) {
+	plan, err := itemDefinition(t, "archive-objectives", `"aggregate":{"values":[{"field":"SatisfiedAtEventIndex","as":"n","reducer":"count","filter":{"predicates":[{"field":"SatisfiedAtEventIndex","state":"invalid"}]}}]},`+
+		`"post-aggregate":[{"as":"gap","function":"difference","args":[{"field":"n"},{"value":1}]},{"as":"area","function":"product","args":[{"field":"gap"},{"value":2}]}]`).Plan()
+	if err != nil || plan.Source != "archive-objectives" || len(plan.Predicates) != 0 {
+		t.Fatalf("item source plan rejected: %#v %v", plan, err)
+	}
+	if plan.Values[0].Predicates[0].Path != "data.objectives" {
+		t.Fatalf("item field state not qualified by its collection: %#v", plan.Values[0].Predicates)
+	}
+	if !errors.Is(plan.Require(AnalyticalCapabilities(4096)), ErrQuery) {
+		t.Fatal("hosted capabilities silently accepted a local-only item source")
+	}
+	if err := plan.Require(LocalAnalyticalCapabilities(4096)); err != nil {
+		t.Fatalf("local item source capability rejected: %v", err)
+	}
+	for _, definition := range []Definition{
+		itemDefinition(t, "archive-objectives", `"select":[{"field":"Type"}]`),
+		itemDefinition(t, "archive-objectives", `"select":[{"field":"ValidAtIssueTime"}]`),
+		itemDefinition(t, "archive-states", `"select":[{"field":"PayloadJSON"}]`),
+		itemDefinition(t, "archive-states", `"aggregate":{"values":[{"field":"Id","as":"first","reducer":"first","order-by":[{"field":"Ordinal"}]}]}`),
+		itemDefinition(t, "archive-actions", `"filter":{"predicates":[{"field":"Kind","state":"valid"}]},"select":[{"field":"Kind"}]`),
+		itemDefinition(t, "archive-tool-calls", `"select":[{"field":"Ordinal"}]`),
+	} {
+		if _, err := definition.Plan(); !errors.Is(err, ErrQuery) {
+			t.Fatalf("invalid item-source plan accepted: %v", err)
+		}
+	}
+}
+
+func TestDuckDBAnalyticalItemSourceIntegration(t *testing.T) {
+	c := testConfig(t)
+	policy, err := os.ReadFile("testdata/evidence-policy.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := decode(policy, &c.Policy); err != nil {
+		t.Fatal(err)
+	}
+	a := openTestArchive(t, c, nil)
+	now := time.Now().UTC()
+	ir := func(phase, data string) string {
+		return `{"type":"trajectory.ir","provenance":{"component":"agent","phase":"` + phase + `"},"data":` + data + "}\n"
+	}
+	header := "{\"type\":\"session.format\",\"provenance\":{},\"data\":{\"version\":1}}\n"
+	raw := header + ir("agent", `{"objectives":[{"satisfiedAtEventIndex":9}]}`) +
+		ir("agent", `{"objectives":[{"satisfiedAtEventIndex":0},{"satisfiedAtEventIndex":null},null,"s",{"satisfiedAtEventIndex":1e3},{"satisfiedAtEventIndex":0.5},{"satisfiedAtEventIndex":true},{"satisfiedAtEventIndex":"1"},{}],"states":["a","",{"id":"a"},{"id":""},{"id":1},7]}`) +
+		ir("detection", `{"objectives":[]}`)
+	for run, content := range map[string]string{"1": raw, "2": header} {
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", run, now.Format(time.DateOnly), 1, []byte(content), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	s := pinTestArchive(t, a)
+	out, err := s.Analytical(t.Context(), itemDefinition(t, "archive-objectives", `"select":[{"field":"RunId"},{"field":"Sequence"},{"field":"Ordinal"},{"field":"Items"},{"field":"Kind"},{"field":"SatisfiedAtEventIndex"}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := make([]string, 0, len(out.Rows))
+	for _, row := range out.Rows {
+		got = append(got, fmt.Sprint(row["RunId"], "/", row["Sequence"], "/", row["Ordinal"], "/", row["Items"], "/", row["Kind"], "/", row["SatisfiedAtEventIndex"]))
+	}
+	want := []string{"1/2/0/9/object/0", "1/2/1/9/object/<nil>", "1/2/2/9/null/<nil>", "1/2/3/9/string/<nil>", "1/2/4/9/object/1000",
+		"1/2/5/9/object/<nil>", "1/2/6/9/object/<nil>", "1/2/7/9/object/<nil>", "1/2/8/9/object/<nil>", "2/<nil>/<nil>/<nil>//<nil>"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("last agent-phase IR not flattened with complete trace anchors:\n%q\n%q", got, want)
+	}
+	states := map[string]string{"invalid": "5,6,7", "null": "1", "valid": "0,4", "present": "0,1,4,5,6,7"}
+	for state, ordinals := range states {
+		out, err := s.Analytical(t.Context(), itemDefinition(t, "archive-objectives", `"filter":{"predicates":[{"field":"SatisfiedAtEventIndex","state":"`+state+`"}]},"select":[{"field":"Ordinal"}]`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, row := range out.Rows {
+			got = append(got, fmt.Sprint(row["Ordinal"]))
+		}
+		if strings.Join(got, ",") != ordinals {
+			t.Fatalf("%s item field state = %v, want %s", state, got, ordinals)
+		}
+	}
+	out, err = s.Analytical(t.Context(), itemDefinition(t, "archive-states", `"filter":{"predicates":[{"field":"RunId","equals":"1"}]},"select":[{"field":"Kind"},{"field":"Id"}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = make([]string, 0, len(out.Rows))
+	for _, row := range out.Rows {
+		got = append(got, fmt.Sprint(row["Kind"], ":", row["Id"]))
+	}
+	if strings.Join(got, ",") != "string:a,string:,object:a,object:,object:,number:" {
+		t.Fatalf("state visit identities changed: %v", got)
 	}
 }

@@ -114,7 +114,7 @@ jobs:
             echo "The fixed-cardinality archive benchmark must not skip" >&2
             exit 1
           fi
-      - name: Compare four full usage queries to pinned upstream graders
+      - name: Compare full reviewed queries to pinned upstream graders
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/replay-session-archive-graders.mjs "$RUNNER_TEMP/session-archive-grader-replay"
