@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -373,34 +374,54 @@ func TestKustoArchiveMembership(t *testing.T) {
 	for i, cell := range response.Tables[0].Rows[0][6:] {
 		var value int64
 		if json.Unmarshal(cell, &value) != nil || value != expected[i] {
-			t.Fatal("real Kusto failed production content/sequence verification")
+			t.Fatalf("real Kusto failed production content/sequence verification: got %s, want Events/Unique/First/Last/Invalid %v",
+				response.Tables[0].Rows[0][6:], expected)
 		}
 	}
 }
 
+// kustoEventSource renders events as a typed datatable. Dynamic event bags are
+// avoided because Kusto converts date-like JSON strings (for example
+// CompletionDay or Timestamp) to datetime, which changes their string form.
 func kustoEventSource(events []sessionarchive.Event, file sessionarchive.File) string {
-	values := make([]string, 0, len(events))
-	for _, event := range events {
-		value, _ := json.Marshal(event)
-		values = append(values, "dynamic("+string(value)+")")
-	}
 	columns := strings.Split(EventSchema(), ",")
-	project := make([]string, 0, len(columns))
-	for _, column := range columns {
-		name, kind, _ := strings.Cut(column, ":")
-		expression := "Event[" + literal(name) + "]"
-		switch kind {
-		case "long":
-			expression = "tolong(" + expression + ")"
-		case "string":
-			expression = "tostring(" + expression + ")"
+	values := make([]string, 0, len(events)*len(columns))
+	for _, event := range events {
+		content, _ := json.Marshal(event)
+		var fields map[string]json.RawMessage
+		_ = json.Unmarshal(content, &fields)
+		for _, column := range columns {
+			name, kind, _ := strings.Cut(column, ":")
+			values = append(values, kustoLiteral(kind, fields[name]))
 		}
-		project = append(project, name+"="+expression)
 	}
-	return "(datatable(Event:dynamic)[" + strings.Join(values, ",") + "] | project " + strings.Join(project, ",") +
+	return "(datatable(" + EventSchema() + ")[" + strings.Join(values, ",") + "]" +
 		" | extend ArchiveNamespace=" + literal(digest([]byte(file.Members[0].Namespace))) +
 		",ArchiveRepository=" + literal(digest([]byte(file.Members[0].Repository))) +
 		",ArchiveDay=" + literal(fileDay(file)) + ",ArchiveObject=" + literal(file.Digest) + ")"
+}
+
+func kustoLiteral(kind string, raw json.RawMessage) string {
+	if len(raw) == 0 || string(raw) == "null" {
+		if kind == "string" {
+			return `""`
+		}
+		return kind + "(null)"
+	}
+	switch kind {
+	case "string":
+		var value string
+		_ = json.Unmarshal(raw, &value)
+		return literal(value)
+	case "long", "bool":
+		return kind + "(" + string(raw) + ")"
+	case "real":
+		var value float64
+		_ = json.Unmarshal(raw, &value)
+		return "real(" + strconv.FormatFloat(value, 'f', -1, 64) + ")"
+	default:
+		return "dynamic(" + string(raw) + ")"
+	}
 }
 
 // TestAzureArchiveConformance is deliberately environment-dependent. Required
