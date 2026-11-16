@@ -109,14 +109,29 @@ export function bindFactorySources(sources, names, request, options) {
  */
 export function renderFactoryElement(context, defaultSources, selectSourceNames, render) {
   const roleNames = resolveFactorySourceNames(defaultSources, context.elementConfig);
-  const sources = bindFactorySources(context.sources, selectSourceNames(roleNames), {
+  const names = selectSourceNames(roleNames);
+  const subscribed = new Set(context.subscribedSourceNames ?? []);
+  const request = {
     pageId: context.pageId,
     viewId: context.viewId,
     viewIndex: context.viewIndex,
     sourceNames: context.sourceNames,
     routeParameters: context.routeParameters,
     queryContext: context.queryContext
-  });
+  };
+  const sources = {
+    ...bindFactorySources(
+      context.sources,
+      names.filter((name) => subscribed.has(name)),
+      request,
+      { requestMissingSources: false, preserveSubscribedSources: true }
+    ),
+    ...bindFactorySources(
+      context.sources,
+      names.filter((name) => !subscribed.has(name)),
+      request
+    )
+  };
   const scope = createFactoryScope();
   const rendered = render(sources, scope, roleNames);
   scope.bind(rendered);

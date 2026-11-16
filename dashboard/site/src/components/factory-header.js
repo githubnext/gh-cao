@@ -5,7 +5,7 @@ import { renderFactoryElement } from './factory-elements.js';
 import { renderFactoryRhythm } from './factory-rhythm.js';
 import { renderDashboardIngestionStatus } from './refresh-error.js';
 import { createDebug } from '../debug.js';
-import { factoryOnboardingState } from './factory-onboarding.js';
+import { factoryOnboardingState, factoryOnboardingSummary } from './factory-onboarding.js';
 
 /** @typedef {{ rows: () => Record<string, unknown>[], pending: () => boolean, unavailable: () => boolean }} SourceBinding */
 /** @typedef {Record<string, SourceBinding>} SourceBindings */
@@ -50,7 +50,7 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
       : pending
       ? ''
       : onboarding.show
-      ? 'Get started with Central Agentic Ops.'
+      ? 'Welcome to CAO!'
       : hasHeading
       ? candidate
       : 'Your factory status is unavailable.';
@@ -67,7 +67,7 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
       : initialStatus === 'failed'
       ? 'Factory status is not available yet.'
       : onboarding.show
-      ? 'Set up CAO, choose the repositories for this control plane, then add a workflow or campaign.'
+      ? factoryOnboardingSummary(onboarding.currentStep)
       : typeof candidate === 'string' ? candidate : '';
     summary.hidden = initialStatus === 'inactive' && (pending || !text);
     if (!pending) debugFactoryHeader({ event: 'summary-settled', hasSummary: Boolean(text) });

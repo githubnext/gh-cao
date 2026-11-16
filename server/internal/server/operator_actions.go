@@ -83,9 +83,9 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 
 func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
-	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow", "add-repository":
+	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow", "add-repository", "setup-cao":
 	default:
-		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared repository maintenance and enrollment actions are available.")
+		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared setup, repository maintenance, and enrollment actions are available.")
 	}
 	invocation, err := a.hostedCLI.catalog.Resolve(request, a.hostedCLI.context)
 	if err != nil {
@@ -97,6 +97,13 @@ func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request
 	}
 	if !hostedcli.LocalRepositoryOperationsAllowed(plan.Repository) {
 		return invocation, cliFailure(http.StatusForbidden, "github/gh-aw is excluded from CAO operations.")
+	}
+	if plan.Kind == hostedcli.KindCaoSetup {
+		if request.ID != "setup-cao" {
+			return invocation, cliFailure(http.StatusForbidden, "Only the declared setup action may prepare local CAO policy.")
+		}
+		invocation.Repository = plan.Repository
+		return invocation, nil
 	}
 	if plan.Kind == hostedcli.KindCaoReposAdd {
 		if request.ID != "add-repository" {

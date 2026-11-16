@@ -25,6 +25,7 @@ function input(source, rows) {
 for (const testCase of contract.cases) {
   it(`classifies ${testCase.name}`, () => {
     const result = executeDashboardQueries(queries, {
+      transactions: input('transactions', testCase.transactions),
       repositories: input('repositories', testCase.repositories),
       workflows: input('workflows', testCase.workflows),
       campaigns: input('campaigns', testCase.campaigns)

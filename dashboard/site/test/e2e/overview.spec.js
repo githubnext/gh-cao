@@ -62,6 +62,7 @@ const sources = {
   }]),
   'overview-onboarding-state': source('overview-onboarding-state', [{
     'show-onboarding': false,
+    'current-step': 'complete',
     'has-repositories': true,
     'has-artifacts': true,
     'repository-count': 6,
@@ -146,6 +147,7 @@ const onboardingSources = {
   ...sources,
   'overview-onboarding-state': source('overview-onboarding-state', [{
     'show-onboarding': true,
+    'current-step': 'setup',
     'has-repositories': false,
     'has-artifacts': false,
     'repository-count': 0,
@@ -393,17 +395,15 @@ test('renders setup guidance instead of factory statistics for a fresh control r
   });
 
   const overview = page.locator('[data-page-id="overview"]');
-  await expect(overview.getByRole('heading', { name: 'Get started with Central Agentic Ops.' })).toBeVisible();
-  await expect(overview.getByText('Set up CAO, choose the repositories for this control plane, then add a workflow or campaign.')).toBeVisible();
+  await expect(overview.getByRole('heading', { name: 'Welcome to CAO!' })).toBeVisible();
+  await expect(overview.getByText('Set up CAO in this checkout before choosing what it should operate.')).toBeVisible();
   await expect(overview.locator('.factory-rhythm')).toBeHidden();
   await expect(overview.locator('.factory-stations')).toBeHidden();
   await expect(overview.locator('.factory-onboarding')).toBeVisible();
   await expect(overview.getByRole('heading', { name: 'Set up CAO' })).toBeVisible();
-  await expect(overview.getByRole('heading', { name: 'Choose repositories' })).toBeVisible();
-  await expect(overview.getByRole('heading', { name: 'Add workflows or campaigns' })).toBeVisible();
+  await expect(overview.getByRole('heading', { name: 'Choose repositories' })).toBeHidden();
+  await expect(overview.getByRole('heading', { name: 'Add workflows or campaigns' })).toBeHidden();
   await expect(overview.getByRole('button', { name: /Copy gh cao setup/ })).toBeVisible();
-  await expect(overview.getByRole('link', { name: /Choose repositories/ })).toHaveAttribute('href', '#page-repositories');
-  await expect(overview.getByRole('link', { name: /Browse Marketplace/ })).toHaveAttribute('href', '#page-marketplace');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(overview.locator('.factory-onboarding-steps')).toHaveCSS('grid-template-columns', /^[\d.]+px$/);

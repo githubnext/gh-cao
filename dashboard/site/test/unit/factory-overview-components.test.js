@@ -204,6 +204,7 @@ describe('Overview component boundaries', () => {
     const controller = new AbortController();
     const onboardingRows = state([{
       'show-onboarding': true,
+      'current-step': 'setup',
       'has-repositories': false,
       'has-artifacts': false
     }]);
@@ -237,14 +238,30 @@ describe('Overview component boundaries', () => {
     expect(rendered.classList.contains('factory-floor-onboarding')).toBe(true);
     expect(rendered.querySelector('.factory-stations')?.hasAttribute('hidden')).toBe(true);
     expect(rendered.querySelector('.factory-onboarding')?.hasAttribute('hidden')).toBe(false);
-    expect([...rendered.querySelectorAll('.factory-onboarding-step h3')].map((element) => element.textContent))
-      .toEqual(['Set up CAO', 'Choose repositories', 'Add workflows or campaigns']);
-    expect(rendered.querySelector('.factory-onboarding button')?.textContent).toContain('Copy gh cao setup');
-    expect(rendered.querySelector('.factory-onboarding a[href="#page-repositories"]')?.textContent).toContain('Choose repositories');
-    expect(rendered.querySelector('.factory-onboarding a[href="#page-marketplace"]')?.textContent).toContain('Browse Marketplace');
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) h3')?.textContent).toBe('Set up CAO');
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) button')?.textContent).toContain('Copy gh cao setup');
+
+    onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'repositories',
+      'has-repositories': false,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) h3')?.textContent).toBe('Choose repositories');
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) a')?.getAttribute('href')).toBe('#page-repositories');
+
+    onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'artifacts',
+      'has-repositories': true,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) h3')?.textContent).toBe('Add workflows or campaigns');
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) a')?.getAttribute('href')).toBe('#page-marketplace');
 
     onboardingRows.set([{
       'show-onboarding': false,
+      'current-step': 'complete',
       'has-repositories': true,
       'has-artifacts': true
     }]);
@@ -290,6 +307,7 @@ describe('Overview component boundaries', () => {
     const controller = new AbortController();
     const onboardingRows = state([{
       'show-onboarding': true,
+      'current-step': 'setup',
       'has-repositories': false,
       'has-artifacts': false
     }]);
@@ -308,14 +326,33 @@ describe('Overview component boundaries', () => {
       }
     );
 
-    expect(rendered.querySelector('h2')?.textContent).toBe('Get started with Central Agentic Ops.');
+    expect(rendered.querySelector('h2')?.textContent).toBe('Welcome to CAO!');
     expect(rendered.querySelector('.factory-intro-copy > p')?.textContent)
-      .toBe('Set up CAO, choose the repositories for this control plane, then add a workflow or campaign.');
+      .toBe('Set up CAO in this checkout before choosing what it should operate.');
     expect(rendered.querySelector('.factory-rhythm')?.hasAttribute('hidden')).toBe(true);
     expect(rendered.classList.contains('factory-intro-onboarding')).toBe(true);
 
     onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'repositories',
+      'has-repositories': false,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-intro-copy > p')?.textContent)
+      .toBe('Choose the repositories this control plane should include.');
+
+    onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'artifacts',
+      'has-repositories': true,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-intro-copy > p')?.textContent)
+      .toBe('Add an Agentic Workflow or campaign.');
+
+    onboardingRows.set([{
       'show-onboarding': false,
+      'current-step': 'complete',
       'has-repositories': true,
       'has-artifacts': true
     }]);
@@ -329,6 +366,7 @@ describe('Overview component boundaries', () => {
   it('does not infer onboarding from unavailable inventory evidence', () => {
     const rows = state([{
       'show-onboarding': true,
+      'current-step': 'setup',
       'has-repositories': false,
       'has-artifacts': false
     }]);

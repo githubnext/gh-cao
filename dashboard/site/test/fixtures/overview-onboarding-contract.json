@@ -1,21 +1,14 @@
 {
   "cases": [
     {
-      "name": "fresh control repository",
-      "repositories": [],
-      "workflows": [],
-      "campaigns": [],
-      "expected": {
-        "show-onboarding": true,
-        "has-repositories": false,
-        "has-artifacts": false,
-        "repository-count": 0,
-        "workflow-count": 0,
-        "campaign-count": 0
-      }
-    },
-    {
-      "name": "repositories without workflows or campaigns",
+      "name": "fresh local control repository",
+      "transactions": [
+        {
+          "id": "local-dashboard-configuration",
+          "kind": "local-dashboard-configuration",
+          "records": 0
+        }
+      ],
       "repositories": [
         {
           "repository": "control"
@@ -25,6 +18,9 @@
       "campaigns": [],
       "expected": {
         "show-onboarding": true,
+        "current-step": "setup",
+        "has-setup-observation": true,
+        "has-setup": false,
         "has-repositories": true,
         "has-artifacts": false,
         "repository-count": 1,
@@ -33,25 +29,66 @@
       }
     },
     {
-      "name": "workflow without selected repositories",
-      "repositories": [],
-      "workflows": [
+      "name": "configured policy without repositories",
+      "transactions": [
         {
-          "workflow": "health.md"
+          "id": "local-dashboard-configuration",
+          "kind": "local-dashboard-configuration",
+          "records": 1
         }
       ],
+      "repositories": [],
+      "workflows": [],
       "campaigns": [],
       "expected": {
         "show-onboarding": true,
+        "current-step": "repositories",
+        "has-setup-observation": true,
+        "has-setup": true,
         "has-repositories": false,
-        "has-artifacts": true,
+        "has-artifacts": false,
         "repository-count": 0,
-        "workflow-count": 1,
+        "workflow-count": 0,
+        "campaign-count": 0
+      }
+    },
+    {
+      "name": "configured repository without workflows or campaigns",
+      "transactions": [
+        {
+          "id": "local-dashboard-configuration",
+          "kind": "local-dashboard-configuration",
+          "records": 1
+        }
+      ],
+      "repositories": [
+        {
+          "repository": "control"
+        }
+      ],
+      "workflows": [],
+      "campaigns": [],
+      "expected": {
+        "show-onboarding": true,
+        "current-step": "artifacts",
+        "has-setup-observation": true,
+        "has-setup": true,
+        "has-repositories": true,
+        "has-artifacts": false,
+        "repository-count": 1,
+        "workflow-count": 0,
         "campaign-count": 0
       }
     },
     {
       "name": "configured repository and campaign",
+      "transactions": [
+        {
+          "id": "local-dashboard-configuration",
+          "kind": "local-dashboard-configuration",
+          "records": 1
+        }
+      ],
       "repositories": [
         {
           "repository": "control"
@@ -65,11 +102,40 @@
       ],
       "expected": {
         "show-onboarding": false,
+        "current-step": "complete",
+        "has-setup-observation": true,
+        "has-setup": true,
         "has-repositories": true,
         "has-artifacts": true,
         "repository-count": 1,
         "workflow-count": 0,
         "campaign-count": 1
+      }
+    },
+    {
+      "name": "configured static dashboard without local setup evidence",
+      "transactions": [],
+      "repositories": [
+        {
+          "repository": "control"
+        }
+      ],
+      "workflows": [
+        {
+          "workflow": "health.md"
+        }
+      ],
+      "campaigns": [],
+      "expected": {
+        "show-onboarding": false,
+        "current-step": "complete",
+        "has-setup-observation": false,
+        "has-setup": false,
+        "has-repositories": true,
+        "has-artifacts": true,
+        "repository-count": 1,
+        "workflow-count": 1,
+        "campaign-count": 0
       }
     }
   ]

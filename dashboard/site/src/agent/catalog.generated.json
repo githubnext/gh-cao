@@ -13255,6 +13255,25 @@
       }
     },
     {
+      "id": "overview-onboarding-setup-summary",
+      "subject": "Read whether the local dashboard has observed a configured CAO control policy.",
+      "objective": "Distinguish an unconfigured local checkout from repository and workflow inventory readiness.",
+      "acceptance": "Use only the local configuration snapshot transaction. One committed configuration record means a valid cao.json was observed; absence of this local-only signal falls back to canonical inventory without claiming setup is missing.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "transactions"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "transactions"
+        ]
+      }
+    },
+    {
       "id": "overview-onboarding-repository-summary",
       "subject": "Count configured repositories retained in the canonical control-plane inventory.",
       "objective": "Determine whether repository selection is present before presenting the operational Overview.",
@@ -13308,6 +13327,25 @@
         "backend": "postgres",
         "requirements": [
           "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-setup-input",
+      "subject": "Prepare local CAO setup evidence for the Overview onboarding decision.",
+      "objective": "Carry observed and configured policy counts into the onboarding readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the counts match overview-onboarding-setup-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-setup-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "transactions"
         ]
       }
     },
@@ -13371,13 +13409,14 @@
     {
       "id": "overview-onboarding-state",
       "subject": "Classify whether the Overview should invite initial control-plane setup.",
-      "objective": "Replace operational factory statistics only when repository selection or workflow and campaign inventory is absent.",
-      "acceptance": "show-onboarding is true when resolved canonical inventory has no repositories or has neither workflows nor campaigns. This is setup guidance, not a claim of complete operational coverage or rollout authority.",
+      "objective": "Replace operational factory statistics with only the next required setup, repository, or workflow and campaign action.",
+      "acceptance": "current-step is setup only when the local CLI observed a missing cao.json; otherwise it advances through repositories and artifacts from resolved canonical inventory. complete removes onboarding. This is guidance, not a claim of operational coverage or rollout authority.",
       "description": "",
       "parameters": [],
       "sources": [
         "overview-onboarding-campaign-input",
         "overview-onboarding-repository-input",
+        "overview-onboarding-setup-input",
         "overview-onboarding-workflow-input"
       ],
       "used-by-pages": [
@@ -13389,6 +13428,7 @@
         "requirements": [
           "campaigns",
           "repositories",
+          "transactions",
           "workflows"
         ]
       }

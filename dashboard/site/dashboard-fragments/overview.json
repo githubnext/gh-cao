@@ -1,6 +1,35 @@
 {
   "queries": [
     {
+      "name": "overview-onboarding-setup-summary",
+      "subject": "Read whether the local dashboard has observed a configured CAO control policy.",
+      "objective": "Distinguish an unconfigured local checkout from repository and workflow inventory readiness.",
+      "acceptance": "Use only the local configuration snapshot transaction. One committed configuration record means a valid cao.json was observed; absence of this local-only signal falls back to canonical inventory without claiming setup is missing.",
+      "from": "transactions",
+      "filter": {
+        "predicates": [
+          {
+            "field": "kind",
+            "equals": "local-dashboard-configuration"
+          }
+        ]
+      },
+      "aggregate": {
+        "values": [
+          {
+            "field": "id",
+            "as": "setup-observation-count",
+            "reducer": "count"
+          },
+          {
+            "field": "records",
+            "as": "configured-policy-count",
+            "reducer": "sum"
+          }
+        ]
+      }
+    },
+    {
       "name": "overview-onboarding-repository-summary",
       "subject": "Count configured repositories retained in the canonical control-plane inventory.",
       "objective": "Determine whether repository selection is present before presenting the operational Overview.",
@@ -47,6 +76,38 @@
           }
         ]
       }
+    },
+    {
+      "name": "overview-onboarding-setup-input",
+      "subject": "Prepare local CAO setup evidence for the Overview onboarding decision.",
+      "objective": "Carry observed and configured policy counts into the onboarding readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the counts match overview-onboarding-setup-summary.",
+      "from": "overview-onboarding-setup-summary",
+      "compute": [
+        {
+          "as": "onboarding-key",
+          "function": "concat",
+          "args": [
+            {
+              "value": "overview"
+            },
+            {
+              "value": "-onboarding"
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "onboarding-key"
+        },
+        {
+          "field": "setup-observation-count"
+        },
+        {
+          "field": "configured-policy-count"
+        }
+      ]
     },
     {
       "name": "overview-onboarding-repository-input",
@@ -138,10 +199,30 @@
     {
       "name": "overview-onboarding-state",
       "subject": "Classify whether the Overview should invite initial control-plane setup.",
-      "objective": "Replace operational factory statistics only when repository selection or workflow and campaign inventory is absent.",
-      "acceptance": "show-onboarding is true when resolved canonical inventory has no repositories or has neither workflows nor campaigns. This is setup guidance, not a claim of complete operational coverage or rollout authority.",
+      "objective": "Replace operational factory statistics with only the next required setup, repository, or workflow and campaign action.",
+      "acceptance": "current-step is setup only when the local CLI observed a missing cao.json; otherwise it advances through repositories and artifacts from resolved canonical inventory. complete removes onboarding. This is guidance, not a claim of operational coverage or rollout authority.",
       "from": "overview-onboarding-repository-input",
       "joins": [
+        {
+          "source": "overview-onboarding-setup-input",
+          "type": "left",
+          "on": [
+            {
+              "left": "onboarding-key",
+              "right": "onboarding-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "setup-observation-count",
+              "as": "setup-observation-count"
+            },
+            {
+              "field": "configured-policy-count",
+              "as": "configured-policy-count"
+            }
+          ]
+        },
         {
           "source": "overview-onboarding-workflow-input",
           "type": "left",
@@ -189,6 +270,30 @@
           ]
         },
         {
+          "as": "has-setup-observation",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "setup-observation-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "has-setup",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "configured-policy-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
           "as": "has-repositories",
           "function": "greater-than",
           "args": [
@@ -213,44 +318,89 @@
           ]
         },
         {
-          "as": "repository-ready",
-          "function": "if",
-          "args": [
-            {
-              "field": "has-repositories"
-            },
-            {
-              "value": 1
-            },
-            {
-              "value": 0
-            }
-          ]
-        },
-        {
-          "as": "artifact-ready",
+          "as": "repository-step",
           "function": "if",
           "args": [
             {
               "field": "has-artifacts"
             },
             {
-              "value": 1
+              "value": "complete"
             },
             {
-              "value": 0
+              "value": "artifacts"
             }
           ]
         },
         {
-          "as": "readiness-count",
-          "function": "sum",
+          "as": "inventory-step",
+          "function": "if",
           "args": [
             {
-              "field": "repository-ready"
+              "field": "has-repositories"
             },
             {
-              "field": "artifact-ready"
+              "field": "repository-step"
+            },
+            {
+              "value": "repositories"
+            }
+          ]
+        },
+        {
+          "as": "setup-step",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-setup"
+            },
+            {
+              "field": "inventory-step"
+            },
+            {
+              "value": "setup"
+            }
+          ]
+        },
+        {
+          "as": "current-step",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-setup-observation"
+            },
+            {
+              "field": "setup-step"
+            },
+            {
+              "field": "inventory-step"
+            }
+          ]
+        },
+        {
+          "as": "onboarding-complete",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "current-step"
+            },
+            {
+              "value": "complete"
+            }
+          ]
+        },
+        {
+          "as": "onboarding-value",
+          "function": "if",
+          "args": [
+            {
+              "field": "onboarding-complete"
+            },
+            {
+              "value": 0
+            },
+            {
+              "value": 1
             }
           ]
         },
@@ -259,10 +409,10 @@
           "function": "greater-than",
           "args": [
             {
-              "value": 2
+              "field": "onboarding-value"
             },
             {
-              "field": "readiness-count"
+              "value": 0
             }
           ]
         }
@@ -270,6 +420,15 @@
       "select": [
         {
           "field": "show-onboarding"
+        },
+        {
+          "field": "current-step"
+        },
+        {
+          "field": "has-setup-observation"
+        },
+        {
+          "field": "has-setup"
         },
         {
           "field": "has-repositories"

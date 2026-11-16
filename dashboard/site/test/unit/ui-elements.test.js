@@ -3,6 +3,7 @@ import {
   elementHandlesEmptyRows,
   elementBindsPageSources,
   elementLoadsSourcesAsync,
+  elementPageSubscriptionSourceNames,
   renderUiElement
 } from '../../src/components/ui-elements.js';
 
@@ -53,4 +54,13 @@ describe('UI element registry', () => {
     expect(elementLoadsSourcesAsync('problem-detail')).toBe(false);
     expect(elementHandlesEmptyRows('problem-detail')).toBe(true);
   });
+
+  it.each(['factory-header', 'factory-floor'])(
+    'keeps the initial %s load independent and subscribes its retained DOM',
+    (element) => {
+      expect(elementBindsPageSources(element)).toBe(true);
+      expect(elementLoadsSourcesAsync(element)).toBe(true);
+      expect(elementPageSubscriptionSourceNames(element, ['setup', 'metric-a', 'metric-b'])).toEqual(['setup']);
+    }
+  );
 });

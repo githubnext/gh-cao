@@ -11,7 +11,14 @@ import { titleCase } from './components/count-formatters.js';
 import { formatMediumUtcDateTime, renderDashboardViewSkeleton, renderEmptyMessage } from './components/ui-primitives.js';
 import { customViewAvailabilityMessage, renderCustomViewStateDetails, renderLayoutSectionChrome, renderPageSection, renderViewDisclosure } from './components/view-chrome.js';
 import { externalAnchorAttrs, findLink } from './components/link-content.js';
-import { elementBindsPageSources, elementHandlesEmptyRows, elementHandlesUnavailableSource, elementLoadsSourcesAsync, renderUiElement } from './components/ui-elements.js';
+import {
+  elementBindsPageSources,
+  elementHandlesEmptyRows,
+  elementHandlesUnavailableSource,
+  elementLoadsSourcesAsync,
+  elementPageSubscriptionSourceNames,
+  renderUiElement
+} from './components/ui-elements.js';
 import { publishSource, sourceState } from './source-store.js';
 import { renderDataView, renderPromptPreviewAction, supportsIncrementalChartContinuation } from './components/data-view.js';
 import { renderPageLoadError } from './components/page-load-error.js';
@@ -299,6 +306,12 @@ export function renderDashboard(input) {
         const effectiveQueryContext = options.queryContext ?? (initialViewMode ? { viewMode: initialViewMode } : undefined);
         options.queryContext = effectiveQueryContext;
         const rendersBeforePageSources = dashboardPageSourcesAreIndependentlyBound(resolvedPage(), reusableViews);
+        const subscribesPageBoundViews = Boolean(
+          input.loadPageSources?.subscribeViewSources
+          && (pagePayload.views ?? []).some((view) => (
+            isPlainObject(view) && typeof view.element === 'string' && elementBindsPageSources(view.element)
+          ))
+        );
         const liveSources = state(sources);
         const failures = state(/** @type {Record<string, string>} */ ({}));
         const loading = state((input.loading === true || Boolean(input.loadPageSources)) && !rendersBeforePageSources);
@@ -324,7 +337,8 @@ export function renderDashboard(input) {
             sources: liveSources,
             failures,
             loading,
-            signal: options.signal
+            signal: options.signal,
+            viewSubscriptions: Boolean(input.loadPageSources?.subscribeViewSources)
           }, { repository: document.dashboard.repository, githubUrlBase: document.dashboard['github-url-base'] });
           debugPerformance('page render', {
             pageId,
@@ -336,7 +350,7 @@ export function renderDashboard(input) {
           return rendered;
         };
         if (input.loadPageSources) {
-          if (rendersBeforePageSources) {
+          if (rendersBeforePageSources && !subscribesPageBoundViews) {
             return render(sources);
           }
           /** @param {Record<string, LogicalSourceInput>} pageSources @param {boolean} [replace] @param {string[][]} [aliases] */
@@ -355,9 +369,13 @@ export function renderDashboard(input) {
           if (input.loadPageSources.subscribeViewSources && pagePayload['query-binding'] !== 'page') {
             const payload = getBuiltInPagePayload(resolvedPage(), reusableViews);
             const bindings = (payload.views ?? []).flatMap((view, index) => {
-              if (!isPlainObject(view) || !viewBackendAvailable(view, dashboardDataBackend())
-                || (typeof view.element === 'string' && elementLoadsSourcesAsync(view.element))) return [];
-              const names = getViewSources(view);
+              if (!isPlainObject(view) || !viewBackendAvailable(view, dashboardDataBackend())) return [];
+              const pageBoundElement = typeof view.element === 'string' && elementBindsPageSources(view.element);
+              if (typeof view.element === 'string' && elementLoadsSourcesAsync(view.element) && !pageBoundElement) return [];
+              const authoredNames = getViewSources(view);
+              const names = pageBoundElement
+                ? elementPageSubscriptionSourceNames(view.element, authoredNames)
+                : authoredNames;
               if (!names.length) return [];
               const viewId = typeof view.id === 'string' ? view.id : `view-${index + 1}`;
               const aliases = names.map((name, sourceIndex) => [dashboardViewAliasName(pageId, view, index, name, sourceIndex), name]);
@@ -846,7 +864,7 @@ function renderPageSkeleton() {
  * @param {Array<Record<string, unknown>>} reusableViews
  * @param {PageSourceLoadOptions['queryContext']} [queryContext]
  * @param {Array<Record<string, unknown>>} [queries]
- * @param {{ sources: import('./reactive.js').State<Record<string, LogicalSourceInput>>, failures: import('./reactive.js').State<Record<string, string>>, loading: import('./reactive.js').State<boolean>, signal: AbortSignal }} [binding]
+ * @param {{ sources: import('./reactive.js').State<Record<string, LogicalSourceInput>>, failures: import('./reactive.js').State<Record<string, string>>, loading: import('./reactive.js').State<boolean>, signal: AbortSignal, viewSubscriptions?: boolean }} [binding]
  * @param {{ repository?: string, githubUrlBase?: string }} [promptContext]
  * @returns {HTMLElement}
  */
@@ -860,7 +878,7 @@ function renderPage(page, sources, units, dashboardDefaults, cardTemplates, reus
  * Renders an isolated, validated page with the normal declarative renderer,
  * without installing another dashboard shell or global navigation.
  * @param {PresentationDocument} document
- * @param {{ sources: import('./reactive.js').State<Record<string, LogicalSourceInput>>, failures: import('./reactive.js').State<Record<string, string>>, loading: import('./reactive.js').State<boolean>, signal: AbortSignal }} binding
+ * @param {{ sources: import('./reactive.js').State<Record<string, LogicalSourceInput>>, failures: import('./reactive.js').State<Record<string, string>>, loading: import('./reactive.js').State<boolean>, signal: AbortSignal, viewSubscriptions?: boolean }} binding
  * @param {PageSourceLoadOptions['queryContext']} [queryContext]
  */
 export function renderDashboardPagePreview(document, binding, queryContext) {
@@ -887,7 +905,7 @@ export function renderDashboardPagePreview(document, binding, queryContext) {
  * @param {boolean} [withFilterBar]
  * @param {PageSourceLoadOptions['queryContext']} [queryContext]
  * @param {Array<Record<string, unknown>>} [queries]
- * @param {{ sources: import('./reactive.js').State<Record<string, LogicalSourceInput>>, failures: import('./reactive.js').State<Record<string, string>>, loading: import('./reactive.js').State<boolean>, signal: AbortSignal }} [binding]
+ * @param {{ sources: import('./reactive.js').State<Record<string, LogicalSourceInput>>, failures: import('./reactive.js').State<Record<string, string>>, loading: import('./reactive.js').State<boolean>, signal: AbortSignal, viewSubscriptions?: boolean }} [binding]
  * @param {{ repository?: string, githubUrlBase?: string }} [promptContext]
  * @returns {HTMLElement}
  */
@@ -939,6 +957,8 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
     if (viewBackendHidden(view, dashboardDataBackend())) return null;
     const viewSourceNames = getViewSources(view);
     const isPageBound = isPlainObject(view) && typeof view.element === 'string' && elementBindsPageSources(view.element);
+    const subscribedViewSourceNames = isPageBound && isPlainObject(view) && typeof view.element === 'string'
+      ? elementPageSubscriptionSourceNames(view.element, viewSourceNames) : [];
     const isSelfBound = isPageBound || (isPlainObject(view) && typeof view.element === 'string' && elementLoadsSourcesAsync(view.element));
     /** @param {Record<string, LogicalSourceInput>} current */
     const viewIsPending = (current) => viewBackendAvailable(view, dashboardDataBackend()) && binding?.loading.get() === true
@@ -975,7 +995,8 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
             renderDashboardViewSkeleton(),
             h('span', { className: 'sr-only' }, `Loading ${getViewTitle(view, index)}`)
           ], headingTag)
-        : renderCustomView(page.id, view, index, readySources, units, cardTemplates, headingTag, routeParameter, queryContext);
+        : renderCustomView(page.id, view, index, readySources, units, cardTemplates, headingTag, routeParameter, queryContext,
+            binding?.viewSubscriptions === true);
       const fullPie = isPlainObject(view) && view.mark === 'chart' && view.chart === 'pie' && view.layout === 'full';
       const pieState = fullPie ? rendered.querySelector(':scope > .view-state-card') : null;
       if (fullPie) rendered.classList.add('chart-view', 'chart-view-pie');
@@ -1175,7 +1196,9 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
           initial = false;
           return;
         }
-        const changed = previousFailure !== failure || previousPending !== pending || viewSourceNames.some((name, sourceIndex) => {
+        const observedSourceNames = isPageBound ? subscribedViewSourceNames : viewSourceNames;
+        const changed = previousFailure !== failure || previousPending !== pending || observedSourceNames.some((name) => {
+          const sourceIndex = viewSourceNames.indexOf(name);
           const resolved = resolveViewSourceName(current, page.id, view, index, name, sourceIndex);
           return current[resolved] !== previousSources[resolved];
         });
@@ -1185,7 +1208,8 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
         if (isPageBound) {
           if (!changed) return;
           batch(() => {
-            for (const [sourceIndex, name] of viewSourceNames.entries()) {
+            for (const name of subscribedViewSourceNames) {
+              const sourceIndex = viewSourceNames.indexOf(name);
               const resolved = resolveViewSourceName(current, page.id, view, index, name, sourceIndex);
               const key = dashboardViewAliasName(page.id, view, index, name, sourceIndex);
               const source = current[resolved];
@@ -2512,10 +2536,13 @@ function summarizeDataState(pageSources) {
  * @param {'h2'|'h3'|'h4'} [headingTag]
  * @param {string} [routeParameter]
  * @param {PageSourceLoadOptions['queryContext']} [queryContext]
+ * @param {boolean} [sourcesSubscribed]
  * @returns {HTMLElement}
  */
-function renderCustomView(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext) {
-  const root = renderCustomViewContent(pageId, view, index, sources, units, cardTemplates, headingTag, routeParameter, queryContext);
+function renderCustomView(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext, sourcesSubscribed = false) {
+  const root = renderCustomViewContent(
+    pageId, view, index, sources, units, cardTemplates, headingTag, routeParameter, queryContext, sourcesSubscribed
+  );
   const actions = (isPlainObject(view) && Array.isArray(view.actions) ? view.actions : [])
     .map((/** @type {string} */ id) => renderDeclaredCliAction(id)).filter(Boolean);
   if (actions.length) {
@@ -2530,7 +2557,7 @@ function renderCustomView(pageId, view, index, sources, units, cardTemplates, he
 }
 
 /** @type {typeof renderCustomView} */
-function renderCustomViewContent(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext) {
+function renderCustomViewContent(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext, sourcesSubscribed = false) {
   const fallbackTitle = `View ${index + 1}`;
   if (!isPlainObject(view)) {
     return renderCustomViewState(pageId, fallbackTitle, null, 'unavailable', ['Invalid custom view definition.'], headingTag);
@@ -2550,7 +2577,9 @@ function renderCustomViewContent(pageId, view, index, sources, units, cardTempla
   const contextDetails = [];
 
   if (view.mark === 'element') {
-    return renderElementView(pageId, title, view, index, sources, contextDetails, headingTag, routeParameter, queryContext);
+    return renderElementView(
+      pageId, title, view, index, sources, contextDetails, headingTag, routeParameter, queryContext, sourcesSubscribed
+    );
   }
   if (view.mark === 'callout') {
     return renderCalloutView(pageId, view, title, headingTag);
@@ -2711,9 +2740,10 @@ function suppressSupplementalTableHeading(rendered, view, index) {
  * @param {'h2'|'h3'|'h4'} headingTag
  * @param {string} [routeParameter]
  * @param {PageSourceLoadOptions['queryContext']} [queryContext]
+ * @param {boolean} [sourcesSubscribed]
  * @returns {HTMLElement}
  */
-function renderElementView(pageId, title, view, viewIndex, sources, contextDetails, headingTag, routeParameter, queryContext) {
+function renderElementView(pageId, title, view, viewIndex, sources, contextDetails, headingTag, routeParameter, queryContext, sourcesSubscribed = false) {
   const elementName = typeof view.element === 'string' ? view.element : '';
   const sourceNames = getViewSources(view);
   const viewData = isPlainObject(view.data) ? view.data : undefined;
@@ -2774,7 +2804,9 @@ function renderElementView(pageId, title, view, viewIndex, sources, contextDetai
     queryContext,
     viewId: typeof view.id === 'string' ? view.id : undefined,
     viewIndex,
-    sourcesSubscribed: elementBindsPageSources(elementName),
+    sourcesSubscribed: sourcesSubscribed && elementBindsPageSources(elementName),
+    subscribedSourceNames: sourcesSubscribed
+      ? elementPageSubscriptionSourceNames(elementName, sourceNames) : [],
     elementConfig: isPlainObject(view.config) ? view.config : undefined,
     headingTag
   });

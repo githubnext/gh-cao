@@ -85,7 +85,7 @@ export function renderFactoryFloor(sources, animateNumbers, scope, roleNames, se
   });
   debugFactoryFloor({ event: 'composed', stationCount: stations.length, animate: animateNumbers });
 
-  const onboarding = renderFactoryOnboarding();
+  const onboarding = renderFactoryOnboarding(onboardingSource, scope);
   const floor = renderReactiveGrid({
     className: stations.length <= 2 ? 'factory-floor factory-floor-compact' : 'factory-floor',
     activeClassName: 'factory-floor-active',
@@ -101,7 +101,7 @@ export function renderFactoryFloor(sources, animateNumbers, scope, roleNames, se
     ariaLabel: () => {
       const onboardingState = factoryOnboardingState(onboardingSource);
       if (onboardingState.pending) return 'Loading dashboard setup status.';
-      if (onboardingState.show) return 'Get started with Central Agentic Ops.';
+      if (onboardingState.show) return 'Welcome to CAO!';
       return `${stations.map(({ definition, source }) => {
         const row = source.rows()[0];
         return !source.pending() && !source.unavailable() && typeof row?.description === 'string'
