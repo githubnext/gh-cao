@@ -547,7 +547,8 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 			}
 			ordered := value.Reducer == "first" || value.Reducer == "sum" && field.Type == "number"
 			var order []Column
-			if ordered && input != nil {
+			switch {
+			case ordered && input != nil:
 				// A stage row is unique by its input key; a real sum orders by the
 				// key fields not grouped here, preserving sequential IEEE arithmetic.
 				if value.Reducer == "first" {
@@ -572,7 +573,7 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 					}
 					order = append(order, column)
 				}
-			} else if ordered {
+			case ordered:
 				// Item rows have no reviewed element order; ordered reducers stay event-only.
 				if d.From != eventSource {
 					return p, ErrQuery
@@ -587,7 +588,7 @@ func (d Definition) plan(input *Plan) (Plan, error) {
 					}
 				}
 				needed["Sequence"] = true
-			} else if len(value.OrderBy) != 0 {
+			case len(value.OrderBy) != 0:
 				return p, ErrQuery
 			}
 			predicates, err := planFilter(value.Filter)
