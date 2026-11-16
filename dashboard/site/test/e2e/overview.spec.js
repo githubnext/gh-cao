@@ -404,6 +404,7 @@ test('renders setup guidance instead of factory statistics for a fresh control r
   await expect(overview.getByRole('heading', { name: 'Choose repositories' })).toBeHidden();
   await expect(overview.getByRole('heading', { name: 'Add workflows or campaigns' })).toBeHidden();
   await expect(overview.getByRole('button', { name: /Copy gh cao setup/ })).toBeVisible();
+  await expect(overview.locator('.factory-onboarding-step-icon')).toHaveCount(0);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(overview.locator('.factory-onboarding-steps')).toHaveCSS('grid-template-columns', /^[\d.]+px$/);

@@ -45,7 +45,6 @@ export function factoryOnboardingSummary(step) {
 /**
  * @param {{
  *   id: 'setup'|'repositories'|'artifacts',
- *   number: string,
  *   title: string,
  *   description: string,
  *   action: Node
@@ -55,11 +54,6 @@ function renderOnboardingStep(step) {
   return h(
     'li',
     { className: 'factory-onboarding-step', 'data-onboarding-step': step.id },
-    h(
-      'span',
-      { className: 'factory-onboarding-step-icon', 'aria-hidden': 'true' },
-      step.number
-    ),
     h(
       'div',
       { className: 'factory-onboarding-step-copy' },
@@ -92,14 +86,12 @@ export function renderFactoryOnboarding(source, scope) {
   const steps = {
     setup: renderOnboardingStep({
       id: 'setup',
-      number: '0',
       title: 'Set up CAO',
       description: 'Run gh cao setup in this checkout to create the control policy and configure access.',
       action: h('div', { className: 'factory-onboarding-action-row' }, setupAction)
     }),
     repositories: renderOnboardingStep({
       id: 'repositories',
-      number: '1',
       title: 'Choose repositories',
       description: 'Review or add the repositories this control plane should include.',
       action: h(
@@ -111,7 +103,6 @@ export function renderFactoryOnboarding(source, scope) {
     }),
     artifacts: renderOnboardingStep({
       id: 'artifacts',
-      number: '2',
       title: 'Add workflows or campaigns',
       description: 'Browse the Marketplace and add an Agentic Workflow or campaign.',
       action: h(

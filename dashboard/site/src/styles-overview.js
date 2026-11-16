@@ -31,9 +31,8 @@ ${overviewGridStyles}
 .factory-floor-onboarding-pending { min-height: 300px; }
 .factory-onboarding { width: min(100%, 760px); position: relative; z-index: 1; margin: 0 auto; }
 .factory-onboarding-steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; margin: 0; padding: 0; list-style: none; }
-.factory-onboarding-step { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 14px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--canvas); }
+.factory-onboarding-step { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--canvas); }
 .factory-onboarding-step[hidden] { display: none; }
-.factory-onboarding-step-icon { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--accent); border-radius: 50%; background: var(--accent-muted); color: var(--accent); font-size: .875rem; font-weight: 700; }
 .factory-onboarding-step-copy { min-width: 0; display: grid; gap: 8px; }
 .factory-onboarding-step-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .factory-onboarding-step h3 { margin: 0; font-size: 1rem; line-height: 1.3; }

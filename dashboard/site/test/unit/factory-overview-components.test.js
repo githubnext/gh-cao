@@ -240,6 +240,7 @@ describe('Overview component boundaries', () => {
     expect(rendered.querySelector('.factory-onboarding')?.hasAttribute('hidden')).toBe(false);
     expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) h3')?.textContent).toBe('Set up CAO');
     expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) button')?.textContent).toContain('Copy gh cao setup');
+    expect(rendered.querySelector('.factory-onboarding-step-icon')).toBeNull();
 
     onboardingRows.set([{
       'show-onboarding': true,
