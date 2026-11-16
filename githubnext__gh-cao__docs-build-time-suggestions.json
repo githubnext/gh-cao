@@ -1,36 +1,7 @@
 {
   "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T13:06:39Z",
-      "worker_run_id": "43871978894",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "43757990961",
-        "43766019418",
-        "43766933236",
-        "43768376457",
-        "43780290464",
-        "43781088986",
-        "43781377358",
-        "43789359390",
-        "43792211504",
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43757990961 (push 24f570e, 2026-11-15T20:25Z) to 43862265708 (push 1a03d21, 2026-11-16T11:57Z); 20/20 success (19 push, 1 schedule 43810351164); cancelled 43832015521 excluded and disclosed; gh run list 13:05Z shows no newer docs run and none queued or in progress. Dashboard generation = Build synthetic enterprise demo step (simulate-dashboard-pages.mjs -> buildDashboardSite; docs:build does not build the dashboard; no dashboard job): median 5 s, p90 6 s, 6.4% of exec median 78 s (15% gate 11.7 s; 60 s gate not met); ceiling saving at most 6 s. Reuse blocked: prepareDashboardPages defaults now=Date.now() (scripts/simulate-dashboard-pages.mjs:78) so skipping would freeze synthetic dates; dist/cao is deployed. Open issue 20815 (blobless checkout) is unrelated to this category; no suggestion.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T13:40:00Z",
       "worker_run_id": "43877315505",
@@ -851,6 +822,34 @@
         "43877103800"
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164), 0 failed. gh run list at 23:15Z: no newer docs run, none queued or in progress; main = ac6d75b = source_sha. Build documentation step (docs.yml line 51; npm run docs:build = astro build && validate-agent-docs && agent-docs-discovery test) recomputed from stored immutable run_timings rows: median 11 s, p90 15 s, 14.5% of exec median 76 s; 15% gate 11.4 s and 60 s gate not met. Jobs API spot-check of 43877103800 matched (Build documentation 11 s). Whole-step ceiling 11 s and would drop validation and discovery test; output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT at docs/components/SiteFooter.astro:9, enforced at scripts/validate-agent-docs.mjs:571). Next: reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T23:35:29Z",
+      "worker_run_id": "43979722480",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "43766933236",
+        "43768376457",
+        "43780290464",
+        "43781088986",
+        "43781377358",
+        "43789359390",
+        "43792211504",
+        "43798031034",
+        "43810351164",
+        "43814432358",
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 2026-11-16T23:35:29Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = HEAD = source_sha (unchanged). Dashboard generation = Build synthetic enterprise demo step (npm run dashboard:pages:build -> simulate-dashboard-pages.mjs; docs workflow has no dashboard job), recomputed from stored run_timings rows (no refetch): median 5 s, p90 6 s, max 8 s = 6.6 percent of exec median 76 s (p90 129 s). 15 percent gate 11.4 s and 60 s absolute not met; whole-step ceiling 5 s. Rejected: skipping (scripts/simulate-dashboard-pages.mjs:78 defaults now=Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed); running demo in parallel with docs build saves at most 5 s (below gate); separate dashboard job re-pays checkout (median 25 s) plus setup and install (about 11 s). Open #20815 (blobless checkout, other category) OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not repeated; no duplicate created. Next: artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1698,7 +1697,7 @@
     "gate_15pct_s": 11.4,
     "ceiling_saving_s": 5,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
-    "note": "Re-verified 18:37Z by worker 43929821091: no newer docs run than 43877103800; demo rows recomputed (median 5 s, p90 6 s, max 8 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists.",
+    "note": "Re-verified 18:37Z by worker 43929821091: no newer docs run than 43877103800; demo rows recomputed (median 5 s, p90 6 s, max 8 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists. Re-verified 23:35Z by worker 43979722480: no newer docs run; strict 19-success demo rows recomputed (median 5 s, p90 6 s, max 8 s); decision unchanged (ceiling 5 s vs gate 11.4 s).",
     "decision": "not actionable (ceiling 5 s vs gate 11.4 s and 60 s absolute)",
     "reverified_note": "Re-verified 2026-11-16T21:53Z by worker 43963919707: no docs run newer than 43877103800; Jobs API spot-check matched (demo 5 s, exec 73 s); scripts/simulate-dashboard-pages.mjs:78 still defaults now to Date.now(); decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s)."
   },
