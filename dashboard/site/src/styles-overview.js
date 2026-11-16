@@ -43,6 +43,7 @@ ${overviewGridStyles}
 .factory-onboarding-action-row .factory-onboarding-action { margin-top: 0; }
 .factory-onboarding-action-row .declared-cli-action > .cli-action-trigger { width: fit-content; min-height: 32px; padding: 5px 10px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: var(--canvas); font-size: .75rem; font-weight: 600; }
 .factory-onboarding-action-row .declared-cli-action > .cli-action-trigger:hover { filter: brightness(1.08); }
+.factory-onboarding-action-row .cli-action-trigger-copy small { display: none; }
 .factory-onboarding-action:hover { color: var(--canvas); text-decoration: none; filter: brightness(1.08); }
 .factory-onboarding-action:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .factory-onboarding-action-icon { display: inline-flex; }
