@@ -490,6 +490,38 @@ model issues {
   type?: string;
 }
 
+/** Compact current lifecycle for one successful safe output, independent of Run detail retention. */
+model outputLifecycles {
+  adoptionAt?: utcDateTime;
+  adoptionObservedAt: utcDateTime;
+  adoptionSignal: string;
+  adoptionSource: string;
+  adoptionState: string;
+  deliveredAt: utcDateTime;
+  deliveryEvidenceId: string;
+  deliveryObservedAt: utcDateTime;
+  deliverySignal: string;
+  deliverySource: string;
+  deliveryState: string;
+  id: string;
+  observedAt: utcDateTime;
+  @parent("repositories")
+  repositoryId: string;
+  reversalSignal?: string;
+  reversedAt?: utcDateTime;
+  ruleVersion: string;
+  runId: string;
+  safeOutputType: string;
+  survivalObservedAt?: utcDateTime;
+  survivalSignal?: string;
+  survivalState: string;
+  targetRepository?: string;
+  targetUrl?: string;
+  title?: string;
+  @parent("workflows")
+  workflowId: string;
+}
+
 /** Current bounded acquired evidence packet; replaced as one coherent revision. */
 /** UTC evidence clocks must be exactly representable at PostgreSQL microsecond precision; sub-microsecond instants are rejected, never rounded. */
 model operationalValueEvidence {

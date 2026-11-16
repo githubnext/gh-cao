@@ -8,7 +8,6 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
-	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
@@ -28,9 +27,12 @@ func (f *nativeRefreshFixture) InvalidateValue(context.Context, collectnative.En
 	f.values++
 	return nil
 }
-func (f *nativeRefreshFixture) RecordOutcome(context.Context, collectnative.EnrollmentScope, mining.Outcome) error {
+func (f *nativeRefreshFixture) Due(context.Context, collectnative.EnrollmentScope, time.Time) (bool, error) {
+	return false, nil
+}
+func (f *nativeRefreshFixture) Refresh(context.Context, collectnative.EnrollmentScope, bool) (bool, error) {
 	f.outcomes++
-	return nil
+	return false, nil
 }
 
 func nativeEventQueue(t *testing.T) Queue {
@@ -46,7 +48,7 @@ func nativeEventWorker(queue Queue, enrollment Enrollment, hooks *nativeRefreshF
 	client := nativeScopeFixture{installations: []githubapp.Installation{{ID: 7}},
 		repositories: map[int64][]githubapp.Repository{7: {{FullName: "octo/api"}}}}
 	return NativeWorker{Queue: queue, Enrollment: enrollment, Consumer: "native-control",
-		Client: client, Inventory: hooks, Values: hooks, Outcomes: hooks, WindowDays: 7,
+		Client: client, Inventory: hooks, Values: hooks, Lifecycles: hooks, WindowDays: 7,
 		ScopeRefresher: ScopeRefresher{Client: client, Quota: &fakeRunQuota{known: true}, QuotaApp: "github-app-123"}}
 }
 
@@ -177,6 +179,33 @@ func TestNativeQueuedInvalidationCannotRetargetReenrollment(t *testing.T) {
 	if leases, err := queue.LeaseRuns(t.Context(), "inspect", 10); err != nil || len(leases) != 1 ||
 		leases[0].Task.ScopeEpoch == nativeScope(t, enrollment, "octo/api").Epoch {
 		t.Fatalf("delivery replay retargeted its exact attempt: %+v %v", leases, err)
+	}
+}
+
+func TestNativeIssueWebhooksCoalesceIntoAuthoritativeLifecycleRefresh(t *testing.T) {
+	data := testutil.Postgres(t, t.Context(), "CAO_TEST_POSTGRES_URL", "POSTGRES_URL")
+	queue := nativeEventQueue(t)
+	enrollment := nativeEnrollmentFixture(t, data, queue)
+	if err := enrollment.AddRepositories(t.Context(), 7, []string{"octo/api"}); err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(`{"action":"closed","installation":{"id":7},"repository":{"full_name":"octo/api"},
+		"issue":{"number":7,"state":"closed","state_reason":"completed",
+		"closed_at":"2026-11-15T12:00:00Z","updated_at":"2026-11-15T12:00:00Z",
+		"html_url":"https://github.com/octo/api/issues/7"}}`)
+	admitter := Admitter{Enrollment: enrollment, Queue: queue}
+	first, err := admitter.AdmitDelivery(t.Context(), "issues", payload, "lifecycle-1", time.Hour)
+	if err != nil || !first.Enqueued {
+		t.Fatalf("first lifecycle hint = %+v %v", first, err)
+	}
+	second, err := admitter.AdmitDelivery(t.Context(), "issues", payload, "lifecycle-2", time.Hour)
+	if err != nil || second.Enqueued || second.Duplicate {
+		t.Fatalf("coalesced lifecycle hint = %+v %v", second, err)
+	}
+	hooks := &nativeRefreshFixture{}
+	if more, err := nativeEventWorker(queue, enrollment, hooks).Step(t.Context()); err != nil || !more ||
+		hooks.outcomes != 1 {
+		t.Fatalf("authoritative lifecycle refresh = %v %v refreshes=%d", more, err, hooks.outcomes)
 	}
 }
 

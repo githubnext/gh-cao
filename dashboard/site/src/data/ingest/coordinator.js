@@ -39,6 +39,7 @@ import {
 import { CanonicalIngestionError, classifyIngestionError } from './errors.js';
 import { createDebug } from '../../debug.js';
 import { AUDIT_CURATION_TRANSACTION_ID, AUDIT_CURATION_VERSION } from '../model/audit-curation.js';
+import { outputLifecycleFromSafeOutput } from '../model/safe-output-lifecycle.js';
 
 const debug = createDebug('data:ingestion');
 
@@ -61,6 +62,7 @@ const NORMALIZED_BATCH_COLLECTIONS = /** @type {const} */ ([
   'friction',
   'audits',
   'issues',
+  'outputLifecycles',
   'operationalValues',
   'operationalValueEvidence',
   'workflowValueCollections',
@@ -589,7 +591,7 @@ export function ingestNormalizedJsonl(indexedDB, chunks, options) {
       const encoder = new TextEncoder();
       let pending = '';
       let lineNumber = 0;
-      /** @type {{ phase: 'all' | 'runs' | 'records', records: number, sourceRecords?: number, ingestionVersion: number } | null} */
+      /** @type {{ phase: 'all' | 'runs' | 'records', records: number, sourceRecords?: number, ingestionVersion: number, schemaVersion: number } | null} */
       let header = null;
       let batch = emptyNormalizedBatch();
       let bufferedRecords = 0;
@@ -703,6 +705,7 @@ export function ingestNormalizedJsonl(indexedDB, chunks, options) {
               phase: /** @type {'all' | 'runs' | 'records'} */ (envelope.phase),
               records: Number(envelope.records),
               ingestionVersion: Number(envelope.ingestionVersion),
+              schemaVersion: Number(envelope.schemaVersion),
               sourceRecords: Number.isSafeInteger(envelope.sourceRecords)
                 ? Number(envelope.sourceRecords)
                 : undefined
@@ -723,7 +726,7 @@ export function ingestNormalizedJsonl(indexedDB, chunks, options) {
             throw new TypeError(`Normalized activity JSONL line ${lineNumber} must contain a canonical record`);
           }
           const excluded = header.phase === 'runs'
-            ? ['domains', 'tools', 'skills', 'friction', 'audits', 'issues', 'operationalValues', 'operationalValueEvidence', 'workflowValueCollections',
+            ? ['domains', 'tools', 'skills', 'friction', 'audits', 'issues', 'outputLifecycles', 'operationalValues', 'operationalValueEvidence', 'workflowValueCollections',
               'graders', 'graderObservations', 'evals', 'evalObservations']
             : header.phase === 'records'
             ? ['campaigns', 'repositories', 'workflows', 'runs', 'experiments', 'experimentAssignments']
@@ -741,6 +744,24 @@ export function ingestNormalizedJsonl(indexedDB, chunks, options) {
           }
           batch[collection]?.push(/** @type {never} */ (record));
           bufferedRecords += 1;
+          if (header.schemaVersion < CANONICAL_SCHEMA_VERSION
+              && (collection === 'audits' || collection === 'issues')
+              && record.type === 'safe_output.result') {
+            const runId = String(record.runId ?? '');
+            const run = batch.runs.find((candidate) => candidate.id === runId)
+              ?? await readRecordWithConnection(database, 'runs', runId);
+            const lifecycle = outputLifecycleFromSafeOutput({
+              kind: collection === 'issues' ? 'issue' : 'audit',
+              source: 'normalized-jsonl',
+              sourceId: String(record.safeOutputId ?? record.id),
+              observedAt: String(record.observedAt ?? record.timestamp ?? ''),
+              data: record
+            }, record, run ?? undefined);
+            if (lifecycle) {
+              batch.outputLifecycles?.push(lifecycle);
+              bufferedRecords += 1;
+            }
+          }
           if (bufferedRecords >= NORMALIZED_JSONL_WRITE_BATCH_SIZE) await flush();
         };
         for await (const chunk of chunks) {
@@ -915,7 +936,8 @@ async function ingestCachedGhAwJsonlNow(indexedDB, content, options) {
       skills: batch.skills.length,
       friction: batch.friction.length,
       audits: batch.audits.length,
-      issues: batch.issues.length
+      issues: batch.issues.length,
+      outputLifecycles: batch.outputLifecycles?.length ?? 0
     });
     phase = 'writing';
     const storageStartedAt = monotonicNow();

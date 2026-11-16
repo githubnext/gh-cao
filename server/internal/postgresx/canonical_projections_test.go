@@ -39,7 +39,7 @@ func TestCanonicalProjectionsCompileWithoutReportSources(t *testing.T) {
 	}
 	slices.Sort(sources)
 	if !reflect.DeepEqual(sources, []string{
-		"$audits", "$campaigns", "$issues", "$repositories", "$runs", "$tools", "$workflows",
+		"$audits", "$campaigns", "$issues", "$outputLifecycles", "$repositories", "$runs", "$tools", "$workflows",
 	}) {
 		t.Fatalf("projections must read canonical evidence only: %v", sources)
 	}
@@ -69,7 +69,7 @@ func TestCanonicalWorkItemContractExecutesNatively(t *testing.T) {
 	}
 	defer writer.Abort(t.Context())
 	writer.ingestedAt = asOf
-	for _, name := range []string{"campaigns", "repositories", "workflows", "runs", "issues"} {
+	for _, name := range []string{"campaigns", "repositories", "workflows", "runs", "issues", "outputLifecycles"} {
 		for _, row := range fixture[name] {
 			if err := writer.Append(t.Context(), "$"+name, row); err != nil {
 				t.Fatal(err)

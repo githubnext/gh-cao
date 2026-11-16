@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/sqlbuilder"
 )
 
@@ -112,8 +113,8 @@ func (s *Store) purgeInactiveRepositoriesAt(ctx context.Context, cutoff, now tim
 	if err != nil {
 		return err
 	}
+	changed := false
 	if capable {
-		changed := false
 		if err := maintainDailyCounts(ctx, s.namespace, now, func(ctx context.Context, statement string, args ...any) error {
 			result, err := tx.ExecContext(ctx, statement, args...)
 			if err == nil && strings.HasPrefix(statement, "DELETE") {
@@ -127,11 +128,17 @@ func (s *Store) purgeInactiveRepositoriesAt(ctx context.Context, cutoff, now tim
 		}); err != nil {
 			return err
 		}
-		if changed {
-			if _, err := tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1 WHERE namespace=$1`, s.namespace); err != nil {
-				return err
-			}
-		}
+	}
+	result, err := tx.ExecContext(ctx, `DELETE FROM output_lifecycles
+		WHERE namespace=$1 AND observed_at<$2`, s.namespace,
+		now.UTC().AddDate(0, 0, -mining.OutputLifecycleRetentionDays))
+	if err != nil {
+		return err
+	}
+	if count, err := result.RowsAffected(); err != nil {
+		return err
+	} else {
+		changed = changed || count > 0
 	}
 	// Keep the identity while any historical or inventory record still refers
 	// to it. Retired identities become eligible only after the retention window.
@@ -139,7 +146,8 @@ func (s *Store) purgeInactiveRepositoriesAt(ctx context.Context, cutoff, now tim
 		WHERE l.namespace=$1 AND l.lifecycle IN ('deleted','archived') AND l.changed_at<$2
 		AND NOT EXISTS (SELECT 1 FROM workflows w WHERE w.namespace=l.namespace AND w.repository_id=l.id)
 		AND NOT EXISTS (SELECT 1 FROM runs r WHERE r.namespace=l.namespace AND r.repository_id=l.id)
-		AND NOT EXISTS (SELECT 1 FROM operational_values v WHERE v.namespace=l.namespace AND v.repository_id=l.id)`,
+		AND NOT EXISTS (SELECT 1 FROM operational_values v WHERE v.namespace=l.namespace AND v.repository_id=l.id)
+		AND NOT EXISTS (SELECT 1 FROM output_lifecycles o WHERE o.namespace=l.namespace AND o.repository_id=l.id)`,
 		s.namespace, cutoff)
 	if err != nil {
 		return err
@@ -167,6 +175,9 @@ func (s *Store) purgeInactiveRepositoriesAt(ctx context.Context, cutoff, now tim
 		}
 	}
 	if len(ids) > 0 {
+		changed = true
+	}
+	if changed {
 		if _, err := tx.ExecContext(ctx, `UPDATE cao_state SET revision=revision+1 WHERE namespace=$1`, s.namespace); err != nil {
 			return err
 		}

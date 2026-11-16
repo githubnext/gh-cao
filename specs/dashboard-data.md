@@ -1,7 +1,7 @@
 ---
 title: Central Agentic Ops Dashboard Data Architecture Specification
 description: Canonical data model, ingestion, IndexedDB persistence, consistency, recovery, and scale requirements for the gh-cao dashboard.
-version: 1.8.4
+version: 1.8.5
 status: Working Draft
 editors:
   - GitHub Next
@@ -9,11 +9,11 @@ editors:
 
 # Central Agentic Ops Dashboard Data Architecture Specification
 
-**Version:** 1.8.4
+**Version:** 1.8.5
 **Status:** Working Draft
 **Repository:** `githubnext/gh-cao`
 **Target implementation:** Dashboard data subsystem
-**Date:** 2026-10-11
+**Date:** 2026-11-16
 
 Implementers changing canonical data, ingestion, storage, or query execution
 should read `docs/dashboard-data-model.md` first, then this specification and
@@ -40,7 +40,7 @@ Audit retains typed routing identifiers,
 classifier labels, request identities, sub-agent ownership, token classes,
 per-response AIC and collection receipts. It MUST NOT retain prompts, bodies,
 free-form errors/reasons, raw tool payloads or content-derived hashes.
-The canonical model is version 36. IndexedDB version 49 SHALL rebuild
+The canonical model is version 37. IndexedDB version 50 SHALL rebuild
 incompatible older browser projections so every retained Run receives the
 disposable statistical range keys and indexes defined in §5.1 and every retained
 Workflow receives the disposable subject key used for cursor paging. The Campaign
@@ -1206,6 +1206,7 @@ store uses `id` as its key path. The implemented secondary indexes are:
 | `tools` | `byRun -> runId`, `byQuerySummary -> _queryKeys.byQuerySummary`, `byQueryMcpIdentity -> _queryKeys.byQueryMcpIdentity`, `byTypeStatusRun -> [type, status, runId]`, `byTypeStatusRunSummary -> [type, status, runId, summary]` |
 | `audits` | `byRun -> runId`, `byQuerySummary -> _queryKeys.byQuerySummary`, `byTypeStatusRun -> [type, status, runId]`, `byTypeStatusRunSummary -> [type, status, runId, summary]` |
 | `issues` | `byRun -> runId`, `byQuerySummary -> _queryKeys.byQuerySummary` |
+| `outputLifecycles` | `byRepository -> repositoryId`, `byWorkflow -> workflowId`, `byRun -> runId`, `byAdoptionState -> adoptionState` |
 | `skills`, `friction` | `byRun -> runId` |
 | `operationalValues` | `byRepository -> repositoryId`, `byValue -> valueId` |
 | `operationalValueEvidence`, `workflowValueCollections` | `byRepository -> repositoryId`, `byWorkflow -> workflowId` |
@@ -1945,6 +1946,20 @@ erDiagram
     string closedAt
     string statusObservedAt
   }
+  OUTPUT_LIFECYCLE {
+    string id PK "stable safe-output identity"
+    string repositoryId FK "required producing repository"
+    string workflowId FK "required producing workflow"
+    string runId "stable producing Run identity"
+    string safeOutputType
+    string deliveryState
+    string deliveredAt
+    string adoptionState
+    string adoptionSignal
+    string adoptionAt
+    string ruleVersion
+    string observedAt
+  }
 ```
 
 The ERD shows structural fields and query keys, not every optional observation
@@ -1962,6 +1977,9 @@ efficiency, but remain mandatory canonical relationships. Every Domain, Tool,
 Audit, and Issue MUST reference exactly one Run. Partial observations MAY exist
 during normalization; all mandatory relationships MUST resolve before a
 complete batch is reconciled or a streamed record phase is marked current.
+Every OutputLifecycle MUST reference its producing Repository and Workflow.
+It SHALL retain the immutable producing `runId` without requiring that Run or
+its detail remain present for the lifecycle row to survive.
 
 ## 6.3 Campaign
 
@@ -2424,19 +2442,20 @@ remain retained because their complete comparison facts are not present in the
 query-minimal native Postgres Run representation. Implementations MUST NOT add
 duplicate Run payloads or speculative native columns merely to prune them.
 
-## 11.2 Server-mined episode and outcome evidence
+## 11.2 Server-mined episode and supporting outcome evidence
 
 The optional server collector stores selected-run episode membership and
-independently observed output disposition as run-owned Audits with
-`source: "server-mining"`. These are evidence observations, not new canonical
-entities, complete episode rollups, accepted-outcome totals, or operational
-value. The Actions/Activity ingestion contract is unchanged.
+an optional run-owned copy of independently observed output disposition as
+Audits with `source: "server-mining"`. These are supporting evidence
+observations, not the lifecycle authority, complete episode rollups,
+accepted-outcome totals, or operational value. Run-detail expiry MAY remove the
+Audit without removing the compact OutputLifecycle.
 
 | Audit type | Existing typed fields and meaning |
 |---|---|
 | `episode.membership` | `runId` is the selected canonical Run; `claimRunAttempt` is its observed attempt. `correlationId` is the exact recorded gh-aw `context.episode_id`; `name` is recorded `hop_id`; `code` is recorded `parent_hop_id`. `claimRunId`, `targetRepository`, and `targetWorkflowPath` preserve recorded caller run/repository/workflow coordinates, not inferred relationships. |
 | `episode.root` | Same selected `runId` and episode `correlationId`; `claimRunId`, `targetRepository`, and `targetWorkflowPath` preserve `root_run_id`, `root_repo`, and `root_workflow_id`. Missing root fields remain unknown. |
-| `outcome.observed` | `runId` is the exact output's producing Run. `correlationId` is the retained Issue record's canonical ID; `targetRepository` is the issue/PR repository. `status` is the normalized gh-aw-style disposition (`accepted`, `rejected`, `pending`, `lifecycle`, or `unknown`); `code` is its evidence signal. `decision` preserves GitHub object state. `timestamp` is the object's authoritative `updated_at`, `observedAt` is the acquisition clock, and `summary` identifies `github-webhook` or `github-api` acquisition. |
+| `outcome.observed` | `runId` is the exact output's producing Run. `correlationId` is the retained Issue record's canonical ID; `targetRepository` is the issue/PR repository. `status` is the normalized disposition; `code` is its evidence signal. `decision` preserves GitHub object state. `timestamp` is the authoritative provider event clock, `observedAt` is the acquisition clock, and new hosted observations identify `github-api` acquisition. A legacy `github-webhook` copy is not acceptance evidence. |
 
 Episode rows MUST declare `scope: "selected_runs"` and outcome rows
 `scope: "selected_outputs"`; both MUST declare `evidenceState: "partial"`.
@@ -2452,11 +2471,104 @@ episode/hop evidence, count hops as separate run cost, infer acceptance from
 runtime success, or treat missing observations as successful or rejected
 outcomes. Outcome observations MUST join only retained exact issue/PR URLs,
 including host and object category; unlinked GitHub objects are not agent work.
-Only `create_issue` and `create_pull_request` actions are evaluated by this
-lifecycle profile; other safe-output types remain unevaluated.
 Missing runs and superseded attempts MUST NOT acquire episode membership.
 Full replacement and local evidence replay MUST preserve deterministic
 identities and publish all server supplements atomically with the snapshot.
+
+## 11.3 Universal safe-output lifecycle
+
+`outputLifecycles` SHALL retain one compact current row for every successful
+`safe_output.result`, independently of `operationalValueEvidence`. Rich Value
+packets MAY consume these rows later but MUST NOT create, replace, or become the
+source of delivery or adoption truth.
+
+Each row SHALL expose:
+
+```text
+id
+repositoryId
+workflowId
+runId
+safeOutputType
+targetRepository?
+targetUrl?
+deliveryState
+deliverySignal
+deliveredAt
+deliveryObservedAt
+deliverySource
+deliveryEvidenceId
+adoptionState
+adoptionSignal
+adoptionAt?
+adoptionObservedAt
+adoptionSource
+ruleVersion
+reversalSignal?
+reversedAt?
+survivalState
+survivalSignal?
+survivalObservedAt?
+observedAt
+```
+
+The identity SHALL use the producing Run, safe-output type, and exact target URL
+for created issues and pull requests; other types SHALL use the stable source
+event identity. Repeated collection of the same output enriches one row.
+Different outputs in one Run remain distinct even when they share a provider
+resource.
+
+A successful `safe_output.result` SHALL establish `deliveryState=delivered` at
+the result's event clock. The `SafeOutputAdoptionRule` registry version
+`gh-aw-v1.2.3-adoption-v1` SHALL classify every registered type:
+
+- proposal types remain `pending` until authoritative human lifecycle evidence;
+- fallback types become `accepted` at authoritative delivery time;
+- infrastructure and diagnostic types become `not_applicable`;
+- unknown or custom types remain `unknown`.
+
+Adoption state SHALL use only `pending`, `accepted`, `rejected`, `lifecycle`,
+`not_applicable`, or `unknown`. Missing evidence remains unknown. Provider
+refreshes MAY record observed survival or reversal evidence, but this collection
+MUST NOT compute impact, Value, causal attribution, before/after windows, or a
+survival-verified contribution.
+
+Browser and PostgreSQL projections SHALL retain current lifecycle rows for 365
+days by default, independently of the seven-day run-detail window. A full
+snapshot replacement SHALL merge rather than roll back stronger provider
+evidence; `github-api` outranks legacy webhook evidence, which outranks
+delivery-rule or registry-only state. Same-authority equal-clock conflicts SHALL
+fail closed. Retained lifecycle rows preserve their Repository and Workflow
+parents; the producing Run is an immutable reference, not a retention parent.
+
+Hosted webhook deliveries are deduplicated and coalesced repository hints only.
+The receiver MUST NOT project payload state or use receipt time as delivery,
+adoption, reversal, survival, or freshness evidence. A bounded worker SHALL
+re-read exact already-attributed provider objects, preserve provider clocks, and
+write lifecycle state under a 15-minute per-repository lease. One refresh task
+reads at most 25 objects; additional work is requeued. Lifecycle hints retain a
+15-minute repository debounce, the existing 200,000-task queue backpressure,
+and delivery deduplication. An hourly scope-repair pass SHALL enqueue only
+repositories with lifecycle state older than 24 hours, providing daily repair
+when webhooks are absent or lost. The Actions profile remains valid without an
+inbound receiver.
+
+The private `cao_acquisition_outcomes` operational table MAY retain at most
+20,000 exact issue/pull-request observations and 16 MiB per repository for 30
+days. It is replay/repair state, not the query source. Authoritative delivery is
+reconstructable from the existing Activity/evidence-lake `safe_output.result`;
+supported disposition is reconstructable by re-reading the exact provider URL.
+The initial hosted reader supports same-repository `create_issue` and
+`create_pull_request`. Cross-repository provider refresh and authoritative
+provider events for discussions, reviews, comments, projects, advisories,
+alerts, dispatches, releases, artifacts, assets, and mutations are deferred;
+their delivery and registry-derived adoption remain queryable without invented
+provider decisions.
+
+The ordinary `outcomes` and `work-items` logical sources SHALL derive from
+OutputLifecycle. `outcomes` exposes delivery and adoption separately for every
+workflow; `work-items` treats `adoptionState=pending` as review work. Issue and
+Audit joins MAY add short-lived detail but MUST NOT become lifecycle authority.
 
 ---
 
@@ -3128,7 +3240,7 @@ The canonical browser database SHALL use:
 
 ```js
 const DATABASE_NAME = "gh-aw-cao-dashboard-data";
-const DATABASE_VERSION = 49;
+const DATABASE_VERSION = 50;
 ```
 
 The logical name SHALL be scoped by the `synthetic-demo` suffix and deployment
@@ -3142,7 +3254,7 @@ additive upgrade; incompatible older projections are recreated from inputs.
 
 # 27. Object Stores
 
-IndexedDB version 49 SHALL define:
+IndexedDB version 50 SHALL define:
 
 ```text
 campaigns
@@ -3155,6 +3267,7 @@ skills
 friction
 audits
 issues
+outputLifecycles
 operationalValues
 operationalValueEvidence
 workflowValueCollections
@@ -4085,12 +4198,12 @@ The architecture MUST NOT require every browser to retain unlimited execution hi
 
 Ingestion SHALL upsert each collected batch onto the records already retained
 instead of replacing them, so a partial collection or worker restart never drops
-observations the browser still retains. The browser retains run-linked records
-observed within the last seven days and compact Operational Values within the
-last 365 days; records observed outside their window SHALL be pruned during the
-next ingestion. Run summaries retain their separate 30-day default. Rich current
-Operational Value evidence and collection-health records remain governed by
-Section 31 and are not shortened by Run or run-detail retention.
+observations the browser still retains. The browser retains run-linked records observed within the last seven days,
+compact OutputLifecycle and Operational Value records within the last 365 days,
+and prunes records outside their window during the next ingestion. Run summaries
+retain their separate 30-day default. Rich current Operational Value evidence
+and collection-health records remain governed by Section 31 and are not
+shortened by Run or run-detail retention.
 
 Retention pruning MUST remain relationship-safe: a retained record SHALL be
 dropped when a mandatory parent no longer survives, and structural parents that

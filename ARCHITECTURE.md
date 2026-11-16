@@ -372,6 +372,14 @@ query-consumed fields and identity/storage keys. Scalars use native SQL types;
 required structured fields use entity-owned relational child values, not
 JSON, JSONB, or serialized row documents. Scalar entity rows are never duplicated
 in generic source storage. Compact presence bits preserve missing versus null.
+Safe-output delivery and adoption use one compact `output_lifecycles` canonical
+entity per successful result, keyed to the producing Repository, Workflow and
+immutable Run identity but retained independently of run detail. It records
+delivery, adoption, rule, provider provenance, and observed reversal/survival
+facts for every workflow without computing Operational Value. Activity evidence
+reconstructs delivery; hosted exact-object reads enrich supported dispositions.
+The private acquisition outcome table is bounded repair/replay state, never the
+dashboard authority, and `operationalValueEvidence` remains a separate consumer.
 Operational Value evidence retains one bounded current packet per target
 repository, workflow and frozen contribution metric/version. Its acquired
 contract, output, acceptance, lineage, independent snapshot, quality and
@@ -1210,9 +1218,14 @@ Value execution without a snapshot Projector or its dirty-generation lifecycle.
 Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
 Redis-backed operational counters and exposes a read-only health status API.
-Verified GitHub issue lifecycle deliveries for enrolled repositories enqueue
-repository collection through the durable operational queue. Webhook payloads
-remain invalidation signals, not authority for direct entity-row mutations.
+Verified GitHub issue and pull-request lifecycle deliveries for enrolled
+repositories enqueue repository-keyed lifecycle refresh through the durable
+operational queue. Delivery IDs are deduplicated and pending repository work is
+coalesced. Webhook payloads and receipt clocks remain hints, not entity evidence:
+a bounded worker holds a per-repository lease and re-reads exact attributed
+objects through the shared quota service before updating canonical lifecycle.
+Hourly scope repair queues only state older than one day, so missed deliveries
+receive daily repair without per-workflow polling or another acquisition profile.
 Authorized operators receive the registered `collection-health` runtime source
 through the Dashboard Language query boundary; it is not published or stored in
 browser IndexedDB. The Ingestion page renders that bounded snapshot alongside
@@ -2173,8 +2186,9 @@ not authorize cross-repository evidence access.
   reviewed document so a replica can restore it by its explicitly selected
   digest, and checks current target/control inventory inside canonical activation.
   Webhook/control deliveries carry source epochs and fresh queue receipts.
-  Independent safe-output dispositions survive run reprojection, while durable
-  Value invalidations remain hints, not acquired Value evidence.
+  Universal output lifecycle survives run-detail expiry and run reprojection;
+  webhook deliveries and durable Value invalidations remain hints, not acquired
+  adoption or Value evidence.
   The separately selected `NativeValues` lane evaluates the reviewed Value
   policy and supported collector in Go, using Git only for its declared Git
   acquisition requirements. Optimization uses the canonical PostgreSQL query

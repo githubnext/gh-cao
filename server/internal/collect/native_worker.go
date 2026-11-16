@@ -9,7 +9,6 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/collectnative"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
-	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
@@ -31,8 +30,9 @@ type NativeValueRuntime interface {
 	RunValues(context.Context) error
 }
 
-type NativeOutcomeRecorder interface {
-	RecordOutcome(context.Context, collectnative.EnrollmentScope, mining.Outcome) error
+type NativeLifecycleRefresher interface {
+	Due(context.Context, collectnative.EnrollmentScope, time.Time) (bool, error)
+	Refresh(context.Context, collectnative.EnrollmentScope, bool) (bool, error)
 }
 
 // NativeWorker is the existing collection worker's file-free runtime. Control
@@ -46,7 +46,7 @@ type NativeWorker struct {
 	Runs            RunWorker
 	Inventory       NativeInventoryRefresher
 	Values          NativeValueInvalidator
-	Outcomes        NativeOutcomeRecorder
+	Lifecycles      NativeLifecycleRefresher
 	Consumer        string
 	WindowDays      int
 	RefreshInterval time.Duration
@@ -56,7 +56,7 @@ type NativeWorker struct {
 
 func (w NativeWorker) validate() error {
 	if w.Enrollment.Authority == nil || w.Client == nil || w.ScopeRefresher.Client == nil ||
-		w.Inventory == nil || w.Values == nil || w.Outcomes == nil ||
+		w.Inventory == nil || w.Values == nil ||
 		w.WindowDays < 0 || w.WindowDays > 365 || w.RefreshInterval < 0 || w.InventoryRetryInterval < 0 {
 		return collectnative.ErrUnsupported
 	}
@@ -248,6 +248,9 @@ func (w NativeWorker) Step(ctx context.Context) (bool, error) {
 	if lease.Task.NotBefore.After(time.Now().UTC()) {
 		return true, w.Queue.retryNativeControl(ctx, lease, false)
 	}
+	if err := w.Queue.Admit(ctx, lease.Task); err != nil {
+		return true, w.Queue.retryNativeControl(ctx, lease, false)
+	}
 	process, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	err = w.process(process, lease.Task)
 	cancel()
@@ -301,8 +304,11 @@ func (w NativeWorker) process(ctx context.Context, task Task) error {
 			return err
 		}
 	}
-	if task.Outcome != nil {
-		if err := w.Outcomes.RecordOutcome(ctx, scope, *task.Outcome); err != nil {
+	if task.LifecycleRefresh {
+		if w.Lifecycles == nil {
+			return collectnative.ErrUnsupported
+		}
+		if err := w.refreshLifecycles(ctx, scope, task.Reason != "lifecycle-repair"); err != nil {
 			return err
 		}
 	}
@@ -355,12 +361,27 @@ func (w NativeWorker) reconcileInstallation(ctx context.Context, installation in
 			if err := w.Inventory.RefreshInventory(ctx, scope); err != nil {
 				return err
 			}
+			if w.Lifecycles != nil {
+				due, err := w.Lifecycles.Due(ctx, scope, before)
+				if err != nil {
+					return err
+				}
+				if due {
+					if _, err := w.Queue.enqueueNativeControl(ctx, Task{
+						Repository: name, InstallationID: installation, ScopeEpoch: scope.Epoch,
+						Reason: "lifecycle-repair", LifecycleRefresh: true, EnqueuedAt: before,
+					}, IntentOutcome, "", 0); err != nil {
+						return err
+					}
+				}
+			}
 			if _, err := w.Queue.EnqueueRun(ctx, RunTask{Repository: name, InstallationID: installation,
 				ScopeEpoch: scope.Epoch, Observation: "repair:" + before.Format(time.RFC3339),
 				Enumeration: &RunEnumeration{Page: 1, WindowDays: w.WindowDays, After: after, Before: before}}); err != nil {
 				return err
 			}
 		}
+
 		if next == "" {
 			return nil
 		}
@@ -369,4 +390,40 @@ func (w NativeWorker) reconcileInstallation(ctx context.Context, installation in
 		}
 		cursor = next
 	}
+}
+
+func (w NativeWorker) refreshLifecycles(
+	ctx context.Context,
+	scope collectnative.EnrollmentScope,
+	force bool,
+) (err error) {
+	token, err := operationToken()
+	if err != nil {
+		return err
+	}
+	key := "collect:lifecycle-refresh:" + scope.Repository
+	acquired, err := w.Queue.Leases.TryLock(ctx, key, token, 15*time.Minute)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		return collectnative.ErrBusy
+	}
+	defer func() {
+		release, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+		defer cancel()
+		if unlockErr := w.Queue.Leases.Unlock(release, key, token); err == nil {
+			err = unlockErr
+		}
+	}()
+	more, err := w.Lifecycles.Refresh(ctx, scope, force)
+	if err != nil || !more {
+		return err
+	}
+	_, err = w.Queue.enqueueNativeControl(ctx, Task{
+		Repository: scope.Repository, InstallationID: scope.InstallationID, ScopeEpoch: scope.Epoch,
+		Reason:           map[bool]string{true: "lifecycle-webhook", false: "lifecycle-repair"}[force],
+		LifecycleRefresh: true, EnqueuedAt: time.Now().UTC(),
+	}, IntentOutcome, "", 0)
+	return err
 }

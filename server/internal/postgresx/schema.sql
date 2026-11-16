@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS cao_ingestion_accounting (
   evidence_at TIMESTAMPTZ,
   PRIMARY KEY (namespace, collection),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
-  CHECK (collection IN ('$repositories','$campaigns','$workflows','$runs','$audits','$domains','$evals','$experiments','$evalObservations','$experimentAssignments','$friction','$graders','$graderObservations','$issues','$operationalValueEvidence','$operationalValues','$outcomes','$security-findings','$skills','$tools','$transactions','$workflowValueCollections','work-items')),
+  CHECK (collection IN ('$repositories','$campaigns','$workflows','$runs','$audits','$domains','$evals','$experiments','$evalObservations','$experimentAssignments','$friction','$graders','$graderObservations','$issues','$operationalValueEvidence','$operationalValues','$outcomes','$outputLifecycles','$security-findings','$skills','$tools','$transactions','$workflowValueCollections','work-items')),
   CHECK (revision >= 0 AND records >= 0 AND bytes >= 0 AND next_ordinal >= 0)
 );
 
@@ -315,7 +315,7 @@ CREATE TABLE IF NOT EXISTS cao_quality (
   retrieved_at TIMESTAMPTZ,
   PRIMARY KEY (namespace, collection),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
-  CHECK (collection IN ('$repositories','$campaigns','$workflows','$runs','$audits','$domains','$evals','$experiments','$evalObservations','$experimentAssignments','$friction','$graders','$graderObservations','$issues','$operationalValueEvidence','$operationalValues','$outcomes','$security-findings','$skills','$tools','$transactions','$workflowValueCollections','work-items')),
+  CHECK (collection IN ('$repositories','$campaigns','$workflows','$runs','$audits','$domains','$evals','$experiments','$evalObservations','$experimentAssignments','$friction','$graders','$graderObservations','$issues','$operationalValueEvidence','$operationalValues','$outcomes','$outputLifecycles','$security-findings','$skills','$tools','$transactions','$workflowValueCollections','work-items')),
   CHECK (availability IN ('available','empty','unavailable')),
   CHECK (completeness IN ('complete','partial','unknown')),
   CHECK (freshness IN ('current','stale','unknown'))
@@ -1278,6 +1278,61 @@ CREATE TABLE IF NOT EXISTS outcome_performance (
   CHECK (bit_length(present_fields) = 15),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS output_lifecycles (
+  namespace TEXT NOT NULL,
+  ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
+  present_fields BIT VARYING NOT NULL,
+  adoption_at TIMESTAMPTZ,
+  adoption_observed_at TIMESTAMPTZ,
+  adoption_signal TEXT,
+  adoption_source TEXT,
+  adoption_state TEXT,
+  delivered_at TIMESTAMPTZ,
+  delivery_evidence_id TEXT,
+  delivery_observed_at TIMESTAMPTZ,
+  delivery_signal TEXT,
+  delivery_source TEXT,
+  delivery_state TEXT,
+  id TEXT NOT NULL CHECK (id <> ''),
+  observed_at TIMESTAMPTZ,
+  repository_id TEXT,
+  reversal_signal TEXT,
+  reversed_at TIMESTAMPTZ,
+  rule_version TEXT,
+  run_id TEXT,
+  safe_output_type TEXT,
+  survival_observed_at TIMESTAMPTZ,
+  survival_signal TEXT,
+  survival_state TEXT,
+  target_repository TEXT,
+  target_url TEXT,
+  title TEXT,
+  workflow_id TEXT,
+
+  PRIMARY KEY (namespace, id),
+  UNIQUE (namespace, ordinal),
+  CHECK (bit_length(present_fields) = 26),
+  FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
+  CHECK (repository_id IS NOT NULL AND repository_id <> ''),
+  FOREIGN KEY (namespace, repository_id) REFERENCES repositories(namespace, id) DEFERRABLE INITIALLY DEFERRED,
+  CHECK (workflow_id IS NOT NULL AND workflow_id <> ''),
+  FOREIGN KEY (namespace, workflow_id) REFERENCES workflows(namespace, id) DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE INDEX IF NOT EXISTS output_lifecycles_repository_id ON output_lifecycles (namespace, repository_id, ordinal);
+
+CREATE INDEX IF NOT EXISTS output_lifecycles_workflow_id ON output_lifecycles (namespace, workflow_id, ordinal);
+
+CREATE INDEX IF NOT EXISTS output_lifecycles_target ON output_lifecycles
+  (namespace, target_url) WHERE target_url IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS output_lifecycles_run ON output_lifecycles
+  (namespace, run_id, id);
+
+CREATE INDEX IF NOT EXISTS output_lifecycles_repair ON output_lifecycles
+  (namespace, repository_id, adoption_observed_at, id)
+  WHERE target_url IS NOT NULL AND safe_output_type IN ('create_issue','create_pull_request');
 
 CREATE TABLE IF NOT EXISTS security_findings (
   namespace TEXT NOT NULL,

@@ -31,7 +31,7 @@ publication, retention, browser updates, and PostgreSQL projections.
 ```mermaid
 erDiagram
   accTitle: Canonical execution lineage
-  accDescr: Repositories contain workflows and execute runs. Campaign membership is optional. Each run owns Domain, Tool, Skill, Friction, Audit and Issue records. This map is an execution-lineage subset, not the complete schema.
+  accDescr: Repositories contain workflows and execute runs. Campaign membership is optional. Each run owns Domain, Tool, Skill, Friction, Audit and Issue records. Safe-output lifecycle is retained by repository and workflow independently of run detail.
   CAMPAIGN o|--o{ WORKFLOW : classifies
   REPOSITORY ||--o{ WORKFLOW : contains
   REPOSITORY ||--o{ RUN : executes
@@ -42,6 +42,8 @@ erDiagram
   RUN ||--o{ FRICTION : records
   RUN ||--o{ AUDIT : records
   RUN ||--o{ ISSUE : creates
+  REPOSITORY ||--o{ OUTPUT_LIFECYCLE : retains
+  WORKFLOW ||--o{ OUTPUT_LIFECYCLE : produces
 ```
 
 The map focuses on execution lineage, including all six run-owned record types.
@@ -62,11 +64,37 @@ repository and workflow relationships, listed with the identities below.
 | **Friction** | Namespaced deterministic source ID | Run | Records gh-aw's precomputed friction-cost summary. |
 | **Audit** | Namespaced deterministic source ID | Run | Records lifecycle, policy, grader, agent, and other execution observations. |
 | **Issue** | `github:issue:<owner>/<repository>:<number>` | Run | Records issue and pull-request safe outputs. |
+| **Output Lifecycle** | Deterministic producing Run, safe-output type, and exact target/evidence identity | Repository and Workflow; immutable producing `runId` reference | Records universal delivery, adoption, reversal, and observed survival state independently of Value and run-detail retention. |
 | **Operational Value** | Deterministic repository, value ID, and timestamp identity | Repository | Records a campaign-defined numeric repository metric. |
 | **Operational Value Evidence** | Deterministic repository, workflow, metric, and metric-version identity | Repository and Workflow | Retains a coherent evidence packet connecting intent, safe outputs, accepted implementations, and independent repository snapshots. |
 | **Workflow Value Collection** | Deterministic repository and workflow identity | Repository and Workflow | Retains the reviewed registration and latest collection decision separately from actual attempts and accepted capture/cutoff clocks. |
 
 Names, paths, timestamps, and ingestion order are not canonical identities. Stable upstream IDs take precedence; deterministic source coordinates are used only when an upstream system provides no stable ID.
+
+## Safe-output lifecycle
+
+Every successful `safe_output.result` creates one compact Output Lifecycle row,
+whether or not the workflow defines Operational Value. Delivery and adoption
+are separate:
+
+- delivery is established by the successful result and its event clock;
+- proposal outputs remain pending until authoritative human lifecycle evidence;
+- output types with a reviewed fallback adopt at delivery time;
+- infrastructure and diagnostic outputs are not applicable;
+- custom or unknown types remain unknown.
+
+The current row carries the output, producing Workflow and Run identities,
+safe-output type, delivery/adoption clocks and signals, registry version,
+provenance, and any observed reversal or survival evidence. It does not calculate
+impact, contribution, before/after windows, or Value. `operationalValueEvidence`
+may reference lifecycle facts but is never their source of truth.
+
+Hosted webhooks only request a repository refresh. Workers re-read exact
+attributed provider objects before changing adoption state. The initial
+authoritative provider reader covers same-repository created issues and pull
+requests; other provider event families and cross-repository refresh are
+explicitly deferred. Delivery and fail-closed registry state remain available
+for every safe-output type.
 
 The current dashboard publication does not include immutable GitHub repository or workflow IDs. Its compatibility adapter therefore uses namespaced deterministic source coordinates for those entities. These IDs are explicitly transitional and MUST be replaced by immutable GitHub IDs when publication supplies them.
 
@@ -115,7 +143,7 @@ Run-scoped Audit facts remain for request, attribution and resolution drill-down
 inventory and generic proxy events are discarded. Complete paired main-request
 costs can be compared to a named, explicitly estimated baseline, separately from
 total accounting. Missing costs remain unknown; partial runs do not
-enter cost quantiles. The canonical model is version 36; IndexedDB version 49
+enter cost quantiles. The canonical model is version 37; IndexedDB version 50
 preserves versions 44, 45, and 46 through an additive upgrade because Campaign
 and Workflow source-maintenance provenance is optional enrichment. Hosted PostgreSQL
 requires a fresh generated schema.
@@ -162,10 +190,10 @@ schema versions fail explicitly.
 
 The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-gh-aw-jsonl-mapping.md) describes source fields, canonical entities, identity, ownership, and accounting.
 
-The canonical model is version 36. The browser database is
-`gh-aw-cao-dashboard-data`, IndexedDB version 49. Its canonical stores are
+The canonical model is version 37. The browser database is
+`gh-aw-cao-dashboard-data`, IndexedDB version 50. Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,
-`friction`, `audits`, `issues`, `operationalValues`, `operationalValueEvidence`, `workflowValueCollections`, `marketplacePackages`,
+`friction`, `audits`, `issues`, `outputLifecycles`, `operationalValues`, `operationalValueEvidence`, `workflowValueCollections`, `marketplacePackages`,
 `experiments`, `experimentAssignments`, `graders`, `graderObservations`,
 `evals`, and `evalObservations`;
 all use `id` as the key.
@@ -198,7 +226,7 @@ authoritative inputs. Daily counts and receipts retain the current UTC
 Monday-start week and two preceding weeks independently of detail retention;
 missing or incomplete projection state is not an empty population.
 
-For each ingestion, the worker reads the existing canonical batch, merges the incoming records, expires run-linked detail outside the browser's 7-day window (while retaining available Run summaries for 30 days and compact Operational Values for at least 365 days), and prunes orphaned descendants and unreferenced structural parents. Rich current Value evidence and collection-health records remain independent of Run-detail expiry. The effective retention horizon is the later of the browser clock and the newest incoming observation, so a browser with a slow clock cannot prune current producer data. The worker then reconciles each canonical collection: it deletes records absent from the retained batch and writes changed records. This makes expired records disappear while allowing fresh partial collections to retain compatible history.
+For each ingestion, the worker reads the existing canonical batch, merges the incoming records, expires run-linked detail outside the browser's 7-day window (while retaining available Run summaries for 30 days and compact Output Lifecycle and Operational Value records for at least 365 days), and prunes orphaned descendants and unreferenced structural parents. Rich current Value evidence and collection-health records remain independent of Run-detail expiry. The effective retention horizon is the later of the browser clock and the newest incoming observation, so a browser with a slow clock cannot prune current producer data. The worker then reconciles each canonical collection: it deletes records absent from the retained batch and writes changed records. This makes expired records disappear while allowing fresh partial collections to retain compatible history.
 
 Browser storage remains disposable derived state rather than a generation-atomic
 authority. Writes use bounded transactions, so interruption can leave a
@@ -214,8 +242,15 @@ Every merged batch must satisfy these mandatory relationships:
 - Workflow → Repository
 - Run → Repository and Workflow
 - Domain, Tool, Audit, and Issue → Run
+- Output Lifecycle → Repository and Workflow
 
-Work items and findings are projected from Issue and Audit records rather than stored in separate canonical tables. Independent logical sources, such as usage, outcomes, admissions, security, and MCP evidence, retain their published schemas in worker memory rather than being forced into unrelated entity tables. They are reconstructable from the static source artifact and are selected only when a page requests them.
+Work items and ordinary outcomes are projected from Output Lifecycle, with Issue
+and Audit records supplying optional short-lived detail. Findings remain
+projected from Audit evidence. Independent logical sources, such as usage,
+admissions, security, and MCP evidence, retain their published schemas in worker
+memory rather than being forced into unrelated entity tables. They are
+reconstructable from the static source artifact and are selected only when a
+page requests them.
 
 Source download, adaptation, normalization, IndexedDB writes, and page queries
 run in a dedicated Web Worker, keeping large object graphs and conversions off

@@ -2,7 +2,7 @@ import { createDebug } from '../../debug.js';
 
 const debugSchema = createDebug('schema');
 
-export const CANONICAL_SCHEMA_VERSION = 36;
+export const CANONICAL_SCHEMA_VERSION = 37;
 
 export const ENTITY_KINDS = /** @type {const} */ ([
   'campaign',
@@ -15,6 +15,7 @@ export const ENTITY_KINDS = /** @type {const} */ ([
   'friction',
   'audit',
   'issue',
+  'output-lifecycle',
   'operational-value',
   'operational-value-evidence',
   'workflow-value-collection',
@@ -71,6 +72,7 @@ const RUN_LINKED_COLLECTIONS = /** @type {const} */ ([
  * @property {Record<string, unknown>[]} friction
  * @property {Record<string, unknown>[]} audits
  * @property {Record<string, unknown>[]} issues
+ * @property {Record<string, unknown>[]} [outputLifecycles]
  * @property {Record<string, unknown>[]} operationalValues
  * @property {Record<string, unknown>[]} [operationalValueEvidence]
  * @property {Record<string, unknown>[]} [workflowValueCollections]
@@ -229,6 +231,13 @@ export function relationshipErrors(batch) {
   for (const collection of RUN_LINKED_COLLECTIONS) {
     for (const record of batch[collection] ?? []) {
       requireReference(record, 'runId', 'runs');
+    }
+  }
+  for (const record of batch.outputLifecycles ?? []) {
+    requireReference(record, 'repositoryId', 'repositories');
+    requireReference(record, 'workflowId', 'workflows');
+    if (workflowsById.get(record.workflowId)?.repositoryId !== record.repositoryId) {
+      errors.push(`${String(record.id)}.workflowId references a workflow from another repository`);
     }
   }
   for (const record of [...batch.operationalValues ?? [], ...batch.operationalValueEvidence ?? [], ...batch.workflowValueCollections ?? []]) {

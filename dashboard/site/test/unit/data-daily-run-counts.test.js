@@ -114,8 +114,8 @@ describe('additive daily run outcome counts', () => {
     const receipt = (await readCollections(indexedDB, ['runCountContributions'])).runCountContributions[0];
     expect(receipt.run.inputTokens).toBeUndefined();
     expect(receipt.run.status).toBe('completed');
-    expect(CANONICAL_SCHEMA_VERSION).toBe(36);
-    expect(DATABASE_VERSION).toBe(49);
+    expect(CANONICAL_SCHEMA_VERSION).toBe(37);
+    expect(DATABASE_VERSION).toBe(50);
     expect(ENTITY_STORES).not.toContain('dailyRunCounts');
     expect(ENTITY_STORES).not.toContain('runCountContributions');
   });

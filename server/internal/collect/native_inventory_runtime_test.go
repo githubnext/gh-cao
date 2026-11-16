@@ -209,7 +209,7 @@ func TestNativeInventoryRetryPreservesRunAndControlRoleLiveness(t *testing.T) {
 		inventoryRetryFixture{called: make(chan time.Time, 1), blocked: true}}
 	published := make(chan int, 1)
 	worker := NativeWorker{Queue: queue, Enrollment: enrollment, Client: client,
-		Inventory: hooks, Values: hooks, Outcomes: hooks, Consumer: "inventory-runtime",
+		Inventory: hooks, Values: hooks, Lifecycles: hooks, Consumer: "inventory-runtime",
 		ScopeRefresher: ScopeRefresher{Client: client, Quota: &fakeRunQuota{known: true}, QuotaApp: "github-app-123"},
 		Runs: RunWorker{Collector: collectnative.Collector{
 			Provider: historicalNativeProvider{recorded: time.Now().UTC().Format(time.RFC3339)}, Store: data.Acquisition()},

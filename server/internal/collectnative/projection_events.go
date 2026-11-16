@@ -7,14 +7,14 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
 
-func (p *Projection) runEvents(input map[string]any, at string) {
+func (p *Projection) runEvents(input map[string]any, at string) error {
 	started := firstText(eventClock(first(input["started_at"], input["created_at"])), at)
 	closed := at
 	if input["status"] == "completed" {
 		closed = firstText(eventClock(input["updated_at"]), at)
 	}
 	sequence := 1000
-	emit := func(kind, clock, summary, status, source string, identity any, fields map[string]any) {
+	emit := func(kind, clock, summary, status, source string, identity any, fields map[string]any) (string, model.Row) {
 		row := model.Row{"runId": p.RunID, "type": kind, "timestamp": clock, "source": source, "summary": summary,
 			"payloadRef": "gh-aw-logs-shards#L1", "sourceSequence": sequence}
 		if status != "" {
@@ -53,6 +53,7 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 			p.add(collection, id, at, row)
 		}
 		sequence++
+		return id, row
 	}
 	emit("workflow_run_started", started, joined(input["workflow_name"], input["display_title"]), text(input["status"]), "gh-aw-logs",
 		struct {
@@ -163,7 +164,9 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 			delete(p.Collections["audits"][before], "payloadRef")
 		}
 	}
-	p.legacyEvents(input, closed, emit)
+	p.legacyEvents(input, closed, func(kind, clock, summary, status, source string, identity any, fields map[string]any) {
+		emit(kind, clock, summary, status, source, identity, fields)
+	})
 	for index, candidate := range array(input["safe_outputs"]) {
 		record := object(candidate)
 		fields := map[string]any{"payloadRef": firstText(record["sessionPayloadRef"], "gh-aw-logs-shards#L1")}
@@ -180,13 +183,16 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 		if record["type"] == "report_incomplete" {
 			summary = firstText(record["reason"], "Required evidence was unavailable.")
 		}
-		emit("safe_output.created", clock, summary, "created", "safe-output",
+		sourceID, row := emit("safe_output.created", clock, summary, "created", "safe-output",
 			struct {
 				Type   string `json:"type"`
 				Index  int    `json:"index"`
 				Output any    `json:"outputType,omitempty"`
 				URL    any    `json:"url,omitempty"`
 			}{"safe-output", index, record["type"], record["url"]}, fields)
+		if err := p.addOutputLifecycle(sourceID, at, row, optionalText(record["repo"])); err != nil {
+			return err
+		}
 	}
 	if count, present := input["safe_items_count"]; present {
 		emit("workflow_run_safe_outputs", closed, fmt.Sprint(count)+" safe output items", "observed", "gh-aw-logs",
@@ -201,6 +207,7 @@ func (p *Projection) runEvents(input map[string]any, at string) {
 			scalar(record["job_id"]), scalar(record["line"]))}
 		emit("actions.annotation", firstText(record["timestamp"], closed), text(record["title"]), "observed", "actions", record, fields)
 	}
+	return nil
 }
 
 func safeOutputEntity(record map[string]any) string {

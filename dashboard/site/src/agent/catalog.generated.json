@@ -299,10 +299,10 @@
       "id": "workflow-detail",
       "title": "Workflow",
       "description": "Identify durable reports from the selected workflow that require follow-up.",
-      "intent": "Inspect durable reports produced by the selected authored workflow.",
-      "subject": "Retained safe-output reports associated with the workflow route parameter.",
-      "objective": "Locate report evidence and reviewer disposition before claiming delivery.",
-      "acceptance": "Preserve report identity, status, timestamps and provenance links; distinguish no retained reports from unavailable evidence. A published report is not automatically an accepted outcome.",
+      "intent": "Inspect safe outputs produced by the selected authored workflow.",
+      "subject": "Retained safe-output delivery and adoption associated with the workflow route parameter.",
+      "objective": "Locate delivery evidence and adoption disposition without confusing either with operational impact.",
+      "acceptance": "Preserve output identity, delivery, adoption, timestamps and provenance links; distinguish no retained outputs from unavailable evidence. Delivery is not automatically human adoption or operational value.",
       "experimental": false,
       "parameters": [
         {

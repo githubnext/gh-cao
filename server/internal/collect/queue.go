@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/githubnext/gh-cao/server/internal/logger"
-	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
@@ -36,15 +35,15 @@ type Task struct {
 	// Erase requests deletion of the repository's retained evidence instead of
 	// collection. An admission-only process has no evidence lake, so
 	// withdrawing consent is queued for a worker that does.
-	Erase            bool            `json:"erase,omitempty"`
-	RepositoryID     int64           `json:"repositoryId,omitempty"`
-	Lifecycle        string          `json:"lifecycle,omitempty"`
-	InventoryRefresh bool            `json:"inventoryRefresh,omitempty"`
-	ValueRefresh     bool            `json:"valueRefresh,omitempty"`
-	Scope            *ScopeChange    `json:"scope,omitempty"`
-	Traceparent      string          `json:"traceparent,omitempty"`
-	Outcome          *mining.Outcome `json:"outcome,omitempty"`
-	ScopeEpoch       int64           `json:"scopeEpoch,omitempty"`
+	Erase            bool         `json:"erase,omitempty"`
+	RepositoryID     int64        `json:"repositoryId,omitempty"`
+	Lifecycle        string       `json:"lifecycle,omitempty"`
+	InventoryRefresh bool         `json:"inventoryRefresh,omitempty"`
+	LifecycleRefresh bool         `json:"lifecycleRefresh,omitempty"`
+	ValueRefresh     bool         `json:"valueRefresh,omitempty"`
+	Scope            *ScopeChange `json:"scope,omitempty"`
+	Traceparent      string       `json:"traceparent,omitempty"`
+	ScopeEpoch       int64        `json:"scopeEpoch,omitempty"`
 }
 
 type ScopeChange struct {
@@ -53,9 +52,6 @@ type ScopeChange struct {
 }
 
 func (task Task) debounceKey() string {
-	if task.Outcome != nil {
-		return ""
-	}
 	if task.Scope != nil {
 		if task.Scope.Kind != IntentEnroll {
 			return ""

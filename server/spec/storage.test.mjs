@@ -104,10 +104,22 @@ function inputFields(definition) {
 
 test('TypeSpec declares exactly one root table per canonical dashboard collection', () => {
   assert.deepEqual([...tables.keys()].sort(), [
-    '$campaigns', '$repositories', '$workflows', '$runs', ...records, '$operationalValues', '$operationalValueEvidence', '$workflowValueCollections',
+    '$campaigns', '$repositories', '$workflows', '$runs', ...records, '$outputLifecycles',
+    '$operationalValues', '$operationalValueEvidence', '$workflowValueCollections',
     '$marketplacePackages', '$experiments', '$experimentAssignments',
     '$graders', '$graderObservations', '$evals', '$evalObservations'
   ].sort());
+});
+
+test('safe-output lifecycle is a queryable retained canonical entity', () => {
+  assert.deepEqual(parents.get('outputLifecycles').sort(), ['repositories', 'workflows']);
+  const sql = readFileSync(new URL('../internal/postgresx/schema.sql', import.meta.url), 'utf8');
+  const declaration = sql.split('CREATE TABLE IF NOT EXISTS output_lifecycles (')[1]?.split(';')[0];
+  assert.ok(declaration);
+  assert.doesNotMatch(declaration, /PARTITION BY|REFERENCES runs/);
+  assert.match(sql, /output_lifecycles_target ON output_lifecycles/);
+  assert.match(sql, /output_lifecycles_run ON output_lifecycles/);
+  assert.match(sql, /output_lifecycles_repair ON output_lifecycles/);
 });
 
 test('all run-owned tables share daily partitions and maintenance coverage', () => {

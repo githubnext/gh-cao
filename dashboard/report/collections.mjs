@@ -8,6 +8,7 @@ export const ENTITY_COLLECTIONS = [
   'friction',
   'audits',
   'issues',
+  'outputLifecycles',
   'operationalValues',
   'operationalValueEvidence',
   'workflowValueCollections',

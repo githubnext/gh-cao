@@ -178,6 +178,10 @@ func (o Outcome) Merge(next Outcome) (Outcome, error) {
 	if merged.DispositionAt == nil {
 		merged.DispositionAt = copiedTime(next.DispositionAt)
 	}
+	if next.Source == "github-api" && next.ObservedAt.After(merged.ObservedAt) {
+		merged.ObservedAt = next.ObservedAt
+		merged.Source = next.Source
+	}
 	return merged, nil
 }
 

@@ -69,11 +69,27 @@ describe('canonical retention merge', () => {
       id: `value:${age}`, repositoryId: 'repository:1', campaign: 'dependabot',
       valueId: 'alerts', value: 0, timestamp: new Date(NOW - age * day).toISOString()
     })));
+    previous.outputLifecycles ??= [];
+    previous.outputLifecycles.push(...[40, 365, 366].map((age) => ({
+      id: `output:${age}`, repositoryId: 'repository:1', workflowId: 'workflow:1',
+      runId: 'github:run:githubnext/gh-cao:1', safeOutputType: 'add_comment',
+      deliveryState: 'delivered', deliverySignal: 'safe_output.result',
+      deliveredAt: new Date(NOW - age * day).toISOString(),
+      deliveryObservedAt: new Date(NOW - age * day).toISOString(),
+      deliverySource: 'safe-output', deliveryEvidenceId: `event:${age}`,
+      adoptionState: 'accepted', adoptionSignal: 'delivered',
+      adoptionAt: new Date(NOW - age * day).toISOString(),
+      adoptionObservedAt: new Date(NOW - age * day).toISOString(),
+      adoptionSource: 'delivery-rule', ruleVersion: 'gh-aw-v1.2.3-adoption-v1',
+      survivalState: 'unknown', observedAt: new Date(NOW - age * day).toISOString()
+    })));
     const merged = mergeRetainedRecords(previous, normalize([]), {
       now: NOW, retentionWindowMsByStore: BROWSER_RETENTION_WINDOWS_MS
     });
     expect(BROWSER_RETENTION_WINDOWS_MS.operationalValues).toBe(OPERATIONAL_VALUE_RETENTION_MS);
+    expect(BROWSER_RETENTION_WINDOWS_MS.outputLifecycles).toBe(OPERATIONAL_VALUE_RETENTION_MS);
     expect(merged.operationalValues.map(({ id }) => id).sort()).toEqual(['value:365', 'value:40']);
+    expect(merged.outputLifecycles?.map(({ id }) => id).sort()).toEqual(['output:365', 'output:40']);
     expect(merged.audits).toEqual([]);
     expect(merged.repositories.map(({ id }) => id)).toEqual(['repository:1']);
   });

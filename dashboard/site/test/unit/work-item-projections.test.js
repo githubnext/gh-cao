@@ -54,13 +54,13 @@ describe('canonical work item payloads', () => {
     }
   });
 
-  it.each(['CLOSED', 'UNKNOWN'])('does not borrow prior-attempt open outputs or infer acceptance from %s', async (state) => {
+  it.each(['CLOSED', 'UNKNOWN'])('keeps delivery pending without authoritative adoption for %s issue state', async (state) => {
     const batch = structuredClone(fixture);
     batch.issues[1].state = state;
     const sources = await query(batch);
     expect(currentItem(sources)).toMatchObject({
-      'lifecycle-state': 'completed', 'outcome-state': 'unknown', 'verification-state': 'pending',
-      'evidence-link': { href: 'https://github.com/owner/repo/actions/runs/42' }
+      'lifecycle-state': 'review', 'outcome-state': 'pending', 'verification-state': 'pending',
+      'evidence-link': { href: 'https://github.com/owner/repo/issues/7' }
     });
   });
 

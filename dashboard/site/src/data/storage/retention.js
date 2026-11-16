@@ -3,6 +3,7 @@ import { EVIDENCE_DEFINITION_STORES, mergeEvidenceDefinition, timestampMilliseco
 import { createDebug } from '../../debug.js';
 import { mergeOperationalValueEvidence } from '../model/operational-value-evidence.js';
 import { mergeWorkflowValueCollection } from '../model/workflow-value-collection.js';
+import { mergeOutputLifecycle } from '../model/safe-output-lifecycle.js';
 
 const debugRetention = createDebug('retention');
 
@@ -25,6 +26,7 @@ export const RETENTION_TIMESTAMPS = {
   friction: ['timestamp', 'observedAt'],
   audits: ['timestamp', 'observedAt'],
   issues: ['timestamp', 'observedAt'],
+  outputLifecycles: ['observedAt', 'deliveredAt'],
   operationalValues: ['timestamp', 'observedAt'],
   experimentAssignments: ['timestamp', 'observedAt'],
   graderObservations: ['timestamp', 'observedAt'],
@@ -42,6 +44,7 @@ const STORES = /** @type {const} */ ([
   'friction',
   'audits',
   'issues',
+  'outputLifecycles',
   'operationalValues',
   'operationalValueEvidence',
   'workflowValueCollections',
@@ -58,6 +61,7 @@ const RUN_LINKED_STORES = /** @type {const} */ ([
 ]);
 export const BROWSER_RETENTION_WINDOWS_MS = Object.freeze({
   runs: Number.MAX_SAFE_INTEGER,
+  outputLifecycles: OPERATIONAL_VALUE_RETENTION_MS,
   operationalValues: OPERATIONAL_VALUE_RETENTION_MS,
   ...Object.fromEntries(RUN_LINKED_STORES.map((store) => [store, 7 * 24 * 60 * 60 * 1000]))
 });
@@ -185,6 +189,7 @@ export function capCanonicalBatchSize(batch, maxBytes) {
     repositories: batch.repositories,
     workflows: batch.workflows,
     runs: batch.runs.filter((record) => !evictedRuns.has(String(record.id))),
+    outputLifecycles: batch.outputLifecycles ?? [],
     operationalValues: batch.operationalValues ?? [],
     operationalValueEvidence: batch.operationalValueEvidence ?? [],
     workflowValueCollections: batch.workflowValueCollections ?? [],
@@ -346,7 +351,8 @@ function upsertRecords(
       }
       records.set(id, storeName === 'operationalValueEvidence'
         ? mergeOperationalValueEvidence(records.get(id), record) : storeName === 'workflowValueCollections'
-        ? mergeWorkflowValueCollection(records.get(id), record) : EVIDENCE_DEFINITION_STORES.has(storeName)
+        ? mergeWorkflowValueCollection(records.get(id), record) : storeName === 'outputLifecycles'
+        ? mergeOutputLifecycle(records.get(id), record) : EVIDENCE_DEFINITION_STORES.has(storeName)
         ? mergeEvidenceDefinition(records.get(id), record) : record);
     }
     merged[storeName] = records;
@@ -406,6 +412,10 @@ function pruneOrphans(merged) {
   for (const [id, record] of merged.operationalValues) {
     if (!repositories.has(String(record.repositoryId))) merged.operationalValues.delete(id);
   }
+  for (const [id, record] of merged.outputLifecycles) {
+    if (!repositories.has(String(record.repositoryId))
+      || workflows.get(String(record.workflowId))?.repositoryId !== record.repositoryId) merged.outputLifecycles.delete(id);
+  }
   for (const [id, record] of merged.operationalValueEvidence) {
     if (!repositories.has(String(record.repositoryId))
       || workflows.get(String(record.workflowId))?.repositoryId !== record.repositoryId) merged.operationalValueEvidence.delete(id);
@@ -430,6 +440,7 @@ function collectUnreferencedParents(merged, incoming) {
   const incomingRepositories = new Set(incoming.repositories.map((record) => String(record.id)));
   const referencedWorkflows = new Set([
     ...[...merged.runs.values()].map((run) => String(run.workflowId)),
+    ...[...merged.outputLifecycles.values()].map((record) => String(record.workflowId)),
     ...[...merged.operationalValueEvidence.values()].map((packet) => String(packet.workflowId)),
     ...[...merged.workflowValueCollections.values()].map((record) => String(record.workflowId)),
     ...['experiments', 'graders', 'evals'].flatMap((store) =>
@@ -441,6 +452,7 @@ function collectUnreferencedParents(merged, incoming) {
   const referencedRepositories = new Set([
     ...[...merged.workflows.values()].map((workflow) => String(workflow.repositoryId)),
     ...[...merged.runs.values()].map((run) => String(run.repositoryId)),
+    ...[...merged.outputLifecycles.values()].map((record) => String(record.repositoryId)),
     ...[...merged.operationalValues.values()].map((value) => String(value.repositoryId)),
     ...[...merged.operationalValueEvidence.values()].map((value) => String(value.repositoryId)),
     ...[...merged.workflowValueCollections.values()].map((value) => String(value.repositoryId))

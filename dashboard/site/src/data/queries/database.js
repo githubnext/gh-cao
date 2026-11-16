@@ -139,6 +139,38 @@ function queryMetadata(sources, sourceName, queryName, available) {
 }
 
 /** @param {Record<string, unknown>} sources */
+function outputLifecycleMetadata(sources) {
+  const candidates = ['issues', 'audits']
+    .map((name) => sources[name])
+    .filter((source) => source && typeof source === 'object' && !Array.isArray(source))
+    .map((source) => /** @type {{ metadata?: Record<string, unknown> }} */ (source).metadata ?? {});
+  if (candidates.length === 0) return queryMetadata(sources, 'outputLifecycles', 'outputLifecycles', true);
+  /** @param {string} field */
+  const times = (field) => candidates.map((metadata) => metadata[field])
+    .filter((value) => typeof value === 'string' && Number.isFinite(Date.parse(value)))
+    .sort((left, right) => Date.parse(String(left)) - Date.parse(String(right)));
+  const availability = candidates.some((metadata) => metadata.availability === 'available'
+      || metadata.availability === undefined)
+    ? 'available' : candidates.some((metadata) => metadata.availability === 'empty') ? 'empty' : 'unavailable';
+  const completeness = candidates.some((metadata) => metadata.completeness === 'unknown')
+    ? 'unknown' : candidates.some((metadata) => metadata.completeness === 'partial') ? 'partial' : 'complete';
+  const freshness = candidates.some((metadata) => metadata.freshness === 'stale')
+    ? 'stale' : candidates.every((metadata) => metadata.freshness === 'fresh') ? 'fresh' : 'unknown';
+  const asOf = times('as-of')[0] ?? '';
+  const retrievedAt = times('retrieved-at')[0] ?? asOf;
+  return /** @type {import('../../presenter.js').SourceMetadata} */ ({
+    ...candidates[0],
+    'source-id': 'outputLifecycles',
+    'source-kind': 'canonical',
+    'as-of': asOf,
+    'retrieved-at': retrievedAt,
+    availability,
+    completeness,
+    freshness
+  });
+}
+
+/** @param {Record<string, unknown>} sources */
 function namedSources(sources) {
   return Object.fromEntries(Object.entries(sources).map(([name, source]) => [
     name,
@@ -1601,6 +1633,8 @@ async function queryDatabaseSourcesUncached(indexedDB, logicalSources, sourceNam
                 /** @type {Record<string, unknown>} */ packet
               ) => count
                 + (Array.isArray(packet.facts) ? packet.facts.length : 0), 0) }
+          : store === 'outputLifecycles'
+          ? outputLifecycleMetadata(sources)
           : queryMetadata(sources, store, store, true)
       }];
     }));

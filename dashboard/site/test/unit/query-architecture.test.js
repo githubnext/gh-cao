@@ -26,7 +26,7 @@ describe('dashboard query architecture', () => {
     expect(read('src/data/queries/database.js')).not.toContain('stores-by-source');
     expect(definitions.find(({ name }) => name === 'mcp-calls')?.from).toBe('tools');
     expect(definitions.find(({ name }) => name === 'findings')?.from).toBe('audits');
-    expect(definitions.find(({ name }) => name === 'outcomes')?.from).toBe('issues');
+    expect(definitions.find(({ name }) => name === 'outcomes')?.from).toBe('output-lifecycles');
     expect(definitions.find(({ name }) => name === 'work-items')?.from).toBe('workflows');
     expect(definitions.find(({ name }) => name === 'detection-observations')?.from).toBe('findings');
     expect(definitions.find(({ name }) => name === 'safe-output-performance')?.from).toBe('outcomes');

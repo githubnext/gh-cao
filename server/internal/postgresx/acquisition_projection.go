@@ -117,6 +117,11 @@ func (s *Store) projectAcquisition(ctx context.Context, tx *sql.Tx, projection *
 			return err
 		}
 	}
+	for _, row := range projection.Collections["outputLifecycles"] {
+		if _, err := s.mergeAcquisitionOutputLifecycle(ctx, tx, row, published); err != nil {
+			return err
+		}
+	}
 	runAt := published
 	for _, field := range []string{"createdAt", "startedAt", "completedAt", "updatedAt"} {
 		if value := run[field]; value != nil {
