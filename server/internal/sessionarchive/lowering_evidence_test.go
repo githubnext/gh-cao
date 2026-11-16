@@ -23,8 +23,16 @@ type loweringCases struct {
 		Retries string `json:"retries"`
 		Guard   string `json:"guard"`
 	} `json:"upstreamPatterns"`
-	Recurrence []recurrenceCase `json:"recurrence"`
-	Keywords   []keywordCase    `json:"keywords"`
+	Recurrence     []recurrenceCase     `json:"recurrence"`
+	Keywords       []keywordCase        `json:"keywords"`
+	Reconciliation []reconciliationCase `json:"reconciliation"`
+}
+
+type reconciliationCase struct {
+	ID       string             `json:"id"`
+	Events   []json.RawMessage  `json:"events"`
+	Diverges string             `json:"diverges"`
+	Expected map[string]float64 `json:"expected"`
 }
 
 type recurrenceCase struct {
@@ -130,6 +138,59 @@ func TestDuckDBLoweringEvidenceIntegration(t *testing.T) {
 			}
 		}
 	})
+	t.Run("reconciliation", func(t *testing.T) {
+		var rows []struct {
+			Trace        string  `json:"trace"`
+			FailureCount float64 `json:"failure_count"`
+			SuccessRate  float64 `json:"success_rate"`
+			Efficiency   float64 `json:"efficiency"`
+		}
+		if err := converter.query(t.Context(), reconciliationLoweringSQL(t, cases.Reconciliation), &rows); err != nil {
+			t.Fatal(err)
+		}
+		if len(rows) != len(cases.Reconciliation) {
+			t.Fatalf("lowering returned %d traces, want %d", len(rows), len(cases.Reconciliation))
+		}
+		byTrace := map[string]map[string]float64{}
+		for _, row := range rows {
+			byTrace[row.Trace] = map[string]float64{
+				"tool-failure-count":    row.FailureCount,
+				"tool-success-rate":     row.SuccessRate,
+				"trajectory-efficiency": row.Efficiency,
+			}
+		}
+		divergences := 0
+		for _, c := range cases.Reconciliation {
+			actual, ok := byTrace[c.ID]
+			if !ok {
+				t.Errorf("%s: trace missing from lowering result", c.ID)
+				continue
+			}
+			if len(c.Expected) != len(actual) {
+				t.Errorf("%s: fixture grades %d graders, lowering grades %d", c.ID, len(c.Expected), len(actual))
+			}
+			same := true
+			for grader, want := range c.Expected {
+				if math.Float64bits(actual[grader]) != math.Float64bits(want) {
+					same = false
+					if c.Diverges == "" {
+						t.Errorf("%s %s: lowering %v, upstream %v", c.ID, grader, actual[grader], want)
+					}
+				}
+			}
+			if c.Diverges != "" {
+				divergences++
+				if c.Diverges != "fifo-pointer-skip" || same {
+					t.Errorf("%s: declared %q divergence must differ from upstream", c.ID, c.Diverges)
+				}
+			}
+		}
+		// The FIFO pointer's skips are sequential state; they keep the tool
+		// graders vocabulary-gated (G3).
+		if divergences != 3 {
+			t.Errorf("declared FIFO-pointer divergences = %d, want 3", divergences)
+		}
+	})
 }
 
 func readLoweringCases(t *testing.T) loweringCases {
@@ -150,7 +211,7 @@ func readLoweringCases(t *testing.T) loweringCases {
 		cases.UpstreamPatterns.Guard != `/\b(check|verify|verification|policy|approval|approve|guard|confirm|authorize|authorization)\b/i` {
 		t.Fatalf("upstream keyword patterns changed; update keywords.sql: %+v", cases.UpstreamPatterns)
 	}
-	if len(cases.Recurrence) == 0 || len(cases.Keywords) == 0 {
+	if len(cases.Recurrence) == 0 || len(cases.Keywords) == 0 || len(cases.Reconciliation) == 0 {
 		t.Fatal("lowering cases are empty")
 	}
 	return cases
@@ -319,6 +380,108 @@ func keywordLoweringSQL(t *testing.T, cases []keywordCase) string {
 	return loweringTemplate(t, "keywords.sql", map[string]string{
 		"{{texts}}": rowSet([]string{"id", "text"}, []string{"VARCHAR", "VARCHAR"}, rows),
 	})
+}
+
+var reconciliationColumns = []struct{ name, kind, field string }{
+	{"Type", "VARCHAR", "type"}, {"Phase", "VARCHAR", "provenance.phase"}, {"Component", "VARCHAR", "provenance.component"},
+	{"Path", "VARCHAR", "provenance.path"}, {"ProvenanceAttemptId", "VARCHAR", "provenance.attemptId"},
+	{"SessionId", "VARCHAR", "data.sessionId"}, {"AgentId", "VARCHAR", "data.agentId"}, {"ToolCallId", "VARCHAR", "data.toolCallId"},
+	{"ToolName", "VARCHAR", "data.toolName"}, {"Success", "BOOLEAN", "data.success"}, {"IsError", "BOOLEAN", "data.isError"},
+	{"Status", "VARCHAR", "data.status"}, {"ErrorState", "VARCHAR", "data.error"}, {"ServerName", "VARCHAR", "data.serverName"},
+	{"Method", "VARCHAR", "data.method"}, {"RpcIdString", "VARCHAR", "data.rpcId"}, {"RpcIdNumber", "BIGINT", "data.rpcId"},
+	{"RequestIdString", "VARCHAR", "data.requestId"}, {"RequestIdNumber", "BIGINT", "data.requestId"}, {"Layer", "VARCHAR", "data.layer"},
+	{"DataAttempt", "BIGINT", "data.attempt"}, {"DataAttemptId", "VARCHAR", "data.attemptId"}, {"Strategy", "VARCHAR", "data.strategy"},
+}
+
+// reconciliationLoweringSQL promotes each unified event to archive-shaped
+// columns: absent strings are '', absent booleans and numbers NULL, and error
+// keeps its absent|null|value state. Fixture strings are never empty.
+func reconciliationLoweringSQL(t *testing.T, cases []reconciliationCase) string {
+	t.Helper()
+	columns := []string{"trace", "Sequence"}
+	types := []string{"VARCHAR", "BIGINT"}
+	for _, column := range reconciliationColumns {
+		columns = append(columns, column.name)
+		types = append(types, column.kind)
+	}
+	traces := make([][]string, 0, len(cases))
+	var events [][]string
+	for _, c := range cases {
+		trace := literal(c.ID)
+		traces = append(traces, []string{trace})
+		for sequence, raw := range c.Events {
+			var event map[string]any
+			decoder := json.NewDecoder(bytes.NewReader(raw))
+			decoder.UseNumber()
+			if err := decoder.Decode(&event); err != nil {
+				t.Fatalf("%s: %v", c.ID, err)
+			}
+			row := []string{trace, strconv.Itoa(sequence)}
+			for _, column := range reconciliationColumns {
+				row = append(row, reconciliationValue(t, c.ID, event, column.field, column.name, column.kind))
+			}
+			events = append(events, row)
+		}
+	}
+	return loweringTemplate(t, "reconciliation.sql", map[string]string{
+		"{{traces}}": rowSet([]string{"trace"}, []string{"VARCHAR"}, traces),
+		"{{events}}": rowSet(columns, types, events),
+	})
+}
+
+func reconciliationValue(t *testing.T, trace string, event map[string]any, field, column, kind string) string {
+	t.Helper()
+	var value any = event
+	present := true
+	for _, key := range strings.Split(field, ".") {
+		object, ok := value.(map[string]any)
+		if !ok {
+			t.Fatalf("%s: %s is not an object", trace, field)
+		}
+		value, present = object[key]
+		if !present {
+			break
+		}
+	}
+	if column == "ErrorState" {
+		switch {
+		case !present:
+			return literal("absent")
+		case value == nil:
+			return literal("null")
+		default:
+			return literal("value")
+		}
+	}
+	switch typed := value.(type) {
+	case string:
+		if typed == "" {
+			t.Fatalf("%s: %s is empty", trace, field)
+		}
+		if kind == "VARCHAR" {
+			return literal(typed)
+		}
+	case bool:
+		if kind == "BOOLEAN" {
+			return strconv.FormatBool(typed)
+		}
+	case json.Number:
+		if kind == "BIGINT" {
+			integer, ok := safeInteger(typed)
+			if !ok {
+				t.Fatalf("%s: %s is not a safe integer", trace, field)
+			}
+			return integer
+		}
+	default:
+		if present {
+			t.Fatalf("%s: %s has unsupported value %v", trace, field, value)
+		}
+	}
+	if kind == "VARCHAR" {
+		return literal("")
+	}
+	return "NULL"
 }
 
 func sameOutcome(actual, expected loweringOutcome) bool {
