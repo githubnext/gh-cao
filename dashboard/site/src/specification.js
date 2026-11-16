@@ -332,7 +332,10 @@ export const BUILT_IN_PAGE_REQUIRED_FIELDS = {
     'repository-activity': ['repository', 'runs', 'failure-summary', 'aic', 'workflows', 'status']
   },
   campaigns: {
-    'campaign-inventory': ['campaign-name', 'workflows', 'roles', 'modes', 'registration', 'runs', 'aic']
+    'campaign-inventory': [
+      'campaign-name', 'workflows', 'roles', 'modes', 'registration', 'runs', 'aic',
+      'delivered', 'accepted', 'pending', 'rejected-lifecycle', 'unknown-not-applicable', 'first-blocker'
+    ]
   },
   workflows: {
     workflows: ['workflow-active', 'rollout-mode']
@@ -671,6 +674,8 @@ export const SOURCE_ENTITY_IDENTIFIER_FIELDS = {
   'runtime-episode-summary': ['label'],
   'runtime-episodes': ['run'],
   'runtime-attribution-gaps': ['run'],
+  'output-delivery-events': ['safe-output'],
+  'output-adoption-events': ['safe-output'],
   outcomes: ['safe-output'],
   findings: ['code'],
   'operational-values': ['operational-value-definition', 'observed-at'],
@@ -752,6 +757,14 @@ export const SYNTHETIC_SOURCE_FIELDS = {
 };
 
 export const DATABASE_QUERY_SOURCE_FIELDS = {
+  'output-delivery-events': [
+    'safe-output', 'campaign', 'campaign-name', 'adoption-state', 'adoption-signal',
+    'adoption-source', 'delivered-at', 'observed-at'
+  ],
+  'output-adoption-events': [
+    'safe-output', 'campaign', 'campaign-name', 'adoption-state', 'adoption-signal',
+    'adoption-source', 'adoption-at', 'observed-at'
+  ],
   'workflow-identities': TABLE_FIELDS.workflows,
   'overview-run-identities': TABLE_FIELDS['overview-runs'],
   'workflow-subject-topology': [
@@ -797,6 +810,12 @@ export const TEMPORAL_FIELD_NAMES = [
   'window-end',
   'maturity-at',
   'published-at',
+  'delivered-at',
+  'delivery-observed-at',
+  'adoption-at',
+  'adoption-observed-at',
+  'reversed-at',
+  'survival-observed-at',
   'reset-at',
   'projected-exhaustion-at',
   'evidence-horizon-start',

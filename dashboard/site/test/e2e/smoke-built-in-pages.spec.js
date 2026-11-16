@@ -396,6 +396,8 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
   `);
 
   await expect(page.getByRole('heading', { name: 'Campaigns', level: 1 })).toBeVisible();
+  await expect(page.locator('[data-view-id="campaigns-delivery-evidence"] [data-chart-widget="horizontal-bar"]')).toBeVisible();
+  await expect(page.locator('[data-view-id="campaigns-adoption-evidence"] [data-chart-widget="horizontal-bar"]')).toBeVisible();
   const dispatchChart = page.locator('[data-view-id="campaigns-dispatches"]');
   await expect(dispatchChart.locator('[data-chart-widget="pie"]')).toBeVisible();
   await expect(dispatchChart.locator('.chart-legend-pie')).toContainText('Ambient Context');
@@ -413,6 +415,12 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
     'Modes',
     'Runs',
     'Dispatches',
+    'Delivered',
+    'Accepted',
+    'Pending',
+    'Rejected / lifecycle',
+    'Unknown / not applicable',
+    'First evidence blockerNo delivered output observed',
     'AIC',
     'Registration'
   ]);

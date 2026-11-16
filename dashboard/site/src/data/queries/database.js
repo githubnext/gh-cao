@@ -192,6 +192,12 @@ function executeDatabaseQuery(queryName, inputs, sources, metadataSource, budget
   if (!definition) throw new Error(`Missing database query: ${queryName}`);
   const result = executeDatabaseProjection(definition, inputs, budget);
   const unavailable = result.metadata.availability === 'unavailable';
+  const preservesLifecycleMetadata = [
+    'output-lifecycles', 'output-delivery-events', 'output-adoption-events'
+  ].includes(queryName);
+  const inheritedMetadata = preservesLifecycleMetadata
+    ? result.metadata
+    : queryMetadata(DIRECT_EVIDENCE_SOURCES.has(queryName) ? {} : sources, metadataSource, queryName, true);
   return /** @type {import('../../presenter.js').LogicalSourceInput} */ ({
     ...result,
     metadata: unavailable
@@ -199,7 +205,7 @@ function executeDatabaseQuery(queryName, inputs, sources, metadataSource, budget
       : {
           ...(queryName === 'operational-value-evidence'
             ? { ...result.metadata, 'source-id': queryName, 'source-kind': 'database-query' }
-            : queryMetadata(DIRECT_EVIDENCE_SOURCES.has(queryName) ? {} : sources, metadataSource, queryName, true)),
+            : { ...inheritedMetadata, 'source-id': queryName, 'source-kind': 'database-query' }),
           availability: result.rows.length > 0 ? 'available' : 'empty',
           ...(queryName.startsWith('statistical-') && inputs.$statisticalMembership
             ? {

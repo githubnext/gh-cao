@@ -1510,6 +1510,12 @@ describe('declarative dashboard queries', () => {
       runs: 3,
       dispatches: 2,
       'covered-repositories': 1,
+      delivered: 0,
+      accepted: 0,
+      pending: 0,
+      'rejected-lifecycle': 0,
+      'unknown-not-applicable': 0,
+      'first-blocker': 'No delivered output observed',
       aic: 10,
     }]);
   });

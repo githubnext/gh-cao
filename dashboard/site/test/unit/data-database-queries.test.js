@@ -574,10 +574,11 @@ describe('canonical view sources', () => {
       deliveryState: 'delivered', deliverySignal: 'safe_output.result',
       deliveredAt: '2026-09-09T04:00:10Z', deliveryObservedAt: '2026-09-09T04:00:10Z',
       deliverySource: 'safe-output', deliveryEvidenceId: 'event:safe-output:issue',
-      adoptionState: 'pending', adoptionSignal: 'human_decision_pending',
-      adoptionObservedAt: '2026-09-09T04:00:10Z', adoptionSource: 'adoption-registry',
+      adoptionState: 'accepted', adoptionSignal: 'completed',
+      adoptionAt: '2026-09-09T04:10:00Z',
+      adoptionObservedAt: '2026-09-09T04:10:00Z', adoptionSource: 'github-api',
       ruleVersion: 'gh-aw-v1.2.3-adoption-v1', survivalState: 'unknown',
-      observedAt: '2026-09-09T04:00:10Z'
+      observedAt: '2026-09-09T04:10:00Z'
     });
     await putCanonicalRecord('issues', {
       id: 'event:safe-output:pull-request',
@@ -605,7 +606,11 @@ describe('canonical view sources', () => {
       observedAt: '2026-09-09T04:00:20Z'
     });
 
-    const projected = await queryCanonicalViewSources(indexedDB, sources, ['outcomes']);
+    const projected = await queryCanonicalViewSources(
+      indexedDB,
+      sources,
+      ['outcomes', 'output-delivery-events', 'output-adoption-events']
+    );
 
     expect(projected.outcomes.rows).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -621,6 +626,28 @@ describe('canonical view sources', () => {
         'external-link': { href: 'https://github.com/githubnext/gh-cao/pull/124', label: 'View pull request' }
       })
     ]));
+    expect(projected['output-delivery-events'].rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        'safe-output': 'output-lifecycle:safe-output:issue',
+        'delivered-at': '2026-09-09T04:00:10Z',
+        'observed-at': '2026-09-09T04:00:10Z',
+        'adoption-state': 'accepted'
+      }),
+      expect.objectContaining({
+        'safe-output': 'output-lifecycle:safe-output:pull-request',
+        'delivered-at': '2026-09-09T04:00:20Z',
+        'observed-at': '2026-09-09T04:00:20Z',
+        'adoption-state': 'pending'
+      })
+    ]));
+    expect(projected['output-adoption-events'].rows).toEqual([
+      expect.objectContaining({
+        'safe-output': 'output-lifecycle:safe-output:issue',
+        'adoption-at': '2026-09-09T04:10:00Z',
+        'observed-at': '2026-09-09T04:10:00Z',
+        'adoption-state': 'accepted'
+      })
+    ]);
   });
 
   it('returns the same zero counts as declarative execution for empty tables', async () => {

@@ -1283,6 +1283,170 @@
       }
     },
     {
+      "name": "campaign-delivery-evidence",
+      "subject": "Distinct delivered outputs and current adoption diagnoses by campaign.",
+      "objective": "Separate delivery-horizon evidence from later adoption events.",
+      "acceptance": "Count each delivered lifecycle output once; preserve pending, rejected or lifecycle, and unknown or not-applicable states without implying adoption conversion.",
+      "from": "output-delivery-events",
+      "aggregate": {
+        "by": ["campaign"],
+        "values": [
+          {
+            "field": "safe-output",
+            "as": "delivered",
+            "reducer": "distinct-count"
+          },
+          {
+            "field": "safe-output",
+            "as": "pending",
+            "reducer": "distinct-count",
+            "filter": {
+              "predicates": [
+                { "field": "adoption-state", "equals": "pending" }
+              ]
+            }
+          },
+          {
+            "field": "safe-output",
+            "as": "rejected-lifecycle",
+            "reducer": "distinct-count",
+            "filter": {
+              "predicates": [
+                { "field": "adoption-state", "in": ["rejected", "lifecycle"] }
+              ]
+            }
+          },
+          {
+            "field": "safe-output",
+            "as": "unknown-not-applicable",
+            "reducer": "distinct-count",
+            "filter": {
+              "predicates": [
+                { "field": "adoption-state", "in": ["unknown", "not_applicable"] }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "campaign-adoption-evidence",
+      "subject": "Distinct accepted outputs by campaign.",
+      "objective": "Count accepted lifecycle events on their authoritative adoption clock.",
+      "acceptance": "Count each accepted lifecycle output once; missing adoption dates are absent rather than assigned to the delivery cohort.",
+      "from": "output-adoption-events",
+      "aggregate": {
+        "by": ["campaign"],
+        "values": [
+          {
+            "field": "safe-output",
+            "as": "accepted",
+            "reducer": "distinct-count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "campaign-output-evidence",
+      "subject": "Campaign delivery and adoption evidence in separate selected-horizon populations.",
+      "objective": "Keep every retained campaign visible and identify the first observed blocker.",
+      "acceptance": "Left join event counts to campaign inventory; zero means no matching retained event, while partial or unavailable source metadata remains a coverage limitation, not proof of no activity.",
+      "from": "campaigns",
+      "joins": [
+        {
+          "source": "campaign-delivery-evidence",
+          "type": "left",
+          "on": [
+            { "left": "campaign", "right": "campaign" }
+          ],
+          "fields": [
+            { "field": "delivered", "as": "observed-delivered" },
+            { "field": "pending", "as": "observed-pending" },
+            { "field": "rejected-lifecycle", "as": "observed-rejected-lifecycle" },
+            { "field": "unknown-not-applicable", "as": "observed-unknown-not-applicable" }
+          ]
+        },
+        {
+          "source": "campaign-adoption-evidence",
+          "type": "left",
+          "on": [
+            { "left": "campaign", "right": "campaign" }
+          ],
+          "fields": [
+            { "field": "accepted", "as": "observed-accepted" }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "delivered",
+          "function": "coalesce",
+          "args": [{ "field": "observed-delivered" }, { "value": 0 }]
+        },
+        {
+          "as": "accepted",
+          "function": "coalesce",
+          "args": [{ "field": "observed-accepted" }, { "value": 0 }]
+        },
+        {
+          "as": "pending",
+          "function": "coalesce",
+          "args": [{ "field": "observed-pending" }, { "value": 0 }]
+        },
+        {
+          "as": "rejected-lifecycle",
+          "function": "coalesce",
+          "args": [{ "field": "observed-rejected-lifecycle" }, { "value": 0 }]
+        },
+        {
+          "as": "unknown-not-applicable",
+          "function": "coalesce",
+          "args": [{ "field": "observed-unknown-not-applicable" }, { "value": 0 }]
+        },
+        {
+          "as": "no-delivery",
+          "function": "equals-any",
+          "args": [{ "field": "delivered" }, { "value": 0 }]
+        },
+        {
+          "as": "no-adoption",
+          "function": "equals-any",
+          "args": [{ "field": "accepted" }, { "value": 0 }]
+        },
+        {
+          "as": "adoption-blocker",
+          "function": "if",
+          "args": [
+            { "field": "no-adoption" },
+            { "value": "Delivered outputs; no accepted event observed" },
+            { "value": "Delivery and adoption observed" }
+          ]
+        },
+        {
+          "as": "first-blocker",
+          "function": "if",
+          "args": [
+            { "field": "no-delivery" },
+            { "value": "No delivered output observed" },
+            { "field": "adoption-blocker" }
+          ]
+        }
+      ],
+      "select": [
+        { "field": "campaign" },
+        { "field": "campaign-name" },
+        { "field": "delivered" },
+        { "field": "accepted" },
+        { "field": "pending" },
+        { "field": "rejected-lifecycle" },
+        { "field": "unknown-not-applicable" },
+        { "field": "first-blocker" }
+      ],
+      "order-by": [
+        { "field": "campaign-name", "direction": "asc" }
+      ]
+    },
+    {
       "name": "campaign-inventory-preview",
       "subject": "Show declared campaigns before execution evidence is evaluated.",
       "objective": "Expose campaign identities and navigation links while observed totals remain pending.",
@@ -1303,10 +1467,10 @@
     },
     {
       "name": "campaign-inventory",
-      "subject": "List centrally managed campaigns with their observed workflow and execution totals.",
-      "objective": "Compare declared campaigns with retained workflow composition, dispatches, target reach, runs, and AIC to choose an evidence-backed drill-down.",
-      "acceptance": "Keep declared campaigns with campaign identity and link plus joined totals; defaulted zero values mean no matching retained evidence and cannot certify no activity, complete coverage, or successful outcomes.",
-      "description": "Canonical campaign inventory enriched with observed workflow, rollout, run, repository coverage, and AI Credit totals.",
+      "subject": "List centrally managed campaigns with retained execution, delivery, and adoption evidence.",
+      "objective": "Compare declared campaigns with workflow composition, dispatches, target reach, runs, AI Credits, and lifecycle evidence to choose a drill-down.",
+      "acceptance": "Keep every declared campaign and link. Delivered and accepted use separate clocks; defaulted zeros mean no matching retained event under the composed metadata, not complete coverage, conversion, or Value.",
+      "description": "Campaign inventory enriched with execution totals and distinct delivery-clock and adoption-clock lifecycle counts.",
       "from": "campaigns",
       "joins": [
         {
@@ -1374,6 +1538,42 @@
             {
               "field": "covered-repositories",
               "as": "observed-covered-repositories"
+            }
+          ]
+        },
+        {
+          "source": "campaign-output-evidence",
+          "type": "left",
+          "on": [
+            {
+              "left": "campaign",
+              "right": "campaign"
+            }
+          ],
+          "fields": [
+            {
+              "field": "delivered",
+              "as": "delivered"
+            },
+            {
+              "field": "accepted",
+              "as": "accepted"
+            },
+            {
+              "field": "pending",
+              "as": "pending"
+            },
+            {
+              "field": "rejected-lifecycle",
+              "as": "rejected-lifecycle"
+            },
+            {
+              "field": "unknown-not-applicable",
+              "as": "unknown-not-applicable"
+            },
+            {
+              "field": "first-blocker",
+              "as": "first-blocker"
             }
           ]
         }
@@ -1563,6 +1763,24 @@
         },
         {
           "field": "aic"
+        },
+        {
+          "field": "delivered"
+        },
+        {
+          "field": "accepted"
+        },
+        {
+          "field": "pending"
+        },
+        {
+          "field": "rejected-lifecycle"
+        },
+        {
+          "field": "unknown-not-applicable"
+        },
+        {
+          "field": "first-blocker"
         }
       ],
       "order-by": [

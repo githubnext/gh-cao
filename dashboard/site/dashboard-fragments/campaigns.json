@@ -586,15 +586,15 @@
     {
       "id": "campaigns",
       "kind": "built-in",
-      "intent": "Determine which centrally managed campaign needs deeper operational review.",
-      "subject": "Campaign inventory and retained dispatch evidence in the selected horizon.",
-      "objective": "Choose campaigns requiring deeper operational review.",
-      "acceptance": "Keep campaign identity, dispatch counts and repository coverage basis explicit. Registration, dispatched work and accepted outcomes remain distinct; missing activity is not proof of no work.",
+      "intent": "Determine which centrally managed campaign first needs delivery or adoption investigation.",
+      "subject": "Campaign inventory, retained execution, and safe-output lifecycle evidence in the selected horizon.",
+      "objective": "Choose campaigns whose first observed blocker is missing delivery evidence or delivered work without an accepted event.",
+      "acceptance": "Keep campaign identity, delivery and adoption clocks, dispatches, and repository coverage explicit. Accepted and delivered counts are separate populations, not a conversion rate or operational Value; partial evidence is not proof of zero activity.",
       "page": "campaigns",
       "title": "Campaigns",
       "icon": "goal",
       "class-name": "campaigns-page",
-      "description": "Identify centrally managed campaigns that require deeper CAO operational review.",
+      "description": "Compare campaign delivery and adoption evidence before investigating execution, reach, or operational Value.",
       "requires": {
         "source": "campaign-navigation-availability",
         "message": "Campaign information is unavailable. Collect campaign inventory to enable this view."
@@ -606,6 +606,82 @@
           "availability": true
         },
         "views": [
+          {
+            "id": "campaigns-delivery-evidence",
+            "title": "Delivered outputs by campaign",
+            "subject": "Distinct successful lifecycle outputs grouped by their declared campaign.",
+            "objective": "Identify campaigns with no retained delivery evidence in the selected horizon.",
+            "acceptance": "Count each output once when its authoritative delivered-at is inside the inclusive-start, exclusive-end horizon. Delivery is not adoption or operational Value.",
+            "description": "Successful lifecycle outputs whose delivery clock falls in the selected horizon.",
+            "data": {
+              "source": "campaign-inventory",
+              "order-by": [
+                {
+                  "field": "delivered",
+                  "direction": "desc"
+                },
+                {
+                  "field": "campaign-name",
+                  "direction": "asc"
+                }
+              ],
+              "limit": 100
+            },
+            "mark": "chart",
+            "chart": "horizontal-bar",
+            "layout": "half",
+            "empty-message": "No campaign delivery evidence was retained for the selected horizon.",
+            "encoding": {
+              "x": {
+                "field": "campaign-name",
+                "type": "nominal",
+                "title": "Campaign"
+              },
+              "y": {
+                "field": "delivered",
+                "type": "quantitative",
+                "title": "Delivered outputs"
+              }
+            }
+          },
+          {
+            "id": "campaigns-adoption-evidence",
+            "title": "Accepted outputs by campaign",
+            "subject": "Distinct accepted lifecycle outputs grouped by their declared campaign.",
+            "objective": "Identify campaigns with delivery evidence but no retained accepted event in the selected horizon.",
+            "acceptance": "Count each currently accepted output once when its authoritative adoption-at is inside the inclusive-start, exclusive-end horizon. Do not divide this adoption-event population by delivered outputs.",
+            "description": "Accepted lifecycle outputs whose adoption clock falls in the selected horizon; this is not a delivery conversion rate.",
+            "data": {
+              "source": "campaign-inventory",
+              "order-by": [
+                {
+                  "field": "accepted",
+                  "direction": "desc"
+                },
+                {
+                  "field": "campaign-name",
+                  "direction": "asc"
+                }
+              ],
+              "limit": 100
+            },
+            "mark": "chart",
+            "chart": "horizontal-bar",
+            "layout": "half",
+            "empty-message": "No campaign adoption evidence was retained for the selected horizon.",
+            "encoding": {
+              "x": {
+                "field": "campaign-name",
+                "type": "nominal",
+                "title": "Campaign"
+              },
+              "y": {
+                "field": "accepted",
+                "type": "quantitative",
+                "title": "Accepted outputs"
+              }
+            }
+          },
           {
             "id": "campaigns-dispatches",
             "title": "Dispatches by campaign",
@@ -683,7 +759,7 @@
           {
             "id": "campaigns-inventory",
             "title": "Campaigns",
-            "description": "Centrally managed campaign inventory and observed execution totals.",
+            "description": "Every retained campaign with separate delivery-clock and adoption-clock counts. Pending, rejected/lifecycle, and unknown/not-applicable diagnose the delivery-horizon cohort; zero means no matching retained event, and partial source metadata remains a coverage limitation.",
             "data": {
               "source": "campaign-inventory",
               "partial-source": "campaign-inventory-preview"
@@ -730,6 +806,37 @@
                   "field": "dispatches",
                   "type": "quantitative",
                   "title": "Dispatches"
+                },
+                {
+                  "field": "delivered",
+                  "type": "quantitative",
+                  "title": "Delivered"
+                },
+                {
+                  "field": "accepted",
+                  "type": "quantitative",
+                  "title": "Accepted"
+                },
+                {
+                  "field": "pending",
+                  "type": "quantitative",
+                  "title": "Pending"
+                },
+                {
+                  "field": "rejected-lifecycle",
+                  "type": "quantitative",
+                  "title": "Rejected / lifecycle"
+                },
+                {
+                  "field": "unknown-not-applicable",
+                  "type": "quantitative",
+                  "title": "Unknown / not applicable"
+                },
+                {
+                  "field": "first-blocker",
+                  "type": "nominal",
+                  "title": "First evidence blocker",
+                  "display": "status"
                 },
                 {
                   "field": "aic",

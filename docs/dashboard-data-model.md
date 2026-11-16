@@ -100,6 +100,17 @@ while preserving delivery and restoring registry-derived adoption. Other
 provider event families remain explicitly deferred. Delivery and fail-closed
 registry state remain available for every safe-output type.
 
+The Campaigns page projects this lifecycle twice so the selected dashboard
+horizon follows the authoritative event clock: delivery events use
+`delivered-at`, while accepted events use `adoption-at`. Campaign inventory is
+the left-hand population, so campaigns without retained outputs remain visible
+and unattributed workflows are not assigned to a synthetic campaign. Pending,
+rejected/lifecycle, and unknown/not-applicable counts diagnose the
+delivery-horizon cohort. Delivered and accepted counts are separate evidence
+populations, not a conversion rate or an Operational Value result. Partial,
+unavailable, stale, or retention-bounded source metadata continues to qualify
+every displayed zero.
+
 The current dashboard publication does not include immutable GitHub repository or workflow IDs. Its compatibility adapter therefore uses namespaced deterministic source coordinates for those entities. These IDs are explicitly transitional and MUST be replaced by immutable GitHub IDs when publication supplies them.
 
 ## Maintenance inventory

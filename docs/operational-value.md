@@ -192,6 +192,15 @@ request, an answered discussion, or a published advisory. Where no human
 decision channel exists, successful delivery is the explicit fallback. Unknown
 or custom types remain ineligible until reviewed.
 
+The Campaigns dashboard uses these universal lifecycle facts as an evidence
+surface before Value evaluation. It counts delivery events by `delivered-at`
+and accepted events by `adoption-at` inside the selected horizon, keeps every
+retained campaign visible, and shows pending, rejected/lifecycle, and
+unknown/not-applicable delivery-horizon evidence separately. Those counts use
+different clocks and potentially different cohorts, so they are not a
+conversion rate, measured impact, or Operational Value. Retention and source
+coverage metadata remain part of the interpretation.
+
 Accepted outputs are measured only after a survival window. The collector
 rechecks that the accepted effect was not reverted, removed, reopened,
 unpublished, unassigned, hidden, expired before the cutoff, or invalidated by a

@@ -649,11 +649,11 @@
     {
       "id": "campaigns",
       "title": "Campaigns",
-      "description": "Identify centrally managed campaigns that require deeper CAO operational review.",
-      "intent": "Determine which centrally managed campaign needs deeper operational review.",
-      "subject": "Campaign inventory and retained dispatch evidence in the selected horizon.",
-      "objective": "Choose campaigns requiring deeper operational review.",
-      "acceptance": "Keep campaign identity, dispatch counts and repository coverage basis explicit. Registration, dispatched work and accepted outcomes remain distinct; missing activity is not proof of no work.",
+      "description": "Compare campaign delivery and adoption evidence before investigating execution, reach, or operational Value.",
+      "intent": "Determine which centrally managed campaign first needs delivery or adoption investigation.",
+      "subject": "Campaign inventory, retained execution, and safe-output lifecycle evidence in the selected horizon.",
+      "objective": "Choose campaigns whose first observed blocker is missing delivery evidence or delivered work without an accepted event.",
+      "acceptance": "Keep campaign identity, delivery and adoption clocks, dispatches, and repository coverage explicit. Accepted and delivered counts are separate populations, not a conversion rate or operational Value; partial evidence is not proof of zero activity.",
       "experimental": false,
       "parameters": [],
       "queries": [
@@ -2955,6 +2955,67 @@
       }
     },
     {
+      "id": "campaign-delivery-evidence",
+      "subject": "Distinct delivered outputs and current adoption diagnoses by campaign.",
+      "objective": "Separate delivery-horizon evidence from later adoption events.",
+      "acceptance": "Count each delivered lifecycle output once; preserve pending, rejected or lifecycle, and unknown or not-applicable states without implying adoption conversion.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "output-delivery-events"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "output-delivery-events"
+        ]
+      }
+    },
+    {
+      "id": "campaign-adoption-evidence",
+      "subject": "Distinct accepted outputs by campaign.",
+      "objective": "Count accepted lifecycle events on their authoritative adoption clock.",
+      "acceptance": "Count each accepted lifecycle output once; missing adoption dates are absent rather than assigned to the delivery cohort.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "output-adoption-events"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "output-adoption-events"
+        ]
+      }
+    },
+    {
+      "id": "campaign-output-evidence",
+      "subject": "Campaign delivery and adoption evidence in separate selected-horizon populations.",
+      "objective": "Keep every retained campaign visible and identify the first observed blocker.",
+      "acceptance": "Left join event counts to campaign inventory; zero means no matching retained event, while partial or unavailable source metadata remains a coverage limitation, not proof of no activity.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaign-adoption-evidence",
+        "campaign-delivery-evidence",
+        "campaigns"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns",
+          "output-adoption-events",
+          "output-delivery-events"
+        ]
+      }
+    },
+    {
       "id": "campaign-inventory-preview",
       "subject": "Show declared campaigns before execution evidence is evaluated.",
       "objective": "Expose campaign identities and navigation links while observed totals remain pending.",
@@ -2975,13 +3036,14 @@
     },
     {
       "id": "campaign-inventory",
-      "subject": "List centrally managed campaigns with their observed workflow and execution totals.",
-      "objective": "Compare declared campaigns with retained workflow composition, dispatches, target reach, runs, and AIC to choose an evidence-backed drill-down.",
-      "acceptance": "Keep declared campaigns with campaign identity and link plus joined totals; defaulted zero values mean no matching retained evidence and cannot certify no activity, complete coverage, or successful outcomes.",
-      "description": "Canonical campaign inventory enriched with observed workflow, rollout, run, repository coverage, and AI Credit totals.",
+      "subject": "List centrally managed campaigns with retained execution, delivery, and adoption evidence.",
+      "objective": "Compare declared campaigns with workflow composition, dispatches, target reach, runs, AI Credits, and lifecycle evidence to choose a drill-down.",
+      "acceptance": "Keep every declared campaign and link. Delivered and accepted use separate clocks; defaulted zeros mean no matching retained event under the composed metadata, not complete coverage, conversion, or Value.",
+      "description": "Campaign inventory enriched with execution totals and distinct delivery-clock and adoption-clock lifecycle counts.",
       "parameters": [],
       "sources": [
         "campaign-dispatch-totals",
+        "campaign-output-evidence",
         "campaign-repository-coverage",
         "campaign-workflow-totals",
         "campaigns"
@@ -2997,6 +3059,8 @@
           "campaigns",
           "domains",
           "issues",
+          "output-adoption-events",
+          "output-delivery-events",
           "repositories",
           "runs",
           "tools",
