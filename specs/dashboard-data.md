@@ -3346,6 +3346,11 @@ evidence remains available through the Campaign drill-down. Campaign rollups
 MUST preserve unavailable and unknown worker evidence explicitly and MUST NOT
 replace missing worker values with zero or combine incompatible native measures.
 Review state remains evidence on the unified entry, not a separate population.
+Value plot drill-downs MAY filter this same unified entry set by type and status
+to inspect counted entries; they MUST NOT create separate canonical populations
+or promote worker results to top-level entries. Workflow movement drill-downs
+MUST scope exact current native reports to both the selected workflow and
+movement before presenting their original evidence routes.
 The mixed top-level rollup SHALL aggregate its complete campaign-worker
 population before presentation and SHALL report unavailable when query budgets
 are exceeded rather than page workers into partial campaign totals. The

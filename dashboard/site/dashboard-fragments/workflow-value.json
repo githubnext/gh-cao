@@ -335,6 +335,33 @@
       "filter": { "predicates": [{ "field": "older-report", "equals": "unknown" }] }
     },
     {
+      "name": "value-workflow-movement-counts",
+      "subject": "Counts of current native results by movement within each workflow.",
+      "objective": "Open the exact results behind each workflow movement bar.",
+      "acceptance": "Count report identities, not native values; preserve unavailable comparisons as their own category.",
+      "from": "value-workflow-results",
+      "aggregate": { "by": ["workflow-route", "movement"], "values": [
+        { "field": "report-id", "as": "value-entries", "reducer": "count" }
+      ] }
+    },
+    {
+      "name": "value-workflow-movement",
+      "subject": "Navigable workflow movement counts.",
+      "from": "value-workflow-movement-counts",
+      "compute": [
+        { "as": "encoded-movement-workflow", "function": "url-encode", "args": [{ "field": "workflow-route" }] },
+        { "as": "encoded-movement", "function": "url-encode", "args": [{ "field": "movement" }] },
+        { "as": "value-drill-href", "function": "concat", "args": [
+          { "value": "#page-value-movement?workflow=" }, { "field": "encoded-movement-workflow" },
+          { "value": "&movement=" }, { "field": "encoded-movement" }
+        ] },
+        { "as": "value-dashboard-link", "function": "dashboard-link", "args": [
+          { "value": "" }, { "field": "value-drill-href" }, { "value": "Inspect matching repository outcomes" }, { "field": "workflow-route" }
+        ] }
+      ],
+      "order-by": [{ "field": "movement", "direction": "asc" }]
+    },
+    {
       "name": "value-workflow-headline-order",
       "subject": "Most recent current report across the measures of each workflow.",
       "objective": "Give each workflow and repository one headline result; other measures stay on the workflow page.",
@@ -753,7 +780,7 @@
       "order-by": [{ "field": "value-title", "direction": "asc" }]
     },
     {
-      "name": "value-overview-by-kind",
+      "name": "value-overview-kind-counts",
       "subject": "Counts of top-level campaign rollups and standalone workflow entries.",
       "objective": "Compare the canonical entry inventory without combining native Value outcomes.",
       "acceptance": "Count unified entries by canonical type only; do not aggregate or compare their native outcome values.",
@@ -761,11 +788,23 @@
       "aggregate": {
         "by": ["value-kind"],
         "values": [{ "field": "value-kind", "as": "value-entries", "reducer": "count" }]
-      },
+      }
+    },
+    {
+      "name": "value-overview-by-kind",
+      "subject": "Navigable counts of top-level Value entries by canonical type.",
+      "from": "value-overview-kind-counts",
+      "compute": [
+        { "as": "encoded-kind", "function": "url-encode", "args": [{ "field": "value-kind" }] },
+        { "as": "value-drill-href", "function": "concat", "args": [{ "value": "#page-value-type?kind=" }, { "field": "encoded-kind" }] },
+        { "as": "value-dashboard-link", "function": "dashboard-link", "args": [
+          { "value": "" }, { "field": "value-drill-href" }, { "value": "Inspect Value entries by type" }, { "field": "value-kind" }
+        ] }
+      ],
       "order-by": [{ "field": "value-kind", "direction": "asc" }]
     },
     {
-      "name": "value-overview-by-status",
+      "name": "value-overview-status-counts",
       "subject": "Status counts for top-level campaign rollups and standalone workflows.",
       "objective": "Compare campaign review state and standalone workflow outcome movement without merging their meanings.",
       "acceptance": "Count each top-level entry once by its own type and categorical status. Campaign worker review counts are not categories or native outcome values; missing standalone status remains explicit.",
@@ -773,7 +812,23 @@
       "aggregate": {
         "by": ["value-plot-status", "value-kind"],
         "values": [{ "field": "value-kind", "as": "value-entries", "reducer": "count" }]
-      },
+      }
+    },
+    {
+      "name": "value-overview-by-status",
+      "subject": "Navigable counts of top-level Value entries by type and status.",
+      "from": "value-overview-status-counts",
+      "compute": [
+        { "as": "encoded-kind", "function": "url-encode", "args": [{ "field": "value-kind" }] },
+        { "as": "encoded-status", "function": "url-encode", "args": [{ "field": "value-plot-status" }] },
+        { "as": "value-drill-href", "function": "concat", "args": [
+          { "value": "#page-value-status?kind=" }, { "field": "encoded-kind" },
+          { "value": "&status=" }, { "field": "encoded-status" }
+        ] },
+        { "as": "value-dashboard-link", "function": "dashboard-link", "args": [
+          { "value": "" }, { "field": "value-drill-href" }, { "value": "Inspect Value entries by status" }, { "field": "value-kind" }
+        ] }
+      ],
       "order-by": [{ "field": "value-kind", "direction": "asc" }, { "field": "value-plot-status", "direction": "asc" }]
     },
     {
@@ -919,11 +974,12 @@
         "subject": "Direction-aware native changes for this workflow's measured repository problems.",
         "objective": "Compare how many retained results improved, worsened, stayed unchanged or lack a comparison.",
         "acceptance": "Count categorical movement only; never compare or aggregate heterogeneous native values.",
-        "data": { "source": "value-workflow-results", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
+        "data": { "source": "value-workflow-movement", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
         "mark": "chart", "chart": "bar",
         "encoding": {
           "x": { "field": "movement", "type": "nominal", "title": "Movement" },
-          "y": { "field": "report-id", "type": "quantitative", "aggregate": "count", "title": "Results" }
+          "y": { "field": "value-entries", "type": "quantitative", "title": "Results" },
+          "href": { "field": "value-dashboard-link", "type": "nominal" }
         },
         "layout": "full", "empty-message": "No accepted Value evidence is retained for this workflow. See collection health above; missing evidence is not zero value."
       }, {
@@ -954,6 +1010,101 @@
           "drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] } },
         "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] },
         "layout": "full", "empty-message": "No native batch measurements are retained for this workflow."
+      }]
+    },
+    {
+      "id": "value-movement", "kind": "custom", "title": "Value movement", "icon": "graph",
+      "description": "Inspect current repository results behind the selected workflow movement bar and open their original evidence reports.",
+      "intent": "Inspect the exact workflow results counted in one movement category.",
+      "subject": "One workflow's current report results with the selected direction-aware movement.",
+      "objective": "Move from a count to native comparisons and their evidence without combining units.",
+      "acceptance": "Both workflow and movement must match; missing route arguments show no results. A missing comparison is not zero value.",
+      "route": { "hash-query-parameter": "workflow", "navigation-page": "value", "breadcrumbs": [{ "page": "value" }, { "page": "workflow-value", "parameters": ["workflow"] }] },
+      "views": [{
+        "id": "value-movement-results", "title": "Matching repository outcomes",
+        "data": { "source": "value-workflow-results", "arguments": [
+          { "name": "workflow", "field": "workflow-route" }, { "name": "movement", "field": "movement" }
+        ], "query-context": false, "time": { "range": "all" } },
+        "mark": "table", "lazy-list": true, "layout": "full-view",
+        "card-drill": { "type": "query", "page": "value-report", "query": "value-report-summary", "title-field": "snapshot-name", "arguments": [{ "name": "report", "field": "report-id" }] },
+        "encoding": { "columns": [
+          { "field": "delta-label", "type": "nominal", "title": "Observed change" },
+          { "field": "workflow-context", "type": "nominal", "title": "Workflow" },
+          { "field": "movement", "type": "nominal", "title": "Compared with goal", "display": "status" },
+          { "field": "snapshot-name", "type": "nominal", "title": "Measure" },
+          { "field": "direction-label", "type": "nominal", "title": "Goal" },
+          { "field": "comparison-label", "type": "nominal", "title": "Reference" },
+          { "field": "observed-at", "type": "temporal", "title": "Evidence captured", "format": "human-friendly-timestamp" }
+        ] },
+        "empty-message": "No current repository results match this workflow and movement."
+      }]
+    },
+    {
+      "id": "value-type", "kind": "custom", "title": "Value entries by type", "icon": "trophy",
+      "description": "Inspect the status distribution and individual entries behind a Value type bar.",
+      "intent": "Explain the entries counted in one Value type without mixing native measures.",
+      "subject": "Campaign rollups or standalone workflow entries of one selected type.",
+      "objective": "Compare their categorical statuses and open the relevant campaign or workflow.",
+      "acceptance": "The selected type scopes both the status plot and cards; missing type is an empty match.",
+      "route": { "hash-query-parameter": "kind", "navigation-page": "value", "breadcrumbs": [{ "page": "value" }] },
+      "view-mode-control": false,
+      "views": [{
+        "id": "value-type-status-chart", "title": "Statuses in this type",
+        "subject": "Categorical statuses among Value entries of the selected type.",
+        "objective": "Drill into the exact entries behind each status count.",
+        "acceptance": "Count top-level entries only; campaign review and standalone movement remain separate.",
+        "data": { "source": "value-overview-by-status", "arguments": [{ "name": "kind", "field": "value-kind" }], "query-context": false, "time": { "range": "all" } },
+        "disclosure": "supplemental",
+        "mark": "chart", "chart": "bar", "layout": "full",
+        "encoding": {
+          "x": { "field": "value-plot-status", "type": "nominal", "title": "Value status" },
+          "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" },
+          "href": { "field": "value-dashboard-link", "type": "nominal" }
+        },
+        "empty-message": "No Value entries match this type."
+      }, {
+        "id": "value-type-entries", "title": "Matching Value entries",
+        "data": { "source": "value-overview", "arguments": [{ "name": "kind", "field": "value-kind" }], "query-context": false, "time": { "range": "all" } },
+        "mark": "list", "lazy-list": true, "layout": "full",
+        "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy" },
+        "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
+        "empty-message": "No Value entries match this type."
+      }]
+    },
+    {
+      "id": "value-status", "kind": "custom", "title": "Value entries by status", "icon": "trophy",
+      "description": "Inspect entries behind a Value status bar while keeping campaign review and standalone movement separate.",
+      "intent": "Explain the entries counted for one Value type and status.",
+      "subject": "Campaign rollups or standalone workflows sharing one categorical status.",
+      "objective": "Inspect collection and evidence details before opening the original Value entry.",
+      "acceptance": "Both type and status must match; unknown status remains a visible category, never an assumed successful result.",
+      "route": { "hash-query-parameter": "kind", "navigation-page": "value", "breadcrumbs": [{ "page": "value" }, { "page": "value-type", "parameters": ["kind"] }] },
+      "views": [{
+        "id": "value-status-entries", "title": "Matching Value entries",
+        "data": { "source": "value-overview", "arguments": [
+          { "name": "kind", "field": "value-kind" }, { "name": "status", "field": "value-plot-status" }
+        ], "query-context": false, "time": { "range": "all" } },
+        "mark": "list", "lazy-list": true, "layout": "full",
+        "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy" },
+        "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
+        "empty-message": "No Value entries match this type and status."
+      }, {
+        "id": "value-status-evidence", "title": "Entry evidence",
+        "data": { "source": "value-overview", "arguments": [
+          { "name": "kind", "field": "value-kind" }, { "name": "status", "field": "value-plot-status" }
+        ], "query-context": false, "time": { "range": "all" } },
+        "mark": "table", "lazy-list": true, "layout": "full",
+        "encoding": { "columns": [
+          { "field": "value-title", "type": "nominal", "title": "Value entry" },
+          { "field": "value-kind", "type": "nominal", "title": "Type" },
+          { "field": "value-status", "type": "nominal", "title": "Value status" },
+          { "field": "value-context", "type": "nominal", "title": "Scope" },
+          { "field": "value-collection", "type": "nominal", "title": "Collection" },
+          { "field": "value-evidence", "type": "nominal", "title": "Evidence" },
+          { "field": "value-measure", "type": "nominal", "title": "Observed value" },
+          { "field": "value-attention", "type": "nominal", "title": "Review basis" }
+        ] },
+        "empty-message": "No Value entries match this type and status."
       }]
     },
     {
@@ -1002,7 +1153,8 @@
           "mark": "chart", "chart": "bar", "layout": "full",
           "encoding": {
             "x": { "field": "value-kind", "type": "nominal", "title": "Value entry type" },
-            "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" }
+            "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" },
+            "href": { "field": "value-dashboard-link", "type": "nominal" }
           },
           "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
         },
@@ -1017,7 +1169,8 @@
           "encoding": {
             "x": { "field": "value-plot-status", "type": "nominal", "title": "Value status" },
             "y": { "field": "value-entries", "type": "quantitative", "title": "Entries" },
-            "color": { "field": "value-kind", "type": "nominal", "title": "Entry type" }
+            "color": { "field": "value-kind", "type": "nominal", "title": "Entry type" },
+            "href": { "field": "value-dashboard-link", "type": "nominal" }
           },
           "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
         },

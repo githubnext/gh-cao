@@ -231,6 +231,8 @@ export const chartStyles = `.chart-widget { min-height: 230px; display: grid; pl
 .chart-point:focus-visible .dot-chart-point, .chart-point:focus-visible .scatter-chart-point { stroke: var(--focus); stroke-width: 3; }
 .chart-point-link:focus-visible .point-tooltip { opacity: 1; }
 .chart-point-link:focus-visible .line-chart-point, .chart-point-link:focus-visible .dot-chart-point, .chart-point-link:focus-visible .bar-chart-bar { stroke: var(--focus); stroke-width: 3; }
+.chart-point-link { cursor: pointer; }
+.chart-point-link:hover .bar-chart-bar { stroke: var(--focus); stroke-width: 2; }
 .bar-chart-axis { stroke: var(--border); stroke-width: .75; vector-effect: non-scaling-stroke; }
 .bar-chart-grid { stroke: var(--border-muted); stroke-width: .5; stroke-dasharray: 1.5 2; vector-effect: non-scaling-stroke; }
 .bar-chart-y-axis text, .bar-chart-x-axis text { fill: var(--muted); font-size: 2.6px; font-variant-numeric: tabular-nums; }
