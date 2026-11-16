@@ -52,7 +52,7 @@ Capacity-limited collection may publish explicitly partial coverage; missing
 selected credentials, failed visibility checks, or invalid data remain failures.
 Partial coverage is not proof that remote repositories have no activity.
 
-### Reading evidence locally
+### Reading a snapshot locally
 
 Collect and serve real evidence with a managed local PostgreSQL database:
 
