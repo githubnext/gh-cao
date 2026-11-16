@@ -46,12 +46,14 @@ func (q Queue) enqueueNativeControl(ctx context.Context, task Task, kind IntentK
 	if err != nil {
 		return Admission{}, err
 	}
-	debounceTTL := q.debounce()
+	debounce := ""
+	debounceTTL := time.Duration(0)
 	if task.LifecycleRefresh {
+		debounce = task.debounceKey()
 		debounceTTL = max(debounceTTL, 15*time.Minute)
 	}
 	request := operational.EnqueueRequest{Queue: nativeControlStream, Delayed: nativeControlDelayed,
-		Debounce: task.debounceKey(), DebounceTTL: debounceTTL,
+		Debounce: debounce, DebounceTTL: debounceTTL,
 		Capacity: q.MaxLength, Fields: taskFields(name, content)}
 	if delivery == "" {
 		enqueued, err := q.Tasks.EnqueueTask(ctx, request)

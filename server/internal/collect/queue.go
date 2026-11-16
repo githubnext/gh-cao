@@ -58,6 +58,9 @@ func (task Task) debounceKey() string {
 		}
 		return "collect:scope-debounce:" + strconv.FormatInt(task.InstallationID, 10)
 	}
+	if task.LifecycleRefresh {
+		return "collect:lifecycle-debounce:" + task.Repository
+	}
 	if task.InventoryRefresh {
 		return "collect:inventory-debounce:" + task.Repository
 	}

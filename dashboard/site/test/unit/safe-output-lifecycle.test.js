@@ -1,12 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   evaluateSafeOutputDelivery,
   mergeOutputLifecycle,
   outputLifecycleFromSafeOutput,
+  outputLifecycleId,
   safeOutputAdoptionRules
 } from '../../src/data/model/safe-output-lifecycle.js';
 
 const deliveredAt = '2026-11-15T10:00:00.000Z';
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('safe-output lifecycle model', () => {
   it('covers every registered safe-output type and fails closed for custom types', () => {
@@ -60,6 +63,16 @@ describe('safe-output lifecycle model', () => {
       adoptionSignal: 'human_decision_pending',
       survivalState: 'unknown'
     });
+  });
+
+  it('encodes lifecycle identities without browser base64 globals', () => {
+    vi.stubGlobal('btoa', undefined);
+    expect(outputLifecycleId(
+      'github:run:octo/api:42',
+      'create_issue',
+      'https://github.com/octo/api/issues/7',
+      'github:run:octo/api:42:usage/aw_session.jsonl:7'
+    )).toBe('output-lifecycle:Z2l0aHViOnJ1bjpvY3RvL2FwaTo0MjpjcmVhdGVfaXNzdWU6aHR0cHM6Ly9naXRodWIuY29tL29jdG8vYXBpL2lzc3Vlcy83');
   });
 
   it('keeps authoritative provider adoption when a later delivery replay arrives', () => {

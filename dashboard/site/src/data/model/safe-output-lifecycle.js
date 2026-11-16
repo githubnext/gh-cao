@@ -15,6 +15,24 @@ const ADOPTION_SOURCE_AUTHORITY = new Map([
   ['github-webhook', 2],
   ['github-api', 3]
 ]);
+const BASE64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+/** @param {Uint8Array} bytes */
+function base64UrlEncode(bytes) {
+  let encoded = '';
+  for (let index = 0; index < bytes.length; index += 3) {
+    const first = bytes[index];
+    const second = bytes[index + 1];
+    const third = bytes[index + 2];
+    encoded += BASE64URL_ALPHABET[first >> 2];
+    encoded += BASE64URL_ALPHABET[((first & 3) << 4) | ((second ?? 0) >> 4)];
+    if (second !== undefined) {
+      encoded += BASE64URL_ALPHABET[((second & 15) << 2) | ((third ?? 0) >> 6)];
+    }
+    if (third !== undefined) encoded += BASE64URL_ALPHABET[third & 63];
+  }
+  return encoded;
+}
 
 /** @param {string} outputType */
 export function safeOutputAdoptionRule(outputType) {
@@ -26,11 +44,7 @@ export function outputLifecycleId(runId, outputType, targetUrl, evidenceId) {
   const proposalIdentity = ['create_issue', 'create_pull_request'].includes(outputType) && targetUrl
     ? targetUrl
     : evidenceId;
-  let binary = '';
-  for (const byte of new TextEncoder().encode(`${runId}:${outputType}:${proposalIdentity}`)) {
-    binary += String.fromCharCode(byte);
-  }
-  const encoded = btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  const encoded = base64UrlEncode(new TextEncoder().encode(`${runId}:${outputType}:${proposalIdentity}`));
   return `output-lifecycle:${encoded}`;
 }
 
