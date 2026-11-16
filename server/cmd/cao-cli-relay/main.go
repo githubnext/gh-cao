@@ -84,7 +84,8 @@ func probeEgressSocket(ctx context.Context, socket string) error {
 		return err
 	}
 	relayLog.Printf("egress socket probe succeeded")
-	return ready.Close()
+	_ = ready.Close()
+	return nil
 }
 
 // workloadExitCode maps a workload run result to the relay exit status: the
