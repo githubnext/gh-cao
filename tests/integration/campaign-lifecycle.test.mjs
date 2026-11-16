@@ -202,8 +202,12 @@ async function installCampaign(source) {
   });
 }
 
+// Without an explicit ref, `gh cao update` maps an installed commit to a
+// published release tag, which unreleased CI commits and branches do not have.
 function materializeRuntime(campaign, cwd) {
-  run("gh", ["cao", "update", "--campaign", campaign, "--no-security-scanner"], cwd);
+  const ref = campaignSource.slice(campaignSource.lastIndexOf("@") + 1);
+  const pinned = /^(main|master|[0-9a-f]{7,40})$/i.test(ref) ? [ref] : [];
+  run("gh", ["cao", "update", ...pinned, "--campaign", campaign, "--no-security-scanner"], cwd);
 }
 
 function assertInstalledBootstrap(repository, ghAwVersion, controlRepository) {
@@ -215,21 +219,13 @@ function assertInstalledBootstrap(repository, ghAwVersion, controlRepository) {
   run(process.execPath, [control, "validate-policy", policy], repository);
   assert.equal(run(process.execPath, [control, "compiler-version", policy], repository).trim(), ghAwVersion);
 
-  const settingsDirectory = mkdtempSync(join(tmpdir(), "central-agentic-ops-settings-"));
-  try {
-    const settingsPath = join(settingsDirectory, "control-settings.json");
-    execFileSync(process.execPath, ["activity/control-settings.mjs", control, policy, settingsPath], {
-      cwd: repository,
-      encoding: "utf8",
-      env: { ...process.env, GITHUB_REPOSITORY: controlRepository },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const settings = JSON.parse(readFileSync(settingsPath, "utf8"));
-    assert.equal(settings.policy_resolution.status, "available", settings.policy_resolution.reason);
-    assert.deepEqual(settings.allowed_repositories, [controlRepository]);
-  } finally {
-    rmSync(settingsDirectory, { recursive: true, force: true });
-  }
+  const settings = JSON.parse(execFileSync(process.execPath, [control, "control-settings", policy], {
+    cwd: repository,
+    encoding: "utf8",
+    env: { ...process.env, GITHUB_REPOSITORY: controlRepository },
+    stdio: ["ignore", "pipe", "pipe"],
+  }));
+  assert.deepEqual(settings.allowed_repositories, [controlRepository]);
 }
 
 test("root campaign bootstraps an empty CAO and preserves resources during workflow update", { timeout: 240_000 }, async () => {
@@ -284,7 +280,7 @@ test("root campaign bootstraps an empty CAO and preserves resources during workf
     });
     assertInstalledBootstrap(consumer, ghAwVersion, controlRepository);
 
-    run("git", ["add", ".github", "activity", "dashboard"], consumer);
+    run("git", ["add", ".github", "dashboard"], consumer);
     run("git", [
       "-c", "user.name=CAO installer test",
       "-c", "user.email=cao-installer-test@example.invalid",

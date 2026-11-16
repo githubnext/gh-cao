@@ -222,7 +222,13 @@ func TestHostedActionsMCPAuthentication(t *testing.T) {
 	denied = ""
 	defaultBranch, denyDefaultBranch = "main", false
 	good := sign(claims)
-	tampered := good[:len(good)-3] + "abc"
+	separator := strings.LastIndexByte(good, '.')
+	signatureBytes, err := base64.RawURLEncoding.DecodeString(good[separator+1:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	signatureBytes[0] ^= 0xff
+	tampered := good[:separator+1] + base64.RawURLEncoding.EncodeToString(signatureBytes)
 	for _, test := range []struct{ name, provenance, bearer string }{
 		{"missing provenance", "", testActionsToken},
 		{"missing bearer", good, ""},

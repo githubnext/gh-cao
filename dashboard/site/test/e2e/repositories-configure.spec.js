@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
@@ -9,7 +9,9 @@ const { startDashboardServer } = await import(new URL('../../../../tests/helpers
 for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width: 1440, empty: true }]) {
   test(`Repositories previews exact and wildcard enrollment without granting execution at ${width}px${empty ? ' with empty inventory' : ''}`, async ({ page }, testInfo) => {
     test.setTimeout(120_000);
-    const directory = await mkdtemp(fileURLToPath(new URL('../../../../.tmp/repository-configure-', import.meta.url)));
+    const temporaryRoot = fileURLToPath(new URL('../../../../.tmp/', import.meta.url));
+    await mkdir(temporaryRoot, { recursive: true });
+    const directory = await mkdtemp(join(temporaryRoot, 'repository-configure-'));
     let executions = 0;
     const adapter = createServer((_request, response) => {
       executions += 1;
