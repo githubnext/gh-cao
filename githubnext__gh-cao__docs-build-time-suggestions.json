@@ -1,36 +1,7 @@
 {
   "source_sha": "dbf9df719daf10bcf2987776ce773c7a022c5dc1",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-15T20:20:58Z",
-      "worker_run_id": "43757059462",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        43756384109,
-        43756218347,
-        43753233809,
-        43752704784,
-        43752194225,
-        43746617494,
-        43731625055,
-        43724243400,
-        43721484176,
-        43721157324,
-        43706435376,
-        43698271571,
-        43682264332,
-        43681861583,
-        43680980929,
-        43655786695,
-        43639680929,
-        43623754509,
-        43621919773,
-        43616204011
-      ],
-      "outcome": "complete, not actionable: window = latest 20 completed docs.yml runs 43616204011 (push afe0ba0, created 2026-11-14T16:32:58Z) to 43756384109 (push 8c2dd68, created 2026-11-15T20:08:48Z); all completed, 0 cancelled, none queued or in progress. Two runs added since the last evaluation (43756218347 push 10f5e57; 43756384109 push 8c2dd68); other rows reused from run_timings. 9 successes meet the 5-run gate; 11 failures excluded and disclosed (all at Build documentation, install completed, demo skipped). Category measured on 9 successes: Build synthetic enterprise demo median 5 s, p90 6 s, range 3-6 s = 6.5 percent of exec median 77 s (p90 111 s); best-case saving 5 s (p90 6 s) versus gates 60 s or 15 percent (11.5 s). docs.yml has no dashboard-generation cache (no actions/cache step; setup-node npm cache only, line 48). Demo output uses Date.now() (scripts/simulate-dashboard-pages.mjs:78) and the daily 05:23Z schedule exists for synthetic-date refresh, so reuse is not freshness-safe. cao-dashboard.yml is absent at 8c2dd68; closed #20380, #18929, #16825 concerned the retired restored-dashboard producer path and were not reopened. Reliability (not timing): the 12-run streak ended at 43721484176 (13:54Z); 9 consecutive docs.yml runs since then are success; the 2026-11-15 05:24Z schedule 43680980929 failed (no schedule success since 43561388555). Open #20815 (checkout) not repeated. Terminal: noop; no create_issue. Next category: artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-15T20:33:00Z",
       "worker_run_id": "43758252539",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43724243400 (push aa73dc6, created 2026-11-15T14:25Z) to 43814432358 (push dbf9df7, created 2026-11-16T06:05Z); all 20 success (19 push, 1 schedule 43810351164), 0 cancelled, 0 failed, none queued or in progress in window; source dbf9df7 = HEAD; docs.yml last changed 063cbe9 (2026-11-12), so workflow unchanged across window. Stale queued run 37642403569 (created 2026-10-07, headSha 6206962) is outside the window and still queued at 06:36Z; excluded. Gate met (20 successes >= 5). Category step Build documentation (npm run docs:build = astro build && node scripts/validate-agent-docs.mjs && node --test agent-docs-discovery): median 11 s, p90 15 s, range 8-16 s = 15.0 percent of exec median 73.5 s (p90 111 s). The 15 percent gate (11.0 s) is reached only by removing the whole step, which is invalid (deploy consumes dist; validation gates correctness). Astro-vs-validate split unmeasurable: job logs HTTP 403 DIFC (re-checked 06:35Z; not bypassed); no local node_modules. Reuse of Astro output for dashboard-only pushes is rejected: 14 of 17 mapped window pushes touched no docs or Astro-config path (commit_paths map), but Astro output embeds PUBLIC_PAGES_BUILD_COMMIT (docs/components/SiteFooter.astro:9; docs/plugins/starlight-agent/resource.ts:233) and scripts/validate-agent-docs.mjs:571 requires that commit, so reuse would publish stale provenance. Checkout outlier 43814432358 (checkout 65 s, exec 120 s) is covered by OPEN #20815 (0 comments, updated 2026-11-13T17:41:19Z), not repeated. No suggestion; no create_issue; noop used; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-16T07:09:02Z",
+      "worker_run_id": "43821214534",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        43814432358,
+        43810351164,
+        43798031034,
+        43792211504,
+        43789359390,
+        43781377358,
+        43781088986,
+        43780290464,
+        43768376457,
+        43766933236,
+        43766019418,
+        43757990961,
+        43756384109,
+        43756218347,
+        43753233809,
+        43752704784,
+        43752194225,
+        43746617494,
+        43731625055,
+        43724243400
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43724243400 (push aa73dc6, created 2026-11-15T14:25Z) to 43814432358 (push dbf9df7, created 2026-11-16T06:05Z), all within 14 days; gh run list re-read 07:07Z: same 20 IDs, all success (19 push + schedule 43810351164), 0 cancelled or failed in window, none queued or in progress; source dbf9df7 = HEAD = source_sha. Gate: 20 successes >= 5. Stored run_timings rows reused (completed runs immutable; stored window identical). Category: Build synthetic enterprise demo step (npm run dashboard:pages:build + cp; one buildDashboardSite call, scripts/simulate-dashboard-pages.mjs:96) median 4.5 s, p90 6 s, range 3-6 = 6.1 percent of exec median 73.5 s (p90 111 s). 15 percent gate 11.0 s and 60 s gate unmet even if the whole step were removed. Reuse not freshness-safe: now = Date.now() (scripts/simulate-dashboard-pages.mjs:78); the 05:23Z schedule refreshes synthetic dates and dist/cao is the deployed artifact. No dashboard job; docs:build does not build the dashboard. Checkout median 24.5 s unchanged but p90 51 s vs 29 s cited in OPEN #20815 (blobless fetch, ~19 s estimate; title/body unchanged since 2026-11-13T17:41Z, 0 comments); not repeated, and no update or comment safe output is configured, so noop. Observation: stale queued Documentation Pages run 37642403569 (workflow_run, headSha 6206962, created 2026-10-07) still queued at 07:08Z; maintainer should verify and cancel. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1024,8 +1024,8 @@
   "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
   "observations_pending": [
     {
-      "observed_at": "2026-11-16T06:36:53Z",
-      "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07T15:12Z) still queued at 06:36Z; no docs run queued or in progress. If it starts it would build and deploy an old commit. Maintainer should verify and cancel; this worker is read-only."
+      "observed_at": "2026-11-16T07:09:02Z",
+      "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07T15:12Z) still queued at 07:08Z; no docs run queued or in progress. Maintainer should verify and cancel; this worker is read-only."
     },
     {
       "observed_at": "2026-11-16T06:36:53Z",
@@ -1728,20 +1728,20 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-16T04:59:39Z",
-    "window": "43721157324..43798031034 (19 successes, 1 failure excluded)",
+    "verified_at": "2026-11-16T07:09:02Z",
+    "window": "43724243400..43814432358 (20 successes, 0 failures; 19 push + 1 schedule)",
     "demo_step_s": {
-      "median": 4,
+      "median": 4.5,
       "p90": 6,
       "max": 6,
       "min": 3
     },
     "exec_s": {
-      "median": 74,
+      "median": 73.5,
       "p90": 111
     },
-    "demo_share_of_exec_median_pct": 5.4,
-    "gate_15pct_s": 11.1,
+    "demo_share_of_exec_median_pct": 6.1,
+    "gate_15pct_s": 11,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 now = Date.now(); 05:23Z daily schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
     "note": "Dashboard site is built only by the demo step (buildDashboardSite); docs:build does not build the dashboard; no dashboard job exists; no dashboard cache in docs.yml."
   },
