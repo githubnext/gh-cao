@@ -7,7 +7,8 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .dashboard-root.dashboard-full-view-scrolled .org-sidebar { display: none; }
 }
 @media (max-width: 700px) {
-  html { font-size: 112.5%; }
+  /* Keep scroll-into-view targets (focus, anchors) clear of the sticky mobile title bar below. */
+  html { font-size: 112.5%; scroll-padding-top: calc(96px + env(safe-area-inset-top)); }
   .semantic-prompt-action { position: static; margin: 8px 0; }
   .mobile-table-card-toolbar > .semantic-prompt-action { margin: 0 0 0 auto; }
   .chart-prompt-heading { flex-wrap: wrap; gap: 8px; }
@@ -105,7 +106,8 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .app-shell { height: auto; min-height: 100vh; display: block; overflow: visible; }
   .dashboard-root.dashboard-full-view { height: 100dvh; min-height: 0; overflow: hidden; }
   .dashboard-full-view .app-shell { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
-  .org-sidebar { height: auto; display: block; overflow: visible; margin-bottom: 8px; padding: 14px 12px 10px; border-right: 0; border-bottom: 1px solid var(--border); background: var(--canvas); }
+  /* Pin the mobile title bar like a native app navigation bar; z-index keeps page popovers beneath it while its menu drawer stays above content. */
+  .org-sidebar { height: auto; display: block; position: sticky; top: 0; z-index: 40; overflow: visible; margin-bottom: 8px; padding: max(14px, env(safe-area-inset-top)) 12px 10px; border-right: 0; border-bottom: 1px solid var(--border); background: var(--canvas); }
   /* The Overview hero is full-bleed, so the header must sit flush against it. */
   .app-shell:has(.dashboard-overview-page:not([hidden])) > .org-sidebar { margin-bottom: 0; }
   /* --full-view-sidebar-max-height bounds the full-view mobile header (a single title/back/menu
