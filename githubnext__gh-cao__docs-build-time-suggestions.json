@@ -1,36 +1,7 @@
 {
  "source_sha": "ac6d75bded04f4ea57eabbc3296cab0bf3772c4f",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T06:36:53Z",
-   "worker_run_id": "43817419009",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "43814432358",
-    "43810351164",
-    "43798031034",
-    "43792211504",
-    "43789359390",
-    "43781377358",
-    "43781088986",
-    "43780290464",
-    "43768376457",
-    "43766933236",
-    "43766019418",
-    "43757990961",
-    "43756384109",
-    "43756218347",
-    "43753233809",
-    "43752704784",
-    "43752194225",
-    "43746617494",
-    "43731625055",
-    "43724243400"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43724243400 (push aa73dc6, created 2026-11-15T14:25Z) to 43814432358 (push dbf9df7, created 2026-11-16T06:05Z); all 20 success (19 push, 1 schedule 43810351164), 0 cancelled, 0 failed, none queued or in progress in window; source...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T07:09:02Z",
    "worker_run_id": "43821214534",
@@ -862,6 +833,34 @@
     "43766933236"
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z), including cancelled 43832015521 (excluded and disclosed): 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list 17:53Z: same 20 IDs, none newer, none queued or in progress. Source ac6d75b = HEAD = source_sha (non-trigger since 0cfeed6). Dependency phase (setup-node + install + post) recomputed from stored run_timings rows, no refetch: median 13 s, p90 18 s = 17.1 percent of exec median 76 s; 15 percent gate 11.4 s not met; install median 8 s. Cache: main key node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57Z, 263 MB), last accessed 17:50Z; post step 0-1 s in 19/19 (hit inferred; logs API not used). node_modules restore est 3-6 s net, unmeasured, below gate; npm ci cannot be skipped. Open #20815 (checkout) verified OPEN, 0 comments, updated 2026-11-13; other category, not repeated. No suggestion; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-16T18:23:17Z",
+   "worker_run_id": "43927347537",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "43766933236",
+    "43768376457",
+    "43780290464",
+    "43781088986",
+    "43781377358",
+    "43789359390",
+    "43792211504",
+    "43798031034",
+    "43810351164",
+    "43814432358",
+    "43825070138",
+    "43829639369",
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164); gh run list 18:21Z shows no newer run. Stored Jobs-API rows reused; spot-check 43814432358 matched (Build documentation 11 s). Build documentation step (astro build + validate-agent-docs + agent-docs-discovery test): median 11 s, p90 15 s, 14.5 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met. Ceiling: removing the whole step saves at most 11 s, below gate, and it contains validation and tests that cannot be dropped. Output reuse rejected: PUBLIC_PAGES_BUILD_COMMIT=github.sha is embedded in output, so cross-commit reuse publishes stale provenance. Partial Astro caching unmeasured and bounded by the same ceiling. Sub-step split unavailable (job logs API HTTP 403). No open issue for this category; open #20815 is checkout (different category). No suggestion; noop; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1745,21 +1744,20 @@
   "note": "Whole-phase removal unreachable (npm ci required). node_modules restore est 3-6 s net, unmeasured, below gate. Not actionable."
  },
  "astro_step_verified": {
-  "verified_at": "2026-11-16T16:35:33Z",
-  "window": "43766019418 (push eccbdd6, 2026-11-15T21:51Z) .. 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 20 completed non-cancelled runs: 19 push + 1 schedule 43810351164; cancelled 43832015521 excluded; recomputed from run_timings rows, no refetch except one Jobs API spot-check of 43877103800 (Build documentation 11 s)",
+  "verified_at": "2026-11-16T18:23:17Z",
+  "window": "strict latest 20 completed docs.yml runs 43766933236..43877103800; cancelled 43832015521 excluded; 19 successes; recomputed from immutable run_timings rows; Jobs API spot-check 43814432358 matched",
   "build_docs_s": {
-   "median": 11.5,
-   "p90": 14,
+   "median": 11,
+   "p90": 15,
    "min": 8,
    "max": 16
   },
-  "exec_median_s": 78,
-  "build_docs_share_exec_median_pct": 14.7,
-  "gate_15pct_s": 11.7,
-  "ceiling_saving_s": 11.5,
-  "decision": "not actionable: whole-step removal (includes validate-agent-docs and agent-docs-discovery test) saves at most 11.5 s, below 60 s and the 15% gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
-  "denominator_note": "exec = build job start to deploy job end; docs.yml has no separate dashboard job (dashboard generation is the Build synthetic enterprise demo step in build)",
-  "note": "Re-evaluated with unchanged window (no newer docs run; HEAD ac6d75b is non-trigger). Watch: build_docs share 14.7% of exec median, within 0.2 s of the 15% gate, but whole-step ceiling 11.5 s stays below it; revisit only if build_docs median rises or a validated Astro-only saving exists."
+  "exec_median_s": 76,
+  "build_docs_share_exec_median_pct": 14.5,
+  "gate_15pct_s": 11.4,
+  "ceiling_saving_s": 11,
+  "decision": "not actionable: whole-step ceiling 11 s stays below 15 percent gate (11.4 s) and 60 s absolute; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance; partial caching unmeasured and bounded by ceiling",
+  "note": "Prior 16:35Z and 14.7 percent figure used the 20-row window including 43766019418; strict window now used. Revisit only if build_docs median rises above gate or a validated Astro-only saving exists."
  },
  "burst_analysis": {
   "verified_at": "2026-11-16T15:57:15Z",
