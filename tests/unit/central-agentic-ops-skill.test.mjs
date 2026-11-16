@@ -35,7 +35,7 @@ test("central-agentic-ops resolves guides outside a checkout for gh skill instal
   const frontmatter = skill.slice(0, skill.indexOf("\n---", 4));
   assert.match(frontmatter, /^license: MIT$/m);
   assert.match(frontmatter, /^compatibility: "[^"\n]+"$/m);
-  assert.ok(skill.includes("https://raw.githubusercontent.com/githubnext/gh-cao/REF/PATH"));
+  assert.match(skill, /^\s*curl -fsSL "https:\/\/raw\.githubusercontent\.com\/githubnext\/gh-cao\/REF\/PATH"$/m);
   assert.match(skill, /metadata\.github-ref/);
   assert.doesNotMatch(skill, /Former skill|setup-cao|debug-cao/);
 });
