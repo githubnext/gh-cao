@@ -452,7 +452,7 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	if err != nil {
 		return AnalyticalResult{}, err
 	}
-	if err := plan.Require(LocalAnalyticalCapabilities(10000)); err != nil {
+	if err := plan.Require(AnalyticalCapabilities(10000)); err != nil {
 		return AnalyticalResult{}, err
 	}
 	if err := s.check(); err != nil {

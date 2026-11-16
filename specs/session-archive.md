@@ -397,7 +397,7 @@ bounded `post-aggregate` scalar computation, deterministic ordering, and optiona
 top-N selection. Only `0.2.0` requests are accepted over HTTP or MCP;
 `0.1.0` and other versions MUST be rejected without compatibility fallback.
 `PayloadJSON`, arbitrary JSON paths, joins, scripts, and caller-selected storage
-are not supported. Query chaining is local-only, as described below. An explicit `query.limit` reports omitted matching rows with
+are not supported. Item sources and query chaining are bounded as described below. An explicit `query.limit` reports omitted matching rows with
 `metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
 remains unknown, with repository admission gaps and retained traces with recorded
 omissions reported independently of selection. Both backends advertise
@@ -428,7 +428,7 @@ and scalar `extend`. No approximate cardinality or unordered `take_any`
 is permitted. ADX's million-row scan fence bounds those internal lists.
 These lowerers are not a universal compiler or a new canonical resolver.
 
-Local DuckDB also accepts three item sources: `archive-objectives`,
+Both backends also accept three item sources: `archive-objectives`,
 `archive-actions`, and `archive-states`. Each binds the last agent-phase
 `trajectory.ir` event of every complete active trace and flattens its
 `data.objectives`, `data.actions`, or `data.states` array at query time; no
@@ -442,10 +442,12 @@ Wrong JSON types are `invalid`, never coerced. `state` predicates on `Items`
 and element fields are qualified by the collection path, so an excluded or
 redacted collection is reported, not treated as empty. Item sources forbid
 `first` and real-valued `sum`, order ties by `Ordinal`, and never expose
-`PayloadJSON`. Status advertises them in `analytical.sources`; ADX and native
-backends omit them and MUST reject such plans until a reviewed lowering exists.
+`PayloadJSON`. Status advertises them in `analytical.sources`. ADX binds the
+same IR with materialized `let` statements and expands elements with
+`mv-expand with_itemindex`; a backend without a lowering accepted against real
+Kusto MUST omit them and reject such plans.
 
-Local DuckDB also accepts query chaining (Dashboard Language DLS-QUERY-017)
+Both backends also accept query chaining (Dashboard Language DLS-QUERY-017)
 for two-stage aggregation. A definition may list at most two earlier
 definitions in `queries`. They are evaluated in order: the first reads an
 archive source, each later one reads its immediate predecessor by name, and
@@ -460,10 +462,10 @@ binding. `state` predicates and `first` are unavailable over a stage because
 stage rows carry no field-state metadata or `Sequence`. A real-valued `sum`
 over a stage orders by exactly the input groups it collapses, ascending.
 Chaining is validated as one plan before any rows are read, and it is lowered
-to one SQL statement with one common table expression per stage; no
-intermediate result is persisted. Status advertises the maximum stage count as
-`analytical.chaining`. ADX and native backends omit it and MUST reject chained
-plans until a KQL lowering is accepted against real Kusto.
+to one statement: one DuckDB common table expression, or one materialized KQL
+`let`, per stage; no intermediate result is persisted. Status advertises the
+maximum stage count as `analytical.chaining`; a backend without a lowering
+accepted against real Kusto MUST omit it and reject chained plans.
 
 The `state` predicate accepts only generated promoted scalar names and inspects
 `PresentFields`, `NullFields`, `InvalidFields` and `OmissionReasons` using
@@ -584,12 +586,12 @@ top-N disclosure, and empty results. Protocol tests separately exercise
 reader lifetime, source fencing, malformed responses and resource rejection.
 The emulator proves functional KQL behavior,
 not live Blob/external-table access, authentication, retention, or performance.
-The same opt-in harness runs the four full usage definitions against real DuckDB
-and real Kusto using identical synthetic approved events; the four local-only
-item-source definitions are checked to be rejected by ADX capabilities. Without an approved
+The same opt-in harness runs all ten implemented definitions, including the
+item-source and chained ones, against real DuckDB and real Kusto using
+identical synthetic approved events. Without an approved
 real engine endpoint, the replay reports Kusto unavailable; it MUST NOT claim
 backend parity. The ordinary DuckDB gate runs all 15 pinned upstream replays and
-compares the eight implemented full metric values, unavailable states and separate
+compares the ten implemented full metric values, unavailable states and separate
 reason labels. An intentionally malformed envelope fixture retains its upstream
 lookup error and cannot establish metric parity; a separate explicit valid
 envelope scenario is compared without normalizing the original.

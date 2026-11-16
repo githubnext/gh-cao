@@ -38,15 +38,14 @@ source or `builtin_graders.json` entry changed, and update both this tracker and
   and ordered `first`. Filtered measures are supported.
 - `post-aggregate` with the functions `if`, `equals`, `gt`, `lte`, `and`,
   `sum`, `difference`, `product`, `quotient`, `coalesce` and `is-null`.
-- On local DuckDB only, the item sources `archive-objectives`,
-  `archive-actions` and `archive-states` (Phase 1).
-- On local DuckDB only, query chaining through at most two earlier
+- On local DuckDB and hosted ADX, the item sources `archive-objectives`,
+  `archive-actions` and `archive-states` (Phases 1 and 1b).
+- On local DuckDB and hosted ADX, query chaining through at most two earlier
   definitions, each grouped by exact trace and projection identity (L3,
-  Phase 2).
+  Phases 2 and 2b).
 - Ordering and limits.
 
-It has no joins, windows, pre-aggregate computation, regex, logarithms, hosted
-chaining, or hosted structured-element rows.
+It has no joins, windows, pre-aggregate computation, regex or logarithms.
 
 The full Dashboard Language already standardizes several of the missing
 capabilities:
@@ -101,10 +100,21 @@ MUST reject the query rather than approximate it.
 Every extension must run efficiently and give identical results on local
 DuckDB and hosted Kusto (ADX). Replay compares values with exact equality, so
 "close" floating-point results are failures. The DuckDB findings below were
-measured with the CLI at one thread and 256 MiB. The Kusto findings rely on
-the Microsoft Learn KQL reference only, because the Kusto emulator does not
-run on the ARM development host. They must be confirmed against the emulator
-or a real cluster before hosted support is advertised.
+measured with the CLI at one thread and 256 MiB. The Kusto findings for
+L4 to L6 and G1 rely on the Microsoft Learn KQL reference, because the Kusto
+emulator does not run on the ARM development host. They must be confirmed in
+the `session-archive-kusto` job before hosted support is advertised, as the
+Phase 1b and 2b lowerings were (§6).
+
+Phases 1b and 2b found two emulator-only constraints:
+
+- **Reserved identifiers.** KQL reserves bare identifiers that start or end
+  with `__`; such `let` names fail to resolve (`SEM0100`). Lowerers emit plain
+  names or bracket-quoted `["__…"]` identifiers.
+- **Dynamic date conversion.** `dynamic(...)` literals and `parse_json`
+  convert ISO date-like strings to `datetime`, which changes their `tostring`
+  text and `gettype`. Fixtures therefore use typed `datatable` rows, and IR
+  string fields that look like dates or GUIDs are a residual risk (§8).
 
 - **L5 windows.**
   - **DuckDB lowering:** `row_number()` and `lag()`
@@ -335,15 +345,13 @@ not executed (§3.1).
 | `vocabulary-gated` | 13 | retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6) |
 | `out-of-scope` | 1 | loops |
 
-Support differs by backend because the item sources and chaining are
-advertised only by `LocalAnalyticalCapabilities`:
+Every backend advertises the item sources and chaining through
+`AnalyticalCapabilities`:
 
-| Backend | Recomputed graders | Rejected until |
+| Backend | Recomputed graders | Acceptance |
 | --- | --- | --- |
-| Local DuckDB | All 10 `implemented` graders | — |
-| Hosted ADX (Kusto) | The usage family: step count, duration, rebuild factor, context growth (`TestKustoUsageGraderReplay`, when configured) | Phase 1b for the item-source graders; Phase 2b for `recurrence-rate` and `artifact-production` |
-
-Native backends also reject item-source and chained plans.
+| Local DuckDB | All 10 `implemented` graders | `TestGraderReplayEvidence` |
+| Hosted and native ADX (Kusto) | All 10 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728)) |
 
 ## 5. Invariants for every new definition
 
@@ -376,14 +384,15 @@ Hosted acceptance runs in the opt-in `session-archive-kusto` job of
 `accept_kusto_emulator_eula` accepts the Kusto emulator license. The job runs
 `scripts/test-kusto-emulator.sh` against the real emulator on `ubuntu-latest`,
 including the pinned grader replay. Only local ARM development hosts lack the
-emulator. The job has not yet been dispatched for Phases 1 and 2.
+emulator. Phases 1b and 2b were accepted in
+[run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728).
 
 - [x] Inventory the 35 upstream built-ins and classify feasibility at the pin, at `main` `a25e38ee`, and at `main` `789cc9c2`.
 - [x] Implement the usage family: `execution-step-count`, `execution-duration`, `working-set-rebuild-factor`, `context-growth` (#21020). Hosted parity through `TestKustoUsageGraderReplay`.
 - [x] **Phase 1:** S1 (`objectives`, `actions`, `states`), S2 and L1. Unlocks `objective-coverage`, `premature-termination-gap`, `grounding-accuracy` and `state-revisit-probability-rep` on local DuckDB (§7, #21030).
 - [x] **Phase 2:** L3. Unlocks `recurrence-rate` and `artifact-production` on local DuckDB (§8, #21059).
-- [ ] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted in the `session-archive-kusto` job. Until then hosted backends reject them. Do this before Phase 4 so hosted support does not fall further behind.
-- [ ] **Phase 2b:** KQL lowering of L3 chaining, accepted in the `session-archive-kusto` job. Until then hosted backends reject chained plans. Brings hosted ADX to all 10 `implemented` graders.
+- [x] **Phase 1b:** KQL lowering of the Phase 1 item sources, accepted in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728), §7).
+- [x] **Phase 2b:** KQL lowering of L3 chaining, accepted in the same run. Brings hosted ADX to all 10 `implemented` graders (§8).
 - [ ] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). If resume mapping needs transitive closure, reclassify the three tool graders as `vocabulary-gated` (G3); Phase 4 then still delivers L2, L5 and L6 for Phase 5.
 - [ ] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `tool-failure-count`, `tool-success-rate` and `trajectory-efficiency` if the reconciliation fixture passes.
 - [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
@@ -410,10 +419,14 @@ Declared divergences, all failing towards `unavailable`:
   original data.
 - The 5,000-item cap is checked only on the queried collection, not on
   upstream's synthesized event list.
-- ADX and native backends do not advertise item sources and reject such plans.
-  The KQL lowering is Phase 1b because the Kusto emulator does not run on the
-  ARM development host used for Phase 1. The opt-in `session-archive-kusto`
-  CI job can accept it (§6).
+
+Phase 1b lowers the same sources to KQL. Two `let` statements bind the active
+archive events and, per trace, the last agent-phase `trajectory.ir` payload.
+The source unions one anchor row per trace with the collection elements,
+expanded by `mv-expand with_itemindex=Ordinal`, and applies the same typing,
+5,000-item cap and omission reasons as DuckDB. Hosted and native backends
+advertise the item sources since the `session-archive-kusto` job accepted
+this lowering (§6).
 
 ## 8. Phase 2 implementation notes
 
@@ -444,19 +457,28 @@ Declared divergences, all failing towards `unavailable`:
 - An excluded or redacted `safe_output.result` `Status` makes
   `artifact-production` report `unavailable` instead of an approximated count.
   Live upstream sees the original data and always measures.
-- ADX and native backends do not advertise `chaining` and reject chained
-  plans. The KQL lowering is Phase 2b because the Kusto emulator is
-  unavailable on the development host; the opt-in `session-archive-kusto` CI
-  job can accept it (§6). An unvalidated lowering would risk
-  silent divergence in ordered real sums and grouping on empty strings.
+
+Phase 2b lowers the chain to one KQL query: each stage is a materialized
+`let` over its predecessor, from the base source to the final stage.
+Accepted in the `session-archive-kusto` job (§6), with these residual risks
+outside the current graders' replay:
+
+- Kusto strings cannot be null, so NULL and `""` group keys merge. DuckDB
+  keeps them apart. No current grader groups on a nullable string.
+- Ordered real sums depend on string collation of the order key only when the
+  addends are non-integral.
+- A NULL `PolicyDigest` in DuckDB reads as `""` in Kusto.
+- `parse_json` types date- or GUID-looking IR strings as `datetime` or
+  `guid`, so a string `Id` or element kind could differ. The pinned fixtures
+  contain no such strings.
+- `bag_has_key` is assumed to report JSON-null members as present, matching
+  the DuckDB `null` field state.
 
 ## 9. Smallest next delta
 
-Hosted parity comes first. Phases 1b and 2b add KQL lowerings for the item
-sources and L3 chaining and accept them in the `session-archive-kusto` job,
-bringing ADX from 4 to all 10 `implemented` graders. They need no new
-vocabulary, and without them every later local phase widens the gap between
-DuckDB and ADX.
+Hosted parity is done: Phases 1b and 2b brought ADX to all 10 `implemented`
+graders. Every later phase must be accepted on DuckDB and in the
+`session-archive-kusto` job together, so the backends do not diverge again.
 
 Next is the reconciliation fixture. Tool reconciliation (`tool-failure-count`,
 `tool-success-rate`, `trajectory-efficiency`) needs more than L5 `previous`:

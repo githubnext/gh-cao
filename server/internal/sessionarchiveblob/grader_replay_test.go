@@ -87,7 +87,7 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 				if err != nil {
 					t.Fatal("reviewed scalar plan unavailable")
 				}
-				if err := plan.Require(sessionarchive.LocalAnalyticalCapabilities(4096)); err != nil {
+				if err := plan.Require(sessionarchive.AnalyticalCapabilities(4096)); err != nil {
 					t.Fatal("reviewed scalar plan unavailable")
 				}
 				count++
