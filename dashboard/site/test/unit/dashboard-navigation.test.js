@@ -162,4 +162,47 @@ describe('dashboard navigation debug logging', () => {
       { event: 'nav-section-state.read_failed', errorName: 'SecurityError' }
     );
   });
+
+  it('logs only a sanitized error name when persisting nav-section state fails', async () => {
+    window.history.replaceState({}, '', '?debug=dashboard-navigation');
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const writeError = new Error('quota exceeded for do-not-log-this-value');
+    writeError.name = 'QuotaExceededError';
+    const fakeStorage = {
+      getItem: () => null,
+      setItem: (/** @type {string} */ key) => {
+        if (key.includes('nav-sections-open')) throw writeError;
+      }
+    };
+    vi.spyOn(window, 'localStorage', 'get').mockReturnValue(/** @type {Storage} */ (/** @type {unknown} */ (fakeStorage)));
+
+    const { enableDashboardNavigation } = await import('../../src/components/dashboard-navigation.js');
+    const root = buildNavigationRoot();
+    enableDashboardNavigation(root);
+    root.querySelector('.nav-section')?.dispatchEvent(new Event('toggle'));
+
+    expect(debug).toHaveBeenCalledWith(
+      '[cao:dashboard-navigation]',
+      { event: 'nav-section-state.write_failed', errorName: 'QuotaExceededError' }
+    );
+    expect(JSON.stringify(debug.mock.calls)).not.toContain('do-not-log-this-value');
+  });
+
+  it('stays silent when persisting nav-section state fails without a matching debug category', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const fakeStorage = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('quota exceeded');
+      }
+    };
+    vi.spyOn(window, 'localStorage', 'get').mockReturnValue(/** @type {Storage} */ (/** @type {unknown} */ (fakeStorage)));
+
+    const { enableDashboardNavigation } = await import('../../src/components/dashboard-navigation.js');
+    const root = buildNavigationRoot();
+    enableDashboardNavigation(root);
+    root.querySelector('.nav-section')?.dispatchEvent(new Event('toggle'));
+
+    expect(debug).not.toHaveBeenCalled();
+  });
 });

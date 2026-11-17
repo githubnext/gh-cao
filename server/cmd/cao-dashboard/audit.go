@@ -46,6 +46,7 @@ func newAuditVerifyCommand() *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		anchors, err := parseAuditAnchors(*rawAnchors)
 		if err != nil {
+			auditCommandLog.Printf("audit verification input rejected: anchors=%d", len(*rawAnchors))
 			return err
 		}
 		return runAuditCommand(func(ctx context.Context, store operational.AuditLog) error {
@@ -149,12 +150,22 @@ func exportAudit(ctx context.Context, store operational.AuditLog, filter operati
 func parseAuditAnchors(values []string) ([]operational.AuditAnchor, error) {
 	anchors := make([]operational.AuditAnchor, 0, len(values))
 	for _, value := range values {
-		rawSequence, hash, ok := strings.Cut(strings.TrimSpace(value), ":")
-		sequence, err := strconv.ParseInt(rawSequence, 10, 64)
-		if !ok || err != nil {
-			return nil, fmt.Errorf("--anchor %q must be SEQUENCE:HASH", value)
+		anchor, err := parseAuditAnchor(value)
+		if err != nil {
+			return nil, err
 		}
-		anchors = append(anchors, operational.AuditAnchor{Sequence: sequence, Hash: hash})
+		anchors = append(anchors, anchor)
 	}
 	return anchors, nil
+}
+
+// parseAuditAnchor decodes CLI syntax; chain verification validates the position
+// and hash against the audit trail.
+func parseAuditAnchor(value string) (operational.AuditAnchor, error) {
+	rawSequence, hash, ok := strings.Cut(strings.TrimSpace(value), ":")
+	sequence, err := strconv.ParseInt(rawSequence, 10, 64)
+	if !ok || err != nil {
+		return operational.AuditAnchor{}, fmt.Errorf("--anchor %q must be SEQUENCE:HASH", value)
+	}
+	return operational.AuditAnchor{Sequence: sequence, Hash: hash}, nil
 }

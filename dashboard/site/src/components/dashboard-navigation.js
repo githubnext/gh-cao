@@ -1,5 +1,5 @@
 import { h } from '../dom.js';
-import { createDebug } from '../debug.js';
+import { createDebug, diagnosticErrorName } from '../debug.js';
 import { navigationIndicator } from '../navigation-indicator.js';
 import { pageSourceAvailable } from '../view-availability.js';
 import { agenticWorkflowMark, octicon } from '../octicons.js';
@@ -517,8 +517,9 @@ function enableNavSectionStatePersistence(root) {
       state[label] = section.open;
       try {
         globalThis.window?.localStorage?.setItem(NAV_SECTIONS_OPEN_STORAGE_KEY, JSON.stringify(state));
-      } catch {
+      } catch (error) {
         // Section state still applies to the current page when storage is unavailable.
+        debugNavigation({ event: 'nav-section-state.write_failed', errorName: diagnosticErrorName(error) });
       }
     });
   }
