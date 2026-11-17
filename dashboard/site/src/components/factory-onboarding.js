@@ -1,8 +1,10 @@
+import { createDebug } from '../debug.js';
 import { h } from '../dom.js';
 import { effect } from '../reactive.js';
 import { renderDeclaredCliAction } from './cli-actions.js';
 import { createCopyControl, renderIconSpan } from './ui-primitives.js';
 
+const debugFactoryOnboarding = createDebug('factory-onboarding');
 const ONBOARDING_STEPS = new Set(['setup', 'repositories', 'artifacts']);
 const ONBOARDING_SUMMARIES = {
   setup: 'Set up CAO in this checkout before choosing what it should operate.',
@@ -131,6 +133,7 @@ export function renderFactoryOnboarding(source, scope) {
     }
     if (currentStep) root.dataset.currentStep = currentStep;
     else delete root.dataset.currentStep;
+    debugFactoryOnboarding({ event: 'step-synchronized', step: currentStep ?? 'none' });
   }, { signal: scope.signal });
   return root;
 }
