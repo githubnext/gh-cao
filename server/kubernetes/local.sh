@@ -102,10 +102,12 @@ prepare() {
   admin=$(openssl rand -hex 32)
   owner=$(openssl rand -hex 32)
   runtime=$(openssl rand -hex 32)
+  printf '[req]\ndistinguished_name=dn\n[dn]\n[v3_ca]\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always\nbasicConstraints=critical,CA:TRUE\n' \
+    > "$state/ca.cnf"
   MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/CN=" \
     openssl req -x509 -newkey rsa:3072 -nodes -days 30 \
     -subj /CN=CAO-local-development-CA \
-    -addext basicConstraints=critical,CA:TRUE \
+    -config "$state/ca.cnf" -extensions v3_ca \
     -keyout "$state/ca.key" -out "$state/ca.crt" 2>"$state/openssl.log"
   certificate postgres "$db_host"
   certificate web localhost

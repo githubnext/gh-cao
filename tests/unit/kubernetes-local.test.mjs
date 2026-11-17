@@ -14,6 +14,13 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const assets = join(root, "server/kubernetes");
 const hash = (content) => createHash("sha256").update(content).digest("hex");
 const key = generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({ type: "pkcs8", format: "pem" });
+const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+
+// Shebang parsing differs across Linux, macOS and Git Bash, so quoted paths stay in sh.
+function nodeScript(path, source, interpreter = process.execPath) {
+  writeFileSync(`${path}.cjs`, source);
+  writeFileSync(path, `#!/bin/sh\nexec ${shellQuote(interpreter)} ${shellQuote(`${path}.cjs`)} "$@"\n`, { mode: 0o700 });
+}
 
 function reviewedInput() {
   const policy = JSON.parse(readFileSync(join(assets, "policy.json"), "utf8"));
@@ -59,6 +66,10 @@ test("prepare creates a CA and valid server certificates", (t) => {
   const prepared = spawnSync("bash", [localScript, "prepare"], { encoding: "utf8" });
   assert.equal(prepared.status, 0, prepared.stderr);
   const state = join(directory, ".tmp/cao-kubernetes-local");
+  const ca = spawnSync("openssl", ["x509", "-in", join(state, "ca.crt"), "-noout", "-text"], { encoding: "utf8" });
+  assert.equal(ca.status, 0, ca.stderr);
+  assert.equal((ca.stdout.match(/X509v3 Basic Constraints:/g) ?? []).length, 1);
+  assert.match(ca.stdout, /X509v3 Basic Constraints: critical\s+CA:TRUE/);
   const verified = spawnSync("openssl", ["verify", "-CAfile", join(state, "ca.crt"),
     join(state, "postgres.crt"), join(state, "web.crt")], { encoding: "utf8" });
   assert.equal(verified.status, 0, verified.stderr);
@@ -97,8 +108,7 @@ function fixture(t, options = {}) {
   writeFileSync(log, "");
   const cluster = join(directory, "cluster.json");
   writeFileSync(cluster, "{}");
-  writeFileSync(join(bin, "kubectl"), `#!${process.execPath}
-const fs = require("node:fs");
+  nodeScript(join(bin, "kubectl"), `const fs = require("node:fs");
 const args = process.argv.slice(2);
 const entry = { args };
 const state = JSON.parse(fs.readFileSync(process.env.CLUSTER, "utf8"));
@@ -133,13 +143,11 @@ else if (get && args.includes("configmap")) process.stdout.write(process.env.INV
 else if (get && args.some(a => a.startsWith("job.batch/"))) process.stdout.write(process.env.FAIL_PIN ? "Failed" : "Complete");
 else if (args.includes("--dry-run=client")) process.stdout.write('{"apiVersion":"v1","kind":"ConfigMap"}');
 else if (args.includes("create") && args.includes("-f")) process.stdout.write("job.batch/cao-test");
-`, { mode: 0o700 });
-  writeFileSync(join(bin, "docker"), `#!${process.execPath}
-const image = process.argv[4];
+`);
+  nodeScript(join(bin, "docker"), `const image = process.argv[4];
 process.stdout.write("sha256:" + image.split(":sha256-")[1] + " " + process.env.POLICY_DIGEST);
-`, { mode: 0o700 });
-  writeFileSync(join(bin, "node"), `#!${process.execPath}
-const { spawnSync } = require("node:child_process");
+`);
+  nodeScript(join(bin, "node"), `const { spawnSync } = require("node:child_process");
 if (process.argv[3] === "verify-native") {
   if (process.env.FAIL_SCOPE) process.exit(1);
   console.log("cao-native-" + "e".repeat(24));
@@ -147,7 +155,7 @@ if (process.argv[3] === "verify-native") {
   const result = spawnSync(process.execPath, process.argv.slice(2), { stdio: "inherit" });
   process.exit(result.status ?? 1);
 }
-`, { mode: 0o700 });
+`);
   const oauth = join(directory, "oauth.env");
   writeFileSync(oauth, [
     "CAO_GITHUB_CLIENT_ID=test-only-id",
@@ -318,7 +326,9 @@ test("rendering preserves Kubernetes octal secret modes and does not tie Postgre
 });
 
 test("collector restart clears a previous backfill marker and does not start collection after failed backfill", (t) => {
-  const directory = mkdtempSync(join(root, ".tmp/kubernetes-marker-"));
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  // Spaces and an apostrophe prove spliced paths are quoted as single shell words.
+  const directory = mkdtempSync(join(root, ".tmp/kubernetes marker it's-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const marker = join(directory, "ready");
   const log = join(directory, "calls");
@@ -327,12 +337,25 @@ test("collector restart clears a previous backfill marker and does not start col
   writeFileSync(marker, "");
   const manifest = parse(readFileSync(join(assets, "collector.yaml"), "utf8"));
   const command = manifest.spec.template.spec.containers[0].args[0]
-    .replaceAll("/tmp/backfill-ready", marker).replaceAll("/app/cao-dashboard", executable);
-  const result = spawnSync("/bin/sh", ["-ec", command], { env: { ...process.env, TEST_LOG: log } });
+    .replaceAll("/tmp/backfill-ready", shellQuote(marker)).replaceAll("/app/cao-dashboard", shellQuote(executable));
+  const result = spawnSync("sh", ["-ec", command], { env: { ...process.env, TEST_LOG: log } });
   assert.notEqual(result.status, 0);
-  const probe = manifest.spec.template.spec.containers[0].readinessProbe.exec.command[2].replaceAll("/tmp/backfill-ready", marker);
-  assert.notEqual(spawnSync("/bin/sh", ["-ec", probe]).status, 0);
+  const probe = manifest.spec.template.spec.containers[0].readinessProbe.exec.command[2].replaceAll("/tmp/backfill-ready", shellQuote(marker));
+  assert.notEqual(spawnSync("sh", ["-ec", probe]).status, 0);
   assert.equal(readFileSync(log, "utf8"), "backfill\n");
+});
+
+test("fixture command wrappers pass interpreter and script paths with spaces and apostrophes intact", (t) => {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const directory = mkdtempSync(join(root, ".tmp/kubernetes wrapper it's-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const interpreter = join(directory, "interpreter");
+  writeFileSync(interpreter, '#!/bin/sh\nprintf "%s|%s\\n" "$1" "$2"\n', { mode: 0o700 });
+  const executable = join(directory, "fixture");
+  nodeScript(executable, "", interpreter);
+  const result = spawnSync("sh", ["-c", 'exec "$0" reached', executable], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `${executable}.cjs|reached\n`);
 });
 
 test("native preflight rejects source/policy and repository-limit mismatches", () => {
