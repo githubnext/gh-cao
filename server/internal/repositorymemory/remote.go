@@ -15,6 +15,7 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/operational"
 )
 
 var remoteLog = logger.New("cao:repositorymemory:remote")
@@ -228,8 +229,8 @@ func (r *RemoteResolver) Content(ctx context.Context, campaignID, filePath strin
 	if err != nil {
 		return nil, err
 	}
-	if err := r.Cache.CacheRepositoryMemoryFile(
-		ctx, campaignID, campaign.Commit, filePath, content, remoteFileTTL); err != nil {
+	if err := admitCacheWrite(r.Cache.CacheRepositoryMemoryFile(
+		ctx, campaignID, campaign.Commit, filePath, content, remoteFileTTL)); err != nil {
 		return nil, err
 	}
 	return content, nil
@@ -254,7 +255,19 @@ func (r *RemoteResolver) cacheCampaign(
 	if err != nil {
 		return err
 	}
-	return r.Cache.CacheRepositoryMemoryCampaign(ctx, campaignID, content, remoteCampaignTTL)
+	return admitCacheWrite(r.Cache.CacheRepositoryMemoryCampaign(ctx, campaignID, content, remoteCampaignTTL))
+}
+
+// admitCacheWrite treats an explicit capacity rejection as a cache miss. The
+// cache is disposable and the Redis adapter already skips over-budget writes
+// without an error, so the memory and PostgreSQL adapters' ErrCapacity must
+// not fail an already validated GitHub resolution. Other errors propagate.
+func admitCacheWrite(err error) error {
+	if errors.Is(err, operational.ErrCapacity) {
+		remoteLog.Printf("cache admission skipped reason=capacity")
+		return nil
+	}
+	return err
 }
 
 func (r *RemoteResolver) reserve(ctx context.Context, installationID int64) error {
