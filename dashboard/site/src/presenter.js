@@ -422,10 +422,19 @@ export function renderDashboard(input) {
             void input.loadPageSources(pageId, options).then(options.onUpdate).catch((error) => {
               if (options.signal.aborted) return;
               const message = error instanceof Error ? error.message : String(error);
-              failures.set(Object.fromEntries((pagePayload.views ?? []).flatMap((view) => (
-                isPlainObject(view) && typeof view.id === 'string' && getViewSources(view).length
-                  ? [[view.id, message]] : []
-              ))));
+              batch(() => {
+                failures.set(Object.fromEntries((pagePayload.views ?? []).flatMap((view) => (
+                  isPlainObject(view) && typeof view.id === 'string' && getViewSources(view).length
+                    ? [[view.id, message]] : []
+                ))));
+                for (const [index, view] of (pagePayload.views ?? []).entries()) {
+                  if (!isPlainObject(view) || typeof view.element !== 'string') continue;
+                  for (const [sourceIndex, name] of getViewSources(view).entries()) {
+                    sourceState(dashboardViewAliasName(pageId, view, index, name, sourceIndex))
+                      .set({ status: 'failed', origin: 'view', source: null });
+                  }
+                }
+              });
               debugRender('page source binding failed', {
                 pageId,
                 message
