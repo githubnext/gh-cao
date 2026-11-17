@@ -648,12 +648,12 @@ top-N disclosure, and empty results. Protocol tests separately exercise
 reader lifetime, source fencing, malformed responses and resource rejection.
 The emulator proves functional KQL behavior,
 not live Blob/external-table access, authentication, retention, or performance.
-The same opt-in harness runs all ten implemented definitions, including the
-item-source and chained ones, against real DuckDB and real Kusto using
+The same opt-in harness runs all fourteen implemented definitions, including the
+item-source, chained and joined ones, against real DuckDB and real Kusto using
 identical synthetic approved events. Without an approved
 real engine endpoint, the replay reports Kusto unavailable; it MUST NOT claim
 backend parity. The ordinary DuckDB gate runs all 15 pinned upstream replays and
-compares the ten implemented full metric values, unavailable states and separate
+compares the fourteen implemented full metric values, unavailable states and separate
 reason labels. An intentionally malformed envelope fixture retains its upstream
 lookup error and cannot establish metric parity; a separate explicit valid
 envelope scenario is compared without normalizing the original.
