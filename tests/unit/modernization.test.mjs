@@ -7,6 +7,7 @@ import test from "node:test";
 import { parse } from "yaml";
 import { planDigest, readyTasks, systemReadScope, taskComplete, taskMarker, validateDispatch, validateOutputs, validatePlan } from "../../modernization/engagement.mjs";
 import { boundedPages, collectEvidence } from "../../modernization/github.mjs";
+import { assertReviewedBatch } from "../../modernization/actions.mjs";
 
 const sha = "a".repeat(40);
 const digest = "b".repeat(64);
@@ -202,7 +203,22 @@ test("native review fences reject moved control revisions before activation and 
     }
   }
   const runtime = readFileSync(new URL("../../modernization/actions.mjs", import.meta.url), "utf8");
-  assert.match(runtime, /planDigest\(result.ready\) !== expectedBatch/);
+  assert.ok(runtime.indexOf("assertReviewedBatch(") < runtime.indexOf('save("dispatch.json"'));
+});
+
+test("coordinator fails closed when the ready batch differs from the reviewed batch", () => {
+  const ready = [{ repository: "octo/one", task: "assess" }];
+  const reviewed = planDigest(ready);
+  assert.doesNotThrow(() => assertReviewedBatch(reviewed, ready));
+  assert.doesNotThrow(() => assertReviewedBatch(undefined, ready));
+  for (const [expected, batch] of [
+    [reviewed, [...ready, { repository: "octo/two", task: "assess" }]],
+    [reviewed, []],
+    ["not-a-digest", ready],
+    [reviewed.toUpperCase(), ready],
+  ]) {
+    assert.throws(() => assertReviewedBatch(expected, batch), /reviewed task batch changed/);
+  }
 });
 
 test("compiled workers use the native Squad agent and run trusted guards before publication", () => {
