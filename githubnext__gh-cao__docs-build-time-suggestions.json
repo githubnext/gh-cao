@@ -1,35 +1,7 @@
 {
   "source_sha": "dc2b53ffb32ea57ff4242841b0479032ef76e32a",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T22:34:20Z",
-      "worker_run_id": "43970621230",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        43766933236,
-        43768376457,
-        43780290464,
-        43781088986,
-        43781377358,
-        43789359390,
-        43792211504,
-        43798031034,
-        43810351164,
-        43814432358,
-        43825070138,
-        43829639369,
-        43831754585,
-        43831980991,
-        43832040488,
-        43840581457,
-        43854851689,
-        43862265708,
-        43877103800
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 comparable successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded. gh run list at 2026-11-16T22:34:20Z: no newer docs run, none queued or in progress [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T22:53:40Z",
       "worker_run_id": "43973766122",
@@ -819,6 +791,33 @@
         "44043184727"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, 2026-11-16T08:14Z) .. 44043184727 (push f939bbb, 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed; no docs run newer than 44043184727 and none queued or in progress at 08:34Z; HEAD dc2b53f is one server-only commit ahead of f939bbb (no docs trigger). Transfer stage (Jobs API; handoff = deploy start minus build completion): removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; median 9 s, p90 10 s, max 10 s = 11.6% of exec median 77.5 s; 15% gate 11.6 s and 60 s absolute gate both not met. Deploy Pages (GitHub-managed) excluded, median 7 s. Merging deploy into build would save about 6 s and remove the github-pages deployment job; not pursued. Two new rows (44041835448, 44043184727) fetched once; other rows reused. Next: scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T08:52:00Z",
+      "worker_run_id": "44049896439",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647",
+        "44023953879",
+        "44041835448",
+        "44043184727"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, 2026-11-16T08:14Z) .. 44043184727 (push f939bbb, 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded (both 0 jobs, no compute); 18 successes (17 push, 1 schedule 44023953879); 0 failed. Queue (created to build start) median 4 s, p90 15 s, max 64 s (43832040488 behind in-flight 43831980991): latency only, not execution time. Exec median 77.5 s, p90 90 s; 15 percent gate 11.6 s and 60 s gate not met. Superseded in-flight builds: 0 (cancel-in-progress true saves about 0 s). Avoidable rebuilds: 0 of 18 test-only; new heads 58c3e57 (dashboard/site/src) and f939bbb (docs/**, dashboard/site/src) are build-consumed. Daily schedule 44023953879 (62 s) required for synthetic date refresh. docs.yml unchanged since 063cbe9 (2026-11-12). Stale queued run 37642403569 (created 2026-10-07) still queued; maintainer housekeeping, does not block runs. Cache node-cache-Linux-x64-npm-7808ecf8 live (accessed 08:47Z). Next: dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1610,22 +1609,22 @@
     "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
   },
   "scheduling_verified": {
-    "verified_at": "2026-11-17T07:20:43Z",
-    "worker_run_id": "44037441361",
-    "window": "latest 20 completed docs.yml runs 43814432358..44023953879; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule)",
-    "method": "stored immutable run_timings rows recomputed (matches prior 05:33Z result); Jobs API checked for cancelled 43991812013 (no executed job steps returned); no other refetch",
+    "verified_at": "2026-11-17T08:52:00Z",
+    "worker_run_id": "44049896439",
+    "window": "latest 20 completed docs.yml runs 43829639369..44043184727; cancelled 43991812013 and 43832015521 excluded (0 jobs each); 18 successes (17 push, 1 schedule 44023953879)",
+    "method": "stored immutable run_timings rows recomputed (no refetch; window unchanged since 08:23Z); commit file lists for 58c3e57 and f939bbb fetched once; cancelled runs checked via gh run view jobs []; stale queued run status checked",
     "queue_s": {
       "median": 4,
       "p90_nearest_rank": 15,
       "max": 64
     },
     "exec_build_start_to_deploy_end_s": {
-      "median": 79,
-      "p90_nearest_rank": 120
+      "median": 77.5,
+      "p90_nearest_rank": 90
     },
     "concurrency": "cancel-in-progress false kept; pending runs superseded without compute; 0 in-flight builds superseded in window",
-    "avoidable_rebuilds": "0 of 17 window push heads test-only",
-    "decision": "not actionable (no saving meets 11.85 s or 60 s; queue savings are latency only)"
+    "avoidable_rebuilds": "0 of 18 window heads test-only; all build-consumed",
+    "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)"
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-17T05:53:31Z",
