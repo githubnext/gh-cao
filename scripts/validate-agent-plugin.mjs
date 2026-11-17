@@ -129,6 +129,12 @@ export async function validateAgentPlugin(pluginRoot) {
           }
         }
       }
+      if (entry === "SKILL.md") {
+        // Skills name repository-root guide paths so they resolve from both skills/ and .github/skills/.
+        for (const [, guide] of source.matchAll(/`(\.github\/cao\/[^`\s]+\.md)`/g)) {
+          await checkPath(join(root, guide));
+        }
+      }
       for (const match of source.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
         const target = match[1].split("#")[0];
         if (!target || /^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
@@ -137,6 +143,7 @@ export async function validateAgentPlugin(pluginRoot) {
     }
   };
   await walk(join(root, "skills"));
+  await walk(join(root, ".github", "cao", "instructions"));
   for (const resource of Object.values(bundledResources)) {
     await checkPath(join(root, resource));
   }

@@ -30,12 +30,7 @@ const controlRuntimeFiles = [
 ];
 const controlPlaneSkillFiles = [
   ".github/skills/agentic-workflows/SKILL.md",
-  ".github/skills/add-cao-campaign/SKILL.md",
-  ".github/skills/analyze-cao/SKILL.md",
-  ".github/skills/cao-cli/SKILL.md",
-  ".github/skills/create-cao-campaign/SKILL.md",
-  ".github/skills/debug-cao/SKILL.md",
-  ".github/skills/setup-cao/SKILL.md",
+  ".github/skills/central-agentic-ops/SKILL.md",
 ];
 function focusedCampaignSource(slug, source = campaignSource) {
   const separator = source.lastIndexOf("@");

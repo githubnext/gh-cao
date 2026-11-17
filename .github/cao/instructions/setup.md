@@ -1,10 +1,3 @@
----
-name: setup-cao
-description: "Create, bootstrap, initialize, or install a bare CAO control plane: one control repository, runtime, exact repository scope, and authentication. Stop before campaign installation or execution."
-metadata:
-  argument-hint: "Optionally provide the control repository and repositories CAO should read"
----
-
 # Set Up Central Agentic Ops
 
 Set up monitoring; leave `control-plane.campaigns` as an empty object.
@@ -49,9 +42,9 @@ Do not recreate setup logic or write policy JSON directly.
   control plane is a supported dogfood topology; apply both roles without
   combining campaign source, rollout policy, credentials, or target authority.
 
-Read [topology](references/topology.md) when the role is ambiguous or the
+Read [topology](setup/topology.md) when the role is ambiguous or the
 repository is source-managed or also a catalog. Read [public control
-repositories](references/public-control-repositories.md) before using a public
+repositories](setup/public-control-repositories.md) before using a public
 control repository or selecting a non-public target.
 
 ## Preferred human flow
@@ -87,10 +80,10 @@ local. Push links to the Actions run. Setup never configures synthetic-only Page
 3. With approval, install the extension as above. Review source-managed
    workflows before installation; do not overwrite them without approval.
 4. Prefer `gh cao setup`. Read
-   [authentication](references/authentication.md) only when selecting or
+   [authentication](setup/authentication.md) only when selecting or
    troubleshooting an authentication profile.
 5. If interaction is unavailable, read
-   [non-interactive setup](references/non-interactive.md) and take its safe
+   [non-interactive setup](setup/non-interactive.md) and take its safe
    defaults. Do not infer broader scope or configure credentials without
    explicit authorization.
 6. Check local installation and repository state:
@@ -110,7 +103,7 @@ local. Push links to the Actions run. Setup never configures synthetic-only Page
 8. Report repository, visibility, read scope, authentication, validation and
    commit status. Confirm no operation was enrolled, enabled or run.
 
-Read [implementation details](references/implementation-details.md) for
+Read [implementation details](setup/implementation-details.md) for
 installer, runtime, generated/source and steering boundaries.
 
 ## Stop conditions

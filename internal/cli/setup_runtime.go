@@ -174,7 +174,7 @@ func setupRuntime(cmd *cobra.Command, gh ghExecutor) (files []string, err error)
 	for _, apply := range []bool{false, true} {
 		for _, resource := range []string{
 			"activity", "dashboard", ".github/actions", ".github/workflows",
-			".github/aw", ".github/skills", ".github/agents", ".github/cao/instructions.md",
+			".github/aw", ".github/skills", ".github/agents", ".github/cao/instructions.md", ".github/cao/instructions",
 		} {
 			source := filepath.Join(packages, resource)
 			if _, err := os.Lstat(source); errors.Is(err, os.ErrNotExist) {

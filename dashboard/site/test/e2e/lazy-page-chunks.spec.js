@@ -282,7 +282,7 @@ test('core dashboard stays small and page chunks load on demand with in-memory c
   await analysis.click();
   const preview = page.locator('[data-view-id="repositories-runs"] .table-intent-preview');
   await expect(preview).toContainText('Page intent:\nDetermine which repository most needs CAO operational investigation.');
-  await expect(preview).toContainText('https://github.com/githubnext/gh-cao/blob/main/skills/analyze-cao/SKILL.md');
+  await expect(preview).toContainText('https://github.com/githubnext/gh-cao/blob/main/skills/central-agentic-ops/SKILL.md');
   await page.getByRole('button', { name: 'Close prompt preview' }).click();
   await page.getByRole('button', { name: 'Table' }).click();
   await expect.poll(() => pageText(page, 'repositories')).toMatch(

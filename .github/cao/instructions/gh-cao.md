@@ -1,17 +1,8 @@
----
-name: cao-cli
-description: Use or extend the cao CLI for Central Agentic Ops configuration, activity queries, diagnostics, and dashboard-query maintenance.
-allowed-tools: bash jq
-metadata:
-  argument-hint: "[command, dashboard-data-url, owner/repo, or workflow]"
-  version: "1.1.0"
----
-
 # Use the `cao` CLI
 
 ## Deterministic boundary
 
-This skill routes intent; the CLI owns parsing, validation, mutation, querying,
+This guide routes intent; the CLI owns parsing, validation, mutation, querying,
 and result serialization. Read `--help`, invoke the narrowest existing command,
 and report its real output. Do not emulate a command in shell snippets or
 rewrite its behavior in agent-authored code.
@@ -21,7 +12,7 @@ rewrite its behavior in agent-authored code.
 Inside an agentic workflow, query explicitly prepared snapshots with an
 already available native `gh cao`. Never build or install the `gh cao` extension
 as a fallback. Follow
-[workflow runtime](references/workflow-runtime.md) before the operator routes
+[workflow runtime](gh-cao/workflow-runtime.md) before the operator routes
 below; do not build or install the extension when the runtime or cache is absent.
 
 1. Identify the task before running a command:
@@ -29,9 +20,9 @@ below; do not build or install the extension when the runtime or cache is absent
    - activity analysis with shell access: use `gh cao`;
    - activity analysis without shell access: use `cao_catalog`, then `cao_query`;
    - a workflow with a prepared operational snapshot: follow
-     [workflow runtime](references/workflow-runtime.md);
+     [workflow runtime](gh-cao/workflow-runtime.md);
    - dashboard query cost or reuse: follow
-     [dashboard query maintenance](references/dashboard-query-maintenance.md);
+     [dashboard query maintenance](gh-cao/dashboard-query-maintenance.md);
    - CLI implementation work: read [CAO Commands](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md) and the
      matching Go command under `internal/cli/`.
 2. Run `gh cao --help` for native commands from
@@ -98,9 +89,9 @@ fallback or union with daily totals for migrated consumers.
 
 ## Targeted references
 
-- [Workflow runtime](references/workflow-runtime.md): cache paths, fallback
+- [Workflow runtime](gh-cao/workflow-runtime.md): cache paths, fallback
   behavior, and CLI invocation inside a gh-aw run.
-- [Dashboard query maintenance](references/dashboard-query-maintenance.md):
+- [Dashboard query maintenance](gh-cao/dashboard-query-maintenance.md):
   complexity measurement and query pruning.
 - [Agent analysis](https://githubnext.github.io/gh-cao/agent-analysis/): choosing CLI or MCP.
 - [CAO Commands](https://github.com/githubnext/gh-cao/blob/main/docs/cao-cli.md): complete operator and command reference.
