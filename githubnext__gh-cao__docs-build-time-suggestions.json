@@ -1,35 +1,7 @@
 {
   "source_sha": "dc5ce588fc46e19690b460f25e9d514d72f441eb",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T21:18:26Z",
-      "worker_run_id": "43958071766",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "43766933236",
-        "43768376457",
-        "43780290464",
-        "43781088986",
-        "43781377358",
-        "43789359390",
-        "43792211504",
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708",
-        "43877103800"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; 0 failed; gh run list at 21:1xZ shows no docs run queued or in progress and none newer than 4 [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T21:33:43Z",
       "worker_run_id": "43960656693",
@@ -823,6 +795,33 @@
         "44023953879"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43814432358 (push dbf9df7, 2026-11-16T06:05Z) .. 44023953879 (schedule, 2026-11-17T05:24Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule); 0 failed; no docs run queued or in progress; newest docs run unchanged at evaluation; HEAD dc5ce58 = source_sha. Recomputed from stored immutable run_timings rows (no refetch): queue median 4 s, p90 15 s, max 64 s (latency only); exec median 79 s, p90 120 s. Concurrency: cancel-in-progress false; cancelled 43991812013 returned no executed job steps (pending-superseded, no compute); 43832015521 previously shown pending-superseded. Avoidable rebuilds: 0 of 17 window push heads test-only. Best saving on this axis is latency, not execution; no saving meets 11.85 s (15% of exec median) or 60 s. Next category: dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T07:33:49Z",
+      "worker_run_id": "44039229875",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "43814432358",
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647",
+        "44023953879"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43814432358 (push dbf9df7, 2026-11-16T06:05Z) .. 44023953879 (schedule, dc5ce58, 2026-11-17T05:24Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule), 0 failed. gh run list 07:33Z: no newer or in-progress docs run. Recomputed from stored immutable rows (no refetch): setup-node median 3.5 s, install median 8.5 s (p90 11), setup+install+post median 12.5 s (15.8% of exec median 79 s); Node setup is required, so realistic ceiling is install-only 8.5 s (10.8%) versus 11.85 s gate; 60 s gate unreachable. Decision unchanged.",
       "suggestion_fingerprint": null
     }
   ],
