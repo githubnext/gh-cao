@@ -8,7 +8,9 @@ public record ControlPolicy(
         String digest,
         Scope scope,
         Defaults defaults,
-        Map<String, Campaign> campaigns) {
+        Map<String, Campaign> campaigns,
+        Map<String, Declaration> workflows,
+        Map<String, Declaration> operations) {
 
     /** Owner and repository allow-lists; empty means "not restricted by this list". */
     public record Scope(List<String> owners, List<String> repositories) { }
@@ -25,4 +27,17 @@ public record ControlPolicy(
             Integer rolloutPercent,
             Map<String, Mode> targets,
             Map<String, Worker> workers) { }
+
+    /**
+     * Standalone workflow ({@code control-plane.workflows}) or direct operation
+     * ({@code control-plane.operations}) declaration; nullable members mean absent. Operations never
+     * carry a rollout percentage.
+     */
+    public record Declaration(
+            boolean enabled,
+            Mode mode,
+            Mode maxMode,
+            Integer maxRepositories,
+            Integer rolloutPercent,
+            Map<String, Mode> targets) { }
 }

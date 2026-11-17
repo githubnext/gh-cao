@@ -1,11 +1,11 @@
 # Implementation status
 
-Source SHA: `7cb5134de200cd5d27125613422c3ecc7abdf846` (previous slices authored at `93614994…` / `2fbe39c5…` / `a19872d3…`)
+Source SHA: `453e35b00989b6ee37e16fae81c97e8f1077ab85` (this slice; earlier slices authored at `7cb5134d…` / `93614994…` / `2fbe39c5…` / `a19872d3…`)
 Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
 `specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the storage slice.
 `.github/workflows/shared/*`, `server/internal/operational/**` and `server/postgres/operational-grants.sql` are comparison evidence only.
 
-## Implemented and verified (`mvn verify`: 73 tests, 0 failures, 0 skipped; baseline was 41)
+## Implemented and verified (`mvn verify`: 98 tests, 0 failures, 0 skipped; baseline at this SHA was 73)
 
 | Spec reference | Behavior |
 | --- | --- |
@@ -18,6 +18,9 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 | §6.4, T-RES-004/005 | `WorkerRevalidator`: current policy intersected with the parent `DispatchEnvelope`; narrowing/revocation honored, broadening never widens; identity/target mismatch fatal |
 | §6.3, T-RES-006/007 (worker only) | `EffectiveRecord`: worker/denial record with status, reason, identity, mode, repo, workflow SHA, policy digest, schema version, time, envelope |
 | CAO-EXE-004, §6.3, T-EXE-002..005 (evidence-model level) | `ManualDebugAdmission`: single-run debug worker admitted only for `workflow_dispatch`, human non-bot actor equal to triggering actor, write/maintain/admin permission, matching target/output repos, `debug` event mode, no dispatcher correlation inputs; policy resolution (identity, enablement, scope, limits) still applies; record carries `launch_kind: manual-debug`, `debug_actor`, `safe_outputs_staged: true`, empty correlation fields, no envelope, empty candidate/worker lists. Missing evidence fails closed. Expected denials return a plain denial record |
+| CAO-EXE-005, §5.3 `workflows`, §6.3 standalone record | `PolicyParser` accepts `control-plane.workflows` (keys `enabled`, `mode`, `max-mode`, `max-repositories`, `rollout-percent`, deprecated budget, `targets`; no workers or execution fields). `StandaloneResolver.resolve`: exact slug must match `GITHUB_WORKFLOW_REF` (`<control>/.github/workflows/<slug>.lock.yml@<ref>`), dispatcher envelope fields rejected, campaign/worker/operation identity conflicts rejected, `workflow-undeclared`/`workflow-disabled` denials, precedence defaults < workflow < exact target < `max-mode`, narrowing-only mode/max/rollout requests, `debug` rejected, review destination must stay in owner scope. `admit` takes caller-supplied bounded inventory evidence (null = unavailable → fail closed), excludes archived/disabled, orders deterministically, caps by `max-repositories` and ceil(`rollout-percent`), rejects duplicate ids, missing identity and out-of-scope repositories, admits an empty set as no-op; each target carries its own mode and destination (live → target, review → review repo). `EffectiveRecord.buildStandalone` emits `control_role: standalone`, empty campaign/worker/`worker_workflows`, admitted `candidate_repositories`. |
+| CAO-EXE-006, §4.6, §5.3 `operations` | `control-plane.operations` parsed (`enabled`, `mode`, `max-mode`, `max-repositories`, `targets` only; no rollout). Identity conflicts with workflows, campaigns and workers rejected at parse. `DirectOperationResolver.resolve`: exact identity vs workflow ref, no dispatcher inputs/rollout/debug, `operation-undeclared`/`operation-disabled` denials, review default, request cannot widen mode or caps, duplicate (case-insensitive), out-of-scope or empty targets and destinations rejected, live needs exactly one target with destination = target, common mode/destination across grants. `AuthorityEnvelope` v1 (grants pair target+mode+destination, bound to `ExecutionBinding` of repo, policy SHA, workflow ref, run id, attempt; required controls; no delegation; unsupported versions rejected) with `requireNarrowing`; `requireHandoff` fails closed unless the admitted envelope equals the re-resolved one; `prepare` rejects redirected, archived, disabled, duplicate-id and evidence-less targets through a `RepositoryEvidence.Directory` contract. Outcomes cross-checked by hand against `.github/workflows/shared/operations.mjs` (9 cases, identical). |
+| §5.3 target-scope rule | Campaign, workflow and operation `targets` outside `allowed-repositories`/`allowed-owners` rejected at parse |
 | §7, Appendix B | `campaign-undeclared`, `campaign-disabled`, `worker-disabled` denials; unknown worker fatal; policy SHA-256 digest recorded |
 | `server/spec/generated/openapi.json` `/api/health`, `/api/readiness` | JDK `HttpServer` on numeric loopback (non-loopback needs `CAO_ALLOW_NON_LOOPBACK=true`); HealthResponse/ReadinessResponse/OperationalState/DataState shapes; 503 when operational store or canonical data is missing (always today: `ServiceState.unconfigured()`); all capabilities `unsupported`; 404/405 otherwise; `Cache-Control: no-store`; 503 once shutdown begins; env config validation |
 | `specs/server-operational-storage.md` — PostgreSQL operational adapter, `AuditLog` | `PostgresOperationalStore` implements the audit service over real PostgreSQL (tested against a disposable loopback PostgreSQL 18 started by the tests, never skipped): append serializes on the locked `cao_operational_namespaces` row, gap-free per-namespace sequence, database `clock_timestamp()` truncated to ms, `hash = SHA-256(prev_hash ‖ record)` over the stored canonical record; `list` (filter by event/actor/after-sequence, limit ≤ 1000); `verify` (repeatable-read read-only) detects edits, gaps, broken chain, indexed-column divergence, anchor mismatch and head truncation; anchors before the retained window count as expired |
@@ -38,12 +41,14 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 - Health/readiness: no per-client rate limiting (429), no authorized `revision`/`counts` details. curl smoke of the packaged jar was denied by the sandbox; only startup (`listening on 127.0.0.1:18080`) was observed. HTTP behavior is verified by in-process tests over real loopback sockets.
 
 - Debug mode: admission logic takes caller-supplied `ManualDebugEvidence`; nothing yet reads the authoritative GitHub event or checks permission live (T-RES-008 recheck at precompute is the caller's duty), and gh-aw staging (T-GHA-004) is out of scope. Ordinary `PolicyResolver` still rejects `debug`; persistent debug policy stays invalid.
+- Standalone admission ordering: the spec requires a deterministic subset but not its order; Java sorts candidates by lowercase name while the JS comparison implementation uses inventory order, so Java and Go/JS may admit different subsets until cell/batch partitioning is specified and ported.
 - Policy schema: only `scope`, `defaults`, `campaigns` (mode, caps, targets, workers). Not a full JSON Schema validation.
 
 ## Not implemented
 
-Orchestrator/standalone effective records, standalone workflows and operations,
-`inventory`, `web.host`, host extensions, `target-authority`, authority envelopes,
+Orchestrator effective records, `inventory` cell/batch partitioning (standalone admission orders and caps only),
+live inventory/repository lookup adapters, live recheck of repository evidence and destination access, envelope provenance verification and serialization, operation effective record,
+ `web.host`, host extensions, `target-authority`,
 exact-SHA policy fetch, canonical ingestion/storage (PostgreSQL), Dashboard Language
 execution, all other HTTP routes, authentication, operational state beyond `AuditLog` (sessions, revocations, leases, queues, quota, rate limiting, CLI commands), canonical PostgreSQL adapter, container image build verification.
 
@@ -55,5 +60,5 @@ None. Environment note: the sandbox JDK truststore was empty and `~/.m2` unwrita
 
 Canonical PostgreSQL storage: read `server/spec/storage.tsp` and `specs/dashboard-data.md` §§ on ingestion,
 bring up a separate canonical namespace/adapter, ingest a synthetic canonical JSONL fixture through a Java ingestion
-contract, and drive `data.available`/`evaluatedAt` from the published revision. Alternatively, orchestrator/standalone
-effective records (control-architecture §6.3).
+contract, and drive `data.available`/`evaluatedAt` from the published revision. Alternatively, orchestrator effective
+records and inventory partitioning (control-architecture §5.3 `inventory`, §6.3).
