@@ -21,6 +21,9 @@ on:
       max_repos:
         default: 6
         type: number
+      expected_control_sha:
+        description: Native operator reviewed control revision; reject a moved dispatch branch
+        type: string
   permissions:
     contents: read
     actions: read
@@ -33,6 +36,17 @@ jobs:
     outputs:
       cao_authorized: ${{ steps.cao_admission.outputs.authorized == 'true' && steps.cao_precompute.outputs.authorized != 'false' }}
       cao_reason: ${{ steps.cao_precompute.outputs.reason || steps.cao_admission.outputs.reason }}
+    steps:
+      - name: Fence native modernization review revision
+        env:
+          EXPECTED_CONTROL_SHA: ${{ inputs.expected_control_sha }}
+          ACTUAL_CONTROL_SHA: ${{ github.workflow_sha }}
+        run: |
+          # CAO_MODERNIZATION_REVIEWED_SHA_V1
+          if [ -n "$EXPECTED_CONTROL_SHA" ] && [ "$EXPECTED_CONTROL_SHA" != "$ACTUAL_CONTROL_SHA" ]; then
+            echo "Reviewed modernization control revision changed; request a fresh preview." >&2
+            exit 1
+          fi
 if: needs.pre_activation.outputs.cao_authorized == 'true'
 imports:
   - uses: shared/control.md

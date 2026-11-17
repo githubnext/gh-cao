@@ -29,6 +29,12 @@ on:
         type: string
       control_plane_run_url:
         type: string
+      expected_control_sha:
+        description: Native operator reviewed control revision; reject a moved dispatch branch
+        type: string
+      expected_batch_digest:
+        description: Native operator reviewed ready-task batch digest
+        type: string
   permissions:
     contents: read
     actions: read
@@ -43,6 +49,16 @@ jobs:
       cao_authorized: ${{ steps.cao_admission.outputs.authorized == 'true' && steps.cao_precompute.outputs.authorized != 'false' }}
       cao_reason: ${{ steps.cao_precompute.outputs.reason || steps.cao_admission.outputs.reason }}
     steps:
+      - name: Fence native modernization review revision
+        env:
+          EXPECTED_CONTROL_SHA: ${{ inputs.expected_control_sha }}
+          ACTUAL_CONTROL_SHA: ${{ github.workflow_sha }}
+        run: |
+          # CAO_MODERNIZATION_REVIEWED_SHA_V1
+          if [ -n "$EXPECTED_CONTROL_SHA" ] && [ "$EXPECTED_CONTROL_SHA" != "$ACTUAL_CONTROL_SHA" ]; then
+            echo "Reviewed modernization control revision changed; request a fresh preview." >&2
+            exit 1
+          fi
       - name: Checkout reviewed modernization engagement
         if: steps.cao_precompute.outputs.authorized != 'false' && steps.cao_admission.outputs.authorized == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

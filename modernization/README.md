@@ -62,6 +62,50 @@ rather than bypassing it through an independent upload job.
 If the base moves or a handoff expires, run the coordinator again; do not retry
 with forged or manually altered inputs.
 
+## Local dashboard operator actions
+
+The local PostgreSQL dashboard can check readiness, assess, review and approve
+a concrete JSON plan, review the next task batch, inspect linked issues/PRs,
+and verify results. These actions use the existing authenticated, same-origin
+command queue and durable audit, not browser GitHub credentials or the hosted
+command executor. Static and hosted dashboards without the native authorization
+remain unavailable.
+
+The native command contract is:
+
+```sh
+gh cao modernization status --repo OWNER/CONTROL
+gh cao modernization preview --repo OWNER/CONTROL --action run --mode review
+gh cao modernization execute --repo OWNER/CONTROL --preview PREVIEW_ID
+```
+
+Preview actions are `assess`, `approve-plan`, `run`, and `verify`. Only `run`
+accepts `live`, and only within the existing reviewed campaign, target and worker
+ceilings. An `approve-plan` preview reads the concrete plan JSON from standard
+input; other actions accept no plan input. Commands return one
+`CAO_MODERNIZATION_RESULT:` JSON frame. Status includes native task states and
+issue/PR links; successful workflow dispatch reports acceptance, not completion.
+
+The selected control repository must match the owning CLI checkout origin, and
+the current GitHub user must have write access. Source selection uses only the
+bounded exact reviewed scope, never dashboard observations or owner discovery.
+Plan approval additionally requires a clean checkout matching the reviewed
+remote default-branch head. It creates only the engagement-file commit through
+GitHub's expected-head compare-and-swap; it does not overwrite local work or
+change policy, installation, merging or deployment.
+
+Previews expire after five minutes and bind the plan, policy, control revision,
+repository scope and actual task evidence. Execution revalidates that binding
+and persistently consumes the preview before any mutation; an uncertain write
+must be inspected remotely rather than retried. Dispatch uses the reviewed
+default branch with an `expected_control_sha` pre-activation fence, since the
+GitHub dispatch API's ref contract is a branch or tag, not a commit SHA. A moved
+branch fails before agent activation. The coordinator also rejects a changed
+`expected_batch_digest`, including task phase and base evidence, before freezing
+dispatch. Older installed workflows lacking these fences, or a runtime that
+differs from the native operator's production semantics, are explicitly
+unavailable until reviewed updates are installed.
+
 ## Reviewed plan contract
 
 The production validator is [`engagement.mjs`](engagement.mjs). No additional

@@ -1120,6 +1120,23 @@ Execution does not require an interactive terminal. Cancellation remains scoped
 to the owned process tree; unsupported platforms fail closed. Ordinary local
 serving and hosted administration are unchanged.
 
+Modernization adds a separate local domain planner, not generic workflow-run
+authority. Its status/preview/execute actions reuse that queue, native adapter,
+claims, cancellation and audit. The exact selected control repository must match
+the native checkout origin; the current GitHub user requires write access.
+Embedded production policy, engagement validation and GitHub evidence semantics
+resolve bounded exact scope, roster, DAG and actual task readiness. Browser
+results are structured domain frames, never browser-derived readiness.
+Five-minute single-use previews bind the reviewed remote control SHA, policy,
+plan, complete scope and evidence. Approval requires a clean matching checkout
+and creates only the engagement commit through expected-head CAS. Dispatch uses
+an installed pre-activation expected-SHA fence and an exact ready-batch digest,
+so a moved branch or changed evidence cannot silently substitute reviewed work.
+Unsupported/mismatched installed contracts fail closed. An uncertain mutation
+consumes its preview and is not automatically retried; dispatch acceptance is
+not task completion. Hosted/static admission, rollout authority, installation,
+merging and deployment remain unchanged.
+
 The native owner watches local `cao.json` configuration, validates complete
 documents, and republishes exact configured repository identities through the
 existing inventory snapshot and canonical ingestion boundary. The checkout and

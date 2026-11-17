@@ -112,6 +112,77 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 	}
 }
 
+func TestDashboardModernizationInputAndLargeStructuredFrame(t *testing.T) {
+	args := []string{"modernization", "preview", "--repo", "octodemo/control", "--action", "approve-plan", "--mode", "review"}
+	plan := `{"schema":"cao-modernization/v1"}`
+	if dashboardActionArgs(args, []string{"octodemo/control"}) != nil || !dashboardModernizationInput(args, &plan) ||
+		dashboardModernizationInput(args, nil) || dashboardActionArgs(args, []string{"octodemo/other"}) == nil {
+		t.Fatal("modernization approval lost exact scope/input enforcement")
+	}
+	args[5] = "run"
+	if dashboardModernizationInput(args, &plan) || !dashboardModernizationInput(args, nil) {
+		t.Fatal("plan input escaped approval preview")
+	}
+	var output strings.Builder
+	secret := "ghp_" + strings.Repeat("x", 40)
+	writer := &dashboardActionWriter{stream: "stdout", maxLine: 1 << 20, secrets: []string{secret},
+		send: func(event dashboardActionEvent) error { output.WriteString(event.Data); return nil }}
+	frame := modernizationResultPrefix + `{"plan":{"objective":"` + strings.Repeat("reviewed task ", 1500) + `","secret":"` + secret + `"}}` + "\n"
+	if _, err := writer.Write([]byte(frame)); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output.String(), secret) || strings.Contains(output.String(), "suppressed") || !strings.Contains(output.String(), strings.Repeat("reviewed task ", 1500)) {
+		t.Fatal("bounded concrete plan was suppressed or registered credentials leaked")
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(strings.TrimPrefix(strings.TrimSpace(output.String()), modernizationResultPrefix)), &decoded); err != nil {
+		t.Fatalf("structured result frame was corrupted: %v", err)
+	}
+}
+
+func TestDashboardModernizationEnvelopeReachesNativeProcess(t *testing.T) {
+	configPath, cleanup, err := startDashboardActionAdapterWithExecutable(t.Context(), []string{"octodemo/control"}, t.TempDir(),
+		dashboardTestActionExecutable(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config struct{ AdapterURL string }
+	if err := json.Unmarshal(content, &config); err != nil {
+		t.Fatal(err)
+	}
+	body := `{"args":["modernization","preview","--repo","octodemo/control","--action","approve-plan","--mode","review"],"input":"{\"schema\":\"cao-modernization/v1\"}"}`
+	client := &http.Client{Timeout: 5 * time.Second}
+	for index, payload := range []string{body + `{}`, body} {
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, config.AdapterURL+"/execute", strings.NewReader(payload))
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("X-Command-ID", "1")
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := io.ReadAll(response.Body)
+		_ = response.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if index == 0 {
+			if response.StatusCode != http.StatusForbidden {
+				t.Fatal("trailing RPC input was accepted")
+			}
+		} else if response.StatusCode != http.StatusOK || strings.Contains(string(data), "__dashboard_aw") ||
+			!bytes.Contains(data, []byte(`"data":"modernization\n"`)) || !bytes.Contains(data, []byte(`"complete":true,"exitCode":0`)) {
+			t.Fatalf("domain command did not reach its native root: %s", data)
+		}
+	}
+}
+
 func TestDashboardOperationsExcludeUpstreamButNotSiblingRepositories(t *testing.T) {
 	scope := []string{"github/gh-aw", "github/gh-aw-actions"}
 	for _, args := range [][]string{

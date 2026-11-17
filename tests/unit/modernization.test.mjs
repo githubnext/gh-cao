@@ -179,6 +179,32 @@ test("production evidence adapter requires approved baseline ancestry and unambi
   await assert.rejects(collectEvidence(value, hash, candidates, client, client, "octodemo/control"), /duplicate/);
 });
 
+test("native review fences reject moved control revisions before activation and bind the actual task batch", () => {
+  for (const name of ["modernization", "modernization-system"]) {
+    for (const suffix of [".md", ".lock.yml"]) {
+      const source = readFileSync(new URL(`../../.github/workflows/${name}${suffix}`, import.meta.url), "utf8");
+      const document = suffix === ".md" ? parse(source.split("---")[1]) : parse(source);
+      const job = document.jobs[suffix === ".md" ? "pre-activation" : "pre_activation"];
+      const step = job.steps.find(step => step.run?.includes("CAO_MODERNIZATION_REVIEWED_SHA_V1"));
+      assert.equal(step.env.EXPECTED_CONTROL_SHA, "${{ inputs.expected_control_sha }}");
+      assert.equal(step.env.ACTUAL_CONTROL_SHA, "${{ github.workflow_sha }}");
+      assert.equal(step["continue-on-error"], undefined);
+      assert.equal(step.if, undefined);
+      for (const [expected, actual, status] of [["", sha, 0], [sha, sha, 0], ["b".repeat(40), sha, 1]]) {
+        let code = 0;
+        try {
+          execFileSync("sh", ["-c", step.run], { env: { ...process.env, EXPECTED_CONTROL_SHA: expected, ACTUAL_CONTROL_SHA: actual }, stdio: "pipe" });
+        } catch (error) {
+          code = error.status;
+        }
+        assert.equal(code, status);
+      }
+    }
+  }
+  const runtime = readFileSync(new URL("../../modernization/actions.mjs", import.meta.url), "utf8");
+  assert.match(runtime, /planDigest\(result.ready\) !== expectedBatch/);
+});
+
 test("compiled workers use the native Squad agent and run trusted guards before publication", () => {
   const worker = readFileSync(new URL("../../.github/workflows/modernization-task.lock.yml", import.meta.url), "utf8");
   assert.match(worker, /--disable-builtin-mcps[\s\S]*--agent squad/);

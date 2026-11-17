@@ -45,6 +45,10 @@ export async function prepare({ github, core, getOctokit }) {
   const maximum = Math.min(3, precompute.effective_max_repos, precompute.dispatch_max);
   const result = worker && maximum > 0 ? readyTasks(plan, evidence, candidates, maximum)
     : { digest, ready: [], completed: [], complete: false };
+  const expectedBatch = read(process.env.GITHUB_EVENT_PATH).inputs?.expected_batch_digest;
+  if (expectedBatch && (!/^[a-f0-9]{64}$/.test(expectedBatch) || planDigest(result.ready) !== expectedBatch)) {
+    throw new Error("Modernization: reviewed task batch changed; obtain a fresh native preview");
+  }
   save("dispatch.json", {
     ...result, schema: "cao-modernization-dispatch/v1", repository: process.env.GITHUB_REPOSITORY,
     workflow_sha: process.env.GITHUB_WORKFLOW_SHA, run_id: process.env.GITHUB_RUN_ID,

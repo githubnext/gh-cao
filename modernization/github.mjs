@@ -52,6 +52,7 @@ export async function collectEvidence(plan, digest, candidates, inventory, contr
       evidence[task.id] = {
         complete, issue: issue?.number ?? null, closed_issue: issue?.state === "closed",
         active_pull: Boolean(taskPulls.length || proposals.length), base_sha: base,
+        issue_url: issue?.html_url ?? null, pull_url: taskPulls[0]?.html_url ?? null,
       };
     }
   }

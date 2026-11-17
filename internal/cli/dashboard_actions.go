@@ -54,6 +54,9 @@ func dashboardEnrollmentArgs(args []string) bool {
 }
 
 func dashboardActionArgs(args, repositories []string) error {
+	if len(args) > 0 && args[0] == "modernization" {
+		return dashboardModernizationArgs(args, repositories)
+	}
 	if dashboardEnrollmentArgs(args) {
 		if !nativeRepositoryOperationsAllowed(args[2]) {
 			return errors.New("github/gh-aw is excluded from CAO operations")
@@ -123,6 +126,7 @@ type dashboardActionWriter struct {
 	suppressed bool
 	secrets    []string
 	send       func(dashboardActionEvent) error
+	maxLine    int
 }
 
 func (w *dashboardActionWriter) Write(data []byte) (int, error) {
@@ -133,7 +137,11 @@ func (w *dashboardActionWriter) Write(data []byte) (int, error) {
 			}
 		} else if !w.suppressed {
 			w.buffer = append(w.buffer, value)
-			if len(w.buffer) > 8192 {
+			limit := w.maxLine
+			if limit == 0 {
+				limit = 8192
+			}
+			if len(w.buffer) > limit {
 				w.buffer = nil
 				w.suppressed = true
 			}
@@ -232,8 +240,32 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	}
 	mux.HandleFunc("POST "+adapterPrefix+"/execute", func(w http.ResponseWriter, r *http.Request) {
 		var args []string
-		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&args) != nil {
+		var input *string
+		content, readErr := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
+		if readErr != nil {
 			http.Error(w, "invalid scoped maintenance command", http.StatusForbidden)
+			return
+		}
+		if json.Unmarshal(content, &args) != nil {
+			var request struct {
+				Args  []string `json:"args"`
+				Input *string  `json:"input"`
+			}
+			decoder := json.NewDecoder(strings.NewReader(string(content)))
+			decoder.DisallowUnknownFields()
+			if decoder.Decode(&request) != nil || !errors.Is(decoder.Decode(&struct{}{}), io.EOF) ||
+				len(request.Args) == 0 || request.Args[0] != "modernization" {
+				http.Error(w, "invalid native domain command", http.StatusForbidden)
+				return
+			}
+			args, input = request.Args, request.Input
+		}
+		if len(args) > 0 && args[0] != "modernization" && len(content) > 8192 {
+			http.Error(w, "maintenance command exceeds the existing request bound", http.StatusForbidden)
+			return
+		}
+		if len(args) > 0 && args[0] == "modernization" && !dashboardModernizationInput(args, input) {
+			http.Error(w, "invalid modernization plan input", http.StatusForbidden)
 			return
 		}
 		scope := repositories
@@ -300,6 +332,9 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 			// Stages review-mode policy in the dashboard's control checkout.
 			childArgs = slices.Clone(args)
 		}
+		if args[0] == "modernization" {
+			childArgs = slices.Clone(args)
+		}
 		child := exec.CommandContext(executionCtx, executable, childArgs...)
 		if args[0] == "disable" {
 			directory, prepareErr := prepareDashboardDisableCheckout(executionCtx, cache, args)
@@ -313,6 +348,12 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 		}
 		configureDashboardProcess(child)
 		child.Env = append(os.Environ(), "GH_HOST=github.com")
+		if args[0] == "modernization" {
+			child.Env = append(dashboardDisableEnvironment(os.Environ()), "CAO_MODERNIZATION_PREVIEW_DIR="+filepath.Join(cache, "modernization-previews"))
+			if input != nil {
+				child.Stdin = strings.NewReader(*input)
+			}
+		}
 		if args[0] == "disable" {
 			child.Env = dashboardDisableEnvironment(os.Environ())
 		}
@@ -324,6 +365,9 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 			}
 		}
 		stdout := &dashboardActionWriter{stream: "stdout", send: send, secrets: secrets}
+		if args[0] == "modernization" {
+			stdout.maxLine = 1 << 20
+		}
 		stderr := &dashboardActionWriter{stream: "stderr", send: send, secrets: secrets}
 		child.Stdout, child.Stderr = stdout, stderr
 		err := child.Run()
