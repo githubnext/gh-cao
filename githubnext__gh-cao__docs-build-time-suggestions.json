@@ -1,34 +1,7 @@
 {
  "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T09:22:19Z",
-   "worker_run_id": "44054283614",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457",
-    "43832040488",
-    "43831980991",
-    "43831754585",
-    "43829639369"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, 2026-11-16T08:14Z) to 44043184727 (push f939bbb, 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed; no docs run queued or in progress (stale 37642403569 only). No docs-consumed change since f939bbb (compare to dc2b53f: server/ files only). Stored run_timings recomputed, no refetch: setup-node median 3 s p90 6; install median 8.5 s p90 11; post 0 s p90 0; phase median 12.5 s p90 17 s = 16.1 percent of exec median 77.5 s; 15 percent gate 11.63 s; 60 s gate unmet. Ceiling: install-only removal 8.5 s (11 percent); setup plus install together is 11.5 s median even with zero restore cost and no npm ci, which is infeasible. Cache: sole entry node-cache-Linux-x64-npm-7808ecf8 (263412733 B, created 2026-11-13T20:57Z) last accessed 09:18Z; post step 0-1 s in 18/18 = exact-hit restore, no save. Caveat (unmeasured, currently zero impact): key uses root lock only, so a future dashboard/site lock change would not refresh the saved npm cache. Open #20815 (checkout) is another category, not repeated. No issue. Next: Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T09:35:50Z",
    "worker_run_id": "44056326068",
@@ -810,22 +783,944 @@
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 19:16Z: no docs run newer than 44060953578, none queued or in progress (only stale queued 37642403569, created 2026-10-07, outside window). main 453e35b = source_sha; no docs trigger path. Stored run_timings recomputed (no job refetch): exec median 77.5 s, p90 90 s; queue median 4 s, p90 15 s, max 64 s (latency only). cancel-in-progress false kept: 0 in-flight builds superseded, so true saves 0 s. Avoidable rebuilds: 0 of 18 window heads test-only. Daily schedule still required for synthetic date refresh. Gates 11.6 s and 60 s not met. Open #20815 (checkout, other category) and #21153 (incomplete-run report) not repeated. No suggestion; noop. Next: dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-17T19:34:55Z",
+   "worker_run_id": "44159143790",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672",
+    "43991770179",
+    "43991571724",
+    "43987917606",
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed; gh run list shows no docs run queued or in progress and none newer than 44060953578. Source 453e35b: compare fcd7e18...453e35b lists only server/, specs/ and scripts/replay-session-archive-graders.mjs (no docs-triggered path). Stored run_timings rows recomputed, no refetch: setup-node median 3 s p90 6; install median 9.5 s p90 11 = 12.3 percent of exec median 77.5 s; post median 0 s p90 1; setup+install+post median 12.5 s p90 17 = 16.1 percent. 15 percent gate 11.63 s unmet by any install-only change (ceiling 9.5 s); whole phase needs node and materialised deps. Cache from caches API (trusted metadata): node-cache-Linux-x64-npm-7808ecf8 (251.20 MiB, created 2026-11-13T20:57Z, last accessed 19:29Z) is the only docs key; no save since creation, so exact-key hits across the window; root-only glob hash re-derived = 7808ecf8. dashboard/site lock not in key; re-open watch not triggered (install median 9.5 s below 11.4 s). Open #20815 (checkout, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z) is another category and not repeated. No issue. Next: Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
- "docs_cache_model": {"verified_at":"2026-11-17T01:01:56Z","source_pin":"actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)","key":"node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) root only>","restore":"exact key only; no restore-keys","live_entry":"node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263412733 B; created 2026-11-13T20:57:12Z; ref refs/heads/main; listed 22:51Z)","root_lock_history":"root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z); no lock commit through 88f652f4","hashing":"hashFiles = sha256 over concatenated binary per-file sha256 digests; root-only reproduces 7808ecf8; root+dashboard reproduces aaf3a193 (not used by docs.yml)","hits":"success runs: Post Set up Node.js 0-1 s (exact-key hit inferred); failed runs: post step skipped, so cannot be classified","install_shape":"root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)","log_access":"23:18Z: job logs API HTTP 403 DIFC (not bypassed)","seeding_correction":"failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown","live_entry_last_accessed":"2026-11-17T17:44:09Z (caches API read 17:52Z; key node-cache-Linux-x64-npm-7808ecf8; still live)","window_2026_11_15T1930Z":{"n_success":8,"setup_node_median_s":4,"install_median_s":8.5,"install_p90_s":11,"setup_install_post_median_s":12,"exec_median_s":78,"exec_p90_s":111},"last_accessed_checked":"2026-11-16T22:53:40Z (caches API: node-cache-Linux-x64-npm-7808ecf8 last_accessed_at 2026-11-16T22:44:10Z; created 2026-11-13T20:57:12Z; 263412733 B)","hash_rederived":"2026-11-16T10:24:00Z root-only sha256(binary per-file digests) = 7808ecf8...; root+dashboard = aaf3a193... (not used by docs.yml)","window_2026_11_16T0033Z":{"n_success":20,"post_setup_node_s":"0-1 in all runs (no save => exact-key hit)","setup_node_median_s":3.5,"install_median_s":8,"setup_install_post_median_s":11.5}},
- "checkout_probe": {"measured_at":"2026-11-13T17:38:10Z","method":"sandbox git fetch from public github.com remote, same refspecs as actions/checkout fetch-depth 0; then git checkout -B main","full_all_heads_tags_s":{"fetch":19.2,"checkout":0.2,"total":19.4,"size":"1.5G"},"blobless_all_heads_tags_s":{"fetch":1.3,"checkout":2.7,"total":4,"size":"93M"},"provenance_equivalence":"git log -1 --format=%cI <HEAD> -- <path>: 3348/3348 identical full vs blobless; missing-blob count unchanged (no lazy fetch)","repo":{"branches":1270,"tags":67,"default_branch_commits":3775,"api_size_kb":1453275},"open_issue":{"number":20815,"state":"OPEN","fingerprint":"docs-checkout-blobless-history-v1","checked_at":"2026-11-16T08:37:32Z","note":"updatedAt unchanged 2026-11-13T17:41:19Z; state OPEN, 0 comments at 08:4xZ; not repeated (window p90 now 34 s vs 29 s cited; median 25 s unchanged)"},"window_checkout_ok14_median_p90_s":[26,51],"window_checkout_ok13_median_p90_s":[24,28],"window_checkout_ok_median_p90_s":[24.5,28]},
- "reliability_blocker": {"observed_at":"2026-11-17T16:20:38Z","status":"Run 44115019849 reported incomplete (issue 21153) on a rate-limited first Actions read; no evaluation recorded. Runs 44118554795 and 44124036306 made no rate-limited reads."},
+ "docs_cache_model": {
+  "verified_at": "2026-11-17T01:01:56Z",
+  "source_pin": "actions/setup-node 820762786026740c76f36085b0efc47a31fe5020 (cache: npm)",
+  "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) root only>",
+  "restore": "exact key only; no restore-keys",
+  "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263412733 B; created 2026-11-13T20:57:12Z; ref refs/heads/main; listed 22:51Z)",
+  "root_lock_history": "root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z); no lock commit through 88f652f4",
+  "hashing": "hashFiles = sha256 over concatenated binary per-file sha256 digests; root-only reproduces 7808ecf8; root+dashboard reproduces aaf3a193 (not used by docs.yml)",
+  "hits": "success runs: Post Set up Node.js 0-1 s (exact-key hit inferred); failed runs: post step skipped, so cannot be classified",
+  "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
+  "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
+  "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
+  "live_entry_last_accessed": "2026-11-17T19:29:14Z (caches API read 19:33Z; key node-cache-Linux-x64-npm-7808ecf8; still live; no save since 2026-11-13T20:57:12Z)",
+  "window_2026_11_15T1930Z": {
+   "n_success": 8,
+   "setup_node_median_s": 4,
+   "install_median_s": 8.5,
+   "install_p90_s": 11,
+   "setup_install_post_median_s": 12,
+   "exec_median_s": 78,
+   "exec_p90_s": 111
+  },
+  "last_accessed_checked": "2026-11-16T22:53:40Z (caches API: node-cache-Linux-x64-npm-7808ecf8 last_accessed_at 2026-11-16T22:44:10Z; created 2026-11-13T20:57:12Z; 263412733 B)",
+  "hash_rederived": "2026-11-16T10:24:00Z root-only sha256(binary per-file digests) = 7808ecf8...; root+dashboard = aaf3a193... (not used by docs.yml)",
+  "window_2026_11_16T0033Z": {
+   "n_success": 20,
+   "post_setup_node_s": "0-1 in all runs (no save => exact-key hit)",
+   "setup_node_median_s": 3.5,
+   "install_median_s": 8,
+   "setup_install_post_median_s": 11.5
+  }
+ },
+ "checkout_probe": {
+  "measured_at": "2026-11-13T17:38:10Z",
+  "method": "sandbox git fetch from public github.com remote, same refspecs as actions/checkout fetch-depth 0; then git checkout -B main",
+  "full_all_heads_tags_s": {
+   "fetch": 19.2,
+   "checkout": 0.2,
+   "total": 19.4,
+   "size": "1.5G"
+  },
+  "blobless_all_heads_tags_s": {
+   "fetch": 1.3,
+   "checkout": 2.7,
+   "total": 4,
+   "size": "93M"
+  },
+  "provenance_equivalence": "git log -1 --format=%cI <HEAD> -- <path>: 3348/3348 identical full vs blobless; missing-blob count unchanged (no lazy fetch)",
+  "repo": {
+   "branches": 1270,
+   "tags": 67,
+   "default_branch_commits": 3775,
+   "api_size_kb": 1453275
+  },
+  "open_issue": {
+   "number": 20815,
+   "state": "OPEN",
+   "fingerprint": "docs-checkout-blobless-history-v1",
+   "checked_at": "2026-11-16T08:37:32Z",
+   "note": "updatedAt unchanged 2026-11-13T17:41:19Z; state OPEN, 0 comments at 08:4xZ; not repeated (window p90 now 34 s vs 29 s cited; median 25 s unchanged)"
+  },
+  "window_checkout_ok14_median_p90_s": [
+   26,
+   51
+  ],
+  "window_checkout_ok13_median_p90_s": [
+   24,
+   28
+  ],
+  "window_checkout_ok_median_p90_s": [
+   24.5,
+   28
+  ]
+ },
+ "reliability_blocker": {
+  "observed_at": "2026-11-17T16:20:38Z",
+  "status": "Run 44115019849 reported incomplete (issue 21153) on a rate-limited first Actions read; no evaluation recorded. Runs 44118554795 and 44124036306 made no rate-limited reads."
+ },
  "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
- "observations_pending": [{"observed_at":"2026-11-16T11:22:56Z","note":"Checkout is the largest single step (window median 25 s, p90 70 s, 33% of exec median); open issue 20815 covers blobless checkout. Out of the reusable dashboard generation category; for the artifact/dependency cycles, not re-proposed here."},{"observed_at":"2026-11-16T10:24:00Z","note":"Checkout outlier 43840581457 (73 s) remains a single sample; open issue 20815 (blobless checkout) unchanged, not re-proposed."},{"observed_at":"2026-11-16T08:37:32Z","note":"Watch (unchanged): test-only push 5b8b842 (43780290464) is the only test-only docs run in the 20-run window. Candidate change only if a second test-only run appears: negated trigger for dashboard/site/test/** in docs.yml, validated with a docs run."},{"observed_at":"2026-11-16T11:55:48Z","note":"Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued; no docs run queued or in progress. Maintainer housekeeping; this worker is read-only."},{"observed_at":"2026-11-16T14:38:23Z","note":"Strict 19-success window (cancelled 43832015521 excluded, 43766019418 dropped): checkout median 25 s, p90 70 s, 32.9% of exec median 76 s; build job median 62 s, p90 115 s; deploy job median 9 s; queue median 3 s. Open issue 20815 OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not re-proposed (median unchanged; cannot comment on existing issues)."},{"observed_at":"2026-11-16T12:29:00Z","note":"Repository cache usage 10,570,080,425 B across 101 active caches exceeds the 10 GB default quota; eviction is LRU. Main docs key node-cache-Linux-x64-npm-7808ecf8 still present and accessed by every docs run. Watch item: a cold miss would show as a longer install and non-zero post step. Not a speed suggestion."},{"observed_at":"2026-11-16T19:31:11Z","note":"Watch (cache-key coverage, not a speed suggestion): docs.yml setup-node key hashes root package-lock.json only and entries are immutable, so a dashboard/site/package-lock.json-only change would keep the same key and dashboard deps would be fetched from the registry each run until the root lock changes. No effect today: both locks last changed 7c8faf4 (2026-11-13T20:56Z), before the entry was created (20:57Z). Re-open only if a dashboard-only lock change appears and install median rises above 11.4 s; candidate fix (not validated): add dashboard/site/package-lock.json to cache-dependency-path."},{"observed_at":"2026-11-17T16:37:00Z","note":"Open #20815 (blobless checkout, checkout median 25 s = 33 percent of exec median) still OPEN with 0 comments and unchanged; this worker cannot comment or update, so it is not re-proposed. Re-propose only if #20815 closes without a change or checkout median materially changes."}],
- "run_timings": {"evaluated_at":"2026-11-17T12:54:03Z","window":"strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded (0 jobs); 18 successes","columns":["run","event","conclusion","head","queue_s","build_job_s","checkout_s","setup_node_s","install_s","post_setup_node_s","build_docs_s","demo_s","upload_s","deploy_job_s","exec_s"],"note":"Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end; queue = run created to build start. Medians: exec 77.5 s, queue 4 s, checkout 25 s, install 9.5 s, build docs 11 s, demo 5 s, deploy job 9.5 s.","rows":[["44060953578","push","success","fcd7e18",5,64,23,3,10,1,15,5,2,10,79],["44043184727","push","success","f939bbb",3,61,26,3,10,0,11,4,2,9,75],["44041835448","push","success","58c3e57",4,66,25,4,10,0,14,6,3,10,82],["44023953879","schedule","success","dc5ce58",3,48,21,3,5,0,9,4,2,9,62],["44004300647","push","success","7b85edf",4,62,24,2,10,0,14,6,2,11,79],["43993695761","push","success","b737e3c",3,49,21,2,6,0,10,3,2,9,64],["43992363367","push","success","105be55",4,63,25,2,11,0,15,5,3,10,79],["43991897672","push","success","51facb5",15,58,25,4,6,0,10,3,3,9,72],["43991770179","push","success","be0c06f",3,54,24,3,6,0,9,3,2,11,70],["43991571724","push","success","b601783",3,55,23,2,8,0,11,5,2,10,70],["43987917606","push","success","139ce75",5,65,28,4,10,0,11,4,3,9,79],["43877103800","push","success","0cfeed6",3,59,23,6,8,0,11,5,2,9,73],["43862265708","push","success","1a03d21",3,66,28,3,8,0,13,8,2,9,80],["43854851689","push","success","fade88d",4,62,25,2,10,0,14,6,2,9,76],["43840581457","push","success","f0e71a1",4,118,73,5,11,1,14,6,3,8,132],["43832040488","push","success","70f59d2",64,52,22,3,6,0,11,3,2,11,69],["43831980991","push","success","17a3b7a",4,66,28,5,9,0,11,5,3,12,83],["43831754585","push","success","fa5faeb",4,74,27,8,10,0,13,6,3,11,90]]},
- "transfer_model": {"verified_at":"2026-11-17T10:20:11Z","window":"43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z)","method":"Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)","columns":["run","event","handoff_s","configure_s","upload_s","deploy_setup_s","deploy_pages_s","deploy_job_s","removable_s","exec_s"],"rows":[["43831754585","push",5,1,3,1,7,11,10,90],["43831980991","push",5,0,3,1,7,12,9,83],["43832040488","push",6,1,2,1,7,11,10,69],["43840581457","push",6,0,3,1,6,8,10,132],["43854851689","push",5,0,2,1,6,9,8,76],["43862265708","push",5,0,2,1,6,9,8,80],["43877103800","push",5,0,2,1,7,9,8,73],["43987917606","push",5,1,3,1,6,9,10,79],["43991571724","push",5,0,2,1,6,10,8,70],["43991770179","push",5,1,2,1,7,11,9,70],["43991897672","push",5,1,3,1,6,9,10,72],["43992363367","push",6,0,3,1,7,10,10,79],["43993695761","push",6,1,2,1,5,9,10,64],["44004300647","push",6,0,2,1,7,11,9,79],["44023953879","schedule",5,0,2,1,7,9,8,62],["44041835448","push",6,0,3,1,7,10,10,82],["44043184727","push",5,1,2,1,6,9,9,75],["44060953578","push",5,1,2,1,6,10,9,79]],"summary":{"removable_median_s":9,"removable_p90_s":10,"removable_max_s":10,"exec_median_s":77.5,"exec_p90_s":90,"removable_pct_of_exec_median":11.6,"gate_15pct_s":11.63,"gate_60s_absolute":"not met","decision":"not actionable"},"spot_check":{"verified_at":"2026-11-16T20:35:26Z","run":"43877103800","result":"Live Jobs API matched stored rows for 43877103800, 43840581457 and 43814432358 (handoff 5/6/5, configure 0/0/0, upload 2/3/3, deploy setup 1/1/1, deploy pages 7/6/7, exec 73/132/120)"},"evaluated_note":"2026-11-17T13:34:04Z worker 44093232163: window unchanged (no docs run newer than 44060953578); removable median 9 s, p90 10 s vs 15 percent gate 11.63 s and 60 s gate: not met; decision unchanged (not actionable). Stored rows recomputed, no refetch.","reverified_note":"Re-verified 2026-11-17T06:54:51Z by worker 44034238011: window rolled to 44023953879; decision unchanged (ceiling 9 s vs 11.85 s and 60 s gates; merge-deploy-into-build about 6 s, rejected).","artifact_bytes":{"44060953578":9354549,"43877103800":9242961},"deploy_pages_stats":{"median_s":6.5,"p90_s":7,"handoff_median_s":5}},
- "commit_paths": {"verified_at":"2026-11-16T02:26:27Z","method":"gh api repos/githubnext/gh-cao/commits/<sha> file lists; commits are immutable, so reuse this map and do not refetch; no ETag captured","push_commits_checked":27,"test_only_pushes":1,"build_consumed_pushes":23,"examples":{"88f046c":"dashboard-fragments/workflow-value.json, test fixtures, test units","aa73dc6":"dashboard-fragments, dashboard.json, src/agent generated, specs, e2e","f02efd0":"astro.config.mjs","ac6789f":"dashboard/site/src/data/adapters/grader-evidence.js, debug test, normalize.generated.js.gz","7b092ad":"dashboard/site/src/auth.js, debug test","f8da6f2":"dashboard/site/src/agent/query-executor.js, debug test","29e63d1":"ARCHITECTURE.md, dashboard/site/src/specification.js, dashboard-fragments, docs, Go CLI","4193d93":"dashboard/site/src/components/cli-actions.js, debug test","d55c91b":"dashboard/site/src/browser-storage.js, debug test","6418dcd":"dashboard/site/src/source-store.js, debug test","185fd26":"dashboard/site/src/data/storage/shards.js","93c64ff":"docs/operations.md, shared workflow context, lock files, tests","afe0ba0":"dashboard/site/src/data/storage/shards.js, debug test","600b56a":"docs/setup-quickstarts.md, ARCHITECTURE.md, Go CLI","04c9d9e":"docs/cao-cli.md, ARCHITECTURE.md, Go CLI and session archive","54faceef":"docs/configuration.md, ARCHITECTURE.md, server","7e620f3":"docs/components/SiteFooter.astro","54e08aa":"docs/components/ThemeToggle.astro","d62125be":"dashboard-fragments/workflow-value.json, dashboard.json, generated agent catalog/queries, test fixtures and unit (build-consumed)","e3b3b9cd":"docs/operations.md, scripts/dashboard-demo-data.mjs, dashboard-pages-simulation unit test (build-consumed via docs/**)","88f652f4":"ARCHITECTURE.md, dashboard/README.md, dashboard/site/README.md, dashboard/site/scripts/build.mjs, dashboard-site-build unit test (build-consumed via dashboard/site/**)","de1fbfc":"docs/local-debugging.md (build-consumed via docs/**)","24f570e":"dashboard/site/src/agent/mcp-contract.json (trigger path; imported by query-executor.js, build-consumed), server/* and specs (not in paths filter)","8c2dd68":"docs/glossary.md (docs/** Astro srcDir, build-consumed)","10f5e57":"dashboard/site/src/data/github-service.js, dashboard/site/test/unit/github-service-debug.test.js (build-consumed source)","14a39d4":"dashboard/site/src/components/cli-actions.js (src copied by build.mjs), dashboard/site/test/unit debug test (never copied)","e75f80a":"dashboard/site/src/agent/mcp-contract.json (build-consumed; imported by query-executor.js), plus server/Go/specs (outside paths filter)","eccbdd6":"dashboard/site/dashboard-fragments/workflow-value.json, src/agent generated JSON (build-consumed), e2e and unit tests","5b8b842":"test-only: dashboard/site/test/e2e/*, tests/**, server *_test.go; trigger matched via dashboard/site/test/** (only test-only push in window)","f996c9a":"dashboard/site/scripts/build.mjs, tests (build script itself is build-consumed)","86f6047":"dashboard/site/src/agent/mcp-contract.json (build-consumed via src copy); session-archive server and workflow outside paths filter","67a8568":"dashboard/site/src/components/campaign-route-shell.js (build-consumed src), dashboard/site/test/unit/campaign-route-shell-debug.test.js","4121d56":"dashboard/site/src/agent/mcp-contract.json (build-consumed, imported by query-executor.js), session-archive workflow and server/specs (outside docs paths filter); build-consumed, not test-only","f0e71a1":"dashboard/site/src/deferred-styles.js (build-consumed src copy), dashboard/site/test/unit/deferred-styles-debug.test.js (never copied)","1a03d21":"docs/dashboard-data-ingestion.md, docs/dashboard-data-model.md (docs/** trigger, build-consumed); ARCHITECTURE.md, specs, server outside filter"},"build_consumed_note":"build.mjs (lines 52-53) recursively copies all of dashboard/site/src and dashboard-fragments into the published output, so every src or fragment path is build-consumed regardless of import graph."},
- "local_clone_note": {"verified_at":"2026-11-16T01:07:48Z","note":"Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."},
- "dashboard_generation_verified": {"verified_at":"2026-11-17T08:23:50Z","window":"latest 20 completed docs.yml runs 43829639369..44043184727 (cancelled 43991812013 and 43832015521 excluded); 18 successes; recomputed from immutable run_timings rows","demo_step_s":{"median":5,"p90":6,"min":3,"max":8,"n":18},"exec_s":{"median":77.5,"p90":90},"demo_share_of_exec_median_pct":6.5,"gate_15pct_s":11.6,"ceiling_saving_s":5,"reuse_blocker":"scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid","note":"Re-verified 18:37Z by worker 43929821091: no newer docs run than 43877103800; demo rows recomputed (median 5 s, p90 6 s, max 8 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists. Re-verified 23:35Z by worker 43979722480: no newer docs run; strict 19-success demo rows recomputed (median 5 s, p90 6 s, max 8 s); decision unchanged (ceiling 5 s vs gate 11.4 s).","decision":"not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)","reverified_note":"Re-verified 2026-11-17T03:22:28Z by worker 44009269283: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18); Jobs API spot-check of 44004300647 matched (6 s); HEAD dc5ce58 adds only server/ files (no docs trigger); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).","reverified_note_2":"Re-verified 2026-11-17T04:53Z by worker 44019713409: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).","reverified_note_3":"Re-verified 2026-11-17T06:41Z by worker 44032733255: no newer docs run than 44023953879; no queued or in-progress docs run; stored demo rows recomputed (median 5 s, p90 6 s, min 3, max 8, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).","reverified_note_4":"Re-verified 2026-11-17T08:23Z by worker 44045751647: newest run 44043184727 (push f939bbb) demo step 4 s added; stored rows recomputed (median 5.0, p90 6, n 18); decision unchanged: not actionable (ceiling 5.0 s vs gate 11.6 s and 60 s absolute).","reverified_note_5":"Re-verified 2026-11-17T09:52Z by worker 44059106675: no docs run newer than 44043184727 (read-only gh run list); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute).","reverified_note_6":"Re-verified 2026-11-17T11:31Z by worker 44074416041: no docs run newer than 44060953578 (gh run list); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); Jobs API spot-check of 44060953578 matched (5 s); decision unchanged: not actionable (ceiling 5 s vs gate 11.62 s and 60 s absolute).","reverified_note_7":"Re-verified 2026-11-17T13:19:38Z by worker 44090988431: no docs run newer than 44060953578 (gh run list 13:18Z); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.63 s and 60 s absolute).","last_reverified_at":"2026-11-17T18:36:00Z","last_reverified_note":"Re-verified by worker 44107168995: no docs run newer than 44060953578; stored rows recomputed (median 5 s, p90 6 s, n 18); Jobs API spot-check of 44060953578 matched; decision unchanged (not actionable).","reverified_note_8":"Re-verified 2026-11-17T18:36:00Z by worker 44149071437: no docs run newer than 44060953578 (gh run list); stored demo rows recomputed (median 5, p90 6, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)."},
- "astro_output_reuse": {"verified_at":"2026-11-16T06:36:53Z","status":"rejected","blocker":"Astro output embeds PUBLIC_PAGES_BUILD_COMMIT (docs/components/SiteFooter.astro:9; docs/plugins/starlight-agent/resource.ts:233); scripts/validate-agent-docs.mjs:571 requires it to equal the build commit. Reuse across commits publishes stale provenance.","window_stats":{"build_docs_s":{"median":11,"p90":15,"min":8,"max":16},"exec_s":{"median":73.5,"p90":111},"build_docs_share_exec_median_pct":15,"gate_15pct_s":11},"mapped_window_pushes_without_docs_or_astro_input":"14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"},
- "scheduling_verified": {"verified_at":"2026-11-17T13:53:18Z","worker_run_id":"44096585784","window":"strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879)","method":"gh run list (no queued/in_progress docs runs); HEAD 453e35b gh api file list (no trigger-path match); stored immutable run_timings recomputed (no job refetch)","queue_s":{"median":4,"p90_nearest_rank":15,"max":64},"exec_build_start_to_deploy_end_s":{"median":77.5,"p90_nearest_rank":90},"concurrency":"cancel-in-progress false kept; 0 in-flight builds superseded; cancelled runs had 0 jobs","avoidable_rebuilds":"0 of 18 window heads test-only; 453e35b triggered no docs run","decision":"not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)","reverified_note":"2026-11-17T15:52:47Z worker 44118554795: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable)."},
- "dependency_phase": {"evaluated_at":"2026-11-17T12:38:36Z","worker_run_id":"44084360320","window":"strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 17 push + 1 schedule; 18 successes","method":"recomputed from stored immutable run_timings rows (no refetch); median of even n averaged; p90 nearest-rank","setup_node_s":{"median":3,"p90":6},"install_s":{"median":9.5,"p90":11},"post_setup_node_s":{"median":0,"p90":1},"setup_install_post_s":{"median":12.5,"p90":17},"share_of_exec_median_pct":16.1,"exec_s":{"median":77.5,"p90":90},"gate_15pct_s":11.6,"ceiling":"install-only removal <= 8.5 s (10.8%); whole phase unreachable (npm ci required); node_modules cache est net 3-6 s (unmeasured)","decision":"not actionable (install-only ceiling 9.5 s = 12.3 percent below 15 percent gate; whole-phase removal unreachable; node_modules cache net 3-6 s unmeasured)","root_lifecycle":"root package.json defines no preinstall/install/postinstall/prepare; dependency install scripts still run inside root npm ci (not measured)","install_share_of_exec_median_pct":12.3,"reverified_note":"2026-11-17T16:21:00Z worker 44124036306: window unchanged (no docs run newer than 44060953578); stored rows recomputed (install median 9.5 s, 12.3 percent); decision unchanged (not actionable)."},
- "astro_step_verified": {"verified_at":"2026-11-17T14:35:26Z","worker_run_id":"44104046764","window":"strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879)","method":"stored immutable run_timings rows recomputed (nearest-rank p90); gh run list; Jobs API spot-check of 44060953578 (build docs 15 s, exec 79 s, matched); compare fcd7e18...453e35b (no trigger path)","build_docs_s":{"median":11,"p90_nearest_rank":15,"min":9,"max":15},"exec_median_s":77.5,"exec_p90_nearest_rank_s":90,"build_docs_share_exec_median_pct":14.2,"gate_15pct_s":11.62,"ceiling_saving_s":11,"repeated_build":"none","sub_step_split":"not measurable from Jobs API; job logs HTTP 403 DIFC, not retried","decision":"not actionable: whole-step ceiling 11 s < 15 percent gate 11.62 s and < 60 s; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance","reverified_note":"2026-11-17T18:24:00Z worker 44146456569: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed (build docs median 11 s, p90 15 s; exec median 77.5 s); Jobs API spot-check of 44060953578 matched; decision unchanged (not actionable)."},
- "burst_analysis": {"verified_at":"2026-11-16T15:57:15Z","window":"08:14Z-08:35Z, 2026-11-16 (runs 43829639369, 43831754585, 43831980991, 43832015521 cancelled, 43832040488)","finding":"Sequential, non-superseding builds: each in-flight run finished before the next started; 43832015521 cancelled while pending at 12 s (no compute); 43832040488 waited 64 s behind in-flight 43831980991 (latency only).","candidate_considered":"build-stage cancel-in-progress true with deploy-stage cancel false","decision":"rejected for this window: no in-flight build was superseded, so execution-time saving is about 0 s; would add deploy-safety risk for latency only"},
- "path_filter_verified": {"verified_at":"2026-11-17T10:34:17Z","method":"gh api commits/<sha> file lists; commits immutable, fetched once; trigger paths from docs.yml on.push.paths","window_head_classification":{"4121d56":"build-consumed (schedule head; earlier verified)","dbf9df7":"build-consumed","2fdf4a0":"build-consumed","f343b8b":"build-consumed","fa5faeb":"build-consumed (docs/**)","17a3b7a":"build-consumed","70f59d2":"build-consumed","f0e71a1":"build-consumed","fade88d":"build-consumed","1a03d21":"build-consumed (docs/**)","0cfeed6":"build-consumed","139ce75":"build-consumed (docs/**, dashboard/site/src, astro.config.mjs)","b601783":"build-consumed","be0c06f":"build-consumed (docs/**)","51facb5":"build-consumed","105be55":"build-consumed (docs/styles/branding.css)","b737e3c":"build-consumed","7b85edf":"build-consumed","fcd7e18":"build-consumed (docs/**)"},"avoidable_pushes_in_window":0}
+ "observations_pending": [
+  {
+   "observed_at": "2026-11-16T11:22:56Z",
+   "note": "Checkout is the largest single step (window median 25 s, p90 70 s, 33% of exec median); open issue 20815 covers blobless checkout. Out of the reusable dashboard generation category; for the artifact/dependency cycles, not re-proposed here."
+  },
+  {
+   "observed_at": "2026-11-16T10:24:00Z",
+   "note": "Checkout outlier 43840581457 (73 s) remains a single sample; open issue 20815 (blobless checkout) unchanged, not re-proposed."
+  },
+  {
+   "observed_at": "2026-11-16T08:37:32Z",
+   "note": "Watch (unchanged): test-only push 5b8b842 (43780290464) is the only test-only docs run in the 20-run window. Candidate change only if a second test-only run appears: negated trigger for dashboard/site/test/** in docs.yml, validated with a docs run."
+  },
+  {
+   "observed_at": "2026-11-16T11:55:48Z",
+   "note": "Stale queued workflow_run 37642403569 (Documentation Pages, headSha 6206962, created 2026-10-07) still queued; no docs run queued or in progress. Maintainer housekeeping; this worker is read-only."
+  },
+  {
+   "observed_at": "2026-11-16T14:38:23Z",
+   "note": "Strict 19-success window (cancelled 43832015521 excluded, 43766019418 dropped): checkout median 25 s, p90 70 s, 32.9% of exec median 76 s; build job median 62 s, p90 115 s; deploy job median 9 s; queue median 3 s. Open issue 20815 OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not re-proposed (median unchanged; cannot comment on existing issues)."
+  },
+  {
+   "observed_at": "2026-11-16T12:29:00Z",
+   "note": "Repository cache usage 10,570,080,425 B across 101 active caches exceeds the 10 GB default quota; eviction is LRU. Main docs key node-cache-Linux-x64-npm-7808ecf8 still present and accessed by every docs run. Watch item: a cold miss would show as a longer install and non-zero post step. Not a speed suggestion."
+  },
+  {
+   "observed_at": "2026-11-16T19:31:11Z",
+   "note": "Watch (cache-key coverage, not a speed suggestion): docs.yml setup-node key hashes root package-lock.json only and entries are immutable, so a dashboard/site/package-lock.json-only change would keep the same key and dashboard deps would be fetched from the registry each run until the root lock changes. No effect today: both locks last changed 7c8faf4 (2026-11-13T20:56Z), before the entry was created (20:57Z). Re-open only if a dashboard-only lock change appears and install median rises above 11.4 s; candidate fix (not validated): add dashboard/site/package-lock.json to cache-dependency-path."
+  },
+  {
+   "observed_at": "2026-11-17T16:37:00Z",
+   "note": "Open #20815 (blobless checkout, checkout median 25 s = 33 percent of exec median) still OPEN with 0 comments and unchanged; this worker cannot comment or update, so it is not re-proposed. Re-propose only if #20815 closes without a change or checkout median materially changes."
+  }
+ ],
+ "run_timings": {
+  "evaluated_at": "2026-11-17T12:54:03Z",
+  "window": "strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded (0 jobs); 18 successes",
+  "columns": [
+   "run",
+   "event",
+   "conclusion",
+   "head",
+   "queue_s",
+   "build_job_s",
+   "checkout_s",
+   "setup_node_s",
+   "install_s",
+   "post_setup_node_s",
+   "build_docs_s",
+   "demo_s",
+   "upload_s",
+   "deploy_job_s",
+   "exec_s"
+  ],
+  "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end; queue = run created to build start. Medians: exec 77.5 s, queue 4 s, checkout 25 s, install 9.5 s, build docs 11 s, demo 5 s, deploy job 9.5 s.",
+  "rows": [
+   [
+    "44060953578",
+    "push",
+    "success",
+    "fcd7e18",
+    5,
+    64,
+    23,
+    3,
+    10,
+    1,
+    15,
+    5,
+    2,
+    10,
+    79
+   ],
+   [
+    "44043184727",
+    "push",
+    "success",
+    "f939bbb",
+    3,
+    61,
+    26,
+    3,
+    10,
+    0,
+    11,
+    4,
+    2,
+    9,
+    75
+   ],
+   [
+    "44041835448",
+    "push",
+    "success",
+    "58c3e57",
+    4,
+    66,
+    25,
+    4,
+    10,
+    0,
+    14,
+    6,
+    3,
+    10,
+    82
+   ],
+   [
+    "44023953879",
+    "schedule",
+    "success",
+    "dc5ce58",
+    3,
+    48,
+    21,
+    3,
+    5,
+    0,
+    9,
+    4,
+    2,
+    9,
+    62
+   ],
+   [
+    "44004300647",
+    "push",
+    "success",
+    "7b85edf",
+    4,
+    62,
+    24,
+    2,
+    10,
+    0,
+    14,
+    6,
+    2,
+    11,
+    79
+   ],
+   [
+    "43993695761",
+    "push",
+    "success",
+    "b737e3c",
+    3,
+    49,
+    21,
+    2,
+    6,
+    0,
+    10,
+    3,
+    2,
+    9,
+    64
+   ],
+   [
+    "43992363367",
+    "push",
+    "success",
+    "105be55",
+    4,
+    63,
+    25,
+    2,
+    11,
+    0,
+    15,
+    5,
+    3,
+    10,
+    79
+   ],
+   [
+    "43991897672",
+    "push",
+    "success",
+    "51facb5",
+    15,
+    58,
+    25,
+    4,
+    6,
+    0,
+    10,
+    3,
+    3,
+    9,
+    72
+   ],
+   [
+    "43991770179",
+    "push",
+    "success",
+    "be0c06f",
+    3,
+    54,
+    24,
+    3,
+    6,
+    0,
+    9,
+    3,
+    2,
+    11,
+    70
+   ],
+   [
+    "43991571724",
+    "push",
+    "success",
+    "b601783",
+    3,
+    55,
+    23,
+    2,
+    8,
+    0,
+    11,
+    5,
+    2,
+    10,
+    70
+   ],
+   [
+    "43987917606",
+    "push",
+    "success",
+    "139ce75",
+    5,
+    65,
+    28,
+    4,
+    10,
+    0,
+    11,
+    4,
+    3,
+    9,
+    79
+   ],
+   [
+    "43877103800",
+    "push",
+    "success",
+    "0cfeed6",
+    3,
+    59,
+    23,
+    6,
+    8,
+    0,
+    11,
+    5,
+    2,
+    9,
+    73
+   ],
+   [
+    "43862265708",
+    "push",
+    "success",
+    "1a03d21",
+    3,
+    66,
+    28,
+    3,
+    8,
+    0,
+    13,
+    8,
+    2,
+    9,
+    80
+   ],
+   [
+    "43854851689",
+    "push",
+    "success",
+    "fade88d",
+    4,
+    62,
+    25,
+    2,
+    10,
+    0,
+    14,
+    6,
+    2,
+    9,
+    76
+   ],
+   [
+    "43840581457",
+    "push",
+    "success",
+    "f0e71a1",
+    4,
+    118,
+    73,
+    5,
+    11,
+    1,
+    14,
+    6,
+    3,
+    8,
+    132
+   ],
+   [
+    "43832040488",
+    "push",
+    "success",
+    "70f59d2",
+    64,
+    52,
+    22,
+    3,
+    6,
+    0,
+    11,
+    3,
+    2,
+    11,
+    69
+   ],
+   [
+    "43831980991",
+    "push",
+    "success",
+    "17a3b7a",
+    4,
+    66,
+    28,
+    5,
+    9,
+    0,
+    11,
+    5,
+    3,
+    12,
+    83
+   ],
+   [
+    "43831754585",
+    "push",
+    "success",
+    "fa5faeb",
+    4,
+    74,
+    27,
+    8,
+    10,
+    0,
+    13,
+    6,
+    3,
+    11,
+    90
+   ]
+  ]
+ },
+ "transfer_model": {
+  "verified_at": "2026-11-17T10:20:11Z",
+  "window": "43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z)",
+  "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
+  "columns": [
+   "run",
+   "event",
+   "handoff_s",
+   "configure_s",
+   "upload_s",
+   "deploy_setup_s",
+   "deploy_pages_s",
+   "deploy_job_s",
+   "removable_s",
+   "exec_s"
+  ],
+  "rows": [
+   [
+    "43831754585",
+    "push",
+    5,
+    1,
+    3,
+    1,
+    7,
+    11,
+    10,
+    90
+   ],
+   [
+    "43831980991",
+    "push",
+    5,
+    0,
+    3,
+    1,
+    7,
+    12,
+    9,
+    83
+   ],
+   [
+    "43832040488",
+    "push",
+    6,
+    1,
+    2,
+    1,
+    7,
+    11,
+    10,
+    69
+   ],
+   [
+    "43840581457",
+    "push",
+    6,
+    0,
+    3,
+    1,
+    6,
+    8,
+    10,
+    132
+   ],
+   [
+    "43854851689",
+    "push",
+    5,
+    0,
+    2,
+    1,
+    6,
+    9,
+    8,
+    76
+   ],
+   [
+    "43862265708",
+    "push",
+    5,
+    0,
+    2,
+    1,
+    6,
+    9,
+    8,
+    80
+   ],
+   [
+    "43877103800",
+    "push",
+    5,
+    0,
+    2,
+    1,
+    7,
+    9,
+    8,
+    73
+   ],
+   [
+    "43987917606",
+    "push",
+    5,
+    1,
+    3,
+    1,
+    6,
+    9,
+    10,
+    79
+   ],
+   [
+    "43991571724",
+    "push",
+    5,
+    0,
+    2,
+    1,
+    6,
+    10,
+    8,
+    70
+   ],
+   [
+    "43991770179",
+    "push",
+    5,
+    1,
+    2,
+    1,
+    7,
+    11,
+    9,
+    70
+   ],
+   [
+    "43991897672",
+    "push",
+    5,
+    1,
+    3,
+    1,
+    6,
+    9,
+    10,
+    72
+   ],
+   [
+    "43992363367",
+    "push",
+    6,
+    0,
+    3,
+    1,
+    7,
+    10,
+    10,
+    79
+   ],
+   [
+    "43993695761",
+    "push",
+    6,
+    1,
+    2,
+    1,
+    5,
+    9,
+    10,
+    64
+   ],
+   [
+    "44004300647",
+    "push",
+    6,
+    0,
+    2,
+    1,
+    7,
+    11,
+    9,
+    79
+   ],
+   [
+    "44023953879",
+    "schedule",
+    5,
+    0,
+    2,
+    1,
+    7,
+    9,
+    8,
+    62
+   ],
+   [
+    "44041835448",
+    "push",
+    6,
+    0,
+    3,
+    1,
+    7,
+    10,
+    10,
+    82
+   ],
+   [
+    "44043184727",
+    "push",
+    5,
+    1,
+    2,
+    1,
+    6,
+    9,
+    9,
+    75
+   ],
+   [
+    "44060953578",
+    "push",
+    5,
+    1,
+    2,
+    1,
+    6,
+    10,
+    9,
+    79
+   ]
+  ],
+  "summary": {
+   "removable_median_s": 9,
+   "removable_p90_s": 10,
+   "removable_max_s": 10,
+   "exec_median_s": 77.5,
+   "exec_p90_s": 90,
+   "removable_pct_of_exec_median": 11.6,
+   "gate_15pct_s": 11.63,
+   "gate_60s_absolute": "not met",
+   "decision": "not actionable"
+  },
+  "spot_check": {
+   "verified_at": "2026-11-16T20:35:26Z",
+   "run": "43877103800",
+   "result": "Live Jobs API matched stored rows for 43877103800, 43840581457 and 43814432358 (handoff 5/6/5, configure 0/0/0, upload 2/3/3, deploy setup 1/1/1, deploy pages 7/6/7, exec 73/132/120)"
+  },
+  "evaluated_note": "2026-11-17T13:34:04Z worker 44093232163: window unchanged (no docs run newer than 44060953578); removable median 9 s, p90 10 s vs 15 percent gate 11.63 s and 60 s gate: not met; decision unchanged (not actionable). Stored rows recomputed, no refetch.",
+  "reverified_note": "Re-verified 2026-11-17T06:54:51Z by worker 44034238011: window rolled to 44023953879; decision unchanged (ceiling 9 s vs 11.85 s and 60 s gates; merge-deploy-into-build about 6 s, rejected).",
+  "artifact_bytes": {
+   "44060953578": 9354549,
+   "43877103800": 9242961
+  },
+  "deploy_pages_stats": {
+   "median_s": 6.5,
+   "p90_s": 7,
+   "handoff_median_s": 5
+  }
+ },
+ "commit_paths": {
+  "verified_at": "2026-11-16T02:26:27Z",
+  "method": "gh api repos/githubnext/gh-cao/commits/<sha> file lists; commits are immutable, so reuse this map and do not refetch; no ETag captured",
+  "push_commits_checked": 27,
+  "test_only_pushes": 1,
+  "build_consumed_pushes": 23,
+  "examples": {
+   "88f046c": "dashboard-fragments/workflow-value.json, test fixtures, test units",
+   "aa73dc6": "dashboard-fragments, dashboard.json, src/agent generated, specs, e2e",
+   "f02efd0": "astro.config.mjs",
+   "ac6789f": "dashboard/site/src/data/adapters/grader-evidence.js, debug test, normalize.generated.js.gz",
+   "7b092ad": "dashboard/site/src/auth.js, debug test",
+   "f8da6f2": "dashboard/site/src/agent/query-executor.js, debug test",
+   "29e63d1": "ARCHITECTURE.md, dashboard/site/src/specification.js, dashboard-fragments, docs, Go CLI",
+   "4193d93": "dashboard/site/src/components/cli-actions.js, debug test",
+   "d55c91b": "dashboard/site/src/browser-storage.js, debug test",
+   "6418dcd": "dashboard/site/src/source-store.js, debug test",
+   "185fd26": "dashboard/site/src/data/storage/shards.js",
+   "93c64ff": "docs/operations.md, shared workflow context, lock files, tests",
+   "afe0ba0": "dashboard/site/src/data/storage/shards.js, debug test",
+   "600b56a": "docs/setup-quickstarts.md, ARCHITECTURE.md, Go CLI",
+   "04c9d9e": "docs/cao-cli.md, ARCHITECTURE.md, Go CLI and session archive",
+   "54faceef": "docs/configuration.md, ARCHITECTURE.md, server",
+   "7e620f3": "docs/components/SiteFooter.astro",
+   "54e08aa": "docs/components/ThemeToggle.astro",
+   "d62125be": "dashboard-fragments/workflow-value.json, dashboard.json, generated agent catalog/queries, test fixtures and unit (build-consumed)",
+   "e3b3b9cd": "docs/operations.md, scripts/dashboard-demo-data.mjs, dashboard-pages-simulation unit test (build-consumed via docs/**)",
+   "88f652f4": "ARCHITECTURE.md, dashboard/README.md, dashboard/site/README.md, dashboard/site/scripts/build.mjs, dashboard-site-build unit test (build-consumed via dashboard/site/**)",
+   "de1fbfc": "docs/local-debugging.md (build-consumed via docs/**)",
+   "24f570e": "dashboard/site/src/agent/mcp-contract.json (trigger path; imported by query-executor.js, build-consumed), server/* and specs (not in paths filter)",
+   "8c2dd68": "docs/glossary.md (docs/** Astro srcDir, build-consumed)",
+   "10f5e57": "dashboard/site/src/data/github-service.js, dashboard/site/test/unit/github-service-debug.test.js (build-consumed source)",
+   "14a39d4": "dashboard/site/src/components/cli-actions.js (src copied by build.mjs), dashboard/site/test/unit debug test (never copied)",
+   "e75f80a": "dashboard/site/src/agent/mcp-contract.json (build-consumed; imported by query-executor.js), plus server/Go/specs (outside paths filter)",
+   "eccbdd6": "dashboard/site/dashboard-fragments/workflow-value.json, src/agent generated JSON (build-consumed), e2e and unit tests",
+   "5b8b842": "test-only: dashboard/site/test/e2e/*, tests/**, server *_test.go; trigger matched via dashboard/site/test/** (only test-only push in window)",
+   "f996c9a": "dashboard/site/scripts/build.mjs, tests (build script itself is build-consumed)",
+   "86f6047": "dashboard/site/src/agent/mcp-contract.json (build-consumed via src copy); session-archive server and workflow outside paths filter",
+   "67a8568": "dashboard/site/src/components/campaign-route-shell.js (build-consumed src), dashboard/site/test/unit/campaign-route-shell-debug.test.js",
+   "4121d56": "dashboard/site/src/agent/mcp-contract.json (build-consumed, imported by query-executor.js), session-archive workflow and server/specs (outside docs paths filter); build-consumed, not test-only",
+   "f0e71a1": "dashboard/site/src/deferred-styles.js (build-consumed src copy), dashboard/site/test/unit/deferred-styles-debug.test.js (never copied)",
+   "1a03d21": "docs/dashboard-data-ingestion.md, docs/dashboard-data-model.md (docs/** trigger, build-consumed); ARCHITECTURE.md, specs, server outside filter"
+  },
+  "build_consumed_note": "build.mjs (lines 52-53) recursively copies all of dashboard/site/src and dashboard-fragments into the published output, so every src or fragment path is build-consumed regardless of import graph."
+ },
+ "local_clone_note": {
+  "verified_at": "2026-11-16T01:07:48Z",
+  "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
+ },
+ "dashboard_generation_verified": {
+  "verified_at": "2026-11-17T08:23:50Z",
+  "window": "latest 20 completed docs.yml runs 43829639369..44043184727 (cancelled 43991812013 and 43832015521 excluded); 18 successes; recomputed from immutable run_timings rows",
+  "demo_step_s": {
+   "median": 5,
+   "p90": 6,
+   "min": 3,
+   "max": 8,
+   "n": 18
+  },
+  "exec_s": {
+   "median": 77.5,
+   "p90": 90
+  },
+  "demo_share_of_exec_median_pct": 6.5,
+  "gate_15pct_s": 11.6,
+  "ceiling_saving_s": 5,
+  "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
+  "note": "Re-verified 18:37Z by worker 43929821091: no newer docs run than 43877103800; demo rows recomputed (median 5 s, p90 6 s, max 8 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists. Re-verified 23:35Z by worker 43979722480: no newer docs run; strict 19-success demo rows recomputed (median 5 s, p90 6 s, max 8 s); decision unchanged (ceiling 5 s vs gate 11.4 s).",
+  "decision": "not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)",
+  "reverified_note": "Re-verified 2026-11-17T03:22:28Z by worker 44009269283: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18); Jobs API spot-check of 44004300647 matched (6 s); HEAD dc5ce58 adds only server/ files (no docs trigger); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
+  "reverified_note_2": "Re-verified 2026-11-17T04:53Z by worker 44019713409: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
+  "reverified_note_3": "Re-verified 2026-11-17T06:41Z by worker 44032733255: no newer docs run than 44023953879; no queued or in-progress docs run; stored demo rows recomputed (median 5 s, p90 6 s, min 3, max 8, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
+  "reverified_note_4": "Re-verified 2026-11-17T08:23Z by worker 44045751647: newest run 44043184727 (push f939bbb) demo step 4 s added; stored rows recomputed (median 5.0, p90 6, n 18); decision unchanged: not actionable (ceiling 5.0 s vs gate 11.6 s and 60 s absolute).",
+  "reverified_note_5": "Re-verified 2026-11-17T09:52Z by worker 44059106675: no docs run newer than 44043184727 (read-only gh run list); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute).",
+  "reverified_note_6": "Re-verified 2026-11-17T11:31Z by worker 44074416041: no docs run newer than 44060953578 (gh run list); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); Jobs API spot-check of 44060953578 matched (5 s); decision unchanged: not actionable (ceiling 5 s vs gate 11.62 s and 60 s absolute).",
+  "reverified_note_7": "Re-verified 2026-11-17T13:19:38Z by worker 44090988431: no docs run newer than 44060953578 (gh run list 13:18Z); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.63 s and 60 s absolute).",
+  "last_reverified_at": "2026-11-17T18:36:00Z",
+  "last_reverified_note": "Re-verified by worker 44107168995: no docs run newer than 44060953578; stored rows recomputed (median 5 s, p90 6 s, n 18); Jobs API spot-check of 44060953578 matched; decision unchanged (not actionable).",
+  "reverified_note_8": "Re-verified 2026-11-17T18:36:00Z by worker 44149071437: no docs run newer than 44060953578 (gh run list); stored demo rows recomputed (median 5, p90 6, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)."
+ },
+ "astro_output_reuse": {
+  "verified_at": "2026-11-16T06:36:53Z",
+  "status": "rejected",
+  "blocker": "Astro output embeds PUBLIC_PAGES_BUILD_COMMIT (docs/components/SiteFooter.astro:9; docs/plugins/starlight-agent/resource.ts:233); scripts/validate-agent-docs.mjs:571 requires it to equal the build commit. Reuse across commits publishes stale provenance.",
+  "window_stats": {
+   "build_docs_s": {
+    "median": 11,
+    "p90": 15,
+    "min": 8,
+    "max": 16
+   },
+   "exec_s": {
+    "median": 73.5,
+    "p90": 111
+   },
+   "build_docs_share_exec_median_pct": 15,
+   "gate_15pct_s": 11
+  },
+  "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
+ },
+ "scheduling_verified": {
+  "verified_at": "2026-11-17T13:53:18Z",
+  "worker_run_id": "44096585784",
+  "window": "strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879)",
+  "method": "gh run list (no queued/in_progress docs runs); HEAD 453e35b gh api file list (no trigger-path match); stored immutable run_timings recomputed (no job refetch)",
+  "queue_s": {
+   "median": 4,
+   "p90_nearest_rank": 15,
+   "max": 64
+  },
+  "exec_build_start_to_deploy_end_s": {
+   "median": 77.5,
+   "p90_nearest_rank": 90
+  },
+  "concurrency": "cancel-in-progress false kept; 0 in-flight builds superseded; cancelled runs had 0 jobs",
+  "avoidable_rebuilds": "0 of 18 window heads test-only; 453e35b triggered no docs run",
+  "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)",
+  "reverified_note": "2026-11-17T15:52:47Z worker 44118554795: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable)."
+ },
+ "dependency_phase": {
+  "evaluated_at": "2026-11-17T12:38:36Z",
+  "worker_run_id": "44084360320",
+  "window": "strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 17 push + 1 schedule; 18 successes",
+  "method": "recomputed from stored immutable run_timings rows (no refetch); median of even n averaged; p90 nearest-rank",
+  "setup_node_s": {
+   "median": 3,
+   "p90": 6
+  },
+  "install_s": {
+   "median": 9.5,
+   "p90": 11
+  },
+  "post_setup_node_s": {
+   "median": 0,
+   "p90": 1
+  },
+  "setup_install_post_s": {
+   "median": 12.5,
+   "p90": 17
+  },
+  "share_of_exec_median_pct": 16.1,
+  "exec_s": {
+   "median": 77.5,
+   "p90": 90
+  },
+  "gate_15pct_s": 11.6,
+  "ceiling": "install-only removal <= 8.5 s (10.8%); whole phase unreachable (npm ci required); node_modules cache est net 3-6 s (unmeasured)",
+  "decision": "not actionable (install-only ceiling 9.5 s = 12.3 percent below 15 percent gate; whole-phase removal unreachable; node_modules cache net 3-6 s unmeasured)",
+  "root_lifecycle": "root package.json defines no preinstall/install/postinstall/prepare; dependency install scripts still run inside root npm ci (not measured)",
+  "install_share_of_exec_median_pct": 12.3,
+  "reverified_note": "2026-11-17T16:21:00Z worker 44124036306: window unchanged (no docs run newer than 44060953578); stored rows recomputed (install median 9.5 s, 12.3 percent); decision unchanged (not actionable). 2026-11-17T19:33Z worker 44159143790: window unchanged (no docs run newer than 44060953578); stored rows recomputed (install median 9.5 s, 12.3 percent); caches API confirms 7808ecf8 live with no later save; decision unchanged (not actionable)."
+ },
+ "astro_step_verified": {
+  "verified_at": "2026-11-17T14:35:26Z",
+  "worker_run_id": "44104046764",
+  "window": "strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879)",
+  "method": "stored immutable run_timings rows recomputed (nearest-rank p90); gh run list; Jobs API spot-check of 44060953578 (build docs 15 s, exec 79 s, matched); compare fcd7e18...453e35b (no trigger path)",
+  "build_docs_s": {
+   "median": 11,
+   "p90_nearest_rank": 15,
+   "min": 9,
+   "max": 15
+  },
+  "exec_median_s": 77.5,
+  "exec_p90_nearest_rank_s": 90,
+  "build_docs_share_exec_median_pct": 14.2,
+  "gate_15pct_s": 11.62,
+  "ceiling_saving_s": 11,
+  "repeated_build": "none",
+  "sub_step_split": "not measurable from Jobs API; job logs HTTP 403 DIFC, not retried",
+  "decision": "not actionable: whole-step ceiling 11 s < 15 percent gate 11.62 s and < 60 s; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
+  "reverified_note": "2026-11-17T18:24:00Z worker 44146456569: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed (build docs median 11 s, p90 15 s; exec median 77.5 s); Jobs API spot-check of 44060953578 matched; decision unchanged (not actionable)."
+ },
+ "burst_analysis": {
+  "verified_at": "2026-11-16T15:57:15Z",
+  "window": "08:14Z-08:35Z, 2026-11-16 (runs 43829639369, 43831754585, 43831980991, 43832015521 cancelled, 43832040488)",
+  "finding": "Sequential, non-superseding builds: each in-flight run finished before the next started; 43832015521 cancelled while pending at 12 s (no compute); 43832040488 waited 64 s behind in-flight 43831980991 (latency only).",
+  "candidate_considered": "build-stage cancel-in-progress true with deploy-stage cancel false",
+  "decision": "rejected for this window: no in-flight build was superseded, so execution-time saving is about 0 s; would add deploy-safety risk for latency only"
+ },
+ "path_filter_verified": {
+  "verified_at": "2026-11-17T10:34:17Z",
+  "method": "gh api commits/<sha> file lists; commits immutable, fetched once; trigger paths from docs.yml on.push.paths",
+  "window_head_classification": {
+   "4121d56": "build-consumed (schedule head; earlier verified)",
+   "dbf9df7": "build-consumed",
+   "2fdf4a0": "build-consumed",
+   "f343b8b": "build-consumed",
+   "fa5faeb": "build-consumed (docs/**)",
+   "17a3b7a": "build-consumed",
+   "70f59d2": "build-consumed",
+   "f0e71a1": "build-consumed",
+   "fade88d": "build-consumed",
+   "1a03d21": "build-consumed (docs/**)",
+   "0cfeed6": "build-consumed",
+   "139ce75": "build-consumed (docs/**, dashboard/site/src, astro.config.mjs)",
+   "b601783": "build-consumed",
+   "be0c06f": "build-consumed (docs/**)",
+   "51facb5": "build-consumed",
+   "105be55": "build-consumed (docs/styles/branding.css)",
+   "b737e3c": "build-consumed",
+   "7b85edf": "build-consumed",
+   "fcd7e18": "build-consumed (docs/**)"
+  },
+  "avoidable_pushes_in_window": 0
+ }
 }
