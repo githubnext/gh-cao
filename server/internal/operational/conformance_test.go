@@ -240,6 +240,25 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("canceled operation: %v", err)
 		}
 	})
+	t.Run("noop-quota-mutations-retain-no-state", func(t *testing.T) {
+		quota, health := services.GitHubQuota, services.Health
+		before, err := health.Health(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		released, state, err := quota.ReleaseGitHubQuota(ctx, "github-app-1:noop-release:core", "missing")
+		if err != nil || released || state.Known {
+			t.Fatalf("release unknown bucket: %t, %+v, %v", released, state, err)
+		}
+		state, err = quota.UnparkGitHubQuota(ctx, "github-app-1:noop-unpark:core")
+		if err != nil || state.Known || !state.ParkedUntil.IsZero() {
+			t.Fatalf("unpark unknown bucket: %+v, %v", state, err)
+		}
+		after, err := health.Health(ctx)
+		if err != nil || after.Entries != before.Entries {
+			t.Fatalf("no-op quota mutations retained state: entries %d -> %d, %v", before.Entries, after.Entries, err)
+		}
+	})
 	t.Run("in-flight-blocking-read-cancellation", func(t *testing.T) {
 		queue := services.Queue
 		if err := queue.EnsureQueue(ctx, "cancel-blocking-read", "workers"); err != nil {

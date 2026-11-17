@@ -367,6 +367,59 @@ func TestProtectedByteCapacityAndRevocation(t *testing.T) {
 	}
 }
 
+func TestNoopQuotaMutationsDoNotNeedProtectedCapacity(t *testing.T) {
+	s, _ := testStore(t, Config{MaxProtectedEntries: 2})
+	ctx := t.Context()
+	if err := s.PutSession(ctx, "session", "encrypted", time.Hour, ""); err != nil {
+		t.Fatal(err)
+	}
+	const bucket = "github-app-1:installation-1:core"
+	if released, _, err := s.ReleaseGitHubQuota(ctx, bucket, "missing"); err != nil || released {
+		t.Fatalf("release at capacity: %t %v", released, err)
+	}
+	if state, err := s.UnparkGitHubQuota(ctx, bucket); err != nil || state.Known || !state.ParkedUntil.IsZero() {
+		t.Fatalf("unpark at capacity: %+v %v", state, err)
+	}
+	if _, _, err := s.ParkGitHubQuota(ctx, bucket, time.Now().Add(time.Hour), "why"); !errors.Is(err, operational.ErrCapacity) {
+		t.Fatalf("park must still need capacity: %v", err)
+	}
+}
+
+func TestNoopQuotaMutationsPreserveExistingState(t *testing.T) {
+	s, _ := testStore(t, Config{})
+	ctx := t.Context()
+	const bucket = "github-app-1:installation-1:core"
+	now := time.Now().UTC()
+	if _, _, _, err := s.ObserveGitHubQuota(ctx, bucket, operational.GitHubQuotaObservation{
+		Limit: 5000, Remaining: 4000, ObservedAt: now, ResetAt: now.Add(time.Hour),
+	}, ""); err != nil {
+		t.Fatal(err)
+	}
+	until := now.Add(30 * time.Minute)
+	if extended, _, err := s.ParkGitHubQuota(ctx, bucket, until, "why"); err != nil || !extended {
+		t.Fatalf("park: %t %v", extended, err)
+	}
+	if extended, state, err := s.ParkGitHubQuota(ctx, bucket, until.Add(-time.Minute), "shorter"); err != nil || extended || state.ParkReason != "why" {
+		t.Fatalf("non-extending park: %t %+v %v", extended, state, err)
+	}
+	if state, err := s.UnparkGitHubQuota(ctx, bucket); err != nil || !state.ParkedUntil.IsZero() || state.ParkReason != "" || !state.Known || state.Remaining != 4000 {
+		t.Fatalf("unpark: %+v %v", state, err)
+	}
+	if state, err := s.UnparkGitHubQuota(ctx, bucket); err != nil || !state.Known || state.Remaining != 4000 {
+		t.Fatalf("repeated unpark: %+v %v", state, err)
+	}
+	admission, _, _, err := s.ReserveGitHubQuota(ctx, bucket, "reservation", 10, 0, time.Hour)
+	if err != nil || admission != operational.GitHubQuotaAdmitted {
+		t.Fatalf("reserve: %d %v", admission, err)
+	}
+	if released, state, err := s.ReleaseGitHubQuota(ctx, bucket, "reservation"); err != nil || !released || state.Reserved != 0 {
+		t.Fatalf("release: %t %+v %v", released, state, err)
+	}
+	if released, state, err := s.ReleaseGitHubQuota(ctx, bucket, "reservation"); err != nil || released || state.Remaining != 4000 {
+		t.Fatalf("repeated release: %t %+v %v", released, state, err)
+	}
+}
+
 func TestCorruptQuotaFailsClosed(t *testing.T) {
 	s, _ := testStore(t, Config{})
 	if err := s.transact(t.Context(), func(tx *transaction) error {
