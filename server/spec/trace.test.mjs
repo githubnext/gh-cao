@@ -128,7 +128,7 @@ test('archive projection derives explicit Parquet/Go columns from the shared Typ
     const go = execFileSync('gofmt', [`${directory}/sessionarchive/schema.gen.go`], { encoding: 'utf8' });
     assert.equal(go, readFileSync(new URL('../internal/sessionarchive/schema.gen.go', import.meta.url), 'utf8'));
     const schema = JSON.parse(generated);
-    assert.equal(schema.version, 2);
+    assert.equal(schema.version, 3);
     const columns = Object.fromEntries(schema.columns.map(({ name, type }) => [name, type]));
     assert.equal(columns.PayloadJSON, 'VARCHAR');
     assert.equal(columns.Gaps, 'VARCHAR[]');

@@ -25,11 +25,6 @@ on:
     branches: [main]
     paths: *archive-paths
   workflow_dispatch:
-    inputs:
-      accept_kusto_emulator_eula:
-        description: "I have reviewed and accept https://aka.ms/adx.emulator.license; run functional Kusto conformance"
-        type: boolean
-        default: false
   workflow_call:
 
 permissions:
@@ -129,12 +124,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # The maintainers reviewed and accepted https://aka.ms/adx.emulator.license for
+  # functional conformance in this repository's CI. The license forbids
+  # benchmarking, so this job runs correctness checks only.
   session-archive-kusto:
-    name: Opt-in real Kusto archive membership
-    if: github.event_name == 'workflow_dispatch' && inputs.accept_kusto_emulator_eula
+    name: Real Kusto archive conformance
+    # The emulator requires x86-64 with SSE4.2 and AVX2; GitHub-hosted Ubuntu runners are x64.
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      - name: Verify the runner can host the Kusto emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$(uname -m)" != x86_64 ]] || ! grep -qw sse4_2 /proc/cpuinfo || ! grep -qw avx2 /proc/cpuinfo; then
+            echo "The Kusto emulator requires an x86-64 runner with SSE4.2 and AVX2; $(uname -m) is incompatible." >&2
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false

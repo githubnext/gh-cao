@@ -36,12 +36,15 @@ func TestSessionArchiveAnalyticalCapabilitiesHTTP(t *testing.T) {
 "queries":[{"name":"per-type","subject":"Count events per type.","from":"archive-events","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","Type"],"values":[{"field":"Sequence","as":"events","reducer":"count"}]}}],
 "from":"per-type","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"],"values":[{"field":"Type","as":"types","reducer":"count"}]}}}`
 	capabilities = (&hostedSessionArchive{}).AnalyticalCapabilities()
+	capabilities.Chaining = 0
 	if request := archiveRequest(t, app, chained, true); request.Code != http.StatusUnprocessableEntity || probe.called != 0 {
-		t.Fatal("hosted capabilities executed a chained query without a reviewed KQL lowering")
+		t.Fatal("a backend without chaining executed a chained query")
 	}
-	capabilities = (&localSessionArchive{}).AnalyticalCapabilities()
-	if archiveRequest(t, app, chained, true); probe.called != 1 {
-		t.Fatal("local capabilities rejected a valid chained query")
+	for i, backend := range []sessionArchiveBackend{&localSessionArchive{}, &hostedSessionArchive{}, &nativeSessionArchive{}} {
+		capabilities = backend.AnalyticalCapabilities()
+		if archiveRequest(t, app, chained, true); probe.called != i+1 {
+			t.Fatal("backend capabilities rejected a valid chained query")
+		}
 	}
 	for _, backend := range []sessionArchiveBackend{&localSessionArchive{}, &hostedSessionArchive{}, &nativeSessionArchive{}} {
 		var decoded sessionarchive.Capabilities
@@ -112,10 +115,10 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 		"version-on-summary": `{"kind":"summary","repository":"octo/one","language-version":"0.2.0"}`,
 		"payload-field":      strings.Replace(analyticalArchiveRequest, `"Sequence"`, `"PayloadJSON"`, 1),
 		"file-source":        strings.Replace(analyticalArchiveRequest, `"archive-events"`, `"/private/data.parquet"`, 1),
-		"unknown-key":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"joins":[],"aggregate":`, 1),
+		"unknown-key":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"crossJoins":[],"aggregate":`, 1),
 		"malformed-filter":   strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":{"predicates":[]},"aggregate":`, 1),
 		"null-filter":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":null,"aggregate":`, 1),
-		"body-budget":        strings.Replace(analyticalArchiveRequest, `"subject":`, `"description":"`+strings.Repeat("x", 4096)+`","subject":`, 1),
+		"body-budget":        padArchiveRequest(analyticalArchiveRequest, sessionArchiveRequestBytes+1),
 	} {
 		t.Run(name, func(t *testing.T) {
 			response := archiveRequest(t, app, body, true)

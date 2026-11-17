@@ -71,12 +71,39 @@ test("replay rejects changed upstream bytes before Go probes or grader execution
       timeout: 30000,
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
     });
+
     assert.equal(result.error, undefined);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /pinned upstream blob integrity: trace_graders\.cjs/);
     assert.equal(existsSync(goExecuted), false);
     assert.equal(existsSync(graderExecuted), false);
     assert.equal(existsSync(join(output, "report.json")), false);
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+});
+
+test("API transport fallback still rejects unpinned raw bytes before Go execution", () => {
+  const scratchRoot = join(root, ".tmp");
+  mkdirSync(scratchRoot, { recursive: true });
+  const scratch = mkdtempSync(join(scratchRoot, "grader-raw-pins-test-"));
+  try {
+    const bin = join(scratch, "bin");
+    const goExecuted = join(scratch, "go-executed");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "gh"), "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+    writeFileSync(join(bin, "curl"), "#!/bin/sh\nprintf '%s\\n' 'module.exports = {};'\n", { mode: 0o700 });
+    writeFileSync(join(bin, "go"), `#!/bin/sh\nprintf executed > '${goExecuted}'\nexit 1\n`, { mode: 0o700 });
+    const result = spawnSync(process.execPath, [join(root, "scripts/replay-session-archive-graders.mjs"), join(scratch, "report")], {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    });
+    assert.equal(result.error, undefined);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /pinned upstream blob integrity: trace_graders\.cjs/);
+    assert.equal(existsSync(goExecuted), false);
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }

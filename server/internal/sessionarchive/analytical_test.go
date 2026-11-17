@@ -26,10 +26,11 @@ func TestDuckDBAnalyticalCorpusIntegration(t *testing.T) {
 			EventIDs []string `json:"eventIds"`
 		}
 		Cases []struct {
-			Name    string
-			Clauses json.RawMessage
-			Rows    []map[string]any
-			Limited bool
+			Name       string
+			Clauses    json.RawMessage
+			Definition json.RawMessage
+			Rows       []map[string]any
+			Limited    bool
 		}
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(content)))
@@ -71,7 +72,14 @@ func TestDuckDBAnalyticalCorpusIntegration(t *testing.T) {
 	snapshot := pinTestArchive(t, a)
 	for _, test := range corpus.Cases {
 		t.Run(test.Name, func(t *testing.T) {
-			definition := analyticalDefinition(t, strings.TrimSuffix(strings.TrimPrefix(string(test.Clauses), "{"), "}"))
+			var definition Definition
+			if test.Definition != nil {
+				if err := json.Unmarshal(test.Definition, &definition); err != nil || definition.Validate() != nil {
+					t.Fatal("invalid shared corpus definition")
+				}
+			} else {
+				definition = analyticalDefinition(t, strings.TrimSuffix(strings.TrimPrefix(string(test.Clauses), "{"), "}"))
+			}
 			result, err := snapshot.Analytical(t.Context(), definition)
 			if err != nil || !reflect.DeepEqual(result.Rows, test.Rows) || result.Metadata.Limited != test.Limited ||
 				result.Metadata.TracesWithGaps != 2 || result.Metadata.UpstreamCoverage != "unknown" {
@@ -512,11 +520,13 @@ func TestAnalyticalItemSourcePlans(t *testing.T) {
 	if plan.Values[0].Predicates[0].Path != "data.objectives" {
 		t.Fatalf("item field state not qualified by its collection: %#v", plan.Values[0].Predicates)
 	}
-	if !errors.Is(plan.Require(AnalyticalCapabilities(4096)), ErrQuery) {
-		t.Fatal("hosted capabilities silently accepted a local-only item source")
+	capabilities := AnalyticalCapabilities(4096)
+	capabilities.Sources = nil
+	if !errors.Is(plan.Require(capabilities), ErrQuery) {
+		t.Fatal("a backend without the item source silently accepted it")
 	}
-	if err := plan.Require(LocalAnalyticalCapabilities(4096)); err != nil {
-		t.Fatalf("local item source capability rejected: %v", err)
+	if err := plan.Require(AnalyticalCapabilities(4096)); err != nil {
+		t.Fatalf("item source capability rejected: %v", err)
 	}
 	for _, definition := range []Definition{
 		itemDefinition(t, "archive-objectives", `"select":[{"field":"Type"}]`),
@@ -524,7 +534,7 @@ func TestAnalyticalItemSourcePlans(t *testing.T) {
 		itemDefinition(t, "archive-states", `"select":[{"field":"PayloadJSON"}]`),
 		itemDefinition(t, "archive-states", `"aggregate":{"values":[{"field":"Id","as":"first","reducer":"first","order-by":[{"field":"Ordinal"}]}]}`),
 		itemDefinition(t, "archive-actions", `"filter":{"predicates":[{"field":"Kind","state":"valid"}]},"select":[{"field":"Kind"}]`),
-		itemDefinition(t, "archive-tool-calls", `"select":[{"field":"Ordinal"}]`),
+		itemDefinition(t, "archive-provenance-edges", `"select":[{"field":"Ordinal"}]`),
 	} {
 		if _, err := definition.Plan(); !errors.Is(err, ErrQuery) {
 			t.Fatalf("invalid item-source plan accepted: %v", err)
@@ -603,6 +613,64 @@ func TestDuckDBAnalyticalItemSourceIntegration(t *testing.T) {
 	}
 }
 
+// LargestCollection mirrors upstream's MAX_TRAJECTORY_ITEMS input over
+// trajectoryIR, including the synthesized-events and reconciled-toolCalls
+// fallbacks, and becomes unverifiable when reference is redacted.
+func TestDuckDBAnalyticalLargestCollection(t *testing.T) {
+	c := testConfig(t)
+	policy, err := os.ReadFile("testdata/evidence-policy.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := decode(policy, &c.Policy); err != nil {
+		t.Fatal(err)
+	}
+	a := openTestArchive(t, c, nil)
+	now := time.Now().UTC()
+	event := func(kind, component, phase, data string) string {
+		return `{"type":"` + kind + `","provenance":{"component":"` + component + `","phase":"` + phase + `"},"data":` + data + "}\n"
+	}
+	header := "{\"type\":\"session.format\",\"provenance\":{},\"data\":{\"version\":1}}\n"
+	step := event("assistant.message", "agent", "agent", "{}")
+	tool := event("tool.execution_start", "copilot", "agent", "{}")
+	runs := map[string]string{
+		// Absent events: the IR and three agent events are synthesized.
+		"1": header + step + step + step + event("trajectory.ir", "agent", "agent", `{"objectives":[1,2],"toolCalls":[]}`),
+		// Null toolCalls: bounded by agent-phase tool events only.
+		"2": header + tool + tool + tool + event("tool.execution_start", "copilot", "detection", "{}") + event("trajectory.ir", "copilot", "agent", `{"events":[1],"toolCalls":null}`),
+		"3": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{"a":[1,2,3,4,5,6,7],"patch":{"files":[1,2,3,4,5,6]},"b":"x"}}`),
+		"4": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{"a":[1,2],"patch":{"files":[1,2,3,4,5,6]}},"observations":[1,2,3]}`),
+		"5": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{"token":[1,2,3]}}`),
+		"6": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{},"states":[1,2]}`),
+		"7": header,
+	}
+	for run, content := range runs {
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", run, now.Format(time.DateOnly), 1, []byte(content), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	s := pinTestArchive(t, a)
+	out, err := s.Analytical(t.Context(), itemDefinition(t, "archive-objectives", `"select":[{"field":"RunId"},{"field":"LargestCollection"}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, row := range out.Rows {
+		got[fmt.Sprint(row["RunId"])] = fmt.Sprint(row["LargestCollection"])
+	}
+	want := map[string]string{"1": "4", "2": "3", "3": "7", "4": "6", "5": "<nil>", "6": "2", "7": "0"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("LargestCollection = %v, want %v", got, want)
+	}
+}
+
 const chainBinding = `"Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"`
 
 func chainedDefinition(t *testing.T, stages, clauses string) Definition {
@@ -627,11 +695,13 @@ func TestAnalyticalChainedPlans(t *testing.T) {
 	if err != nil || plan.Stages() != 1 || plan.Base().Source != "archive-states" || plan.Input.Columns[len(plan.Input.Columns)-1].Type != "number" {
 		t.Fatalf("chained plan rejected: %#v %v", plan, err)
 	}
-	if !errors.Is(plan.Require(AnalyticalCapabilities(4096)), ErrQuery) {
-		t.Fatal("hosted capabilities silently accepted a chained query")
+	capabilities := AnalyticalCapabilities(4096)
+	capabilities.Chaining = 0
+	if !errors.Is(plan.Require(capabilities), ErrQuery) {
+		t.Fatal("a backend without chaining silently accepted a chained query")
 	}
-	if err := plan.Require(LocalAnalyticalCapabilities(4096)); err != nil {
-		t.Fatalf("local chaining capability rejected: %v", err)
+	if err := plan.Require(AnalyticalCapabilities(4096)); err != nil {
+		t.Fatalf("chaining capability rejected: %v", err)
 	}
 	events := `{"name":"per-trace","subject":"S.","from":"archive-events","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"Sequence","as":"n","reducer":"count"}]}}`
 	if _, err := chainedDefinition(t, events, `"from":"per-trace","select":[{"field":"TraceId"},{"field":"n"}]`).Plan(); err != nil {
@@ -641,26 +711,25 @@ func TestAnalyticalChainedPlans(t *testing.T) {
 		return `{"name":"` + name + `","subject":"S.","from":"` + from + `","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"` + rest + `","as":"n","reducer":"count"}]}}`
 	}
 	for name, test := range map[string]struct{ stages, clauses string }{
-		"unknown":       {kindStage, `"from":"missing","select":[{"field":"n"}]`},
-		"skips stage":   {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
-		"forward read":  {stage("a", "b", "n") + "," + stage("b", "archive-events", "Sequence"), `"from":"b","select":[{"field":"n"}]`},
-		"self read":     {stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
-		"duplicate":     {stage("a", "archive-events", "Sequence") + "," + stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
-		"outer name":    {stage("test-chain", "archive-events", "Sequence"), `"from":"test-chain","select":[{"field":"n"}]`},
-		"shadow source": {stage("archive-states", "archive-events", "Sequence"), `"from":"archive-states","select":[{"field":"n"}]`},
-		"too deep": {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n") + "," + stage("c", "b", "n"),
-			`"from":"c","select":[{"field":"n"}]`},
-		"unbound stage":    {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":["TraceId"],"values":[{"field":"Sequence","as":"n","reducer":"count"}]}}`, `"from":"a","select":[{"field":"n"}]`},
-		"row stage":        {`{"name":"a","subject":"S.","from":"archive-events","select":[{"field":"Sequence"}]}`, `"from":"a","select":[{"field":"Sequence"}]`},
-		"stage limit":      {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"Sequence","as":"n","reducer":"count"}]},"limit":1}`, `"from":"a","select":[{"field":"n"}]`},
-		"nested":           {`{"name":"a","subject":"S.","queries":[` + stage("b", "archive-events", "Sequence") + `],"from":"b","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"count"}]}}`, `"from":"a","select":[{"field":"m"}]`},
-		"unbound outer":    {kindStage, `"from":"per-kind","aggregate":{"by":["TraceId"],"values":[{"field":"n","as":"m","reducer":"sum"}]}`},
-		"state predicate":  {kindStage, `"from":"per-kind","filter":{"predicates":[{"field":"n","state":"valid"}]},"select":[{"field":"n"}]`},
-		"first":            {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"first","order-by":[{"field":"Kind"}]}]}`},
-		"unordered sum":    {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum"}]}`},
-		"wrong order":      {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum","order-by":[{"field":"Kind","direction":"desc"}]}]}`},
-		"hidden source":    {kindStage, `"from":"per-kind","select":[{"field":"Ordinal"}]`},
-		"base source read": {kindStage, `"from":"archive-states","select":[{"field":"Kind"}]`},
+		"unknown":            {kindStage, `"from":"missing","select":[{"field":"n"}]`},
+		"skips stage":        {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
+		"forward read":       {stage("a", "b", "n") + "," + stage("b", "archive-events", "Sequence"), `"from":"b","select":[{"field":"n"}]`},
+		"self read":          {stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
+		"duplicate":          {stage("a", "archive-events", "Sequence") + "," + stage("a", "a", "n"), `"from":"a","select":[{"field":"n"}]`},
+		"outer name":         {stage("test-chain", "archive-events", "Sequence"), `"from":"test-chain","select":[{"field":"n"}]`},
+		"shadow source":      {stage("archive-states", "archive-events", "Sequence"), `"from":"archive-states","select":[{"field":"n"}]`},
+		"reused output name": {stage("a", "archive-events", "Sequence") + "," + stage("b", "a", "n"), `"from":"b","select":[{"field":"n"}]`},
+		"unbound stage":      {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":["TraceId"],"values":[{"field":"Sequence","as":"n","reducer":"count"}]}}`, `"from":"a","select":[{"field":"n"}]`},
+		"row stage":          {`{"name":"a","subject":"S.","from":"archive-events","select":[{"field":"Sequence"}]}`, `"from":"a","select":[{"field":"Sequence"}]`},
+		"stage limit":        {`{"name":"a","subject":"S.","from":"archive-events","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"Sequence","as":"n","reducer":"count"}]},"limit":1}`, `"from":"a","select":[{"field":"n"}]`},
+		"nested":             {`{"name":"a","subject":"S.","queries":[` + stage("b", "archive-events", "Sequence") + `],"from":"b","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"count"}]}}`, `"from":"a","select":[{"field":"m"}]`},
+		"unbound outer":      {kindStage, `"from":"per-kind","aggregate":{"by":["TraceId"],"values":[{"field":"n","as":"m","reducer":"sum"}]}`},
+		"state predicate":    {kindStage, `"from":"per-kind","filter":{"predicates":[{"field":"n","state":"valid"}]},"select":[{"field":"n"}]`},
+		"first":              {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"n","as":"m","reducer":"first","order-by":[{"field":"Kind"}]}]}`},
+		"unordered sum":      {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum"}]}`},
+		"wrong order":        {kindStage, `"from":"per-kind","aggregate":{"by":[` + chainBinding + `],"values":[{"field":"half","as":"m","reducer":"sum","order-by":[{"field":"Kind","direction":"desc"}]}]}`},
+		"hidden source":      {kindStage, `"from":"per-kind","select":[{"field":"Ordinal"}]`},
+		"base source read":   {kindStage, `"from":"archive-states","select":[{"field":"Kind"}]`},
 	} {
 		if _, err := chainedDefinition(t, test.stages, test.clauses).Plan(); !errors.Is(err, ErrQuery) {
 			t.Fatalf("%s: invalid chained plan accepted: %v", name, err)
@@ -709,5 +778,207 @@ func TestDuckDBAnalyticalChainingIntegration(t *testing.T) {
 	}
 	if out.Metadata.QueryDigest == analyticalDefinition(t, `"select":[{"field":"Sequence"}]`).Metadata(false, 0, 0).QueryDigest {
 		t.Fatal("query digest ignored earlier stages")
+	}
+}
+
+const joinBinding = chainBinding + `,"PolicyDigest"`
+
+// idStage counts objectives per trace and Id, so Id is the unique right key.
+const idStage = `{"name":"ids","subject":"S.","from":"archive-objectives","aggregate":{"by":[` + joinBinding + `,"Id"],"values":[{"field":"Ordinal","as":"copies","reducer":"count"}]}}`
+
+const dependencyJoin = `"from":"archive-objective-dependencies","joins":[{"source":"ids","type":"left","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],` +
+	`"select":[{"field":"RunId"},{"field":"Ordinal"},{"field":"Position"},{"field":"Value"},{"field":"copies"}],"order-by":[{"field":"RunId"},{"field":"Ordinal"},{"field":"Position"}]`
+
+func TestAnalyticalJoinPlans(t *testing.T) {
+	plan, err := chainedDefinition(t, idStage, dependencyJoin).Plan()
+	if err != nil || len(plan.Joins) != 1 || len(plan.Joins[0].On) != 8 || plan.Joins[0].Type != "left" {
+		t.Fatalf("trace-scoped join rejected: %#v %v", plan.Joins, err)
+	}
+	capabilities := AnalyticalCapabilities(4096)
+	capabilities.Joins = 0
+	if !errors.Is(plan.Require(capabilities), ErrQuery) {
+		t.Fatal("a backend without joins silently accepted a join")
+	}
+	if err := plan.Require(AnalyticalCapabilities(4096)); err != nil {
+		t.Fatalf("join capability rejected: %v", err)
+	}
+	rows := `"from":"archive-states","joins":[{"source":"archive-ir-events","on":[{"left":"Ordinal","right":"Ordinal"}],"fields":[{"field":"Index"}]}],"select":[{"field":"Index"}]`
+	if _, err := itemDefinition(t, "archive-states", rows[len(`"from":"archive-states",`):]).Plan(); err != nil {
+		t.Fatalf("join on a complete source row key rejected: %v", err)
+	}
+	join := func(spec string) string {
+		return `"from":"archive-objective-dependencies","joins":[` + spec + `],"select":[{"field":"Value"}]`
+	}
+	stage := func(n int) string {
+		stages := make([]string, 0, n)
+		for i := range n {
+			stages = append(stages, strings.Replace(idStage, `"name":"ids"`, `"name":"ids`+fmt.Sprint(i)+`"`, 1))
+		}
+		return strings.Join(stages, ",")
+	}
+	many := make([]string, 5)
+	for i := range many {
+		many[i] = `{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies","as":"c` + fmt.Sprint(i) + `"}]}`
+	}
+	for name, test := range map[string]struct{ stages, clauses string }{
+		"non-unique right":    {idStage, join(`{"source":"ids","fields":[{"field":"copies"}]}`)},
+		"non-unique item":     {idStage, join(`{"source":"archive-objectives","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"Items"}]},{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"cross join":          {idStage, join(`{"source":"ids","type":"cross","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"right join":          {idStage, join(`{"source":"ids","type":"right","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"rebound binding":     {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Id"},{"left":"RunId","right":"RunId"}],"fields":[{"field":"copies"}]}`)},
+		"mistyped key":        {idStage, join(`{"source":"ids","on":[{"left":"Ordinal","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"unknown right":       {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Missing"}],"fields":[{"field":"copies"}]}`)},
+		"name collision":      {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies","as":"value"}]}`)},
+		"no fields":           {idStage, join(`{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[]}`)},
+		"too many joins":      {idStage, join(strings.Join(many, ","))},
+		"unused stage":        {idStage + "," + strings.Replace(idStage, `"name":"ids"`, `"name":"spare"`, 1), join(`{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"too many stages":     {stage(9), join(`{"source":"ids0","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"joined state":        {idStage, `"from":"archive-objective-dependencies","joins":[{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"filter":{"predicates":[{"field":"copies","state":"valid"}]},"select":[{"field":"Value"}]`},
+		"unknown join source": {idStage, join(`{"source":"missing","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]},{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
+		"wide window":         {idStage, `"from":"archive-objective-dependencies","joins":[{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"window":[{"as":"n","operation":"row-number","groupby":[` + joinBinding + `,"Value","copies","Kind"],"order-by":[{"field":"Ordinal"},{"field":"Position"}]}],"select":[{"field":"n"}]`},
+		"ordered item sum":    {idStage, `"from":"archive-states","aggregate":{"by":[` + joinBinding + `],"values":[{"field":"FirstEventIndex","as":"s","reducer":"sum","order-by":[{"field":"Ordinal"}]}]},"joins":[{"source":"ids","on":[{"left":"Id","right":"Id"}],"fields":[{"field":"copies"}]}]`},
+	} {
+		if _, err := chainedDefinition(t, test.stages, test.clauses).Plan(); !errors.Is(err, ErrQuery) {
+			t.Fatalf("%s: invalid join plan accepted: %v", name, err)
+		}
+	}
+}
+
+func TestDuckDBAnalyticalJoinIntegration(t *testing.T) {
+	c := testConfig(t)
+	policy, err := os.ReadFile("testdata/evidence-policy.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := decode(policy, &c.Policy); err != nil {
+		t.Fatal(err)
+	}
+	a := openTestArchive(t, c, nil)
+	now := time.Now().UTC()
+	header := "{\"type\":\"session.format\",\"provenance\":{},\"data\":{\"version\":1}}\n"
+	raw := header + `{"type":"trajectory.ir","provenance":{"component":"agent","phase":"agent"},"data":{"objectives":[{"id":"a"},{"id":"b","dependsOn":["a","","z",1]},{"dependsOn":[""]},{"dependsOn":"a"}]}}` + "\n"
+	for run, content := range map[string]string{"1": raw, "2": header} {
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", run, now.Format(time.DateOnly), 1, []byte(content), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	s := pinTestArchive(t, a)
+	for joinType, want := range map[string]string{
+		// The "" dependency never matches the "" Id of objectives without an id.
+		"left":  "1/1/0/a/1,1/1/1//<nil>,1/1/2/z/<nil>,1/1/3//<nil>,1/2/0//<nil>,2/<nil>/<nil>//<nil>",
+		"inner": "1/1/0/a/1",
+	} {
+		out, err := s.Analytical(t.Context(), chainedDefinition(t, idStage, strings.Replace(dependencyJoin, `"left"`, `"`+joinType+`"`, 1)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, row := range out.Rows {
+			got = append(got, fmt.Sprint(row["RunId"], "/", row["Ordinal"], "/", row["Position"], "/", row["Value"], "/", row["copies"]))
+		}
+		if strings.Join(got, ",") != want {
+			t.Fatalf("%s join rows = %v, want %s", joinType, got, want)
+		}
+	}
+}
+
+const windowBy = `"groupby":[` + chainBinding + `]`
+
+func TestAnalyticalRowLevelPlans(t *testing.T) {
+	accepted := map[string]string{
+		"compute": `"compute":[{"as":"late","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"select":[{"field":"late"}]`,
+		"window":  `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"family":  `"filter":{"predicates":[{"field":"Usage","state":"present"}]},"select":[{"field":"Sequence"}]`,
+		"path":    `"compute":[{"as":"p","function":"strip-prefix","args":[{"function":"trim","args":[{"field":"Type"}]},{"value":"./"},{"value":true}]}],"select":[{"field":"p"}]`,
+	}
+	for name, clauses := range accepted {
+		plan, err := analyticalDefinition(t, clauses).Plan()
+		if err != nil || plan.Require(AnalyticalCapabilities(4096)) != nil {
+			t.Fatalf("%s rejected: %v", name, err)
+		}
+		capabilities := AnalyticalCapabilities(4096)
+		capabilities.Compute, capabilities.Windows, capabilities.StateFamilies = false, nil, nil
+		if !errors.Is(plan.Require(capabilities), ErrQuery) {
+			t.Fatalf("a backend without the construct silently accepted %s", name)
+		}
+	}
+	rowStage := `{"name":"rows","subject":"S.","from":"archive-events","window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[`
+	for name, clauses := range map[string]string{
+		"window with aggregate":     `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"aggregate":{"values":[{"field":"n","as":"m","reducer":"max"}]}`,
+		"partial trace partition":   `"window":[{"as":"n","operation":"row-number","groupby":["RunId"],"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"order not covering key":    `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Type"}]}],"select":[{"field":"n"}]`,
+		"order repeats partition":   `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"RunId"},{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"previous without field":    `"window":[{"as":"n","operation":"previous",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"unknown window":            `"window":[{"field":"Sequence","as":"n","operation":"next",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
+		"window output collision":   `"window":[{"as":"Type","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"Type"}]`,
+		"family comparison":         `"filter":{"predicates":[{"field":"Error","equals":"x"}]},"select":[{"field":"Sequence"}]`,
+		"family selected":           `"select":[{"field":"Usage"}]`,
+		"family named output":       `"compute":[{"as":"Error","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"select":[{"field":"Error"}]`,
+		"compute in main filter":    `"compute":[{"as":"late","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"filter":{"predicates":[{"field":"late","equals":true}]},"select":[{"field":"late"}]`,
+		"string null test":          `"compute":[{"as":"untyped","function":"is-null","args":[{"field":"Type"}]}],"select":[{"field":"untyped"}]`,
+		"string coalesce":           `"compute":[{"as":"kind","function":"coalesce","args":[{"field":"Type"},{"value":"x"}]}],"select":[{"field":"kind"}]`,
+		"trim of number":            `"compute":[{"as":"p","function":"trim","args":[{"field":"Sequence"}]}],"select":[{"field":"p"}]`,
+		"field prefix":              `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"field":"Type"},{"value":false}]}],"select":[{"field":"p"}]`,
+		"empty prefix":              `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":""},{"value":false}]}],"select":[{"field":"p"}]`,
+		"long prefix":               `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"aaaaaaaaaaaaaaaaa"},{"value":false}]}],"select":[{"field":"p"}]`,
+		"computed repeat":           `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"/"},{"function":"gt","args":[{"field":"Sequence"},{"value":1}]}]}],"select":[{"field":"p"}]`,
+		"missing repeat":            `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"/"}]}],"select":[{"field":"p"}]`,
+		"row stage drops key":       `"queries":[` + rowStage + `{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
+		"row stage renames key":     `"queries":[` + rowStage + `{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence","as":"seq"},{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
+		"family over item source":   `"from-items":true`,
+		"family over chained stage": `"queries":[` + rowStage + `{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence"},{"field":"n"}]}],"from":"rows","filter":{"predicates":[{"field":"Error","state":"present"}]},"select":[{"field":"n"}]`,
+	} {
+		var definition Definition
+		content := `{"name":"t","subject":"S.","from":"archive-events",` + clauses + `}`
+		switch {
+		case name == "family over item source":
+			content = `{"name":"t","subject":"S.","from":"archive-states","filter":{"predicates":[{"field":"Error","state":"present"}]},"select":[{"field":"Kind"}]}`
+		case strings.HasPrefix(clauses, `"queries"`):
+			content = `{"name":"t","subject":"S.",` + clauses + `}`
+		}
+		if err := json.Unmarshal([]byte(content), &definition); err != nil {
+			t.Fatalf("%s did not decode: %v", name, err)
+		}
+		if _, err := definition.Plan(); !errors.Is(err, ErrQuery) {
+			t.Fatalf("%s was accepted", name)
+		}
+	}
+	plan, err := chainedDefinition(t, rowStage+`{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence"},{"field":"n"}]}`,
+		`"from":"rows","aggregate":{"by":[`+chainBinding+`],"values":[{"field":"n","as":"events","reducer":"max"}]}`).Plan()
+	if err != nil || plan.Stages() != 1 || len(plan.Input.Key) != 7 {
+		t.Fatalf("row-level stage did not keep its trace and sequence key: %v", err)
+	}
+}
+
+func TestDuckDBStructuredFamilyStates(t *testing.T) {
+	c := testConfig(t)
+	a := openTestArchive(t, c, nil)
+	raw := `{"type":"session.format","data":{"version":1}}` + "\n" +
+		`{"type":"tool.execution_complete","data":{"toolCallId":"a","success":false,"error":{"message":"denied"}}}` + "\n" +
+		`{"type":"tool.execution_complete","data":{"toolCallId":"b","success":true}}` + "\n" +
+		`{"type":"session.collection","data":{"complete":true}}` + "\n"
+	p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "1", "2026-10-25", 1, []byte(raw), time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Admit(t.Context(), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	result, err := pinTestArchive(t, a).Analytical(t.Context(), analyticalDefinition(t,
+		`"filter":{"predicates":[{"field":"Type","equals":"tool.execution_complete"}]},`+
+			`"aggregate":{"values":[{"field":"Sequence","as":"failed","reducer":"count","filter":{"predicates":[{"field":"Error","state":"present"}]}},`+
+			`{"field":"Sequence","as":"clean","reducer":"count","filter":{"predicates":[{"field":"Error","state":"absent"}]}}]}`))
+	if err != nil || len(result.Rows) != 1 || fmt.Sprint(result.Rows[0]["failed"], ",", result.Rows[0]["clean"]) != "1,1" {
+		t.Fatalf("structured Error family state changed: %#v %v", result, err)
 	}
 }

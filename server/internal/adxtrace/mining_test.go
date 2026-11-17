@@ -471,3 +471,23 @@ func TestMiningCreationProofRejectsAmbiguousCompletions(t *testing.T) {
 		})
 	}
 }
+
+func TestValidDispositionMirrorsSafeOutputAdoption(t *testing.T) {
+	at := time.Unix(1, 0).UTC()
+	for _, pull := range []bool{false, true} {
+		for _, actor := range []string{"User", "Bot", ""} {
+			for _, reason := range []string{"completed", "not_planned", ""} {
+				for _, state := range []string{"open", "closed"} {
+					o := mining.Outcome{Repository: "octo/target", PullRequest: pull, State: state, StateReason: reason,
+						CloseActor: actor, DispositionAt: &at, UpdatedAt: at}
+					if audit := o.Audit("output", "run"); !validDisposition(audit, pull) {
+						t.Fatalf("pull=%v state=%s reason=%s actor=%s: %v/%v rejected", pull, state, reason, actor, audit["status"], audit["code"])
+					}
+				}
+			}
+		}
+	}
+	if validDisposition(model.Row{"decision": "closed", "status": "accepted", "code": "merged"}, false) {
+		t.Fatal("issue accepted a pull-request signal")
+	}
+}

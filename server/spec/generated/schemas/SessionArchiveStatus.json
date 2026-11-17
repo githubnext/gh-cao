@@ -144,6 +144,39 @@
                     "minimum": -2147483648,
                     "maximum": 2147483647,
                     "description": "Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected."
+                },
+                "joins": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Maximum trace-scoped joins one definition may declare. Omitted means joins are rejected."
+                },
+                "compute": {
+                    "type": "boolean",
+                    "description": "Row-level compute before aggregate. Omitted means compute is rejected."
+                },
+                "windows": {
+                    "type": "array",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "const": "previous"
+                            },
+                            {
+                                "type": "string",
+                                "const": "row-number"
+                            }
+                        ]
+                    },
+                    "description": "Supported window operations. Omitted means window is rejected."
+                },
+                "stateFamilies": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "Structured evidence families accepted as state-predicate fields. Omitted means none."
                 }
             },
             "required": [
@@ -200,11 +233,39 @@
                         },
                         {
                             "type": "string",
+                            "const": "archive-objective-dependencies"
+                        },
+                        {
+                            "type": "string",
                             "const": "archive-actions"
                         },
                         {
                             "type": "string",
                             "const": "archive-states"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-ir-events"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-observations"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-observation-consumers"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-tool-calls"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-resources"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-reference-patch-files"
                         }
                     ]
                 },
