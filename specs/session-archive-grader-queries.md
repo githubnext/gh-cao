@@ -15,7 +15,7 @@ grader's semantics.
 | Item | Value |
 | --- | --- |
 | Upstream pin | `github/gh-aw` `5ac122295e5e839aa15a727ecf4762f3e680cc24` ([`grader-source-pins.json`](../server/internal/sessionarchive/testdata/grader-source-pins.json)) |
-| Last upstream review | `main` `3b0e22a4` (2026-11-17); `builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs` and `working_set_metrics.cjs` are byte-identical to the pin. The intervening changes move custom and operational-value graders to a restricted job, which stays out of scope. Previously `789cc9c2` and `a25e38ee6b9740b10008559bd2c9290ef1f925aa` |
+| Last upstream review | `main` `ce49bf98` (2026-11-17); no grader file changed since `3b0e22a4`, and `builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs` and `working_set_metrics.cjs` are byte-identical to the pin. The intervening changes move custom and operational-value graders to a restricted job, which stays out of scope. Previously `3b0e22a4`, `789cc9c2` and `a25e38ee6b9740b10008559bd2c9290ef1f925aa` |
 | Upstream sources | `actions/setup/js/builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs`, `working_set_metrics.cjs`, `operational_value_grader.cjs`, `custom_graders.cjs` |
 | Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1, Phase 5, E1 and Phase 7 item sources, Phase 2 chaining, Phase 4 row-level compute, windows and structured-family states, Phase 5 joins, and the Phase 7 `trim` and `strip-prefix` functions, within the Phase 6 budgets (8,192-byte requests, nine-field window partitions) |
 | Graders in scope | 35 built-ins; operational-value and custom graders are listed as out of scope |
@@ -412,7 +412,7 @@ Every backend advertises the item sources, chaining and joins through
 | Backend | Recomputed graders | Acceptance |
 | --- | --- | --- |
 | Local DuckDB | All 21 `implemented` graders | `TestGraderReplayEvidence` and the pinned upstream replay |
-| Hosted and native ADX (Kusto) | All 21 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5; [run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578) for E1, on the exact tree merged in #21102; KUSTO_RUN_PLACEHOLDER for Phases 6 and 7) |
+| Hosted and native ADX (Kusto) | All 21 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5; [run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578) for E1, on the exact tree merged in #21102; [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174), on the exact tree merged in #21122 for Phases 6 and 7) |
 
 The Kusto replay executes every definition that has a full DuckDB result
 through the real engine over the same synthetic approved events. It is not
@@ -479,7 +479,8 @@ new evidence approval unless stated.
   `recurrence-trapping-time` and `dependency-order-violation-rate` (§10):
   every definition now fits the 140-character maximum repository shape, which
   the production replay asserts (§12). Accepted on real Kusto in
-  KUSTO_RUN_PLACEHOLDER.
+  [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174),
+  on the exact tree merged in #21122.
 - [x] **Phase 7 (G1-lite, closed path normalization):** `trim` with the exact
   JavaScript whitespace set and closed literal `strip-prefix`, no general
   regex; `archive-reference-patch-files`, `archive-resources` and the
@@ -487,7 +488,8 @@ new evidence approval unless stated.
   approved E1 or Phase 1 collections. Unlocks `code-search-recall`,
   `code-read-precision` and `code-edit-precision`, with parity fixtures
   covering Unicode whitespace (§12). Accepted on real Kusto in
-  KUSTO_RUN_PLACEHOLDER.
+  [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174),
+  on the exact tree merged in #21122.
 - [ ] **User decision (G1, keywords):** decide whether to approve the retry
   message and objective `description` fields. Only then consider a closed ASCII
   keyword-match predicate (§3.1) for `retries` and `policy-near-miss`; typed
@@ -729,7 +731,8 @@ not be approximated through backend JSON serialization.
 ## 12. Phase 6 and 7 implementation notes
 
 Phases 6 and 7 add four definitions, accepted on DuckDB and real Kusto
-(KUSTO_RUN_PLACEHOLDER), which brings both backends to twenty-one
+([run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174),
+on the exact tree merged in #21122), which brings both backends to twenty-one
 `implemented` graders. No evidence is newly approved: every new source reads an
 already-approved Phase 1 or E1 collection of the last agent-phase IR.
 
