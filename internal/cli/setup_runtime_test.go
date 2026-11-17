@@ -22,7 +22,7 @@ func setupBootstrapGH(t *testing.T, failure string, calls *[]string) ghExecutor 
 		call := strings.Join(args, " ")
 		*calls = append(*calls, call)
 		switch {
-		case call == "auth status":
+		case strings.HasPrefix(call, "auth status --hostname "):
 			return "", "", nil
 		case call == "repo view --json nameWithOwner --jq .nameWithOwner":
 			return "org/control", "", nil

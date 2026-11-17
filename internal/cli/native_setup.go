@@ -345,7 +345,11 @@ func nativeSetupControl(cmd *cobra.Command, gh ghExecutor, prompt nativeSetupPro
 			return nil, err
 		}
 	}
-	if _, err = nativeSetupGH(cmd, gh, "auth", "status"); err != nil {
+	host := strings.TrimSpace(os.Getenv("GH_HOST"))
+	if host == "" {
+		host = "github.com"
+	}
+	if _, err = nativeSetupGH(cmd, gh, "auth", "status", "--hostname", host); err != nil {
 		return nil, fmt.Errorf("GitHub CLI authentication check failed; run gh auth login: %w", err)
 	}
 	repo, err := nativeSetupGH(cmd, gh, "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner")

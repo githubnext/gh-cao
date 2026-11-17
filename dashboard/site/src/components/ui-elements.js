@@ -35,6 +35,7 @@ const debugUiElements = createDebug('ui-elements');
  *   viewId?: string,
  *   viewIndex?: number,
  *   sourcesSubscribed?: boolean,
+ *   subscribedSourceNames?: string[],
  *   elementConfig?: { wizard?: import('../prompt-wizard.js').PromptWizard, actions?: Record<string, string>, body?: string, sections?: string[], stations?: string[], section?: string, labels?: Record<string, unknown>, animate?: string, 'browser-first-load'?: boolean, 'data-status'?: boolean, 'view-all-page'?: string, 'view-all-label'?: string, 'label-field'?: string, 'label-badge-field'?: string, 'link-field'?: string, 'icon-field'?: string, 'fallback-icon'?: string, 'indicator-field'?: string, 'indicator-label-field'?: string, 'empty-message'?: string, 'measure-source'?: 'operational-value'|'operational-grader', 'content-field'?: string, 'path-field'?: string, 'base-link-field'?: string },
  *   headingTag: 'h2'|'h3'|'h4'
  * }} ElementRenderContext
@@ -54,14 +55,41 @@ const ELEMENT_RENDERERS = new Map([
 ]);
 
 /** Elements that load declared sources independently of the active page subscription. */
-const ASYNC_SOURCE_ELEMENTS = new Set(['factory-header', 'factory-floor', 'all-campaign-memory', 'link-button-list', 'measure-history']);
+const ASYNC_SOURCE_ELEMENTS = new Set([
+  'factory-header',
+  'factory-floor',
+  'all-campaign-memory',
+  'link-button-list',
+  'measure-history'
+]);
 
 /** Elements that retain their DOM while the active page publishes subscribed results. */
-const PAGE_BOUND_ELEMENTS = new Set(['problem-detail', 'campaign-route', 'workflow-value-report', 'workflow-value-snapshot']);
+const PAGE_BOUND_ELEMENTS = new Set([
+  'problem-detail',
+  'campaign-route',
+  'workflow-value-report',
+  'workflow-value-snapshot',
+  'factory-header',
+  'factory-floor'
+]);
 
 /** @param {string} name */
 export function elementBindsPageSources(name) {
   return PAGE_BOUND_ELEMENTS.has(name);
+}
+
+/**
+ * Factory elements load their metrics independently but keep their first
+ * declared setup-state source subscribed so onboarding advances in place.
+ * Other page-bound elements subscribe all declared sources.
+ * @param {string} name
+ * @param {string[]} sourceNames
+ */
+export function elementPageSubscriptionSourceNames(name, sourceNames) {
+  if (!elementBindsPageSources(name)) return [];
+  return name === 'factory-header' || name === 'factory-floor'
+    ? sourceNames.slice(0, 1)
+    : sourceNames;
 }
 
 /**

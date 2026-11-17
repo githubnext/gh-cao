@@ -113,7 +113,7 @@ describe('Overview ingestion status', () => {
     const header = page.views.find((/** @type {{ id: string }} */ view) => view.id === contract.view);
     expect(header.element).toBe('factory-header');
     expect(header.config[contract.config] === true).toBe(contract.enabled);
-    expect(header.data.sources).toEqual(['overview-header-presentation', 'overview-rhythm']);
+    expect(header.data.sources).toEqual(['overview-onboarding-state', 'overview-header-presentation', 'overview-rhythm']);
   });
 
   for (const entry of contract.cases) {

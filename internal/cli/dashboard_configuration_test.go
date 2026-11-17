@@ -64,7 +64,7 @@ func TestDashboardConfigurationReloadPreservesEvidenceAndExplicitScope(t *testin
 		t.Fatal(err)
 	}
 	for name, digest := range before {
-		if name != "inventory-sources.json" && after[name] != digest {
+		if name != "inventory-sources.json" && !dashboardCanonicalShard(name) && after[name] != digest {
 			t.Fatalf("configuration reload changed retained evidence: %s", name)
 		}
 	}
@@ -81,6 +81,20 @@ func TestDashboardConfigurationReloadPreservesEvidenceAndExplicitScope(t *testin
 	}
 	if len(inventory["repositories"].Rows) != 2 || inventory["repositories"].Rows[1]["repository"] != "second" {
 		t.Fatalf("configured repositories did not reload: %s", content)
+	}
+	batch, err := readDashboardArtifactBatch(ctx, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var configurationTransaction map[string]any
+	for _, row := range batch["transactions"] {
+		if row["id"] == "local-dashboard-configuration" {
+			configurationTransaction = row
+			break
+		}
+	}
+	if configurationTransaction == nil || configurationTransaction["records"] != float64(1) {
+		t.Fatalf("configured policy state was not published: %s", content)
 	}
 	if _, err := readDashboardStatus(ctx, cache, []string{"octo/observed"}); err != nil {
 		t.Fatalf("configuration widened or replaced explicit collection scope: %v", err)
@@ -129,6 +143,26 @@ func TestDashboardConfigurationKeepsCurrentRepositoryBuiltIn(t *testing.T) {
 	configuration.current.Store(missing)
 	if !reflect.DeepEqual(configuration.repositoryRows(), []map[string]any{{"organization": "octo", "repository": "current"}}) {
 		t.Fatal("current repository disappeared with the policy")
+	}
+}
+
+func TestDashboardConfigurationTransactionReportsSetupState(t *testing.T) {
+	now := time.Date(2026, time.November, 16, 12, 0, 0, 0, time.UTC)
+	missing := dashboardConfigurationTransaction(&dashboardConfigurationSnapshot{digest: "not-configured"}, now)
+	configured := dashboardConfigurationTransaction(&dashboardConfigurationSnapshot{digest: "reviewed-policy"}, now)
+
+	if missing["records"] != int64(0) || missing["committedRecords"] != int64(0) {
+		t.Fatalf("missing policy reported configured records: %+v", missing)
+	}
+	if configured["records"] != int64(1) || configured["committedRecords"] != int64(1) {
+		t.Fatalf("configured policy did not report one record: %+v", configured)
+	}
+	for _, transaction := range []map[string]any{missing, configured} {
+		if transaction["id"] != "local-dashboard-configuration" ||
+			transaction["kind"] != "local-dashboard-configuration" ||
+			transaction["createdAt"] != now.Format(time.RFC3339Nano) {
+			t.Fatalf("configuration transaction identity changed: %+v", transaction)
+		}
 	}
 }
 

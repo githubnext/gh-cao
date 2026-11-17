@@ -1317,6 +1317,32 @@
         "copy-only": true
       },
       {
+        "id": "setup-cao",
+        "level": "operate",
+        "label": "Set up CAO",
+        "description": "Prepare local CAO policy and public monitoring scope for an exact repository or owner wildcard. Private or internal targets require separate credential setup.",
+        "icon": "gear",
+        "command": "gh cao setup --repository {{repository-pattern}}",
+        "placement": "view",
+        "selector": {
+          "label": "Repository",
+          "placeholder": "Search owner/repository or enter owner/*",
+          "allow-patterns": true,
+          "debounce-ms": 300,
+          "query": {
+            "command": "gh search repos",
+            "fields": ["fullName", "description"],
+            "limit": 20
+          },
+          "mapping": {
+            "value": "fullName",
+            "label": "fullName",
+            "description": "description",
+            "target": "repository-pattern"
+          }
+        }
+      },
+      {
         "id": "add-repository",
         "level": "operate",
         "label": "Add repository",

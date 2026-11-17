@@ -21,6 +21,9 @@ func PlanLocalMaintenance(command string) (Plan, error) {
 	if err != nil {
 		return Plan{}, err
 	}
+	if hasPrefix(tokens, "gh", "cao", "setup") {
+		return planCAOSetup(tokens[3:])
+	}
 	if hasPrefix(tokens, "gh", "cao", "repos", "add") {
 		return planRepositoryEnrollment(tokens[4:])
 	}
@@ -62,6 +65,18 @@ func PlanLocalMaintenance(command string) (Plan, error) {
 		normalized = append(normalized, strings.TrimSuffix(path.Base(target), ".md"))
 	}
 	return Plan{Program: "gh-aw", Args: append(normalized, args...), Repository: args[1]}, nil
+}
+
+func planCAOSetup(args []string) (Plan, error) {
+	if len(args) != 2 || args[0] != "--repository" || len(args[1]) > 200 ||
+		strings.Contains(args[1], "..") || !enrollmentPattern.MatchString(args[1]) {
+		return Plan{}, errors.New("CAO setup requires one --repository OWNER/REPO with optional * wildcards")
+	}
+	plan := Plan{Kind: KindCaoSetup, Program: "gh-cao", Args: []string{"setup", "--repository", args[1]}}
+	if ValidRepository(args[1]) {
+		plan.Repository = strings.ToLower(args[1])
+	}
+	return plan, nil
 }
 
 // planRepositoryEnrollment stages review-mode enrollment in the native CLI's

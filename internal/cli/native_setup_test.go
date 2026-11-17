@@ -148,7 +148,7 @@ func TestNativeSetupNonInteractive(t *testing.T) {
 				call := strings.Join(args, " ")
 				calls = append(calls, call)
 				switch {
-				case call == "auth status":
+				case strings.HasPrefix(call, "auth status --hostname "):
 					return "", "", nil
 				case call == "repo view --json nameWithOwner --jq .nameWithOwner":
 					return "org/control", "", nil
@@ -213,21 +213,21 @@ func TestNativeSetupPublicMonitoring(t *testing.T) {
 			var mutations []string
 			gh := func(_ context.Context, args ...string) (string, string, error) {
 				call := strings.Join(args, " ")
-				switch call {
-				case "auth status":
+				switch {
+				case strings.HasPrefix(call, "auth status --hostname "):
 					return "", "", nil
-				case "repo view --json nameWithOwner --jq .nameWithOwner":
+				case call == "repo view --json nameWithOwner --jq .nameWithOwner":
 					return "org/control", "", nil
-				case "repo view org/control --json nameWithOwner,visibility":
+				case call == "repo view org/control --json nameWithOwner,visibility":
 					return fmt.Sprintf(`{"nameWithOwner":"org/control","visibility":%q}`, visibility), "", nil
-				case "repo list other --json nameWithOwner,visibility --limit 1000":
+				case call == "repo list other --json nameWithOwner,visibility --limit 1000":
 					return `[{"nameWithOwner":"other/public","visibility":"PUBLIC"},{"nameWithOwner":"other/private","visibility":"PRIVATE"},{"nameWithOwner":"other/internal","visibility":"INTERNAL"}]`, "", nil
-				case "repo view other/public --json nameWithOwner,visibility":
+				case call == "repo view other/public --json nameWithOwner,visibility":
 					return `{"nameWithOwner":"other/public","visibility":"PUBLIC"}`, "", nil
-				case `api repos/org/control/actions/variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`,
-					`api repos/org/control/actions/organization-variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`:
+				case call == `api repos/org/control/actions/variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`,
+					call == `api repos/org/control/actions/organization-variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`:
 					return "", "", nil
-				case "variable set GH_AW_GITHUB_AUTH_MODE --repo org/control --body workflow-token":
+				case call == "variable set GH_AW_GITHUB_AUTH_MODE --repo org/control --body workflow-token":
 					mutations = append(mutations, call)
 					return "", "", nil
 				}
@@ -385,7 +385,7 @@ func TestNativeSetupGuidedAuthenticationByVisibility(t *testing.T) {
 			gh := func(_ context.Context, args ...string) (string, string, error) {
 				call := strings.Join(args, " ")
 				switch {
-				case call == "auth status":
+				case strings.HasPrefix(call, "auth status --hostname "):
 					return "", "", nil
 				case call == "repo view --json nameWithOwner --jq .nameWithOwner":
 					return "org/control", "", nil
@@ -463,15 +463,15 @@ func TestNativeSetupDoesNotUsePages(t *testing.T) {
 			nativeSetupTestSave(t, nativeSetupTestPolicy())
 			gh := func(_ context.Context, args ...string) (string, string, error) {
 				call := strings.Join(args, " ")
-				switch call {
-				case "auth status":
+				switch {
+				case strings.HasPrefix(call, "auth status --hostname "):
 					return "", "", nil
-				case "repo view --json nameWithOwner --jq .nameWithOwner":
+				case call == "repo view --json nameWithOwner --jq .nameWithOwner":
 					return "org/control", "", nil
-				case "repo view org/control --json nameWithOwner,visibility":
+				case call == "repo view org/control --json nameWithOwner,visibility":
 					return fmt.Sprintf(`{"nameWithOwner":"org/control","visibility":%q}`, visibility), "", nil
-				case `api repos/org/control/actions/variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`,
-					`api repos/org/control/actions/organization-variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`:
+				case call == `api repos/org/control/actions/variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`,
+					call == `api repos/org/control/actions/organization-variables?per_page=30 --paginate --jq .variables[] | select(.name == "GH_AW_GITHUB_AUTH_MODE") | {value}`:
 					return "", "", nil
 				default:
 					t.Fatalf("setup must not inspect or configure Pages: %s", call)
@@ -861,12 +861,13 @@ func TestNativeSetupRefusesOperationsBeforeMutation(t *testing.T) {
 					t.Fatal(err)
 				}
 				gh := func(_ context.Context, args ...string) (string, string, error) {
-					switch strings.Join(args, " ") {
-					case "auth status":
+					call := strings.Join(args, " ")
+					switch {
+					case strings.HasPrefix(call, "auth status --hostname "):
 						return "", "", nil
-					case "repo view --json nameWithOwner --jq .nameWithOwner":
+					case call == "repo view --json nameWithOwner --jq .nameWithOwner":
 						return "org/control", "", nil
-					case "repo view org/control --json nameWithOwner,visibility":
+					case call == "repo view org/control --json nameWithOwner,visibility":
 						return `{"nameWithOwner":"org/control","visibility":"PUBLIC"}`, "", nil
 					default:
 						t.Fatalf("setup reached a mutation or unexpected read: %v", args)
@@ -936,7 +937,7 @@ func TestNativeSetupGuidedTokenAppliesOnlyConsentedScope(t *testing.T) {
 	gh := func(_ context.Context, args ...string) (string, string, error) {
 		call := strings.Join(args, " ")
 		switch {
-		case call == "auth status", strings.HasPrefix(call, "browse "):
+		case call == "auth status", strings.HasPrefix(call, "auth status --hostname "), strings.HasPrefix(call, "browse "):
 			return "", "", nil
 		case call == "repo view --json nameWithOwner --jq .nameWithOwner":
 			return "org/control", "", nil

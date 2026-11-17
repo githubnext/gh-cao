@@ -53,7 +53,18 @@ func dashboardEnrollmentArgs(args []string) bool {
 		!strings.Contains(args[2], "..") && dashboardEnrollmentPattern.MatchString(args[2])
 }
 
+func dashboardSetupArgs(args []string) bool {
+	return len(args) == 3 && args[0] == "setup" && args[1] == "--repository" && len(args[2]) <= 200 &&
+		!strings.Contains(args[2], "..") && dashboardEnrollmentPattern.MatchString(args[2])
+}
+
 func dashboardActionArgs(args, repositories []string) error {
+	if dashboardSetupArgs(args) {
+		if !nativeRepositoryOperationsAllowed(args[2]) {
+			return errors.New("github/gh-aw is excluded from CAO operations")
+		}
+		return nil
+	}
 	if dashboardEnrollmentArgs(args) {
 		if !nativeRepositoryOperationsAllowed(args[2]) {
 			return errors.New("github/gh-aw is excluded from CAO operations")
@@ -61,7 +72,7 @@ func dashboardActionArgs(args, repositories []string) error {
 		return nil
 	}
 	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable"}, args[0]) {
-		return errors.New("only gh-aw maintenance commands are supported")
+		return errors.New("only CAO setup, repository enrollment, and gh-aw maintenance commands are supported")
 	}
 	options := args[1:]
 	if args[0] != "upgrade" && len(options) > 0 && !strings.HasPrefix(options[0], "--") {
@@ -296,8 +307,8 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 			return
 		}
 		childArgs := append([]string{"__dashboard_aw"}, args...)
-		if dashboardEnrollmentArgs(args) {
-			// Stages review-mode policy in the dashboard's control checkout.
+		if dashboardEnrollmentArgs(args) || dashboardSetupArgs(args) {
+			// Native CAO commands update only the dashboard's control checkout.
 			childArgs = slices.Clone(args)
 		}
 		child := exec.CommandContext(executionCtx, executable, childArgs...)
