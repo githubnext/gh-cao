@@ -1,34 +1,7 @@
 {
   "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-17T05:33:56Z",
-      "worker_run_id": "44024540395",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708",
-        "43877103800",
-        "43987917606",
-        "43991571724",
-        "43991770179",
-        "43991897672",
-        "43992363367",
-        "43993695761",
-        "44004300647",
-        "44023953879"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43814432358 (push dbf9df7, created 2026-11-16T06:05Z) to 44023953879 (schedule, dc5ce58, created 2026-11-17T05:24Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule), 0 failed. gh run list at 05:33Z: no docs run in progress; only queued item is stale 37642403569 (created 2026-10-07, outside window, housekeeping). Source dc5ce58 = main HEAD = source_sha (unchanged). Queue (created to build start) median 4 s, p90 15 s, max 64 s (43832040488 behind in-flight 43831980991); two runs over 10 s, serialization latency not execution. Exec (build start to deploy end) median 79 s, p90 120 s; 15 percent gate 11.85 s and 60 s absolute not met. cancel-in-progress false kept: 0 in-flight builds superseded in window (pending coalescing already active), so cancel-in-progress true saves about 0 s. Avoidable rebuilds: 0 of 17 window push heads test-only (classification unchanged); schedule 44023953879 is the required daily freshness refresh (Date.now-based synthetic dates), removal rejected. New row fetched once via Jobs API for 44023953879 (queue 3, build 48, deploy 9, exec 62, handoff 5, removable 8); other 17 rows reused from immutable run_timings. Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-17T05:53:31Z",
       "worker_run_id": "44026801795",
@@ -811,6 +784,33 @@
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed (0 jobs); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 15:20Z: no docs run in progress; only stale queued 37642403569 (outside window); no docs run newer than 44060953578. HEAD 453e35b = source_sha; gh api file list shows 0 docs trigger-path files. Recomputed from immutable transfer_model rows (no refetch): removable transfer (handoff + Configure Pages + Upload Pages artifact + deploy Set up job) median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s (p90 90 s); 15 percent gate 11.63 s and 60 s gate not met; ceiling saving 9 s. Component medians: handoff 5, configure 0, upload 2, deploy setup 1. Deploy Pages (GitHub-managed, median 6.5 s) excluded. Merging deploy into build stays rejected (saves at most about 6 s and weakens github-pages environment and id-token separation). Checkout (median 25 s, outside this category) remains covered by open #20815 (unchanged, updatedAt 2026-11-13) and is not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T15:52:47Z",
+      "worker_run_id": "44118554795",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647",
+        "44023953879",
+        "44041835448",
+        "44043184727",
+        "44060953578"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) to 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded (0 jobs); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at evaluation: no docs run newer than 44060953578; none queued or in progress (stale 37642403569 only). main 453e35b = source_sha (no trigger-path match, verified 13:53Z; commits immutable). Recomputed from stored immutable run_timings rows (no refetch, no job fetches): exec median 77.5 s, p90 90 s; queue median 4 s, p90 15 s, max 64 s (latency only). cancel-in-progress false kept; 0 in-flight builds superseded, so cancel-in-progress true saves 0 s execution. Avoidable rebuilds: 0 of 18 window heads test-only (all build-consumed); daily schedule 44023953879 required for synthetic date refresh. Best scheduling saving is queue latency, not execution; 15 percent gate 11.6 s and 60 s gate not met. Open #20815 (checkout, other category) not repeated. Prior run 44115019849 reported incomplete on a rate-limited first Actions read (issue 21153); no evaluation recorded for it, cycle not advanced. Next: dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -888,8 +888,8 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-16T12:29:00Z",
-    "status": "No docs.yml failure in the latest 20 completed window (19 success, 1 cancelled 43832015521 excluded). Last failure 43721157324 (push ac6789f, 2026-11-15 13:51Z). Root cause not verified (job logs API HTTP 403 DIFC; not re-attempted)."
+    "observed_at": "2026-11-17T15:37:03Z",
+    "status": "Run 44115019849 reported incomplete (issue 21153): first Actions read for docs.yml hit an API rate limit (HTTP 403). No evaluation recorded; category cycle not advanced. Run 44118554795 made no rate-limited reads. Prior note: no docs.yml failure in the latest 20 completed window; last failure 43721157324 (push ac6789f, 2026-11-15 13:51Z), root cause not verified (job logs API HTTP 403 DIFC; not re-attempted)."
   },
   "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
   "observations_pending": [
@@ -1629,7 +1629,8 @@
     },
     "concurrency": "cancel-in-progress false kept; 0 in-flight builds superseded; cancelled runs had 0 jobs",
     "avoidable_rebuilds": "0 of 18 window heads test-only; 453e35b triggered no docs run",
-    "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)"
+    "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)",
+    "reverified_note": "2026-11-17T15:52:47Z worker 44118554795: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable)."
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-17T12:38:36Z",
