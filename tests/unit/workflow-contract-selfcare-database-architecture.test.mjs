@@ -135,7 +135,7 @@ test("architecture guide separates Parquet lake ownership, query engines and act
     "Pinned DuckDB", "Azure Blob Storage", "Azure Data Explorer (ADX/Kusto)",
     "conditional ETag-bound active pointer", "source-epoch authority",
     "never archive contents or manifests", "Full-trace-read", "POST CSRF",
-    "Hosted ADX does not\nyet execute `session-query`",
+    "Hosted ADX executes the\nsame plans only behind its separate default-off analytical acceptance gate",
   ]) {
     assert.ok(lake.includes(term), `missing lake boundary: ${term}`);
   }

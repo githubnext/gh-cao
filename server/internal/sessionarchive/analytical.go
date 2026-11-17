@@ -1009,7 +1009,7 @@ func (d Definition) plan(stages map[string]*Plan, stage bool) (Plan, error) {
 			selected = append(selected, query.SelectedField{Field: computed.As})
 		}
 	}
-	if len(selected) > 32 && !(stage && d.Select == nil) {
+	if len(selected) > 32 && (!stage || d.Select != nil) {
 		return p, ErrQuery
 	}
 	outputs, used := map[string]string{}, map[string]bool{}
