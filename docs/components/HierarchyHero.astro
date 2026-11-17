@@ -885,12 +885,21 @@ Open an issue with proposed fixes for human review.`}
       .hierarchy-hero,
       .product-story {
         box-sizing: border-box;
-        aspect-ratio: 16 / 9;
         grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
         grid-template-rows: minmax(0, 1fr);
         gap: 2rem;
         padding: 2rem;
         container-type: inline-size;
+      }
+
+      /* Keep the 16:9 stage as a minimum height. A fixed aspect ratio with overflow clipping
+         cuts off text when users enlarge text spacing (WCAG 1.4.12). */
+      .hierarchy-hero {
+        min-height: calc(min(100cqi, 76rem) * 9 / 16);
+      }
+
+      .product-story {
+        min-height: calc(min(100cqi - 2rem, 76rem) * 9 / 16);
       }
 
       .product-story:nth-child(odd) {
