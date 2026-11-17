@@ -1626,7 +1626,7 @@ and removal remain authenticated and never hydrate notification payloads.
 | `.github/aw/` | gh-aw instruction, package, and generated campaign-ownership metadata only; CAO executable resources stay at their canonical catalog source paths. |
 | `.github/cao/instructions.md` | CAO-specific operator and authoring guidance; it does not grant rollout authority or execution capabilities. |
 | `.github/cao/instructions/` | Task guides (setup, operations, gh cao, gh aw, gh, dashboard analysis, diagnostics) loaded on demand by the `central-agentic-ops` skill; guidance only, never authority. |
-| `skills/` | Portable Agent Plugin skills exposed by this repository: `agentic-workflows` and the `central-agentic-ops` router, discoverable in this repository through a tiny router at `.github/skills/central-agentic-ops/` (no symlinks). |
+| `skills/` | Portable Agent Plugin skills exposed by this repository: `agentic-workflows` and the `central-agentic-ops` router, discoverable in this repository through a tiny router at `.agents/skills/central-agentic-ops/` (no symlinks; kept out of `.github/skills/`, which gh-aw package installs auto-scan alongside `skills/`). |
 | `specs/` | Normative control, Activity, dashboard, and data contracts. |
 | `docs/` | Explanatory and operator-facing documentation site. |
 | `adr/` | Durable architectural decision history; normative contracts remain in `specs/` and specification-style documentation. |
