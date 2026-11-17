@@ -5,6 +5,45 @@ import { expect, test } from "@playwright/test";
 const { startDashboardServer } = await import(new URL("../../../../tests/helpers/dashboard-server.mjs", import.meta.url).href);
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+  test(`server data unavailability preserves navigation and retry at ${viewport.width}px`, async ({ page }) => {
+    const preview = await startDashboardServer({
+      prepareSnapshot: (/** @type {string} */ destination) => writeServerArtifact(destination),
+    });
+    try {
+      await page.setExtraHTTPHeaders(preview.headers);
+      await page.setViewportSize(viewport);
+      await page.addInitScript(() => {
+        IDBFactory.prototype.open = () => {
+          throw new Error("Unavailable server data must not fall back to browser IndexedDB.");
+        };
+      });
+      let unavailable = true;
+      await page.route("**/api/v1/query", (route) => unavailable
+        ? route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "dashboard data is unavailable",
+            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+          }),
+        })
+        : route.continue());
+      await page.goto(`${preview.url}/`);
+      await expect(page.locator(".dashboard-root")).toBeVisible();
+      await expect(page.getByText("Your factory status is unavailable.", { exact: true })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Notifications" })
+        .getByText("A complete dashboard snapshot is not available yet.", { exact: true })).toBeVisible();
+      await expect(page.getByRole("dialog", { name: "Preparing your dashboard" })).toHaveCount(0);
+      unavailable = false;
+      await page.getByRole("button", { name: "Retry", exact: true }).click();
+      await expect(page.getByText("Your factory status is unavailable.", { exact: true })).toHaveCount(0);
+      await expect(page.locator("#root .custom-view").first()).toBeVisible();
+    } finally {
+      await page.goto("about:blank");
+      await preview.close();
+    }
+  });
+
   test(`local server queries PostgreSQL without opening browser IndexedDB at ${viewport.width}px`, async ({ page }, testInfo) => {
     const preview = await startDashboardServer({
       workingDirectory: fileURLToPath(new URL("../../../../", import.meta.url)),

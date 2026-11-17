@@ -15,7 +15,7 @@ workflows, campaigns and ordinary Actions. Campaign-specific procedures below
 apply only when you use that pattern.
 
 For a failed deployment or runtime, follow the
-[`debug-cao` skill](https://github.com/githubnext/gh-cao/blob/main/skills/debug-cao/SKILL.md)
+[`central-agentic-ops` diagnostics guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/diagnostics.md)
 before changing or rerunning anything, then use the deployment-specific guide
 linked from [deployment options](deployment.md).
 

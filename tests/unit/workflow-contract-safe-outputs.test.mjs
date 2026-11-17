@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { parse } from "yaml";
-import { portableSkill, root, stepBlock, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
+import { caoTaskGuide, root, stepBlock, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
 
 // Safe-output reporting, issue, and pull request contracts.
 
@@ -110,7 +110,7 @@ test("workflow labels fit GitHub's 50-character label name limit", () => {
 });
 
 test("operations creation guidance scopes detection and omits worker evals", () => {
-  const campaignSkill = portableSkill("create-cao-campaign");
+  const campaignSkill = caoTaskGuide("operations");
 
   assert.match(campaignSkill, /safe-outputs\.threat-detection: false/);
   assert.match(campaignSkill, /default new dispatchers to `hourly`/);
@@ -449,7 +449,7 @@ ${prepare}`], {
 });
 
 test("workers inherit human-first progressive report disclosure", () => {
-  const campaignSkill = portableSkill("create-cao-campaign");
+  const campaignSkill = caoTaskGuide("operations");
   const sharedControl = workflow("shared/control.md");
   const workers = readdirSync(workflowsDirectory)
     .filter((name) => name.endsWith(".md"))

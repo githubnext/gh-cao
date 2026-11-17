@@ -18,6 +18,7 @@ import {
 import { processDataRequest } from '../../src/data-worker.js';
 import { createDashboardQueryBudget, executeDashboardQueries, resolveDashboardQuerySources } from '../../src/data/queries/declarative.js';
 import { authoritativeDashboard } from '../authoritative-dashboard.js';
+import sharedValue from '../../dashboard-fragments/shared-value.json' with { type: 'json' };
 
 const loadCanonicalViewSources = loadDatabaseQuerySources;
 const queryCanonicalViewSources = queryDatabaseSources;
@@ -208,6 +209,65 @@ afterEach(() => {
 });
 
 describe('canonical view sources', () => {
+  it('executes native Value movement from the IndexedDB operationalValues projection', async () => {
+    const repositoryId = 'repository:octo%2Fone';
+    const base = {
+      repositoryId,
+      repository: 'octo/one',
+      valueId: 'alpha.latency',
+      'operational-value-role': 'primary',
+      'operational-value-name': 'Latency',
+      'operational-value-unit': 'hours',
+      'operational-value-direction': 'decrease',
+      'maturity-status': 'matured',
+      'coverage-status': 'complete',
+      'measurement-kind': 'interval',
+      'workflow-slug': 'alpha',
+      'workflow-name': 'Alpha',
+      'evaluator-digest': 'a'.repeat(64),
+      'population-digest': 'b'.repeat(64),
+      'eligible-count': 10,
+      'cadence-days': 7
+    };
+    await upsertCanonicalBatch(indexedDB, canonicalBatch({
+      repositories: [{ id: repositoryId, owner: 'octo', name: 'one' }],
+      operationalValues: [{
+        ...base,
+        id: 'value:reference',
+        value: 10,
+        timestamp: '2026-11-08T01:00:00Z',
+        observedAt: '2026-11-08T01:00:00Z',
+        'window-start': '2026-11-01T00:00:00Z',
+        'window-end': '2026-11-08T00:00:00Z'
+      }, {
+        ...base,
+        id: 'value:current',
+        value: 8,
+        timestamp: '2026-11-15T01:00:00Z',
+        observedAt: '2026-11-15T01:00:00Z',
+        'window-start': '2026-11-08T00:00:00Z',
+        'window-end': '2026-11-15T00:00:00Z'
+      }]
+    }), { validateRelationships: false });
+
+    const projected = await queryCanonicalViewSources(indexedDB, {}, ['workflow-value-measurements']);
+    const result = executeDashboardQueries(
+      sharedValue.queries,
+      projected,
+      ['value-current-measurements']
+    )['value-current-measurements'];
+
+    expect(result.metadata.availability).toBe('available');
+    expect(result.rows).toMatchObject([{
+      id: 'value:current',
+      'movement-state': 'Improving',
+      'native-change': -2,
+      'comparison-reason': 'Adjacent comparable intervals',
+      'previous-window-start': '2026-11-01T00:00:00Z',
+      'previous-window-end': '2026-11-08T00:00:00Z'
+    }]);
+  });
+
   it('pushes workflow Value pages into IndexedDB and invalidates only on topology changes', async () => {
     const canonical = {
       campaigns: [],

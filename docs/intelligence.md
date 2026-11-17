@@ -128,8 +128,9 @@ Place `intelligence.json` next to the Campaign's `aw.yml`:
 }
 ```
 
-After gh-aw installs or updates the Campaign, run the standard CAO materializer.
-It copies the declaration from the reviewed Campaign revision to:
+After gh-aw installs or updates the Campaign, run `gh cao add` or
+`gh cao update --campaign SLUG` to materialize it. The native command copies the
+declaration from the reviewed Campaign revision to:
 
 ```text
 .github/cao/intelligence/dependabot.json

@@ -1,10 +1,3 @@
----
-name: add-cao-campaign
-description: "Discover, compare, recommend, or safely install existing CAO catalog campaigns. Use for catalog browsing, outcome-based recommendations, campaign comparisons, or adding a campaign to a control repository."
-metadata:
-  argument-hint: "Describe the desired operational outcome or name a CAO catalog campaign"
----
-
 # Add a CAO Campaign
 
 For outcome requests, first follow
@@ -35,10 +28,10 @@ policy mutation.
 
 ## Boundaries
 
-- Use `create-cao-campaign` to author a new campaign when the execution
+- Use [create a campaign](create-campaign.md) to author a new campaign when the execution
   requirements justify one and no existing package fits.
 - Require `.github/workflows/cao.json` and installed `gh cao`; hand off to
-  `setup-cao` when the control repository is not initialized.
+  [setup](../setup.md) when the control repository is not initialized.
 - Discovery is read-only until recommendation, safety review, exact selection,
   and installation approval.
 - Install through `gh cao add`, which validates the declaration and merges
@@ -72,7 +65,7 @@ ordered by fit. For each, summarize:
 
 Include `None of these`. Require one exact selection; a vague outcome, first
 recommendation, or no response is not consent. If none fits, offer the
-`create-cao-campaign` handoff without installing.
+[create a campaign](create-campaign.md) handoff without installing.
 
 Verify named campaigns through the same process and safety review before
 installation approval.

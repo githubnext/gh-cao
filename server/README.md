@@ -104,6 +104,9 @@ after building the dashboard.
 
 Local serving resolves Marketplace through the same read-only registry resolver
 as hosted serving, even when the cached canonical JSONL artifact has no packages.
+Marketplace-only queries also work before the first canonical snapshot is
+ingested. Queries that depend on activity evidence still report unavailable,
+and Marketplace access does not make canonical readiness healthy.
 The npm launch commands select this checkout's `.github/workflows/cao.json`;
 set `CAO_MARKETPLACE_POLICY_PATH` to an absolute path to use another policy.
 Provide the credentials named by its registries (for example, `GH_TOKEN`).
