@@ -1,35 +1,7 @@
 {
-  "source_sha": "dc5ce588fc46e19690b460f25e9d514d72f441eb",
-  "next_category": "Astro documentation generation",
+  "source_sha": "58c3e572f27f2b8355e4275ae6fb4ef5ee90e38e",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T21:33:43Z",
-      "worker_run_id": "43960656693",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "43766933236",
-        "43768376457",
-        "43780290464",
-        "43781088986",
-        "43781377358",
-        "43789359390",
-        "43792211504",
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708",
-        "43877103800"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 21:32Z: no newer docs run, none queued or in progress (only stale 37642403569, 2026-10-07). Sourc [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T21:53:11Z",
       "worker_run_id": "43963919707",
@@ -823,6 +795,33 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43814432358 (push dbf9df7, 2026-11-16T06:05Z) .. 44023953879 (schedule, dc5ce58, 2026-11-17T05:24Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule), 0 failed. gh run list 07:33Z: no newer or in-progress docs run. Recomputed from stored immutable rows (no refetch): setup-node median 3.5 s, install median 8.5 s (p90 11), setup+install+post median 12.5 s (15.8% of exec median 79 s); Node setup is required, so realistic ceiling is install-only 8.5 s (10.8%) versus 11.85 s gate; 60 s gate unreachable. Decision unchanged.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T07:54:54Z",
+      "worker_run_id": "44041777978",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647",
+        "44023953879",
+        "44041835448"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43825070138 (push 2fdf4a0, created 2026-11-16T07:36Z) to 44041835448 (push 58c3e57, created 2026-11-17T07:50Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed; no docs run queued or in progress. Build documentation step (docs.yml line 54 = npm run docs:build = astro build && validate-agent-docs && agent-docs-discovery test): median 11 s, p90 14 s, min 9, max 15; 13.9 percent of exec median 79 s (p90 92 s); 15 percent gate 11.85 s and 60 s gate not met; whole-step ceiling 11 s. validate-agent-docs and agent-docs-discovery read dist/ and git ls-files only (no second astro build). Sub-step split unavailable (job logs API HTTP 403 DIFC; not bypassed). Only new row 44041835448 fetched via Jobs API; other rows reused. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT). Open #20815 (checkout median 25 s) not repeated. Next: reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -935,8 +934,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-17T05:33:56Z",
-    "window": "latest 20 completed docs.yml runs 43814432358 (push, 2026-11-16T06:05Z) .. 44023953879 (schedule, 2026-11-17T05:24Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule); 0 failed; older rows dropped",
+    "evaluated_at": "2026-11-17T07:54:54Z",
+    "window": "latest 20 completed docs.yml runs 43825070138 (push, 2026-11-16T07:36Z) .. 44041835448 (push, 2026-11-17T07:50Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule); 0 failed; older rows dropped",
     "columns": [
       "run",
       "event",
@@ -956,23 +955,6 @@
     ],
     "note": "Jobs API step timestamps; completed runs immutable; reuse rows instead of refetching. exec = build job start to deploy job end. queue = run created to build start.",
     "rows": [
-      [
-        "43814432358",
-        "push",
-        "success",
-        "dbf9df7",
-        3,
-        104,
-        65,
-        4,
-        10,
-        0,
-        11,
-        5,
-        3,
-        11,
-        120
-      ],
       [
         "43825070138",
         "push",
@@ -1261,6 +1243,23 @@
         2,
         9,
         62
+      ],
+      [
+        "44041835448",
+        "push",
+        "success",
+        "58c3e57",
+        4,
+        64,
+        25,
+        4,
+        10,
+        0,
+        14,
+        6,
+        3,
+        10,
+        82
       ]
     ]
   },
@@ -1697,22 +1696,21 @@
     "root_lifecycle": "root package.json defines no preinstall/install/postinstall/prepare; dependency install scripts still run inside root npm ci (not measured)"
   },
   "astro_step_verified": {
-    "verified_at": "2026-11-17T06:26:16Z",
-    "worker_run_id": "44030667544",
-    "window": "latest 20 completed docs.yml runs 43814432358..44023953879; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule); stored immutable run_timings rows recomputed, newest row spot-checked via Jobs API",
+    "verified_at": "2026-11-17T07:54:54Z",
+    "worker_run_id": "44041777978",
+    "window": "latest 20 completed docs.yml runs 43825070138..44041835448; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule); stored immutable run_timings rows recomputed, new row 44041835448 from Jobs API",
     "build_docs_s": {
       "median": 11,
       "p90_nearest_rank": 14,
       "min": 9,
       "max": 15
     },
-    "trend": "first-9 median 13 s, last-9 median 11 s",
     "exec_median_s": 79,
-    "exec_p90_nearest_rank_s": 120,
+    "exec_p90_nearest_rank_s": 92,
     "build_docs_share_exec_median_pct": 13.9,
     "gate_15pct_s": 11.85,
     "ceiling_saving_s": 11,
-    "repeated_build": "none: docs:build runs astro build once; validate-agent-docs reads files; agent-docs-discovery test reads dist/",
+    "repeated_build": "none: docs:build runs astro build once; validate-agent-docs reads files; agent-docs-discovery test reads dist/ (re-verified on origin/main)",
     "sub_step_split": "not measurable from Jobs API (single Build documentation step); job logs HTTP 403 DIFC, not retried",
     "decision": "not actionable: whole-step ceiling 11 s stays below the 15 percent gate (11.85 s) and the 60 s absolute gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance"
   },
