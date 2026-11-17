@@ -1,34 +1,7 @@
 {
  "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T13:19:38Z",
-   "worker_run_id": "44090988431",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457",
-    "43832040488",
-    "43831980991",
-    "43831754585"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed; gh run list at 13:18Z: no newer docs run, none queued or in progress. Source 453e35b = main HEAD = source_sha; compare fcd7e18...main touches only scripts/replay-session-archive-graders.mjs, server/*, specs/* (no docs.yml path); docs.yml last changed 063cbe9 (2026-11-12, before window). Stored immutable run_timings rows recomputed (no refetch); Jobs API spot-check of 44060953578 matched (demo 5 s). Build synthetic enterprise demo step median 5 s, p90 6 s, min 3, max 8 = 6.5 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s absolute not met even at 100 percent removal (ceiling 5 s). Reuse still blocked: scripts/simulate-dashboard-pages.mjs:78 now=Date.now() (synthetic dates refreshed by the daily 05:23Z schedule) and dist/cao deployed every run. Checkout (median 25 s) remains tracked by OPEN #20815 (0 comments, updated 2026-11-13), the only open issue for this worker; not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T13:34:04Z",
    "worker_run_id": "44093232163",
@@ -809,6 +782,33 @@
     "43831754585"
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 23:16Z: no newer docs run; HEAD 453e35b = source_sha. Recomputed from stored immutable run_timings (no refetch): Build documentation step (npm run docs:build = astro build + validate-agent-docs + agent-docs-discovery test) median 11 s, p90 15 nearest-rank, min 9, max 15 = 14.2 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s gate unmet; whole-step removal ceiling 11 s. Jobs API spot-check of 44060953578 matched (15 s). Output reuse still blocked (PUBLIC_PAGES_BUILD_COMMIT provenance). Running docs in parallel with demo saves at most 5 s and adds checkout/install cost. Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-17T23:32:32Z",
+   "worker_run_id": "44199628727",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672",
+    "43991770179",
+    "43991571724",
+    "43987917606",
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at evaluation: no docs run queued or in progress (stale queued 37642403569, created 2026-10-07, outside window); no docs run newer than 44060953578. main = local HEAD = 453e35b = source_sha; compare identical (0 files). Recomputed from stored run_timings rows (no refetch): demo step median 5 s, p90 6 s, max 8 s = 6.5 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s gate unmet; ceiling 5 s. Parallelizing demo with docs:build would save at most min(5, 11) = 5 s, not proposed. Reuse still blocked (scripts/simulate-dashboard-pages.mjs:78 Date.now default; dist/cao deployed each run). Open issues: only #20815 (checkout, outside cycle, OPEN, 0 comments, unchanged since 2026-11-13); not repeated. Window identical to every evaluation since 2026-11-17T10:01Z; repeated dispatches add no new evidence. Noop; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
   }
  ],
