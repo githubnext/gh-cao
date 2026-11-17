@@ -138,14 +138,56 @@ const traceKeyKQL = "Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId"
 // itemTracesKQL binds each trace to its last agent-phase trajectory.ir
 // payload once for every item source of a query.
 func itemTracesKQL(events string) string {
+	tools := make([]string, 0, len(sessionarchive.ReconciledToolTypes))
+	for _, kind := range sessionarchive.ReconciledToolTypes {
+		tools = append(tools, literal(kind))
+	}
 	return "let archive_events=materialize(" + events + "| project " + traceKeyKQL +
-		",Sequence,PolicyDigest,Gaps,OmissionReasons,archive_ir=(Type==\"trajectory.ir\" and Phase==\"agent\"),PayloadJSON\n" +
+		",Sequence,PolicyDigest,Gaps,OmissionReasons,archive_ir=(Type==\"trajectory.ir\" and Phase==\"agent\"),PayloadJSON,\n" +
+		"archive_synthesized=(Phase==\"agent\" and Component==\"agent\"),archive_tool=(Phase==\"agent\" and Type in (" + strings.Join(tools, ",") + "))\n" +
 		"| extend PayloadJSON=iff(archive_ir,PayloadJSON,\"\"));\n" +
 		"let archive_traces=materialize(archive_events\n" +
 		// make_set flattens per-event Gaps into their distinct union.
-		"| summarize PolicyDigest=tostring(array_sort_desc(make_set(PolicyDigest))[0]),Gaps=make_set(Gaps) by " + traceKeyKQL + "\n" +
+		"| summarize PolicyDigest=tostring(array_sort_desc(make_set(PolicyDigest))[0]),Gaps=make_set(Gaps)," +
+		"archive_synthesized=countif(archive_synthesized),archive_tools=countif(archive_tool) by " + traceKeyKQL + "\n" +
 		"| join kind=leftouter (archive_events | where archive_ir | summarize arg_max(Sequence,PayloadJSON,OmissionReasons) by " + traceKeyKQL + ") on " + traceKeyKQL + "\n" +
-		"| project-away Namespace1,Repository1,RunId1,RunAttempt1,TraceId1,ProjectionId1);\n"
+		"| project-away Namespace1,Repository1,RunId1,RunAttempt1,TraceId1,ProjectionId1\n" + largestCollectionKQL() + ");\n"
+}
+
+// largestCollectionKQL mirrors the DuckDB LargestCollection guard input:
+// the longest guarded IR or reference array, with upstream's synthesized
+// events and reconciled toolCalls bounds, null when a guarded input is
+// excluded or reference is redacted.
+func largestCollectionKQL() string {
+	length := func(value string) string {
+		return "iff(gettype(" + value + ")==\"array\",array_length(" + value + "),0)"
+	}
+	terms := []string{
+		"iff(gettype(archive_data)==\"dictionary\" and bag_has_key(archive_data,\"events\")," + length(`archive_data["events"]`) + ",archive_synthesized)",
+		"iff(gettype(archive_data[\"toolCalls\"])==\"null\",archive_tools," + length(`archive_data["toolCalls"]`) + ")",
+		"iff(gettype(archive_reference)==\"dictionary\" and gettype(archive_reference[\"patch\"])==\"dictionary\"," + length(`archive_reference["patch"]["files"]`) + ",0)",
+		"coalesce(archive_reference_max,0)",
+	}
+	for _, key := range sessionarchive.GuardedCollections {
+		if key != "events" && key != "toolCalls" && key != "reference" {
+			terms = append(terms, length("archive_data["+literal(key)+"]"))
+		}
+	}
+	omitted := make([]string, 0, len(sessionarchive.GuardedOmissions()))
+	for _, reason := range sessionarchive.GuardedOmissions() {
+		omitted = append(omitted, literal(reason))
+	}
+	// The "" sentinel key keeps traces whose reference has no keys; reading a
+	// real "" key only repeats a value already considered.
+	return "| extend archive_payload=parse_json(PayloadJSON)\n" +
+		"| extend archive_data=iff(gettype(archive_payload)==\"dictionary\" and bag_has_key(archive_payload,\"data\"),archive_payload[\"data\"],dynamic(null))\n" +
+		"| extend archive_reference=iff(gettype(archive_data)==\"dictionary\",archive_data[\"reference\"],dynamic(null))\n" +
+		"| extend archive_keys=array_concat(pack_array(\"\"),iff(gettype(archive_reference)==\"dictionary\",bag_keys(archive_reference),dynamic([])))\n" +
+		"| mv-apply archive_key=archive_keys to typeof(string) on (summarize archive_reference_max=max(" +
+		"iff(gettype(archive_reference)==\"dictionary\" and gettype(archive_reference[archive_key])==\"array\",array_length(archive_reference[archive_key]),0)))\n" +
+		"| extend LargestCollection=iff(array_length(set_intersect(iff(isnull(OmissionReasons),dynamic([]),OmissionReasons),dynamic([" +
+		strings.Join(omitted, ",") + "])))>0,long(null),tolong(max_of(" + strings.Join(terms, ",") + ")))\n" +
+		"| project-away archive_payload,archive_data,archive_reference,archive_keys,archive_reference_max,archive_synthesized,archive_tools\n"
 }
 
 // itemSourceKQL flattens one approved collection of each trace's last
@@ -237,7 +279,7 @@ func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
 		"PresentFields=array_concat(" + strings.Join(presents, ",") + "),\n" +
 		"NullFields=array_concat(" + strings.Join(nulls, ",") + "),\n" +
 		"InvalidFields=array_concat(" + strings.Join(invalids, ",") + ")\n" +
-		"| project " + traceKeyKQL + ",PolicyDigest,Sequence,Ordinal,Items,Kind," + position + strings.Join(columns, ",") +
+		"| project " + traceKeyKQL + ",PolicyDigest,Sequence,Ordinal,Items,Kind,LargestCollection," + position + strings.Join(columns, ",") +
 		",Gaps,OmissionReasons,PresentFields,NullFields,InvalidFields\n"
 	return lets, source
 }

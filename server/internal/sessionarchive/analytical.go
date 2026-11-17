@@ -198,8 +198,29 @@ var itemSources = []ItemSource{
 var itemColumns = []Column{
 	{"Namespace", "string"}, {"Repository", "string"}, {"RunId", "string"}, {"RunAttempt", "integer"},
 	{"TraceId", "string"}, {"ProjectionId", "string"}, {"PolicyDigest", "string"}, {"Sequence", "integer"},
-	{"Ordinal", "integer"}, {"Items", "integer"}, {"Kind", "string"},
+	{"Ordinal", "integer"}, {"Items", "integer"}, {"Kind", "string"}, {"LargestCollection", "integer"},
 }
+
+// GuardedCollections are the trajectory collections whose length upstream's
+// MAX_TRAJECTORY_ITEMS guard inspects and that the archive can approve.
+// LargestCollection is null when any of them, or the IR data itself, is
+// excluded, or when reference is redacted.
+var GuardedCollections = []string{"events", "states", "actions", "toolCalls", "observations", "resources", "provenanceEdges", "objectives", "reference"}
+
+// GuardedOmissions lists the omission reasons that make LargestCollection unverifiable.
+func GuardedOmissions() []string {
+	reasons := []string{"data:excluded", "data.reference:redacted"}
+	for _, key := range GuardedCollections {
+		reasons = append(reasons, "data."+key+":excluded")
+	}
+	return reasons
+}
+
+// ReconciledToolTypes bound upstream's toolCalls fallback: when the IR
+// toolCalls is absent or null, trajectoryIR.toolCalls holds reconciled calls,
+// at most one per agent-phase event of these types. (An absent IR events key
+// falls back to one synthesized event per agent-phase agent-component event.)
+var ReconciledToolTypes = []string{"tool.execution_start", "tool.execution_complete", "mcp.tool_call", "mcp.rpc.request", "mcp.rpc.response"}
 
 var fieldStateInputs = []string{"PresentFields", "NullFields", "InvalidFields", "OmissionReasons"}
 

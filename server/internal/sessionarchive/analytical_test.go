@@ -613,6 +613,64 @@ func TestDuckDBAnalyticalItemSourceIntegration(t *testing.T) {
 	}
 }
 
+// LargestCollection mirrors upstream's MAX_TRAJECTORY_ITEMS input over
+// trajectoryIR, including the synthesized-events and reconciled-toolCalls
+// fallbacks, and becomes unverifiable when reference is redacted.
+func TestDuckDBAnalyticalLargestCollection(t *testing.T) {
+	c := testConfig(t)
+	policy, err := os.ReadFile("testdata/evidence-policy.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := decode(policy, &c.Policy); err != nil {
+		t.Fatal(err)
+	}
+	a := openTestArchive(t, c, nil)
+	now := time.Now().UTC()
+	event := func(kind, component, phase, data string) string {
+		return `{"type":"` + kind + `","provenance":{"component":"` + component + `","phase":"` + phase + `"},"data":` + data + "}\n"
+	}
+	header := "{\"type\":\"session.format\",\"provenance\":{},\"data\":{\"version\":1}}\n"
+	step := event("assistant.message", "agent", "agent", "{}")
+	tool := event("tool.execution_start", "copilot", "agent", "{}")
+	runs := map[string]string{
+		// Absent events: the IR and three agent events are synthesized.
+		"1": header + step + step + step + event("trajectory.ir", "agent", "agent", `{"objectives":[1,2],"toolCalls":[]}`),
+		// Null toolCalls: bounded by agent-phase tool events only.
+		"2": header + tool + tool + tool + event("tool.execution_start", "copilot", "detection", "{}") + event("trajectory.ir", "copilot", "agent", `{"events":[1],"toolCalls":null}`),
+		"3": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{"a":[1,2,3,4,5,6,7],"patch":{"files":[1,2,3,4,5,6]},"b":"x"}}`),
+		"4": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{"a":[1,2],"patch":{"files":[1,2,3,4,5,6]}},"observations":[1,2,3]}`),
+		"5": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{"token":[1,2,3]}}`),
+		"6": header + event("trajectory.ir", "copilot", "agent", `{"events":[],"toolCalls":[],"reference":{},"states":[1,2]}`),
+		"7": header,
+	}
+	for run, content := range runs {
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", run, now.Format(time.DateOnly), 1, []byte(content), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Admit(t.Context(), p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := a.Flush(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	s := pinTestArchive(t, a)
+	out, err := s.Analytical(t.Context(), itemDefinition(t, "archive-objectives", `"select":[{"field":"RunId"},{"field":"LargestCollection"}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, row := range out.Rows {
+		got[fmt.Sprint(row["RunId"])] = fmt.Sprint(row["LargestCollection"])
+	}
+	want := map[string]string{"1": "4", "2": "3", "3": "7", "4": "6", "5": "<nil>", "6": "2", "7": "0"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("LargestCollection = %v, want %v", got, want)
+	}
+}
+
 const chainBinding = `"Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId"`
 
 func chainedDefinition(t *testing.T, stages, clauses string) Definition {
