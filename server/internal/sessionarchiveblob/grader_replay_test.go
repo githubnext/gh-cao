@@ -114,8 +114,8 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 					t.Fatalf("%s real Kusto differs from actual DuckDB/upstream replay: got %#v want %#v", replay.ID, rows, expected)
 				}
 			}
-			if count != 14 {
-				t.Fatalf("all fourteen full definitions are required for analytical acceptance, got %d", count)
+			if count != 17 {
+				t.Fatalf("all seventeen full definitions are required for analytical acceptance, got %d", count)
 			}
 		})
 	}

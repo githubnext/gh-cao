@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import dashboard from '../../dashboard.json' with { type: 'json' };
+import sharedValue from '../../dashboard-fragments/shared-value.json' with { type: 'json' };
 import fragment from '../../dashboard-fragments/workflow-value.json' with { type: 'json' };
 import contract from '../fixtures/workflow-value-view-contract.json' with { type: 'json' };
 import { renderDataView } from '../../src/components/data-view.js';
@@ -30,6 +31,61 @@ const metadata = {
  * @returns {import('../../src/presenter.js').LogicalSourceInput}
  */
 const source = (name, rows) => ({ source: name, rows, metadata: { ...metadata, 'source-id': name } });
+/** @param {string} character */
+const digest = (character) => character.repeat(64);
+
+/**
+ * @param {Partial<Record<string, unknown>>} overrides
+ * @returns {Record<string, unknown>}
+ */
+function measurement(overrides = {}) {
+  return {
+    id: 'current',
+    repository: 'octo/one',
+    'workflow-route': 'octo/one:.github/workflows/alpha.md',
+    campaign: 'alpha',
+    'workflow-slug': 'alpha',
+    'workflow-name': 'Alpha',
+    'value-id': 'alpha.latency',
+    value: 8,
+    'metric-role': 'primary',
+    'metric-name': 'Latency',
+    'metric-unit': 'hours',
+    'metric-direction': 'decrease',
+    'evaluator-digest': digest('a'),
+    'observed-at': '2026-11-15T01:00:00Z',
+    'window-start': '2026-11-08T00:00:00Z',
+    'window-end': '2026-11-15T00:00:00Z',
+    'measurement-kind': 'interval',
+    'maturity-status': 'matured',
+    'coverage-status': 'complete',
+    'evidence-digest': digest('c'),
+    'eligible-count': 10,
+    'population-digest': digest('b'),
+    'cadence-days': 7,
+    'evaluation-mode': 'baseline-comparable',
+    'adoption-at': '2026-01-01T00:00:00Z',
+    ...overrides
+  };
+}
+
+const referenceMeasurement = (overrides = {}) => measurement({
+  id: 'reference',
+  value: 10,
+  'observed-at': '2026-11-08T01:00:00Z',
+  'window-start': '2026-11-01T00:00:00Z',
+  'window-end': '2026-11-08T00:00:00Z',
+  ...overrides
+});
+
+/** @param {Record<string, unknown>[]} rows */
+function nativeMovement(rows) {
+  return executeDashboardQueries(
+    sharedValue.queries,
+    { 'workflow-value-measurements': source('workflow-value-measurements', rows) },
+    ['value-current-measurements']
+  )['value-current-measurements'].rows[0];
+}
 
 describe('unified Value view contract', () => {
   it('declares type and status plots alongside Cards and Table views for top-level Value', () => {
@@ -133,6 +189,294 @@ describe('unified Value view contract', () => {
       .toEqual(columns.map(column => column.title));
   });
 
+  it.each([
+    {
+      name: 'baseline-only',
+      rows: [measurement()],
+      state: 'Baseline',
+      reason: 'No preceding retained assessment'
+    },
+    {
+      name: 'improving',
+      rows: [referenceMeasurement(), measurement()],
+      state: 'Improving',
+      reason: 'Adjacent comparable intervals'
+    },
+    {
+      name: 'worsening',
+      rows: [referenceMeasurement(), measurement({ value: 12 })],
+      state: 'Worsening',
+      reason: 'Adjacent comparable intervals'
+    },
+    {
+      name: 'unchanged',
+      rows: [referenceMeasurement(), measurement({ value: 10 })],
+      state: 'Unchanged',
+      reason: 'Adjacent comparable intervals'
+    },
+    {
+      name: 'newer unavailable hides older success',
+      rows: [referenceMeasurement(), measurement({
+        value: null,
+        'coverage-status': 'missing',
+        'maturity-status': 'unavailable',
+        'missing-reason': 'Source inaccessible'
+      })],
+      state: 'Insufficient',
+      reason: 'Source inaccessible'
+    },
+    {
+      name: 'partial',
+      rows: [referenceMeasurement(), measurement({
+        'coverage-status': 'partial',
+        'missing-reason': 'Partial cohort'
+      })],
+      state: 'Insufficient',
+      reason: 'Partial cohort'
+    },
+    {
+      name: 'immature',
+      rows: [referenceMeasurement(), measurement({ 'maturity-status': 'interim' })],
+      state: 'Insufficient',
+      reason: 'Latest assessment is not mature'
+    },
+    {
+      name: 'evaluator change',
+      rows: [referenceMeasurement(), measurement({ 'evaluator-digest': digest('d') })],
+      state: 'Insufficient',
+      reason: 'Evaluator changed'
+    },
+    {
+      name: 'period gap',
+      rows: [referenceMeasurement(), measurement({
+        'window-start': '2026-11-09T00:00:00Z',
+        'window-end': '2026-11-16T00:00:00Z'
+      })],
+      state: 'Insufficient',
+      reason: 'Interval periods have a gap'
+    },
+    {
+      name: 'period overlap',
+      rows: [referenceMeasurement(), measurement({
+        'window-start': '2026-11-07T00:00:00Z',
+        'window-end': '2026-11-14T00:00:00Z'
+      })],
+      state: 'Insufficient',
+      reason: 'Interval periods overlap'
+    },
+    {
+      name: 'unequal duration',
+      rows: [referenceMeasurement(), measurement({ 'window-start': '2026-11-09T00:00:00Z' })],
+      state: 'Insufficient',
+      reason: 'Measurement duration changed'
+    },
+    {
+      name: 'unit mismatch',
+      rows: [referenceMeasurement(), measurement({ 'metric-unit': 'minutes' })],
+      state: 'Insufficient',
+      reason: 'Native unit changed'
+    },
+    {
+      name: 'direction mismatch',
+      rows: [referenceMeasurement(), measurement({ 'metric-direction': 'increase' })],
+      state: 'Insufficient',
+      reason: 'Goal direction changed'
+    }
+  ])('classifies native period comparison: $name', ({ rows, state, reason }) => {
+    const result = nativeMovement(rows);
+    expect(result).toMatchObject({
+      id: 'current',
+      'movement-state': state,
+      'comparison-reason': reason,
+      'window-start': rows.at(-1)?.['window-start'],
+      'window-end': rows.at(-1)?.['window-end'],
+      'previous-window-start': rows.length > 1 ? rows[0]['window-start'] : null,
+      'previous-window-end': rows.length > 1 ? rows[0]['window-end'] : null,
+      'evaluator-digest': rows.at(-1)?.['evaluator-digest'],
+      'coverage-status': rows.at(-1)?.['coverage-status'],
+      'maturity-status': rows.at(-1)?.['maturity-status']
+    });
+    if (state === 'Insufficient' && rows.at(-1)?.value === null) {
+      expect(result.value).toBeNull();
+      expect(result['measurement-label']).toBe('Not measured');
+    }
+  });
+
+  it('compares snapshot cutoffs without requiring interval adjacency', () => {
+    const result = nativeMovement([
+      referenceMeasurement({
+        'measurement-kind': 'snapshot',
+        'window-start': '2026-10-25T00:00:00Z',
+        'window-end': '2026-11-01T00:00:00Z'
+      }),
+      measurement({
+        'measurement-kind': 'snapshot',
+        'window-start': '2026-11-08T00:00:00Z',
+        'window-end': '2026-11-15T00:00:00Z'
+      })
+    ]);
+    expect(result).toMatchObject({
+      'movement-state': 'Improving',
+      'comparison-reason': 'Comparable snapshot cutoffs',
+      'native-change': -2
+    });
+  });
+
+  it('rolls native movement up once per campaign repository and retains zero-measurement campaigns', () => {
+    /**
+     * @param {string} repository
+     * @param {string} workflow
+     * @param {string} valueId
+     * @param {number} before
+     * @param {number} after
+     */
+    const pair = (repository, workflow, valueId, before, after) => {
+      const route = `${repository}:.github/workflows/${workflow}.md`;
+      const common = {
+        repository,
+        'workflow-route': route,
+        campaign: 'alpha',
+        'workflow-slug': workflow,
+        'workflow-name': workflow,
+        'value-id': `${workflow}.${valueId}`,
+        'metric-name': valueId,
+        'metric-direction': 'increase'
+      };
+      return [
+        referenceMeasurement({ ...common, id: `${repository}:${workflow}:${valueId}:reference`, value: before }),
+        measurement({ ...common, id: `${repository}:${workflow}:${valueId}:current`, value: after })
+      ];
+    };
+    const rows = [
+      ...pair('octo/one', 'worker-a', 'gain', 1, 2),
+      ...pair('octo/one', 'worker-b', 'loss', 2, 1),
+      ...pair('octo/two', 'worker-a', 'gain', 1, 2),
+      ...pair('octo/three', 'worker-a', 'loss', 2, 1),
+      ...pair('octo/four', 'worker-a', 'steady', 1, 1),
+      measurement({
+        id: 'octo/five:worker-a:baseline',
+        repository: 'octo/five',
+        'workflow-route': 'octo/five:.github/workflows/worker-a.md',
+        campaign: 'alpha',
+        'workflow-slug': 'worker-a',
+        'workflow-name': 'worker-a',
+        'value-id': 'worker-a.baseline',
+        'metric-name': 'baseline',
+        'metric-direction': 'increase'
+      }),
+      ...pair('octo/solo', 'solo', 'gain', 1, 2).map(row => ({ ...row, campaign: null }))
+    ];
+    /** @type {Array<[string, string, string, string | null]>} */
+    const workflowDefinitions = [
+      ['octo/one', 'worker-a', 'worker', 'alpha'],
+      ['octo/one', 'worker-b', 'worker', 'alpha'],
+      ['octo/two', 'worker-a', 'worker', 'alpha'],
+      ['octo/three', 'worker-a', 'worker', 'alpha'],
+      ['octo/four', 'worker-a', 'worker', 'alpha'],
+      ['octo/five', 'worker-a', 'worker', 'alpha'],
+      ['octo/empty', 'empty-worker', 'worker', 'empty'],
+      ['octo/solo', 'solo', 'standalone', null]
+    ];
+    const workflows = workflowDefinitions.map(([repository, workflow, role, campaign]) => {
+      const [organization, name] = repository.split('/');
+      return {
+        organization,
+        repository: name,
+        workflow: `.github/workflows/${workflow}.md`,
+        'workflow-role': role,
+        campaign,
+        'campaign-name': campaign === 'alpha' ? 'Alpha' : campaign === 'empty' ? 'Empty' : null,
+        'campaign-icon': 'goal'
+      };
+    });
+    const result = executeDashboardQueries(
+      sharedValue.queries,
+      {
+        'workflow-value-measurements': source('workflow-value-measurements', rows),
+        workflows: source('workflows', workflows),
+        campaigns: source('campaigns', [
+          { campaign: 'alpha', 'campaign-name': 'Alpha', 'campaign-icon': 'goal' },
+          { campaign: 'empty', 'campaign-name': 'Empty', 'campaign-icon': 'goal' }
+        ])
+      },
+      ['value-current-measurements', 'value-campaign-measurement-summary']
+    );
+    expect(result['value-current-measurements'].rows.find(row => row.repository === 'octo/solo')).toMatchObject({
+      campaign: null,
+      'movement-state': 'Improving'
+    });
+    expect(result['value-campaign-measurement-summary'].rows).toMatchObject([
+      {
+        campaign: 'alpha',
+        'worker-repositories': 5,
+        'measurement-repositories': 5,
+        'measured-repositories': 5,
+        'improving-repositories': 1,
+        'worsening-repositories': 1,
+        'unchanged-repositories': 1,
+        'mixed-repositories': 1,
+        'insufficient-repositories': 1,
+        'value-diagnosis': 'Insufficient'
+      },
+      {
+        campaign: 'empty',
+        'worker-repositories': 1,
+        'measurement-repositories': 0,
+        'measured-repositories': 0,
+        'improving-repositories': 0,
+        'worsening-repositories': 0,
+        'unchanged-repositories': 0,
+        'mixed-repositories': 0,
+        'insufficient-repositories': 0,
+        'value-diagnosis': 'Insufficient',
+        'value-diagnosis-reason': 'No native Value measurements'
+      }
+    ]);
+  });
+
+  it('keeps standalone workflow membership canonical when measurement context names a campaign', () => {
+    const query = fragment.queries.find(candidate => candidate.name === 'value-workflow-overview');
+    if (!query) throw new Error('value-workflow-overview query is required');
+    const result = executeDashboardQueries(
+      [query],
+      {
+        'value-workflow-topology': source('value-workflow-topology', [{
+          id: 'workflow:solo',
+          repositoryId: 'repository:solo',
+          path: '.github/workflows/solo.md',
+          'workflow-route': 'octo/solo:.github/workflows/solo.md',
+          'repository-coordinate': 'octo/solo',
+          'workflow-label': 'Solo',
+          'declared-workflow-label': 'Solo',
+          'declared-workflow-role': 'standalone',
+          'declared-campaign': null,
+          'declared-campaign-name': null,
+          'declared-campaign-icon': null
+        }]),
+        'value-collection-health': source('value-collection-health', []),
+        'value-headlines': source('value-headlines', [{
+          'workflow-route': 'octo/solo:.github/workflows/solo.md',
+          'headline-id': 'native',
+          'workflow-label': 'Solo',
+          'headline-campaign': 'alpha',
+          'headline-trend-label': '+1 count · Improving',
+          'headline-trend-movement': 'Improving',
+          'headline-trend-measure': 'Count',
+          'headline-evidence': 'Adjacent comparable intervals',
+          'headline-unavailable': false,
+          'headline-href': '#page-workflow-value?workflow=solo'
+        }])
+      },
+      ['value-workflow-overview']
+    )['value-workflow-overview'].rows[0];
+    expect(result).toMatchObject({
+      'workflow-role': 'standalone',
+      'value-scope': 'Standalone',
+      campaign: null,
+      'campaign-name': null
+    });
+  });
+
   it('rolls campaign Value up only from workers and keeps standalone workflows separate', () => {
     const names = new Set([
       'value-campaign-complete-topology',
@@ -177,6 +521,22 @@ describe('unified Value view contract', () => {
         'headline-trend-movement': 'Measurement unavailable',
         'headline-unavailable': true
       }]),
+      'value-campaign-measurement-summary': source('value-campaign-measurement-summary', [{
+        campaign: 'alpha',
+        'campaign-name': 'Alpha',
+        'campaign-icon': 'goal',
+        'worker-repositories': 2,
+        'measurement-repositories': 2,
+        'measured-repositories': 1,
+        'improving-repositories': 0,
+        'worsening-repositories': 0,
+        'unchanged-repositories': 0,
+        'mixed-repositories': 0,
+        'insufficient-repositories': 2,
+        'value-diagnosis': 'Insufficient',
+        'value-coverage': '1/2 worker repositories measured',
+        'value-movement-summary': '0 improving · 0 worsening · 0 unchanged · 0 mixed · 2 insufficient'
+      }]),
       'value-workflow-overview': source('value-workflow-overview', [
         {
           'workflow-route': 'octo/one:.github/workflows/alpha-worker.md',
@@ -217,7 +577,9 @@ describe('unified Value view contract', () => {
       'missing-evidence-deployments': 1,
       'unknown-deployments': 1,
       'value-context': '2 workers · 2 repositories',
-      'value-evidence': '1 current results · 1 unavailable',
+      'value-status': 'Insufficient',
+      'value-evidence': '1/2 worker repositories measured',
+      'value-measure': '0 improving · 0 worsening · 0 unchanged · 0 mixed · 2 insufficient',
       'value-href': '#page-campaign-value?campaign=alpha'
     });
 
@@ -243,14 +605,19 @@ describe('unified Value view contract', () => {
       queries,
       sourceNames: [contract.overviewStatusChartQuery],
       sources: {
+        'value-campaign-measurement-summary': source('value-campaign-measurement-summary', [
+          { campaign: 'alpha', 'campaign-name': 'Alpha', 'value-diagnosis': 'Worsening' },
+          { campaign: 'beta', 'campaign-name': 'Beta', 'value-diagnosis': 'Worsening' },
+          { campaign: 'gamma', 'campaign-name': 'Gamma', 'value-diagnosis': 'Improving' }
+        ]),
         'value-campaign-totals': source('value-campaign-totals', [
           { campaign: 'alpha', 'campaign-name': 'Alpha', 'review-deployments': 1 },
           { campaign: 'beta', 'campaign-name': 'Beta', 'review-deployments': 4 },
           { campaign: 'gamma', 'campaign-name': 'Gamma', 'review-deployments': 0 }
         ]),
         'value-workflow-overview': source('value-workflow-overview', [
-          { 'workflow-role': 'standalone', 'overview-title': 'First', 'trend-movement': 'Better' },
-          { 'workflow-role': 'standalone', 'overview-title': 'Second', 'trend-movement': 'No result to compare' },
+          { 'workflow-role': 'standalone', 'overview-title': 'First', 'trend-movement': 'Improving' },
+          { 'workflow-role': 'standalone', 'overview-title': 'Second', 'trend-movement': 'Baseline' },
           { 'workflow-role': 'standalone', 'overview-title': 'Third', 'trend-movement': null },
           { 'workflow-role': 'worker', 'overview-title': 'Not a top-level entry', 'trend-movement': 'Worse' }
         ])
@@ -259,14 +626,14 @@ describe('unified Value view contract', () => {
     const rows = result[contract.overviewStatusChartQuery].rows;
     expect(result[contract.overviewStatusChartQuery].metadata.availability).toBe('available');
     expect(rows).toMatchObject([
-      { 'value-kind': 'Campaign', 'value-plot-status': 'Needs review', 'value-entries': 2 },
-      { 'value-kind': 'Campaign', 'value-plot-status': 'No review triggered', 'value-entries': 1 },
-      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Better', 'value-entries': 1 },
-      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'No result to compare', 'value-entries': 1 },
+      { 'value-kind': 'Campaign', 'value-plot-status': 'Improving', 'value-entries': 1 },
+      { 'value-kind': 'Campaign', 'value-plot-status': 'Worsening', 'value-entries': 2 },
+      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Baseline', 'value-entries': 1 },
+      { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Improving', 'value-entries': 1 },
       { 'value-kind': 'Standalone workflow', 'value-plot-status': 'Status unavailable', 'value-entries': 1 }
     ]);
     expect(rows[0]['value-dashboard-link']).toMatchObject({
-      'dashboard-href': '#page-value-status?kind=Campaign&status=Needs%20review'
+      'dashboard-href': '#page-value-status?kind=Campaign&status=Improving'
     });
 
     const view = page?.views.find(candidate => candidate.id === contract.overviewStatusChartView);
@@ -285,8 +652,8 @@ describe('unified Value view contract', () => {
       toText: String
     });
     expect(rendered?.querySelectorAll('.bar-chart-bar')).toHaveLength(5);
-    const drill = rendered?.querySelector('.chart-point-link[href="#page-value-status?kind=Campaign&status=Needs%20review"]');
-    expect(drill?.getAttribute('href')).toBe('#page-value-status?kind=Campaign&status=Needs%20review');
+    const drill = rendered?.querySelector('.chart-point-link[href="#page-value-status?kind=Campaign&status=Improving"]');
+    expect(drill?.getAttribute('href')).toBe('#page-value-status?kind=Campaign&status=Improving');
     expect(drill?.getAttribute('aria-label')).toContain('Inspect Value entries by status');
     expect(rendered?.textContent).toContain('Status unavailable');
 
@@ -304,8 +671,28 @@ describe('unified Value view contract', () => {
     );
     const chart = page?.views?.find(view => view.id === contract.chartView);
     const table = page?.views?.find(view => view.id === contract.view);
+    const native = page?.views?.find(view => view.id === 'workflow-native-measurements');
     expect(page?.views?.find(view => view.id === contract.collectionView)?.disclosure).toBe('supplemental');
-    expect(page?.views?.find(view => view.id === 'workflow-native-measurements')?.disclosure).toBe('supplemental');
+    expect(native).toMatchObject({
+      disclosure: 'supplemental',
+      data: { source: 'value-current-measurements' },
+      mark: 'table',
+      'lazy-list': true,
+      'card-drill': {
+        page: 'value-measurement',
+        query: 'value-measurement-facts'
+      }
+    });
+    expect(native?.encoding?.columns?.map(column => column.title)).toEqual([
+      'Movement', 'Measure', 'Current native value', 'Reference native value', 'Native change',
+      'Unit', 'Direction', 'Kind', 'Cadence days', 'Current duration days', 'Reference duration days',
+      'Current coverage', 'Current maturity',
+      'Reference coverage', 'Reference maturity', 'Current period start', 'Current period end',
+      'Reference period start', 'Reference period end', 'Current assessed', 'Reference assessed',
+      'Current evaluator', 'Reference evaluator', 'Current eligible population',
+      'Reference eligible population', 'Current population identity', 'Reference population identity',
+      'Comparison basis'
+    ]);
     expect(chart).toMatchObject({
       mark: 'chart',
       chart: 'bar',

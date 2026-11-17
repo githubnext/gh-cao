@@ -12,6 +12,7 @@
     "retries", "artifact-production", "objective-coverage", "premature-termination-gap",
     "policy-near-miss", "grounding-accuracy", "state-revisit-probability-rep", "recurrence-rate",
     "dependency-order-violation-rate", "evidence-saturation-stopping-lag", "recurrence-determinism",
-    "recurrence-laminarity", "recurrence-trapping-time"
+    "recurrence-laminarity", "recurrence-trapping-time",
+    "exploration-error", "exploitation-error", "tool-output-consumption-rate"
   ]
 }

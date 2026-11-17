@@ -14,7 +14,7 @@ import {
 } from "../dashboard-data-updates.js";
 import { configureSourceLoader, refreshSources as refreshBoundSources } from "../source-store.js";
 import { dashboardViewAliasName } from "./queries/view-payload-compiler.js";
-import { usesRemoteDataBackend } from "../remote-data-backend.js";
+import { DashboardServerError, usesRemoteDataBackend } from "../remote-data-backend.js";
 import { createDebug, diagnosticErrorName } from "../debug.js";
 import { publishNotification, resolveNotification } from "../notification-service.js";
 import { browserFirstLoad, recordPreparationEvent, recordPreparationStorage, resetPreparationDiagnostics, finishPreparationDiagnostics } from "../browser-first-load.js";
@@ -407,6 +407,8 @@ export async function startDashboardData(options) {
       shellSources = await loadCanonicalDashboardPage(shellSourceNames, dashboardContext);
     }
   };
+  /** @type {DashboardServerError | null} */
+  let bootstrapFailure = null;
   try {
     await bootstrapStep("open-canonical-database", () => loadCanonicalDashboardPage([], dashboardContext));
     snapshot = await bootstrapStep("read-snapshot-metadata", () => loadDashboardSnapshotMetadata());
@@ -416,18 +418,20 @@ export async function startDashboardData(options) {
       cleanup.abort();
       browserFirstLoad.set({ status: "inactive", dismissed: false });
     }
-    throw error;
+    if (!remoteDataBackend || !(error instanceof DashboardServerError)) throw error;
+    bootstrapFailure = error;
+    snapshot = null;
   } finally {
     stopUpgrade();
   }
   debugStartup({
     op: "bootstrap",
-    status: "ready",
+    status: bootstrapFailure ? "failed" : "ready",
     snapshot: snapshot === null ? "absent" : "present",
     durationMs: Math.round(performance.now() - bootstrapStartedAt),
   });
-  let hasCompleteSnapshot = remoteDataBackend || snapshot !== null;
-  const firstBrowserLoad = !hasCompleteSnapshot;
+  let hasCompleteSnapshot = !bootstrapFailure && (remoteDataBackend || snapshot !== null);
+  const firstBrowserLoad = !remoteDataBackend && !hasCompleteSnapshot;
   let stopFirstLoadProgress = () => {};
   const finishFirstLoad = () => {
     stopFirstLoadProgress();
@@ -459,7 +463,9 @@ export async function startDashboardData(options) {
     browserFirstLoad.set({ status: "inactive", dismissed: false });
   }
   dashboardDataStatus.set({ phase: hasCompleteSnapshot ? "cached" : "loading", snapshot });
-  render(shellSources, hasCompleteSnapshot ? "cached" : "loading", loadPageSources, undefined, snapshot);
+  if (!bootstrapFailure) {
+    render(shellSources, hasCompleteSnapshot ? "cached" : "loading", loadPageSources, undefined, snapshot);
+  }
   let refreshFailed = false;
   let refreshPending = false;
   /** @param {unknown} error */
@@ -509,6 +515,7 @@ export async function startDashboardData(options) {
     ).then(
       async ({ changed }) => {
         if (cleanup.signal.aborted) return;
+        const recoveringRemoteShell = remoteDataBackend && !hasCompleteSnapshot;
         snapshot = await loadDashboardSnapshotMetadata() ?? snapshot;
         if (cleanup.signal.aborted) return;
         hasCompleteSnapshot = remoteDataBackend || snapshot !== null;
@@ -527,7 +534,7 @@ export async function startDashboardData(options) {
           changed,
         });
         refreshBoundSources();
-        if (usesRemoteDataBackend(document)) {
+        if (usesRemoteDataBackend(document) && !recoveringRemoteShell) {
           const dashboard = document.querySelector("#root > .dashboard-root");
           dashboard?.classList.remove("dashboard-refreshing");
           dashboard?.removeAttribute("aria-busy");
@@ -541,6 +548,7 @@ export async function startDashboardData(options) {
     signal: cleanup.signal,
   });
 
+  if (bootstrapFailure) showStaleSources(bootstrapFailure);
   await settleUi();
   if (firstBrowserLoad && !cleanup.signal.aborted) {
     showFirstLoadOverlay();

@@ -49,7 +49,7 @@ type Evidence struct {
 	EvidenceVersion                                                   string
 }
 
-const PreservationVersion = "cao-approved-events-v2"
+const PreservationVersion = "cao-approved-events-v3"
 
 // EvidenceValue reads only an original JSON path. A malformed parent is not
 // coerced into a missing child or a fabricated measurement.

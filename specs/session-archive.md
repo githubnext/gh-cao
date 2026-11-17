@@ -76,11 +76,13 @@ MUST fail explicitly.
 
 ### 2.1 Fresh original-evidence contract
 
-Archive `ContractVersion` is **2**, independent of the native ADX trace tables'
-unchanged version 1. There is no backward-compatible reader, old-schema adapter
-or in-place migration. Provision a fresh archive directory and a fresh reviewed
-Blob prefix/external table. `EventSchema()` changes both `AcceptanceBinding()`
-and `NativeAcceptanceBinding()`; analytical activation also requires its newly
+Archive `ContractVersion` is **3**, independent of the native ADX trace tables'
+unchanged version 1. Version 2 and earlier archive data are unsupported: there is
+no backward-compatible reader, old-schema adapter or in-place migration, and
+local archive state, manifests, Parquet members, hosted external-table files and
+hosted acceptance bound to an earlier version all fail closed. Provision a fresh archive directory and a fresh reviewed
+Blob prefix/external table. The archive `ContractVersion` and `EventSchema()`
+both change `AcceptanceBinding()` and `NativeAcceptanceBinding()`; analytical activation also requires its newly
 bound acceptance. Old destination acceptance MUST NOT activate this layout.
 Rejection MUST NOT erase old objects, privacy registrations, pending withdrawals
 or source-epoch fences. Retiring previous data is a separate explicitly scoped
@@ -90,9 +92,16 @@ records or bypass cleanup obligations.
 The TypeSpec `@evidence` annotations generate scalar bindings, Go/Parquet/SQL/KQL
 types and structured-family metadata. Typed projection runs only on the approved,
 redacted original event. The shared preservation transform is
-`cao-approved-events-v2`; it participates in policy/evidence identity, and archive
+`cao-approved-events-v3`; it participates in policy/evidence identity, and archive
 projection identity additionally binds the Parquet contract version. Replay MUST
-NOT reuse a projection produced under previous preservation semantics.
+NOT reuse a projection produced under previous preservation semantics. Version 3
+adds the trajectory-IR `toolCalls`, `observations`, `resources`,
+`provenanceEdges` and `reference` families (Section 2.2). v2 data never recorded
+their exclusion, redaction or field states, so it is unsupported rather than read
+as if those collections were simply absent. The Parquet column layout is
+unchanged, so archive `ContractVersion` 3 and the hosted acceptance binding,
+which now includes that version, carry the break to every stored and accepted
+artifact.
 
 Every promoted field and declared family has generated-name entries in
 `PresentFields`, `NullFields` and `InvalidFields`. Invalid includes incompatible
@@ -137,7 +146,8 @@ merely to support these candidates.
 
 Approval remains a closed event policy selecting entire **top-level data
 subtrees**, not arbitrary nested paths. Approving `usage`, `objectives`,
-`actions`, `states`, `events`, `attemptResults` or `startupAttemptResults` can
+`actions`, `states`, `events`, `toolCalls`, `observations`, `resources`,
+`provenanceEdges`, `reference`, `attemptResults` or `startupAttemptResults` can
 retain extra nested values; operators MUST explicitly review that actual privacy
 scope. Textual retry messages/objective descriptions and original errors need
 specific event-field approval and retain redaction qualification.
@@ -196,6 +206,28 @@ also retire; exact logical membership remains mandatory for every query.
 Hosted acknowledgement removes local historical bodies and retains private
 receipt/fence metadata only. Hosted limits may be stricter, including at most
 4096 returned rows and one concurrent analytical query.
+
+### 2.2 Trajectory-IR collection approval (user-directed)
+
+The trajectory-IR `toolCalls`, `observations`, `resources`, `provenanceEdges`
+and `reference` collections are approvable top-level `trajectory.ir` data
+subtrees with generated `@evidence` families (`ToolCalls`, `Observations`,
+`Resources`, `ProvenanceEdges` as arrays; `Reference` as an object). This is a
+**user-directed privacy decision** for grader-query extension E1: the user chose
+to approve whole collections ("you can store them all", confirmed as option 1),
+not a narrowed field allowlist. Approving one of these collections admits its
+entire subtree, including any tool-call `arguments`, resource URIs and
+reference trajectories it contains; operators MUST review that actual privacy
+scope before adding them to an event policy.
+
+The decision is bounded. Approval stays explicit per event policy and is off by
+default; no collection is admitted unless the reviewed policy names it. It grants
+nothing outside these five subtrees: tool arguments elsewhere, models, cache
+counters, tool output bodies outside an approved collection and safe-output
+titles/URLs remain unapproved. Exclusion and redaction are recorded under the
+generated family paths, and excluded, redacted, invalid or oversized
+collections keep dependent grader results unavailable. Nothing is derived or
+persisted at capture; dependent graders compute at query time.
 
 ## 3. Durable publication and recovery
 
@@ -429,11 +461,13 @@ and scalar `extend`. No approximate cardinality or unordered `take_any`
 is permitted. ADX's million-row scan fence bounds those internal lists.
 These lowerers are not a universal compiler or a new canonical resolver.
 
-Both backends also accept five item sources: `archive-objectives`,
-`archive-objective-dependencies`, `archive-actions`, `archive-states` and
-`archive-ir-events`. Each binds the last agent-phase `trajectory.ir` event of
+The item-source vocabulary comprises `archive-objectives`,
+`archive-objective-dependencies`, `archive-actions`, `archive-states`,
+`archive-ir-events`, `archive-observations`, `archive-observation-consumers`
+and `archive-tool-calls`. Each binds the last agent-phase `trajectory.ir` event of
 every complete active trace and flattens its `data.objectives`,
-`data.actions`, `data.states` or `data.events` array at query time; no item
+`data.actions`, `data.states`, `data.events`, `data.observations` or
+`data.toolCalls` array at query time; no item
 rows are persisted. Every trace yields one anchor row with null `Ordinal` and
 `Items` when it has no array, plus one row per element. Rows carry the
 complete trace binding, `PolicyDigest`, the bound IR `Sequence`, `Items`,
@@ -443,7 +477,14 @@ and `DependsOn` (the `dependsOn` array length) for objectives;
 `ValidAtIssueTime` (a JSON boolean) for actions; `Id` (a string element or an
 object's string `id`) and `FirstEventIndex` (a safe JSON integer) for states;
 and `Index` (a safe JSON integer), `EventKind` and `Ref` (strings) for IR
-events. `archive-objective-dependencies` is nested: it further flattens each
+events; `SourceToolCallId` (a string) and `ConsumedByActionIds` (an array
+length, not a consumption judgment) for observations; and `Id` (a string)
+for tool calls. `archive-observation-consumers` further flattens each
+observation's `consumedByActionIds` with the same parent `Ordinal`, zero-based
+`Position` and string `Value` contract as dependencies; non-string values
+remain invalid and empty strings do not contribute to count.
+The collection sources are v3-only and do not reconcile missing/null tool calls.
+`archive-objective-dependencies` is nested: it further flattens each
 objective's `dependsOn` array into one row per string `Value`, keyed by the
 parent `Ordinal` plus a zero-based `Position`, with one trace anchor (null
 `Ordinal` and `Position`) when the trace has no dependency. Wrong JSON types
@@ -456,6 +497,10 @@ redacted collection is reported, not treated as empty. Item sources forbid
 same IR with materialized `let` statements and expands elements with
 `mv-expand with_itemindex`; a backend without a lowering accepted against real
 Kusto MUST omit them and reject such plans.
+
+The E1 observation, consumer and tool-call sources have production DuckDB
+replay and shared KQL fixtures; real Kusto acceptance of these additions remains
+pending. Their presence in the shared vocabulary is not deployment acceptance.
 
 Both backends also accept query chaining (Dashboard Language DLS-QUERY-017)
 for multi-stage aggregation. A definition may list at most eight earlier

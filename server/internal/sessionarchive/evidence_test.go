@@ -212,9 +212,16 @@ func TestOriginalEvidenceExclusionAndVersionFences(t *testing.T) {
 		t.Fatal("typed column bypassed redaction")
 	}
 	e = approved.Events[0]
-	e.ContractVersion = 1
+	for _, version := range []int64{1, 2} {
+		e.ContractVersion = version
+		if !errors.Is(ValidateEvent(e), ErrIntegrity) {
+			t.Fatalf("archive contract version %d accepted", version)
+		}
+	}
+	e = approved.Events[0]
+	e.EvidenceVersion = "cao-approved-events-v2"
 	if !errors.Is(ValidateEvent(e), ErrIntegrity) {
-		t.Fatal("old schema accepted")
+		t.Fatal("v2 preservation transform accepted")
 	}
 	approved.Events[0].Success = new(true)
 	if !errors.Is(validateProjection(approved), ErrIntegrity) {
@@ -224,9 +231,11 @@ func TestOriginalEvidenceExclusionAndVersionFences(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	evidence.EvidenceVersion = ""
-	if _, err := FromEvidence(c.Namespace, evidence); !errors.Is(err, ErrIntegrity) {
-		t.Fatal("old preservation transformation accepted")
+	for _, version := range []string{"", "cao-approved-events-v2"} {
+		evidence.EvidenceVersion = version
+		if _, err := FromEvidence(c.Namespace, evidence); !errors.Is(err, ErrIntegrity) {
+			t.Fatalf("old preservation transformation %q accepted", version)
+		}
 	}
 	raw = []byte("{\"type\":\"tool.execution_complete\",\"provenance\":{\"attemptId\":{\"unapprovedNested\":\"content\"}},\"data\":{}}\n")
 	if _, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", "", 1, raw, time.Now()); err == nil {
@@ -293,5 +302,48 @@ func TestPreviousArchiveSchemaIsRejectedWithoutErasure(t *testing.T) {
 	after, err := os.ReadFile(statePath) // #nosec G304 -- Verify the same test-owned archive state was not modified.
 	if err != nil || !bytes.Equal(content, after) {
 		t.Fatal("schema rejection erased or rewrote old archive state")
+	}
+}
+
+// E1 collections are user-approved whole subtrees, default-off: unapproved
+// collections record exclusion and approved ones keep their field states.
+func TestTrajectoryIRCollectionApproval(t *testing.T) {
+	c := nativeTestConfig(t)
+	raw := []byte(`{"type":"trajectory.ir","provenance":{"phase":"agent"},"data":{"toolCalls":[{"id":"t1","arguments":{"q":"secret-text"}}],` +
+		`"observations":[{"id":"o1","sourceToolCallId":"t1","consumedByActionIds":["a1"]}],"resources":[{"id":"r1","kind":"file","uri":"a.go"}],` +
+		`"provenanceEdges":[{"from":"o1","to":"a1"}],"reference":null}}` + "\n")
+	project := func() Event {
+		t.Helper()
+		p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", "", 1, raw, time.Unix(0, 0))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p.Events[0]
+	}
+	collections := []string{"toolCalls", "observations", "resources", "provenanceEdges", "reference"}
+	families := []string{"ToolCalls", "Observations", "Resources", "ProvenanceEdges", "Reference"}
+	c.Policy.Events["trajectory.ir"] = []string{}
+	excluded := project()
+	for i, collection := range collections {
+		if slices.Contains(excluded.PresentFields, families[i]) || !slices.Contains(excluded.OmissionReasons, "data."+collection+":excluded") ||
+			strings.Contains(excluded.PayloadJSON, collection) {
+			t.Fatalf("unapproved %s was admitted or its exclusion was invisible", collection)
+		}
+	}
+	c.Policy.Events["trajectory.ir"] = collections
+	approved := project()
+	for _, family := range families {
+		if !slices.Contains(approved.PresentFields, family) {
+			t.Fatalf("approved %s lost its field state", family)
+		}
+	}
+	if !slices.Contains(approved.NullFields, "Reference") || len(approved.OmissionReasons) != 0 ||
+		!strings.Contains(approved.PayloadJSON, `"consumedByActionIds":["a1"]`) {
+		t.Fatal("approved collections were not preserved whole")
+	}
+	c.Policy.RedactPatterns = []string{"secret-text"}
+	redacted := project()
+	if !slices.Contains(redacted.OmissionReasons, "data.toolCalls:redacted") || slices.Contains(redacted.OmissionReasons, "data.observations:redacted") {
+		t.Fatal("collection redaction was not recorded per family")
 	}
 }

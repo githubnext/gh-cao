@@ -1,0 +1,26 @@
+{
+  "name":"tool-output-consumption-rate","subject":"Consumed tool observations.",
+  "queries":[
+    {"name":"tc","subject":"Tool IDs.","from":"archive-tool-calls","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest","Id"],"values":[{"field":"Id","as":"t","reducer":"count"}]}},
+    {"name":"ts","subject":"Tool evidence.","from":"archive-tool-calls","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],"values":[
+      {"field":"TraceId","as":"a","reducer":"count","filter":{"predicates":[{"field":"Items","state":"absent"}]}},
+      {"field":"TraceId","as":"b","reducer":"count","filter":{"predicates":[{"field":"Items","state":"null"}]}},
+      {"field":"TraceId","as":"c","reducer":"count","filter":{"predicates":[{"field":"Items","state":"redacted"}]}}
+    ]}},
+    {"name":"co","subject":"Consumer strings.","from":"archive-observation-consumers","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest","Ordinal"],"values":[{"field":"Value","as":"h","reducer":"count"}]}}
+  ],
+  "from":"archive-observations",
+  "joins":[{"source":"tc","type":"left","on":[{"left":"SourceToolCallId","right":"Id"}],"fields":[{"field":"t"}]},{"source":"co","type":"left","on":[{"left":"Ordinal","right":"Ordinal"}],"fields":[{"field":"h"}]},{"source":"ts","fields":[{"field":"a"},{"field":"b"},{"field":"c"}]}],
+  "aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest","a","b","c"],"values":[
+    {"field":"LargestCollection","as":"g","reducer":"max"},
+    {"field":"Ordinal","as":"n","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"}]}},
+    {"field":"Ordinal","as":"d","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"},{"field":"t","gte":1}]}},
+    {"field":"Ordinal","as":"u","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"},{"field":"t","gte":1},{"field":"h","gte":1}]}},
+    {"field":"TraceId","as":"r","reducer":"count","filter":{"predicates":[{"field":"Items","state":"redacted"}]}}
+  ]},
+  "post-aggregate":[
+    {"as":"reason","function":"if","args":[{"function":"is-null","args":[{"field":"g"}]},{"value":"incomplete-evidence"},{"function":"if","args":[{"function":"gt","args":[{"field":"g"},{"value":5000}]},{"value":"oversized"},{"function":"if","args":[{"function":"gt","args":[{"function":"sum","args":[{"field":"r"},{"field":"c"}]},{"value":0}]},{"value":"redacted"},{"function":"if","args":[{"function":"equals","args":[{"field":"n"},{"value":0}]},{"value":"no-observations"},{"function":"if","args":[{"function":"gt","args":[{"function":"sum","args":[{"field":"a"},{"field":"b"}]},{"value":0}]},{"value":"tool-calls-fallback"},{"function":"if","args":[{"function":"equals","args":[{"field":"d"},{"value":0}]},{"value":"no-tool-observations"},{"value":"measured"}]}]}]}]}]}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"function":"quotient","args":[{"field":"u"},{"field":"d"}]},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"is-null","args":[{"field":"value"}]},{"value":"unavailable"},{"value":"measured"}]}
+  ]
+}

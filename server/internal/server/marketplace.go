@@ -10,6 +10,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/marketplace"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/operational"
+	"github.com/githubnext/gh-cao/server/internal/query"
 )
 
 var marketplaceLog = logger.New("cao:marketplace")
@@ -31,9 +32,22 @@ func marketplacePolicyPath() string {
 	return defaultMarketplacePolicyPath
 }
 
+func marketplaceOnlyQuery(definitions []query.Definition, requested []string) bool {
+	marketplaceRead, otherRead := false, false
+	err := query.WalkPlan(definitions, requested, func(name string) error {
+		if name == "$marketplacePackages" {
+			marketplaceRead = true
+		} else {
+			otherRead = true
+		}
+		return nil
+	}, func(query.Definition) error { return nil })
+	return err == nil && marketplaceRead && !otherRead
+}
+
 // storeMarketplaceCache adapts operational.Cache to marketplace.Cache so resolved
-// registries are cached in Redis, isolated by registry id and by the active
-// dashboard data revision (generation).
+// registries are isolated by registry id and dashboard generation, including
+// the explicit pre-snapshot generation.
 type storeMarketplaceCache struct {
 	store operational.Cache
 }

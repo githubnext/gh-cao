@@ -148,11 +148,14 @@ test('Campaigns uses the shared page binding and refreshes its charts, table, an
   await expect(row.locator('[data-field="accepted"]')).toHaveText('1');
   await expect(row.locator('[data-field="pending"]')).toHaveText('1');
   await expect(row.locator('[data-field="first-blocker"]')).toContainText('Delivery and adoption observed');
+  await expect(row.locator('[data-field="evidence-progression"]')).toContainText('Accepted event · Value Insufficient');
+  await expect(row.locator('[data-field="value-diagnosis"]')).toContainText('Insufficient');
   await expect(row.locator('[data-field="aic"]')).toHaveText('$0.02');
   const empty = root.locator('[data-view-id="campaigns-inventory"] tbody > tr').filter({ hasText: 'beta' });
   await expect(empty.locator('[data-field="delivered"]')).toHaveText('0');
   await expect(empty.locator('[data-field="accepted"]')).toHaveText('0');
   await expect(empty.locator('[data-field="first-blocker"]')).toContainText('No delivered output observed');
+  await expect(empty.locator('[data-field="evidence-progression"]')).toContainText('No delivery evidence');
   await expect(row.locator('a').first()).toHaveAttribute('href', '#page-campaign-insights?campaign=alpha');
   await expect(root.locator('[data-view-state="unavailable"]')).toHaveCount(0);
   updated = true;

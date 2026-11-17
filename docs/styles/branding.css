@@ -385,6 +385,12 @@ button[data-open-modal]:focus-visible {
   color: #f0f6fc !important;
 }
 
+/* Sequence-diagram note text in dark mode measured 4.49:1 on its note fill (WCAG 1.4.3 needs 4.5:1). */
+:root[data-theme="dark"] .sl-markdown-content svg .noteText,
+:root[data-theme="dark"] .sl-markdown-content svg .noteText > tspan {
+  fill: #d3d3d3 !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mermaid {
     animation: none !important;

@@ -525,8 +525,8 @@ further narrows those visits. Multiple enabled destinations intersect admitted
 metadata-cache membership and fan out capture/withdrawal without another
 collector. Failed admission cannot commit an acquisition-cache skip.
 
-The fresh archive event contract is version 2, independently of native ADX
-trace version 1. TypeSpec owns original scalar bindings, nullable bool/real/
+The fresh archive event contract is version 3, independently of native ADX
+trace version 1; version 2 data is unsupported. TypeSpec owns original scalar bindings, nullable bool/real/
 integer columns, physical string values and presence/null/invalid metadata;
 approved structured evidence remains on its original event in `PayloadJSON`.
 Projection occurs after closed approval/redaction and binds the preservation
@@ -539,7 +539,8 @@ reconciliation, guard labels or inferred state identities are stored.
 
 There are no old-schema readers, legacy adapters or in-place migrations.
 Fresh schema/destination provisioning requires new reviewed acceptance because
-`EventSchema()` binds both legacy and native acceptance. Old contents,
+the archive contract version and `EventSchema()` bind both legacy and native
+acceptance. Old contents,
 registrations, withdrawal obligations and source-epoch fences are not erased
 or bypassed by that contract change; storage retirement is separately scoped.
 
@@ -580,7 +581,7 @@ exporters. Native collector selection remains fail-closed pending real PG
 enrollment/read-lock/outbox composition, Azure acceptance, and the complete
 integration gates. Native ADX trace tables remain an independently selected
 version 1 physical contract; their approved-evidence identity now binds the
-`cao-approved-events-v2` transform and omission metadata. The transform also
+`cao-approved-events-v3` transform and omission metadata. The transform also
 binds the native spool fingerprint: incompatible existing ledgers fail closed,
 rather than being silently skipped or automatically migrated.
 

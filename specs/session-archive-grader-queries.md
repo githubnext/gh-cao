@@ -32,7 +32,8 @@ source or `builtin_graders.json` entry changed, and update both this tracker and
 - Typed scalar `archive-events` columns. `PayloadJSON` and structured families
   are not analytical inputs.
 - Conjunctive `equals`, `in`, `gte` and `lt` predicates.
-- The `state` predicate, which applies to promoted scalars only. Its values are
+- The `state` predicate, which applies to promoted scalars, declared structured
+  families and typed item fields. Its values are
   present, absent, null, invalid, excluded, redacted and valid.
 - One `aggregate` stage with reducers `count`, `distinct-count`, `sum`, `max`,
   and ordered `first`. Filtered measures are supported.
@@ -40,7 +41,7 @@ source or `builtin_graders.json` entry changed, and update both this tracker and
   `sum`, `difference`, `product`, `quotient`, `coalesce` and `is-null`.
 - On local DuckDB and hosted ADX, the item sources `archive-objectives`,
   `archive-actions` and `archive-states` (Phases 1 and 1b).
-- On local DuckDB and hosted ADX, query chaining through at most two earlier
+- On local DuckDB and hosted ADX, query chaining through at most eight earlier
   definitions, each grouped by exact trace and projection identity (L3,
   Phases 2 and 2b).
 - On local DuckDB and hosted ADX, row-level `compute` before `aggregate`
@@ -48,8 +49,9 @@ source or `builtin_graders.json` entry changed, and update both this tracker and
   (L5), and `state` over the `Error`, `Usage` and `Provenance` families (L6)
   (Phase 4).
 - Ordering and limits.
+- Up to four trace-scoped unique-right `inner`/`left` equality joins (Phase 5).
 
-It has no joins, regex or logarithms.
+It has no regex or logarithms.
 
 The full Dashboard Language already standardizes several of the missing
 capabilities:
@@ -71,8 +73,9 @@ data.
 | Status | Meaning |
 | --- | --- |
 | `implemented` | A reviewed definition under `server/internal/sessionarchive/testdata/graders/` matches the pinned upstream values and unavailable states in real DuckDB (`TestGraderReplayEvidence`) and, when configured, Kusto (`TestKustoUsageGraderReplay`). |
+| `implemented-local` | A reviewed definition replays on production DuckDB, with explicit fail-closed profile limitations; shared KQL fixtures exist but real Kusto acceptance remains pending. |
 | `extension-ready` | Required evidence is already in the approved archive contract. Only the listed `L*` and `S*` extensions are needed. Feasibility is a reviewed hypothesis until a definition replays. |
-| `evidence-gated` | Requires IR collections outside the approved families (`objectives`, `actions`, `states`, `events`, `attemptResults`, `startupAttemptResults`). A separate privacy review is needed before any query work. |
+| `evidence-gated` | Requires evidence that no approved family covers. The approved IR families are `objectives`, `actions`, `states`, `events`, `attemptResults` and `startupAttemptResults`, plus, since E1, `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference`. Any other evidence needs a separate privacy review before any query work. |
 | `vocabulary-gated` | Requires a capability that Dashboard Language does not define or that this profile rejects (`G*`). |
 | `out-of-scope` | Excluded by privacy policy, or executes arbitrary code. |
 
@@ -98,7 +101,7 @@ MUST reject the query rather than approximate it.
 | G3 | Recursion, graph reachability, or iterative or dynamic-programming algorithms | — | Rejected. Blocks provenance lineage, LZ76 and DTW. The RQA graders do not need it (§4.2). |
 | G4 | Caller-supplied grader configuration or reference data (constraints, reference trajectories or patches, process models) | — | Rejected for the authenticated archive profile. Would need separately reviewed reference evidence. |
 | G5 | Window partitions over eight fields, or definitions over the 4,096-byte request budget | — | Profile budgets, not Dashboard Language gaps. Raising either is a reviewed profile change with new Kusto acceptance. Blocks `recurrence-determinism` (§10). |
-| E1 | Approval of IR `observations`, `toolCalls`, `provenanceEdges`, `resources` or `reference` | — | Privacy review. Observations can carry tool output, which stays excluded. |
+| E1 | Approval of IR `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference` | User decision | **Decided (user-directed).** The user chose to approve the five whole collections ("you can store them all", confirmed as option 1) rather than a field allowlist. They are generated `@evidence` families under transform `cao-approved-events-v3` ([`session-archive.md` §2.2](session-archive.md#22-trajectory-ir-collection-approval-user-directed)). Approval stays explicit per event policy and default-off. It does not approve tool arguments outside these collections, models, cache counters or safe-output titles and URLs. |
 
 ### 3.1 Backend lowering constraints
 
@@ -274,21 +277,45 @@ S1 sources in Phase 5 (§10).
 | `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `implemented` | — | — |
 | `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `implemented` | — | — |
 | `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `implemented` | — | — |
-| `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
-| `exploitation-error` | Unused observations ÷ observations when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
-| `tool-output-consumption-rate` | Tool-originated observations that were consumed ÷ tool-originated observations | no | `evidence-gated` | E1 (`observations`, `toolCalls`), L4 | — |
+| `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet; zero if all are satisfied. Distinct states are distinct string `ref` of IR `state_change` events, falling back to the record state count | no | `implemented-local` | Non-string refs fail closed; real Kusto acceptance pending (§11) | — |
+| `exploitation-error` | Unused observations ÷ observations when an objective is unmet and observations ≥ distinct visited states; zero if all are satisfied. Unused means `consumedByActionIds` is not a non-empty array | no | `implemented-local` | Non-string refs fail closed; real Kusto acceptance pending (§11) | — |
+| `tool-output-consumption-rate` | Tool-originated observations with at least one non-empty string consumer ÷ tool-originated observations. Source IDs must name an IR `toolCalls[].id` | no | `implemented-local` | Missing/null IR tool calls fail closed on reconciliation; real Kusto acceptance pending (§11) | — |
 | `policy-near-miss` | Unmet guard objectives ÷ guard objectives, where guard objectives are matched by a keyword regex on the description | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the objective `description` field. Also needs S1 (IR `events`) for the safe-output check, L2 and L3 | — |
 | `skill-constraint-coverage` | Configured regex constraints that were exercised and passed | no | `vocabulary-gated` | G1, G4 | — |
 | `event-entropy-rate` | Bigram conditional entropy ÷ log2 of the alphabet size | no | `vocabulary-gated` | G2. Otherwise needs L3, L5 and `concat` | — |
 | `lempel-ziv-trajectory-complexity` | Normalized LZ76 complexity | no | `vocabulary-gated` | G2, G3 | — |
-| `end-to-end-lineage-completeness` | Safe outputs with a provenance path to tool or observation roots | no | `vocabulary-gated` | G3, E1 | — |
-| `action-provenance-coverage` | Consequential actions with a provenance path to evidence roots | no | `vocabulary-gated` | G3, E1 | — |
-| `tool-wise-score` | Longest correct prefix against a reference, with argument credit | no | `vocabulary-gated` | G4, E1, arguments | — |
+| `end-to-end-lineage-completeness` | Safe outputs with a provenance path to tool or observation roots | no | `vocabulary-gated` | G3 (reachability over `provenanceEdges`). E1 is resolved | — |
+| `action-provenance-coverage` | Consequential actions with a provenance path to evidence roots | no | `vocabulary-gated` | G3 (reachability over `provenanceEdges`). E1 is resolved | — |
+| `tool-wise-score` | Longest correct prefix against a reference, with argument credit | no | `vocabulary-gated` | G3 (recursive canonical-JSON argument comparison). Also accumulates fractional per-step credit, so it is not one final integer division. G4 no longer applies: `reference.toolCalls` and the IR `toolCalls` arguments are E1 evidence | — |
 | `trajectory-ndtw` | exp(−DTW ÷ (reference length × threshold)) | no | `vocabulary-gated` | G2, G3, G4 | — |
-| `code-search-recall` | Reference patch files that were located ÷ reference patch files | no | `vocabulary-gated` | G4, E1 (`resources`) | — |
-| `code-read-precision` | Read files in the reference patch ÷ distinct read files | no | `vocabulary-gated` | G4, E1 | — |
-| `code-edit-precision` | Edited files in the reference patch ÷ distinct edited files | no | `vocabulary-gated` | G4, E1 | — |
+| `code-search-recall` | Reference patch files that were located ÷ reference patch files | no | `vocabulary-gated` | G1 (upstream `normalizeFilePath` strips a leading `./` and then every leading `/` by regex; Dashboard Language has `trim` but no prefix stripping). G4 no longer applies: `reference.patch.files` is E1 evidence | — |
+| `code-read-precision` | Read files in the reference patch ÷ distinct read files | no | `vocabulary-gated` | G1 (upstream `normalizeFilePath` strips a leading `./` and then every leading `/` by regex; Dashboard Language has `trim` but no prefix stripping). G4 no longer applies: `reference.patch.files` is E1 evidence | — |
+| `code-edit-precision` | Edited files in the reference patch ÷ distinct edited files | no | `vocabulary-gated` | G1 (upstream `normalizeFilePath` strips a leading `./` and then every leading `/` by regex; Dashboard Language has `trim` but no prefix stripping). G4 no longer applies: `reference.patch.files` is E1 evidence | — |
 | `process-alignment-fitness` | Satisfied checks against a configured process model | no | `vocabulary-gated` | G4 | — |
+
+E1 reclassification notes:
+
+- **Trace-level candidates.** Several graders search the trace record before
+  the IR (`irCandidates(trace, { includeTrace: true })`). At the pin, the
+  trace that `createSessionLookups` builds carries no `reference`,
+  `observations` or `resources`, so those reads resolve to `trajectoryIR`. That
+  is the S2-bound IR payload, so there is no divergence.
+- **Synthesized fallbacks.** `trajectoryIR.events` defaults to synthesized
+  `{index, kind: event.type}` rows, and `trajectoryIR.toolCalls` falls back
+  (`??`) to reconciled calls whose fields are copied from event data. When the
+  IR omits either collection, an E1 grader that reads it reports
+  `unavailable`, the declared S2 divergence.
+- **Size guard.** Upstream's 5,000-item guard (`withTrajectoryLimits`) covers
+  every IR collection (`events`, `states`, `actions`, `toolCalls`,
+  `observations`, `resources`, `provenanceEdges`, `objectives`, `outputs`) and
+  every `reference` array, whichever collection the grader reads. The Phase 1
+  sources check only the queried collection (§7), so an oversized sibling
+  collection leaves a CAO result `measured` where upstream reports
+  `unavailable`. E1 graders must apply the guard to every IR collection they
+  can bind. Retrofitting the implemented graders is a separate change.
+- **No approximation.** The lineage graders need reachability, and
+  `tool-wise-score` needs recursive canonical JSON. Both stay rejected as G3,
+  with no bounded-depth substitute.
 
 Upstream orders visits by the position of `firstEventIndex` in the IR
 `events`, falling back to `firstEventIndex` and then to the array position,
@@ -363,8 +390,9 @@ not executed (§3.1).
 | Status | Count | Graders |
 | --- | ---: | --- |
 | `implemented` | 14 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained); laminarity, trapping time, dependency order, evidence saturation (joined) |
+| `implemented-local` | 3 | exploration error, exploitation error, tool-output consumption; Kusto pending |
 | `extension-ready` | 0 | — |
-| `evidence-gated` | 3 | exploration error, exploitation error, tool-output consumption |
+| `evidence-gated` | 0 | — (E1 decided) |
 | `vocabulary-gated` | 17 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6), determinism (G5) |
 | `out-of-scope` | 1 | loops |
 
@@ -373,15 +401,23 @@ Every backend advertises the item sources, chaining and joins through
 
 | Backend | Recomputed graders | Acceptance |
 | --- | --- | --- |
-| Local DuckDB | All 14 `implemented` graders | `TestGraderReplayEvidence` |
+| Local DuckDB | All 14 `implemented` and three `implemented-local` graders | `TestGraderReplayEvidence` and the pinned upstream replay; E1 limitations below |
 | Hosted and native ADX (Kusto) | All 14 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5) |
+
+E1's shared KQL lowering and replay fixtures are implemented, but no real Kusto
+run has accepted the three additions. Do not infer hosted parity from local
+lowering tests or from earlier fourteen-grader runs.
 
 ## 5. Invariants for every new definition
 
 - No new arguments, tool output bodies, models, cache counters, or safe-output
-  titles or URLs are approved to support a grader. Excluded or redacted
-  evidence keeps the result unavailable and is never normalized to make replay
-  pass.
+  titles or URLs are approved to support a grader. The only exception is the
+  user-directed E1 decision, which approves the five whole IR collections
+  `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference`
+  and nothing outside them. Excluded or redacted
+  evidence keeps the result unavailable whenever it affects a required value.
+  Harmless text redaction may preserve record counts, satisfaction nullness and
+  array lengths (E1, §11); it is never normalized to make replay pass.
 - Computation happens at query time. No reconciliation, state identity, guard
   classification or score is persisted at capture.
 - Results are recomputed scalar observations with an explicit availability and
@@ -420,7 +456,9 @@ development hosts lack the emulator. Phases 1b and 2b were accepted in
 - [x] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). Resume mapping is linear, but the FIFO pointer's skips are sequential state, so the three tool graders are `vocabulary-gated` (G3). Phase 4 still delivers L2, L5 and L6 for Phase 5.
 - [x] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. L2, L5 and L6 replay on DuckDB and real Kusto (§9; [run 43917614253](https://github.com/githubnext/gh-cao/actions/runs/43917614253), and after rebasing with an `Error`-present subtest, [run 43920740101](https://github.com/githubnext/gh-cao/actions/runs/43920740101)), so every backend advertises them. The reconciliation fixture made the three tool graders G3, so Phase 4 unlocks no grader and delivers its vocabulary for Phase 5.
 - [x] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job ([run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793)). Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag`, `recurrence-laminarity` and `recurrence-trapping-time`. `recurrence-determinism` is exact but needs G5, so it is reclassified (§10).
-- [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
+- [x] Decide on E1. User-directed: "you can store them all", confirmed as option 1 (whole collections). The five IR collections are generated `@evidence` families under transform `cao-approved-events-v3`, default-off per event policy ([`session-archive.md` §2.2](session-archive.md#22-trajectory-ir-collection-approval-user-directed)). `exploration-error`, `exploitation-error` and `tool-output-consumption-rate` become `extension-ready`; the lineage, `tool-wise-score` and `code-*` graders stay `vocabulary-gated` on G3 or G1 only (§4.2).
+- [x] **E1 local implementation:** S1 `archive-observations`, `archive-tool-calls` and nested `archive-observation-consumers`, using Phase 5's L4 and IR `events`. Reviewed definitions and production DuckDB replay cover `exploration-error`, `exploitation-error` and `tool-output-consumption-rate`, with the explicit limitations in §11.
+- [ ] **E1 hosted acceptance:** run the same seventeen-definition replay through real Kusto. Shared KQL fixtures are not acceptance evidence.
 - [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
 
 ## 7. Phase 1 implementation notes
@@ -442,7 +480,9 @@ Declared divergences, all failing towards `unavailable`:
   `unavailable` with reason `excluded` or `redacted`. Live upstream sees the
   original data.
 - The 5,000-item cap is checked only on the queried collection, not on
-  upstream's synthesized event list.
+  upstream's synthesized event list or the other IR collections. Unlike the
+  other divergences, this one can leave a result `measured` where upstream
+  reports `unavailable` (§4.2, E1 notes).
 
 Phase 1b lowers the same sources to KQL. Two `let` statements bind the active
 archive events and, per trace, the last agent-phase `trajectory.ir` payload.
@@ -588,15 +628,62 @@ before the HTTP request fails closed as an invalid bounded archive query
 | `evidence-saturation-stopping-lag` | 3,942 | 154 |
 | `recurrence-laminarity` | 3,933 | 163 |
 
-## 11. Smallest next delta
+## 11. E1 local implementation and remaining acceptance
 
-Hosted parity holds for all 14 `implemented` graders. Every later phase must
-be accepted on DuckDB and in the `session-archive-kusto` job together, so the
-backends do not diverge again.
+Hosted parity holds for the earlier 14 `implemented` graders. E1 has three
+additional local definitions and shared KQL fixtures, pending a real
+`session-archive-kusto` run. This is not a claim of seventeen-grader hosted parity.
+
+The new sources reuse the existing SQL/KQL typed-element and nested-source
+lowerers; no scoring logic, capture-time derivation or evidence approval is
+added. All collection access remains v3-only, explicitly policy approved and
+bound to the last agent-phase IR and complete trace/projection identity.
+Tool IDs are grouped before the join, so duplicate IDs do not multiply
+observations; consumer rows are grouped by parent observation before joining.
+
+The definitions match these pinned distinctions:
+
+- Only record objectives, observations and fallback states contribute.
+  Satisfaction is absence/null versus any other supplied value, not numeric
+  validity. The query compares present counts with record-plus-null counts;
+  it does not use `state: absent`, which collection redaction masks.
+  Empty IR `events` and absent `events` both permit record-state
+  fallback: synthesized event kinds are not IR `state_change` events.
+- Empty-string state refs are real distinct states; archive `distinct-count`
+  omits empty strings, so a separate valid-empty count contributes one.
+- Exploitation considers **any non-empty array** used, including `[""]`,
+  `[null]` or non-string members. Tool consumption instead requires at least
+  one **non-empty string** consumer, without requiring an actual action ID.
+- Every definition checks `LargestCollection` against the upstream 5,000-item
+  guard, including unrelated approved collections and reference arrays.
+  Excluded guard inputs make the score unavailable, never zero.
+- Objective descriptions/IDs, state text and observation text can be redacted
+  harmlessly for exploration/exploitation: record counts, satisfaction
+  nullness and consumer array lengths are unchanged. Regressions cover those
+  redactions. Redacted IR events fail closed; tool consumption additionally
+  fails closed on redacted observations or tool calls, since changed IDs could
+  create or destroy a join.
+
+Declared profile limitations, not approximations:
+
+- Non-string `state_change.ref` needs exact JavaScript `JSON.stringify`,
+  including undefined, object key ordering and number formatting. The typed
+  string vocabulary cannot express that equivalence; exploration/exploitation
+  report unavailable when unmet objectives would require those refs.
+- Absent/null IR `toolCalls` invokes upstream's reconciled tool fallback
+  (G3). Tool consumption reports unavailable when observations need it, rather
+  than treating missing calls as an empty collection.
+
+Exploration/exploitation use `reason: measured|unavailable` to stay within the
+unchanged request budget; the unavailable cases above remain explicit here.
+Wrapped requests with the maximum supported GitHub repository shape
+(39-character owner plus slash plus 100-character name) measure 3,958 bytes
+for exploration, 4,014 for exploitation, and 3,434 for tool consumption.
+The production replay asserts this worst-case budget, source capabilities,
+query planning and per-trace availability. No profile ceiling is raised.
 
 Tool reconciliation stays G3 (§6): the FIFO pointer's skips are sequential
 state. `recurrence-determinism` needs G5: either a nine-field window partition
 or a larger request budget, each a reviewed profile change with new Kusto
-acceptance. The trajectory-IR collections proposed by E1 (`observations`,
-`toolCalls`) reuse the Phase 5 multi-element, nested and join mechanisms once
-approved as evidence.
+acceptance. Full non-string ref support also needs a reviewed vocabulary delta;
+it must not be approximated through backend JSON serialization.

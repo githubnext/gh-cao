@@ -135,11 +135,12 @@ test("architecture guide separates Parquet lake ownership, query engines and act
     "Pinned DuckDB", "Azure Blob Storage", "Azure Data Explorer (ADX/Kusto)",
     "conditional ETag-bound active pointer", "source-epoch authority",
     "never archive contents or manifests", "Full-trace-read", "POST CSRF",
-    "Hosted ADX executes the\nsame plans only behind its separate default-off analytical acceptance gate",
+    "session-query",
   ]) {
     assert.ok(lake.includes(term), `missing lake boundary: ${term}`);
   }
   assert.match(lake, /Queries never fall back to dashboard storage/);
+  assert.match(lake, /Hosted ADX executes the\nsame plans only behind its separate default-off analytical acceptance gate/);
   assert.match(lake, /Logical\nexclusion is not immediate physical erasure/);
   assert.match(lake, /ADR remains proposed/);
   assert.match(lake, /real Azure conformance/);

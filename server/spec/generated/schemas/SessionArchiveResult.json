@@ -81,7 +81,7 @@
                 },
                 "ContractVersion": {
                     "type": "number",
-                    "const": 2
+                    "const": 3
                 },
                 "EvidenceVersion": {
                     "type": "string",

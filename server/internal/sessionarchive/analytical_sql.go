@@ -532,6 +532,35 @@ func itemFieldSQL(element ItemElement) (value, present, null, invalid string) {
 	return "coalesce(CASE WHEN " + kind + "='VARCHAR' THEN " + text + " END,'')", present, null, failed(kind + "<>'VARCHAR'")
 }
 
+// largestCollectionSQL mirrors upstream findOversizedTrajectoryCollection
+// over trajectoryIR: the longest guarded IR array or reference array, with
+// absent events counted as synthesized agent events and absent or null
+// toolCalls bounded by agent tool events. Excluded inputs make it null.
+func largestCollectionSQL() string {
+	length := func(path string) string {
+		return "coalesce(CASE WHEN json_type(t.Payload,'$." + path + "')='ARRAY' THEN CAST(json_array_length(t.Payload,'$." + path + "') AS BIGINT) END,0)"
+	}
+	terms := []string{
+		"CASE WHEN json_extract(t.Payload,'$.data.events') IS NULL THEN coalesce(t.Synthesized,0) ELSE " + length("data.events") + " END",
+		"CASE WHEN coalesce(json_type(t.Payload,'$.data.toolCalls'),'NULL')='NULL' THEN coalesce(t.Tools,0) ELSE " + length("data.toolCalls") + " END",
+		length("data.reference.patch.files"),
+		"CASE WHEN json_type(t.Payload,'$.data.reference')='OBJECT' THEN coalesce(list_max(list_transform(map_values(json_transform(" +
+			"json_extract(t.Payload,'$.data.reference'),'\"MAP(VARCHAR,JSON)\"')),lambda v: CASE WHEN json_type(v)='ARRAY' THEN " +
+			"CAST(json_array_length(v) AS BIGINT) ELSE 0 END)),0) ELSE 0 END",
+	}
+	for _, key := range GuardedCollections {
+		if key != "events" && key != "toolCalls" && key != "reference" {
+			terms = append(terms, length("data."+key))
+		}
+	}
+	reasons := GuardedOmissions()
+	omitted := make([]string, 0, len(reasons))
+	for _, reason := range reasons {
+		omitted = append(omitted, literal(reason))
+	}
+	return "CASE WHEN list_has_any(coalesce(t.OmissionReasons,[]),[" + strings.Join(omitted, ",") + "]) THEN NULL ELSE greatest(" + strings.Join(terms, ",") + ") END"
+}
+
 // itemSQL flattens one approved collection of each active trace's last
 // agent-phase trajectory.ir event at query time. Payload JSON stays internal.
 func (s *Snapshot) itemSQL(ctx context.Context, item ItemSource) (string, error) {
@@ -551,6 +580,11 @@ func (s *Snapshot) itemSQL(ctx context.Context, item ItemSource) (string, error)
 		return "SELECT " + strings.Join(empty, ",") + " WHERE false", nil
 	}
 	ir := " FILTER (WHERE Type='trajectory.ir' AND Phase='agent')"
+	var tools []string
+	for _, kind := range ReconciledToolTypes {
+		tools = append(tools, literal(kind))
+	}
+	toolTypes := strings.Join(tools, ",")
 	position, nested := "", "SELECT * FROM elements"
 	if item.Nested != "" {
 		// Nested rows keep the parent Ordinal; a trace without any nested
@@ -579,13 +613,16 @@ AND json_array_length(` + children + `)>0)`
 	}
 	return `WITH active(` + activeColumns + `) AS (VALUES ` + strings.Join(values, ",") + `),
 events AS (SELECT e.Namespace,e.Repository,e.RunId,e.RunAttempt,e.TraceId,e.ProjectionId,e.Sequence,e.Type,e.Phase,
-e.PolicyDigest,e.Gaps,e.OmissionReasons,e.PayloadJSON FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
+e.Component,e.PolicyDigest,e.Gaps,e.OmissionReasons,e.PayloadJSON FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
 INNER JOIN active a USING(` + activeColumns + `)),
 traces AS (SELECT ` + activeColumns + `,max(PolicyDigest) AS PolicyDigest,list_distinct(flatten(list(Gaps))) AS Gaps,
 max(Sequence)` + ir + ` AS Sequence,max_by(PayloadJSON,Sequence)` + ir + ` AS Payload,
-max_by(OmissionReasons,Sequence)` + ir + ` AS OmissionReasons FROM events GROUP BY ` + activeColumns + `),
+max_by(OmissionReasons,Sequence)` + ir + ` AS OmissionReasons,
+count(*) FILTER (WHERE Phase='agent' AND Component='agent') AS Synthesized,
+count(*) FILTER (WHERE Phase='agent' AND Type IN (` + toolTypes + `)) AS Tools FROM events GROUP BY ` + activeColumns + `),
 bound AS (SELECT a.Namespace,a.Repository,a.RunId,a.RunAttempt,a.TraceId,a.ProjectionId,t.PolicyDigest,coalesce(t.Gaps,[]) AS Gaps,
-t.Sequence,coalesce(t.OmissionReasons,[]) AS OmissionReasons,json_extract(t.Payload,'$.` + item.Path + `') AS Collection
+t.Sequence,coalesce(t.OmissionReasons,[]) AS OmissionReasons,json_extract(t.Payload,'$.` + item.Path + `') AS Collection,
+` + largestCollectionSQL() + ` AS LargestCollection
 FROM active a LEFT JOIN traces t USING(` + activeColumns + `)),
 sized AS (SELECT *,CASE WHEN json_type(Collection)='ARRAY' THEN CAST(json_array_length(Collection) AS BIGINT) END AS Items FROM bound),
 items AS (SELECT *,unnest(CASE WHEN Items>0 THEN range(Items) ELSE [NULL::BIGINT] END) AS Ordinal FROM sized),
@@ -594,7 +631,7 @@ nested AS (` + nested + `)
 SELECT Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId,PolicyDigest,Sequence,Ordinal,Items,
 coalesce(CASE json_type(Element) WHEN 'OBJECT' THEN 'object' WHEN 'ARRAY' THEN 'array' WHEN 'VARCHAR' THEN 'string'
 WHEN 'BOOLEAN' THEN 'boolean' WHEN 'NULL' THEN 'null' WHEN 'BIGINT' THEN 'number' WHEN 'UBIGINT' THEN 'number'
-WHEN 'DOUBLE' THEN 'number' END,'') AS Kind,` + position + `
+WHEN 'DOUBLE' THEN 'number' END,'') AS Kind,LargestCollection,` + position + `
 ` + strings.Join(fields, ",") + `,Gaps,OmissionReasons,
 list_concat(` + strings.Join(presents, ",") + `) AS PresentFields,
 list_concat(` + strings.Join(nulls, ",") + `) AS NullFields,
