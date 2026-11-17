@@ -29,6 +29,7 @@ import (
 
 var version = "dev"
 var authorityLog = logger.New("cao:webhook-gateway:authority")
+var optionsLog = logger.New("cao:webhook-gateway:options")
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -108,19 +109,10 @@ func run(ctx context.Context, args []string) error {
 	if err := validateRoleCredentials(*role); err != nil {
 		return err
 	}
-	var incompatible bool
-	flags.Visit(func(f *flag.Flag) {
-		if *role == "discover" {
-			incompatible = incompatible || f.Name != "role" && f.Name != "workflow"
-			return
-		}
-		productionOption := f.Name == "policy" || f.Name == "listen" || f.Name == "tls-cert" || f.Name == "tls-key"
-		if f.Name == "workflow" || *role == "local" && productionOption || *role != "local" && f.Name != "role" && !productionOption {
-			incompatible = true
-		}
-	})
-	if incompatible {
-		return errors.New("gateway discovery, local simulation, and production options cannot be combined")
+	var setFlags []string
+	flags.Visit(func(f *flag.Flag) { setFlags = append(setFlags, f.Name) })
+	if err := validateRoleOptions(*role, setFlags); err != nil {
+		return err
 	}
 	if *role == "discover" {
 		return discoverWorkflows(ctx, workflows, os.Stdout)
@@ -171,6 +163,34 @@ func run(ctx context.Context, args []string) error {
 			webhookgatewayhost.ReceiveAuthority{Loader: loader, Queue: queue, State: store})
 	}
 	return dispatch(ctx, policy, loader, baseLoader, queue, store)
+}
+
+// validateRoleOptions rejects explicitly set flags that do not belong to the
+// selected role: discovery accepts only --role and --workflow, local
+// simulation rejects the production listener and policy options, and the
+// production roles reject every local-only option.
+func validateRoleOptions(role string, setFlags []string) error {
+	for _, name := range setFlags {
+		if roleRejectsOption(role, name) {
+			optionsLog.Printf("gateway options rejected: role=%s", role)
+			return errors.New("gateway discovery, local simulation, and production options cannot be combined")
+		}
+	}
+	return nil
+}
+
+func roleRejectsOption(role, name string) bool {
+	if role == "discover" {
+		return name != "role" && name != "workflow"
+	}
+	productionOption := name == "policy" || name == "listen" || name == "tls-cert" || name == "tls-key"
+	if name == "workflow" {
+		return true
+	}
+	if role == "local" {
+		return productionOption
+	}
+	return name != "role" && !productionOption
 }
 
 func validateRoleCredentials(role string) error {
