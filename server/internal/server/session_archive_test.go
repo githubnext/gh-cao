@@ -167,7 +167,7 @@ func TestSessionArchiveReadGrantAndTrustedScope(t *testing.T) {
 		{"summary-identity", `{"kind":"summary","repository":"octo/one","attempt":1}`, http.StatusBadRequest},
 		{"row-limit", `{"kind":"summary","repository":"octo/one","limit":10001}`, http.StatusBadRequest},
 		{"trailing-json", `{"kind":"summary","repository":"octo/one"} {}`, http.StatusBadRequest},
-		{"body-limit", `{"kind":"summary","repository":"octo/one","padding":"` + strings.Repeat("x", 4096) + `"}`, http.StatusBadRequest},
+		{"body-limit", padArchiveRequest(`{"kind":"summary","repository":"octo/one"}`, sessionArchiveRequestBytes+1), http.StatusBadRequest},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			response := archiveRequest(t, app, test.body, true)
@@ -182,6 +182,14 @@ func TestSessionArchiveReadGrantAndTrustedScope(t *testing.T) {
 	if response := archiveRequest(t, app, valid, true); response.Code != http.StatusOK {
 		t.Fatalf("trusted query failed: %d %s", response.Code, response.Body.String())
 	}
+	if response := archiveRequest(t, app, padArchiveRequest(valid, sessionArchiveRequestBytes), true); response.Code != http.StatusOK {
+		t.Fatalf("request at the byte budget failed: %d %s", response.Code, response.Body.String())
+	}
+}
+
+// padArchiveRequest pads a JSON object with insignificant whitespace to size bytes.
+func padArchiveRequest(body string, size int) string {
+	return body[:len(body)-1] + strings.Repeat(" ", size-len(body)) + "}"
 }
 
 func TestSessionArchiveResultBudgetsErrorsAndRevocation(t *testing.T) {

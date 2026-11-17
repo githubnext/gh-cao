@@ -82,4 +82,4 @@ complete the current-revision dashboard, review, and live checks in
 
 ## Next: Add a Campaign
 
-Campaign selection, installation, enablement, and the first review run are a separate change. Use [Browse campaigns](catalog.md) or ask an agent to follow `skills/add-cao-campaign/SKILL.md`.
+Campaign selection, installation, enablement, and the first review run are a separate change. Use [Browse campaigns](catalog.md) or ask an agent to use the `central-agentic-ops` skill to add a campaign.

@@ -1,5 +1,7 @@
 import { createTypeSpecLibrary, emitFile, getNamespaceFullName, navigateProgram } from '@typespec/compiler';
 
+const archiveContractVersion = 3;
+
 export const $lib = createTypeSpecLibrary({ name: 'cao-trace', diagnostics: {} });
 
 export const namespace = 'Cao.Trace.Archive';
@@ -31,7 +33,7 @@ function kind(property, archive = false) {
     if (variants.length !== 1) throw new Error(`Archive fields require a single nullable type: ${property.name}`);
     [type] = variants;
   }
-  if (property.name === 'ContractVersion' && type.kind === 'Number' && type.value === (archive ? 2 : 1)) return 'long';
+  if (property.name === 'ContractVersion' && type.kind === 'Number' && type.value === (archive ? archiveContractVersion : 1)) return 'long';
   if (type.kind === 'Scalar' && getNamespaceFullName(type.namespace) === 'TypeSpec' && kinds.has(type.name)) {
     return kinds.get(type.name);
   }
@@ -318,7 +320,7 @@ export async function $onEmit(context) {
 };`);
   await emitFile(context.program, { path: `${context.emitterOutputDir}/schema.gen.kql`, content: kql.join('\n') + '\n' });
   if (!archive || archive.baseModel || archive.indexer) throw new Error('Archive requires a closed Event model');
-  if (!families || archive.properties.get('ContractVersion')?.type.value !== 2) throw new Error('Archive requires fresh contract version 2 and evidence families');
+  if (!families || archive.properties.get('ContractVersion')?.type.value !== archiveContractVersion) throw new Error(`Archive requires fresh contract version ${archiveContractVersion} and evidence families`);
   const bindings = context.program.stateMap(evidenceKey);
   const archiveColumns = properties(archive).map((property) => {
     const binding = bindings.get(property);
@@ -341,7 +343,7 @@ export async function $onEmit(context) {
   const goTypes = { string: 'string', long: 'int64', real: 'float64', bool: 'bool', datetime: 'string', dynamic: '[]string' };
   const archiveGo = [
     '// Code generated from server/spec/trace.tsp. DO NOT EDIT.', '', 'package sessionarchive', '',
-    'const ContractVersion = 2', '', 'type Event struct {',
+    `const ContractVersion = ${archiveContractVersion}`, '', 'type Event struct {',
     ...archiveColumns.map(({ name, kind, nullable }) => `\t${name.replace(/Id$/g, 'ID')} ${nullable ? '*' : ''}${goTypes[kind]} \`json:"${name}"\``),
     '}', '', 'var eventColumns = []string{',
     ...archiveColumns.map(({ name }) => `\t${JSON.stringify(name)},`), '}', '',
@@ -361,7 +363,7 @@ export async function $onEmit(context) {
   await emitFile(context.program, { path: `${context.emitterOutputDir}/../sessionarchive/schema.gen.go`, content: archiveGo });
   await emitFile(context.program, {
     path: `${context.emitterOutputDir}/../sessionarchive/schema.gen.json`,
-    content: JSON.stringify({ version: 2, columns: archiveColumns.map(({ name, kind, nullable, path, validation }) =>
+    content: JSON.stringify({ version: archiveContractVersion, columns: archiveColumns.map(({ name, kind, nullable, path, validation }) =>
       ({ name, type: sqlTypes[kind], nullable, ...(path ? { path, validation } : {}) })), families: familyFields }, null, 2) + '\n'
   });
 }

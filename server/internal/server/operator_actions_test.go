@@ -56,6 +56,14 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 			t.Fatalf("invalid enrollment pattern %q admitted", pattern)
 		}
 	}
+	invocation, err = app.admitOperatorAction(t.Context(), hostedcli.Request{ID: "setup-cao", Values: map[string]string{"repository-pattern": "octo/service"}})
+	if err != nil || invocation.Command != "gh cao setup --repository octo/service" || invocation.Repository != "octo/service" {
+		t.Fatalf("exact setup failed admission: %+v %v", invocation, err)
+	}
+	invocation, err = app.admitOperatorAction(t.Context(), hostedcli.Request{ID: "setup-cao", Values: map[string]string{"repository-pattern": "octo/service-*"}})
+	if err != nil || invocation.Command != "gh cao setup --repository 'octo/service-*'" || invocation.Repository != "" {
+		t.Fatalf("wildcard setup failed admission: %+v %v", invocation, err)
+	}
 }
 
 func TestOperatorModernizationAdmissionAndNativeInputEnvelope(t *testing.T) {

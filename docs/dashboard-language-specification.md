@@ -66,26 +66,7 @@ worker's queue transport. Queue history, status filtering, ordering and counts
 remain declarative queries over the registered operational sources. Published
 dashboards neither enable this transport nor request queue data.
 
-The interaction-only `modernization-controls` element declares its farm
-coordinator query in `data.sources` and references declared CLI actions through
-`config.actions.status`, `preview` and `execute`. A single retained coordinator
-repository is the farm target without manual entry; several require an explicit
-choice, and none disables actions. Retained rows identify the farm only; they
-never establish authorization, plan approval or task
-readiness. Native checks own the full Modernization lifecycle. Each write requires
-an explicit, expiring preview bound to the reviewed control revision and task batch.
-The shared element supports Ops and the Modernization campaign
-(`config.body: campaign`); other campaign routes omit the controls. Unsupported
-deployments remain read-only without browser credentials or execution fallbacks.
-Installation, rollout changes, merging and deployment are not exposed.
-Plan approval presents a readable Overview and editable JSON of the same local
-draft. This interaction-only presentation neither validates the plan nor grants
-authority; native preview and separate confirmation remain required.
-Native task results use responsive rows with explicit phase, state and evidence
-links. Full control revisions and plan digests remain in the readiness disclosure;
-the confirmation preview still shows its exact reviewed revision.
-Readiness, draft editing and confirmation show mutually exclusive task views;
-draft tasks never inherit readiness from the approved plan.
+`modernization-controls` binds `config.actions`; its rows grant no authority.
 
 The `storage-info` element also declares `data.sources: []`. It presents deployment
 configuration rather than activity evidence: browser-local IndexedDB, local-server

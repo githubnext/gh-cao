@@ -240,6 +240,24 @@ func refreshDashboardConfigurationSnapshot(ctx context.Context, cache string) er
 			transactions = append(transactions, record)
 		}
 	}
-	return publishDashboardSnapshotCheckpoint(ctx, cache, maps.Clone(manifest), manifest,
+	configuration, _ := ctx.Value(dashboardConfigurationKey{}).(*dashboardConfiguration)
+	if configuration != nil {
+		transactions = append(transactions, dashboardConfigurationTransaction(configuration.current.Load(), time.Now()))
+	}
+	return writeDashboardIncrementalSnapshot(ctx, cache,
 		map[string][]map[string]any{"transactions": transactions}, nil)
+}
+
+func dashboardConfigurationTransaction(snapshot *dashboardConfigurationSnapshot, observedAt time.Time) map[string]any {
+	records := int64(0)
+	if snapshot != nil && snapshot.digest != "not-configured" {
+		records = 1
+	}
+	return map[string]any{
+		"id":               "local-dashboard-configuration",
+		"kind":             "local-dashboard-configuration",
+		"createdAt":        observedAt.UTC().Format(time.RFC3339Nano),
+		"records":          records,
+		"committedRecords": records,
+	}
 }

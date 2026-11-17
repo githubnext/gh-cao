@@ -148,6 +148,10 @@ func (e PlannedExpression) sql() string {
 		return "(CAST(" + args[0] + " AS DOUBLE)*CAST(" + args[1] + " AS DOUBLE))"
 	case "quotient":
 		return "(CAST(" + args[0] + " AS DOUBLE)/nullif(CAST(" + args[1] + " AS DOUBLE),0))"
+	case "trim":
+		return "regexp_replace(" + args[0] + "," + literal(TrimPattern()) + ",'','g')"
+	case "strip-prefix":
+		return "regexp_replace(" + args[0] + "," + literal(StripPrefixPattern(e.Args[1].Literal.String, e.Args[2].Literal.Boolean)) + ",'')"
 	}
 	panic("unvalidated analytical expression")
 }
@@ -160,9 +164,10 @@ func sqlOrder(field Column, direction string) string {
 	return expression + " " + direction + " NULLS LAST"
 }
 
-// stageSQL lowers filter, reduce, and post-aggregate phases to CTEs named
-// with prefix that read from. It returns the CTE text and the last CTE name.
-func (p Plan) stageSQL(prefix, from string) (string, string) {
+// stageSQL lowers join, filter, reduce, and post-aggregate phases to CTEs
+// named with prefix that read from, joining rights in join order. It returns
+// the CTE text and the last CTE name.
+func (p Plan) stageSQL(prefix, from string, rights []string) (string, string) {
 	filter := "true"
 	predicates := make([]string, 0, len(p.Predicates))
 	groups := make([]string, 0, len(p.By))
@@ -220,41 +225,159 @@ func (p Plan) stageSQL(prefix, from string) (string, string) {
 	if len(groups) > 0 {
 		group = " GROUP BY " + strings.Join(groups, ",")
 	}
-	reduced := "SELECT * FROM " + prefix + "filtered"
-	if len(p.Values) > 0 {
-		reduced = "SELECT " + strings.Join(base, ",") + " FROM " + prefix + "filtered" + group
+	ctes := ""
+	for i, join := range p.Joins {
+		next := prefix + "joined_" + strconv.Itoa(i)
+		ctes += join.sql(next, from, rights[i]) + ",\n"
+		from = next
 	}
-	ctes := prefix + "filtered AS (SELECT * FROM " + from + " WHERE " + filter + "),\n" + prefix + "reduced AS (" + reduced + ")"
+	ctes += prefix + "filtered AS (SELECT * FROM " + from + " WHERE " + filter + ")"
+	rows := prefix + "filtered"
+	for i, computed := range p.RowComputations {
+		next := prefix + "rowcomputed_" + strconv.Itoa(i)
+		ctes += ",\n" + next + " AS (SELECT *," + computed.Expression.sql() + " AS " + identifier(computed.As) + " FROM " + rows + ")"
+		rows = next
+	}
+	if len(p.Windows) > 0 {
+		windows := make([]string, 0, len(p.Windows))
+		for _, window := range p.Windows {
+			windows = append(windows, window.sql()+" AS "+identifier(window.As))
+		}
+		ctes += ",\n" + prefix + "windowed AS (SELECT *," + strings.Join(windows, ",") + " FROM " + rows + ")"
+		rows = prefix + "windowed"
+	}
+	reduced := "SELECT * FROM " + rows
+	if len(p.Values) > 0 {
+		reduced = "SELECT " + strings.Join(base, ",") + " FROM " + rows + group
+	}
+	ctes += ",\n" + prefix + "reduced AS (" + reduced + ")"
 	last := prefix + "reduced"
 	for i, computed := range p.Computations {
 		next := prefix + "computed_" + strconv.Itoa(i)
 		ctes += ",\n" + next + " AS (SELECT *," + computed.Expression.sql() + " AS " + identifier(computed.As) + " FROM " + last + ")"
 		last = next
 	}
-	return ctes, last
+	if p.Aggregate() || prefix == "" {
+		return ctes, last
+	}
+	// A row-level stage exposes only its selected row, including its key.
+	selected := make([]string, 0, len(p.Selections))
+	for _, selection := range p.Selections {
+		selected = append(selected, identifier(selection.Field.Name)+" AS "+identifier(selection.As))
+	}
+	ctes += ",\n" + prefix + "selected AS (SELECT " + strings.Join(selected, ",") + " FROM " + last + ")"
+	return ctes, prefix + "selected"
 }
 
-func (p Plan) sql(source string) string {
+// sql lowers one join to a CTE named name. Binding keys use null-safe
+// equality; right rows with a missing explicit key (null, or "" for a
+// string) are removed first because Kusto matches "" with "". Imported
+// strings coalesce to "" like every other string value.
+func (j PlannedJoin) sql(name, left, right string) string {
+	projected := make([]string, 0, len(j.On)+len(j.Fields))
+	conditions := make([]string, 0, len(j.On))
+	present := []string{"true"}
+	for i, key := range j.On {
+		alias := identifier("__archive_key_" + strconv.Itoa(i))
+		projected = append(projected, identifier(key.Right.Name)+" AS "+alias)
+		l := "l." + identifier(key.Left.Name)
+		switch {
+		case key.Binding && key.Left.Type == "string":
+			conditions = append(conditions, "coalesce("+l+",'')=coalesce(r."+alias+",'')")
+		case key.Binding:
+			conditions = append(conditions, l+" IS NOT DISTINCT FROM r."+alias)
+		default:
+			conditions = append(conditions, l+"=r."+alias)
+			present = append(present, identifier(key.Right.Name)+" IS NOT NULL")
+			if key.Right.Type == "string" {
+				present = append(present, identifier(key.Right.Name)+"<>''")
+			}
+		}
+	}
+	imported := make([]string, 0, len(j.Fields))
+	for i, field := range j.Fields {
+		alias := identifier("__archive_field_" + strconv.Itoa(i))
+		projected = append(projected, identifier(field.Field.Name)+" AS "+alias)
+		value := "r." + alias
+		if field.Field.Type == "string" {
+			value = "coalesce(" + value + ",'')"
+		}
+		imported = append(imported, value+" AS "+identifier(field.As))
+	}
+	kind := "INNER"
+	if j.Type == "left" {
+		kind = "LEFT"
+	}
+	return name + " AS (SELECT l.*," + strings.Join(imported, ",") + " FROM " + left + " l " + kind + " JOIN (SELECT " +
+		strings.Join(projected, ",") + " FROM " + right + " WHERE " + strings.Join(present, " AND ") + ") r ON " +
+		strings.Join(conditions, " AND ") + ")"
+}
+
+// sql lowers one window over a total order: groupby plus order-by covers the
+// row key, so DuckDB's sort stability never decides a value.
+func (w PlannedWindow) sql() string {
+	partition := make([]string, 0, len(w.Partition))
+	for _, column := range w.Partition {
+		partition = append(partition, identifier(column.Name))
+	}
+	order := make([]string, 0, len(w.Order))
+	for _, item := range w.Order {
+		order = append(order, sqlOrder(item.Field, item.Direction))
+	}
+	over := " OVER (PARTITION BY " + strings.Join(partition, ",") + " ORDER BY " + strings.Join(order, ",") + ")"
+	if w.Operation == "row-number" {
+		return "row_number()" + over
+	}
+	if w.Type == "string" {
+		return "coalesce(lag(" + identifier(w.Field.Name) + ")" + over + ",'')"
+	}
+	return "lag(" + identifier(w.Field.Name) + ")" + over
+}
+
+// sql lowers the plan over the archive source queries named in source
+// order (the plan's own base first). Each source is materialized once and
+// earlier stages lower before the plans that read them.
+func (p Plan) sql(names, sources []string) string {
 	projections := make([]string, 0, len(p.Selections)+len(p.Ties))
 	orders := make([]string, 0, len(p.Orders)+len(p.Ties))
 	columns := make([]string, 0, len(p.Columns))
 	packed := make([]string, 0, len(p.Columns))
-	// Earlier stages lower first; each reads the CTE its predecessor produced.
-	stages := []Plan{}
-	for stage := p.Input; stage != nil; stage = stage.Input {
-		stages = append([]Plan{*stage}, stages...)
+	ctes := ""
+	read := map[string]string{}
+	for i, name := range names {
+		read[name] = "source_" + strconv.Itoa(i)
+		ctes += read[name] + " AS MATERIALIZED (" + sources[i] + "),\n"
 	}
-	ctes, from := "", "source"
-	for i, stage := range stages {
-		text, last := stage.stageSQL("stage_"+strconv.Itoa(i)+"_", from)
-		ctes += text + ",\n"
-		from = last
+	outputs := map[*Plan]string{}
+	cte := func(plan *Plan, source string) string {
+		if plan != nil {
+			return outputs[plan]
+		}
+		return read[source]
 	}
-	text, last := p.stageSQL("", from)
-	ctes += text
+	lower := func(plan *Plan, prefix string) string {
+		rights := make([]string, 0, len(plan.Joins))
+		for _, join := range plan.Joins {
+			rights = append(rights, cte(join.Input, join.Source))
+		}
+		text, last := plan.stageSQL(prefix, cte(plan.Input, plan.Source), rights)
+		ctes += text
+		return last
+	}
+	dependencies := p.Dependencies()
+	for i, stage := range dependencies[:len(dependencies)-1] {
+		outputs[stage] = lower(stage, "stage_"+strconv.Itoa(i)+"_")
+		ctes += ",\n"
+	}
+	last := lower(&p, "")
 	expressions := map[string]string{}
 	for _, name := range p.Inputs {
 		expressions[name] = identifier(name)
+	}
+	for _, join := range p.Joins {
+		for _, field := range join.Fields {
+			expressions[field.As] = identifier(field.As)
+		}
 	}
 	// Select after the explicit post-aggregate phase, including computed fields.
 	if len(p.Values) > 0 {
@@ -262,8 +385,11 @@ func (p Plan) sql(source string) string {
 			expressions[value.As] = identifier(value.As)
 		}
 	}
-	for _, computed := range p.Computations {
+	for _, computed := range append(slices.Clone(p.RowComputations), p.Computations...) {
 		expressions[computed.As] = identifier(computed.As)
+	}
+	for _, window := range p.Windows {
+		expressions[window.As] = identifier(window.As)
 	}
 	for _, selection := range p.Selections {
 		projections = append(projections, expressions[selection.Field.Name]+" AS "+identifier(selection.As))
@@ -284,13 +410,12 @@ func (p Plan) sql(source string) string {
 		columns = append(columns, identifier(column.Name))
 		packed = append(packed, identifier(column.Name)+":=r."+identifier(column.Name))
 	}
-	return `WITH source AS MATERIALIZED (` + source + `),
-` + ctes + `,
+	return `WITH ` + ctes + `,
 projected AS (SELECT ` + strings.Join(projections, ",") + ` FROM ` + last + `),
 page AS (SELECT ` + strings.Join(columns, ",") + `,row_number() OVER (` + order + `) AS __archive_order FROM projected` + order +
 		` LIMIT ` + strconv.Itoa(p.Limit+1) + `)
 SELECT coalesce((SELECT list(struct_pack(` + strings.Join(packed, ",") + `) ORDER BY r.__archive_order) FROM page r), []) AS rows,
-(SELECT count(DISTINCT TraceId) FROM source WHERE len(Gaps)>0) AS tracesWithGaps`
+(SELECT count(DISTINCT TraceId) FROM source_0 WHERE len(Gaps)>0) AS tracesWithGaps`
 }
 
 // activeSQL resolves only server-owned files and exact pinned membership.
@@ -372,39 +497,85 @@ func (s *Snapshot) sourceSQL(ctx context.Context, fields []string) (string, erro
 INNER JOIN active a USING(` + activeColumns + `)`, nil
 }
 
-// itemFieldSQL derives one item field's typed value and Present/Null/Invalid
-// membership from approved JSON. Values are set only when upstream graders
-// would accept them, so a numeric or boolean string never becomes valid.
-func itemFieldSQL(item itemSource) (value, invalid string) {
-	raw := "json_extract(Element,'$." + item.Key + "')"
+// itemFieldSQL derives one element field's typed value and Present/Null/
+// Invalid membership from approved JSON. Values are set only when upstream
+// graders would accept them, so a numeric or boolean string never becomes valid.
+func itemFieldSQL(element ItemElement) (value, present, null, invalid string) {
+	raw, text := "Element", "json_extract_string(Element,'$')"
+	present = "Element IS NOT NULL"
+	if element.Key != "" {
+		raw, text = "json_extract(Element,'$."+element.Key+"')", "json_extract_string(Element,'$."+element.Key+"')"
+		present = "json_type(Element)='OBJECT' AND " + raw + " IS NOT NULL"
+	}
 	kind := "json_type(" + raw + ")"
-	switch item.Element.Type {
-	case "integer":
+	null = kind + "='NULL'"
+	// A non-null element field that upstream would reject.
+	failed := func(condition string) string {
+		return present + " AND " + kind + "<>'NULL' AND " + condition
+	}
+	switch element.Typing {
+	case "unsigned", "signed":
+		low := "0"
+		if element.Typing == "signed" {
+			low = "-9007199254740991"
+		}
 		number := "TRY_CAST(" + raw + " AS DOUBLE)"
 		valid := kind + " IN ('BIGINT','UBIGINT','DOUBLE') AND " + number + "=trunc(" + number + ") AND " +
-			number + " BETWEEN 0 AND 9007199254740991"
-		return "CASE WHEN " + valid + " THEN CAST(" + number + " AS BIGINT) END", "NOT coalesce(" + valid + ",false)"
+			number + " BETWEEN " + low + " AND 9007199254740991"
+		return "CASE WHEN " + valid + " THEN CAST(" + number + " AS BIGINT) END", present, null, failed("NOT coalesce(" + valid + ",false)")
 	case "boolean":
-		return "CASE WHEN " + kind + "='BOOLEAN' THEN CAST(" + raw + " AS BOOLEAN) END", kind + "<>'BOOLEAN'"
+		return "CASE WHEN " + kind + "='BOOLEAN' THEN CAST(" + raw + " AS BOOLEAN) END", present, null, failed(kind + "<>'BOOLEAN'")
+	case "length":
+		return "CASE WHEN " + kind + "='ARRAY' THEN CAST(json_array_length(" + raw + ") AS BIGINT) END", present, null, failed(kind + "<>'ARRAY'")
+	case "visit":
+		// A string element is its own value; a record contributes its string Key.
+		return "coalesce(CASE WHEN json_type(Element)='VARCHAR' THEN json_extract_string(Element,'$') " +
+				"WHEN json_type(Element)='OBJECT' AND " + kind + "='VARCHAR' THEN " + text + " END,'')",
+			"(json_type(Element)='VARCHAR' OR " + present + ")", null, failed(kind + "<>'VARCHAR'")
 	}
-	// States are visits: a string element is its own id; a record contributes its string id.
-	return "coalesce(CASE WHEN json_type(Element)='VARCHAR' THEN json_extract_string(Element,'$') " +
-			"WHEN json_type(Element)='OBJECT' AND " + kind + "='VARCHAR' THEN json_extract_string(Element,'$." + item.Key + "') END,'')",
-		kind + "<>'VARCHAR'"
+	return "coalesce(CASE WHEN " + kind + "='VARCHAR' THEN " + text + " END,'')", present, null, failed(kind + "<>'VARCHAR'")
+}
+
+// largestCollectionSQL mirrors upstream findOversizedTrajectoryCollection
+// over trajectoryIR: the longest guarded IR array or reference array, with
+// absent events counted as synthesized agent events and absent or null
+// toolCalls bounded by agent tool events. Excluded inputs make it null.
+func largestCollectionSQL() string {
+	length := func(path string) string {
+		return "coalesce(CASE WHEN json_type(t.Payload,'$." + path + "')='ARRAY' THEN CAST(json_array_length(t.Payload,'$." + path + "') AS BIGINT) END,0)"
+	}
+	terms := []string{
+		"CASE WHEN json_extract(t.Payload,'$.data.events') IS NULL THEN coalesce(t.Synthesized,0) ELSE " + length("data.events") + " END",
+		"CASE WHEN coalesce(json_type(t.Payload,'$.data.toolCalls'),'NULL')='NULL' THEN coalesce(t.Tools,0) ELSE " + length("data.toolCalls") + " END",
+		length("data.reference.patch.files"),
+		"CASE WHEN json_type(t.Payload,'$.data.reference')='OBJECT' THEN coalesce(list_max(list_transform(map_values(json_transform(" +
+			"json_extract(t.Payload,'$.data.reference'),'\"MAP(VARCHAR,JSON)\"')),lambda v: CASE WHEN json_type(v)='ARRAY' THEN " +
+			"CAST(json_array_length(v) AS BIGINT) ELSE 0 END)),0) ELSE 0 END",
+	}
+	for _, key := range GuardedCollections {
+		if key != "events" && key != "toolCalls" && key != "reference" {
+			terms = append(terms, length("data."+key))
+		}
+	}
+	reasons := GuardedOmissions()
+	omitted := make([]string, 0, len(reasons))
+	for _, reason := range reasons {
+		omitted = append(omitted, literal(reason))
+	}
+	return "CASE WHEN list_has_any(coalesce(t.OmissionReasons,[]),[" + strings.Join(omitted, ",") + "]) THEN NULL ELSE greatest(" + strings.Join(terms, ",") + ") END"
 }
 
 // itemSQL flattens one approved collection of each active trace's last
 // agent-phase trajectory.ir event at query time. Payload JSON stays internal.
-func (s *Snapshot) itemSQL(ctx context.Context, item itemSource) (string, error) {
+func (s *Snapshot) itemSQL(ctx context.Context, item ItemSource) (string, error) {
 	values, paths, err := s.activeSQL(ctx)
 	if err != nil {
 		return "", err
 	}
-	columns := append(slices.Clone(itemColumns), item.Element)
 	if len(values) == 0 {
 		types := map[string]string{"string": "VARCHAR", "integer": "BIGINT", "boolean": "BOOLEAN"}
 		var empty []string
-		for _, column := range columns {
+		for _, column := range item.Columns() {
 			empty = append(empty, "CAST(NULL AS "+types[column.Type]+") AS "+identifier(column.Name))
 		}
 		for _, name := range append([]string{"Gaps"}, fieldStateInputs...) {
@@ -413,38 +584,63 @@ func (s *Snapshot) itemSQL(ctx context.Context, item itemSource) (string, error)
 		return "SELECT " + strings.Join(empty, ",") + " WHERE false", nil
 	}
 	ir := " FILTER (WHERE Type='trajectory.ir' AND Phase='agent')"
-	field, invalid := itemFieldSQL(item)
-	elementKey := "json_extract(Element,'$." + item.Key + "')"
-	present := "json_type(Element)='OBJECT' AND " + elementKey + " IS NOT NULL"
-	if item.Element.Type == "string" {
-		present = "(json_type(Element)='VARCHAR' OR " + present + ")"
+	var tools []string
+	for _, kind := range ReconciledToolTypes {
+		tools = append(tools, literal(kind))
+	}
+	toolTypes := strings.Join(tools, ",")
+	position, nested := "", "SELECT * FROM elements"
+	if item.Nested != "" {
+		// Nested rows keep the parent Ordinal; a trace without any nested
+		// element contributes one anchor with null Ordinal and Position.
+		children := "json_extract(Element,'$." + item.Nested + "')"
+		position = "Position,"
+		nested = `SELECT * EXCLUDE (Element,Children),json_extract(Element,'$.` + item.Nested + `['||Position||']') AS Element
+FROM (SELECT *,unnest(range(Children)) AS Position FROM (SELECT *,CASE WHEN json_type(` + children + `)='ARRAY'
+THEN CAST(json_array_length(` + children + `) AS BIGINT) ELSE 0 END AS Children FROM elements) WHERE Children>0)
+UNION ALL BY NAME SELECT s.*,NULL::BIGINT AS Ordinal,NULL::BIGINT AS Position,NULL::JSON AS Element FROM sized s
+WHERE NOT EXISTS (SELECT 1 FROM elements e WHERE e.Namespace=s.Namespace AND e.Repository=s.Repository AND e.RunId=s.RunId
+AND e.RunAttempt=s.RunAttempt AND e.TraceId=s.TraceId AND e.ProjectionId=s.ProjectionId AND json_type(` + children + `)='ARRAY'
+AND json_array_length(` + children + `)>0)`
+	}
+	fields := make([]string, 0, len(item.Elements))
+	presents := []string{"CASE WHEN Collection IS NOT NULL THEN ['Items'] ELSE [] END"}
+	nulls := []string{"CASE WHEN json_type(Collection)='NULL' THEN ['Items'] ELSE [] END"}
+	invalids := []string{"CASE WHEN Collection IS NOT NULL AND json_type(Collection) NOT IN ('NULL','ARRAY') THEN ['Items'] ELSE [] END"}
+	for _, element := range item.Elements {
+		value, present, null, invalid := itemFieldSQL(element)
+		name := literal(element.Column.Name)
+		fields = append(fields, value+" AS "+identifier(element.Column.Name))
+		presents = append(presents, "CASE WHEN "+present+" THEN ["+name+"] ELSE [] END")
+		nulls = append(nulls, "CASE WHEN "+null+" THEN ["+name+"] ELSE [] END")
+		invalids = append(invalids, "CASE WHEN "+invalid+" THEN ["+name+"] ELSE [] END")
 	}
 	return `WITH active(` + activeColumns + `) AS (VALUES ` + strings.Join(values, ",") + `),
 events AS (SELECT e.Namespace,e.Repository,e.RunId,e.RunAttempt,e.TraceId,e.ProjectionId,e.Sequence,e.Type,e.Phase,
-e.PolicyDigest,e.Gaps,e.OmissionReasons,e.PayloadJSON FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
+e.Component,e.PolicyDigest,e.Gaps,e.OmissionReasons,e.PayloadJSON FROM read_parquet([` + strings.Join(paths, ",") + `],hive_partitioning=false) e
 INNER JOIN active a USING(` + activeColumns + `)),
 traces AS (SELECT ` + activeColumns + `,max(PolicyDigest) AS PolicyDigest,list_distinct(flatten(list(Gaps))) AS Gaps,
 max(Sequence)` + ir + ` AS Sequence,max_by(PayloadJSON,Sequence)` + ir + ` AS Payload,
-max_by(OmissionReasons,Sequence)` + ir + ` AS OmissionReasons FROM events GROUP BY ` + activeColumns + `),
+max_by(OmissionReasons,Sequence)` + ir + ` AS OmissionReasons,
+count(*) FILTER (WHERE Phase='agent' AND Component='agent') AS Synthesized,
+count(*) FILTER (WHERE Phase='agent' AND Type IN (` + toolTypes + `)) AS Tools FROM events GROUP BY ` + activeColumns + `),
 bound AS (SELECT a.Namespace,a.Repository,a.RunId,a.RunAttempt,a.TraceId,a.ProjectionId,t.PolicyDigest,coalesce(t.Gaps,[]) AS Gaps,
-t.Sequence,coalesce(t.OmissionReasons,[]) AS OmissionReasons,json_extract(t.Payload,'$.` + item.Path + `') AS Collection
+t.Sequence,coalesce(t.OmissionReasons,[]) AS OmissionReasons,json_extract(t.Payload,'$.` + item.Path + `') AS Collection,
+` + largestCollectionSQL() + ` AS LargestCollection
 FROM active a LEFT JOIN traces t USING(` + activeColumns + `)),
 sized AS (SELECT *,CASE WHEN json_type(Collection)='ARRAY' THEN CAST(json_array_length(Collection) AS BIGINT) END AS Items FROM bound),
 items AS (SELECT *,unnest(CASE WHEN Items>0 THEN range(Items) ELSE [NULL::BIGINT] END) AS Ordinal FROM sized),
-elements AS (SELECT *,CASE WHEN Ordinal IS NOT NULL THEN json_extract(Collection,'$['||Ordinal||']') END AS Element FROM items)
+elements AS (SELECT *,CASE WHEN Ordinal IS NOT NULL THEN json_extract(Collection,'$['||Ordinal||']') END AS Element FROM items),
+nested AS (` + nested + `)
 SELECT Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId,PolicyDigest,Sequence,Ordinal,Items,
 coalesce(CASE json_type(Element) WHEN 'OBJECT' THEN 'object' WHEN 'ARRAY' THEN 'array' WHEN 'VARCHAR' THEN 'string'
 WHEN 'BOOLEAN' THEN 'boolean' WHEN 'NULL' THEN 'null' WHEN 'BIGINT' THEN 'number' WHEN 'UBIGINT' THEN 'number'
-WHEN 'DOUBLE' THEN 'number' END,'') AS Kind,
-` + field + ` AS ` + identifier(item.Element.Name) + `,Gaps,OmissionReasons,
-list_concat(CASE WHEN Collection IS NOT NULL THEN ['Items'] ELSE [] END,
-CASE WHEN ` + present + ` THEN [` + literal(item.Element.Name) + `] ELSE [] END) AS PresentFields,
-list_concat(CASE WHEN json_type(Collection)='NULL' THEN ['Items'] ELSE [] END,
-CASE WHEN json_type(` + elementKey + `)='NULL' THEN [` + literal(item.Element.Name) + `] ELSE [] END) AS NullFields,
-list_concat(CASE WHEN Collection IS NOT NULL AND json_type(Collection) NOT IN ('NULL','ARRAY') THEN ['Items'] ELSE [] END,
-CASE WHEN json_type(Element)='OBJECT' AND ` + elementKey + ` IS NOT NULL AND json_type(` + elementKey + `)<>'NULL' AND ` + invalid + `
-THEN [` + literal(item.Element.Name) + `] ELSE [] END) AS InvalidFields
-FROM elements`, nil
+WHEN 'DOUBLE' THEN 'number' END,'') AS Kind,LargestCollection,` + position + `
+` + strings.Join(fields, ",") + `,Gaps,OmissionReasons,
+list_concat(` + strings.Join(presents, ",") + `) AS PresentFields,
+list_concat(` + strings.Join(nulls, ",") + `) AS NullFields,
+list_concat(` + strings.Join(invalids, ",") + `) AS InvalidFields
+FROM nested`, nil
 }
 
 func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (AnalyticalResult, error) {
@@ -452,7 +648,7 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	if err != nil {
 		return AnalyticalResult{}, err
 	}
-	if err := plan.Require(LocalAnalyticalCapabilities(10000)); err != nil {
+	if err := plan.Require(AnalyticalCapabilities(10000)); err != nil {
 		return AnalyticalResult{}, err
 	}
 	if err := s.check(); err != nil {
@@ -462,24 +658,28 @@ func (s *Snapshot) Analytical(ctx context.Context, definition Definition) (Analy
 	//nolint:contextcheck // Independent snapshot revocation must cancel verification and the caller-scoped subprocess.
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer func() { stop(); cancel() }()
-	var source string
-	base := plan.Base()
-	if item, ok := lookupItemSource(base.Source); ok {
-		source, err = s.itemSQL(combined, item)
-	} else {
-		source, err = s.sourceSQL(combined, base.Inputs)
-	}
-	if err != nil {
-		if accessErr := s.check(); accessErr != nil {
-			return AnalyticalResult{}, accessErr
+	names, inputs := plan.SourceInputs()
+	sources := make([]string, 0, len(names))
+	for _, name := range names {
+		var source string
+		if item, ok := lookupItemSource(name); ok {
+			source, err = s.itemSQL(combined, item)
+		} else {
+			source, err = s.sourceSQL(combined, inputs[name])
 		}
-		return AnalyticalResult{}, err
+		if err != nil {
+			if accessErr := s.check(); accessErr != nil {
+				return AnalyticalResult{}, accessErr
+			}
+			return AnalyticalResult{}, err
+		}
+		sources = append(sources, source)
 	}
 	var result []struct {
 		Rows           []map[string]any `json:"rows"`
 		TracesWithGaps int              `json:"tracesWithGaps"`
 	}
-	if err := s.archive.converter.query(combined, plan.sql(source), &result); err != nil {
+	if err := s.archive.converter.query(combined, plan.sql(names, sources), &result); err != nil {
 		if accessErr := s.check(); accessErr != nil {
 			return AnalyticalResult{}, accessErr
 		}

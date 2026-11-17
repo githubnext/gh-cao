@@ -83,9 +83,9 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 
 func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
-	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow", "add-repository", "modernization-status", "modernization-preview", "modernization-execute":
+	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow", "add-repository", "setup-cao", "modernization-status", "modernization-preview", "modernization-execute":
 	default:
-		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared repository maintenance and enrollment actions are available.")
+		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared setup, repository maintenance, and enrollment actions are available.")
 	}
 	invocation, err := a.hostedCLI.catalog.Resolve(request, a.hostedCLI.context)
 	if err != nil {
@@ -101,6 +101,13 @@ func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request
 	if strings.HasPrefix(request.ID, "modernization-") != (plan.Kind == hostedcli.KindModernization) ||
 		plan.Kind == hostedcli.KindModernization && request.ID != "modernization-"+plan.Args[1] {
 		return invocation, cliFailure(http.StatusForbidden, "Modernization requires its exact declared domain action.")
+	}
+	if plan.Kind == hostedcli.KindCaoSetup {
+		if request.ID != "setup-cao" {
+			return invocation, cliFailure(http.StatusForbidden, "Only the declared setup action may prepare local CAO policy.")
+		}
+		invocation.Repository = plan.Repository
+		return invocation, nil
 	}
 	if plan.Kind == hostedcli.KindCaoReposAdd {
 		if request.ID != "add-repository" {

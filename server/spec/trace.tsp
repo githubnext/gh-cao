@@ -169,7 +169,7 @@ namespace Archive {
     RunAttempt: int64;
     TraceId: string;
     ProjectionId: string;
-    ContractVersion: 2;
+    ContractVersion: 3;
     /** Shared approval/preservation transformation, independently versioned. */
     EvidenceVersion: string;
     Sequence: int64;
@@ -242,5 +242,10 @@ namespace Archive {
     @evidence("data.actions", "array") Actions: unknown;
     @evidence("data.states", "array") States: unknown;
     @evidence("data.events", "array") Events: unknown;
+    @evidence("data.toolCalls", "array") ToolCalls: unknown;
+    @evidence("data.observations", "array") Observations: unknown;
+    @evidence("data.resources", "array") Resources: unknown;
+    @evidence("data.provenanceEdges", "array") ProvenanceEdges: unknown;
+    @evidence("data.reference", "object") Reference: unknown;
   }
 }

@@ -7,6 +7,8 @@ import (
 
 func TestLocalMaintenanceExactTargetsAndHostedSeparation(t *testing.T) {
 	for _, command := range []string{
+		"gh cao setup --repository octo/service",
+		"gh cao setup --repository 'octo/service-*'",
 		"gh aw update review.md --repo octo/service --create-pull-request",
 		"gh aw update review.v2.md --repo octo/service --create-pull-request",
 		"gh aw update .github/workflows/review.md --repo octo/service --create-pull-request",
@@ -17,8 +19,11 @@ func TestLocalMaintenanceExactTargetsAndHostedSeparation(t *testing.T) {
 		"gh aw disable --repo octo/service",
 	} {
 		plan, err := PlanLocalMaintenance(command)
-		if err != nil || plan.Repository != "octo/service" {
+		if err != nil || (!strings.Contains(command, "*") && plan.Repository != "octo/service") {
 			t.Fatalf("exact local maintenance rejected: %s: %v", command, err)
+		}
+		if strings.HasPrefix(command, "gh cao setup") && plan.Kind != KindCaoSetup {
+			t.Fatalf("CAO setup lost its local command kind: %+v", plan)
 		}
 		if strings.Contains(command, "disable review.md") || strings.Contains(command, "disable .github") {
 			if strings.Join(plan.Args, " ") != "disable review --repo octo/service" {
@@ -44,6 +49,7 @@ func TestLocalMaintenanceExactTargetsAndHostedSeparation(t *testing.T) {
 		"gh aw update review.md --repo octo/service",
 		"gh aw upgrade review.md --repo octo/service --create-pull-request",
 		"gh aw update https://evil.example/package --repo octo/service --create-pull-request",
+		"gh cao setup", "gh cao setup --repo octo/service", "gh cao setup --repository octo/../other",
 	} {
 		if _, err := PlanLocalMaintenance(command); err == nil {
 			t.Fatalf("unsafe local maintenance accepted: %s", command)

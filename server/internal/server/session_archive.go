@@ -88,7 +88,7 @@ func (archive *hostedSessionArchive) QueryKinds() []string {
 }
 
 func (*localSessionArchive) AnalyticalCapabilities() sessionarchive.Capabilities {
-	return sessionarchive.LocalAnalyticalCapabilities(10000)
+	return sessionarchive.AnalyticalCapabilities(10000)
 }
 
 func (*hostedSessionArchive) AnalyticalCapabilities() sessionarchive.Capabilities {
@@ -734,6 +734,9 @@ func (a *App) sessionArchiveStatus(response http.ResponseWriter, request *http.R
 	writeJSON(response, http.StatusOK, status)
 }
 
+// sessionArchiveRequestBytes bounds one HTTP request body or MCP argument object.
+const sessionArchiveRequestBytes = sessionarchive.MaxRequestBytes
+
 func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Request) {
 	if a.sessionArchive == nil {
 		writeError(request.Context(), response, http.StatusServiceUnavailable, "session archive is disabled")
@@ -743,7 +746,7 @@ func (a *App) sessionArchiveQuery(response http.ResponseWriter, request *http.Re
 		writeError(request.Context(), response, http.StatusForbidden, "separately approved full-trace-read access is required")
 		return
 	}
-	request.Body = http.MaxBytesReader(response, request.Body, 4096)
+	request.Body = http.MaxBytesReader(response, request.Body, sessionArchiveRequestBytes)
 	decoder := json.NewDecoder(request.Body)
 	decoder.DisallowUnknownFields()
 	var input sessionArchiveQuery

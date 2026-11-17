@@ -588,8 +588,8 @@
       "kind": "built-in",
       "intent": "Determine which centrally managed campaign first needs delivery or adoption investigation.",
       "subject": "Campaign inventory, retained execution, and safe-output lifecycle evidence in the selected horizon.",
-      "objective": "Choose campaigns whose first observed blocker is missing delivery evidence or delivered work without an accepted event.",
-      "acceptance": "Keep campaign identity, delivery and adoption clocks, dispatches, and repository coverage explicit. Accepted and delivered counts are separate populations, not a conversion rate or operational Value; partial evidence is not proof of zero activity.",
+      "objective": "Choose campaigns whose first observed blocker is delivery, adoption or insufficient native Value measurement.",
+      "acceptance": "Keep delivery, adoption and native Value as separate evidence layers. Lifecycle counts are not Value or a conversion rate; movement is repository-deduplicated and partial evidence is not proof of zero activity.",
       "page": "campaigns",
       "title": "Campaigns",
       "icon": "goal",
@@ -759,7 +759,7 @@
           {
             "id": "campaigns-inventory",
             "title": "Campaigns",
-            "description": "Every retained campaign with separate delivery-clock and adoption-clock counts. Pending, rejected/lifecycle, and unknown/not-applicable diagnose the delivery-horizon cohort; zero means no matching retained event, and partial source metadata remains a coverage limitation.",
+            "description": "Every retained campaign with separate delivery, adoption and native Value diagnosis. Movement counts deduplicate repositories and never combine native metrics; zero means no matching retained evidence under the composed metadata.",
             "data": {
               "source": "campaign-inventory",
               "partial-source": "campaign-inventory-preview"
@@ -837,6 +837,48 @@
                   "type": "nominal",
                   "title": "First evidence blocker",
                   "display": "status"
+                },
+                {
+                  "field": "evidence-progression",
+                  "type": "nominal",
+                  "title": "Evidence progression",
+                  "display": "status"
+                },
+                {
+                  "field": "value-diagnosis",
+                  "type": "nominal",
+                  "title": "Native Value",
+                  "display": "status"
+                },
+                {
+                  "field": "value-coverage",
+                  "type": "nominal",
+                  "title": "Measured repository coverage"
+                },
+                {
+                  "field": "value-improving-repositories",
+                  "type": "quantitative",
+                  "title": "Improving"
+                },
+                {
+                  "field": "value-worsening-repositories",
+                  "type": "quantitative",
+                  "title": "Worsening"
+                },
+                {
+                  "field": "value-unchanged-repositories",
+                  "type": "quantitative",
+                  "title": "Unchanged"
+                },
+                {
+                  "field": "value-mixed-repositories",
+                  "type": "quantitative",
+                  "title": "Mixed"
+                },
+                {
+                  "field": "value-insufficient-repositories",
+                  "type": "quantitative",
+                  "title": "Insufficient"
                 },
                 {
                   "field": "aic",

@@ -14,6 +14,8 @@ const (
 	KindGhAwUpgrade Kind = "gh-aw-upgrade"
 	KindGhAwUpdate  Kind = "gh-aw-update"
 	KindWorkflowRun Kind = "workflow-run"
+	// KindCaoSetup prepares local policy and public monitoring scope through the native CLI.
+	KindCaoSetup Kind = "cao-setup"
 	// KindCaoReposAdd stages local policy enrollment through the native CLI.
 	KindCaoReposAdd Kind = "cao-repos-add"
 )

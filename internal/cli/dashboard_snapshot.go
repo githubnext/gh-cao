@@ -106,7 +106,11 @@ func initializeDashboardSnapshot(ctx context.Context, cache string, repositories
 	}
 	metadata := dashboardObservationMetadata(repositories, options, time.Now().UTC(), nil)
 	metadata["coverage"] = "Initial collection pending; upstream evidence is not yet available."
-	return publishDashboardSnapshot(ctx, cache, map[string][]map[string]any{"transactions": {metadata}})
+	transactions := []map[string]any{metadata}
+	if configuration, _ := ctx.Value(dashboardConfigurationKey{}).(*dashboardConfiguration); configuration != nil {
+		transactions = append(transactions, dashboardConfigurationTransaction(configuration.current.Load(), time.Now()))
+	}
+	return publishDashboardSnapshot(ctx, cache, map[string][]map[string]any{"transactions": transactions})
 }
 
 func publishDashboardSnapshot(ctx context.Context, cache string, batch map[string][]map[string]any) error {
@@ -141,7 +145,7 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 	for store, rows := range batch {
 		if store == "transactions" {
 			rows = slices.DeleteFunc(slices.Clone(rows), func(row map[string]any) bool {
-				return row["id"] != "local-dashboard-ingestion"
+				return row["id"] != "local-dashboard-ingestion" && row["id"] != "local-dashboard-configuration"
 			})
 		}
 		published[store] = rows

@@ -68,6 +68,8 @@ func TestLocalIngestionReceiptsRejectForeignTransactions(t *testing.T) {
 	for _, row := range []model.Row{
 		{"id": "unrelated", "kind": "local-dashboard-ingestion"},
 		{"id": "local-dashboard-ingestion", "kind": "unrelated"},
+		{"id": "unrelated", "kind": "local-dashboard-configuration"},
+		{"id": "local-dashboard-configuration", "kind": "unrelated"},
 	} {
 		t.Run(row["id"].(string)+"/"+row["kind"].(string), func(t *testing.T) {
 			ctx, store := ingestTestStore(t)
@@ -95,10 +97,30 @@ func TestLocalIngestionReceiptsRejectForeignTransactions(t *testing.T) {
 			_, err = Run(ctx, store, directory, Options{
 				DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json",
 			})
-			if err == nil || !strings.Contains(err.Error(), "only the local ingestion receipt") {
+			if err == nil || !strings.Contains(err.Error(), "only local dashboard receipts") {
 				t.Fatalf("foreign bookkeeping transaction was not rejected: %v", err)
 			}
 		})
+	}
+}
+
+func TestLocalDashboardTransactionsAreBounded(t *testing.T) {
+	for _, row := range []model.Row{
+		{"id": "local-dashboard-ingestion", "kind": "local-dashboard-ingestion"},
+		{"id": "local-dashboard-configuration", "kind": "local-dashboard-configuration"},
+	} {
+		if !localDashboardTransaction(row) {
+			t.Fatalf("local dashboard transaction was rejected: %+v", row)
+		}
+	}
+	for _, row := range []model.Row{
+		{"id": "other", "kind": "other"},
+		{"id": "local-dashboard-configuration", "kind": "local-dashboard-ingestion"},
+		{"id": 1, "kind": "local-dashboard-configuration"},
+	} {
+		if localDashboardTransaction(row) {
+			t.Fatalf("foreign dashboard transaction was accepted: %+v", row)
+		}
 	}
 }
 

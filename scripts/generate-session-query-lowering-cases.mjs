@@ -1,7 +1,8 @@
 // Generates server/internal/sessionarchive/testdata/lowering/cases.json: inputs
 // and the outcomes the pinned upstream gh-aw graders produce for them. The Go
 // test TestDuckDBLoweringEvidenceIntegration runs the reference SQL lowerings in
-// testdata/lowering/*.sql on DuckDB and requires identical outcomes.
+// testdata/lowering/*.sql on DuckDB and requires identical outcomes, except for
+// declared divergences, which it requires to differ.
 //
 // Usage: node scripts/generate-session-query-lowering-cases.mjs [--source-dir DIR]
 // Without --source-dir the pinned sources are fetched with `gh api`. Either way
@@ -18,7 +19,7 @@ import { verifyPinnedSource } from "./replay-session-archive-graders.mjs";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const testdata = join(root, "server/internal/sessionarchive/testdata");
 const pins = JSON.parse(readFileSync(join(testdata, "grader-source-pins.json"), "utf8"));
-const needed = ["trajectory_graders.cjs", "builtin_graders.json", "grader_session.cjs"];
+const needed = pins.sources.map((source) => source.name);
 
 function loadSources(directory) {
   const sources = {};
@@ -168,6 +169,142 @@ function keywordCases(patterns) {
   }));
 }
 
+const toolGraderIds = ["tool-failure-count", "tool-success-rate", "trajectory-efficiency"];
+
+// Unified session events. Every event is agent-phase unless provenance says otherwise.
+const agent = (type, data, provenance = {}) => ({ type, data, provenance: { phase: "agent", component: "agent", ...provenance } });
+const start = (toolName, extra = {}, provenance) => agent("tool.execution_start", { toolName, ...extra }, provenance);
+const complete = (toolName, extra = {}, provenance) => agent("tool.execution_complete", { toolName, ...extra }, provenance);
+const gateway = (type, data, provenance) => agent(type, { serverName: "github", ...data }, provenance);
+const attempt = (attemptNumber, attemptId, strategy, path = "agent") =>
+  agent("harness.attempt", { layer: "harness", attempt: attemptNumber, attemptId, ...(strategy ? { strategy } : {}) }, { component: "harness", path });
+
+// Hand cases cover each reconciliation rule. `diverges` names the sequential
+// FIFO-pointer behaviour the declarative plan in reconciliation.sql cannot
+// express; the evidence test requires those cases to differ from upstream.
+function reconciliationHandCases() {
+  const ok = { success: true };
+  const s1 = { sessionId: "s1" };
+  return [
+    { id: "empty", events: [] },
+    { id: "id-pairs-out-of-order", events: [start("read", { toolCallId: "1" }), start("edit", { toolCallId: "2" }), complete("edit", { toolCallId: "2", ...ok }), complete("read", { toolCallId: "1", success: false })] },
+    { id: "id-duplicate-start-latest-wins", events: [start("read", { toolCallId: "1" }), start("read", { toolCallId: "1" }), complete("read", { toolCallId: "1", ...ok })] },
+    { id: "id-remerge-last-writer", events: [start("read", { toolCallId: "1" }), complete("read", { toolCallId: "1", isError: true }), complete("read", { toolCallId: "1", isError: false })] },
+    { id: "id-orphan-remerge", events: [complete("read", { toolCallId: "9", status: "error" }), complete("read", { toolCallId: "9", status: "ok" })] },
+    { id: "id-orphan-then-start", events: [complete("read", { toolCallId: "9", ...ok }), start("read", { toolCallId: "9" }), complete("read", { toolCallId: "9", ...ok })] },
+    { id: "fifo-by-name", events: [start("read"), start("read"), complete("read", ok), complete("read", { isError: true })] },
+    { id: "fifo-interleaved-names", events: [start("read"), start("edit"), start("read"), complete("edit", ok), complete("read", ok), complete("read", { error: "boom" })] },
+    { id: "fifo-completion-before-start", events: [complete("read", ok), start("read")] },
+    { id: "fifo-pointer-overshoot", events: [start("read"), complete("read", ok), complete("read", ok), start("read"), complete("read", ok)] },
+    { id: "fifo-unmatched-id-takes-unnamed-start", events: [start("read"), complete("read", { toolCallId: "7", ...ok })] },
+    { id: "fifo-null-error-overrides", events: [start("read"), complete("read", { error: "x" }), complete("read", { toolCallId: "z", error: null })] },
+    { id: "incomplete-start", events: [start("read"), start("edit", { toolCallId: "1" })] },
+    { id: "scopes-session-agent", events: [start("read", s1), start("read", { sessionId: "s2" }), start("read", { ...s1, agentId: "sub" }), complete("read", { sessionId: "s2", ...ok }), complete("read", { ...s1, agentId: "sub", ...ok })] },
+    { id: "scopes-attempt", events: [start("read", {}, { attemptId: "a1" }), complete("read", ok, { attemptId: "a2" }), complete("read", ok, { attemptId: "a1" })] },
+    { id: "non-agent-phase-ignored", events: [start("read", {}, { phase: "detection" }), complete("read", { success: false }, { phase: "detection" }), start("edit"), complete("edit", ok)] },
+    { id: "status-failure", events: [start("read", { toolCallId: "1" }), complete("read", { toolCallId: "1", status: "failure" })] },
+    { id: "gateway-tool-call", events: [gateway("mcp.tool_call", { toolName: "search", toolCallId: "g1", ...ok }), gateway("mcp.tool_call", { toolName: "search", toolCallId: "g2", isError: true })] },
+    { id: "gateway-rpc-request-response", events: [gateway("mcp.rpc.request", { method: "tools/call", toolName: "search", rpcId: 3 }), gateway("mcp.rpc.response", { method: "tools/call", rpcId: 3, error: "denied" })] },
+    { id: "gateway-request-only-incomplete", events: [gateway("mcp.rpc.request", { method: "tools/call", toolName: "search", rpcId: 4 })] },
+    { id: "gateway-unnamed-before-named-skipped", events: [gateway("mcp.rpc.response", { method: "tools/call", rpcId: 5, ...ok }), gateway("mcp.rpc.request", { method: "tools/call", toolName: "search", rpcId: 5 })] },
+    { id: "gateway-other-methods-ignored", events: [gateway("mcp.rpc.request", { method: "tools/list", rpcId: 6, toolName: "x" }), gateway("mcp.rpc.response", { method: "initialize", requestId: "r", toolName: "y" })] },
+    { id: "gateway-no-id-per-event", events: [gateway("mcp.tool_call", { toolName: "search", ...ok }), gateway("mcp.tool_call", { toolName: "search", ...ok })] },
+    { id: "gateway-request-id-string", events: [gateway("mcp.rpc.request", { method: "tools/call", toolName: "fetch", requestId: "r1" }), gateway("mcp.rpc.response", { requestId: "r1", ...ok })] },
+    { id: "gateway-dedup-native", events: [start("search", { toolCallId: "7" }), complete("search", { toolCallId: "7", ...ok }), gateway("mcp.tool_call", { toolName: "search", toolCallId: "7", ...ok }), gateway("mcp.rpc.response", { method: "tools/call", toolName: "search", rpcId: 7, isError: true })] },
+    { id: "gateway-dedup-respects-attempt", events: [start("search", { toolCallId: "7" }, { attemptId: "a1" }), complete("search", { toolCallId: "7", ...ok }, { attemptId: "a1" }), gateway("mcp.tool_call", { toolName: "search", toolCallId: "7", ...ok }, { attemptId: "a2" })] },
+    {
+      id: "resume-collapses-attempt-scopes",
+      events: [
+        attempt(1, "a1"), attempt(2, "a2", "resume"), attempt(3, "a3", "fresh"), attempt(4, "a4", "resume"),
+        start("read", s1, { attemptId: "a1" }), complete("read", { ...s1, ...ok }, { attemptId: "a2" }),
+        start("edit", s1, { attemptId: "a3" }), complete("edit", { ...s1, ...ok }, { attemptId: "a2" }), complete("edit", { ...s1, ...ok }, { attemptId: "a4" }),
+      ],
+    },
+    {
+      id: "resume-leading-resume-is-own-root",
+      events: [attempt(1, "b1", "resume"), attempt(2, "b2", "resume"), start("read", s1, { attemptId: "b1" }), complete("read", { ...s1, ...ok }, { attemptId: "b2" })],
+    },
+    {
+      id: "resume-requires-session-id",
+      events: [attempt(1, "c1"), attempt(2, "c2", "resume"), start("read", {}, { attemptId: "c1" }), complete("read", ok, { attemptId: "c2" })],
+    },
+    {
+      id: "resume-sorted-by-attempt-per-invocation",
+      events: [
+        attempt(2, "d2", "resume"), attempt(1, "d1"), attempt(1, "e1", undefined, "other"), attempt(2, "e2", "resume", "other"),
+        start("read", s1, { attemptId: "d2" }), complete("read", { ...s1, ...ok }, { attemptId: "d1" }),
+        start("edit", s1, { attemptId: "e1" }), complete("edit", { ...s1, ...ok }, { attemptId: "d1" }),
+      ],
+    },
+    {
+      id: "resume-duplicate-attempt-event",
+      events: [attempt(1, "h1"), attempt(2, "h2", "resume"), attempt(3, "h1", "resume"), attempt(4, "h3", "resume"),
+        start("read", s1, { attemptId: "h3" }), complete("read", { ...s1, ...ok }, { attemptId: "h1" }), complete("read", { ...s1, ...ok }, { attemptId: "h2" })],
+    },
+    {
+      id: "resume-dedups-gateway",
+      events: [attempt(1, "f1"), attempt(2, "f2", "resume"), start("search", { ...s1, toolCallId: "8" }, { attemptId: "f1" }),
+        complete("search", { ...s1, toolCallId: "8", ...ok }, { attemptId: "f1" }), gateway("mcp.tool_call", { ...s1, toolName: "search", toolCallId: "8", ...ok }, { attemptId: "f2" })],
+    },
+    // The pointer skips calls already completed by ID and ID-mismatched calls,
+    // then never revisits them: the pairing depends on sequential pointer state.
+    { id: "fifo-skips-id-completed", diverges: "fifo-pointer-skip", events: [start("read", { toolCallId: "1" }), start("read"), complete("read", { toolCallId: "1", ...ok }), complete("read", ok)] },
+    { id: "fifo-skips-mismatched-id", diverges: "fifo-pointer-skip", events: [start("read", { toolCallId: "1" }), start("read"), complete("read", { toolCallId: "9", ...ok }), complete("read", { toolCallId: "1", ...ok })] },
+    { id: "fifo-skip-strands-start", diverges: "fifo-pointer-skip", events: [start("read", { toolCallId: "1" }), start("read"), start("read"), complete("read", { toolCallId: "9", ...ok }), complete("read", ok), complete("read", { toolCallId: "1", ...ok })] },
+  ];
+}
+
+// Random traces stay within the declarative plan: per name, completions either
+// carry an earlier start's ID or no ID at all, so the FIFO pointer never skips.
+function reconciliationRandomCases() {
+  const random = mulberry32(214);
+  const pick = (items) => items[Math.floor(random() * items.length)];
+  const outcomes = [{ success: true }, { success: false }, { isError: true }, { isError: false }, { status: "error" }, { status: "ok" }, { error: "x" }, {}];
+  const cases = [];
+  for (let k = 0; k < 60; k += 1) {
+    const events = [];
+    const scopes = [{}, { sessionId: "s1" }, { sessionId: "s1", agentId: "sub" }].slice(0, 1 + Math.floor(random() * 3));
+    const names = ["read", "edit", "bash", "search"].slice(0, 1 + Math.floor(random() * 4));
+    const idNames = new Set(names.filter(() => random() < 0.5));
+    const started = [];
+    let ids = 0;
+    for (let n = Math.floor(random() * 30); n > 0; n -= 1) {
+      const scope = pick(scopes);
+      const name = pick(names);
+      const roll = random();
+      if (roll < 0.45) {
+        const toolCallId = idNames.has(name) ? `t${ids++}` : undefined;
+        started.push({ scope, name, toolCallId });
+        events.push(start(name, { ...scope, ...(toolCallId ? { toolCallId } : {}) }));
+      } else if (roll < 0.85) {
+        const candidates = started.filter((call) => call.name === name && call.scope === scope);
+        const target = idNames.has(name) ? pick(candidates.length ? candidates : [{}]) : {};
+        if (idNames.has(name) && !target.toolCallId) {
+          if (candidates.length === 0 && random() < 0.5) events.push(complete(name, { ...scope, toolCallId: `o${ids++}`, ...pick(outcomes) }));
+          continue;
+        }
+        events.push(complete(name, { ...scope, ...(target.toolCallId ? { toolCallId: target.toolCallId } : {}), ...pick(outcomes) }));
+      } else {
+        const id = random() < 0.3 && started.some((call) => call.toolCallId) ? pick(started.filter((call) => call.toolCallId)).toolCallId : `g${ids++}`;
+        const type = pick(["mcp.tool_call", "mcp.rpc.request", "mcp.rpc.response"]);
+        const named = random() < 0.7 ? { toolName: pick(names) } : {};
+        const rpc = type === "mcp.tool_call" ? { toolCallId: id } : { method: "tools/call", rpcId: id };
+        events.push(gateway(type, { ...named, ...rpc, ...(type === "mcp.rpc.request" ? {} : pick(outcomes)) }));
+      }
+    }
+    cases.push({ id: `random-${String(k).padStart(2, "0")}`, events });
+  }
+  return cases;
+}
+
+function reconciliationCases(builtin) {
+  return [...reconciliationHandCases(), ...reconciliationRandomCases()].map(({ diverges, ...input }) => {
+    const graded = Object.fromEntries(toolGraderIds.map((id) => [id, builtin[id](input.events, {})]));
+    for (const value of Object.values(graded)) assert.ok(Number.isFinite(value), `${input.id}: upstream tool grader is not finite`);
+    return { ...input, ...(diverges ? { diverges } : {}), expected: graded };
+  });
+}
+
 function render(fixture) {
   const lines = (items) => items.map((item) => `    ${JSON.stringify(item)}`).join(",\n");
   return `{
@@ -180,6 +317,9 @@ ${lines(fixture.recurrence)}
   ],
   "keywords": [
 ${lines(fixture.keywords)}
+  ],
+  "reconciliation": [
+${lines(fixture.reconciliation)}
   ]
 }
 `;
@@ -191,7 +331,9 @@ mkdirSync(join(root, ".tmp"), { recursive: true });
 const temporary = mkdtempSync(join(root, ".tmp", "lowering-cases-"));
 try {
   for (const [name, content] of Object.entries(sources)) writeFileSync(join(temporary, name), content, { mode: 0o600 });
-  const graders = createRequire(import.meta.url)(join(temporary, "trajectory_graders.cjs")).TRAJECTORY_GRADERS;
+  const load = createRequire(import.meta.url);
+  const graders = load(join(temporary, "trajectory_graders.cjs")).TRAJECTORY_GRADERS;
+  const builtin = load(join(temporary, "trace_graders.cjs")).BUILTIN_GRADERS;
   const patterns = {
     retries: regexLiteral(String(sources["grader_session.cjs"]), /\/(\\bretry\(\?:ing\)\?\\b)\/([a-z]*)\.test\(/, "retry"),
     guard: regexLiteral(String(sources["trajectory_graders.cjs"]), /const guardPattern = \/(.+)\/([a-z]*);/, "guard"),
@@ -202,6 +344,7 @@ try {
     upstreamPatterns: Object.fromEntries(Object.entries(patterns).map(([key, value]) => [key, String(value)])),
     recurrence: recurrenceCases(graders),
     keywords: keywordCases(patterns),
+    reconciliation: reconciliationCases(builtin),
   };
   mkdirSync(join(testdata, "lowering"), { recursive: true });
   writeFileSync(join(testdata, "lowering/cases.json"), render(fixture));

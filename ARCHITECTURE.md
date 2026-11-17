@@ -525,8 +525,8 @@ further narrows those visits. Multiple enabled destinations intersect admitted
 metadata-cache membership and fan out capture/withdrawal without another
 collector. Failed admission cannot commit an acquisition-cache skip.
 
-The fresh archive event contract is version 2, independently of native ADX
-trace version 1. TypeSpec owns original scalar bindings, nullable bool/real/
+The fresh archive event contract is version 3, independently of native ADX
+trace version 1; version 2 data is unsupported. TypeSpec owns original scalar bindings, nullable bool/real/
 integer columns, physical string values and presence/null/invalid metadata;
 approved structured evidence remains on its original event in `PayloadJSON`.
 Projection occurs after closed approval/redaction and binds the preservation
@@ -539,7 +539,8 @@ reconciliation, guard labels or inferred state identities are stored.
 
 There are no old-schema readers, legacy adapters or in-place migrations.
 Fresh schema/destination provisioning requires new reviewed acceptance because
-`EventSchema()` binds both legacy and native acceptance. Old contents,
+the archive contract version and `EventSchema()` bind both legacy and native
+acceptance. Old contents,
 registrations, withdrawal obligations and source-epoch fences are not erased
 or bypassed by that contract change; storage retirement is separately scoped.
 
@@ -580,7 +581,7 @@ exporters. Native collector selection remains fail-closed pending real PG
 enrollment/read-lock/outbox composition, Azure acceptance, and the complete
 integration gates. Native ADX trace tables remain an independently selected
 version 1 physical contract; their approved-evidence identity now binds the
-`cao-approved-events-v2` transform and omission metadata. The transform also
+`cao-approved-events-v3` transform and omission metadata. The transform also
 binds the native spool fingerprint: incompatible existing ledgers fail closed,
 rather than being silently skipped or automatically migrated.
 
@@ -602,7 +603,9 @@ acceptance independently binds the additional analytical plan version, without
 changing capture acceptance or native privacy-ledger destination identity.
 The `0.2.0` analytical profile adds filtered numeric reducers, original-sequence
 first selection, generated field-state predicates and bounded post-aggregate
-scalar expressions. Four separate reviewed usage queries preserve per-trace
+scalar expressions, plus row-level compute, trace-bound
+`previous`/`row-number` windows and structured-family state predicates, which
+both backends advertise after real Kusto accepted their lowering. Four separate reviewed usage queries preserve per-trace
 proxy-presence precedence, completeness, duration fallback, and distinct rebuild
 versus context overflow behavior. They produce qualified recomputed values,
 not persisted scores, recorded grader observations or acquisition proof.
@@ -1642,7 +1645,8 @@ and removal remain authenticated and never hydrate notification payloads.
 | `.github/workflows/cao.json` | Sole persistent, non-secret rollout policy for this source-managed control plane. |
 | `.github/aw/` | gh-aw instruction, package, and generated campaign-ownership metadata only; CAO executable resources stay at their canonical catalog source paths. |
 | `.github/cao/instructions.md` | CAO-specific operator and authoring guidance; it does not grant rollout authority or execution capabilities. |
-| `skills/` | Portable Agent Plugin skills exposed by this repository. |
+| `.github/cao/instructions/` | Task guides (setup, operations, gh cao, gh aw, gh, dashboard analysis, diagnostics) loaded on demand by the `central-agentic-ops` skill; guidance only, never authority. |
+| `skills/` | Portable Agent Plugin skills exposed by this repository: `agentic-workflows` and the `central-agentic-ops` router. `skills/central-agentic-ops/` is its only copy in the catalog (no symlinks or repository-local routers); gh-aw installs it into control repositories at `.github/skills/central-agentic-ops/`. |
 | `specs/` | Normative control, Activity, dashboard, and data contracts. |
 | `docs/` | Explanatory and operator-facing documentation site. |
 | `adr/` | Durable architectural decision history; normative contracts remain in `specs/` and specification-style documentation. |
@@ -1846,8 +1850,8 @@ repository-only dashboard authoring skills. Materialization preserves
 pre-existing plugin resources outside its owned runtime destinations. The
 installer adds the repository-root `aw.yml` package. That manifest explicitly
 composes only the Activity, dashboard, and validation workflows, seven shared
-control-plane resources, seven portable control-repository skills (including
-the Agentic Workflows router), one Agentic Workflows agent, and the gh-aw
+control-plane resources, two portable control-repository skills (the Agentic
+Workflows router and the `central-agentic-ops` task router), one Agentic Workflows agent, and the gh-aw
 project settings. The portable router is a thin adapter to the current
 canonical upstream Agentic Workflows skill on `main`, rather than a copied
 routing table, and delegates deterministic operations to `gh aw`, `cao`, and

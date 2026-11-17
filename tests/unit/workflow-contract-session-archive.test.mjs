@@ -97,13 +97,17 @@ test("Parquet CI requires real DuckDB, independent local capture, and the millio
   assert.equal(results.with.name, "session-archive-conformance");
 });
 
-test("real Kusto archive CI keeps explicit default-false EULA acceptance separate", () => {
-  const archive = parse(workflow("session-archive.yml"));
-  const acceptance = archive.on.workflow_dispatch.inputs.accept_kusto_emulator_eula;
-  assert.equal(acceptance.type, "boolean");
-  assert.equal(acceptance.default, false);
+test("real Kusto archive CI runs on every archive trigger on a compatible x64 runner", () => {
+  const source = workflow("session-archive.yml");
+  const archive = parse(source);
+  assert.equal(archive.on.workflow_dispatch?.inputs?.accept_kusto_emulator_eula, undefined);
+  assert.match(source, /accepted https:\/\/aka\.ms\/adx\.emulator\.license/);
   const job = archive.jobs["session-archive-kusto"];
-  assert.equal(job.if, "github.event_name == 'workflow_dispatch' && inputs.accept_kusto_emulator_eula");
+  assert.equal(job.if, undefined);
+  assert.equal(job["runs-on"], "ubuntu-latest");
+  const preflight = job.steps[0];
+  assert.equal(preflight.name, "Verify the runner can host the Kusto emulator");
+  for (const requirement of ["x86_64", "sse4_2", "avx2"]) assert.match(preflight.run, new RegExp(requirement));
   const run = job.steps.find(step => step.name === "Required functional membership conformance against the official engine");
   assert.deepEqual(run.env, { ACCEPT_EULA: "Y", GH_TOKEN: "${{ github.token }}" });
   assert.match(run.run, /scripts\/test-kusto-emulator\.sh/);

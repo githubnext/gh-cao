@@ -5,6 +5,7 @@ import { renderFactoryElement } from './factory-elements.js';
 import { renderFactoryRhythm } from './factory-rhythm.js';
 import { renderDashboardIngestionStatus } from './refresh-error.js';
 import { createDebug } from '../debug.js';
+import { factoryOnboardingState, factoryOnboardingSummary } from './factory-onboarding.js';
 
 /** @typedef {{ rows: () => Record<string, unknown>[], pending: () => boolean, unavailable: () => boolean }} SourceBinding */
 /** @typedef {Record<string, SourceBinding>} SourceBindings */
@@ -28,11 +29,13 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
   const heading = h('h2', { id: 'agent-factory-heading' });
   const summary = h('p');
   const firstLoadStatus = () => showFirstLoad ? browserFirstLoad.get().status : 'inactive';
+  const onboardingSource = roleNames.onboarding ? sources[roleNames.onboarding] : undefined;
 
   render(heading, () => {
     const presentation = sources[roleNames.presentation];
+    const onboarding = factoryOnboardingState(onboardingSource);
     const initialStatus = firstLoadStatus();
-    const pending = initialStatus === 'inactive' && presentation.pending();
+    const pending = initialStatus === 'inactive' && (presentation.pending() || onboarding.pending);
     const unavailable = presentation.unavailable();
     const candidate = presentation.rows()[0]?.heading;
     const hasHeading = !pending && !unavailable && typeof candidate === 'string' && Boolean(candidate);
@@ -46,6 +49,8 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
       ? 'Your dashboard import is incomplete.'
       : pending
       ? ''
+      : onboarding.show
+      ? 'Welcome to CAO!'
       : hasHeading
       ? candidate
       : 'Your factory status is unavailable.';
@@ -53,13 +58,16 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
 
   render(summary, () => {
     const presentation = sources[roleNames.presentation];
+    const onboarding = factoryOnboardingState(onboardingSource);
     const initialStatus = firstLoadStatus();
-    const pending = presentation.pending();
+    const pending = presentation.pending() || onboarding.pending;
     const candidate = presentation.rows()[0]?.summary;
     const text = initialStatus === 'loading'
       ? 'We are preparing the first activity snapshot in this browser. Factory status will appear when the import is complete.'
       : initialStatus === 'failed'
       ? 'Factory status is not available yet.'
+      : onboarding.show
+      ? factoryOnboardingSummary(onboarding.currentStep)
       : typeof candidate === 'string' ? candidate : '';
     summary.hidden = initialStatus === 'inactive' && (pending || !text);
     if (!pending) debugFactoryHeader({ event: 'summary-settled', hasSummary: Boolean(text) });
@@ -76,8 +84,10 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
   );
   effect(() => {
     const initialStatus = firstLoadStatus();
-    rhythm.hidden = initialStatus !== 'inactive';
+    const onboarding = factoryOnboardingState(onboardingSource);
+    rhythm.hidden = initialStatus !== 'inactive' || onboarding.pending || onboarding.show;
     header.classList.toggle('factory-intro-importing', initialStatus !== 'inactive');
+    header.classList.toggle('factory-intro-onboarding', initialStatus === 'inactive' && onboarding.show);
   }, { signal: scope.signal });
   return header;
 }
@@ -89,6 +99,7 @@ export function renderFactoryHeader(sources, scope, roleNames, showFirstLoad = f
  * @type {Record<string, string>}
  */
 export const HEADER_DEFAULT_SOURCES = {
+  onboarding: 'overview-onboarding-state',
   presentation: 'overview-header-presentation',
   rhythm: 'overview-rhythm'
 };
@@ -101,7 +112,11 @@ export function renderFactoryHeaderElement(context) {
   return renderFactoryElement(
     context,
     HEADER_DEFAULT_SOURCES,
-    (roleNames) => Object.values(roleNames),
+    (roleNames) => [
+      ...(context.sourceNames.includes(roleNames.onboarding) ? [roleNames.onboarding] : []),
+      roleNames.presentation,
+      roleNames.rhythm
+    ],
     (sources, scope, roleNames) => renderFactoryHeader(
       sources, scope, roleNames, context.elementConfig?.['browser-first-load'] === true,
       context.elementConfig?.['data-status'] === true

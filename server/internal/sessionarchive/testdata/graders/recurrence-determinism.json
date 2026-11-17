@@ -1,0 +1,525 @@
+{
+  "name": "recurrence-determinism",
+  "subject": "Determinism.",
+  "queries": [
+    {
+      "name": "ev",
+      "subject": "Events.",
+      "from": "archive-ir-events",
+      "compute": [
+        {
+          "as": "q",
+          "function": "equals",
+          "args": [
+            {
+              "field": "Index"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest"
+        ],
+        "values": [
+          {
+            "field": "Items",
+            "as": "w",
+            "reducer": "max"
+          },
+          {
+            "field": "q",
+            "as": "j",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "q",
+                  "equals": true
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "w1",
+      "subject": "Visits.",
+      "from": "archive-states",
+      "compute": [
+        {
+          "as": "o",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "FirstEventIndex"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        },
+        {
+          "as": "z",
+          "function": "equals",
+          "args": [
+            {
+              "field": "Id"
+            },
+            {
+              "value": ""
+            }
+          ]
+        }
+      ],
+      "window": [
+        {
+          "as": "p1",
+          "operation": "previous",
+          "field": "Id",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "z"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "w2",
+      "subject": "Pairs.",
+      "from": "w1",
+      "filter": {
+        "predicates": [
+          {
+            "field": "z",
+            "equals": false
+          }
+        ]
+      },
+      "window": [
+        {
+          "as": "p2",
+          "operation": "previous",
+          "field": "p1",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        },
+        {
+          "as": "r1",
+          "operation": "row-number",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "Id"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        },
+        {
+          "as": "r2",
+          "operation": "row-number",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "p1",
+            "Id"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "w3",
+      "subject": "Triples.",
+      "from": "w2",
+      "window": [
+        {
+          "as": "r3",
+          "operation": "row-number",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "p2",
+            "p1",
+            "Id"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "from": "archive-states",
+  "joins": [
+    {
+      "source": "ev",
+      "fields": [
+        {
+          "field": "w"
+        },
+        {
+          "field": "j"
+        }
+      ]
+    },
+    {
+      "source": "w3",
+      "type": "left",
+      "on": [
+        {
+          "left": "Ordinal",
+          "right": "Ordinal"
+        }
+      ],
+      "fields": [
+        {
+          "field": "r1"
+        },
+        {
+          "field": "r2"
+        },
+        {
+          "field": "r3"
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "by": [
+      "Namespace",
+      "Repository",
+      "RunId",
+      "RunAttempt",
+      "TraceId",
+      "ProjectionId",
+      "PolicyDigest",
+      "w",
+      "j"
+    ],
+    "values": [
+      {
+        "field": "Ordinal",
+        "as": "s",
+        "reducer": "count"
+      },
+      {
+        "field": "Ordinal",
+        "as": "f",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "FirstEventIndex",
+              "state": "present"
+            }
+          ]
+        }
+      },
+      {
+        "field": "FirstEventIndex",
+        "as": "v",
+        "reducer": "count"
+      },
+      {
+        "field": "Id",
+        "as": "x",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "Kind",
+              "equals": "string"
+            },
+            {
+              "field": "Id",
+              "equals": ""
+            }
+          ]
+        }
+      },
+      {
+        "field": "r1",
+        "as": "n",
+        "reducer": "count"
+      },
+      {
+        "field": "r1",
+        "as": "a",
+        "reducer": "sum"
+      },
+      {
+        "field": "r2",
+        "as": "b",
+        "reducer": "sum"
+      },
+      {
+        "field": "r3",
+        "as": "c",
+        "reducer": "sum"
+      }
+    ]
+  },
+  "post-aggregate": [
+    {
+      "as": "reason",
+      "function": "if",
+      "args": [
+        {
+          "function": "lte",
+          "args": [
+            {
+              "function": "sum",
+              "args": [
+                {
+                  "function": "sum",
+                  "args": [
+                    {
+                      "field": "f"
+                    },
+                    {
+                      "field": "x"
+                    }
+                  ]
+                },
+                {
+                  "field": "w"
+                }
+              ]
+            },
+            {
+              "function": "sum",
+              "args": [
+                {
+                  "field": "v"
+                },
+                {
+                  "field": "j"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "and",
+              "args": [
+                {
+                  "function": "lte",
+                  "args": [
+                    {
+                      "field": "s"
+                    },
+                    {
+                      "value": 5000
+                    }
+                  ]
+                },
+                {
+                  "function": "lte",
+                  "args": [
+                    {
+                      "field": "w"
+                    },
+                    {
+                      "value": 5000
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "function": "if",
+              "args": [
+                {
+                  "function": "lte",
+                  "args": [
+                    {
+                      "field": "n"
+                    },
+                    {
+                      "value": 3
+                    }
+                  ]
+                },
+                {
+                  "value": "fewer-than-four-visits"
+                },
+                {
+                  "value": "measured"
+                }
+              ]
+            },
+            {
+              "value": "oversized"
+            }
+          ]
+        },
+        {
+          "value": "unordered"
+        }
+      ]
+    },
+    {
+      "as": "value",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "reason"
+            },
+            {
+              "value": "measured"
+            }
+          ]
+        },
+        {
+          "function": "coalesce",
+          "args": [
+            {
+              "function": "quotient",
+              "args": [
+                {
+                  "function": "difference",
+                  "args": [
+                    {
+                      "function": "difference",
+                      "args": [
+                        {
+                          "function": "product",
+                          "args": [
+                            {
+                              "value": 2
+                            },
+                            {
+                              "field": "b"
+                            }
+                          ]
+                        },
+                        {
+                          "field": "c"
+                        }
+                      ]
+                    },
+                    {
+                      "field": "n"
+                    }
+                  ]
+                },
+                {
+                  "function": "difference",
+                  "args": [
+                    {
+                      "field": "a"
+                    },
+                    {
+                      "field": "n"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "value": null,
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "as": "availability",
+      "function": "if",
+      "args": [
+        {
+          "function": "is-null",
+          "args": [
+            {
+              "field": "value"
+            }
+          ]
+        },
+        {
+          "value": "unavailable"
+        },
+        {
+          "value": "measured"
+        }
+      ]
+    }
+  ]
+}

@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/sessionarchive"
 )
 
 var (
@@ -200,7 +202,7 @@ func (c Config) blobRoot() string {
 // scope, plan and resource policy. It intentionally contains no credentials.
 func (c Config) AcceptanceBinding() string {
 	_ = c.Validate()
-	data, _ := json.Marshal([]any{planVersion, EventSchema(), c.Account, c.Container, c.Prefix,
+	data, _ := json.Marshal([]any{planVersion, sessionarchive.ContractVersion, EventSchema(), c.Account, c.Container, c.Prefix,
 		c.Endpoint, c.Database, c.Table, c.Namespace, c.RepositoryIDs,
 		c.ExternalPropertiesDigest, c.MaxFileBytes, c.MaxQueryBytes, c.MaxFiles, c.MaxMembers, c.MaxStateBytes, c.QueryTimeout, c.RetirementGrace})
 	sum := sha256.Sum256(data)

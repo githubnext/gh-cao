@@ -436,7 +436,7 @@ Authenticated callers use two endpoints. Reading full traces requires an explici
 | `GET /api/v1/session-archive/status` | Reports whether the archive is available, with bounded counters |
 | `POST /api/v1/session-archive/query` | Runs a trusted `timeline` or `summary` template, or a local-only `session-query`, for one approved repository |
 
-`timeline` needs a positive GitHub run ID and attempt; `summary` rejects them. Requests are limited to 4096 bytes, and responses to 8 MiB and 10,000 rows. A `session-query` takes a Dashboard Language `query` over `archive-events` and doesn't accept SQL, joins, or `PayloadJSON`. Exceeding a budget returns an error rather than partial results, and archive queries never fall back to dashboard queries. The hosted ADX adapter doesn't yet run `session-query`.
+`timeline` needs a positive GitHub run ID and attempt; `summary` rejects them. Requests are limited to 8192 bytes, and responses to 8 MiB and 10,000 rows. A `session-query` takes a Dashboard Language `query` over `archive-events` or an approved item source such as `archive-objectives` or `archive-ir-events`. It can chain up to eight earlier definitions and join them only within one trace, and doesn't accept SQL, cross-trace joins, or `PayloadJSON`. Exceeding a budget returns an error rather than partial results, and archive queries never fall back to dashboard queries. Local DuckDB runs them; hosted ADX runs the same plans only after its separate default-off analytical acceptance gate is enabled.
 
 For the full contract, see the [Private unified-session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
 

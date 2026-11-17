@@ -60,6 +60,15 @@ const sources = {
   'overview-value-station': source('overview-value-station', [{
     value: 1, detail: 'Observed grader results', description: '1 observed grader results, not verified improvements'
   }]),
+  'overview-onboarding-state': source('overview-onboarding-state', [{
+    'show-onboarding': false,
+    'current-step': 'complete',
+    'has-repositories': true,
+    'has-artifacts': true,
+    'repository-count': 6,
+    'workflow-count': 3,
+    'campaign-count': 1
+  }]),
   'overview-factory-status': source('overview-factory-status', [{ 'factory-heading': 'Your factory has grader observations.' }]),
   'overview-header-presentation': source('overview-header-presentation', [{ heading: 'Your factory needs attention.' }]),
   'overview-factory-station': source('overview-factory-station', [{
@@ -131,6 +140,19 @@ const sources = {
         reached: index < 3
       }))
     }
+  }])
+};
+
+const onboardingSources = {
+  ...sources,
+  'overview-onboarding-state': source('overview-onboarding-state', [{
+    'show-onboarding': true,
+    'current-step': 'setup',
+    'has-repositories': false,
+    'has-artifacts': false,
+    'repository-count': 0,
+    'workflow-count': 0,
+    'campaign-count': 0
   }])
 };
 
@@ -353,6 +375,42 @@ test('disables Overview rhythm animation when reduced motion is preferred', asyn
   await expect(page.locator('.factory-rhythm-bar-pair i:not([hidden])').first()).toHaveCSS('animation-name', 'none');
 });
 
+test('renders setup guidance instead of factory statistics for a fresh control repository', async ({ page }) => {
+  await page.evaluate(async ({ documentModel, sourceData, presenterModuleUrl }) => {
+    const { renderDashboard } = await import(presenterModuleUrl);
+    const rendered = renderDashboard({ document: documentModel, sources: sourceData });
+    document.querySelector('#root')?.replaceChildren(rendered);
+  }, {
+    documentModel: {
+      'language-version': dashboardDocument['language-version'],
+      dashboard: {
+        id: 'overview-onboarding',
+        title: 'Overview onboarding',
+        'card-templates': dashboardDocument.dashboard['card-templates'],
+        pages: [overviewPage]
+      }
+    },
+    sourceData: onboardingSources,
+    presenterModuleUrl: 'http://dashboard.test/src/presenter.js'
+  });
+
+  const overview = page.locator('[data-page-id="overview"]');
+  await expect(overview.getByRole('heading', { name: 'Welcome to CAO!' })).toBeVisible();
+  await expect(overview.getByText('Set up CAO in this checkout before choosing what it should operate.')).toBeVisible();
+  await expect(overview.locator('.factory-rhythm')).toBeHidden();
+  await expect(overview.locator('.factory-stations')).toBeHidden();
+  await expect(overview.locator('.factory-onboarding')).toBeVisible();
+  await expect(overview.getByRole('heading', { name: 'Set up CAO' })).toBeVisible();
+  await expect(overview.getByRole('heading', { name: 'Choose repositories' })).toBeHidden();
+  await expect(overview.getByRole('heading', { name: 'Add workflows or campaigns' })).toBeHidden();
+  await expect(overview.getByRole('button', { name: /Copy gh cao setup/ })).toBeVisible();
+  await expect(overview.locator('.factory-onboarding-step-icon')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(overview.locator('.factory-onboarding-steps')).toHaveCSS('grid-template-columns', /^[\d.]+px$/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
 test('renders the Overview structure before mixed page data resolves', async ({ page }) => {
   const immediate = await page.evaluate(async ({ documentModel, presenterModuleUrl, sourceStoreModuleUrl }) => {
     const [{ renderDashboard }, { configureSourceLoader }] = await Promise.all([
@@ -405,7 +463,7 @@ test('renders the Overview structure before mixed page data resolves', async ({ 
   });
 
   expect(immediate).toEqual({
-    sourceLoadCalls: 6,
+    sourceLoadCalls: 8,
     pageLoadCalls: 0,
     header: true,
     floor: true,

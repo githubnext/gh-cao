@@ -24,14 +24,22 @@
             "items": {
                 "$ref": "SessionArchiveDefinition.json"
             },
-            "maxItems": 2,
-            "description": "Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. The first reads an archive source, each later one reads its immediate predecessor by name, and this definition reads the last, so no stage is unused. Earlier definitions must aggregate with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, and must not declare queries, select, order-by or limit; their output is their groups, aggregates and computations. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length."
+            "maxItems": 8,
+            "description": "Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. Each reads an archive source or any earlier definition through from or joins, and every earlier definition is read by a later one or by this definition, so no stage is unused. An earlier definition either aggregates with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, outputting its groups, aggregates and computations, or is row-level and selects its input key unrenamed (the trace and projection identity plus Sequence for archive-events, Ordinal for item sources), outputting the selected fields. Earlier definitions must not declare queries, order-by or limit, and aggregating ones must not declare select. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length."
         },
         "from": {
             "type": "string",
             "maxLength": 128,
             "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
-            "description": "One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; they are local DuckDB only until a hosted lowering is accepted, and are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
+            "description": "One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers, archive-tool-calls, archive-resources or archive-reference-patch-files, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies and archive-observation-consumers further flatten dependsOn and consumedByActionIds into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
+        },
+        "joins": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/SessionArchiveJoin"
+            },
+            "maxItems": 4,
+            "description": "Trace-scoped equality joins (Dashboard Language DLS-QUERY-005..008), applied in order before filter. Both sides always match on the complete trace binding (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId, PolicyDigest); on adds integer or string keys, never a binding field. on must cover the right side's row key (an earlier aggregate's by fields, or the source key), so each left row meets at most one right row. Right rows with a null or empty-string key never match. inner drops unmatched left rows; left keeps them with null joined fields (empty string for strings). Imported names must not collide with input fields, case-insensitively, and cannot be targets of field-state predicates. Rejected unless status advertises analytical.joins at least this length."
         },
         "filter": {
             "type": "object",
@@ -48,6 +56,95 @@
             "required": [
                 "predicates"
             ]
+        },
+        "compute": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "as": {
+                        "type": "string"
+                    },
+                    "function": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "const": "if"
+                            },
+                            {
+                                "type": "string",
+                                "const": "equals"
+                            },
+                            {
+                                "type": "string",
+                                "const": "gt"
+                            },
+                            {
+                                "type": "string",
+                                "const": "lte"
+                            },
+                            {
+                                "type": "string",
+                                "const": "sum"
+                            },
+                            {
+                                "type": "string",
+                                "const": "difference"
+                            },
+                            {
+                                "type": "string",
+                                "const": "product"
+                            },
+                            {
+                                "type": "string",
+                                "const": "quotient"
+                            },
+                            {
+                                "type": "string",
+                                "const": "coalesce"
+                            },
+                            {
+                                "type": "string",
+                                "const": "is-null"
+                            },
+                            {
+                                "type": "string",
+                                "const": "and"
+                            },
+                            {
+                                "type": "string",
+                                "const": "trim"
+                            },
+                            {
+                                "type": "string",
+                                "const": "strip-prefix"
+                            }
+                        ]
+                    },
+                    "args": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/$defs/SessionArchiveExpression"
+                        },
+                        "maxItems": 3
+                    }
+                },
+                "required": [
+                    "as",
+                    "function",
+                    "args"
+                ]
+            },
+            "maxItems": 32,
+            "description": "Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. trim removes ECMAScript String.prototype.trim whitespace from both ends of a string; strip-prefix(text, prefix, repeated) removes a non-empty string-literal prefix of at most 16 code points once, or as a repeated leading run when the boolean literal repeated is true. strip-prefix is closed literal matching, never a regular expression. Rejected unless status advertises analytical.compute."
+        },
+        "window": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/SessionArchiveWindow"
+            },
+            "maxItems": 8,
+            "description": "Dashboard Language previous and row-number windows (DLS §5.5.4) over row-level queries only; forbidden with aggregate. groupby must include every trace and projection identity field, and groupby with order-by must cover the input key so window order is total. previous returns the field from the preceding row in its partition, or null (empty string for strings) on the first row. Rejected unless status advertises each operation in analytical.windows."
         },
         "aggregate": {
             "type": "object",
@@ -185,6 +282,14 @@
                             {
                                 "type": "string",
                                 "const": "and"
+                            },
+                            {
+                                "type": "string",
+                                "const": "trim"
+                            },
+                            {
+                                "type": "string",
+                                "const": "strip-prefix"
                             }
                         ]
                     },
@@ -235,6 +340,72 @@
     ],
     "description": "Shared DuckDB/ADX analytical profile of Dashboard Language, not a full dashboard document. Unknown keys and fields fail before execution. Predicates are conjunctive, with exactly one of equals, in, or a gte/lt range; boolean ranges are forbidden. String comparisons are exact and case-sensitive; ordering is typed, with UTF-8 lexical string order and empty strings last. Counts exclude empty strings and null scalars, but retain false and zero; distinct-count is exact, never approximate.",
     "$defs": {
+        "SessionArchiveJoin": {
+            "type": "object",
+            "properties": {
+                "source": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+                    "description": "An archive source or an earlier definition in queries."
+                },
+                "type": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "inner"
+                        },
+                        {
+                            "type": "string",
+                            "const": "left"
+                        }
+                    ],
+                    "description": "Defaults to inner. Cross, right and full joins are not part of the profile."
+                },
+                "on": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "left": {
+                                "type": "string"
+                            },
+                            "right": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "left",
+                            "right"
+                        ]
+                    },
+                    "maxItems": 4
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "field": {
+                                "type": "string"
+                            },
+                            "as": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "field"
+                        ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 16
+                }
+            },
+            "required": [
+                "source",
+                "fields"
+            ]
+        },
         "SessionArchivePredicate": {
             "type": "object",
             "properties": {
@@ -335,21 +506,7 @@
                             "const": "valid"
                         }
                     ],
-                    "description": "State of a declared promoted field, inspected through generated evidence metadata only. Exclusive with comparison operands."
-                }
-            },
-            "required": [
-                "field"
-            ]
-        },
-        "OrderField": {
-            "type": "object",
-            "properties": {
-                "field": {
-                    "type": "string"
-                },
-                "direction": {
-                    "type": "string"
+                    "description": "State of a declared promoted field, inspected through generated evidence metadata only. Exclusive with comparison operands. On archive-events, field may also name an approved structured evidence family (for example Error, Usage or Provenance) advertised in analytical.stateFamilies; a family is never a comparison, selection, grouping or computation field."
                 }
             },
             "required": [
@@ -370,6 +527,67 @@
                 {
                     "$ref": "#/$defs/SessionArchiveFunctionArgument"
                 }
+            ]
+        },
+        "SessionArchiveWindow": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string",
+                    "description": "Required for previous; optional for row-number."
+                },
+                "as": {
+                    "type": "string"
+                },
+                "operation": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "previous"
+                        },
+                        {
+                            "type": "string",
+                            "const": "row-number"
+                        }
+                    ]
+                },
+                "orderBy": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/OrderField"
+                    },
+                    "minItems": 1,
+                    "maxItems": 8
+                },
+                "groupby": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 9,
+                    "description": "At most nine fields: the six trace and projection identity fields plus three row fields."
+                }
+            },
+            "required": [
+                "as",
+                "operation",
+                "orderBy",
+                "groupby"
+            ]
+        },
+        "OrderField": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "field"
             ]
         },
         "SelectedField": {
@@ -514,6 +732,14 @@
                         {
                             "type": "string",
                             "const": "and"
+                        },
+                        {
+                            "type": "string",
+                            "const": "trim"
+                        },
+                        {
+                            "type": "string",
+                            "const": "strip-prefix"
                         }
                     ]
                 },

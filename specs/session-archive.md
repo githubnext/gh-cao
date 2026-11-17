@@ -76,11 +76,13 @@ MUST fail explicitly.
 
 ### 2.1 Fresh original-evidence contract
 
-Archive `ContractVersion` is **2**, independent of the native ADX trace tables'
-unchanged version 1. There is no backward-compatible reader, old-schema adapter
-or in-place migration. Provision a fresh archive directory and a fresh reviewed
-Blob prefix/external table. `EventSchema()` changes both `AcceptanceBinding()`
-and `NativeAcceptanceBinding()`; analytical activation also requires its newly
+Archive `ContractVersion` is **3**, independent of the native ADX trace tables'
+unchanged version 1. Version 2 and earlier archive data are unsupported: there is
+no backward-compatible reader, old-schema adapter or in-place migration, and
+local archive state, manifests, Parquet members, hosted external-table files and
+hosted acceptance bound to an earlier version all fail closed. Provision a fresh archive directory and a fresh reviewed
+Blob prefix/external table. The archive `ContractVersion` and `EventSchema()`
+both change `AcceptanceBinding()` and `NativeAcceptanceBinding()`; analytical activation also requires its newly
 bound acceptance. Old destination acceptance MUST NOT activate this layout.
 Rejection MUST NOT erase old objects, privacy registrations, pending withdrawals
 or source-epoch fences. Retiring previous data is a separate explicitly scoped
@@ -90,9 +92,16 @@ records or bypass cleanup obligations.
 The TypeSpec `@evidence` annotations generate scalar bindings, Go/Parquet/SQL/KQL
 types and structured-family metadata. Typed projection runs only on the approved,
 redacted original event. The shared preservation transform is
-`cao-approved-events-v2`; it participates in policy/evidence identity, and archive
+`cao-approved-events-v3`; it participates in policy/evidence identity, and archive
 projection identity additionally binds the Parquet contract version. Replay MUST
-NOT reuse a projection produced under previous preservation semantics.
+NOT reuse a projection produced under previous preservation semantics. Version 3
+adds the trajectory-IR `toolCalls`, `observations`, `resources`,
+`provenanceEdges` and `reference` families (Section 2.2). v2 data never recorded
+their exclusion, redaction or field states, so it is unsupported rather than read
+as if those collections were simply absent. The Parquet column layout is
+unchanged, so archive `ContractVersion` 3 and the hosted acceptance binding,
+which now includes that version, carry the break to every stored and accepted
+artifact.
 
 Every promoted field and declared family has generated-name entries in
 `PresentFields`, `NullFields` and `InvalidFields`. Invalid includes incompatible
@@ -137,7 +146,8 @@ merely to support these candidates.
 
 Approval remains a closed event policy selecting entire **top-level data
 subtrees**, not arbitrary nested paths. Approving `usage`, `objectives`,
-`actions`, `states`, `events`, `attemptResults` or `startupAttemptResults` can
+`actions`, `states`, `events`, `toolCalls`, `observations`, `resources`,
+`provenanceEdges`, `reference`, `attemptResults` or `startupAttemptResults` can
 retain extra nested values; operators MUST explicitly review that actual privacy
 scope. Textual retry messages/objective descriptions and original errors need
 specific event-field approval and retain redaction qualification.
@@ -196,6 +206,28 @@ also retire; exact logical membership remains mandatory for every query.
 Hosted acknowledgement removes local historical bodies and retains private
 receipt/fence metadata only. Hosted limits may be stricter, including at most
 4096 returned rows and one concurrent analytical query.
+
+### 2.2 Trajectory-IR collection approval (user-directed)
+
+The trajectory-IR `toolCalls`, `observations`, `resources`, `provenanceEdges`
+and `reference` collections are approvable top-level `trajectory.ir` data
+subtrees with generated `@evidence` families (`ToolCalls`, `Observations`,
+`Resources`, `ProvenanceEdges` as arrays; `Reference` as an object). This is a
+**user-directed privacy decision** for grader-query extension E1: the user chose
+to approve whole collections ("you can store them all", confirmed as option 1),
+not a narrowed field allowlist. Approving one of these collections admits its
+entire subtree, including any tool-call `arguments`, resource URIs and
+reference trajectories it contains; operators MUST review that actual privacy
+scope before adding them to an event policy.
+
+The decision is bounded. Approval stays explicit per event policy and is off by
+default; no collection is admitted unless the reviewed policy names it. It grants
+nothing outside these five subtrees: tool arguments elsewhere, models, cache
+counters, tool output bodies outside an approved collection and safe-output
+titles/URLs remain unapproved. Exclusion and redaction are recorded under the
+generated family paths, and excluded, redacted, invalid or oversized
+collections keep dependent grader results unavailable. Nothing is derived or
+persisted at capture; dependent graders compute at query time.
 
 ## 3. Durable publication and recovery
 
@@ -383,7 +415,9 @@ CSRF protection.
 Timeline requires a positive GitHub run ID and exact positive attempt.
 Summary rejects run/attempt selectors. Neither accepts SQL/KQL, directories,
 object names, raw filenames, namespace overrides, or caller-selected generations.
-Requests are at most 4096 bytes. Responses are at most 8 MiB and 10000 rows.
+Requests are at most 8192 bytes, including the repository name; every
+reviewed grader definition fits with the maximum GitHub repository shape
+(39-character owner, slash, 100-character name). Responses are at most 8 MiB and 10000 rows.
 Execution is at most 30 seconds, with tighter backend budgets preserved.
 Exceeding a complete-result budget returns an error, not partial success.
 An unknown trace is distinct from a complete empty trace.
@@ -396,8 +430,9 @@ typed conjunctive predicates, explicit projection, grouping, exact `count` and
 bounded `post-aggregate` scalar computation, deterministic ordering, and optional
 top-N selection. Only `0.2.0` requests are accepted over HTTP or MCP;
 `0.1.0` and other versions MUST be rejected without compatibility fallback.
-`PayloadJSON`, arbitrary JSON paths, joins, scripts, and caller-selected storage
-are not supported. Query chaining is local-only, as described below. An explicit `query.limit` reports omitted matching rows with
+`PayloadJSON`, arbitrary JSON paths, cross or cross-trace joins, scripts, and
+caller-selected storage are not supported. Item sources, query chaining and
+trace-scoped joins are bounded as described below. An explicit `query.limit` reports omitted matching rows with
 `metadata.limited`; it MUST NOT hide a resource-budget failure. Source coverage
 remains unknown, with repository admission gaps and retained traces with recorded
 omissions reported independently of selection. Both backends advertise
@@ -411,7 +446,15 @@ The additional vocabulary is deliberately bounded: at most 16 measures, 64
 predicates across source and measure filters, 32 post-aggregate computations,
 256 expression nodes and nesting depth 8. Functions use the existing
 `function`/`args` and `field`/`value` vocabulary: `if`, `equals`, `gt`, `lte`,
-`and`, `sum`, `difference`, `product`, `quotient`, `coalesce`, and `is-null`. Computations read only group
+`and`, `sum`, `difference`, `product`, `quotient`, `coalesce`, `is-null`,
+`trim` and `strip-prefix`. `trim` removes exactly the JavaScript
+`String.prototype.trim` whitespace set (WhiteSpace plus LineTerminator code
+points) from both ends. `strip-prefix(text, prefix, repeated)` removes one
+leading occurrence of a literal `prefix` of 1 to 16 code points, or every
+leading repetition when `repeated` is `true`; the prefix and flag are typed
+literals, never regular expressions or caller-selected patterns. Both lower to
+anchored, code-point-escaped patterns (DuckDB `regexp_replace`, KQL
+`replace_regex`). Computations read only group
 keys, aggregate results and preceding computations. Null is allowed only in a
 typed numeric literal such as `{"value":null,"type":"number"}`, never as a
 missing filter, predicate, selector or argument. Division by zero produces
@@ -428,29 +471,63 @@ and scalar `extend`. No approximate cardinality or unordered `take_any`
 is permitted. ADX's million-row scan fence bounds those internal lists.
 These lowerers are not a universal compiler or a new canonical resolver.
 
-Local DuckDB also accepts three item sources: `archive-objectives`,
-`archive-actions`, and `archive-states`. Each binds the last agent-phase
-`trajectory.ir` event of every complete active trace and flattens its
-`data.objectives`, `data.actions`, or `data.states` array at query time; no
-item rows are persisted. Every trace yields one anchor row with null `Ordinal`
-and `Items` when it has no array, plus one row per element. Rows carry the
-complete trace binding, the bound IR `Sequence`, `Items`, `Ordinal`, element
-`Kind`, and only reviewed typed element fields: `SatisfiedAtEventIndex`
-(objectives; a safe non-negative JSON integer), `ValidAtIssueTime` (actions; a
-JSON boolean) and `Id` (states; a string element or an object's string `id`).
-Wrong JSON types are `invalid`, never coerced. `state` predicates on `Items`
+The item-source vocabulary comprises `archive-objectives`,
+`archive-objective-dependencies`, `archive-actions`, `archive-states`,
+`archive-ir-events`, `archive-observations`, `archive-observation-consumers`
+`archive-tool-calls`, `archive-resources` and
+`archive-reference-patch-files`. Each binds the last agent-phase `trajectory.ir` event of
+every complete active trace and flattens its `data.objectives`,
+`data.actions`, `data.states`, `data.events`, `data.observations`,
+`data.toolCalls`, `data.resources` or `data.reference.patch.files` array at
+query time; no item
+rows are persisted. Every trace yields one anchor row with null `Ordinal` and
+`Items` when it has no array, plus one row per element. Rows carry the
+complete trace binding, `PolicyDigest`, the bound IR `Sequence`, `Items`,
+`Ordinal`, element `Kind`, and only reviewed typed element fields:
+`SatisfiedAtEventIndex` (a safe non-negative JSON integer), `Id` (a string)
+and `DependsOn` (the `dependsOn` array length) for objectives;
+`ValidAtIssueTime` and `Consequential` (JSON booleans) and `ActionType` and
+`Target` (strings, from `type` and `target`) for actions; `Id` (a string element or an
+object's string `id`) and `FirstEventIndex` (a safe JSON integer) for states;
+and `Index` (a safe JSON integer), `EventKind` and `Ref` (strings) for IR
+events; `SourceToolCallId` (a string) and `ConsumedByActionIds` (an array
+length, not a consumption judgment) for observations; `Id` (a string)
+for tool calls; `ResourceKind` and `Uri` (strings, from `kind` and `uri`) for
+resources; and `Path` (a string element or an object's string `path`) for
+reference patch files. `archive-observation-consumers` further flattens each
+observation's `consumedByActionIds` with the same parent `Ordinal`, zero-based
+`Position` and string `Value` contract as dependencies; non-string values
+remain invalid and empty strings do not contribute to count.
+The collection sources are v3-only and do not reconcile missing/null tool calls.
+`archive-objective-dependencies` is nested: it further flattens each
+objective's `dependsOn` array into one row per string `Value`, keyed by the
+parent `Ordinal` plus a zero-based `Position`, with one trace anchor (null
+`Ordinal` and `Position`) when the trace has no dependency. Wrong JSON types
+are `invalid`, never coerced; absent or invalid strings read as the empty
+string. `state` predicates on `Items`
 and element fields are qualified by the collection path, so an excluded or
 redacted collection is reported, not treated as empty. Item sources forbid
 `first` and real-valued `sum`, order ties by `Ordinal`, and never expose
-`PayloadJSON`. Status advertises them in `analytical.sources`; ADX and native
-backends omit them and MUST reject such plans until a reviewed lowering exists.
+`PayloadJSON`. Status advertises them in `analytical.sources`. ADX binds the
+same IR with materialized `let` statements and expands elements with
+`mv-expand with_itemindex`; a backend without a lowering accepted against real
+Kusto MUST omit them and reject such plans.
 
-Local DuckDB also accepts query chaining (Dashboard Language DLS-QUERY-017)
-for two-stage aggregation. A definition may list at most two earlier
-definitions in `queries`. They are evaluated in order: the first reads an
-archive source, each later one reads its immediate predecessor by name, and
-the outer definition reads the last, so no stage is unused or bypassed. Every
-earlier definition MUST aggregate with the complete `Namespace`, `Repository`,
+ADX's `parse_json` turns date-, GUID- and timespan-like JSON strings into
+`datetime`, `guid` or `timespan` values. Before parsing, the KQL lowering
+prefixes every JSON string value (never a member name) with a one-character
+ASCII marker, so no string is convertible; string typing then drops that
+character. The marked payload stays inside the trace `let` and never reaches a
+projection.
+Every item source and both functions are accepted against real Kusto by the
+pinned grader replay of the `session-archive-kusto` job.
+
+Both backends also accept query chaining (Dashboard Language DLS-QUERY-017)
+for multi-stage aggregation. A definition may list at most eight earlier
+definitions in `queries`. They are evaluated in order: each reads an archive
+source or any earlier definition through `from` or `joins`, and every earlier
+definition is read by a later one or by the outer definition, so no stage is
+unused. Every earlier aggregating definition MUST aggregate with the complete `Namespace`, `Repository`,
 `RunId`, `RunAttempt`, `TraceId`, `ProjectionId` binding in `aggregate.by`, and
 MUST NOT declare `queries`, `select`, `order-by` or `limit`. Its output columns
 are its groups, aggregates and computations, typed as planned. Stage names are
@@ -460,12 +537,64 @@ binding. `state` predicates and `first` are unavailable over a stage because
 stage rows carry no field-state metadata or `Sequence`. A real-valued `sum`
 over a stage orders by exactly the input groups it collapses, ascending.
 Chaining is validated as one plan before any rows are read, and it is lowered
-to one SQL statement with one common table expression per stage; no
-intermediate result is persisted. Status advertises the maximum stage count as
-`analytical.chaining`. ADX and native backends omit it and MUST reject chained
-plans until a KQL lowering is accepted against real Kusto.
+to one statement: one DuckDB common table expression, or one materialized KQL
+`let`, per stage; no intermediate result is persisted. Status advertises the
+maximum stage count as `analytical.chaining`; a backend without a lowering
+accepted against real Kusto MUST omit it and reject chained plans.
 
-The `state` predicate accepts only generated promoted scalar names and inspects
+Both backends also accept trace-scoped equality joins (Dashboard Language
+DLS-QUERY-005..008). A definition may declare at most four `joins`, applied in
+order before `filter`; each names an archive source or an earlier definition,
+`type` `inner` (default) or `left`, up to four extra integer or string `on`
+key pairs, and 1 to 16 imported `fields`. Both sides always match on the
+complete `Namespace`, `Repository`, `RunId`, `RunAttempt`, `TraceId`,
+`ProjectionId`, `PolicyDigest` binding, which the planner adds and `on` MUST
+NOT repeat; cross, right, full and cross-trace joins are not expressible.
+The binding plus `on` MUST cover the right input's row key (the source key,
+or an earlier stage's `aggregate.by` or row key), so every left row meets at
+most one right row and a join never multiplies rows. Right rows whose explicit
+key is null or the empty string never match, because Kusto equates `""` with
+`""` while DuckDB never equates nulls. `inner` drops unmatched left rows;
+`left` keeps them with typed null imports, or the empty string for strings.
+Imported names MUST NOT collide case-insensitively with input columns, and
+`state` predicates MUST NOT target them because joined rows carry no
+field-state metadata. DuckDB lowers each join to one common table expression
+with null-safe binding equality; KQL always emits explicit `kind=inner` or
+`kind=leftouter` (never the deduplicating default), filters missing right keys
+with `isnotempty`/`isnotnull`, and projects key aliases away afterwards. The
+join is evaluated within the one statement and the existing row budget fails
+closed. Status advertises the maximum join count as `analytical.joins`; a
+backend without a lowering accepted against real Kusto MUST omit it and reject
+joined plans.
+
+Session queries may also be row-level. A definition may declare up to 32
+row-level `compute` values, evaluated after `filter` and before `window` and
+`aggregate` with the post-aggregate function vocabulary over input columns and
+earlier computations; `is-null` and `coalesce` over strings are rejected
+because empty and absent strings are indistinguishable. It may also declare up
+to eight `window` entries, each with at most nine `groupby` fields (the six
+trace fields plus three row fields) and eight `order-by` fields, each `previous` (the prior row's `field`, typed null
+or the empty string on a partition's first row) or `row-number` (1-based).
+Windows port Dashboard Language §5.5.4: `groupby` MUST include the complete
+trace binding, and `groupby` plus `order-by` MUST cover the input's row key
+(the trace binding plus `Sequence` over `archive-events` or `Ordinal` over an
+item source, or an earlier stage's key), so the order is total. Without `aggregate`, a definition
+returns one row per input row. A row-level earlier definition in `queries`
+MUST select its row key unrenamed and is then a valid chain input; an
+aggregate over it still binds the complete trace. Row-number differences over
+such a stage give gaps-and-islands without a new operator. `state` predicates
+also accept the structured `Error`, `Usage` and `Provenance` families, using
+the same metadata as scalar fields; family values remain unexposed. Status
+advertises these as `analytical.compute`, `analytical.windows` and
+`analytical.stateFamilies`. The DuckDB lowering adds one common table
+expression for computations and one for windows (`row_number` and `lag`); the
+KQL lowering sorts by partition and order keys, restarts on a partition change
+and uses `row_number` and `prev` over that serialized order. Every backend
+advertises them; a backend whose lowering has not passed the real Kusto
+acceptance job MUST omit them and reject such plans.
+
+The `state` predicate accepts only generated promoted scalar names, and the
+structured families advertised in `analytical.stateFamilies`, and inspects
 `PresentFields`, `NullFields`, `InvalidFields` and `OmissionReasons` using
 generated source paths. Supported states are present, absent, null, invalid,
 excluded, redacted and valid. Absent excludes known exclusions/redactions;
@@ -575,8 +704,9 @@ The CI gate alone MUST NOT be described as completing those deployment gates.
 
 Real Kusto membership conformance uses the pinned official emulator through
 `scripts/test-kusto-emulator.sh`, with `CAO_SESSION_ARCHIVE_REQUIRE_KUSTO=1`.
-Its manual Actions job requires an explicit default-false EULA acceptance input;
-ordinary CI does not accept terms. The shared `server/internal/sessionarchive/testdata/analytical.json` corpus
+Parquet and Session Archive CI runs it on every trigger on an x86-64 runner,
+under the repository's reviewed license acceptance recorded in the workflow;
+local runs still require explicit `ACCEPT_EULA=Y`. The shared `server/internal/sessionarchive/testdata/analytical.json` corpus
 executes through production DuckDB archive queries and the production KQL
 lowerer against the real emulator. It covers exact counts, integer precision,
 case-sensitive filters, lexical ordering, empty strings, aliases, hidden ties,
@@ -584,12 +714,12 @@ top-N disclosure, and empty results. Protocol tests separately exercise
 reader lifetime, source fencing, malformed responses and resource rejection.
 The emulator proves functional KQL behavior,
 not live Blob/external-table access, authentication, retention, or performance.
-The same opt-in harness runs the four full usage definitions against real DuckDB
-and real Kusto using identical synthetic approved events; the four local-only
-item-source definitions are checked to be rejected by ADX capabilities. Without an approved
+The same opt-in harness runs all fourteen implemented definitions, including the
+item-source, chained and joined ones, against real DuckDB and real Kusto using
+identical synthetic approved events. Without an approved
 real engine endpoint, the replay reports Kusto unavailable; it MUST NOT claim
 backend parity. The ordinary DuckDB gate runs all 15 pinned upstream replays and
-compares the eight implemented full metric values, unavailable states and separate
+compares the fourteen implemented full metric values, unavailable states and separate
 reason labels. An intentionally malformed envelope fixture retains its upstream
 lookup error and cannot establish metric parity; a separate explicit valid
 envelope scenario is compared without normalizing the original.

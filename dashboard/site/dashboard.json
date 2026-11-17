@@ -140,13 +140,19 @@
         "id": "campaign-value-overview",
         "icon": "goal",
         "title": { "field": "campaign-name", "title": "Campaign" },
-        "status": { "field": "campaign-value-status", "title": "Value review" },
+        "status": { "field": "campaign-value-status", "title": "Native Value movement" },
         "detail-labels": "visible",
         "labels": [
           { "field": "value-deployments", "title": "Value deployments" },
-          { "field": "value-repositories", "title": "Repositories" }
+          { "field": "worker-repositories", "title": "Worker repositories" },
+          { "field": "measured-repositories", "title": "Measured repositories" }
         ],
         "details": [
+          { "field": "improving-repositories", "title": "Improving" },
+          { "field": "worsening-repositories", "title": "Worsening" },
+          { "field": "unchanged-repositories", "title": "Unchanged" },
+          { "field": "mixed-repositories", "title": "Mixed" },
+          { "field": "insufficient-repositories", "title": "Insufficient" },
           { "field": "configured-deployments", "title": "Configured" },
           { "field": "current-evidence-deployments", "title": "Current retained results" },
           { "field": "unconfigured-deployments", "title": "Unconfigured" },
@@ -1311,6 +1317,32 @@
         "copy-only": true
       },
       {
+        "id": "setup-cao",
+        "level": "operate",
+        "label": "Set up CAO",
+        "description": "Prepare local CAO policy and public monitoring scope for an exact repository or owner wildcard. Private or internal targets require separate credential setup.",
+        "icon": "gear",
+        "command": "gh cao setup --repository {{repository-pattern}}",
+        "placement": "view",
+        "selector": {
+          "label": "Repository",
+          "placeholder": "Search owner/repository or enter owner/*",
+          "allow-patterns": true,
+          "debounce-ms": 300,
+          "query": {
+            "command": "gh search repos",
+            "fields": ["fullName", "description"],
+            "limit": 20
+          },
+          "mapping": {
+            "value": "fullName",
+            "label": "fullName",
+            "description": "description",
+            "target": "repository-pattern"
+          }
+        }
+      },
+      {
         "id": "add-repository",
         "level": "operate",
         "label": "Add repository",
@@ -1525,6 +1557,7 @@
     "dashboard-fragments/governance.json",
     "dashboard-fragments/shared-events.json",
     "dashboard-fragments/shared-inventory.json",
+    "dashboard-fragments/shared-value.json",
     "dashboard-fragments/shared-campaigns.json",
     "dashboard-fragments/controls.json",
     "dashboard-fragments/repositories.json",

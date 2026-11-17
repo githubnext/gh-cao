@@ -487,7 +487,6 @@
       "queries": [
         "value-collection-health",
         "value-current-measurements",
-        "value-measurement-facts",
         "value-workflow-movement",
         "value-workflow-results"
       ]
@@ -544,7 +543,7 @@
     {
       "id": "value-status",
       "title": "Value entries by status",
-      "description": "Inspect entries behind a Value status bar while keeping campaign review and standalone movement separate.",
+      "description": "Inspect entries behind a categorical Value movement bar without combining native measures.",
       "intent": "Explain the entries counted for one Value type and status.",
       "subject": "Campaign rollups or standalone workflows sharing one categorical status.",
       "objective": "Inspect collection and evidence details before opening the original Value entry.",
@@ -630,7 +629,7 @@
       "intent": "Review the unified campaign and standalone workflow inventory without combining native Value outcomes.",
       "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
       "objective": "Review entry-type and status counts, inspect complete Value cards, or compare the same entries in a table.",
-      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Plot counts describe entries by type or by type-specific status, not combined native outcomes; missing and unknown evidence remains explicit.",
+      "acceptance": "Campaign Value is only the repository-deduplicated rollup of canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Plot counts are categorical, not combined native outcomes.",
       "experimental": false,
       "parameters": [],
       "queries": [
@@ -670,8 +669,8 @@
       "description": "Compare campaign delivery and adoption evidence before investigating execution, reach, or operational Value.",
       "intent": "Determine which centrally managed campaign first needs delivery or adoption investigation.",
       "subject": "Campaign inventory, retained execution, and safe-output lifecycle evidence in the selected horizon.",
-      "objective": "Choose campaigns whose first observed blocker is missing delivery evidence or delivered work without an accepted event.",
-      "acceptance": "Keep campaign identity, delivery and adoption clocks, dispatches, and repository coverage explicit. Accepted and delivered counts are separate populations, not a conversion rate or operational Value; partial evidence is not proof of zero activity.",
+      "objective": "Choose campaigns whose first observed blocker is delivery, adoption or insufficient native Value measurement.",
+      "acceptance": "Keep delivery, adoption and native Value as separate evidence layers. Lifecycle counts are not Value or a conversion rate; movement is repository-deduplicated and partial evidence is not proof of zero activity.",
       "experimental": false,
       "parameters": [],
       "queries": [
@@ -1574,6 +1573,7 @@
         "overview-factory-station",
         "overview-header-presentation",
         "overview-issue-station",
+        "overview-onboarding-state",
         "overview-repository-station",
         "overview-rhythm",
         "overview-value-station"
@@ -2819,6 +2819,353 @@
       }
     },
     {
+      "id": "value-measurement-facts",
+      "subject": "Original native primary and diagnostic observations from reviewed batch evaluators.",
+      "objective": "Keep periods, native units, evaluator identity and missingness inspectable without inventing delivery events.",
+      "acceptance": "Null is unavailable, not zero. Interval measurements are not snapshots or cumulative accepted contributions.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "measurement",
+          "field": "id"
+        }
+      ],
+      "sources": [
+        "workflow-value-measurements"
+      ],
+      "used-by-pages": [
+        "value-measurement"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-primary-measurements",
+      "subject": "Retained repository-scoped primary Operational Value observations.",
+      "objective": "Compare only primary native measures while preserving every assessment, including unavailable assessments.",
+      "acceptance": "Diagnostic metrics never replace or reorder the primary measure history.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-measurement-facts"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-measurement-predecessor-core",
+      "subject": "Immediate prior assessments for each exact repository, workflow, campaign and native measure.",
+      "objective": "Retain the predecessor before selecting the latest assessment.",
+      "acceptance": "Ordering includes unavailable assessments and uses exact period, assessment and identity tie-breakers.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-primary-measurements"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-measurement-predecessor-contract",
+      "subject": "Contract and quality fields from each immediate prior assessment.",
+      "objective": "Make every comparison requirement explicit before movement is classified.",
+      "acceptance": "Unit, direction, kind, cadence, duration, coverage, maturity and population remain native fields.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-measurement-predecessor-core"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-measurement-order",
+      "subject": "Latest-first primary assessment order with immediate predecessor context.",
+      "objective": "Select the latest assessment only after preserving the preceding retained assessment.",
+      "acceptance": "A newer unavailable, partial, immature or null assessment remains rank one.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-measurement-predecessor-contract"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-current-measurement-quality",
+      "subject": "Quality gates for the latest primary assessment and its immediate predecessor.",
+      "objective": "Distinguish a valid baseline from unavailable, partial, immature or unsupported current evidence.",
+      "acceptance": "Complete mature non-null native evidence with explicit evaluator, unit, cadence and period is required.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-measurement-order"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-current-measurement-comparability",
+      "subject": "Explicit comparability checks between the latest and immediately preceding primary assessments.",
+      "objective": "Permit movement only for the same frozen native contract and valid adjacent period semantics.",
+      "acceptance": "Intervals have equal duration and abut exactly; snapshots compare advancing declared cutoffs.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-current-measurement-quality"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-current-measurements",
+      "subject": "Current native Operational Value state and immediately preceding comparable period.",
+      "objective": "Expose Baseline, Improving, Worsening, Unchanged or Insufficient with exact native evidence.",
+      "acceptance": "Current selection precedes quality gates. Missing, partial, immature, unsupported or incomparable evidence remains Insufficient.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "workflow",
+          "field": "workflow-route"
+        }
+      ],
+      "sources": [
+        "value-current-measurement-comparability"
+      ],
+      "used-by-pages": [
+        "workflow-value"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements"
+        ]
+      }
+    },
+    {
+      "id": "value-native-workflow-topology",
+      "subject": "Canonical workflow topology used to validate native Value membership.",
+      "objective": "Derive campaign and standalone membership only from workflow inventory.",
+      "acceptance": "Measurement rows do not grant campaign membership or change workflow role.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-native-campaign-topology",
+      "subject": "Canonical campaign worker deployments for native Value aggregation.",
+      "objective": "Exclude orchestrators, standalone workflows and unclassified campaign identities.",
+      "acceptance": "Only declared workers contribute to campaign repository movement.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-workflow-topology"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-native-campaign-result-context",
+      "subject": "Current native movement joined to canonical campaign worker topology.",
+      "objective": "Validate exact repository and campaign identity before campaign aggregation.",
+      "acceptance": "A measurement's campaign text cannot synthesize worker membership.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-current-measurements",
+        "value-native-campaign-topology"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-native-campaign-results",
+      "subject": "Current native movement for exact canonical campaign worker deployments.",
+      "objective": "Provide one latest primary result per native measure before repository aggregation.",
+      "acceptance": "Repository and campaign identity must both match canonical topology.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-campaign-result-context"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-native-campaign-repository-measures",
+      "subject": "Current measure-state counts for each exact campaign repository.",
+      "objective": "Prepare categorical repository rollup without summing native values.",
+      "acceptance": "Baseline contributes to Insufficient movement; current valid evidence still counts as measured coverage.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-campaign-results"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-native-campaign-repository-status",
+      "subject": "One categorical native Value status per campaign repository.",
+      "objective": "Deduplicate repositories after latest primary measure selection.",
+      "acceptance": "Any insufficient measure makes the repository Insufficient; opposing movement is Mixed before Worsening, Improving or Unchanged.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-campaign-repository-measures"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-native-campaign-movement-counts",
+      "subject": "Repository-deduplicated native Value movement counts per campaign.",
+      "objective": "Expose categorical movement and measured repository coverage.",
+      "acceptance": "Each repository counts once and unlike native metrics are never averaged, summed or scored.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-campaign-repository-status"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-native-campaign-population",
+      "subject": "Canonical repository population represented by each campaign's workers.",
+      "objective": "Provide a declared worker-repository denominator for measured coverage.",
+      "acceptance": "This is workflow topology, not target enrollment or proof every eligible repository was measured.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "value-native-campaign-topology"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "value-campaign-measurement-summary",
+      "subject": "Native Operational Value movement diagnosis for every retained campaign.",
+      "objective": "Retain zero-measurement campaigns and expose repository-deduplicated movement counts and measured coverage.",
+      "acceptance": "Counts are categorical evidence, not a score, causal attribution or aggregation of unlike native values.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaigns",
+        "value-native-campaign-movement-counts",
+        "value-native-campaign-population"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns",
+          "workflow-value-measurements",
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "run-incomplete-outcomes",
       "subject": "Project retained report-incomplete terminal outcomes as concise run diagnoses.",
       "objective": "Find recorded report_incomplete terminal outcomes that can explain a specific run's incomplete reporting.",
@@ -3148,7 +3495,8 @@
       "sources": [
         "campaign-adoption-evidence",
         "campaign-delivery-evidence",
-        "campaigns"
+        "campaigns",
+        "value-campaign-measurement-summary"
       ],
       "used-by-pages": [],
       "execution": {
@@ -3157,7 +3505,9 @@
         "requirements": [
           "campaigns",
           "output-adoption-events",
-          "output-delivery-events"
+          "output-delivery-events",
+          "workflow-value-measurements",
+          "workflows"
         ]
       }
     },
@@ -3210,6 +3560,7 @@
           "repositories",
           "runs",
           "tools",
+          "workflow-value-measurements",
           "workflows"
         ]
       }
@@ -3979,82 +4330,6 @@
       }
     },
     {
-      "id": "value-measurement-facts",
-      "subject": "Original native primary and diagnostic observations from reviewed batch evaluators.",
-      "objective": "Keep periods, native units, evaluator identity and missingness inspectable without inventing delivery events.",
-      "acceptance": "Null is unavailable, not zero. Interval measurements are not snapshots or cumulative accepted contributions.",
-      "description": "",
-      "parameters": [
-        {
-          "name": "measurement",
-          "field": "id"
-        },
-        {
-          "name": "workflow",
-          "field": "workflow-route"
-        }
-      ],
-      "sources": [
-        "workflow-value-measurements"
-      ],
-      "used-by-pages": [
-        "value-measurement",
-        "workflow-value"
-      ],
-      "execution": {
-        "local": true,
-        "backend": "postgres",
-        "requirements": [
-          "workflow-value-measurements"
-        ]
-      }
-    },
-    {
-      "id": "value-measurement-order",
-      "subject": "Latest assessment of each workflow measure, including unavailable assessments.",
-      "objective": "Do not let an older numeric value hide a newer incomplete period.",
-      "acceptance": "Choose latest cutoff and assessment before considering value or coverage; preserve evaluator digest.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "value-measurement-facts"
-      ],
-      "used-by-pages": [],
-      "execution": {
-        "local": true,
-        "backend": "postgres",
-        "requirements": [
-          "workflow-value-measurements"
-        ]
-      }
-    },
-    {
-      "id": "value-current-measurements",
-      "subject": "Latest native primary measurements, separately from event-ledger reports.",
-      "objective": "Expose ordinary reviewed batch results on the same Value surface.",
-      "acceptance": "Do not infer healthy outcomes, accepted implementations or complete coverage from a non-null value.",
-      "description": "",
-      "parameters": [
-        {
-          "name": "workflow",
-          "field": "workflow-route"
-        }
-      ],
-      "sources": [
-        "value-measurement-order"
-      ],
-      "used-by-pages": [
-        "workflow-value"
-      ],
-      "execution": {
-        "local": true,
-        "backend": "postgres",
-        "requirements": [
-          "workflow-value-measurements"
-        ]
-      }
-    },
-    {
       "id": "value-evidence-facts",
       "subject": "Published original evidence for frozen workflow value contracts.",
       "objective": "Keep report identity, target repository, workflow and capture together.",
@@ -4604,9 +4879,9 @@
     },
     {
       "id": "value-native-headline-overview",
-      "subject": "Native batch measurements normalized for universal Value subject selection.",
-      "objective": "Expose the current native result while keeping comparison unavailable unless a reviewed comparison exists.",
-      "acceptance": "A numeric measurement is not a trend or causal result. Missing remains unavailable and routes to workflow detail.",
+      "subject": "Native Operational Value movement normalized for universal Value subject selection.",
+      "objective": "Expose the latest-first Baseline, Improving, Worsening, Unchanged or Insufficient result.",
+      "acceptance": "Movement uses only comparable native periods. Missing or incomparable evidence stays Insufficient and routes to workflow detail.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4814,9 +5089,9 @@
     },
     {
       "id": "value-campaign-overview",
-      "subject": "Campaign Value coverage and attention presentation.",
-      "objective": "Find campaigns requiring evidence or outcome review before drilling into their workers.",
-      "acceptance": "Presentation fields derive only from bounded campaign deployment counts. No native outcome values are combined.",
+      "subject": "Campaign native Value movement, measured coverage and worker collection context.",
+      "objective": "Review repository-deduplicated movement before drilling into exact worker evidence.",
+      "acceptance": "All campaigns remain visible. Movement counts never average or sum unlike native measures, and worker collection gaps remain separate.",
       "description": "",
       "parameters": [
         {
@@ -4825,6 +5100,7 @@
         }
       ],
       "sources": [
+        "value-campaign-measurement-summary",
         "value-campaign-totals"
       ],
       "used-by-pages": [
@@ -4834,6 +5110,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "campaigns",
           "operational-value-evidence",
           "workflow-value-collections",
           "workflow-value-measurements",
@@ -4921,6 +5198,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "campaigns",
           "operational-value-evidence",
           "workflow-subject-topology",
           "workflow-value-collections",
@@ -4944,6 +5222,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "campaigns",
           "operational-value-evidence",
           "workflow-subject-topology",
           "workflow-value-collections",
@@ -4967,6 +5246,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "campaigns",
           "operational-value-evidence",
           "workflow-subject-topology",
           "workflow-value-collections",
@@ -4978,8 +5258,8 @@
     {
       "id": "value-overview-status-counts",
       "subject": "Status counts for top-level campaign rollups and standalone workflows.",
-      "objective": "Compare campaign review state and standalone workflow outcome movement without merging their meanings.",
-      "acceptance": "Count each top-level entry once by its own type and categorical status. Campaign worker review counts are not categories or native outcome values; missing standalone status remains explicit.",
+      "objective": "Compare categorical native Value movement without combining underlying metrics.",
+      "acceptance": "Count each top-level entry once by type and status. Campaign repositories are deduplicated before rollup and missing standalone status remains explicit.",
       "description": "",
       "parameters": [],
       "sources": [
@@ -4990,6 +5270,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "campaigns",
           "operational-value-evidence",
           "workflow-subject-topology",
           "workflow-value-collections",
@@ -5019,6 +5300,7 @@
         "local": true,
         "backend": "postgres",
         "requirements": [
+          "campaigns",
           "operational-value-evidence",
           "workflow-subject-topology",
           "workflow-value-collections",
@@ -13396,6 +13678,185 @@
         "backend": "postgres",
         "requirements": [
           "simulation-days"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-setup-summary",
+      "subject": "Read whether the local dashboard has observed a configured CAO control policy.",
+      "objective": "Distinguish an unconfigured local checkout from repository and workflow inventory readiness.",
+      "acceptance": "Use only the local configuration snapshot transaction. One committed configuration record means a valid cao.json was observed; absence of this local-only signal falls back to canonical inventory without claiming setup is missing.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "transactions"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "transactions"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-repository-summary",
+      "subject": "Count configured repositories retained in the canonical control-plane inventory.",
+      "objective": "Determine whether repository selection is present before presenting the operational Overview.",
+      "acceptance": "Count canonical repository identities only; incomplete or unavailable inventory cannot establish a fresh control repository.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-workflow-summary",
+      "subject": "Count declared workflows retained in the canonical control-plane inventory.",
+      "objective": "Determine whether the control repository has an Agentic Workflow to operate.",
+      "acceptance": "Count canonical workflow identities only; incomplete or unavailable workflow inventory cannot establish an unconfigured control repository.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-campaign-summary",
+      "subject": "Count installed campaigns retained in the canonical control-plane inventory.",
+      "objective": "Determine whether the control repository has a campaign to operate.",
+      "acceptance": "Count canonical campaign identities independently of execution; incomplete or unavailable campaign inventory cannot establish an unconfigured control repository.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "campaigns"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-setup-input",
+      "subject": "Prepare local CAO setup evidence for the Overview onboarding decision.",
+      "objective": "Carry observed and configured policy counts into the onboarding readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the counts match overview-onboarding-setup-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-setup-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "transactions"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-repository-input",
+      "subject": "Prepare repository selection evidence for the Overview onboarding decision.",
+      "objective": "Carry the configured repository count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-repository-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-repository-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-workflow-input",
+      "subject": "Prepare workflow inventory evidence for the Overview onboarding decision.",
+      "objective": "Carry the declared workflow count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-workflow-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-workflow-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-campaign-input",
+      "subject": "Prepare campaign inventory evidence for the Overview onboarding decision.",
+      "objective": "Carry the installed campaign count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-campaign-summary.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-campaign-summary"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "overview-onboarding-state",
+      "subject": "Classify whether the Overview should invite initial control-plane setup.",
+      "objective": "Replace operational factory statistics with only the next required setup, repository, or workflow and campaign action.",
+      "acceptance": "current-step is setup only when the local CLI observed a missing cao.json; otherwise it advances through repositories and artifacts from resolved canonical inventory. complete removes onboarding. This is guidance, not a claim of operational coverage or rollout authority.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "overview-onboarding-campaign-input",
+        "overview-onboarding-repository-input",
+        "overview-onboarding-setup-input",
+        "overview-onboarding-workflow-input"
+      ],
+      "used-by-pages": [
+        "overview"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns",
+          "repositories",
+          "transactions",
+          "workflows"
         ]
       }
     },

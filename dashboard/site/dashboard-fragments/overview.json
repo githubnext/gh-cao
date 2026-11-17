@@ -1,6 +1,453 @@
 {
   "queries": [
     {
+      "name": "overview-onboarding-setup-summary",
+      "subject": "Read whether the local dashboard has observed a configured CAO control policy.",
+      "objective": "Distinguish an unconfigured local checkout from repository and workflow inventory readiness.",
+      "acceptance": "Use only the local configuration snapshot transaction. One committed configuration record means a valid cao.json was observed; absence of this local-only signal falls back to canonical inventory without claiming setup is missing.",
+      "from": "transactions",
+      "filter": {
+        "predicates": [
+          {
+            "field": "kind",
+            "equals": "local-dashboard-configuration"
+          }
+        ]
+      },
+      "aggregate": {
+        "values": [
+          {
+            "field": "id",
+            "as": "setup-observation-count",
+            "reducer": "count"
+          },
+          {
+            "field": "records",
+            "as": "configured-policy-count",
+            "reducer": "sum"
+          }
+        ]
+      }
+    },
+    {
+      "name": "overview-onboarding-repository-summary",
+      "subject": "Count configured repositories retained in the canonical control-plane inventory.",
+      "objective": "Determine whether repository selection is present before presenting the operational Overview.",
+      "acceptance": "Count canonical repository identities only; incomplete or unavailable inventory cannot establish a fresh control repository.",
+      "from": "repositories",
+      "aggregate": {
+        "values": [
+          {
+            "field": "repository",
+            "as": "repository-count",
+            "reducer": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "overview-onboarding-workflow-summary",
+      "subject": "Count declared workflows retained in the canonical control-plane inventory.",
+      "objective": "Determine whether the control repository has an Agentic Workflow to operate.",
+      "acceptance": "Count canonical workflow identities only; incomplete or unavailable workflow inventory cannot establish an unconfigured control repository.",
+      "from": "workflows",
+      "aggregate": {
+        "values": [
+          {
+            "field": "workflow",
+            "as": "workflow-count",
+            "reducer": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "overview-onboarding-campaign-summary",
+      "subject": "Count installed campaigns retained in the canonical control-plane inventory.",
+      "objective": "Determine whether the control repository has a campaign to operate.",
+      "acceptance": "Count canonical campaign identities independently of execution; incomplete or unavailable campaign inventory cannot establish an unconfigured control repository.",
+      "from": "campaigns",
+      "aggregate": {
+        "values": [
+          {
+            "field": "campaign",
+            "as": "campaign-count",
+            "reducer": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "overview-onboarding-setup-input",
+      "subject": "Prepare local CAO setup evidence for the Overview onboarding decision.",
+      "objective": "Carry observed and configured policy counts into the onboarding readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the counts match overview-onboarding-setup-summary.",
+      "from": "overview-onboarding-setup-summary",
+      "compute": [
+        {
+          "as": "onboarding-key",
+          "function": "concat",
+          "args": [
+            {
+              "value": "overview"
+            },
+            {
+              "value": "-onboarding"
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "onboarding-key"
+        },
+        {
+          "field": "setup-observation-count"
+        },
+        {
+          "field": "configured-policy-count"
+        }
+      ]
+    },
+    {
+      "name": "overview-onboarding-repository-input",
+      "subject": "Prepare repository selection evidence for the Overview onboarding decision.",
+      "objective": "Carry the configured repository count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-repository-summary.",
+      "from": "overview-onboarding-repository-summary",
+      "compute": [
+        {
+          "as": "onboarding-key",
+          "function": "concat",
+          "args": [
+            {
+              "value": "overview"
+            },
+            {
+              "value": "-onboarding"
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "onboarding-key"
+        },
+        {
+          "field": "repository-count"
+        }
+      ]
+    },
+    {
+      "name": "overview-onboarding-workflow-input",
+      "subject": "Prepare workflow inventory evidence for the Overview onboarding decision.",
+      "objective": "Carry the declared workflow count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-workflow-summary.",
+      "from": "overview-onboarding-workflow-summary",
+      "compute": [
+        {
+          "as": "onboarding-key",
+          "function": "concat",
+          "args": [
+            {
+              "value": "overview"
+            },
+            {
+              "value": "-onboarding"
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "onboarding-key"
+        },
+        {
+          "field": "workflow-count"
+        }
+      ]
+    },
+    {
+      "name": "overview-onboarding-campaign-input",
+      "subject": "Prepare campaign inventory evidence for the Overview onboarding decision.",
+      "objective": "Carry the installed campaign count into the inventory readiness join.",
+      "acceptance": "The presentation join key adds no evidence and the count matches overview-onboarding-campaign-summary.",
+      "from": "overview-onboarding-campaign-summary",
+      "compute": [
+        {
+          "as": "onboarding-key",
+          "function": "concat",
+          "args": [
+            {
+              "value": "overview"
+            },
+            {
+              "value": "-onboarding"
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "onboarding-key"
+        },
+        {
+          "field": "campaign-count"
+        }
+      ]
+    },
+    {
+      "name": "overview-onboarding-state",
+      "subject": "Classify whether the Overview should invite initial control-plane setup.",
+      "objective": "Replace operational factory statistics with only the next required setup, repository, or workflow and campaign action.",
+      "acceptance": "current-step is setup only when the local CLI observed a missing cao.json; otherwise it advances through repositories and artifacts from resolved canonical inventory. complete removes onboarding. This is guidance, not a claim of operational coverage or rollout authority.",
+      "from": "overview-onboarding-repository-input",
+      "joins": [
+        {
+          "source": "overview-onboarding-setup-input",
+          "type": "left",
+          "on": [
+            {
+              "left": "onboarding-key",
+              "right": "onboarding-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "setup-observation-count",
+              "as": "setup-observation-count"
+            },
+            {
+              "field": "configured-policy-count",
+              "as": "configured-policy-count"
+            }
+          ]
+        },
+        {
+          "source": "overview-onboarding-workflow-input",
+          "type": "left",
+          "on": [
+            {
+              "left": "onboarding-key",
+              "right": "onboarding-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "workflow-count",
+              "as": "workflow-count"
+            }
+          ]
+        },
+        {
+          "source": "overview-onboarding-campaign-input",
+          "type": "left",
+          "on": [
+            {
+              "left": "onboarding-key",
+              "right": "onboarding-key"
+            }
+          ],
+          "fields": [
+            {
+              "field": "campaign-count",
+              "as": "campaign-count"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "artifact-count",
+          "function": "sum",
+          "args": [
+            {
+              "field": "workflow-count"
+            },
+            {
+              "field": "campaign-count"
+            }
+          ]
+        },
+        {
+          "as": "has-setup-observation",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "setup-observation-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "has-setup",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "configured-policy-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "has-repositories",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "repository-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "has-artifacts",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "artifact-count"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "as": "repository-step",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-artifacts"
+            },
+            {
+              "value": "complete"
+            },
+            {
+              "value": "artifacts"
+            }
+          ]
+        },
+        {
+          "as": "inventory-step",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-repositories"
+            },
+            {
+              "field": "repository-step"
+            },
+            {
+              "value": "repositories"
+            }
+          ]
+        },
+        {
+          "as": "setup-step",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-setup"
+            },
+            {
+              "field": "inventory-step"
+            },
+            {
+              "value": "setup"
+            }
+          ]
+        },
+        {
+          "as": "current-step",
+          "function": "if",
+          "args": [
+            {
+              "field": "has-setup-observation"
+            },
+            {
+              "field": "setup-step"
+            },
+            {
+              "field": "inventory-step"
+            }
+          ]
+        },
+        {
+          "as": "onboarding-complete",
+          "function": "equals-any",
+          "args": [
+            {
+              "field": "current-step"
+            },
+            {
+              "value": "complete"
+            }
+          ]
+        },
+        {
+          "as": "onboarding-value",
+          "function": "if",
+          "args": [
+            {
+              "field": "onboarding-complete"
+            },
+            {
+              "value": 0
+            },
+            {
+              "value": 1
+            }
+          ]
+        },
+        {
+          "as": "show-onboarding",
+          "function": "greater-than",
+          "args": [
+            {
+              "field": "onboarding-value"
+            },
+            {
+              "value": 0
+            }
+          ]
+        }
+      ],
+      "select": [
+        {
+          "field": "show-onboarding"
+        },
+        {
+          "field": "current-step"
+        },
+        {
+          "field": "has-setup-observation"
+        },
+        {
+          "field": "has-setup"
+        },
+        {
+          "field": "has-repositories"
+        },
+        {
+          "field": "has-artifacts"
+        },
+        {
+          "field": "repository-count"
+        },
+        {
+          "field": "workflow-count"
+        },
+        {
+          "field": "campaign-count"
+        }
+      ]
+    },
+    {
       "name": "overview-run-summary",
       "subject": "Summarize successful, failed, and active runs with rollout-mode counts.",
       "objective": "Expose observed success, failure, and active run counts, including active live and review modes, for the selected horizon.",
@@ -1598,6 +2045,7 @@
           "description": "Factory health measures all workflows across CAO and targeted repositories without current runtime failures; repository coverage measures registered repositories reached by successful worker execution. Weekly rhythm compares all workflow runs regardless of status or conclusion.",
           "data": {
             "sources": [
+              "overview-onboarding-state",
               "overview-header-presentation",
               "overview-rhythm"
             ]
@@ -1618,6 +2066,7 @@
           "subject": "Show all-workflow Factory health, repository coverage, retained issues and pull requests, and observed grader results with their investigation routes.",
           "data": {
             "sources": [
+              "overview-onboarding-state",
               "overview-factory-station",
               "overview-repository-station",
               "overview-issue-station",

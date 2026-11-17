@@ -6,8 +6,8 @@
 > **Research prototype:** Features and interfaces may change.
 
 > [!TIP]
-> **Agents:** Use the [setup skill](skills/setup-cao/SKILL.md) to create a control
-> plane and the [debug skill](skills/debug-cao/SKILL.md) when CAO fails.
+> **Agents:** Use the [`central-agentic-ops` skill](skills/central-agentic-ops/SKILL.md)
+> to set up a control plane, operate campaigns, analyze evidence, or debug CAO.
 
 Central Agentic Ops (CAO) brings GitHub Agentic Workflow runs, costs, and
 outcomes into one dashboard, then adds policy-governed execution when you are
@@ -88,9 +88,9 @@ first—campaigns are one way to scale work, not a prerequisite. See
 You can also inspect [verified Repo Assist examples](repo-assist/README.md#see-repo-assist-in-action)
 without running more work.
 
-For agents, install the [CAO plugin](docs/agent-plugin.md) and use the task skill:
-`setup-cao`, `debug-cao`, `add-cao-campaign`, `create-cao-campaign`,
-`analyze-cao`, or `cao-cli`.
+For agents, install the [CAO plugin](docs/agent-plugin.md) and use the
+`central-agentic-ops` skill, which routes each task to one guide under
+[`.github/cao/instructions/`](.github/cao/instructions/).
 
 ## Read the docs
 

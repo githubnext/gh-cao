@@ -29,12 +29,17 @@ The generated scalar columns are qualified by `PresentFields`, `NullFields`,
 for original structured evidence. Physical empty strings are not proof of source
 absence, and nullable/invalid measurements are not zero. The
 [fresh evidence contract](../specs/session-archive.md#21-fresh-original-evidence-contract)
-defines the 15 conditional grader-evidence families. Four scalar usage formulas
-are reviewed declarative queries on DuckDB and ADX. Four trajectory formulas
-(objective coverage, premature termination, grounding accuracy, state revisit)
-are reviewed local DuckDB queries over item sources. Recurrence rate and
-artifact production are reviewed local DuckDB two-stage chained queries. The
-remaining five are unsupported. The
+defines the 15 conditional grader-evidence families. Twenty-one upstream
+built-in graders are reviewed declarative `session-query` definitions under
+`internal/sessionarchive/testdata/graders/`, accepted on local DuckDB and real
+Kusto: the four usage formulas; objective coverage, premature termination,
+grounding accuracy and state revisit over item sources; chained recurrence rate
+and artifact production; joined dependency order, evidence saturation and the
+recurrence laminarity, trapping-time and determinism metrics; exploration
+error, exploitation error and tool-output consumption over the E1 collections;
+and code search recall, code read precision and code edit precision over the
+reference patch, resources and actions. Five attempted candidates (the three
+tool-call graders, retries and policy near-miss) remain unsupported. The
 [grader query feasibility tracker](../specs/session-archive-grader-queries.md)
 classifies all 35 upstream built-ins and the extensions each one needs.
 It preserves every original observation rather than reconciling invocations,
@@ -47,6 +52,15 @@ approves whole selected top-level data subtrees: approving a trajectory
 collection, usage or attempt history can retain extra nested values. Review
 that scope and text/error redaction explicitly; there is no nested-path
 allowlist. Typed values are projected only after approval and redaction.
+By user-directed decision E1, the trajectory-IR `toolCalls`, `observations`,
+`resources`, `provenanceEdges` and `reference` collections are also approvable
+whole subtrees with generated families
+([Section 2.2](../specs/session-archive.md#22-trajectory-ir-collection-approval-user-directed)).
+They stay off unless the reviewed policy names them; approving `toolCalls`
+retains its tool arguments. The `cao-approved-events-v3` transform records their
+exclusion and redaction. Archive contract version 3 drops v2 data: v2
+projections, local archives, Parquet files and hosted acceptance fail closed and
+require fresh provisioning.
 
 The supplied standard Alpine images do not imply DuckDB compatibility or
 provision a private archive volume. Use a reviewed persistent native host or
@@ -147,7 +161,7 @@ Actions tokens and storage credentials are not archive-reader identities.
 ## Synthetic grader replay
 
 Run `node scripts/replay-session-archive-graders.mjs [private-report-directory]`
-from the repository root to exercise the 15 reviewed candidates against the
+from the repository root to exercise the 26 attempted candidates against the
 pinned gh-aw revision recorded in the evidence fixture manifest. It reads only
 public pinned grader code through `gh`, verifies downloaded Git blob identities,
 and compares grader values/errors on original approved events and real DuckDB
@@ -155,13 +169,14 @@ Parquet reconstructions. The focused Go regression is
 `CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1`.
 
 Reports separate approved-input preservation, pinned-grader replay, and attempted
-full public JSON query support. The ten definitions in
+full public JSON query support. The twenty-one definitions in
 `internal/sessionarchive/testdata/graders/` execute in real DuckDB and compare
-step count, duration, rebuild factor, context growth, the four trajectory
-item-source metrics, and the chained recurrence-rate and artifact-production
-metrics to the pinned upstream values and unavailable states. Reason codes are query qualifications; upstream
-v2 provides status but no reason codes. Successful scalar component queries for
-the remaining five are not complete metrics. Missing provenance, invalid measurements, missing/null inputs,
+their values and unavailable states with the pinned upstream graders. Reason
+codes are query qualifications; upstream v2 provides status but no reason
+codes. Successful scalar component queries for the five unsupported candidates
+are not complete metrics. Every definition must also fit the 8192-byte request
+budget with the maximum GitHub repository shape (39-character owner, slash,
+100-character name). Missing provenance, invalid measurements, missing/null inputs,
 excluded fields and redacted descriptions are not normalized to make replay
 succeed. Reports are private ignored test artifacts, not persisted archive
 scores, dashboard sources, live collection or Kusto/Azure acceptance evidence.
@@ -174,12 +189,15 @@ to guard against cross-trace family/measurement leakage.
 With an explicitly approved real `CAO_KUSTO_EMULATOR_URL`, the same runner also
 executes `TestKustoUsageGraderReplay` against that engine. Without it, Kusto
 parity is unavailable. Never accept an emulator license or start an engine
-implicitly. The existing opt-in `scripts/test-kusto-emulator.sh` includes paired
-replay and retains its separate EULA approval gate.
+implicitly. `scripts/test-kusto-emulator.sh` includes paired replay and keeps
+its `ACCEPT_EULA=Y` gate.
 For separately approved live destination acceptance, set
 `CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR` to the retained replay directory containing
-`evidence.json`; the live gate executes all four current ADX-runnable usage definitions on real
-Kusto before emitting the new analytical binding. This is not production
+`evidence.json`; the live gate (`verifyLiveAnalytical`) replays every
+scenario's full DuckDB result for all twenty-one reviewed definitions through
+real Kusto, requiring the recorded definition to equal the current reviewed file,
+before emitting the new analytical binding. `TestKustoUsageGraderReplay` runs
+the same check against the emulator in the `session-archive-kusto` job. This is not production
 ingestion, persisted grading or proof of complete acquired evidence.
 
 ## Queries and operations
@@ -319,13 +337,19 @@ fail without fallback. See the [analytical contract](../specs/session-archive.md
 for filtered aggregates, generated field-state predicates, numeric ordered
 `first`, wide versus sequential sums and the explicit bounded post-aggregate
 phase. No reducer reads `PayloadJSON`; null first values are retained.
-Local DuckDB status also lists `analytical.sources`: `archive-objectives`,
-`archive-actions`, and `archive-states` flatten each trace's last agent-phase
+Status also lists `analytical.sources`: item sources such as
+`archive-objectives`, `archive-actions`, `archive-states`, `archive-resources`
+and `archive-reference-patch-files` flatten each trace's last agent-phase
 `trajectory.ir` collection at query time, and `analytical.chaining`: a
-definition may read up to two earlier definitions in `queries`, each keyed by
-complete trace and projection identity, lowered to one DuckDB statement with no
-persisted intermediate. ADX does not advertise item sources or chaining and
-rejects those plans until a KQL lowering is accepted against real Kusto.
+definition may read up to eight earlier definitions in `queries`, each keyed by
+complete trace and projection identity, lowered to one DuckDB statement or
+one KQL query of materialized `let` stages with no persisted intermediate.
+Status also advertises `analytical.compute`, `analytical.windows`
+(`previous`, `row-number`) and `analytical.stateFamilies` (`Error`, `Usage`,
+`Provenance`): row-level computations, trace-bound windows over a total row
+order, and field-state predicates over structured families without exposing
+their values. DuckDB and ADX advertise each construct only after its lowering
+passed the real Kusto acceptance job; otherwise they reject such plans.
 Results include
 typed columns, rows, and metadata separating intentional top-N selection from
 known evidence gaps and unknown upstream coverage, plus query digest and compiler
@@ -360,7 +384,7 @@ Call `cao_session_query` with the `repository`, `language-version`, and `query`
 fields from the JSON example above, omitting `kind`. Responses include the
 same generation, columns, rows and coverage metadata as HTTP, in both MCP text
 and structured content. Argument and complete-response budgets remain
-4096 bytes and 8 MiB. The reader survives SDK serialization through the actual
+8192 bytes and 8 MiB. The reader survives SDK serialization through the actual
 HTTP response write, with withdrawal and caller authorization rechecked before
 delivery; source-epoch fencing remains in the hosted archive adapter.
 
@@ -414,9 +438,11 @@ Run the fixed 1,048,576-event test with
 `^TestDuckDBArchiveMillionEventBenchmark$`. Its sampled heap/temp figures are
 not RSS guarantees.
 
-Functional Kusto evidence is opt-in: review the emulator license, then explicitly
-set `ACCEPT_EULA=Y` for `scripts/test-kusto-emulator.sh`, or select the default-false
-acceptance input when manually dispatching Parquet and Session Archive CI. This runs the
+Locally, functional Kusto evidence is opt-in: review the emulator license, then
+explicitly set `ACCEPT_EULA=Y` for `scripts/test-kusto-emulator.sh` on an x86-64
+host with SSE4.2 and AVX2 (ARM hosts are unsupported). Parquet and Session Archive
+CI runs the same script on every trigger in its `session-archive-kusto` job, under
+the repository's reviewed license acceptance recorded in the workflow. This runs the
 production membership query template against the pinned official engine, not
 live Azure storage. The script does not benchmark the emulator.
 

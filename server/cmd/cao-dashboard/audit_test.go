@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -100,6 +101,42 @@ func TestVerifyAttrs(t *testing.T) {
 	}
 }
 
+func TestParseAuditAnchorBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		input string
+		want  operational.AuditAnchor
+	}{
+		{"\t9223372036854775807:hash\n", operational.AuditAnchor{Sequence: 9223372036854775807, Hash: "hash"}},
+		{"-9223372036854775808:hash", operational.AuditAnchor{Sequence: -9223372036854775808, Hash: "hash"}},
+		{"+1:a:b", operational.AuditAnchor{Sequence: 1, Hash: "a:b"}},
+		{"0:", operational.AuditAnchor{Sequence: 0, Hash: ""}},
+		{"1: hash", operational.AuditAnchor{Sequence: 1, Hash: " hash"}},
+	} {
+		t.Run(tc.input, func(t *testing.T) {
+			got, err := parseAuditAnchor(tc.input)
+			if err != nil || got != tc.want {
+				t.Fatalf("parseAuditAnchor(%q) = %+v, %v; want %+v", tc.input, got, err, tc.want)
+			}
+		})
+	}
+	for _, input := range []string{"9223372036854775808:hash", "-9223372036854775809:hash", "1 :hash", "1.0:hash", "1", "\n"} {
+		t.Run(input, func(t *testing.T) {
+			got, err := parseAuditAnchor(input)
+			wantErr := fmt.Sprintf("--anchor %q must be SEQUENCE:HASH", input)
+			if got != (operational.AuditAnchor{}) || err == nil || err.Error() != wantErr {
+				t.Fatalf("parseAuditAnchor(%q) = %+v, %v; want zero anchor and %q", input, got, err, wantErr)
+			}
+		})
+	}
+}
+
+func TestParseAuditAnchorsDiscardsPartialResult(t *testing.T) {
+	got, err := parseAuditAnchors([]string{"1:first", "invalid", "2:last"})
+	if got != nil || err == nil || err.Error() != `--anchor "invalid" must be SEQUENCE:HASH` {
+		t.Fatalf("parseAuditAnchors = %+v, %v; want nil and invalid-anchor error", got, err)
+	}
+}
+
 func TestExportAuditPaginatesInOrder(t *testing.T) {
 	store, _, _ := operationalCommandFixture(t)
 	defer func() { _ = store.Close() }()
@@ -134,5 +171,26 @@ func TestExportAuditPaginatesInOrder(t *testing.T) {
 	out.Reset()
 	if err := exportAudit(t.Context(), store, operational.AuditFilter{AfterSequence: last}, &out); err != nil || out.Len() != 0 {
 		t.Fatalf("export after head = %q, %v", out.String(), err)
+	}
+}
+
+func TestAuditExportFilter(t *testing.T) {
+	got, err := auditExportFilter(7, "cli_command.admitted", "octocat")
+	want := operational.AuditFilter{AfterSequence: 7, Event: "cli_command.admitted", Actor: "octocat"}
+	if err != nil || got != want {
+		t.Fatalf("valid flags: got %+v, %v; want %+v", got, err, want)
+	}
+	if got, err := auditExportFilter(0, "", ""); err != nil || got != (operational.AuditFilter{}) {
+		t.Fatalf("zero cursor: got %+v, %v", got, err)
+	}
+	got, err = auditExportFilter(-1, "event", "actor")
+	if err == nil || err.Error() != "--after must not be negative" || got != (operational.AuditFilter{}) {
+		t.Fatalf("negative cursor: got %+v, %v", got, err)
+	}
+}
+
+func TestAuditExportRejectsNegativeAfterBeforeOpeningStore(t *testing.T) {
+	if _, err := runAudit(t, "export", "--after", "-5"); err == nil || err.Error() != "--after must not be negative" {
+		t.Fatalf("export --after -5 error = %v", err)
 	}
 }
