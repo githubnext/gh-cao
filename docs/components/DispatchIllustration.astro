@@ -109,6 +109,7 @@ const organizationNodes = [
 ];
 ---
 
+<div class="dispatch-illustration-frame">
 <div class="dispatch-illustration" aria-hidden="true">
   <section class="control-plane">
     <header class="control-plane-heading">
@@ -405,6 +406,8 @@ const organizationNodes = [
       </div>
     </div>
   </section>
+</div>
+  <button type="button" class="animation-toggle" hidden>Pause animation</button>
 </div>
 
 <style>
@@ -1286,4 +1289,68 @@ const organizationNodes = [
       opacity: 1 !important;
     }
   }
+  .animation-toggle {
+    display: block;
+    min-height: 44px;
+    margin: 12px 0 0 auto;
+    padding: 8px;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--sl-color-gray-2);
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  .animation-toggle[hidden] {
+    display: none;
+  }
+
+  .animation-toggle:hover {
+    text-decoration: underline;
+  }
+
+  .animation-toggle:focus-visible {
+    outline: 3px solid var(--sl-color-accent-high);
+    outline-offset: 3px;
+  }
+
+  .dispatch-illustration-frame[data-paused] .dispatch-illustration *,
+  .dispatch-illustration-frame[data-paused] .dispatch-illustration *::before,
+  .dispatch-illustration-frame[data-paused] .dispatch-illustration *::after {
+    animation-play-state: paused !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animation-toggle {
+      display: none;
+    }
+  }
 </style>
+
+<script>
+  function initializeDispatchAnimationControls() {
+    for (const frame of document.querySelectorAll<HTMLElement>(".dispatch-illustration-frame")) {
+      if (frame.dataset.animationReady === "true") continue;
+      const illustration = frame.querySelector<HTMLElement>(".dispatch-illustration");
+      const toggle = frame.querySelector<HTMLButtonElement>(".animation-toggle");
+      if (!illustration || !toggle) throw new Error("Dispatch illustration animation controls are incomplete.");
+
+      toggle.addEventListener("click", () => {
+        const paused = frame.toggleAttribute("data-paused");
+        illustration.querySelectorAll<SVGSVGElement>("svg").forEach((svg) => {
+          if (paused) svg.pauseAnimations();
+          else svg.unpauseAnimations();
+        });
+        toggle.textContent = paused ? "Resume animation" : "Pause animation";
+      });
+      frame.dataset.animationReady = "true";
+      toggle.hidden = false;
+    }
+  }
+
+  initializeDispatchAnimationControls();
+  document.addEventListener("astro:page-load", initializeDispatchAnimationControls);
+</script>
