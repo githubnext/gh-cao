@@ -181,7 +181,8 @@ var itemSources = []ItemSource{
 	{Name: "archive-objectives", Path: "data.objectives", Elements: []ItemElement{
 		{"satisfiedAtEventIndex", Column{"SatisfiedAtEventIndex", "integer"}, "unsigned"},
 		{"id", Column{"Id", "string"}, "string"},
-		{"dependsOn", Column{"DependsOn", "integer"}, "length"}}},
+		{"dependsOn", Column{"DependsOn", "integer"}, "length"},
+		{"description", Column{"Description", "string"}, "string"}}},
 	{Name: "archive-objective-dependencies", Path: "data.objectives", Nested: "dependsOn", Elements: []ItemElement{
 		{"", Column{"Value", "string"}, "string"}}},
 	{Name: "archive-actions", Path: "data.actions", Elements: []ItemElement{

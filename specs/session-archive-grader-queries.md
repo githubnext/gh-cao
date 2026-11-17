@@ -17,7 +17,7 @@ grader's semantics.
 | Upstream pin | `github/gh-aw` `5ac122295e5e839aa15a727ecf4762f3e680cc24` ([`grader-source-pins.json`](../server/internal/sessionarchive/testdata/grader-source-pins.json)) |
 | Last upstream review | `main` `ce49bf98` (2026-11-17); no grader file changed since `3b0e22a4`, and `builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs` and `working_set_metrics.cjs` are byte-identical to the pin. The intervening changes move custom and operational-value graders to a restricted job, which stays out of scope. Previously `3b0e22a4`, `789cc9c2` and `a25e38ee6b9740b10008559bd2c9290ef1f925aa` |
 | Upstream sources | `actions/setup/js/builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs`, `working_set_metrics.cjs`, `operational_value_grader.cjs`, `custom_graders.cjs` |
-| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1, Phase 5, E1 and Phase 7 item sources, Phase 2 chaining, Phase 4 row-level compute, windows and structured-family states, Phase 5 joins, and the Phase 7 `trim` and `strip-prefix` functions, within the Phase 6 budgets (8,192-byte requests, nine-field window partitions) |
+| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1, Phase 5, E1 and Phase 7 item sources, Phase 2 chaining, Phase 4 row-level compute, windows and structured-family states, Phase 5 joins, the Phase 7 `trim` and `strip-prefix` functions and the G1 `keyword-match` function, within the Phase 6 budgets (8,192-byte requests, nine-field window partitions) |
 | Graders in scope | 35 built-ins; operational-value and custom graders are listed as out of scope |
 
 Re-review when the pin moves: compare the pin with upstream `main` through
@@ -105,7 +105,7 @@ MUST reject the query rather than approximate it.
 | L6 | `state` predicate over approved structured families, for example `Error` non-null or `RetryHint` present | Archive-specific | Reads the existing presence metadata only. Never exposes or stringifies values. |
 | S1 | Child-row sources that flatten approved arrays: `archive-objectives`, `archive-actions`, `archive-states`, `archive-ir-events`, `archive-attempt-results`, and nested `archive-objective-dependencies` | Archive-specific | One row per original element, with parent trace, projection, `Sequence` and element ordinal. Element scalars come from generated `@evidence` paths with the same state metadata. Preserves values without deriving state identity or scores. Changes the generated archive schema and contract version. |
 | S2 | `trajectory-ir` binding of S1 sources to upstream's `trajectoryIR` (the last agent-phase `trajectory.ir` per trace) | Archive-specific | The trusted lowerer selects the binding at query time, not at capture. Traces whose upstream value would come from a synthesized fallback collection report `unavailable`, which is a declared and tested divergence. |
-| G1 | Regex or keyword matching over text | — | General and caller-supplied regex stays rejected. **Path normalization resolved (Phase 7):** `trim` and closed literal `strip-prefix` reproduce upstream `normalizeFilePath` exactly (§12). A closed, reviewed ASCII keyword-word-match predicate is feasible on both backends (§3.1), but it is a language change and also needs approval of each text field it reads. Blocks message-based retries, guard-objective detection and skill constraints. |
+| G1 | Regex or keyword matching over text | — | General and caller-supplied regex stays rejected. **Path normalization resolved (Phase 7):** `trim` and closed literal `strip-prefix` reproduce upstream `normalizeFilePath` exactly (§12). **Closed keywords resolved (G1):** with user-directed approval of the retry `message` and objective `description` fields ([`session-archive.md` §2.3](session-archive.md#23-retry-message-and-objective-description-approval-user-directed)), the closed `keyword-match(text, set)` function matches the two fixed upstream keyword sets through explicit ASCII classes on both backends (§3.1, §13). Unlocks `policy-near-miss`. Skill constraints still need caller-supplied regex (G4); `retries` also needs attempt-history evidence (§4.1). |
 | G2 | `log` and `exp` functions | — | Not in Dashboard Language. Adding them is a language change, not a profile port. Rejected while replay requires exact equality, because DuckDB and V8 results differ in the last bit (§3.1). |
 | G3 | Recursion, graph reachability, or iterative or dynamic-programming algorithms | — | Rejected. Blocks provenance lineage, LZ76 and DTW. The RQA graders do not need it (§4.2). |
 | G4 | Caller-supplied grader configuration or reference data (constraints, reference trajectories or patches, process models) | — | Rejected for the authenticated archive profile. Would need separately reviewed reference evidence. |
@@ -181,6 +181,12 @@ Phases 1b and 2b found two emulator-only constraints:
     Kelvin sign, long s and dotted or dotless `i`, that DuckDB pattern matched
     upstream `/\bretry(?:ing)?\b/i` exactly. The executable evidence in §4.2
     checks both upstream patterns on DuckDB.
+  - **Production lowering (§13):** `keyword-match` emits exactly this
+    pattern form on both engines, as DuckDB
+    `coalesce(regexp_matches(text, pattern), false)` and KQL
+    `text matches regex @'pattern'`. `TestKustoKeywordLowering` runs all
+    426 fixture texts through the real Kusto emulator, so the KQL side of the
+    keyword evidence is executed, not only referenced.
   - **Cost and exclusions:** both engines match in linear time. KQL `has` uses
     different term tokenization and is not an equivalent. Caller-supplied
     JavaScript regex cannot be translated faithfully to either dialect and
@@ -219,7 +225,7 @@ marks the 15 candidates in the
 | `tool-success-rate` | (calls − failed) ÷ calls, or 1 when there are no calls | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L1–L6 and text `first` | — |
 | `trajectory-efficiency` | Distinct tool names ÷ reconciled calls, or 1 | yes | `vocabulary-gated` | G3 (FIFO pointer skips). Otherwise L2–L5 | — |
 | `artifact-production` | Applied `safe_output.result` with success or absent status, minus absent-status types with a safe-outputs-phase outcome | yes | `implemented` | — | — |
-| `retries` | MCP retry events (event, `retryHint` or a message regex) plus deduplicated harness attempts | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the message field. The non-regex part needs L3, L6 and S1 (`attemptResults`) | — |
+| `retries` | MCP retry events (event, `retryHint` or a message regex) plus deduplicated harness attempts | yes | `vocabulary-gated` | **Reclassified (§13).** The message half is resolved: the field is user-approved and `keyword-match` lowers it exactly. The harness half still needs S1 (`archive-attempt-results`), startup-scope extraction from `attemptId` (a capture regex beyond closed keywords), JSON-typed last-wins deduplication and a canonical-attempt anti-join | — |
 | `loops` | Consecutive identical session, tool name and arguments | no | `out-of-scope` | Tool arguments are not approved | — |
 
 Tool-call reconciliation is the shared prerequisite for the three tool
@@ -290,7 +296,7 @@ S1 sources in Phase 5 (§10).
 | `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet; zero if all are satisfied. Distinct states are distinct string `ref` of IR `state_change` events, falling back to the record state count | no | `implemented` | — (non-string refs fail closed, §11) | — |
 | `exploitation-error` | Unused observations ÷ observations when an objective is unmet and observations ≥ distinct visited states; zero if all are satisfied. Unused means `consumedByActionIds` is not a non-empty array | no | `implemented` | — (non-string refs fail closed, §11) | — |
 | `tool-output-consumption-rate` | Tool-originated observations with at least one non-empty string consumer ÷ tool-originated observations. Source IDs must name an IR `toolCalls[].id` | no | `implemented` | — (missing or null IR tool calls fail closed, §11) | — |
-| `policy-near-miss` | Unmet guard objectives ÷ guard objectives, where guard objectives are matched by a keyword regex on the description | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the objective `description` field. Also needs S1 (IR `events`) for the safe-output check, L2 and L3 | — |
+| `policy-near-miss` | Unmet guard objectives ÷ guard objectives, where guard objectives are matched by a keyword regex on the description | yes | `implemented` | — (G1 `keyword-match` over the user-approved `description`; objectives or events redaction fails closed, §13) | — |
 | `skill-constraint-coverage` | Configured regex constraints that were exercised and passed | no | `vocabulary-gated` | G1, G4 | — |
 | `event-entropy-rate` | Bigram conditional entropy ÷ log2 of the alphabet size | no | `vocabulary-gated` | G2. Otherwise needs L3, L5 and `concat` | — |
 | `lempel-ziv-trajectory-complexity` | Normalized LZ76 complexity | no | `vocabulary-gated` | G2, G3 | — |
@@ -365,8 +371,9 @@ on every required DuckDB CI run:
 - **Recurrence:** `recurrence.sql` computes RR, DET, LAM and TT with only L2
   expressions, L3 stages, L4 joins on the trace key and L5
   `previous`/`row-number` windows.
-- **Keywords:** `keywords.sql` holds the ASCII G1 lowering of the `retries`
-  and `policy-near-miss` keyword patterns.
+- **Keywords:** `keywords.sql` is a template filled with the production
+  `KeywordPattern` output for the `retries` and `policy-near-miss` keyword
+  sets, so the evidence checks the shipped lowering.
 
 [`scripts/generate-session-query-lowering-cases.mjs`](../scripts/generate-session-query-lowering-cases.mjs)
 regenerates `cases.json` from the pinned, hash-verified upstream graders. Every
@@ -399,11 +406,11 @@ not executed (§3.1).
 
 | Status | Count | Graders |
 | --- | ---: | --- |
-| `implemented` | 21 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained); laminarity, trapping time, dependency order, evidence saturation (joined); exploration error, exploitation error, tool-output consumption (E1); determinism (Phase 6); code search recall, code read precision, code edit precision (Phase 7) |
+| `implemented` | 22 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained); laminarity, trapping time, dependency order, evidence saturation (joined); exploration error, exploitation error, tool-output consumption (E1); determinism (Phase 6); code search recall, code read precision, code edit precision (Phase 7); policy near-miss (G1) |
 | `implemented-local` | 0 | — |
 | `extension-ready` | 0 | — |
 | `evidence-gated` | 0 | — (E1 decided) |
-| `vocabulary-gated` | 13 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (3: `tool-wise-score`, `trajectory-ndtw`, `process-alignment-fitness`) |
+| `vocabulary-gated` | 12 | Tool reconciliation (3), retries (attempt history), skill constraints, entropy, LZ, lineage (2), reference and config graders (3: `tool-wise-score`, `trajectory-ndtw`, `process-alignment-fitness`) |
 | `out-of-scope` | 1 | loops |
 
 Every backend advertises the item sources, chaining and joins through
@@ -411,8 +418,8 @@ Every backend advertises the item sources, chaining and joins through
 
 | Backend | Recomputed graders | Acceptance |
 | --- | --- | --- |
-| Local DuckDB | All 21 `implemented` graders | `TestGraderReplayEvidence` and the pinned upstream replay |
-| Hosted and native ADX (Kusto) | All 21 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5; [run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578) for E1, on the exact tree merged in #21102; [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174), on the exact tree merged in #21122 for Phases 6 and 7) |
+| Local DuckDB | All 22 `implemented` graders | `TestGraderReplayEvidence` and the pinned upstream replay |
+| Hosted and native ADX (Kusto) | All 22 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5; [run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578) for E1, on the exact tree merged in #21102; [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174), on the exact tree merged in #21122 for Phases 6 and 7) |
 
 The Kusto replay executes every definition that has a full DuckDB result
 through the real engine over the same synthetic approved events. It is not
@@ -424,7 +431,8 @@ live external-table acceptance.
   titles or URLs are approved to support a grader. The only exception is the
   user-directed E1 decision, which approves the five whole IR collections
   `observations`, `toolCalls`, `provenanceEdges`, `resources` and `reference`
-  and nothing outside them. Excluded or redacted
+  and nothing outside them, and the user-directed G1 decision, which approves
+  only the retry `message` and objective `description` fields. Excluded or redacted
   evidence keeps the result unavailable whenever it affects a required value.
   Harmless text redaction may preserve record counts, satisfaction nullness and
   array lengths (E1, §11); it is never normalized to make replay pass.
@@ -490,10 +498,17 @@ new evidence approval unless stated.
   covering Unicode whitespace (§12). Accepted on real Kusto in
   [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174),
   on the exact tree merged in #21122.
-- [ ] **User decision (G1, keywords):** decide whether to approve the retry
-  message and objective `description` fields. Only then consider a closed ASCII
-  keyword-match predicate (§3.1) for `retries` and `policy-near-miss`; typed
-  upstream retry or guard flags would remove the need.
+- [x] **User decision (G1, keywords):** user-directed: asked to approve the
+  retry message and objective `description` fields, the user answered "Yes"
+  ([`session-archive.md` §2.3](session-archive.md#23-retry-message-and-objective-description-approval-user-directed)).
+  Nothing else is approved; default-off policy, exclusion and fail-closed
+  redaction are unchanged.
+- [x] **Phase G1 (closed keywords):** closed `keyword-match` over the fixed
+  upstream `retry` and `guard` sets, lowered with explicit ASCII classes on
+  DuckDB and KQL, plus the `archive-objectives` `Description` field. Unlocks
+  `policy-near-miss`. `retries` is reclassified: its harness attempt-history
+  half needs S1 `attemptResults`, a startup-scope capture and a deduplicating
+  anti-join (§13). Hosted acceptance: [run 44055296560](https://github.com/githubnext/gh-cao/actions/runs/44055296560) (`TestKustoKeywordLowering` and `TestKustoUsageGraderReplay` passed against real Kusto).
 - [ ] **User decision (G2):** `event-entropy-rate` needs `log2`. Replay requires
   exact equality and DuckDB and V8 can differ in the last bit (§3.1), so either
   accept a declared ulp tolerance for this grader or keep it rejected.
@@ -836,3 +851,111 @@ Declared divergences, all fail-closed:
   `malformed-*`, `missing-type`, `missing-consequential`,
   `non-consequential-edit`, `missing-target`, `no-reads`/`no-edits`,
   `measured`) is a query qualification.
+
+## 13. G1 implementation notes
+
+G1 adds one definition, `policy-near-miss`, which brings both backends to
+twenty-two `implemented` graders. Hosted acceptance: [run 44055296560](https://github.com/githubnext/gh-cao/actions/runs/44055296560) (`TestKustoKeywordLowering` and `TestKustoUsageGraderReplay` passed against real Kusto).
+
+### User-directed approval
+
+The coordinator asked whether to approve the retry message and objective
+`description` fields as archive evidence; the user answered "Yes". This is a
+user-directed decision recorded in
+[`session-archive.md` §2.3](session-archive.md#23-retry-message-and-objective-description-approval-user-directed).
+It approves exactly the MCP `data.message` field (already the typed `Message`
+column) and the objective `description` element field of the approved
+`objectives` subtree, now the typed `Description` column of
+`archive-objectives`. Both stay default-off per event policy. Exclusion and
+redaction are recorded as before, and redaction that affects a required value
+fails closed.
+
+### Closed keyword matching
+
+`keyword-match(text, set)` is a row-level compute function. `text` must be a
+string expression and `set` a string literal naming a closed set copied from
+the pinned upstream patterns:
+
+| Set | Upstream pattern | Words |
+| --- | --- | --- |
+| `retry` | `/\bretry(?:ing)?\b/i` (`grader_session.cjs`) | `retry`, `retrying` |
+| `guard` | `/\b(check\|verify\|verification\|policy\|approval\|approve\|guard\|confirm\|authorize\|authorization)\b/i` (`trajectory_graders.cjs`) | the ten alternatives |
+
+`KeywordPattern` emits
+`(^|[^A-Za-z0-9_])(<w1>|<w2>|…)([^A-Za-z0-9_]|$)`, where every letter becomes a
+two-letter ASCII class such as `[rR]`. DuckDB lowers it as
+`coalesce(regexp_matches(text, '<pattern>'), false)` and KQL as
+`(text matches regex @'<pattern>')`. The pattern has no `\b`, `\w`, `(?i)` or
+quote characters, so both dialects read it identically (§3.1). Unknown sets,
+field or non-string sets, non-string texts and missing arguments are rejected
+by the planner, and no caller-supplied pattern exists.
+
+Evidence:
+
+- `TestDuckDBLoweringEvidenceIntegration` fills `keywords.sql` with the
+  production patterns and checks 426 texts, including the Kelvin sign,
+  long s and dotted or dotless `i`, against pinned upstream results.
+- `TestKustoKeywordLowering` runs the same 426 texts through the production KQL
+  lowering on the real Kusto emulator in the `session-archive-kusto` job.
+
+### `policy-near-miss`
+
+The 3,840-byte definition fits the 8,192-byte request budget at the maximum
+repository shape. It reads
+`archive-objectives` and `archive-ir-events` from the last agent-phase IR,
+plus `archive-events` for upstream's synthesized fallback: when the IR has no
+`events` key, upstream synthesizes `{kind: type}` from agent-phase,
+agent-component events. Unapproved event types are still archived with
+`Type`, `Component` and `Phase`, so that safe-output check is exact.
+
+The value is unmet guards ÷ guards. A guard is an objective whose string
+`Description` matches the `guard` set. A guard is met when its
+`satisfiedAtEventIndex` is present and not null; an invalid index counts as
+met, as in upstream. The reason ladder is:
+
+1. `incomplete-evidence` or `oversized` (any IR collection over 5,000 items).
+2. `no-objectives`.
+3. `redacted` when the objectives or IR events collection is redacted.
+4. `no-safe-output`.
+5. `no-guard-objectives`.
+6. `measured`.
+
+Replay adds seven scenarios: measured (0.4, with mixed-case guards and
+`re-check`), no safe output, null IR events with a synthesized `safe_output`
+type, no guard words (`guard_rail`, `unverified`, `approvals`), synthesized
+fallback (0.5), a synthesized type from another component, and 5,001
+objectives.
+
+Declared divergence, fail-closed: redacted objectives or IR events report
+`redacted`, because a redaction placeholder could create or remove a keyword
+match or a `safe_output` kind.
+
+### Item-source memory fix
+
+The 5,001-objective scenario exceeded DuckDB's 256 MiB limit for every item
+source, not only `policy-near-miss`. The item-source SQL carried the whole
+`Collection` JSON on every unnested element row, which is quadratic in
+collection size. It now drops `Collection` after computing its type, length
+and `json_extract(Collection, '$[*]')`, then unnests the element list together
+with `range(Items)`. Results are unchanged; the existing item-source replays
+cover the change.
+
+### `retries` reclassified
+
+The message half is now expressible:
+`keyword-match(Message, 'retry')` together with `DataEvent = 'retry'` and the
+`RetryHint` state. Upstream `retryCount` also adds `harnessRetries`, the
+agent-phase entries above attempt 1 in `attemptHistory`. That history unions
+`harness.attempt` events with the elements of `harness.retry`
+`attemptResults` and `startupAttemptResults`. Lowering it would need:
+
+- An S1 `archive-attempt-results` source.
+- Startup-scope extraction with the capture `^(startup:[1-9][0-9]*):harness:`,
+  which is beyond closed keyword matching.
+- Last-wins deduplication keyed by the JSON-typed `attemptId ?? attempt` and
+  `startedAt`.
+- An anti-join against the canonical `harness.attempt` keys.
+
+`String(message)` also coerces non-string messages, which the typed string
+column cannot reproduce. `grader-query-attempts.json` records the rejected
+attempt.

@@ -70,7 +70,7 @@ function replaySessionArchiveGraders() {
       "recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
       "recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism",
       "exploration-error", "exploitation-error", "tool-output-consumption-rate",
-      "code-search-recall", "code-read-precision", "code-edit-precision"]);
+      "code-search-recall", "code-read-precision", "code-edit-precision", "policy-near-miss"]);
     const recurrenceGraders = new Set(["recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism"]);
     const itemGraders = new Set(["objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
       "recurrence-rate"]);
@@ -152,6 +152,22 @@ function replaySessionArchiveGraders() {
       if (selected.some(({ target }) => typeof target !== "string" || normalizePath(target) === "")) return { blocked: false, reason: "missing-target" };
       return { blocked: false, reason: selected.length ? "measured" : edit ? "no-edits" : "no-reads" };
     }
+    // G1: the upstream guard keywords; archive-ir-events or, when the IR has no
+    // events key, synthesized agent-phase agent-component event types.
+    const guardPattern = /\b(check|verify|verification|policy|approval|approve|guard|confirm|authorize|authorization)\b/i;
+    function policyNearMissReason(evidence, omissions) {
+      const limits = e1Qualification("exploration-error", evidence, omissions);
+      if (limits.blocked && (limits.reason === "incomplete-evidence" || limits.reason === "oversized")) return limits.reason;
+      const ir = lastIR(evidence);
+      const objectives = Array.isArray(ir.objectives) ? ir.objectives : [];
+      if (!objectives.length) return "no-objectives";
+      if (["objectives", "events"].some((key) => omissions.includes(`data.${key}:redacted`))) return "redacted";
+      const events = "events" in ir ? (Array.isArray(ir.events) ? ir.events : [])
+        : evidence.filter(({ provenance }) => provenance?.phase === "agent" && provenance?.component === "agent").map(({ type }) => ({ kind: type }));
+      if (!events.some((event) => record(event) && event.kind === "safe_output")) return "no-safe-output";
+      return objectives.some((objective) => record(objective) && typeof objective.description === "string" && guardPattern.test(objective.description))
+        ? "measured" : "no-guard-objectives";
+    }
     // Phase 5 reason ladders, in the order each reviewed definition evaluates them.
     function dependencyReason(ir, omissions) {
       const items = ir.objectives;
@@ -231,7 +247,8 @@ function replaySessionArchiveGraders() {
           const expected = upstreamResult.results.find(({ id }) => id === query.id);
           const row = query.fullResult.rows.find((row) => row.RunId === runId);
           assert.ok(row, `${scenario.name}: exact trace/run-attempt result`);
-          if (scenario.name === "e1-oversized-resources" && runId === "123" && !e1Graders.has(query.id) && !codeGraders.has(query.id)) {
+          if (scenario.name === "e1-oversized-resources" && runId === "123" && !e1Graders.has(query.id) && !codeGraders.has(query.id) &&
+            query.id !== "policy-near-miss") {
             // §4.2 already records that legacy definitions lack the sibling
             // collection guard. This regression gates E1, not a legacy retrofit.
             continue;
@@ -244,9 +261,10 @@ function replaySessionArchiveGraders() {
           const e1 = e1Graders.has(query.id) ? e1Qualification(query.id, evidence, omissions) : undefined;
           const codeState = codeGraders.has(query.id) ? codeQualification(query.id, evidence, omissions) : undefined;
           const itemState = itemGraders.has(query.id) ? itemReason(query.id, evidence, omissions) : undefined;
+          const pnmReason = query.id === "policy-near-miss" ? policyNearMissReason(evidence, omissions) : undefined;
           // Declared fail-closed divergences: upstream may measure, the definition reports unavailable.
           if (phase5Reason === "unordered" || phase5Reason === "no-events" || e1?.blocked || codeState?.blocked ||
-            itemState === "redacted" || itemState === "excluded") {
+            itemState === "redacted" || itemState === "excluded" || pnmReason === "redacted" || pnmReason === "incomplete-evidence") {
             assert.equal(row.value, null, `${scenario.name}/${runId}/${query.id}: fail-closed divergence`);
             assert.equal(row.availability, "unavailable");
           } else {
@@ -255,7 +273,7 @@ function replaySessionArchiveGraders() {
           }
           const lookups = graders.createSessionLookups(evidence);
           const selected = lookups.trace.tokenUsageEntries;
-          let reason = itemState ?? phase5Reason;
+          let reason = itemState ?? phase5Reason ?? pnmReason;
           if (e1) reason = query.id === "tool-output-consumption-rate" ? e1.reason : row.availability;
           if (codeState) reason = codeState.reason;
           switch (query.id) {
@@ -323,7 +341,7 @@ function replaySessionArchiveGraders() {
       upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources, kustoReplay,
       verification: ["CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1",
         "node scripts/replay-session-archive-graders.mjs [private-report-directory]"],
-      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Twenty-one full declarative metrics execute through real DuckDB; five attempted candidates remain unsupported. E1 adds exploration-error, exploitation-error and tool-output-consumption-rate through trace-scoped joins and approved observation/tool-call sources, with nested consumer strings. Phase 7 adds code-search-recall, code-read-precision and code-edit-precision through JavaScript-trim and closed literal prefix normalization over typed reference patch file, resource and action sources; resource or action redaction fails closed. E1 fails closed on excluded guard inputs, relevant redaction, non-string state_change refs (upstream uses JavaScript JSON.stringify) and missing/null IR toolCalls requiring reconciliation. Harmless redaction preserves record counts, satisfaction nullness and consumer array lengths. The same definitions replay through real Kusto only when configured; fixtures alone do not prove hosted acceptance. Recurrence definitions fail closed as unordered, and saturation as no-events, where upstream may measure synthesized or non-positional events, strings or invalid firstEventIndex values, or empty string states. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are checked separately. No missing provenance is filled. Live Azure acceptance is not exercised.",
+      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Twenty-two full declarative metrics execute through real DuckDB; four attempted candidates remain unsupported. E1 adds exploration-error, exploitation-error and tool-output-consumption-rate through trace-scoped joins and approved observation/tool-call sources, with nested consumer strings. Phase 7 adds code-search-recall, code-read-precision and code-edit-precision through JavaScript-trim and closed literal prefix normalization over typed reference patch file, resource and action sources; resource or action redaction fails closed. G1 adds policy-near-miss through the closed keyword-match guard set over the user-approved objective description; the safe_output check reads IR events or, when the key is absent, retained agent-phase agent-component event types, and objectives or events redaction fails closed. E1 fails closed on excluded guard inputs, relevant redaction, non-string state_change refs (upstream uses JavaScript JSON.stringify) and missing/null IR toolCalls requiring reconciliation. Harmless redaction preserves record counts, satisfaction nullness and consumer array lengths. The same definitions replay through real Kusto only when configured; fixtures alone do not prove hosted acceptance. Recurrence definitions fail closed as unordered, and saturation as no-events, where upstream may measure synthesized or non-positional events, strings or invalid firstEventIndex values, or empty string states. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are checked separately. No missing provenance is filled. Live Azure acceptance is not exercised.",
       matrix, scenarios: replays,
     };
     writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });

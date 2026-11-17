@@ -185,6 +185,25 @@ func TestGraderReplayEvidence(t *testing.T) {
 		{"code-redacted", header + code(`["a"]`, `[{"kind":"file","uri":"secret-text"}]`, `[{"type":"read","consequential":false,"target":"secret-text"}]`)},
 		{"code-redacted-reference", header + code(`["secret-text"]`, `[]`, `[]`)},
 		{"code-oversized-reference", header + code(`[`+strings.TrimSuffix(strings.Repeat(`"a",`, 5001), ",")+`]`, `[]`, `[]`)},
+		// Guard keywords use ASCII word boundaries: "re-check" and "CONFIRM" match;
+		// "guard_rail", "policyholder", the Kelvin-sign "chec\u212A" and non-string
+		// descriptions do not. Non-null satisfaction (even invalid) is met.
+		{"pnm-measured", header + trajectoryIR(`{"events":[{"kind":"other"},"safe_output",{"kind":"safe_output"}],"objectives":[`+
+			`{"id":"a","description":"Verify the output","satisfiedAtEventIndex":0},{"description":"needs APPROVAL","satisfiedAtEventIndex":null},`+
+			`{"description":"re-check","satisfiedAtEventIndex":"x"},{"description":"guard_rail"},{"description":"policyholder"},`+
+			`{"description":"chec\u212A"},{"description":7},"check",{"description":"CONFIRM","satisfiedAtEventIndex":-1},{"description":"authorize"}]}`)},
+		{"pnm-no-safe-output", header + trajectoryIR(`{"events":[{"kind":"safe_output.result"},"safe_output",{"kind":"Safe_output"}],"objectives":[{"description":"verify"}]}`)},
+		{"pnm-null-events", header + "{\"type\":\"safe_output\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{}}\n" +
+			trajectoryIR(`{"events":null,"objectives":[{"description":"verify"}]}`)},
+		{"pnm-no-guard", header + trajectoryIR(`{"events":[{"kind":"safe_output"}],"objectives":[{"description":"guard_rail"},{"description":"unverified"},{"description":"approvals"}]}`)},
+		// Absent IR events fall back to one synthesized event per agent-phase,
+		// agent-component event; the unapproved "safe_output" type is retained.
+		{"pnm-synthesized", header + "{\"type\":\"safe_output\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{\"secret\":1}}\n" +
+			trajectoryIR(`{"objectives":[{"description":"policy"},{"description":"approve","satisfiedAtEventIndex":2}]}`)},
+		{"pnm-synthesized-other-component", header + "{\"type\":\"safe_output\",\"provenance\":{\"component\":\"gateway\",\"phase\":\"agent\"},\"data\":{}}\n" +
+			"{\"type\":\"safe_output\",\"provenance\":{\"component\":\"agent\",\"phase\":\"safe_outputs\"},\"data\":{}}\n" +
+			trajectoryIR(`{"objectives":[{"description":"policy"}]}`)},
+		{"pnm-oversized", header + trajectoryIR(`{"events":[{"kind":"safe_output"}],"objectives":[`+strings.TrimSuffix(strings.Repeat(`{"description":"check the published output"},`, 5001), ",")+`]}`)},
 		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
@@ -267,7 +286,7 @@ func TestGraderReplayEvidence(t *testing.T) {
 					"recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
 					"recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism",
 					"exploration-error", "exploitation-error", "tool-output-consumption-rate",
-					"code-search-recall", "code-read-precision", "code-edit-precision"}, attempt.ID)
+					"code-search-recall", "code-read-precision", "code-edit-precision", "policy-near-miss"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {
@@ -319,6 +338,16 @@ func TestGraderReplayEvidence(t *testing.T) {
 								if !numeric || err != nil || actual != value || row["availability"] != "measured" {
 									t.Fatalf("%s changed closed path normalization: %#v", attempt.ID, row)
 								}
+							}
+						}
+						if expected, ok := map[string][2]any{"pnm-measured": {0.4, "measured"}, "pnm-synthesized": {0.5, "measured"},
+							"pnm-no-safe-output": {nil, "no-safe-output"}, "pnm-null-events": {nil, "no-safe-output"},
+							"pnm-synthesized-other-component": {nil, "no-safe-output"}, "pnm-no-guard": {nil, "no-guard-objectives"},
+							"pnm-oversized": {nil, "oversized"}, "redacted-descriptions": {nil, "redacted"}}[scenario.name]; ok && attempt.ID == "policy-near-miss" && row["RunId"] == "123" {
+							value, isNumber := row["value"].(json.Number)
+							actual, _ := value.Float64()
+							if expected[0] == nil && (row["value"] != nil || row["reason"] != expected[1]) || expected[0] != nil && (!isNumber || actual != expected[0] || row["reason"] != "measured") {
+								t.Fatalf("policy-near-miss changed keyword or safe-output semantics: %#v", row)
 							}
 						}
 						if row["RunId"] == "123" && (scenario.name == "e1-measured" || scenario.name == "e1-harmless-redaction") {
