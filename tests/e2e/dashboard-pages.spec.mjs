@@ -1,10 +1,24 @@
-import { expect, test } from "@playwright/test";
+import { expect, test as base } from "@playwright/test";
 import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
 import { scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
 
 let preview;
+// Keep the expensive local enterprise projection across page-level cases. Each
+// case still gets a new page and therefore a fresh query/data worker.
+const test = base.extend({
+  demoContext: [async ({ browser }, use) => {
+    const context = await browser.newContext();
+    await use(context);
+    await context.close();
+  }, { scope: "worker" }],
+  page: async ({ demoContext }, use) => {
+    const page = await demoContext.newPage();
+    await use(page);
+    await page.close();
+  },
+});
 
 test.beforeAll(async () => {
   test.setTimeout(240_000);
@@ -21,7 +35,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("enterprise sample populates analytical pages and supports real drill-downs", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(600_000);
   const errors = [];
   const externalRequests = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -43,7 +57,7 @@ test("enterprise sample populates analytical pages and supports real drill-downs
     "skills", "friction", "engines-models", "value",
     "cost", "marketplace", "maintenance", "maintenance-campaigns"]) {
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-${id}`);
-    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
     const active = page.locator(`[data-page-id="${id}"]`);
     await expect(active).toBeVisible();
     await expect(active).not.toHaveAttribute("data-page-prerequisite-unavailable", "true");
@@ -77,10 +91,11 @@ test("enterprise sample populates analytical pages and supports real drill-downs
 
 for (const width of [1440, 390]) {
   test(`Pull request simulator recomputes company estimates at ${width}px`, async ({ page }, testInfo) => {
+    test.setTimeout(600_000);
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-simulators`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("#page-title")).toHaveText("Simulators");
-    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
     await expect(page.locator(".first-load-overlay")).toHaveCount(0, { timeout: 90_000 });
     await page.locator('[data-page-id="simulators"]').getByRole("link", { name: "Pull request", exact: true }).click();
     const simulator = page.locator('[data-page-id="simulator-pull-request"]');

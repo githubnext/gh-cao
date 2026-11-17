@@ -88,7 +88,10 @@ The builder publishes the dashboard and synthesizer without pregenerating sample
 inventory or run/detail files. The browser data worker generates raw synthetic
 enterprise samples on demand, using production normalization and canonical
 IndexedDB ingestion in bounded batches. Compatible completed browser samples
-are reused. The builder accepts no real-data input option.
+are reused within the same UTC day; interrupted samples resume from committed
+batches. A new day or incompatible generator/schema resets only the scoped demo
+database and regenerates the sample, avoiding stale activity and outcomes.
+The builder accepts no real-data input option.
 The output includes no SQLite snapshot or operational agent summary. A
 declarative **Synthetic enterprise demo** callout identifies the sample, and
 the demo source namespace remains under `demo-data/`, not a root manifest. Browser storage keys use

@@ -230,6 +230,9 @@ the evidence. Synthesis, ingestion, persistence, and queries run in a
 dedicated Web Worker, in bounded batches rather than downloading a pregenerated
 enterprise snapshot. The sample contains 1,000,000 repositories, three campaigns,
 and 200 installed agentic workflows across selected repositories.
+Completed samples are reused within the same UTC day. A new day or incompatible
+generator/schema resets only the scoped demo database before regeneration, so
+regenerated runs cannot inherit stale outcomes or aggregate receipts.
 The demo source namespace remains under `demo-data/`, not the former
 root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
 service-worker caches use `demo`. Changing data URLs as well as storage keys

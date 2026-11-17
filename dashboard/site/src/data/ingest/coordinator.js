@@ -452,8 +452,8 @@ export function ingestDashboardSourceBatches(indexedDB, batches, options = {}) {
           if (usage !== null && usage > MAX_DASHBOARD_DATABASE_BYTES) {
             throw new DOMException('Synthetic demo exceeds the browser storage budget.', 'QuotaExceededError');
           }
-          await options.onBatchCommitted?.(result.committedRecords);
         }
+        await options.onBatchCommitted?.(result.committedRecords);
         await new Promise(resolve => setTimeout(resolve, 0));
       }
       return { updated: committedRecords > 0, committedRecords };

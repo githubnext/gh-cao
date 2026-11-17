@@ -1,8 +1,8 @@
 import { enterpriseDemo, enterpriseMemory, enterpriseRepositorySources, enterpriseSample } from './sample.mjs';
 import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSourceBatches, ingestDashboardSources } from '../ingest/coordinator.js';
-import { DATABASE_VERSION, readTransaction, recordTransaction } from '../storage/indexeddb.js';
+import { canonicalDatabaseName, DATABASE_VERSION, deleteCanonicalDatabase, readTransaction, readTransactions, recordTransaction } from '../storage/indexeddb.js';
 
-const receiptId = `synthetic-demo:${enterpriseDemo.version}:schema-${DATABASE_VERSION}`;
+const receiptId = 'synthetic-demo:population';
 const batchSize = 1_000;
 const memoryTime = Date.now();
 
@@ -13,17 +13,45 @@ const memoryTime = Date.now();
  * @param {{ signal?: AbortSignal, storage?: StorageManager, now?: number, onProgress?: (completed: number, total: number) => void }} [options]
  */
 export async function synthesizeEnterpriseDemo(indexedDB, options = {}) {
-  const receipt = await readTransaction(indexedDB, receiptId);
+  options.signal?.throwIfAborted();
+  if (!/^gh-aw-cao-dashboard-data:synthetic-demo(?::|$)/.test(canonicalDatabaseName())) {
+    throw new Error('Synthetic generation requires an isolated synthetic-demo database.');
+  }
+  const task = () => populateEnterpriseDemo(indexedDB, options);
+  return globalThis.navigator?.locks
+    ? navigator.locks.request(`synthetic-demo-population:${canonicalDatabaseName()}`, { signal: options.signal }, task)
+    : task();
+}
+
+/**
+ * @param {IDBFactory} indexedDB
+ * @param {NonNullable<Parameters<typeof synthesizeEnterpriseDemo>[1]>} options
+ */
+async function populateEnterpriseDemo(indexedDB, options) {
+  let receipt = await readTransaction(indexedDB, receiptId);
   const clock = options.now ?? Date.now();
   const sampleDay = Math.floor(clock / 86_400_000);
+  const incompatible = receipt && (receipt.sampleDay !== sampleDay
+    || receipt.sampleVersion !== enterpriseDemo.version || receipt.schemaVersion !== DATABASE_VERSION
+    || !Number.isSafeInteger(receipt.repositories) || Number(receipt.repositories) < 0
+    || Number(receipt.repositories) > enterpriseDemo.repositories
+    || receipt.complete === true && receipt.repositories !== enterpriseDemo.repositories);
+  const legacy = !receipt && (await readTransactions(indexedDB))
+    .some(entry => String(entry.kind).startsWith('synthetic-demo-') || entry.kind === 'dashboard-snapshot');
+  if (incompatible || legacy) {
+    options.signal?.throwIfAborted();
+    await deleteCanonicalDatabase(indexedDB);
+    receipt = null;
+  }
   const now = receipt?.sampleDay === sampleDay && typeof receipt?.sampleTime === 'number' ? receipt.sampleTime : clock;
   /** @type {Record<string, any>} */
   const sources = {};
   const complete = receipt?.complete === true;
-  const refreshSample = !complete || receipt?.sampleDay !== sampleDay;
+  const refreshSample = !complete;
   if (!receipt) await recordTransaction(indexedDB, {
     id: receiptId, kind: 'synthetic-demo-progress', createdAt: new Date().toISOString(),
-    sampleTime: now, sampleDay, repositories: 0, complete: false,
+    sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
+    repositories: 0, complete: false,
   });
   for (let index = 0; index < enterpriseDemo.installedRepositories; index++) {
     options.signal?.throwIfAborted();
@@ -52,16 +80,14 @@ export async function synthesizeEnterpriseDemo(indexedDB, options = {}) {
     now, storage: options.storage, signal: options.signal,
   });
   if (complete) {
-    if (refreshSample) await recordTransaction(indexedDB, {
-      ...receipt, sampleTime: now, sampleDay, createdAt: new Date().toISOString(),
-    });
-    return { sources, changed: refreshSample };
+    return { sources, changed: false };
   }
   let completed = Math.max(enterpriseDemo.installedRepositories, Number(receipt?.repositories ?? 0));
   options.onProgress?.(completed, enterpriseDemo.repositories);
   const save = () => recordTransaction(indexedDB, {
     id: receiptId, kind: 'synthetic-demo-progress', createdAt: new Date().toISOString(),
-    sampleTime: now, sampleDay, repositories: completed, complete: false,
+    sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
+    repositories: completed, complete: false,
   });
   await save();
   async function* repositories() {
@@ -81,7 +107,8 @@ export async function synthesizeEnterpriseDemo(indexedDB, options = {}) {
   options.signal?.throwIfAborted();
   await recordTransaction(indexedDB, {
     id: receiptId, kind: 'synthetic-demo-complete', createdAt: new Date().toISOString(),
-    sampleTime: now, sampleDay, repositories: completed, complete: true,
+    sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
+    repositories: completed, complete: true,
   });
   return { sources, changed: true };
 }

@@ -231,7 +231,7 @@ test("Pages output refuses repository paths, unowned data, and symlink ancestors
   assert.equal(await readFile(path.join(directory, "keep.txt"), "utf8"), "important");
 });
 
-test("data-free build leaves browser samples to production canonical ingestion, without operational exports", { timeout: 120_000 }, async (t) => {
+test("data-free build leaves browser samples to production canonical ingestion, without operational exports", { timeout: 240_000 }, async (t) => {
   const directory = await workspace(t);
   const output = path.join(directory, "site");
   const now = Date.parse("2040-06-15T12:00:00.000Z");

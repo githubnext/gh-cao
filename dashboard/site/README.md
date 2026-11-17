@@ -37,6 +37,9 @@ All profiles execute the same canonical Dashboard Language definitions and
 shared views. The Pages demo is not presenter fixtures: its declarative
 **Synthetic enterprise demo** callout on Overview accompanies a full canonical
 pipeline without a site-wide notification.
+Completed compatible samples are reused within the same UTC day. A new day or
+incompatible generator/schema resets only the scoped demo database and regenerates
+the sample; interrupted compatible generation resumes committed batches.
 The demo source namespace remains under `demo-data/`, not root `payload-hashes.json`;
 browser storage keys use `synthetic-demo` and service-worker caches use
 `demo`. The changed URLs prevent old same-origin cached real data from being

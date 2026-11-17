@@ -443,7 +443,11 @@ Generation and writes SHALL be bounded rather than retaining the enterprise
 population in memory. The default sample SHALL contain 1,000,000 repositories,
 three campaigns, and 200 installed agentic workflows across selected repositories.
 The build SHALL publish the synthesizer, not pregenerated inventory or run/detail
-shards. Reopening the demo SHALL reuse completed, compatible browser-local data.
+shards. Reopening the demo SHALL reuse completed, compatible browser-local data
+within the same UTC day. A new sample day or incompatible generator/schema SHALL
+reset only the scoped demo database before regeneration, including old activity
+and derived count receipts. Interrupted compatible samples SHALL resume from
+committed batches rather than be treated as complete.
 It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
 a separate demo query implementation. A declarative **Synthetic enterprise demo**
 callout SHALL identify the sample; live services SHALL be unavailable.
