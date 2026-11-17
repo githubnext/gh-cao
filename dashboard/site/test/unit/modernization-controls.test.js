@@ -6,6 +6,7 @@ vi.mock('../../src/data-processor.js', () => ({ cliQueueAvailable: () => native.
 vi.mock('../../src/components/cli-actions.js', () => ({ executeDeclaredCliAction: native.execute }));
 vi.mock('../../src/notification-service.js', () => ({ publishNotification: native.notify }));
 import { renderModernizationControls } from '../../src/components/modernization-controls.js';
+import { renderModernizationPlanOverview } from '../../src/components/modernization-plan.js';
 import { MODERNIZATION_RESULT_PREFIX, parseModernizationResult } from '../../src/modernization-protocol.js';
 
 const repository = 'octodemo/control';
@@ -138,6 +139,61 @@ describe('Modernization operator interaction', () => {
     expect(native.execute.mock.calls.some(([id]) => id === 'modernization-execute')).toBe(false);
   });
 
+  it('defaults to Overview, supports repeated keyboard tab navigation and preserves the exact editable draft', async () => {
+    const root = mount();
+    await check(root);
+    button(root, 'Review / approve plan').click();
+    expect([...root.querySelectorAll('[role="tab"]')].map(tab => tab.textContent)).toEqual(['Overview', 'JSON']);
+    expect(button(root, 'Overview').getAttribute('aria-selected')).toBe('true');
+    expect(root.querySelector('[role="tabpanel"]')?.getAttribute('id')).toBe(button(root, 'Overview').getAttribute('aria-controls'));
+    const count = native.execute.mock.calls.length;
+    for (const [from, key, to] of [['Overview', 'ArrowRight', 'JSON'], ['JSON', 'ArrowLeft', 'Overview'],
+      ['Overview', 'End', 'JSON'], ['JSON', 'Home', 'Overview']]) {
+      button(root, from).focus();
+      button(root, from).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+      await vi.waitFor(() => expect(document.activeElement).toBe(button(root, to)));
+      expect(button(root, to).getAttribute('aria-selected')).toBe('true');
+      expect(button(root, to).tabIndex).toBe(0);
+    }
+    button(root, 'JSON').click();
+    const input = /** @type {HTMLTextAreaElement} */ (root.querySelector('textarea'));
+    const text = ' { "id": "edited-draft", "objective": "Keep exact spacing" }\n';
+    input.value = text;
+    input.dispatchEvent(new Event('input'));
+    button(root, 'Overview').click();
+    expect(root.querySelector('[role="tabpanel"]')?.textContent).toContain('Keep exact spacing');
+    button(root, 'JSON').click();
+    expect(root.querySelector('textarea')).toBe(input);
+    expect(input.value).toBe(text);
+    expect(native.execute).toHaveBeenCalledTimes(count);
+    button(root, 'Review approval').click();
+    await vi.waitFor(() => expect(native.execute.mock.calls.at(-1)?.[2].input).toBe(text));
+  });
+
+  it('keeps invalid JSON recoverable and invalidates a reviewed approval when its draft changes', async () => {
+    const root = mount();
+    await check(root);
+    button(root, 'Review / approve plan').click();
+    button(root, 'Review approval').click();
+    await vi.waitFor(() => expect(root.querySelector('[data-preview-title]')).not.toBeNull());
+    button(root, 'JSON').click();
+    expect(root.querySelector('[data-preview-title]')).not.toBeNull();
+    const input = /** @type {HTMLTextAreaElement} */ (root.querySelector('textarea'));
+    input.value = '{"id":';
+    input.dispatchEvent(new Event('input'));
+    expect(root.querySelector('[data-preview-title]')).toBeNull();
+    button(root, 'Overview').click();
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('Open the JSON tab to correct it');
+    expect(input.value).toBe('{"id":');
+    button(root, 'JSON').click();
+    input.value = '{"id":"recovered"}';
+    input.dispatchEvent(new Event('input'));
+    button(root, 'Overview').click();
+    expect(root.querySelector('[role="alert"]')).toBeNull();
+    expect(root.querySelector('[role="tabpanel"]')?.textContent).toContain('recovered');
+    expect(native.execute.mock.calls.some(([id]) => id === 'modernization-execute')).toBe(false);
+  });
+
   it('expires confirmation without dispatching', async () => {
     const root = mount();
     await check(root);
@@ -187,6 +243,56 @@ describe('Modernization operator interaction', () => {
     const root = mount({ routeParameter: 'file-diet', elementConfig: { body: 'campaign' } });
     expect(root.hidden).toBe(true);
     expect(native.execute).not.toHaveBeenCalled();
+  });
+});
+
+describe('Modernization draft presentation', () => {
+  it('renders the actual objectives, baselines, tasks, dependencies, specialists and acceptance without inferring readiness', () => {
+    const plan = {
+      schema: 'cao-modernization/v1', id: 'readable-plan', objective: 'Preserve existing behavior.',
+      repositories: [{ repository: 'octodemo/api', base_branch: 'main', base_sha: 'e'.repeat(40) }],
+      tasks: [{ id: 't2', title: 'Characterize the API', repository: 'octodemo/api', objective: 'Document error behavior.',
+        acceptance: ['Cover error cases.'], depends_on: ['t1'], specialists: ['assessor', 'validator'] }],
+      integration_acceptance: ['All services remain compatible.'],
+      extra_context: { note: 'Additional input remains visible.', empty: {}, explicit_null: null },
+      constructor: 'Additional constructor context.'
+    };
+    const root = renderModernizationPlanOverview(JSON.stringify(plan));
+    for (const text of ['Preserve existing behavior.', 'octodemo/api', 'main', 'e'.repeat(40), 'Characterize the API',
+      'Document error behavior.', 'Acceptance criteria', 'Cover error cases.', 'Depends on', 't1', 'Specialists',
+      'assessor', 'validator', 'All services remain compatible.', 'Additional input remains visible.', '{}', 'null']) {
+      expect(root.textContent).toContain(text);
+    }
+    expect(root.textContent).toContain('Native validation is required before approval.');
+    expect(root.textContent).not.toContain('ready');
+    expect([...root.querySelectorAll('dt')].map(field => field.textContent)).toContain('constructor');
+    expect(root.querySelector('button,a,input')).toBeNull();
+  });
+
+  it.each(['null', '[]', '"not an object"', 'false', '42'])('explains an unsupported root without throwing: %s', text => {
+    expect(renderModernizationPlanOverview(text).textContent).toContain('must be a JSON object');
+  });
+
+  it('handles empty, partial, unexpected and HTML-like values without hiding additional input or interpreting HTML', () => {
+    expect(renderModernizationPlanOverview('').textContent).toContain('Import a plan');
+    const root = renderModernizationPlanOverview(JSON.stringify({
+      id: 0, objective: '<img src=x onerror=alert(1)>', tasks: [{ id: 't1', title: 'Partial task' }], repositories: false
+    }));
+    expect(root.textContent).toContain('Not provided');
+    expect(root.textContent).toContain('false');
+    expect(root.textContent).toContain('0');
+    expect(root.textContent).toContain('<img src=x onerror=alert(1)>');
+    expect(root.querySelector('img')).toBeNull();
+  });
+
+  it('bounds oversized and deeply nested drafts with an explicit reference to the complete JSON', () => {
+    const root = renderModernizationPlanOverview(JSON.stringify({
+      tasks: Array.from({ length: 51 }, (_, index) => ({ id: `t${index}`, title: `Task ${index}` })),
+      extra: { a: { b: { c: { d: { e: { f: 'deep value' } } } } } }
+    }));
+    expect(root.querySelectorAll('article')).toHaveLength(50);
+    expect(root.textContent).toContain('Showing the first 50 of 51 entries');
+    expect(root.textContent).toContain('Nested content is available in the JSON tab.');
   });
 });
 

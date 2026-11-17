@@ -76,6 +76,9 @@ The shared element supports Ops and the Modernization campaign
 (`config.body: campaign`); other campaign routes omit the controls. Unsupported
 deployments remain read-only without browser credentials or execution fallbacks.
 Installation, rollout changes, merging and deployment are not exposed.
+Plan approval presents a readable Overview and editable JSON of the same local
+draft. This interaction-only presentation neither validates the plan nor grants
+authority; native preview and separate confirmation remain required.
 
 The `storage-info` element also declares `data.sources: []`. It presents deployment
 configuration rather than activity evidence: browser-local IndexedDB, local-server

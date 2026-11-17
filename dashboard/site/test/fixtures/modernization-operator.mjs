@@ -15,6 +15,16 @@ export async function startModernizationOperator(repository) {
     controlRepository: repository, controlSha: 'a'.repeat(40), repository };
   const task = { id: 't1', title: 'Synthetic operator task', repository: 'octodemo/synthetic-target',
     phase: 'issue', state: 'ready', issueUrl: null, pullRequestUrl: null };
+  const plan = {
+    schema: 'cao-modernization/v1', id: 'synthetic-plan', objective: 'Preserve the synthetic service contract.',
+    repositories: [repository, task.repository].map(repository => ({
+      repository, base_sha: 'e'.repeat(40), base_branch: 'main'
+    })),
+    tasks: [{ id: task.id, title: task.title, repository: task.repository,
+      objective: 'Characterize the synthetic API before changes.', acceptance: ['Synthetic API behavior is documented.'],
+      depends_on: [], specialists: ['assessor', 'validator'] }],
+    integration_acceptance: ['Synthetic services remain compatible.']
+  };
   const server = createServer(async (request, response) => {
     if (request.method !== 'POST' || request.url !== `${prefix}/execute`) {
       response.writeHead(request.url === `${prefix}/cancel` ? 202 : 404).end();
@@ -28,7 +38,7 @@ export async function startModernizationOperator(repository) {
     let result;
     if (operation === 'status') result = { ...common, kind: 'status', capabilities: Object.fromEntries(
       ['assess', 'approve-plan', 'run', 'verify'].map(action => [action, { authorized: true, reason: 'Synthetic reviewed fixture' }])
-    ), plan: { id: 'synthetic-plan' }, planDigest: 'b'.repeat(64), repositories: [repository, task.repository],
+    ), plan, planDigest: 'b'.repeat(64), repositories: [repository, task.repository],
     tasks: [task], evidence: { available: true }, links: { issuesUrl: `https://github.com/${repository}/issues` } };
     else if (operation === 'preview') {
       const action = payload.args[payload.args.indexOf('--action') + 1];
@@ -59,7 +69,7 @@ export async function startModernizationOperator(repository) {
     adapterUrl: `http://127.0.0.1:${address.port}${prefix}`, operatorActions: { repositories: [repository] }
   }), { mode: 0o600 });
   return {
-    operatorConfig, requests,
+    operatorConfig, requests, plan,
     async close() {
       await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve(undefined)));
       await rm(directory, { recursive: true, force: true });

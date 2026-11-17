@@ -70,11 +70,37 @@ for (const width of [1440, 390]) {
       await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
       await expect(controls).toContainText('Current check: available');
       await controls.getByRole('button', { name: 'Review / approve plan', exact: true }).click();
-      const plan = '{"id":"synthetic-browser-approval"}';
+      const tabs = controls.getByRole('tablist', { name: 'Engagement plan view' });
+      await expect(tabs.getByRole('tab', { name: 'Overview', exact: true })).toHaveAttribute('aria-selected', 'true');
+      const overview = controls.getByRole('tabpanel', { name: 'Plan overview', exact: true });
+      await expect(overview).toContainText('Synthetic API behavior is documented.');
+      await expect(overview).toContainText('assessor');
+      await expect(overview).toContainText('Native validation is required before approval.');
+      await tabs.getByRole('tab', { name: 'Overview', exact: true }).focus();
+      await page.keyboard.press('Tab');
+      await expect(overview).toBeFocused();
+      await page.keyboard.press('PageDown');
+      await expect.poll(() => overview.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+      const plan = `${JSON.stringify({ ...operator.plan, id: 'synthetic-browser-approval' }, null, 2)}\n`;
       await controls.getByLabel('Import plan JSON').setInputFiles({
         name: 'synthetic-plan.json', mimeType: 'application/json', buffer: Buffer.from(plan)
       });
+      await expect(overview).toContainText('synthetic-browser-approval');
+      await expect(controls.getByLabel('Engagement JSON')).toBeHidden();
+      await tabs.getByRole('tab', { name: 'Overview', exact: true }).focus();
+      await page.keyboard.press('ArrowRight');
+      await expect(tabs.getByRole('tab', { name: 'JSON', exact: true })).toBeFocused();
       await expect(controls.getByLabel('Engagement JSON')).toHaveValue(plan);
+      await controls.getByLabel('Engagement JSON').fill('{"id":');
+      await tabs.getByRole('tab', { name: 'Overview', exact: true }).click();
+      await expect(overview.getByRole('alert')).toContainText('Open the JSON tab to correct it');
+      await tabs.getByRole('tab', { name: 'JSON', exact: true }).click();
+      await expect(controls.getByLabel('Engagement JSON')).toHaveValue('{"id":');
+      await controls.getByLabel('Engagement JSON').fill(plan);
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('ArrowLeft');
+      await expect(tabs.getByRole('tab', { name: 'Overview', exact: true })).toBeFocused();
+      await expect(overview).toContainText('Synthetic services remain compatible.');
       await controls.getByRole('button', { name: 'Review approval', exact: true }).click();
       await expect(review).toBeVisible();
       expect(operator.requests.at(-1)?.input).toBe(plan);

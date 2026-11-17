@@ -7,6 +7,8 @@ import { isSafeHttpsUrl } from './ui-primitives.js';
 import { publishNotification } from '../notification-service.js';
 import { createDebug, diagnosticErrorName } from '../debug.js';
 import { parseModernizationResult } from '../modernization-protocol.js';
+import { renderInteractiveTabs } from './tab-nav.js';
+import { renderModernizationPlanOverview } from './modernization-plan.js';
 
 const debug = createDebug('modernization:controls');
 const labels = { assess: 'Assess system', 'approve-plan': 'Publish approved plan', run: 'Run next batch', verify: 'Verify results' };
@@ -52,6 +54,7 @@ export function renderModernizationControls(context) {
     repository: initial.length === 1 ? String(initial[0]['control-repository'] ?? '') : '',
     mode: /** @type {'review'|'live'} */ ('review'),
     busy: false, error: '', message: '', planText: '', planOpen: false, helpOpen: false, expired: false,
+    planTab: 'overview',
     status: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null),
     preview: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null),
     execution: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null)
@@ -219,10 +222,29 @@ export function renderModernizationControls(context) {
                 if (!scope.signal.aborted) ui.set(value => ({ ...value, error: 'The selected plan file could not be read. Paste the JSON or choose the file again.' }));
               }
             } })),
-        h('label', { htmlFor: `${id}-plan` }, 'Engagement JSON',
-          h('textarea', { id: `${id}-plan`, value: current.planText, rows: 10, disabled: current.busy, spellcheck: false,
-            onInput: (/** @type {Event} */ event) => ui.set(value => ({ ...value,
-              planText: /** @type {HTMLTextAreaElement} */ (event.target).value, preview: null })) })),
+        renderInteractiveTabs({
+          className: 'modernization-plan-tabs', ariaLabel: 'Engagement plan view', panelId: `${id}-plan-panel`,
+          tabs: [
+            { label: 'Overview', value: 'overview', selected: current.planTab === 'overview' },
+            { label: 'JSON', value: 'json', selected: current.planTab === 'json' }
+          ],
+          onSelect: planTab => {
+            ui.set(value => ({ ...value, planTab }));
+            queueMicrotask(() => {
+              if (!scope.signal.aborted) /** @type {HTMLElement | null} */ (root.querySelector('.modernization-plan-tabs [aria-selected="true"]'))?.focus();
+            });
+          }
+        }),
+        h('div', { id: `${id}-plan-panel`, className: 'modernization-plan-panel', role: 'tabpanel',
+          tabIndex: current.planTab === 'overview' ? 0 : -1,
+          'aria-label': current.planTab === 'json' ? 'Plan JSON' : 'Plan overview' },
+        h('div', { hidden: current.planTab !== 'overview' },
+          current.planTab === 'overview' ? renderModernizationPlanOverview(current.planText) : null),
+        h('div', { hidden: current.planTab !== 'json' },
+          h('label', { htmlFor: `${id}-plan` }, 'Engagement JSON',
+            h('textarea', { id: `${id}-plan`, value: current.planText, rows: 14, disabled: current.busy, spellcheck: false,
+              onInput: (/** @type {Event} */ event) => ui.set(value => ({ ...value,
+                planText: /** @type {HTMLTextAreaElement} */ (event.target).value, preview: null })) })))),
         h('button', { type: 'button', className: 'cli-action-cancel',
           disabled: disabled || !current.planText.trim() || !authorized('approve-plan'), onClick: () => preview('approve-plan') }, 'Review approval')
       ) : null,
