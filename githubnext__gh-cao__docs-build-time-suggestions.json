@@ -1,35 +1,7 @@
 {
  "source_sha": "dc2b53ffb32ea57ff4242841b0479032ef76e32a",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T23:35:29Z",
-   "worker_run_id": "43979722480",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "43766933236",
-    "43768376457",
-    "43780290464",
-    "43781088986",
-    "43781377358",
-    "43789359390",
-    "43792211504",
-    "43798031034",
-    "43810351164",
-    "43814432358",
-    "43825070138",
-    "43829639369",
-    "43831754585",
-    "43831980991",
-    "43832040488",
-    "43840581457",
-    "43854851689",
-    "43862265708",
-    "43877103800"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 2026-11-16T23:35:29Z: no docs run newer than 43877103800, none queue [truncated]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-16T23:54:30Z",
    "worker_run_id": "43982721721",
@@ -817,6 +789,33 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, created 2026-11-16T08:14Z) to 44043184727 (push f939bbb, created 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. Build documentation step (single step in build job; astro build, validate-agent-docs, agent-docs-discovery test): median 11 s, p90 14 s nearest-rank, min 9, max 15; exec median 77.5 s so share 14.2 percent; 15 percent gate 11.6 s and 60 s gate both unmet; whole-step removal ceiling 11 s. Sub-step split not measurable (job logs API HTTP 403 DIFC, not bypassed). Spot-check 44043184727 via Jobs API matched stored row (build docs 11 s, build job 61 s, deploy 9 s). Stored immutable run_timings rows recomputed (no refetch). No docs run queued or in progress; stale queued 37642403569 ignored. Source dc2b53f (checkout HEAD); no docs run after 44043184727. Next: reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-17T09:52:41Z",
+   "worker_run_id": "44059106675",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "43829639369",
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800",
+    "43987917606",
+    "43991571724",
+    "43991770179",
+    "43991897672",
+    "43992363367",
+    "43993695761",
+    "44004300647",
+    "44023953879",
+    "44041835448",
+    "44043184727"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, created 2026-11-16T08:14Z) to 44043184727 (push f939bbb, created 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. Dashboard generation is the single Build synthetic enterprise demo step in the build job (no dashboard job exists in docs.yml): median 5 s, p90 6 s, min 3, max 8; share of exec median 77.5 s is 6.5 percent; 15 percent gate 11.6 s and 60 s gate both unmet; whole-step removal ceiling 5 s. Reuse blocked: scripts/simulate-dashboard-pages.mjs:78 defaults now to Date.now() and dist/cao is deployed each run. Source dc2b53f equals checkout HEAD; no docs run newer than 44043184727 (read-only gh run list); stored immutable run_timings rows recomputed, no job refetch. Next: artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1584,7 +1583,8 @@
   "reverified_note": "Re-verified 2026-11-17T03:22:28Z by worker 44009269283: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18); Jobs API spot-check of 44004300647 matched (6 s); HEAD dc5ce58 adds only server/ files (no docs trigger); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
   "reverified_note_2": "Re-verified 2026-11-17T04:53Z by worker 44019713409: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
   "reverified_note_3": "Re-verified 2026-11-17T06:41Z by worker 44032733255: no newer docs run than 44023953879; no queued or in-progress docs run; stored demo rows recomputed (median 5 s, p90 6 s, min 3, max 8, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
-  "reverified_note_4": "Re-verified 2026-11-17T08:23Z by worker 44045751647: newest run 44043184727 (push f939bbb) demo step 4 s added; stored rows recomputed (median 5.0, p90 6, n 18); decision unchanged: not actionable (ceiling 5.0 s vs gate 11.6 s and 60 s absolute)."
+  "reverified_note_4": "Re-verified 2026-11-17T08:23Z by worker 44045751647: newest run 44043184727 (push f939bbb) demo step 4 s added; stored rows recomputed (median 5.0, p90 6, n 18); decision unchanged: not actionable (ceiling 5.0 s vs gate 11.6 s and 60 s absolute).",
+  "reverified_note_5": "Re-verified 2026-11-17T09:52Z by worker 44059106675: no docs run newer than 44043184727 (read-only gh run list); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)."
  },
  "astro_output_reuse": {
   "verified_at": "2026-11-16T06:36:53Z",
