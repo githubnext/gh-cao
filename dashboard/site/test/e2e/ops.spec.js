@@ -26,7 +26,7 @@ for (const width of [1440, 390]) {
       });
       const githubWrites = /** @type {string[]} */ ([]);
       page.on('request', request => {
-        if (request.url().includes('api.github.com') && request.method() !== 'GET') githubWrites.push(request.url());
+        if (new URL(request.url()).hostname === 'api.github.com' && request.method() !== 'GET') githubWrites.push(request.url());
       });
       await page.goto(`${preview.url}/#page-ops`);
       const controls = page.getByRole('region', { name: 'Modernization actions', exact: true });
