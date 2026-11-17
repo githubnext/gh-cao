@@ -130,8 +130,9 @@ Phases 1b and 2b found two emulator-only constraints:
   names or bracket-quoted `["__…"]` identifiers.
 - **Dynamic date conversion.** `dynamic(...)` literals and `parse_json`
   convert ISO date-like strings to `datetime`, which changes their `tostring`
-  text and `gettype`. Fixtures therefore use typed `datatable` rows, and IR
-  string fields that look like dates or GUIDs are a residual risk (§8).
+  text and `gettype`. Fixtures therefore use typed `datatable` rows. IR string
+  values are marked before `parse_json` and unmarked when typed, so they are
+  never converted (§12).
 
 - **L5 windows.**
   - **DuckDB lowering:** `row_number()` and `lag()`
@@ -569,9 +570,9 @@ outside the current graders' replay:
 - Ordered real sums depend on string collation of the order key only when the
   addends are non-integral.
 - A NULL `PolicyDigest` in DuckDB reads as `""` in Kusto.
-- `parse_json` types date- or GUID-looking IR strings as `datetime` or
-  `guid`, so a string `Id` or element kind could differ. The pinned fixtures
-  contain no such strings.
+- Resolved in Phase 7 (§12): `parse_json` used to type date- or GUID-looking
+  IR strings as `datetime` or `guid`. String values are now marked before
+  parsing and unmarked when typed.
 - `bag_has_key` is assumed to report JSON-null members as present, matching
   the DuckDB `null` field state.
 
@@ -810,10 +811,16 @@ scenario `code-measured` covers U+FEFF, U+3000 and repeated slashes, yielding
 0.8, 1/3 and 2/3; a U+3000-only reference path is unavailable.
 
 KQL `parse_json` turns date-, GUID- and timespan-like strings into typed
-values (§3.1). Item string typing therefore accepts those kinds and recovers
-their exact JSON text with `extract_json` over the bound payload, inside the
-source `let` only; ordinary strings never reparse it. The `code-measured`
-scenario includes a GUID-like path to exercise the recovery.
+values (§3.1). Kusto's `extract_json` needs a constant path, so per-element
+recovery is not possible. Before `parse_json`, the trace `let` instead
+prefixes every JSON string value with `#` in two `replace_regex` passes: mark
+every string token, then unmark tokens followed by `:` (member names, which
+path walks and `bag_has_key` need intact). Unescaped `"` in valid JSON only
+delimits strings, so the passes are exact. No marked value is convertible, and
+item string typing drops the first character. The same marking applies to
+every item source, so this also removes the residual risk in §8. The
+`code-measured` scenario includes date-like targets and a GUID-like path to
+exercise it.
 
 Declared divergences, all fail-closed:
 

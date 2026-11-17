@@ -514,9 +514,11 @@ same IR with materialized `let` statements and expands elements with
 Kusto MUST omit them and reject such plans.
 
 ADX's `parse_json` turns date-, GUID- and timespan-like JSON strings into
-`datetime`, `guid` or `timespan` values. The KQL lowering types those kinds as
-strings and recovers their exact JSON text with `extract_json` on the bound
-payload, inside the source `let` only; ordinary strings never reparse it.
+`datetime`, `guid` or `timespan` values. Before parsing, the KQL lowering
+prefixes every JSON string value (never a member name) with a one-character
+ASCII marker, so no string is convertible; string typing then drops that
+character. The marked payload stays inside the trace `let` and never reaches a
+projection.
 Every item source and both functions are accepted against real Kusto by the
 pinned grader replay of the `session-archive-kusto` job.
 
