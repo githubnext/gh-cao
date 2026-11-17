@@ -553,8 +553,9 @@ func largestCollectionSQL() string {
 			terms = append(terms, length("data."+key))
 		}
 	}
-	var omitted []string
-	for _, reason := range GuardedOmissions() {
+	reasons := GuardedOmissions()
+	omitted := make([]string, 0, len(reasons))
+	for _, reason := range reasons {
 		omitted = append(omitted, literal(reason))
 	}
 	return "CASE WHEN list_has_any(coalesce(t.OmissionReasons,[]),[" + strings.Join(omitted, ",") + "]) THEN NULL ELSE greatest(" + strings.Join(terms, ",") + ") END"

@@ -225,10 +225,13 @@ func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
 	source += "| extend archive_kind=iff(isnull(Ordinal),\"\",gettype(Element))\n" +
 		"| extend Kind=case(archive_kind==\"dictionary\",\"object\",archive_kind==\"array\",\"array\",archive_kind==\"string\",\"string\"," +
 		"archive_kind==\"bool\",\"boolean\",archive_kind==\"null\",\"null\",archive_kind in " + numeric + ",\"number\",\"\")\n"
-	presents, nulls, invalids := []string{`iff(archive_collection!="",pack_array("Items"),dynamic([]))`},
-		[]string{`iff(archive_collection=="null",pack_array("Items"),dynamic([]))`},
-		[]string{`iff(archive_collection!="" and archive_collection!="null" and archive_collection!="array",pack_array("Items"),dynamic([]))`}
-	var columns []string
+	presents := make([]string, 0, 1+len(item.Elements))
+	presents = append(presents, `iff(archive_collection!="",pack_array("Items"),dynamic([]))`)
+	nulls := make([]string, 0, 1+len(item.Elements))
+	nulls = append(nulls, `iff(archive_collection=="null",pack_array("Items"),dynamic([]))`)
+	invalids := make([]string, 0, 1+len(item.Elements))
+	invalids = append(invalids, `iff(archive_collection!="" and archive_collection!="null" and archive_collection!="array",pack_array("Items"),dynamic([]))`)
+	columns := make([]string, 0, len(item.Elements))
 	for i, element := range item.Elements {
 		n := strconv.Itoa(i)
 		has, raw, kind := "archive_has_key_"+n, "archive_raw_"+n, "archive_raw_kind_"+n

@@ -810,7 +810,7 @@ func TestAnalyticalJoinPlans(t *testing.T) {
 		return `"from":"archive-objective-dependencies","joins":[` + spec + `],"select":[{"field":"Value"}]`
 	}
 	stage := func(n int) string {
-		var stages []string
+		stages := make([]string, 0, n)
 		for i := range n {
 			stages = append(stages, strings.Replace(idStage, `"name":"ids"`, `"name":"ids`+fmt.Sprint(i)+`"`, 1))
 		}

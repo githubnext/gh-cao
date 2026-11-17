@@ -193,6 +193,13 @@ var itemSources = []ItemSource{
 		{"index", Column{"Index", "integer"}, "signed"},
 		{"kind", Column{"EventKind", "string"}, "string"},
 		{"ref", Column{"Ref", "string"}, "string"}}},
+	{Name: "archive-observations", Path: "data.observations", Elements: []ItemElement{
+		{"sourceToolCallId", Column{"SourceToolCallId", "string"}, "string"},
+		{"consumedByActionIds", Column{"ConsumedByActionIds", "integer"}, "length"}}},
+	{Name: "archive-observation-consumers", Path: "data.observations", Nested: "consumedByActionIds", Elements: []ItemElement{
+		{"", Column{"Value", "string"}, "string"}}},
+	{Name: "archive-tool-calls", Path: "data.toolCalls", Elements: []ItemElement{
+		{"id", Column{"Id", "string"}, "string"}}},
 }
 
 var itemColumns = []Column{
@@ -209,7 +216,8 @@ var GuardedCollections = []string{"events", "states", "actions", "toolCalls", "o
 
 // GuardedOmissions lists the omission reasons that make LargestCollection unverifiable.
 func GuardedOmissions() []string {
-	reasons := []string{"data:excluded", "data.reference:redacted"}
+	reasons := make([]string, 0, 2+len(GuardedCollections))
+	reasons = append(reasons, "data:excluded", "data.reference:redacted")
 	for _, key := range GuardedCollections {
 		reasons = append(reasons, "data."+key+":excluded")
 	}
@@ -1030,7 +1038,7 @@ func (d Definition) plan(stages map[string]*Plan, stage bool) (Plan, error) {
 			selected = append(selected, query.SelectedField{Field: computed.As})
 		}
 	}
-	if len(selected) > 32 && !(stage && d.Select == nil) {
+	if len(selected) > 32 && (!stage || d.Select != nil) {
 		return p, ErrQuery
 	}
 	outputs, used := map[string]string{}, map[string]bool{}
