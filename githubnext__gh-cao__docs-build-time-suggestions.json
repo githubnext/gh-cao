@@ -1,35 +1,7 @@
 {
- "source_sha": "dc2b53ffb32ea57ff4242841b0479032ef76e32a",
- "next_category": "artifact transfer and Pages packaging",
+ "source_sha": "fcd7e182ab90cb514c032abd4f39c187fa7df95e",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-16T23:54:30Z",
-   "worker_run_id": "43982721721",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457",
-    "43832040488",
-    "43831980991",
-    "43831754585",
-    "43829639369",
-    "43825070138",
-    "43814432358",
-    "43810351164",
-    "43798031034",
-    "43792211504",
-    "43789359390",
-    "43781377358",
-    "43781088986",
-    "43780290464",
-    "43768376457",
-    "43766933236"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 2026-11-16T23:54:30Z: no docs run newer than 43877103800, none queue [truncated]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T00:36:29Z",
    "worker_run_id": "43988371640",
@@ -816,6 +788,33 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, created 2026-11-16T08:14Z) to 44043184727 (push f939bbb, created 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. Dashboard generation is the single Build synthetic enterprise demo step in the build job (no dashboard job exists in docs.yml): median 5 s, p90 6 s, min 3, max 8; share of exec median 77.5 s is 6.5 percent; 15 percent gate 11.6 s and 60 s gate both unmet; whole-step removal ceiling 5 s. Reuse blocked: scripts/simulate-dashboard-pages.mjs:78 defaults now to Date.now() and dist/cao is deployed each run. Source dc2b53f equals checkout HEAD; no docs run newer than 44043184727 (read-only gh run list); stored immutable run_timings rows recomputed, no job refetch. Next: artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-17T10:20:11Z",
+   "worker_run_id": "44063243042",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800",
+    "43987917606",
+    "43991571724",
+    "43991770179",
+    "43991897672",
+    "43992363367",
+    "43993695761",
+    "44004300647",
+    "44023953879",
+    "44041835448",
+    "44043184727",
+    "44060953578"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) to 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed; no docs run queued or in progress (stale 37642403569 only). Transfer phase (handoff median 5 s + Configure Pages 1 s + Upload artifact 2 s + deploy Set up job 1 s) = removable median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s (p90 90 s); 15 percent gate 11.63 s and 60 s gate not met; ceiling saving 9 s. Pages artifact 9.35 MB (2 s upload), so artifact shrinkage saves about 1 s. Deploy Pages (GitHub-managed, median 6.5 s) excluded. Merging deploy into build saves about 6 s and remains rejected (moves id-token and github-pages environment into the job running root npm ci lifecycle scripts). Open #20815 (checkout) unchanged, not repeated. No issue opened or reused. Next: scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -928,8 +927,8 @@
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-17T08:23:50Z",
-  "window": "latest 20 completed docs.yml runs 43829639369 (push, 2026-11-16T08:14Z) .. 44043184727 (push, 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879); 0 failed; 43825070138 dropped; 44043184727 added from one Jobs API fetch",
+  "evaluated_at": "2026-11-17T10:20:11Z",
+  "window": "strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879); 0 failed; 43829639369 dropped by cap; 44060953578 added from one Jobs API fetch",
   "columns": [
    "run",
    "event",
@@ -949,23 +948,6 @@
   ],
   "note": "Jobs API step timestamps; completed runs immutable; reuse rows instead of refetching. exec = build job start to deploy job end. queue = run created to build start.",
   "rows": [
-   [
-    "43829639369",
-    "push",
-    "success",
-    "f343b8b",
-    5,
-    62,
-    25,
-    5,
-    8,
-    0,
-    10,
-    5,
-    3,
-    15,
-    82
-   ],
    [
     "43831754585",
     "push",
@@ -1254,13 +1236,30 @@
     2,
     9,
     75
+   ],
+   [
+    "44060953578",
+    "push",
+    "success",
+    "fcd7e18",
+    5,
+    64,
+    23,
+    3,
+    10,
+    1,
+    15,
+    5,
+    2,
+    10,
+    79
    ]
   ],
-  "stats_note": "nearest-rank p90. exec median 77.5 p90 90; build median 62.0 p90 74; deploy median 9.5 p90 12; queue median 4.0 p90 15"
+  "stats_note": "nearest-rank p90. exec median 77.5 p90 90; build median 62 p90 74; deploy median 9.5 p90 11; queue median 4 p90 15"
  },
  "transfer_model": {
-  "verified_at": "2026-11-17T08:35:18Z",
-  "window": "43829639369 (push, 2026-11-16T08:14Z) .. 44043184727 (push, 2026-11-17T08:01Z); 18 successes (17 push, 1 schedule 44023953879); cancelled 43991812013 and 43832015521 excluded; 43814432358 and 43825070138 dropped",
+  "verified_at": "2026-11-17T10:20:11Z",
+  "window": "43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z)",
   "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
   "columns": [
    "run",
@@ -1275,18 +1274,6 @@
    "exec_s"
   ],
   "rows": [
-   [
-    "43829639369",
-    "push",
-    5,
-    0,
-    3,
-    0,
-    13,
-    15,
-    8,
-    82
-   ],
    [
     "43831754585",
     "push",
@@ -1490,6 +1477,18 @@
     9,
     9,
     75
+   ],
+   [
+    "44060953578",
+    "push",
+    5,
+    1,
+    2,
+    1,
+    6,
+    10,
+    9,
+    79
    ]
   ],
   "summary": {
@@ -1499,7 +1498,7 @@
    "exec_median_s": 77.5,
    "exec_p90_s": 90,
    "removable_pct_of_exec_median": 11.6,
-   "gate_15pct_s": 11.6,
+   "gate_15pct_s": 11.63,
    "gate_60s_absolute": "not met",
    "decision": "not actionable"
   },
@@ -1508,8 +1507,17 @@
    "run": "43877103800",
    "result": "Live Jobs API matched stored rows for 43877103800, 43840581457 and 43814432358 (handoff 5/6/5, configure 0/0/0, upload 2/3/3, deploy setup 1/1/1, deploy pages 7/6/7, exec 73/132/120)"
   },
-  "evaluated_note": "2026-11-17T08:35:18Z worker 44047486371: window unchanged (no docs run newer than 44043184727); added Jobs API rows 44041835448 and 44043184727; removable median 9 s, p90 10 s, max 10 s vs 11.6 s and 60 s gates; decision unchanged (not actionable).",
-  "reverified_note": "Re-verified 2026-11-17T06:54:51Z by worker 44034238011: window rolled to 44023953879; decision unchanged (ceiling 9 s vs 11.85 s and 60 s gates; merge-deploy-into-build about 6 s, rejected)."
+  "evaluated_note": "2026-11-17T10:20:11Z worker 44063243042: window slid (43829639369 dropped; 44060953578 added from one Jobs API fetch; no other docs run newer or queued). Removable median 9 s, p90 10 s, max 10 s vs 15 percent gate 11.63 s and 60 s gate: not met; decision unchanged (not actionable). Pages artifact 9.35 MB vs 9.24 MB; upload 2 s.",
+  "reverified_note": "Re-verified 2026-11-17T06:54:51Z by worker 44034238011: window rolled to 44023953879; decision unchanged (ceiling 9 s vs 11.85 s and 60 s gates; merge-deploy-into-build about 6 s, rejected).",
+  "artifact_bytes": {
+   "44060953578": 9354549,
+   "43877103800": 9242961
+  },
+  "deploy_pages_stats": {
+   "median_s": 6.5,
+   "p90_s": 7,
+   "handoff_median_s": 5
+  }
  },
  "commit_paths": {
   "verified_at": "2026-11-16T02:26:27Z",
