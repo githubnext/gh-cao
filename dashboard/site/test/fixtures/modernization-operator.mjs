@@ -13,7 +13,8 @@ export async function startModernizationOperator(repository) {
   const previews = new Map();
   const common = { schema: 'cao-modernization-operator/v1', status: 'available',
     controlRepository: repository, controlSha: 'a'.repeat(40), repository };
-  const task = { id: 't1', title: 'Synthetic operator task', repository: 'octodemo/synthetic-target',
+  const task = { id: 't1', title: 'Synthetic operator task: characterize the legacy SOAP contract and database schema',
+    repository: 'octodemo/synthetic-service-backend-template-20261116184218',
     phase: 'issue', state: 'ready', issueUrl: null, pullRequestUrl: null };
   const plan = {
     schema: 'cao-modernization/v1', id: 'synthetic-plan', objective: 'Preserve the synthetic service contract.',

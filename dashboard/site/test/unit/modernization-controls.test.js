@@ -105,6 +105,77 @@ describe('Modernization operator interaction', () => {
     expect(button(root, 'Review next run').disabled).toBe(true);
   });
 
+  it('uses readable task rows and preserves full revision details without treating missing links as completion', async () => {
+    native.execute.mockImplementationOnce(async (_id, _values, options) => {
+      options.onOutput({ stream: 'stdout', data: frame({ ...status, tasks: [
+        task, { ...task, id: 't2', phase: 'implement', state: 'blocked',
+          issueUrl: 'https://github.com/octodemo/api/issues/42', pullRequestUrl: 'javascript:alert(1)' },
+        { ...task, id: 't3', phase: undefined, state: undefined },
+        { ...task, id: 't4', phase: 'future-phase', state: 'future-state' }
+      ] }) });
+      return { ok: true };
+    });
+    const root = mount();
+    await check(root);
+    const list = root.querySelector('[aria-label="Server-checked task scope and phase"]');
+    expect(list?.tagName).toBe('OL');
+    expect(list?.querySelectorAll('li')).toHaveLength(4);
+    expect(root.querySelector('table')).toBeNull();
+    expect(list?.textContent).toContain('Issue phase');
+    expect(list?.textContent).toContain('Implementation phase');
+    expect(list?.textContent).toContain('No linked evidence');
+    expect(list?.textContent).toContain('Phase not reported');
+    expect(list?.textContent).toContain('State not reported');
+    expect(list?.textContent).toContain('Phase: future-phase');
+    expect(list?.textContent).toContain('future-state');
+    expect(list?.querySelector('a[aria-label="Issue for task t2"]')?.getAttribute('href')).toBe('https://github.com/octodemo/api/issues/42');
+    expect(list?.querySelector('a[href^="javascript:"]')).toBeNull();
+    expect(list?.querySelector('[data-native-state="blocked"]')?.textContent).toBe('blocked');
+    const revision = /** @type {HTMLDetailsElement} */ (root.querySelector('.modernization-revision'));
+    expect(revision.open).toBe(false);
+    expect(revision.textContent).toContain(common.controlSha);
+    expect(revision.textContent).toContain(status.planDigest);
+    revision.open = true;
+    revision.dispatchEvent(new Event('toggle'));
+    button(root, 'Review / approve plan').click();
+    expect(root.querySelector('.modernization-revision')?.hasAttribute('open')).toBe(true);
+    expect(native.execute).toHaveBeenCalledOnce();
+  });
+
+  it('shows only one task context at a time without combining draft, readiness and exact confirmation scope', async () => {
+    native.execute.mockImplementationOnce(async (_id, _values, options) => {
+      options.onOutput({ stream: 'stdout', data: frame({
+        ...status, plan: { id: 'draft-plan', tasks: [{ ...task, objective: 'A separate local draft.' }] }
+      }) });
+      return { ok: true };
+    });
+    const root = mount();
+    await check(root);
+    const readiness = () => root.querySelector('[aria-label="Current Modernization readiness"] .modernization-tasks');
+    expect(readiness()?.querySelectorAll('li')).toHaveLength(1);
+    button(root, 'Review / approve plan').click();
+    expect(readiness()).toBeNull();
+    expect(root.querySelector('.modernization-plan-tasks li')?.textContent).toContain('A separate local draft.');
+    button(root, 'Review approval').click();
+    await vi.waitFor(() => expect(root.querySelector('[data-preview-title]')).not.toBeNull());
+    expect(root.querySelector('.modernization-plan')?.hasAttribute('hidden')).toBe(true);
+    expect(button(root, 'Review / approve plan').getAttribute('aria-expanded')).toBe('false');
+    expect(root.querySelectorAll('.modernization-tasks')).toHaveLength(1);
+    expect(readiness()).toBeNull();
+    button(root, 'Dismiss').click();
+    expect(root.querySelector('.modernization-plan')?.hasAttribute('hidden')).toBe(false);
+    expect(readiness()).toBeNull();
+    button(root, 'Review / approve plan').click();
+    expect(readiness()).not.toBeNull();
+    button(root, 'Review next run').click();
+    await vi.waitFor(() => expect(root.querySelector('[data-preview-title]')).not.toBeNull());
+    expect(root.querySelectorAll('.modernization-tasks')).toHaveLength(1);
+    button(root, 'Review / approve plan').click();
+    expect(root.querySelector('[data-preview-title]')).toBeNull();
+    expect(root.querySelector('.modernization-plan')?.hasAttribute('hidden')).toBe(false);
+    expect(native.execute.mock.calls.some(([id]) => id === 'modernization-execute')).toBe(false);
+  });
+
   it('invalidates reviewed effects when mode or repository changes and forces verification to review mode', async () => {
     const root = mount();
     await check(root);
@@ -170,14 +241,16 @@ describe('Modernization operator interaction', () => {
     await vi.waitFor(() => expect(native.execute.mock.calls.at(-1)?.[2].input).toBe(text));
   });
 
-  it('keeps invalid JSON recoverable and invalidates a reviewed approval when its draft changes', async () => {
+  it('keeps invalid JSON recoverable and requires a new approval preview after returning to edit', async () => {
     const root = mount();
     await check(root);
     button(root, 'Review / approve plan').click();
     button(root, 'Review approval').click();
     await vi.waitFor(() => expect(root.querySelector('[data-preview-title]')).not.toBeNull());
+    expect(root.querySelector('.modernization-plan')?.hasAttribute('hidden')).toBe(true);
+    button(root, 'Review / approve plan').click();
     button(root, 'JSON').click();
-    expect(root.querySelector('[data-preview-title]')).not.toBeNull();
+    expect(root.querySelector('[data-preview-title]')).toBeNull();
     const input = /** @type {HTMLTextAreaElement} */ (root.querySelector('textarea'));
     input.value = '{"id":';
     input.dispatchEvent(new Event('input'));

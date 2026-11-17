@@ -79,6 +79,11 @@ Installation, rollout changes, merging and deployment are not exposed.
 Plan approval presents a readable Overview and editable JSON of the same local
 draft. This interaction-only presentation neither validates the plan nor grants
 authority; native preview and separate confirmation remain required.
+Native task results use responsive rows with explicit phase, state and evidence
+links. Full control revisions and plan digests remain in the readiness disclosure;
+the confirmation preview still shows its exact reviewed revision.
+Readiness, draft editing and confirmation show mutually exclusive task views;
+draft tasks never inherit readiness from the approved plan.
 
 The `storage-info` element also declares `data.sources: []`. It presents deployment
 configuration rather than activity evidence: browser-local IndexedDB, local-server

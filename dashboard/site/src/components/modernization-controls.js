@@ -9,6 +9,7 @@ import { createDebug, diagnosticErrorName } from '../debug.js';
 import { parseModernizationResult } from '../modernization-protocol.js';
 import { renderInteractiveTabs } from './tab-nav.js';
 import { renderModernizationPlanOverview } from './modernization-plan.js';
+import { renderStatusBadge } from './badge.js';
 
 const debug = createDebug('modernization:controls');
 const labels = { assess: 'Assess system', 'approve-plan': 'Publish approved plan', run: 'Run next batch', verify: 'Verify results' };
@@ -21,18 +22,30 @@ function externalLink(href, label) {
 }
 
 /** @param {import('../modernization-protocol.js').ModernizationTask[]} tasks */
-function taskTable(tasks) {
-  return h('div', { className: 'modernization-table-scroll', tabIndex: 0, 'aria-label': 'Modernization task details' },
-    h('table', { className: 'modernization-task-table' },
-      h('caption', { className: 'sr-only' }, 'Server-checked task scope and phase'),
-      h('thead', {}, h('tr', {}, ...['Task', 'Repository', 'Phase / state', 'Evidence'].map(label => h('th', { scope: 'col' }, label)))),
-      h('tbody', {}, ...tasks.map(task => h('tr', {},
-        h('td', {}, h('strong', {}, task.id), ' ', task.title),
-        h('td', {}, task.repository),
-        h('td', {}, [task.phase, task.state].filter(Boolean).join(' / ') || 'Not reported'),
-        h('td', {}, externalLink(task.issueUrl, 'Issue'), ' ', externalLink(task.pullRequestUrl, 'Pull request'))
-      )))
-    ));
+function taskList(tasks) {
+  return h('ol', { className: 'modernization-tasks', 'aria-label': 'Server-checked task scope and phase' },
+    ...tasks.map(task => {
+      const issue = externalLink(task.issueUrl, 'Issue');
+      const pull = externalLink(task.pullRequestUrl, 'Pull request');
+      issue?.setAttribute('aria-label', `Issue for task ${task.id}`);
+      pull?.setAttribute('aria-label', `Pull request for task ${task.id}`);
+      const badge = renderStatusBadge(task.state ?? 'State not reported');
+      badge.classList.add('modernization-task-state');
+      badge.dataset.nativeState = typeof task.state === 'string' ? task.state : '';
+      return h('li', { className: 'modernization-task', 'data-task-id': task.id },
+        h('div', { className: 'modernization-task-main' },
+          h('h5', { className: 'modernization-task-title' }, h('code', {}, task.id), h('span', {}, task.title)),
+          h('div', { className: 'modernization-task-meta' },
+            h('span', { className: 'modernization-task-repository' }, task.repository),
+            h('span', { className: 'modernization-task-evidence' },
+              ...(issue || pull ? [issue, pull] : ['No linked evidence'])))),
+        h('div', { className: 'modernization-task-state-group' },
+          badge,
+          h('span', { className: 'modernization-task-phase' }, task.phase === 'issue' ? 'Issue phase'
+            : task.phase === 'implement' ? 'Implementation phase'
+              : task.phase === 'unavailable' ? 'Phase unavailable'
+                : typeof task.phase === 'string' && task.phase ? `Phase: ${task.phase}` : 'Phase not reported')));
+    }));
 }
 
 /** @param {import('./ui-elements.js').ElementRenderContext} context */
@@ -55,6 +68,7 @@ export function renderModernizationControls(context) {
     mode: /** @type {'review'|'live'} */ ('review'),
     busy: false, error: '', message: '', planText: '', planOpen: false, helpOpen: false, expired: false,
     planTab: 'overview',
+    revisionOpen: false,
     status: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null),
     preview: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null),
     execution: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null)
@@ -173,8 +187,8 @@ export function renderModernizationControls(context) {
       h('div', { className: 'modernization-action-bar', role: 'group', 'aria-label': 'Modernization lifecycle' },
         .../** @type {const} */ (['assess', 'approve-plan', 'run', 'verify']).map(operation => operation === 'approve-plan'
           ? h('button', { type: 'button', className: 'cli-action-cancel', disabled,
-            'aria-expanded': current.planOpen, 'aria-controls': `${id}-approval`,
-            onClick: () => ui.set(value => ({ ...value, planOpen: !value.planOpen, preview: null })) }, 'Review / approve plan')
+            'aria-expanded': current.planOpen && !reviewed, 'aria-controls': `${id}-approval`,
+            onClick: () => ui.set(value => ({ ...value, planOpen: value.preview ? true : !value.planOpen, preview: null, message: '' })) }, 'Review / approve plan')
           : h('div', {},
           h('button', { type: 'button', className: operation === 'run' ? 'cli-action-confirm' : 'cli-action-cancel',
             disabled: disabled || !authorized(operation), onClick: () => preview(operation) },
@@ -196,15 +210,28 @@ export function renderModernizationControls(context) {
         h('p', {}, 'Assess → review and approve a concrete plan → run the next batch → verify. Every write needs a fresh native policy check and your confirmation.'),
         h('p', {}, 'Repository suggestions come from retained inventory, not authorization. Review is the default; live mode cannot exceed checked-in policy.'))
       ),
-      current.status ? h('div', { className: 'modernization-current' },
-        h('p', {}, h('strong', {}, 'Current check: '), current.status.status, ' · ', current.status.controlRepository,
-          ' · revision ', h('code', {}, current.status.controlSha)),
-        current.status.planDigest ? h('p', { className: 'modernization-description' }, 'Approved plan digest ', h('code', {}, current.status.planDigest)) : null,
-        current.status.tasks?.length ? taskTable(current.status.tasks) : null,
-        externalLink(current.status.links?.issuesUrl, 'Inspect issues'), ' ',
-        externalLink(current.status.links?.pullRequestsUrl, 'Inspect pull requests')
+      current.status ? h('section', { className: 'modernization-current', 'aria-label': 'Current Modernization readiness' },
+        h('div', { className: 'modernization-check-header' },
+          h('div', {},
+            h('h4', {}, 'Current check: ', renderStatusBadge(current.status.status)),
+            h('p', { className: 'modernization-checked-repository' }, current.status.controlRepository)),
+          h('details', { className: 'modernization-revision', open: current.revisionOpen,
+            onToggle: (/** @type {Event} */ event) => {
+              const open = /** @type {HTMLDetailsElement} */ (event.target).open;
+              if (open !== ui.get().revisionOpen) ui.set(value => ({ ...value, revisionOpen: open }));
+            } },
+          h('summary', {}, 'Revision and plan details'),
+          h('dl', { className: 'modernization-plan-fields' },
+            h('dt', {}, 'Control revision'), h('dd', {}, h('code', {}, current.status.controlSha)),
+            ...(current.status.planDigest ? [
+              h('dt', {}, 'Approved plan digest'), h('dd', {}, h('code', {}, current.status.planDigest))
+            ] : [])))),
+        !current.planOpen && !reviewed && current.status.tasks?.length ? taskList(current.status.tasks) : null,
+        h('div', { className: 'modernization-links' },
+          externalLink(current.status.links?.issuesUrl, 'Inspect issues'),
+          externalLink(current.status.links?.pullRequestsUrl, 'Inspect pull requests'))
       ) : null,
-      current.planOpen ? h('div', { id: `${id}-approval`, className: 'modernization-plan' },
+      current.planOpen ? h('div', { id: `${id}-approval`, className: 'modernization-plan', hidden: Boolean(reviewed) },
         h('h4', {}, 'Concrete plan approval'),
         h('p', {}, 'Paste or import the concrete engagement JSON. The native operator validates scope, exact baselines, specialists and dependencies. Confirmation publishes only the reviewed plan, never policy or rollout changes.'),
         current.status?.capabilities?.['approve-plan']?.reason ? h('p', { className: 'modernization-description' },
@@ -254,7 +281,7 @@ export function renderModernizationControls(context) {
         h('p', {}, 'Exact repository scope:'),
         h('ul', {}, ...(reviewed.repositories ?? []).map(repository => h('li', {}, repository))),
         reviewed.planDigest ? h('p', {}, 'Plan digest ', h('code', {}, reviewed.planDigest)) : null,
-        reviewed.tasks?.length ? taskTable(reviewed.tasks) : null,
+        reviewed.tasks?.length ? taskList(reviewed.tasks) : null,
         h('ul', {}, ...(reviewed.effects ?? []).map(text => h('li', {}, text))),
         h('ul', { className: 'modernization-notice' }, ...(reviewed.warnings ?? []).map(text => h('li', {}, text))),
         h('p', {}, reviewed.canExecute !== true ? reviewed.reason || 'Execution is unavailable; nothing can be confirmed.'
