@@ -246,6 +246,18 @@
                         {
                             "type": "string",
                             "const": "archive-ir-events"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-observations"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-observation-consumers"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-tool-calls"
                         }
                     ]
                 },

@@ -534,7 +534,7 @@ func TestAnalyticalItemSourcePlans(t *testing.T) {
 		itemDefinition(t, "archive-states", `"select":[{"field":"PayloadJSON"}]`),
 		itemDefinition(t, "archive-states", `"aggregate":{"values":[{"field":"Id","as":"first","reducer":"first","order-by":[{"field":"Ordinal"}]}]}`),
 		itemDefinition(t, "archive-actions", `"filter":{"predicates":[{"field":"Kind","state":"valid"}]},"select":[{"field":"Kind"}]`),
-		itemDefinition(t, "archive-tool-calls", `"select":[{"field":"Ordinal"}]`),
+		itemDefinition(t, "archive-resources", `"select":[{"field":"Ordinal"}]`),
 	} {
 		if _, err := definition.Plan(); !errors.Is(err, ErrQuery) {
 			t.Fatalf("invalid item-source plan accepted: %v", err)

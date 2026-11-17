@@ -5941,7 +5941,7 @@
             "type": "string",
             "maxLength": 128,
             "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
-            "description": "One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states or archive-ir-events, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies further flattens each objective's dependsOn array into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
+            "description": "One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers or archive-tool-calls, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies and archive-observation-consumers further flatten dependsOn and consumedByActionIds into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
           },
           "joins": {
             "type": "array",
@@ -6548,7 +6548,10 @@
               "archive-objective-dependencies",
               "archive-actions",
               "archive-states",
-              "archive-ir-events"
+              "archive-ir-events",
+              "archive-observations",
+              "archive-observation-consumers",
+              "archive-tool-calls"
             ]
           },
           "fields": {

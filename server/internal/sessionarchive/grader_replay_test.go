@@ -77,6 +77,13 @@ func TestGraderReplayEvidence(t *testing.T) {
 		t.Fatal(err)
 	}
 	header := "{\"type\":\"session.format\",\"provenance\":{},\"data\":{\"version\":1}}\n"
+	e1 := `{"objectives":[{"id":"open"},{"id":"done","satisfiedAtEventIndex":0}],"events":[` +
+		`{"kind":"state_change","index":0,"ref":""},{"kind":"state_change","index":1,"ref":"A"},` +
+		`{"kind":"state_change","index":2,"ref":"A"},{"kind":"state_change","index":3,"ref":"B"}],` +
+		`"states":[{"id":"ignored"}],"toolCalls":[{"id":"t"},{"id":"t"},{"id":""},null,{"id":7}],` +
+		`"observations":[{"sourceToolCallId":"t","consumedByActionIds":["a"]},{"sourceToolCallId":"t","consumedByActionIds":[""]},` +
+		`{"sourceToolCallId":"t","consumedByActionIds":[null,0,{}]},{"sourceToolCallId":"unknown","consumedByActionIds":[]},` +
+		`{"consumedByActionIds":"not-array"},{"sourceToolCallId":"t","consumedByActionIds":null},null,[],7]}`
 	var replays []graderEvidenceReplay
 	for _, scenario := range []struct{ name, raw string }{
 		{"measured", string(measured)},
@@ -132,6 +139,26 @@ func TestGraderReplayEvidence(t *testing.T) {
 			`"states":[{"id":"A","firstEventIndex":3},{"id":"B","firstEventIndex":2},"C",{"id":"D","firstEventIndex":0}]}`)},
 		{"ir-few-visits", header + trajectoryIR(`{"objectives":[{"id":"a","dependsOn":[],"satisfiedAtEventIndex":-1}],`+
 			`"events":[{"index":0},{"index":1}],"states":["A",{"id":""},{"id":"B","firstEventIndex":1},"A",null]}`)},
+		{"e1-measured", header + trajectoryIR(e1)},
+		{"e1-excluded-observations", header + trajectoryIR(e1)},
+		{"e1-excluded-tool-calls", header + trajectoryIR(e1)},
+		{"e1-redacted-events", header + trajectoryIR(strings.ReplaceAll(e1, `"ref":"A"`, `"ref":"secret-text"`))},
+		{"e1-harmless-redaction", header + trajectoryIR(`{"objectives":[{"description":"secret-text"}],"events":[],`+
+			`"states":[{"id":"secret-text"},{"id":"secret-text"}],"toolCalls":[{"id":"secret-text"}],`+
+			`"observations":[{"id":"secret-text","sourceToolCallId":"secret-text","consumedByActionIds":["secret-text"]},{}]}`)},
+		{"e1-sparse", header + trajectoryIR(`{"objectives":[{}],"events":[{"kind":"state_change","ref":"a"},`+
+			`{"kind":"state_change","ref":"b"},{"kind":"state_change","ref":"c"}],"toolCalls":[{"id":"t"}],`+
+			`"observations":[{"sourceToolCallId":"t","consumedByActionIds":["a"]}]}`)},
+		{"e1-states-fallback", header + trajectoryIR(`{"objectives":[{}],"states":[{},{},"ignored",null,[]],"observations":[],"toolCalls":[]}`)},
+		{"e1-empty-events-fallback", header + trajectoryIR(`{"objectives":[{}],"events":[],"states":[{},{},"ignored"],"observations":[{}],"toolCalls":[]}`)},
+		{"e1-all-satisfied", header + trajectoryIR(`{"objectives":[{"satisfiedAtEventIndex":false},{"satisfiedAtEventIndex":""}],`+
+			`"events":[],"observations":[],"toolCalls":[]}`)},
+		{"e1-nonstring-ref", header + trajectoryIR(`{"objectives":[{}],"events":[{"kind":"state_change","ref":{}},`+
+			`{"kind":"state_change"},{"kind":"state_change","ref":null}],"observations":[{},{},{}],"toolCalls":[]}`)},
+		{"e1-reconciled-tools-fallback", header + trajectoryIR(`{"objectives":[{}],"events":[],"states":[{}],`+
+			`"observations":[{"sourceToolCallId":"t","consumedByActionIds":["a"]}]}`)},
+		{"e1-oversized-resources", header + trajectoryIR(strings.TrimSuffix(e1, "}")+
+			`,"resources":[`+strings.TrimSuffix(strings.Repeat(`{},`, 5001), ",")+`]}`)},
 		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
@@ -154,6 +181,11 @@ func TestGraderReplayEvidence(t *testing.T) {
 			}
 			if scenario.name == "redacted-measurements" {
 				c.Policy.RedactPatterns = append(c.Policy.RedactPatterns, `token-secret`)
+			}
+			for name, field := range map[string]string{"e1-excluded-observations": "observations", "e1-excluded-tool-calls": "toolCalls"} {
+				if scenario.name == name {
+					c.Policy.Events["trajectory.ir"] = slices.DeleteFunc(c.Policy.Events["trajectory.ir"], func(key string) bool { return key == field })
+				}
 			}
 			now := time.Now().UTC()
 			p, err := Project(c.traceConfig(), c.Namespace, "octo/api", "123", now.Format(time.DateOnly), 7, []byte(scenario.raw), now)
@@ -207,7 +239,8 @@ func TestGraderReplayEvidence(t *testing.T) {
 				supported := slices.Contains([]string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
 					"objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
 					"recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
-					"recurrence-laminarity", "recurrence-trapping-time"}, attempt.ID)
+					"recurrence-laminarity", "recurrence-trapping-time",
+					"exploration-error", "exploitation-error", "tool-output-consumption-rate"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {
@@ -217,7 +250,11 @@ func TestGraderReplayEvidence(t *testing.T) {
 					if json.Unmarshal(full, &envelope) != nil {
 						t.Fatal("invalid reviewed definition")
 					}
-					request, _ := json.Marshal(map[string]any{"kind": "session-query", "repository": "githubnext/gh-cao", "language-version": "0.2.0", "query": envelope})
+					repository := "githubnext/gh-cao"
+					if slices.Contains([]string{"exploration-error", "exploitation-error", "tool-output-consumption-rate"}, attempt.ID) {
+						repository = strings.Repeat("o", 39) + "/" + strings.Repeat("r", 100)
+					}
+					request, _ := json.Marshal(map[string]any{"kind": "session-query", "repository": repository, "language-version": "0.2.0", "query": envelope})
 					if len(request) > 4096 {
 						t.Fatalf("%s exceeds actual MCP/HTTP argument budget: %d", attempt.ID, len(request))
 					}
@@ -248,6 +285,19 @@ func TestGraderReplayEvidence(t *testing.T) {
 						}
 						if _, family := row["family"]; family && row["RunId"] == "456" && row["family"] != "usage.report" {
 							t.Fatal("proxy presence leaked across trace/run-attempt bindings")
+						}
+						if row["RunId"] == "123" && (scenario.name == "e1-measured" || scenario.name == "e1-harmless-redaction") {
+							expected := map[string]float64{"exploration-error": 0, "exploitation-error": 0.5, "tool-output-consumption-rate": 0.25}
+							if scenario.name == "e1-harmless-redaction" {
+								delete(expected, "tool-output-consumption-rate")
+							}
+							if value, ok := expected[attempt.ID]; ok {
+								number, numeric := row["value"].(json.Number)
+								actual, err := number.Float64()
+								if !numeric || err != nil || actual != value || row["availability"] != "measured" {
+									t.Fatalf("%s changed the pinned empty-ref/consumer distinction: %#v", attempt.ID, row)
+								}
+							}
 						}
 					}
 					result.Queries = append(result.Queries, graderQueryReplay{ID: attempt.ID, Component: out, ComponentQuery: component, FullQuery: full, FullResult: &fullResult})

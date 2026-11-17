@@ -461,11 +461,13 @@ and scalar `extend`. No approximate cardinality or unordered `take_any`
 is permitted. ADX's million-row scan fence bounds those internal lists.
 These lowerers are not a universal compiler or a new canonical resolver.
 
-Both backends also accept five item sources: `archive-objectives`,
-`archive-objective-dependencies`, `archive-actions`, `archive-states` and
-`archive-ir-events`. Each binds the last agent-phase `trajectory.ir` event of
+The item-source vocabulary comprises `archive-objectives`,
+`archive-objective-dependencies`, `archive-actions`, `archive-states`,
+`archive-ir-events`, `archive-observations`, `archive-observation-consumers`
+and `archive-tool-calls`. Each binds the last agent-phase `trajectory.ir` event of
 every complete active trace and flattens its `data.objectives`,
-`data.actions`, `data.states` or `data.events` array at query time; no item
+`data.actions`, `data.states`, `data.events`, `data.observations` or
+`data.toolCalls` array at query time; no item
 rows are persisted. Every trace yields one anchor row with null `Ordinal` and
 `Items` when it has no array, plus one row per element. Rows carry the
 complete trace binding, `PolicyDigest`, the bound IR `Sequence`, `Items`,
@@ -475,7 +477,14 @@ and `DependsOn` (the `dependsOn` array length) for objectives;
 `ValidAtIssueTime` (a JSON boolean) for actions; `Id` (a string element or an
 object's string `id`) and `FirstEventIndex` (a safe JSON integer) for states;
 and `Index` (a safe JSON integer), `EventKind` and `Ref` (strings) for IR
-events. `archive-objective-dependencies` is nested: it further flattens each
+events; `SourceToolCallId` (a string) and `ConsumedByActionIds` (an array
+length, not a consumption judgment) for observations; and `Id` (a string)
+for tool calls. `archive-observation-consumers` further flattens each
+observation's `consumedByActionIds` with the same parent `Ordinal`, zero-based
+`Position` and string `Value` contract as dependencies; non-string values
+remain invalid and empty strings do not contribute to count.
+The collection sources are v3-only and do not reconcile missing/null tool calls.
+`archive-objective-dependencies` is nested: it further flattens each
 objective's `dependsOn` array into one row per string `Value`, keyed by the
 parent `Ordinal` plus a zero-based `Position`, with one trace anchor (null
 `Ordinal` and `Position`) when the trace has no dependency. Wrong JSON types
@@ -488,6 +497,10 @@ redacted collection is reported, not treated as empty. Item sources forbid
 same IR with materialized `let` statements and expands elements with
 `mv-expand with_itemindex`; a backend without a lowering accepted against real
 Kusto MUST omit them and reject such plans.
+
+The E1 observation, consumer and tool-call sources have production DuckDB
+replay and shared KQL fixtures; real Kusto acceptance of these additions remains
+pending. Their presence in the shared vocabulary is not deployment acceptance.
 
 Both backends also accept query chaining (Dashboard Language DLS-QUERY-017)
 for multi-stage aggregation. A definition may list at most eight earlier
