@@ -42,7 +42,7 @@
       "objective": "Suggest explicit control-repository selections for authorized Modernization actions.",
       "acceptance": "Return one coordinate per retained coordinator repository. This inventory suggests a selection only; it does not authorize actions or establish plan approval or readiness.",
       "from": "workflows",
-      "filter": { "predicates": [{ "field": "workflow", "equals": ".github/workflows/modernization.md" }, { "field": "workflow-role", "equals": "orchestrator" }] },
+      "filter": { "predicates": [{ "field": "workflow", "equals": ".github/workflows/modernization.md" }] },
       "aggregate": { "by": ["organization", "repository", "control-repository", "operator-campaign"], "values": [{ "field": "workflow", "as": "registered-workflows", "reducer": "count" }] },
       "compute": [
         { "as": "control-repository", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },

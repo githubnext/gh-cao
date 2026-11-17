@@ -58,13 +58,16 @@ export function renderModernizationControls(context) {
   const sources = bindFactorySources(context.sources, context.sourceNames, context, {
     requestMissingSources: false, preserveSubscribedSources: context.sourcesSubscribed === true
   });
-  const suggestions = () => context.sourceNames.flatMap(name => sources[name].rows());
-  const initial = suggestions();
+  const farms = () => [...new Set(context.sourceNames.flatMap(name => sources[name].rows())
+    .map(row => String(row['control-repository'] ?? ''))
+    .filter(value => repositoryPattern.test(value) && !value.includes('..')))];
+  const farmsPending = () => context.sourceNames.some(name => sources[name].pending());
+  const farmsUnavailable = () => context.sourceNames.some(name => sources[name].unavailable());
   const id = `modernization-controls-${++nextId}`;
   const actions = context.elementConfig?.actions ?? {};
   const available = cliQueueAvailable();
   const ui = state({
-    repository: initial.length === 1 ? String(initial[0]['control-repository'] ?? '') : '',
+    repository: '',
     mode: /** @type {'review'|'live'} */ ('review'),
     busy: false, error: '', message: '', planText: '', planOpen: false, helpOpen: false, expired: false,
     planTab: 'overview',
@@ -74,7 +77,12 @@ export function renderModernizationControls(context) {
     execution: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null)
   });
   const root = h('section', { className: 'modernization-controls', 'aria-label': 'Modernization actions' });
-  const validRepository = () => repositoryPattern.test(ui.get().repository) && !ui.get().repository.includes('..');
+  const farm = () => {
+    const known = farms();
+    const chosen = ui.get().repository;
+    return known.includes(chosen) ? chosen : known.length === 1 ? known[0] : '';
+  };
+  const validRepository = () => Boolean(farm());
   const authorized = (/** @type {import('../modernization-protocol.js').ModernizationOperation} */ action) =>
     ui.get().status?.capabilities?.[action]?.authorized === true;
 
@@ -116,7 +124,7 @@ export function renderModernizationControls(context) {
 
   const check = () => perform(async () => {
     ui.set(current => ({ ...current, preview: null, message: 'Checking current plan, policy and task evidence…' }));
-    const result = await request('status', { repository: ui.get().repository });
+    const result = await request('status', { repository: farm() });
     if (result) ui.set(current => ({
       ...current, status: result, planText: result.plan ? JSON.stringify(result.plan, null, 2) : '',
       message: result.reason || 'Current native checks loaded. Retained dashboard evidence is not execution authority.'
@@ -126,7 +134,7 @@ export function renderModernizationControls(context) {
     const current = ui.get();
     const mode = operation === 'run' ? current.mode : 'review';
     ui.set(value => ({ ...value, preview: null, message: 'Preparing a current, revision-bound preview…' }));
-    const result = await request('preview', { repository: current.repository, operation, mode },
+    const result = await request('preview', { repository: farm(), operation, mode },
       operation === 'approve-plan' ? current.planText : undefined);
     if (result) {
       if (result.action !== operation || result.mode !== mode) throw new Error('The preview does not match the requested action and mode.');
@@ -143,7 +151,7 @@ export function renderModernizationControls(context) {
       throw new Error('This preview is unavailable or expired. Review the action again.');
     }
     ui.set(value => ({ ...value, preview: null, message: 'Submitting the confirmed action. Do not retry if the outcome is uncertain…' }));
-    const result = await request('execution', { repository: current.repository, preview: reviewed.previewId });
+    const result = await request('execution', { repository: farm(), preview: reviewed.previewId });
     if (result) {
       if (result.action !== reviewed.action) throw new Error('The native execution result does not match the confirmed action. Check command history before retrying.');
       if (result.accepted !== true) throw new Error(result.reason || 'The native operator did not confirm acceptance.');
@@ -158,22 +166,31 @@ export function renderModernizationControls(context) {
     const current = ui.get();
     const disabled = !available || current.busy || !validRepository();
     const reviewed = current.preview;
-    const rows = suggestions();
+    const known = farms();
+    const selected = farm();
     return h('div', {},
       h(context.headingTag, {}, 'Modernization'),
-      h('p', { className: 'modernization-description' }, 'Check readiness, then review the next authorized action.'),
+      h('p', { className: 'modernization-description' }, 'Runs across every repository in this farm\'s approved plan. Check farm readiness, then review the next authorized action.'),
       !available ? h('p', { className: 'modernization-notice', role: 'status' },
         'Read-only deployment. Authorized native operator actions are unavailable here; no browser GitHub credentials or execution fallback is used.') : null,
       h('div', { className: 'modernization-inputs' },
-        h('label', { htmlFor: `${id}-repository` }, 'Control repository',
-          h('input', { id: `${id}-repository`, type: 'text', value: current.repository, placeholder: 'OWNER/REPOSITORY',
-            list: `${id}-repositories`, disabled: !available || current.busy, autoComplete: 'off', spellcheck: false,
-            onInput: (/** @type {Event} */ event) => ui.set(value => ({ ...value,
-              repository: /** @type {HTMLInputElement} */ (event.target).value.trim(),
-              status: null, preview: null, execution: null, message: '', error: '' })) })),
-        h('datalist', { id: `${id}-repositories` }, ...rows.map(row => h('option', { value: String(row['control-repository'] ?? '') }))),
+        known.length > 1
+          ? h('label', { htmlFor: `${id}-repository` }, 'Farm',
+            h('select', { id: `${id}-repository`, value: selected, disabled: !available || current.busy,
+              onChange: (/** @type {Event} */ event) => ui.set(value => ({ ...value,
+                repository: /** @type {HTMLSelectElement} */ (event.target).value,
+                status: null, preview: null, execution: null, planOpen: false, message: '', error: '' })) },
+            h('option', { value: '' }, 'Choose a farm'), ...known.map(value => h('option', { value }, value))))
+          : h('div', { className: 'modernization-farm' },
+            h('span', { className: 'modernization-farm-label' }, 'Farm'),
+            selected
+              ? h('span', { className: 'modernization-farm-name' }, h('code', {}, selected),
+                h('span', { className: 'modernization-description' }, ' control repository'))
+              : h('span', { className: 'modernization-description' }, farmsPending() ? 'Finding this farm\'s Modernization coordinator…'
+                : farmsUnavailable() ? 'Farm coordinator evidence is unavailable. Actions stay disabled until it loads.'
+                  : 'No Modernization coordinator is recorded in this farm\'s retained evidence.')),
         h('button', { type: 'button', className: current.status ? 'cli-action-cancel' : 'cli-action-confirm',
-          disabled, onClick: check }, current.busy ? 'Working…' : 'Check readiness'),
+          disabled, onClick: check }, current.busy ? 'Working…' : 'Check farm readiness'),
         h('label', { htmlFor: `${id}-mode` }, 'Next-batch mode',
           h('select', { id: `${id}-mode`, value: current.mode, disabled: !available || current.busy,
             onChange: (/** @type {Event} */ event) => ui.set(value => ({ ...value, preview: null,
@@ -183,7 +200,7 @@ export function renderModernizationControls(context) {
       current.error ? h('p', { role: 'alert', className: 'modernization-error' }, current.error) : null,
       h('output', { role: 'status', 'aria-live': 'polite', className: 'modernization-status' },
         current.message || (current.status || !available ? '' : validRepository()
-          ? 'Check readiness to enable authorized actions.' : 'Choose a control repository to check available actions.')),
+          ? 'Check farm readiness to enable authorized actions.' : known.length > 1 ? 'Choose a farm to check available actions.' : '')),
       h('div', { className: 'modernization-action-bar', role: 'group', 'aria-label': 'Modernization lifecycle' },
         .../** @type {const} */ (['assess', 'approve-plan', 'run', 'verify']).map(operation => operation === 'approve-plan'
           ? h('button', { type: 'button', className: 'cli-action-cancel', disabled,
@@ -208,13 +225,16 @@ export function renderModernizationControls(context) {
           } },
         h('summary', {}, 'Scope and safeguards'),
         h('p', {}, 'Assess → review and approve a concrete plan → run the next batch → verify. Every write needs a fresh native policy check and your confirmation.'),
-        h('p', {}, 'Repository suggestions come from retained inventory, not authorization. Review is the default; live mode cannot exceed checked-in policy.'))
+        h('p', {}, 'The farm is identified from retained inventory, not authorization; the native operator re-checks it. Review is the default; live mode cannot exceed checked-in policy.'))
       ),
       current.status ? h('section', { className: 'modernization-current', 'aria-label': 'Current Modernization readiness' },
         h('div', { className: 'modernization-check-header' },
           h('div', {},
             h('h4', {}, 'Current check: ', renderStatusBadge(current.status.status)),
-            h('p', { className: 'modernization-checked-repository' }, current.status.controlRepository)),
+            h('p', { className: 'modernization-checked-repository' }, current.status.controlRepository),
+            current.status.repositories?.length ? h('p', { className: 'modernization-description' },
+              `Plan covers ${current.status.repositories.length} ${current.status.repositories.length === 1 ? 'repository' : 'repositories'}: `,
+              current.status.repositories.join(', ')) : null),
           h('details', { className: 'modernization-revision', open: current.revisionOpen,
             onToggle: (/** @type {Event} */ event) => {
               const open = /** @type {HTMLDetailsElement} */ (event.target).open;

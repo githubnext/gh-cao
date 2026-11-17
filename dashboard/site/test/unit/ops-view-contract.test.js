@@ -49,15 +49,14 @@ describe('Ops retained-evidence contract', () => {
     }
   });
 
-  it('resolves deduplicated control-repository suggestions through the canonical worker without granting readiness', async () => {
+  it('resolves deduplicated farm control repositories for orchestrator and standalone coordinators through the canonical worker without granting readiness', async () => {
     const indexedDB = new IDBFactory();
     vi.stubGlobal('indexedDB', indexedDB);
     const batch = opsEvidence();
     for (const [id, repositoryId, role] of [
       ['modernization:one', batch.repositories[0].id, 'orchestrator'],
       ['modernization:duplicate', batch.repositories[0].id, 'orchestrator'],
-      ['modernization:other', batch.repositories[1].id, 'orchestrator'],
-      ['modernization:worker', batch.repositories[1].id, 'worker']
+      ['modernization:other', batch.repositories[1].id, 'standalone']
     ]) batch.workflows.push({ ...batch.workflows[0], id, repositoryId, role, path: '.github/workflows/modernization.md' });
     await replaceCanonicalBatch(indexedDB, batch);
     const result = await canonicalView(contract['action-view']);

@@ -26,23 +26,23 @@ function button(root, label) {
   return found;
 }
 /** @param {Partial<import('../../src/components/ui-elements.js').ElementRenderContext>} [overrides] */
-function mount(overrides = {}) {
+function mount(overrides = {}, farms = [repository]) {
   const root = renderModernizationControls({
     pageId: 'ops', title: 'Modernization', contextDetails: [],
-    headingTag: 'h3', sourceNames: [], sources: {}, routeParameters: {}, ...overrides,
+    headingTag: 'h3', sourceNames: ['modernization-control-repositories'],
+    sources: { 'modernization-control-repositories': { source: 'modernization-control-repositories',
+      rows: farms.map(value => ({ 'control-repository': value, 'operator-campaign': 'modernization' })),
+      metadata: { 'source-id': 'synthetic', 'source-kind': 'query', 'as-of': '2026-01-01T00:00:00Z',
+        'retrieved-at': '2026-01-01T00:00:00Z', completeness: 'complete', freshness: 'fresh' }
+    } }, routeParameters: {}, ...overrides,
     elementConfig: { actions: { status: 'modernization-status', preview: 'modernization-preview', execute: 'modernization-execute' }, ...overrides.elementConfig }
   });
   document.body.append(root);
-  const input = root.querySelector('input');
-  if (input) {
-    input.value = repository;
-    input.dispatchEvent(new Event('input'));
-  }
   return root;
 }
 /** @param {HTMLElement} root */
 async function check(root) {
-  button(root, 'Check readiness').click();
+  button(root, 'Check farm readiness').click();
   await vi.waitFor(() => expect(root.textContent).toContain('Current check: available'));
 }
 
@@ -67,7 +67,7 @@ afterEach(() => {
 describe('Modernization operator interaction', () => {
   it('keeps safeguards discoverable and distinguishes readiness, supporting actions and confirmation', async () => {
     const root = mount();
-    expect(root.textContent).toContain('Check readiness to enable authorized actions.');
+    expect(root.textContent).toContain('Check farm readiness to enable authorized actions.');
     const help = /** @type {HTMLDetailsElement} */ (root.querySelector('.modernization-help'));
     expect(help.open).toBe(false);
     expect(help.querySelector('summary')?.textContent).toBe('Scope and safeguards');
@@ -75,7 +75,7 @@ describe('Modernization operator interaction', () => {
     expect(button(root, 'Assess system').classList.contains('cli-action-cancel')).toBe(true);
     expect(native.execute).not.toHaveBeenCalled();
     await check(root);
-    expect(button(root, 'Check readiness').classList.contains('cli-action-cancel')).toBe(true);
+    expect(button(root, 'Check farm readiness').classList.contains('cli-action-cancel')).toBe(true);
     expect(button(root, 'Review next run').classList.contains('cli-action-confirm')).toBe(true);
     expect(root.textContent).not.toContain('Reviewed scope available');
     const plan = button(root, 'Review / approve plan');
@@ -176,22 +176,45 @@ describe('Modernization operator interaction', () => {
     expect(native.execute.mock.calls.some(([id]) => id === 'modernization-execute')).toBe(false);
   });
 
-  it('invalidates reviewed effects when mode or repository changes and forces verification to review mode', async () => {
+  it('targets the detected farm without asking for a repository and explains a farm without a coordinator', () => {
     const root = mount();
+    expect(root.querySelector('input[type="text"]')).toBeNull();
+    expect(root.querySelector('.modernization-farm')?.textContent).toContain(repository);
+    expect(button(root, 'Check farm readiness').disabled).toBe(false);
+    root.remove();
+    const empty = mount({}, []);
+    expect(empty.querySelector('.modernization-farm')?.textContent).toContain('No Modernization coordinator is recorded');
+    expect(button(empty, 'Check farm readiness').disabled).toBe(true);
+    expect(native.execute).not.toHaveBeenCalled();
+  });
+
+  it('shows every repository the native plan covers after a farm readiness check', async () => {
+    const root = mount();
+    await check(root);
+    expect(root.querySelector('.modernization-current')?.textContent).toContain(`Plan covers 2 repositories: ${repository}, ${task.repository}`);
+    expect(native.execute.mock.calls[0][1]).toEqual({ repository });
+  });
+
+  it('invalidates reviewed effects when mode or farm changes and forces verification to review mode', async () => {
+    const root = mount({}, [repository, 'octodemo/other']);
+    expect(button(root, 'Check farm readiness').disabled).toBe(true);
+    const farm = /** @type {HTMLSelectElement} */ (root.querySelector(`select[id$="-repository"]`));
+    farm.value = repository;
+    farm.dispatchEvent(new Event('change'));
     await check(root);
     button(root, 'Review next run').click();
     await vi.waitFor(() => expect(root.querySelector('[data-preview-title]')).not.toBeNull());
-    const mode = /** @type {HTMLSelectElement} */ (root.querySelector('select'));
+    const mode = /** @type {HTMLSelectElement} */ (root.querySelector(`select[id$="-mode"]`));
     mode.value = 'live';
     mode.dispatchEvent(new Event('change'));
     expect(root.querySelector('[data-preview-title]')).toBeNull();
     button(root, 'Verify results').click();
     await vi.waitFor(() => expect(native.execute.mock.calls.at(-1)?.[1].operation).toBe('verify'));
     expect(native.execute.mock.calls.at(-1)?.[1].mode).toBe('review');
-    const input = /** @type {HTMLInputElement} */ (root.querySelector('input'));
-    input.value = 'octodemo/other';
-    input.dispatchEvent(new Event('input'));
+    farm.value = 'octodemo/other';
+    farm.dispatchEvent(new Event('change'));
     expect(root.querySelector('[data-preview-title]')).toBeNull();
+    expect(root.querySelector('.modernization-current')).toBeNull();
     expect(button(root, 'Review next run').disabled).toBe(true);
   });
 
@@ -284,12 +307,12 @@ describe('Modernization operator interaction', () => {
     native.available = false;
     const unavailable = mount();
     expect(unavailable.textContent).toContain('Read-only deployment');
-    expect(button(unavailable, 'Check readiness').disabled).toBe(true);
+    expect(button(unavailable, 'Check farm readiness').disabled).toBe(true);
     unavailable.remove();
     native.available = true;
     native.execute.mockResolvedValue({ ok: true });
     const root = mount();
-    button(root, 'Check readiness').click();
+    button(root, 'Check farm readiness').click();
     await vi.waitFor(() => expect(root.querySelector('[role="alert"]')?.textContent).toContain('one confirmed Modernization result'));
     expect(native.notify).toHaveBeenCalledWith(expect.objectContaining({ tone: 'error' }));
   });
@@ -301,7 +324,7 @@ describe('Modernization operator interaction', () => {
       finish = () => { options.onOutput({ stream: 'stdout', data: frame(status) }); resolve({ ok: true }); };
     }));
     const root = mount();
-    button(root, 'Check readiness').click();
+    button(root, 'Check farm readiness').click();
     const signal = native.execute.mock.calls[0][2].signal;
     root.remove();
     await Promise.resolve();

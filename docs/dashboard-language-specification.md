@@ -66,10 +66,12 @@ worker's queue transport. Queue history, status filtering, ordering and counts
 remain declarative queries over the registered operational sources. Published
 dashboards neither enable this transport nor request queue data.
 
-The interaction-only `modernization-controls` element declares its repository
-suggestion query in `data.sources` and references declared CLI actions through
-`config.actions.status`, `preview` and `execute`. Retained rows suggest a control
-repository only; they never establish authorization, plan approval or task
+The interaction-only `modernization-controls` element declares its farm
+coordinator query in `data.sources` and references declared CLI actions through
+`config.actions.status`, `preview` and `execute`. A single retained coordinator
+repository is the farm target without manual entry; several require an explicit
+choice, and none disables actions. Retained rows identify the farm only; they
+never establish authorization, plan approval or task
 readiness. Native checks own the full Modernization lifecycle. Each write requires
 an explicit, expiring preview bound to the reviewed control revision and task batch.
 The shared element supports Ops and the Modernization campaign

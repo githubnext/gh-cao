@@ -10,6 +10,10 @@ export const modernizationStyles = `
 .modernization-action-bar .modernization-description{max-width:28ch;margin-bottom:0;font-size:12px}
 .modernization-inputs label,.modernization-plan label{display:flex;flex-direction:column;gap:6px;min-width:0;font-weight:600}
 .modernization-inputs label:first-child{flex:1 1 300px}
+.modernization-farm{display:flex;flex:1 1 300px;flex-direction:column;gap:6px;min-width:0}
+.modernization-farm-label{font-weight:600}
+.modernization-farm-name{font-size:14px;overflow-wrap:anywhere}
+.modernization-farm-name code{font-size:14px}
 .modernization-controls input,.modernization-controls select,.modernization-controls textarea{font:inherit;font-weight:400;color:var(--fg);background:var(--canvas-inset);border:1px solid var(--border);border-radius:6px;padding:8px 12px;min-height:44px;max-width:100%;box-sizing:border-box}
 .modernization-controls input::placeholder{color:var(--muted);opacity:1}
 .modernization-controls :is(input,select,textarea,summary):focus-visible{outline:2px solid var(--focus);outline-offset:2px}
@@ -69,7 +73,7 @@ export const modernizationStyles = `
 .modernization-plan-fields li+li{margin-top:6px}
 .modernization-plan-repositories,.modernization-plan-tasks{list-style:none;padding:0;margin:0}
 .modernization-plan-repositories>li+li,.modernization-plan-tasks>li+li{margin-top:20px;padding-top:20px;border-top:1px solid var(--border-muted)}
-@media(max-width:600px){.modernization-inputs{align-items:stretch}.modernization-inputs label,.modernization-inputs button{flex:1 1 100%}.modernization-action-bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.modernization-action-bar button{width:100%;height:auto}.modernization-footer{gap:12px}.modernization-help{flex-basis:100%}}
+@media(max-width:600px){.modernization-inputs{align-items:stretch}.modernization-inputs label,.modernization-inputs button,.modernization-farm{flex:1 1 100%}.modernization-action-bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.modernization-action-bar button{width:100%;height:auto}.modernization-footer{gap:12px}.modernization-help{flex-basis:100%}}
 @media(max-width:600px){.modernization-plan-fields{grid-template-columns:minmax(0,1fr);gap:4px}.modernization-plan-fields dd+dt{margin-top:8px}}
 @media(max-width:600px){.modernization-task{grid-template-columns:minmax(0,1fr);gap:10px}.modernization-task-state-group{flex-direction:row;align-items:center;gap:10px}.modernization-revision{flex-basis:100%}}
 `;

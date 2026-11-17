@@ -113,8 +113,11 @@ Before the first local snapshot, it remains navigable with explicit missing-data
 states; it does not collect evidence or supply sample rows.
 
 Ops also offers the shared **Modernization** lifecycle controls, available from
-the Modernization campaign page too. Select the owning native checkout's control
-repository and choose **Check readiness**. Assess the system, review/import and
+the Modernization campaign page too. The controls target the farm: its control
+repository is identified from retained Modernization coordinator inventory (a
+choice appears only when several farms are retained), and the native operator
+re-checks it. Choose **Check farm readiness** to see every repository and task
+in the approved plan. Assess the system, review/import and
 approve a concrete plan, review the next ready batch, inspect issues and pull
 requests, or verify results. Review mode is the default. Live mode cannot exceed
 the control repository's reviewed policy. Each mutation requires a fresh native

@@ -14,7 +14,7 @@ for (const width of [1440, 390]) {
       prepareSnapshot: async (/** @type {string} */ destination) => {
         const evidence = opsEvidence(new Date().toISOString());
         evidence.workflows.push({ ...evidence.workflows[0], id: 'workflow:modernization',
-          role: 'orchestrator', path: '.github/workflows/modernization.md' });
+          role: 'standalone', path: '.github/workflows/modernization.md' });
         await writeDashboardSnapshot(destination, evidence);
       }
     }).catch(async (/** @type {unknown} */ error) => { await operator.close(); throw error; });
@@ -31,15 +31,15 @@ for (const width of [1440, 390]) {
       await page.goto(`${preview.url}/#page-ops`);
       const controls = page.getByRole('region', { name: 'Modernization actions', exact: true });
       await expect(controls).toBeVisible();
-      await expect(controls.locator('datalist option').first()).toHaveAttribute('value', repository);
-      await controls.getByLabel('Control repository', { exact: true }).fill(repository);
+      await expect(controls.locator('.modernization-farm')).toContainText(repository);
+      await expect(controls.locator('input[type="text"]')).toHaveCount(0);
       for (const colorScheme of /** @type {const} */ (['dark', 'light'])) {
         await page.emulateMedia({ colorScheme });
-        await expect(controls.getByLabel('Control repository', { exact: true })).toHaveCSS('border-top-style', 'solid');
+        await expect(controls.getByRole('combobox', { name: 'Next-batch mode', exact: true })).toHaveCSS('border-top-style', 'solid');
         const colors = await controls.evaluate(element => ({
           text: getComputedStyle(element).color,
           description: getComputedStyle(/** @type {Element} */ (element.querySelector('.modernization-description'))).color,
-          input: getComputedStyle(/** @type {Element} */ (element.querySelector('input'))).backgroundColor,
+          input: getComputedStyle(/** @type {Element} */ (element.querySelector('select'))).backgroundColor,
           ready: getComputedStyle(/** @type {Element} */ (element.querySelector('.modernization-inputs button'))).backgroundColor,
           disabled: getComputedStyle(/** @type {Element} */ (element.querySelector('button:disabled'))).backgroundColor
         }));
@@ -53,7 +53,7 @@ for (const width of [1440, 390]) {
       await expect(help.getByText('Every write needs', { exact: false })).toBeVisible();
       await help.locator('summary').click();
       expect(operator.requests).toHaveLength(0);
-      await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
+      await controls.getByRole('button', { name: 'Check farm readiness', exact: true }).click();
       await expect(controls).toContainText('Synthetic operator task');
       const readiness = controls.getByRole('region', { name: 'Current Modernization readiness', exact: true });
       const taskRow = readiness.getByRole('list', { name: 'Server-checked task scope and phase' }).locator('li').first();
@@ -68,7 +68,7 @@ for (const width of [1440, 390]) {
       await expect(revision.getByText('a'.repeat(40), { exact: true })).toBeVisible();
       await expect(revision.getByText('b'.repeat(64), { exact: true })).toBeVisible();
       await revision.locator('summary').click();
-      await expect(controls.getByRole('button', { name: 'Check readiness', exact: true })).toHaveClass('cli-action-cancel');
+      await expect(controls.getByRole('button', { name: 'Check farm readiness', exact: true })).toHaveClass('cli-action-cancel');
       await controls.getByRole('button', { name: 'Review next run', exact: true }).click();
       const review = controls.getByRole('region', { name: 'Review Modernization action', exact: true });
       await expect(review).toBeVisible();
@@ -82,7 +82,7 @@ for (const width of [1440, 390]) {
       await review.getByRole('button', { name: 'Run next batch', exact: true }).click();
       await expect(controls).toContainText('Dispatch accepted—not proof');
       expect(operator.requests.filter(request => request.args[1] === 'execute')).toHaveLength(1);
-      await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
+      await controls.getByRole('button', { name: 'Check farm readiness', exact: true }).click();
       await expect(controls).toContainText('Current check: available');
       await controls.getByRole('button', { name: 'Review / approve plan', exact: true }).click();
       const tabs = controls.getByRole('tablist', { name: 'Engagement plan view' });
@@ -123,7 +123,7 @@ for (const width of [1440, 390]) {
       expect(operator.requests.at(-1)?.input).toBe(plan);
       await review.getByRole('button', { name: 'Publish approved plan', exact: true }).click();
       await expect(controls).toContainText('The approved plan was published');
-      await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
+      await controls.getByRole('button', { name: 'Check farm readiness', exact: true }).click();
       await expect(controls).toContainText('Current check: available');
       for (const [label, operation] of [['Assess system', 'assess'], ['Verify results', 'verify']]) {
         await controls.getByRole('button', { name: label, exact: true }).click();
