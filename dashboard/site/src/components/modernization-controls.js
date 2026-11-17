@@ -291,7 +291,7 @@ export function renderModernizationControls(context) {
           'aria-label': current.planTab === 'json' ? 'Plan JSON' : 'Plan overview' },
         h('div', { hidden: current.planTab !== 'overview' },
           current.planTab !== 'overview' ? null
-            : !current.planText.trim() && current.busy ? h('p', { className: 'modernization-description', role: 'status' }, 'Loading the farm\'s approved plan. The native readiness check reads plan and task state from GitHub and can take about 30 seconds.')
+            : !current.planText.trim() && current.busy ? h('p', { className: 'modernization-description modernization-loading', role: 'status' }, h('span', { className: 'modernization-spinner', 'aria-hidden': 'true' }), 'Loading the farm\'s approved plan. The native readiness check reads plan and task state from GitHub and can take about 30 seconds.')
               : !current.planText.trim() && current.status && !current.status.plan
                 ? h('p', { className: 'modernization-description' }, 'This farm has no approved plan yet. Import a plan or open the JSON tab to start drafting.')
                 : renderModernizationPlanOverview(current.planText,

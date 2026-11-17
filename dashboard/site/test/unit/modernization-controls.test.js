@@ -89,7 +89,9 @@ describe('Modernization operator interaction', () => {
     const root = mount();
     button(root, 'Review / approve plan').click();
     expect(native.execute.mock.calls.map(([id]) => id)).toEqual(['modernization-status']);
+    expect(root.querySelector('.modernization-loading[role="status"] .modernization-spinner[aria-hidden="true"]')).not.toBeNull();
     await vi.waitFor(() => expect(/** @type {HTMLTextAreaElement} */ (root.querySelector('textarea')).value).toContain('synthetic-plan'));
+    expect(root.querySelector('.modernization-spinner')).toBeNull();
     expect(button(root, 'Review / approve plan').getAttribute('aria-expanded')).toBe('true');
     expect(root.querySelector('.modernization-plan-panel')?.textContent).toContain('Currently approved plan');
     const editor = /** @type {HTMLTextAreaElement} */ (root.querySelector('textarea'));

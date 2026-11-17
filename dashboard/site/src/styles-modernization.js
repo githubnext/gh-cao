@@ -76,4 +76,7 @@ export const modernizationStyles = `
 @media(max-width:600px){.modernization-inputs{align-items:stretch}.modernization-inputs label,.modernization-inputs button,.modernization-farm{flex:1 1 100%}.modernization-action-bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.modernization-action-bar button{width:100%;height:auto}.modernization-footer{gap:12px}.modernization-help{flex-basis:100%}}
 @media(max-width:600px){.modernization-plan-fields{grid-template-columns:minmax(0,1fr);gap:4px}.modernization-plan-fields dd+dt{margin-top:8px}}
 @media(max-width:600px){.modernization-task{grid-template-columns:minmax(0,1fr);gap:10px}.modernization-task-state-group{flex-direction:row;align-items:center;gap:10px}.modernization-revision{flex-basis:100%}}
+.modernization-loading{display:flex;align-items:flex-start;gap:10px}
+.modernization-spinner{flex:none;width:16px;height:16px;margin-top:2px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:dashboard-refresh-spin .8s linear infinite}
+@media(prefers-reduced-motion:reduce){.modernization-spinner{animation:none;border-top-color:var(--border);border-right-color:var(--accent)}}
 `;
