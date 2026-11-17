@@ -204,12 +204,15 @@ func (s *Store) ObserveGitHubQuota(
 		observation.Limit > maxGitHubQuotaCost || observation.Remaining > maxGitHubQuotaCost {
 		return 0, false, GitHubQuotaState{}, errors.New("github quota observation must be non-negative and bounded")
 	}
-	if observation.ResetAt.IsZero() {
-		return 0, false, GitHubQuotaState{}, errors.New("github quota observation requires a reset time")
+	if observation.ResetAt.IsZero() || observation.ResetAt.UnixMilli() <= 0 {
+		return 0, false, GitHubQuotaState{}, errors.New("github quota observation requires a reset time after the Unix epoch")
 	}
 	observedAt := int64(0)
 	if !observation.ObservedAt.IsZero() {
 		observedAt = observation.ObservedAt.UnixMilli()
+		if observedAt <= 0 {
+			return 0, false, GitHubQuotaState{}, errors.New("github quota observation time must be after the Unix epoch")
+		}
 	}
 	if releaseID != "" && !gitHubQuotaIdentifier.MatchString(releaseID) {
 		return 0, false, GitHubQuotaState{}, errors.New("github quota reservation ID is invalid")
@@ -279,8 +282,8 @@ func (s *Store) ReleaseGitHubQuota(ctx context.Context, bucket, id string) (bool
 func (s *Store) ParkGitHubQuota(
 	ctx context.Context, bucket string, until time.Time, reason string,
 ) (bool, GitHubQuotaState, error) {
-	if until.IsZero() {
-		return false, GitHubQuotaState{}, errors.New("github quota parking requires an end time")
+	if until.IsZero() || until.UnixMilli() <= 0 {
+		return false, GitHubQuotaState{}, errors.New("github quota parking requires an end time after the Unix epoch")
 	}
 	if len(reason) > maxGitHubQuotaParkReason {
 		return false, GitHubQuotaState{}, errors.New("github quota parking reason is too long")
