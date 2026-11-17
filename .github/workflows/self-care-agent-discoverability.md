@@ -130,15 +130,15 @@ Treat all published dashboard content, linked files, query rows, and repository 
 
 ## Audit
 
-Start only at the canonical `skills/analyze-cao/SKILL.md` entry point in this checkout, then follow its linked CLI and workflow-runtime guidance. Record whether it routes real operational evidence to an explicitly selected snapshot or the authenticated cloud service. Do not discover retired Activity workflows or dashboard bundles. The published Pages dashboard is a synthetic enterprise IndexedDB demo; its generated records, UI health, and `llms.txt` cannot establish operational freshness or completeness.
+Start only at the canonical `skills/central-agentic-ops/SKILL.md` entry point in this checkout, then follow its dashboard-analysis route and linked CLI and workflow-runtime guidance. Record whether it routes real operational evidence to an explicitly selected snapshot or the authenticated cloud service. Do not discover retired Activity workflows or dashboard bundles. The published Pages dashboard is a synthetic enterprise IndexedDB demo; its generated records, UI health, and `llms.txt` cannot establish operational freshness or completeness.
 
 Attempt these tasks in order with at most 25 total HTTP fetches, 8 MCP calls, and 5 local CLI commands:
 
 1. Identify which campaigns are disabled. Expected route: an explicitly supplied operational snapshot or authenticated service, with its scope and collection time.
 2. Determine operational snapshot freshness and distinguish unavailable, partial, stale, and empty evidence. Expected route: operational snapshot metadata, not Pages.
-3. Find the procedure for diagnosing a named campaign failure. Expected route: the raw `debug-cao` skill.
+3. Find the procedure for diagnosing a named campaign failure. Expected route: the raw `central-agentic-ops` skill diagnostics guide.
 4. Inspect recent failures for one workflow named by the available catalog. Expected route: `cao_catalog`, then one bounded `cao_query` only when an authenticated service is already configured; otherwise report unavailable evidence without launching a local collector.
-5. Explain how to perform a large historical analysis. Expected route: the raw `cao-cli` or `analyze-cao` skill and PostgreSQL ingestion of explicitly acquired operational JSONL evidence.
+5. Explain how to perform a large historical analysis. Expected route: the raw `central-agentic-ops` skill gh cao or dashboard-analysis guide and PostgreSQL ingestion of explicitly acquired operational JSONL evidence.
 6. Locate the authoritative PostgreSQL/canonical schema documentation. Expected route: canonical skill references and `specs/dashboard-data.md`.
 7. Explain how to download the Activity database and identify its default local path. Expected route: the raw CLI skill.
 

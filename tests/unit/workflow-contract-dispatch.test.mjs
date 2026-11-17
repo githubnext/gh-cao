@@ -4,7 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
 import { parse } from "yaml";
-import { controlPrecompute, portableSkill, root, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
+import { controlPrecompute, caoTaskGuide, root, workflow, workflowsDirectory } from "./workflow-contract.helpers.mjs";
 
 // Orchestrator-to-worker dispatch, provenance, and telemetry contracts.
 
@@ -77,7 +77,7 @@ test("orchestrators emit dedicated bounded dispatcher telemetry", () => {
   const control = workflow("shared/control.md");
   const configuration = readFileSync(join(root, "docs", "configuration.md"), "utf8");
   const operations = readFileSync(join(root, "docs", "operations.md"), "utf8");
-  const campaignSkill = portableSkill("create-cao-campaign");
+  const campaignSkill = caoTaskGuide("operations");
 
   assert.match(control, /safe-outputs:[\s\S]*?steps:[\s\S]*?Emit control-plane dispatcher telemetry/);
   assert.doesNotMatch(control, /^post-steps:/m);
@@ -110,7 +110,7 @@ test("orchestrators emit dedicated bounded dispatcher telemetry", () => {
 test("orchestrators dispatch workers only through safe-output tools", () => {
   const control = workflow("shared/control.md");
   const precompute = controlPrecompute();
-  const campaignSkill = portableSkill("create-cao-campaign");
+  const campaignSkill = caoTaskGuide("operations");
 
   assert.match(control, /call the configured `dispatch-workflow` tool from `<safe-output-tools>`/);
   assert.match(control, /do not use `gh workflow run` or the Actions workflow-dispatch API/);

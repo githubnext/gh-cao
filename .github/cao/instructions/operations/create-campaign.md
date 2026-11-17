@@ -1,10 +1,3 @@
----
-name: create-cao-campaign
-description: Create a governed CAO campaign with one orchestrator, bounded workers, policy declarations, packaging, and validation.
-metadata:
-  argument-hint: "Describe the operational outcome, target repositories, and desired outputs"
----
-
 # Create a CAO Campaign
 
 For a general automation request, first follow
@@ -28,7 +21,7 @@ scope, output routing, capabilities, and explicit reviewed live authorization.
    decisions that cannot be inferred safely.
 3. Create one orchestrator and at least one independently dispatchable worker
    together. A standalone workflow is not an operational campaign.
-4. Apply the [workflow contract](references/workflow-contract.md) to the
+4. Apply the [workflow contract](workflow-contract.md) to the
    orchestrator and every worker. Keep `review` as the default and preserve the
    intersection of policy, request, worker ceiling, credential reach, and
    compiled capability.
@@ -76,11 +69,11 @@ scope, output routing, capabilities, and explicit reviewed live authorization.
 
 ## Targeted references
 
-- [Workflow contract](references/workflow-contract.md): required orchestrator,
+- [Workflow contract](workflow-contract.md): required orchestrator,
   worker, steering, memory, and safe-output invariants.
-- [Safe outputs](references/safe-outputs.md): idempotency, labels, expiry, and
+- [Safe outputs](safe-outputs.md): idempotency, labels, expiry, and
   human-first report formatting.
-- [Package extensions](references/package-extensions.md): operational-value,
+- [Package extensions](package-extensions.md): operational-value,
   problem-clustering, optimization, and the dashboard add-on exception.
 - [Build Your First Campaign](https://github.com/githubnext/gh-cao/blob/main/docs/author-your-first-operation.md):
   authoring sequence and package shape.

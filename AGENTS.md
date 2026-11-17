@@ -1,5 +1,7 @@
 # Central Agentic Ops Repositories
 
+For CAO tasks (setup, campaigns and operations, `gh cao`, `gh aw`, `gh`, dashboard analysis, diagnostics), load the [`central-agentic-ops` skill](skills/central-agentic-ops/SKILL.md). It is the only copy of the skill; it routes to one guide under `.github/cao/instructions/`.
+
 ## Establish the repository role
 
 - **Catalog source:** A checkout with the root `aw.yml` and top-level campaign directories is the public CAO catalog. Change campaign sources and documentation here. Catalog markers alone do not make the repository a control plane.

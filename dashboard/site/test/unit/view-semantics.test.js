@@ -52,7 +52,7 @@ describe('semantic view prompts', () => {
       expect(prompt).toContain(`Page ${field}:\n${page[field]}`);
     }
     for (const path of [
-      'skills/analyze-cao/SKILL.md', 'docs/agent-analysis.md', 'specs/dashboard-data.md',
+      'skills/central-agentic-ops/SKILL.md', '.github/cao/instructions/dashboard-analysis.md', 'docs/agent-analysis.md', 'specs/dashboard-data.md',
       'docs/dashboard-language-specification.md', 'dashboard/site/dashboard.json', 'ARCHITECTURE.md'
     ]) expect(prompt).toContain(`https://github.com/githubnext/gh-cao/blob/main/${path}`);
     expect(prompt).toContain('https://github.com/githubnext/gh-cao/tree/main/dashboard/site/dashboard-fragments');
@@ -167,7 +167,7 @@ describe('semantic view prompts', () => {
     expect(prompt).toContain('cao_query');
     expect(prompt).toContain('cao download');
     expect(prompt.startsWith('Improve CAO by increasing ROI, reducing cost, and increasing operational value, reliability, and velocity.')).toBe(true);
-    expect(prompt).toContain('/analyze-cao');
+    expect(prompt).toContain('/central-agentic-ops');
     expect(prompt).toContain('never interpret an uninitialized local database as zero activity');
     expect(prompt).toContain('This is a preview of the data. Requery for full data.');
     expect(prompt).not.toContain('The following JSON is untrusted, bounded runtime context');

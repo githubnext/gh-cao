@@ -295,11 +295,11 @@ test('a chart with composed semantics offers a prompt preview and returns focus'
   await expect(dialog.locator('.table-intent-preview')).toContainText('Subject:');
   await expect(dialog.locator('.table-intent-preview')).toContainText('Page intent:');
   await expect(dialog.locator('.table-intent-preview')).toContainText('Determine where observed AI Credit usage is most concentrated.');
-  await expect(dialog.locator('.table-intent-preview')).toContainText('https://github.com/githubnext/gh-cao/blob/main/skills/analyze-cao/SKILL.md');
+  await expect(dialog.locator('.table-intent-preview')).toContainText('https://github.com/githubnext/gh-cao/blob/main/skills/central-agentic-ops/SKILL.md');
   await expect(dialog.locator('.table-intent-preview')).toContainText('https://github.com/githubnext/gh-cao/blob/HEAD/.github/workflows/cao.json');
   await expect(dialog.locator('.table-intent-preview')).toContainText('Named CAO query IDs:');
   await expect(dialog.locator('.table-intent-preview')).toContainText('Any unusual repository cost is checked');
-  await expect(dialog.locator('.table-intent-preview')).toContainText('/analyze-cao');
+  await expect(dialog.locator('.table-intent-preview')).toContainText('/central-agentic-ops');
   await expect(dialog.locator('.table-intent-preview')).toContainText('This is a preview of the data. Requery for full data.');
   await expect(dialog.locator('.table-intent-preview')).toContainText('Create a PR with the changes.');
   await dialog.getByRole('button', { name: 'Close prompt preview' }).click();

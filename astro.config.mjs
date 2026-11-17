@@ -92,34 +92,39 @@ export default defineConfig({
           ],
           optionalLinks: [
             {
+              label: "Use the Central Agentic Ops skill",
+              url: "https://github.com/githubnext/gh-cao/blob/main/skills/central-agentic-ops/SKILL.md",
+              description: "Load central-agentic-ops; it reads shared CAO instructions, then one task guide.",
+            },
+            {
               label: "Set up a CAO control plane",
-              url: "https://github.com/githubnext/gh-cao/blob/main/skills/setup-cao/SKILL.md",
-              description: "Use setup-cao for bootstrap, repository scope, and authentication.",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/setup.md",
+              description: "Bootstrap, repository scope, and authentication.",
             },
             {
               label: "Debug a CAO failure",
-              url: "https://github.com/githubnext/gh-cao/blob/main/skills/debug-cao/SKILL.md",
-              description: "Use debug-cao for policy, credential, workflow, Activity, dashboard, or safe-output failures.",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/diagnostics.md",
+              description: "Policy, credential, workflow, Activity, dashboard, or safe-output failures.",
             },
             {
               label: "Add an existing campaign",
-              url: "https://github.com/githubnext/gh-cao/blob/main/skills/add-cao-campaign/SKILL.md",
-              description: "Use add-cao-campaign to discover, compare, and install a catalog campaign.",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/operations/add-campaign.md",
+              description: "Discover, compare, and install a catalog campaign.",
             },
             {
               label: "Create a new campaign",
-              url: "https://github.com/githubnext/gh-cao/blob/main/skills/create-cao-campaign/SKILL.md",
-              description: "Use create-cao-campaign to author an orchestrator and its workers.",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/operations/create-campaign.md",
+              description: "Author an orchestrator and its workers.",
             },
             {
               label: "Analyze CAO activity",
-              url: "https://github.com/githubnext/gh-cao/blob/main/skills/analyze-cao/SKILL.md",
-              description: "Use analyze-cao to answer questions from a published Activity snapshot.",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/dashboard-analysis.md",
+              description: "Answer questions from named dashboard queries and operational evidence.",
             },
             {
               label: "Use or extend the CAO CLI",
-              url: "https://github.com/githubnext/gh-cao/blob/main/skills/cao-cli/SKILL.md",
-              description: "Use cao-cli for command selection, workflow invocation, and CLI development.",
+              url: "https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/gh-cao.md",
+              description: "Command selection, workflow invocation, and CLI development.",
             },
             {
               label: "Compact project context",
