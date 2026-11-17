@@ -205,7 +205,11 @@ export function renderModernizationControls(context) {
         .../** @type {const} */ (['assess', 'approve-plan', 'run', 'verify']).map(operation => operation === 'approve-plan'
           ? h('button', { type: 'button', className: 'cli-action-cancel', disabled,
             'aria-expanded': current.planOpen && !reviewed, 'aria-controls': `${id}-approval`,
-            onClick: () => ui.set(value => ({ ...value, planOpen: value.preview ? true : !value.planOpen, preview: null, message: '' })) }, 'Review / approve plan')
+            onClick: () => {
+              const opening = !ui.get().planOpen || Boolean(ui.get().preview);
+              ui.set(value => ({ ...value, planOpen: value.preview ? true : !value.planOpen, preview: null, message: '' }));
+              if (opening && !ui.get().status && !ui.get().planText.trim()) check();
+            } }, 'Review / approve plan')
           : h('div', {},
           h('button', { type: 'button', className: operation === 'run' ? 'cli-action-confirm' : 'cli-action-cancel',
             disabled: disabled || !authorized(operation), onClick: () => preview(operation) },
@@ -286,7 +290,11 @@ export function renderModernizationControls(context) {
           tabIndex: current.planTab === 'overview' ? 0 : -1,
           'aria-label': current.planTab === 'json' ? 'Plan JSON' : 'Plan overview' },
         h('div', { hidden: current.planTab !== 'overview' },
-          current.planTab === 'overview' ? renderModernizationPlanOverview(current.planText) : null),
+          current.planTab !== 'overview' ? null
+            : !current.planText.trim() && current.busy ? h('p', { className: 'modernization-description', role: 'status' }, 'Loading the farm\'s approved plan…')
+              : !current.planText.trim() && current.status && !current.status.plan
+                ? h('p', { className: 'modernization-description' }, 'This farm has no approved plan yet. Import a plan or open the JSON tab to start drafting.')
+                : renderModernizationPlanOverview(current.planText)),
         h('div', { hidden: current.planTab !== 'json' },
           h('label', { htmlFor: `${id}-plan` }, 'Engagement JSON',
             h('textarea', { id: `${id}-plan`, value: current.planText, rows: 14, disabled: current.busy, spellcheck: false,

@@ -85,6 +85,14 @@ describe('Modernization operator interaction', () => {
     expect(root.querySelector(`#${plan.getAttribute('aria-controls')}`)?.textContent).toContain('Concrete plan approval');
   });
 
+  it('loads the farm\'s approved plan read-only when the plan is opened before a readiness check', async () => {
+    const root = mount();
+    button(root, 'Review / approve plan').click();
+    expect(native.execute.mock.calls.map(([id]) => id)).toEqual(['modernization-status']);
+    await vi.waitFor(() => expect(/** @type {HTMLTextAreaElement} */ (root.querySelector('textarea')).value).toContain('synthetic-plan'));
+    expect(button(root, 'Review / approve plan').getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('does nothing on mount, checks current state, previews review mode and requires separate one-use confirmation', async () => {
     const root = mount();
     expect(native.execute).not.toHaveBeenCalled();
