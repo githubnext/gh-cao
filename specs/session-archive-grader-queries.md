@@ -15,9 +15,9 @@ grader's semantics.
 | Item | Value |
 | --- | --- |
 | Upstream pin | `github/gh-aw` `5ac122295e5e839aa15a727ecf4762f3e680cc24` ([`grader-source-pins.json`](../server/internal/sessionarchive/testdata/grader-source-pins.json)) |
-| Last upstream review | `main` `789cc9c2` (2026-11-16); grader code identical to the pin. Previously `a25e38ee6b9740b10008559bd2c9290ef1f925aa`, where `graders-specification.md` changed one link only |
+| Last upstream review | `main` `3b0e22a4` (2026-11-17); `builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs` and `working_set_metrics.cjs` are byte-identical to the pin. The intervening changes move custom and operational-value graders to a restricted job, which stays out of scope. Previously `789cc9c2` and `a25e38ee6b9740b10008559bd2c9290ef1f925aa` |
 | Upstream sources | `actions/setup/js/builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs`, `working_set_metrics.cjs`, `operational_value_grader.cjs`, `custom_graders.cjs` |
-| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1 and Phase 5 item sources, Phase 2 chaining, Phase 4 row-level compute, windows and structured-family states, and Phase 5 joins |
+| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1, Phase 5 and E1 item sources, Phase 2 chaining, Phase 4 row-level compute, windows and structured-family states, and Phase 5 joins |
 | Graders in scope | 35 built-ins; operational-value and custom graders are listed as out of scope |
 
 Re-review when the pin moves: compare the pin with upstream `main` through
@@ -50,6 +50,9 @@ source or `builtin_graders.json` entry changed, and update both this tracker and
   (Phase 4).
 - Ordering and limits.
 - Up to four trace-scoped unique-right `inner`/`left` equality joins (Phase 5).
+- The nested and IR-event item sources of Phase 5, and the E1 sources
+  `archive-observations`, `archive-tool-calls` and
+  `archive-observation-consumers`.
 
 It has no regex or logarithms.
 
@@ -277,9 +280,9 @@ S1 sources in Phase 5 (§10).
 | `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `implemented` | — | — |
 | `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `implemented` | — | — |
 | `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `implemented` | — | — |
-| `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet; zero if all are satisfied. Distinct states are distinct string `ref` of IR `state_change` events, falling back to the record state count | no | `implemented-local` | Non-string refs fail closed; real Kusto acceptance pending (§11) | — |
-| `exploitation-error` | Unused observations ÷ observations when an objective is unmet and observations ≥ distinct visited states; zero if all are satisfied. Unused means `consumedByActionIds` is not a non-empty array | no | `implemented-local` | Non-string refs fail closed; real Kusto acceptance pending (§11) | — |
-| `tool-output-consumption-rate` | Tool-originated observations with at least one non-empty string consumer ÷ tool-originated observations. Source IDs must name an IR `toolCalls[].id` | no | `implemented-local` | Missing/null IR tool calls fail closed on reconciliation; real Kusto acceptance pending (§11) | — |
+| `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet; zero if all are satisfied. Distinct states are distinct string `ref` of IR `state_change` events, falling back to the record state count | no | `implemented` | — (non-string refs fail closed, §11) | — |
+| `exploitation-error` | Unused observations ÷ observations when an objective is unmet and observations ≥ distinct visited states; zero if all are satisfied. Unused means `consumedByActionIds` is not a non-empty array | no | `implemented` | — (non-string refs fail closed, §11) | — |
+| `tool-output-consumption-rate` | Tool-originated observations with at least one non-empty string consumer ÷ tool-originated observations. Source IDs must name an IR `toolCalls[].id` | no | `implemented` | — (missing or null IR tool calls fail closed, §11) | — |
 | `policy-near-miss` | Unmet guard objectives ÷ guard objectives, where guard objectives are matched by a keyword regex on the description | yes | `vocabulary-gated` | G1 (closed keywords) with approval of the objective `description` field. Also needs S1 (IR `events`) for the safe-output check, L2 and L3 | — |
 | `skill-constraint-coverage` | Configured regex constraints that were exercised and passed | no | `vocabulary-gated` | G1, G4 | — |
 | `event-entropy-rate` | Bigram conditional entropy ÷ log2 of the alphabet size | no | `vocabulary-gated` | G2. Otherwise needs L3, L5 and `concat` | — |
@@ -389,8 +392,8 @@ not executed (§3.1).
 
 | Status | Count | Graders |
 | --- | ---: | --- |
-| `implemented` | 14 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained); laminarity, trapping time, dependency order, evidence saturation (joined) |
-| `implemented-local` | 3 | exploration error, exploitation error, tool-output consumption; Kusto pending |
+| `implemented` | 17 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained); laminarity, trapping time, dependency order, evidence saturation (joined); exploration error, exploitation error, tool-output consumption (E1) |
+| `implemented-local` | 0 | — |
 | `extension-ready` | 0 | — |
 | `evidence-gated` | 0 | — (E1 decided) |
 | `vocabulary-gated` | 17 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6), determinism (G5) |
@@ -401,12 +404,12 @@ Every backend advertises the item sources, chaining and joins through
 
 | Backend | Recomputed graders | Acceptance |
 | --- | --- | --- |
-| Local DuckDB | All 14 `implemented` and three `implemented-local` graders | `TestGraderReplayEvidence` and the pinned upstream replay; E1 limitations below |
-| Hosted and native ADX (Kusto) | All 14 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5) |
+| Local DuckDB | All 17 `implemented` graders | `TestGraderReplayEvidence` and the pinned upstream replay |
+| Hosted and native ADX (Kusto) | All 17 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5; [run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578) for E1, on the exact tree merged in #21102) |
 
-E1's shared KQL lowering and replay fixtures are implemented, but no real Kusto
-run has accepted the three additions. Do not infer hosted parity from local
-lowering tests or from earlier fourteen-grader runs.
+The Kusto replay executes every definition that has a full DuckDB result
+through the real engine over the same synthetic approved events. It is not
+live external-table acceptance.
 
 ## 5. Invariants for every new definition
 
@@ -457,9 +460,40 @@ development hosts lack the emulator. Phases 1b and 2b were accepted in
 - [x] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. L2, L5 and L6 replay on DuckDB and real Kusto (§9; [run 43917614253](https://github.com/githubnext/gh-cao/actions/runs/43917614253), and after rebasing with an `Error`-present subtest, [run 43920740101](https://github.com/githubnext/gh-cao/actions/runs/43920740101)), so every backend advertises them. The reconciliation fixture made the three tool graders G3, so Phase 4 unlocks no grader and delivers its vocabulary for Phase 5.
 - [x] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job ([run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793)). Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag`, `recurrence-laminarity` and `recurrence-trapping-time`. `recurrence-determinism` is exact but needs G5, so it is reclassified (§10).
 - [x] Decide on E1. User-directed: "you can store them all", confirmed as option 1 (whole collections). The five IR collections are generated `@evidence` families under transform `cao-approved-events-v3`, default-off per event policy ([`session-archive.md` §2.2](session-archive.md#22-trajectory-ir-collection-approval-user-directed)). `exploration-error`, `exploitation-error` and `tool-output-consumption-rate` become `extension-ready`; the lineage, `tool-wise-score` and `code-*` graders stay `vocabulary-gated` on G3 or G1 only (§4.2).
-- [x] **E1 local implementation:** S1 `archive-observations`, `archive-tool-calls` and nested `archive-observation-consumers`, using Phase 5's L4 and IR `events`. Reviewed definitions and production DuckDB replay cover `exploration-error`, `exploitation-error` and `tool-output-consumption-rate`, with the explicit limitations in §11.
-- [ ] **E1 hosted acceptance:** run the same seventeen-definition replay through real Kusto. Shared KQL fixtures are not acceptance evidence.
-- [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
+- [x] **E1 local implementation:** S1 `archive-observations`, `archive-tool-calls` and nested `archive-observation-consumers`, using Phase 5's L4 and IR `events`. Reviewed definitions and production DuckDB replay cover `exploration-error`, `exploitation-error` and `tool-output-consumption-rate`, with the explicit limitations in §11 (#21102).
+- [x] **E1 hosted acceptance:** the seventeen-definition replay matched through real Kusto ([run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578), on the exact tree merged in #21102).
+
+Remaining phases, ranked by graders unlocked per reviewed change. None needs
+new evidence approval unless stated.
+
+- [ ] **Phase 6 (G5, profile budgets):** raise the request budget and the
+  window partition limit to nine fields, with new Kusto acceptance. Unlocks
+  `recurrence-determinism`. It also fixes a live limitation:
+  `recurrence-trapping-time` and `dependency-order-violation-rate` leave only
+  23 and 32 repository-name characters (§10), so they fail closed for longer
+  repository names, whereas E1 fits the 140-character maximum (§11). Budget the
+  new limit against that maximum for every definition.
+- [ ] **Phase 7 (G1, closed path normalization):** port Dashboard Language
+  `trim` with upstream's exact JavaScript whitespace set, plus one closed
+  literal prefix-stripping function (strip one leading `./`, then every leading
+  `/`). Needs no general regex. Also needs new typed S1 fields: a source over
+  `reference.patch.files`, whose elements are strings or `{path}` records;
+  action `consequential` and `target` (`archive-actions` exposes only `Kind`
+  today); and a resource source with `kind` and `uri`. All of these lie in
+  approved collections. Unlocks `code-search-recall`,
+  `code-read-precision` and `code-edit-precision`. A language change, so it
+  needs reviewed vocabulary and parity fixtures that cover Unicode whitespace.
+- [ ] **User decision (G1, keywords):** decide whether to approve the retry
+  message and objective `description` fields. Only then consider a closed ASCII
+  keyword-match predicate (§3.1) for `retries` and `policy-near-miss`; typed
+  upstream retry or guard flags would remove the need.
+- [ ] **User decision (G2):** `event-entropy-rate` needs `log2`. Replay requires
+  exact equality and DuckDB and V8 can differ in the last bit (§3.1), so either
+  accept a declared ulp tolerance for this grader or keep it rejected.
+- Not planned: tool reconciliation (3 graders), lineage (2), `tool-wise-score`,
+  `lempel-ziv-trajectory-complexity` and `trajectory-ndtw` need G3;
+  `skill-constraint-coverage`, `process-alignment-fitness` and
+  `trajectory-ndtw` also need G4. `loops` stays out of scope.
 
 ## 7. Phase 1 implementation notes
 
@@ -628,11 +662,11 @@ before the HTTP request fails closed as an invalid bounded archive query
 | `evidence-saturation-stopping-lag` | 3,942 | 154 |
 | `recurrence-laminarity` | 3,933 | 163 |
 
-## 11. E1 local implementation and remaining acceptance
+## 11. E1 implementation notes
 
-Hosted parity holds for the earlier 14 `implemented` graders. E1 has three
-additional local definitions and shared KQL fixtures, pending a real
-`session-archive-kusto` run. This is not a claim of seventeen-grader hosted parity.
+E1 adds three definitions, accepted on DuckDB and real Kusto
+([run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578)),
+which brings both backends to seventeen `implemented` graders.
 
 The new sources reuse the existing SQL/KQL typed-element and nested-source
 lowerers; no scoring logic, capture-time derivation or evidence approval is
