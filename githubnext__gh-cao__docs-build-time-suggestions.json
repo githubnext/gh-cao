@@ -1,35 +1,7 @@
 {
   "source_sha": "dc5ce588fc46e19690b460f25e9d514d72f441eb",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T19:52:36Z",
-      "worker_run_id": "43943255605",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "43766933236",
-        "43768376457",
-        "43780290464",
-        "43781088986",
-        "43781377358",
-        "43789359390",
-        "43792211504",
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708",
-        "43877103800"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 success (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list at evaluation shows no newer docs run, none queued or in progress (stale queued 376 [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T20:20:20Z",
       "worker_run_id": "43947951719",
@@ -827,6 +799,33 @@
         "44023953879"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43814432358 (push dbf9df7, 2026-11-16T06:05Z) .. 44023953879 (schedule, dc5ce58, 2026-11-17T05:24Z); cancelled 43991812013 and 43832015521 excluded; 18 successes, 0 failed; gh run list at evaluation: no newer docs run, none queued or in progress. Source dc5ce58 = HEAD = source_sha. Recomputed from immutable run_timings rows (no refetch; new schedule row 44023953879 already stored). Dependency phase (setup-node + install + post): median 12.5 s, p90 18 s = 15.8 percent of exec median 79 s; install alone median 8.5 s, p90 11 s = 10.8 percent. Gate 11.85 s (15 percent) and 60 s absolute. Whole-phase removal would pass the 15 percent gate but is unreachable because the build needs node_modules; install-only ceiling 8.5 s is below gate. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57Z, last accessed 05:44Z); hits inferred from post step 0-1 s in 18/18. node_modules cache net estimate 3-6 s (unmeasured), below gate. Root package.json defines no preinstall/install/postinstall/prepare hooks. Open issues: only #20815 (checkout, other category), not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T06:26:16Z",
+      "worker_run_id": "44030667544",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "43814432358",
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647",
+        "44023953879"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43814432358 (push dbf9df7, 2026-11-16T06:05Z) to 44023953879 (schedule dc5ce58, 2026-11-17T05:24Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule), 0 failed; no docs run queued or in progress (only stale queued 37642403569). Newest run Jobs API spot-check matched stored row (build 48 s, deploy 9 s). Docs.yml has no dashboard job; the Astro step is 'Build documentation' inside build. Build documentation: median 11 s, p90 14 s, min 9, max 15; first-9 median 13 s, last-9 median 11 s. Exec median 79 s, p90 120 s; 15 percent gate 11.85 s and 60 s gate both unmet; full removal of the step is a ceiling of 11 s. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Job log reads remain HTTP 403 DIFC (not retried); sub-step split unmeasured. Open #20815 (checkout) not repeated. Next: reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1700,22 +1699,23 @@
     "root_lifecycle": "root package.json defines no preinstall/install/postinstall/prepare; dependency install scripts still run inside root npm ci (not measured)"
   },
   "astro_step_verified": {
-    "verified_at": "2026-11-17T04:33:11Z",
-    "worker_run_id": "44017632086",
-    "window": "latest 20 completed docs.yml runs 43810351164..44004300647; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule); 0 failed",
+    "verified_at": "2026-11-17T06:26:16Z",
+    "worker_run_id": "44030667544",
+    "window": "latest 20 completed docs.yml runs 43814432358..44023953879; cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule); stored immutable run_timings rows recomputed, newest row spot-checked via Jobs API",
     "build_docs_s": {
       "median": 11,
       "p90_nearest_rank": 14,
       "min": 9,
       "max": 15
     },
+    "trend": "first-9 median 13 s, last-9 median 11 s",
     "exec_median_s": 79,
     "exec_p90_nearest_rank_s": 120,
     "build_docs_share_exec_median_pct": 13.9,
     "gate_15pct_s": 11.85,
     "ceiling_saving_s": 11,
     "repeated_build": "none: docs:build runs astro build once; validate-agent-docs reads files; agent-docs-discovery test reads dist/",
-    "sub_step_split": "not measurable from Jobs API (single Build documentation step); job logs HTTP 403 DIFC, not bypassed",
+    "sub_step_split": "not measurable from Jobs API (single Build documentation step); job logs HTTP 403 DIFC, not retried",
     "decision": "not actionable: whole-step ceiling 11 s stays below the 15 percent gate (11.85 s) and the 60 s absolute gate; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance"
   },
   "burst_analysis": {
