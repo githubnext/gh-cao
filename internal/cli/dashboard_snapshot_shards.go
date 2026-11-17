@@ -32,9 +32,10 @@ type dashboardShardGroup struct {
 
 // This private, verified index locates evidence; it is not a query source.
 type dashboardShardIndex struct {
-	Version int                   `json:"version"`
-	Shared  []string              `json:"shared"`
-	Groups  []dashboardShardGroup `json:"groups"`
+	Version       int                   `json:"version"`
+	SchemaVersion int                   `json:"schemaVersion"`
+	Shared        []string              `json:"shared"`
+	Groups        []dashboardShardGroup `json:"groups"`
 }
 
 func readDashboardSnapshotManifest(ctx context.Context, cache string) (map[string]string, error) {
@@ -112,7 +113,7 @@ func readDashboardShardIndex(ctx context.Context, cache string, manifest map[str
 	if err := json.Unmarshal(content, &index); err != nil {
 		return index, "", err
 	}
-	if index.Version != 1 || len(index.Shared) == 0 {
+	if index.Version != 1 || len(index.Shared) == 0 || index.SchemaVersion != 0 && index.SchemaVersion != dashboardSnapshotSchemaVersion {
 		return index, "", errors.New("local dashboard shard index is invalid")
 	}
 	shards, runs, issues := map[string]bool{}, map[string]bool{}, map[string]bool{}
@@ -175,17 +176,18 @@ func writeDashboardIncrementalSnapshot(ctx context.Context, cache string, incomi
 		return err
 	}
 	previous := map[string][]map[string]any{}
-	if indexName == "" {
-		// Upgrade a legacy/full-replacement snapshot once, not on every bundle.
+	if indexName == "" || index.SchemaVersion == 0 {
+		// Republish headerless or full-replacement native snapshots once.
 		previous, err = readDashboardArtifactBatch(ctx, cache)
 		if err != nil {
 			return err
 		}
 		for name := range manifest {
-			if dashboardCanonicalShard(name) {
+			if dashboardCanonicalShard(name) || name == indexName {
 				delete(manifest, name)
 			}
 		}
+		index = dashboardShardIndex{Version: 1, SchemaVersion: dashboardSnapshotSchemaVersion}
 	} else {
 		touched := map[string]bool{}
 		issues := map[string]bool{}
@@ -338,7 +340,7 @@ func writeDashboardShardGroup(ctx context.Context, cache string, batch map[strin
 		size := 0
 		flush := func() error {
 			var content bytes.Buffer
-			if err := json.NewEncoder(&content).Encode(map[string]any{"kind": "metadata", "phase": phase, "records": len(lines)}); err != nil {
+			if err := json.NewEncoder(&content).Encode(map[string]any{"kind": "metadata", "phase": phase, "schemaVersion": dashboardSnapshotSchemaVersion, "records": len(lines)}); err != nil {
 				return err
 			}
 			for _, line := range lines {

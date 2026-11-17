@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +14,150 @@ import (
 	"testing"
 	"time"
 )
+
+func TestDashboardSnapshotDeclaresCanonicalSchemaBeforeNativeLifecycleRows(t *testing.T) {
+	schema, err := os.ReadFile("../../dashboard/site/src/data/model/schema.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(schema), fmt.Sprintf("CANONICAL_SCHEMA_VERSION = %d;", dashboardSnapshotSchemaVersion)) {
+		t.Fatal("native export schema must match the canonical dashboard contract")
+	}
+	for _, incremental := range []bool{false, true} {
+		t.Run(fmt.Sprintf("incremental=%t", incremental), func(t *testing.T) {
+			cache := t.TempDir()
+			batch := dashboardShardTestBatch(1, time.Now().UTC())
+			batch["outputLifecycles"] = []map[string]any{{"id": "synthetic-output", "runId": "run:000000"}}
+			if err := writeDashboardSnapshot(t.Context(), cache, batch, incremental); err != nil {
+				t.Fatal(err)
+			}
+			manifest, err := readDashboardSnapshotManifest(t.Context(), cache)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for path := range manifest {
+				if !strings.HasPrefix(path, "gh-aw-logs-") {
+					continue
+				}
+				file, err := os.Open(filepath.Join(cache, path))
+				if err != nil {
+					t.Fatal(err)
+				}
+				scanner := bufio.NewScanner(file)
+				if !scanner.Scan() {
+					t.Fatal("canonical shard requires a metadata header")
+				}
+				var header struct{ SchemaVersion int }
+				if err := json.Unmarshal(scanner.Bytes(), &header); err != nil {
+					t.Fatal(err)
+				}
+				if err := file.Close(); err != nil {
+					t.Fatal(err)
+				}
+				if header.SchemaVersion != dashboardSnapshotSchemaVersion {
+					t.Fatalf("native lifecycle rows would enter the legacy migration path: %s version %d", path, header.SchemaVersion)
+				}
+			}
+		})
+	}
+}
+
+func TestDashboardSnapshotStartupUpgradesHeaderlessCacheWithoutLosingHistory(t *testing.T) {
+	for _, incremental := range []bool{false, true} {
+		t.Run(fmt.Sprintf("incremental=%t", incremental), func(t *testing.T) {
+			cache, now := t.TempDir(), time.Now().UTC()
+			batch := dashboardShardTestBatch(33, now)
+			batch["outputLifecycles"] = []map[string]any{{"id": "synthetic-output", "runId": "run:000032"}}
+			if err := writeDashboardSnapshot(t.Context(), cache, batch, incremental); err != nil {
+				t.Fatal(err)
+			}
+			manifest, err := readDashboardSnapshotManifest(t.Context(), cache)
+			if err != nil {
+				t.Fatal(err)
+			}
+			index, indexName, err := readDashboardShardIndex(t.Context(), cache, manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			replaced := map[string]string{}
+			for name, digest := range maps.Clone(manifest) {
+				if !dashboardCanonicalShard(name) {
+					continue
+				}
+				content, err := readDashboardVerifiedPayload(t.Context(), cache, name, digest)
+				if err != nil {
+					t.Fatal(err)
+				}
+				headerless := strings.Replace(string(content), fmt.Sprintf(",\"schemaVersion\":%d", dashboardSnapshotSchemaVersion), "", 1)
+				next, err := writeDashboardImmutablePayload(t.Context(), cache, filepath.ToSlash(filepath.Dir(name))+"/", ".jsonl", []byte(headerless), manifest)
+				if err != nil {
+					t.Fatal(err)
+				}
+				replaced[name] = next
+			}
+			for old := range replaced {
+				delete(manifest, old)
+			}
+			if incremental {
+				index.SchemaVersion = 0
+				for i, name := range index.Shared {
+					index.Shared[i] = replaced[name]
+				}
+				for i := range index.Groups {
+					for j, name := range index.Groups[i].Shards {
+						index.Groups[i].Shards[j] = replaced[name]
+					}
+				}
+				content, err := json.Marshal(index)
+				if err != nil {
+					t.Fatal(err)
+				}
+				delete(manifest, indexName)
+				if _, err := writeDashboardImmutablePayload(t.Context(), cache, dashboardIndexPath, ".json", content, manifest); err != nil {
+					t.Fatal(err)
+				}
+			}
+			content, err := json.Marshal(manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(cache, "payload-hashes.json"), content, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := initializeDashboardSnapshot(t.Context(), cache, []string{"octo/api"}, dashboardOptions{window: dashboardMaximumWindow}); err != nil {
+				t.Fatal(err)
+			}
+			recovered, err := readDashboardArtifactBatch(t.Context(), cache)
+			if err != nil || len(recovered["runs"]) != 33 || len(recovered["tools"]) != 33 || len(recovered["outputLifecycles"]) != 1 {
+				t.Fatalf("startup migration lost retained canonical evidence: %v", err)
+			}
+			upgraded, err := readDashboardSnapshotManifest(t.Context(), cache)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for name, digest := range upgraded {
+				if !dashboardCanonicalShard(name) {
+					continue
+				}
+				payload, err := readDashboardVerifiedPayload(t.Context(), cache, name, digest)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var header struct{ SchemaVersion int }
+				if err := json.Unmarshal([]byte(strings.SplitN(string(payload), "\n", 2)[0]), &header); err != nil || header.SchemaVersion != dashboardSnapshotSchemaVersion {
+					t.Fatalf("startup reused a headerless payload: %s %v", name, err)
+				}
+			}
+			if err := initializeDashboardSnapshot(t.Context(), cache, []string{"octo/api"}, dashboardOptions{window: dashboardMaximumWindow}); err != nil {
+				t.Fatal(err)
+			}
+			unchanged, err := readDashboardSnapshotManifest(t.Context(), cache)
+			if err != nil || !reflect.DeepEqual(upgraded, unchanged) {
+				t.Fatalf("startup repeated the completed migration: %v", err)
+			}
+		})
+	}
+}
 
 func dashboardShardTestBatch(count int, now time.Time) map[string][]map[string]any {
 	batch := map[string][]map[string]any{
