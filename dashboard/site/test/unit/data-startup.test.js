@@ -25,6 +25,7 @@ import { createBatchedSourceLoader, startDashboardData } from "../../src/data/st
 import { dashboardViewAliasName } from "../../src/data/queries/view-payload-compiler.js";
 import { browserFirstLoad, preparationStorage } from "../../src/browser-first-load.js";
 import { dashboardDataStatus } from "../../src/dashboard-data-status.js";
+import { DashboardServerError } from "../../src/remote-data-backend.js";
 
 const cachedSources = {
   runs: { source: "runs", rows: [{ run: "cached" }] },
@@ -464,6 +465,48 @@ describe("dashboard data startup", () => {
     await vi.waitFor(() => expect(dashboardDataStatus.get()).toEqual({ phase: "ready", snapshot: null }));
     expect(calls).not.toContain("render:ready");
     stop();
+  });
+
+  it("keeps the remote shell navigable and data unavailable when bootstrap fails", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    document.head.innerHTML = '<meta name="dashboard-data-backend" content="server-http">';
+    const failure = new DashboardServerError("dashboard data is unavailable", "", "");
+    dataProcessor.loadCanonicalDashboardPage.mockRejectedValue(failure);
+    dataProcessor.refreshCanonicalDashboardSources.mockRejectedValue(failure);
+    const render = vi.fn();
+    const config = options({ render });
+    const stop = await startDashboardData(config);
+    try {
+      await vi.waitFor(() => expect(dashboardDataStatus.get()).toEqual({ phase: "stale", snapshot: null }));
+      expect(render).toHaveBeenCalledWith({}, "loading", expect.any(Function), expect.any(Function), null);
+      expect(render.mock.calls.every(([, phase]) => !["ready", "cached"].includes(phase))).toBe(true);
+      expect(document.querySelector("dialog")).toBeNull();
+      expect(dataProcessor.subscribeDatabaseUpgrade).not.toHaveBeenCalled();
+      expect(dataProcessor.loadDashboardSnapshotMetadata).not.toHaveBeenCalled();
+      expect(errorLog).toHaveBeenCalledWith("Unable to refresh live dashboard data: dashboard data is unavailable");
+
+      const loadPageSources = render.mock.calls[0][2];
+      await expect(loadPageSources("overview", {
+        signal: new AbortController().signal, onUpdate: () => {},
+      })).rejects.toBe(failure);
+
+      dataProcessor.loadCanonicalDashboardPage.mockResolvedValue({});
+      dataProcessor.refreshCanonicalDashboardSources.mockResolvedValue({ changed: true });
+      dataProcessor.loadDashboardSnapshotMetadata.mockResolvedValue(null);
+      config.browserWindow.dispatchEvent(new Event("dashboard-refresh-request"));
+      await vi.waitFor(() => expect(dashboardDataStatus.get()).toEqual({ phase: "ready", snapshot: null }));
+    } finally {
+      stop();
+      errorLog.mockRestore();
+    }
+  });
+
+  it("does not hide unexpected remote bootstrap errors behind an empty shell", async () => {
+    document.head.innerHTML = '<meta name="dashboard-data-backend" content="server-http">';
+    dataProcessor.loadCanonicalDashboardPage.mockRejectedValueOnce(new TypeError("Invalid query definition"));
+    const render = vi.fn();
+    await expect(startDashboardData(options({ render }))).rejects.toThrow("Invalid query definition");
+    expect(render).not.toHaveBeenCalled();
   });
 
   it("treats a successfully completed empty snapshot as ready", async () => {

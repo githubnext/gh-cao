@@ -14,7 +14,10 @@ import (
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/model"
+	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
+	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/redisx"
+	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
 
 // newFakeMarketplaceGitHubServer serves the minimal GitHub REST surface
@@ -57,9 +60,13 @@ func withInsecureDefaultTransport(t *testing.T) {
 	t.Cleanup(func() { http.DefaultTransport = previous })
 }
 
-func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSecretLeakage(t *testing.T) {
-	database := integrationDatabase(t)
-	seedDatabase(t, database, nil)
+func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSnapshotOrSecretLeakage(t *testing.T) {
+	database, connection := testutil.PostgresWithConfig(t, t.Context(), "POSTGRES_URL", "CAO_TEST_POSTGRES_URL")
+	services, err := postgres.New(t.Context(), testutil.ConnectionString(t, connection), "marketplace-test", postgres.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = services.Close() })
 	withInsecureDefaultTransport(t)
 	githubServer := newFakeMarketplaceGitHubServer(t, "name: Demo\ndescription: Example\nincludes:\n  - demo.md\n")
 
@@ -80,12 +87,6 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSecretLeakage(t *tes
 	}
 	t.Setenv(marketplacePolicyPathEnv, policyPath)
 
-	address, closeServer := fakeRedis(t)
-	defer closeServer()
-	client, err := redisx.New("redis://" + address)
-	if err != nil {
-		t.Fatal(err)
-	}
 	site, err := os.MkdirTemp(".", ".test-site-")
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +99,7 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSecretLeakage(t *tes
 	if err := os.WriteFile(site+"/index.html", []byte("<html><head></head></html>"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	app, err := New(context.Background(), redisx.NewStore(client, "test"), Config{
+	app, err := New(context.Background(), services, Config{
 		Database: database, DatabaseQueriesPath: "../../../dashboard/site/src/data/queries/database.json",
 		Listen: "127.0.0.1:8443", SiteDirectory: site, AccessToken: testAccessToken,
 	})
@@ -142,6 +143,43 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSecretLeakage(t *tes
 		"label":    "Open example/packages on GitHub",
 	}); !reflect.DeepEqual(source.Rows[0]["repository-link"], want) {
 		t.Fatalf("native marketplace query lost repository link: %#v", source.Rows[0]["repository-link"])
+	}
+	cached, err := app.services.Cache.CachedMarketplaceRegistry(t.Context(), "official", "marketplace-before-first-snapshot")
+	if err != nil || len(cached) == 0 {
+		t.Fatalf("marketplace without a snapshot was not cached: %v", err)
+	}
+	githubServer.Close()
+	page, status, err := app.executeQuery(t.Context(), queryRequest{
+		SourceNames: []string{"catalog"},
+		Queries: []query.Definition{{
+			Name: "catalog", From: "marketplace-packages",
+			OrderBy: []query.OrderField{{Field: "package-name", Direction: "asc"}},
+		}},
+		Pagination: map[string]paginationRequest{"catalog": {Limit: 1}},
+	}, false)
+	if err != nil || status != http.StatusOK || len(page.Sources["catalog"].Rows) != 1 {
+		t.Fatalf("derived marketplace pagination without a snapshot: status=%d err=%v", status, err)
+	}
+	for _, body := range []string{
+		`{"sourceNames":["runs"]}`,
+		`{"sourceNames":["marketplace-packages","runs"]}`,
+		`{"sourceNames":["marketplace-packages"],"pagination":{"workflow-subject-page":{"limit":1}}}`,
+		`{"sourceNames":["joined"],"queries":[{"name":"joined","from":"marketplace-packages","joins":[{"source":"runs","on":[{"left":"repository","right":"repository"}]}]}]}`,
+		`{"sourceNames":["combined"],"queries":[{"name":"combined","union":["marketplace-packages","runs"]}]}`,
+	} {
+		request := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "https://localhost/api/v1/query", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		authorize(request)
+		response := httptest.NewRecorder()
+		app.Handler().ServeHTTP(response, request)
+		if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), "dashboard data is unavailable") {
+			t.Fatalf("canonical query without a snapshot returned %d: %s", response.Code, response.Body.String())
+		}
+	}
+	readiness := httptest.NewRecorder()
+	app.Handler().ServeHTTP(readiness, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "https://localhost/api/readiness", nil))
+	if readiness.Code != http.StatusServiceUnavailable {
+		t.Fatalf("marketplace access changed canonical readiness: %d", readiness.Code)
 	}
 }
 
