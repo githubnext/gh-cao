@@ -1,35 +1,7 @@
 {
   "source_sha": "dc2b53ffb32ea57ff4242841b0479032ef76e32a",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T22:53:40Z",
-      "worker_run_id": "43973766122",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585",
-        "43829639369",
-        "43825070138",
-        "43814432358",
-        "43810351164",
-        "43798031034",
-        "43792211504",
-        "43789359390",
-        "43781377358",
-        "43781088986",
-        "43780290464",
-        "43768376457",
-        "43766933236"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 22:52Z: no docs run newer than 43877103800, none queued or in progre [truncated]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T23:16:17Z",
       "worker_run_id": "43977346254",
@@ -819,6 +791,33 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, 2026-11-16T08:14Z) .. 44043184727 (push f939bbb, 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded (both 0 jobs, no compute); 18 successes (17 push, 1 schedule 44023953879); 0 failed. Queue (created to build start) median 4 s, p90 15 s, max 64 s (43832040488 behind in-flight 43831980991): latency only, not execution time. Exec median 77.5 s, p90 90 s; 15 percent gate 11.6 s and 60 s gate not met. Superseded in-flight builds: 0 (cancel-in-progress true saves about 0 s). Avoidable rebuilds: 0 of 18 test-only; new heads 58c3e57 (dashboard/site/src) and f939bbb (docs/**, dashboard/site/src) are build-consumed. Daily schedule 44023953879 (62 s) required for synthetic date refresh. docs.yml unchanged since 063cbe9 (2026-11-12). Stale queued run 37642403569 (created 2026-10-07) still queued; maintainer housekeeping, does not block runs. Cache node-cache-Linux-x64-npm-7808ecf8 live (accessed 08:47Z). Next: dependency installation and caching.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T09:22:19Z",
+      "worker_run_id": "44054283614",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672",
+        "43991770179",
+        "43991571724",
+        "43987917606",
+        "43877103800",
+        "43862265708",
+        "43854851689",
+        "43840581457",
+        "43832040488",
+        "43831980991",
+        "43831754585",
+        "43829639369"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43829639369 (push f343b8b, 2026-11-16T08:14Z) to 44043184727 (push f939bbb, 2026-11-17T08:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed; no docs run queued or in progress (stale 37642403569 only). No docs-consumed change since f939bbb (compare to dc2b53f: server/ files only). Stored run_timings recomputed, no refetch: setup-node median 3 s p90 6; install median 8.5 s p90 11; post 0 s p90 0; phase median 12.5 s p90 17 s = 16.1 percent of exec median 77.5 s; 15 percent gate 11.63 s; 60 s gate unmet. Ceiling: install-only removal 8.5 s (11 percent); setup plus install together is 11.5 s median even with zero restore cost and no npm ci, which is infeasible. Cache: sole entry node-cache-Linux-x64-npm-7808ecf8 (263412733 B, created 2026-11-13T20:57Z) last accessed 09:18Z; post step 0-1 s in 18/18 = exact-hit restore, no save. Caveat (unmeasured, currently zero impact): key uses root lock only, so a future dashboard/site lock change would not refresh the saved npm cache. Open #20815 (checkout) is another category, not repeated. No issue. Next: Astro documentation generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -833,7 +832,7 @@
     "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
     "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
     "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-    "live_entry_last_accessed": "2026-11-17T05:44:43Z (caches API read 05:5xZ; created 2026-11-13T20:57:12Z; 263412733 B; hit inferred from post step 0-1 s in window 43814432358..44023953879)",
+    "live_entry_last_accessed": "2026-11-17T09:18:03Z (caches API read 09:20Z; key node-cache-Linux-x64-npm-7808ecf8; post step 0-1 s in 18/18 window runs)",
     "window_2026_11_15T1930Z": {
       "n_success": 8,
       "setup_node_median_s": 4,
@@ -1567,7 +1566,7 @@
     "verified_at": "2026-11-17T08:23:50Z",
     "window": "latest 20 completed docs.yml runs 43829639369..44043184727 (cancelled 43991812013 and 43832015521 excluded); 18 successes; recomputed from immutable run_timings rows",
     "demo_step_s": {
-      "median": 5.0,
+      "median": 5,
       "p90": 6,
       "min": 3,
       "max": 8,
@@ -1579,7 +1578,7 @@
     },
     "demo_share_of_exec_median_pct": 6.5,
     "gate_15pct_s": 11.6,
-    "ceiling_saving_s": 5.0,
+    "ceiling_saving_s": 5,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
     "note": "Re-verified 18:37Z by worker 43929821091: no newer docs run than 43877103800; demo rows recomputed (median 5 s, p90 6 s, max 8 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists. Re-verified 23:35Z by worker 43979722480: no newer docs run; strict 19-success demo rows recomputed (median 5 s, p90 6 s, max 8 s); decision unchanged (ceiling 5 s vs gate 11.4 s).",
     "decision": "not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)",
