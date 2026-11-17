@@ -47,10 +47,12 @@ model SessionArchiveDefinition {
   @minLength(1) @maxLength(512) subject: string;
   objective?: string;
   acceptance?: string;
-  /** Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. The first reads an archive source, each later one reads its immediate predecessor by name, and this definition reads the last, so no stage is unused. An earlier definition either aggregates with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, outputting its groups, aggregates and computations, or is row-level and selects its input key unrenamed (the trace and projection identity plus Sequence for archive-events, Ordinal for item sources), outputting the selected fields. Earlier definitions must not declare queries, order-by or limit, and aggregating ones must not declare select. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length. */
-  @maxItems(2) queries?: SessionArchiveDefinition[];
-  /** One of archive-events, archive-objectives, archive-actions or archive-states, or the name of the last earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names the last earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there. */
+  /** Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. Each reads an archive source or any earlier definition through from or joins, and every earlier definition is read by a later one or by this definition, so no stage is unused. An earlier definition either aggregates with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, outputting its groups, aggregates and computations, or is row-level and selects its input key unrenamed (the trace and projection identity plus Sequence for archive-events, Ordinal for item sources), outputting the selected fields. Earlier definitions must not declare queries, order-by or limit, and aggregating ones must not declare select. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length. */
+  @maxItems(8) queries?: SessionArchiveDefinition[];
+  /** One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states or archive-ir-events, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies further flattens each objective's dependsOn array into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there. */
   @pattern("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$") @maxLength(128) from: string;
+  /** Trace-scoped equality joins (Dashboard Language DLS-QUERY-005..008), applied in order before filter. Both sides always match on the complete trace binding (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId, PolicyDigest); on adds integer or string keys, never a binding field. on must cover the right side's row key (an earlier aggregate's by fields, or the source key), so each left row meets at most one right row. Right rows with a null or empty-string key never match. inner drops unmatched left rows; left keeps them with null joined fields (empty string for strings). Imported names must not collide with input fields, case-insensitively, and cannot be targets of field-state predicates. Rejected unless status advertises analytical.joins at least this length. */
+  @maxItems(4) joins?: SessionArchiveJoin[];
   filter?: { @minItems(1) @maxItems(64) predicates: SessionArchivePredicate[] };
   /** Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. Rejected unless status advertises analytical.compute. */
   @maxItems(32) compute?: { as: string; function: SessionArchiveFunction; @maxItems(3) args: SessionArchiveExpression[] }[];
@@ -147,8 +149,17 @@ model SessionArchiveCounters {
 }
 
 model SessionArchiveSourceCapability {
-  name: "archive-objectives" | "archive-actions" | "archive-states";
+  name: "archive-objectives" | "archive-objective-dependencies" | "archive-actions" | "archive-states" | "archive-ir-events";
   fields: SessionArchiveColumn[];
+}
+
+model SessionArchiveJoin {
+  /** An archive source or an earlier definition in queries. */
+  @pattern("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$") @maxLength(128) source: string;
+  /** Defaults to inner. Cross, right and full joins are not part of the profile. */
+  type?: "inner" | "left";
+  @maxItems(4) on?: { left: string; right: string }[];
+  @minItems(1) @maxItems(16) fields: { field: string; as?: string }[];
 }
 
 model SessionArchiveWindow {
@@ -174,6 +185,8 @@ model SessionArchiveCapabilities {
   maxRows: int32;
   /** Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected. */
   chaining?: int32;
+  /** Maximum trace-scoped joins one definition may declare. Omitted means joins are rejected. */
+  joins?: int32;
   /** Row-level compute before aggregate. Omitted means compute is rejected. */
   compute?: boolean;
   /** Supported window operations. Omitted means window is rejected. */

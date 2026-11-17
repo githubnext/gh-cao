@@ -57,7 +57,9 @@ function replaySessionArchiveGraders() {
     const graders = require(join(upstream, "trace_graders.cjs"));
     const supported = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
       "objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
-      "recurrence-rate", "artifact-production"]);
+      "recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
+      "recurrence-laminarity", "recurrence-trapping-time"]);
+    const recurrenceGraders = new Set(["recurrence-laminarity", "recurrence-trapping-time"]);
     const itemGraders = new Set(["objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
       "recurrence-rate"]);
     const usageGraders = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"]);
@@ -84,6 +86,52 @@ function replaySessionArchiveGraders() {
       if (!items.every(record)) return "malformed-objective";
       return items.some(({ satisfiedAtEventIndex: index }) => index !== null && index !== undefined && (!Number.isSafeInteger(index) || index < 0))
         ? "invalid-satisfaction-index" : "measured";
+    }
+    const record = (item) => item !== null && typeof item === "object" && !Array.isArray(item);
+    const excluded = (omissions, key) => omissions.includes(`data.${key}:excluded`) || omissions.includes("data:excluded");
+    const index = (value) => Number.isSafeInteger(value) && value >= 0;
+    // Phase 5 reason ladders, in the order each reviewed definition evaluates them.
+    function dependencyReason(ir, omissions) {
+      const items = ir.objectives;
+      if (excluded(omissions, "objectives")) return "excluded";
+      if (Array.isArray(items) && items.length > 5000) return "oversized";
+      if (!Array.isArray(items) || items.length === 0) return "no-objectives";
+      const ids = items.map((item) => record(item) && typeof item.id === "string" ? item.id : "");
+      if (ids.includes("") || new Set(ids).size !== ids.length) return "invalid-objective-ids";
+      if (items.some(({ dependsOn }) => dependsOn !== undefined && dependsOn !== null && !Array.isArray(dependsOn))) return "invalid-dependencies";
+      const dependents = items.filter(({ dependsOn }) => Array.isArray(dependsOn) && dependsOn.length > 0);
+      if (dependents.length === 0) return "no-dependencies";
+      if (dependents.flatMap(({ dependsOn }) => dependsOn).some((id) => typeof id !== "string" || !ids.includes(id))) return "unknown-dependency";
+      return dependents.some(({ satisfiedAtEventIndex }) => index(satisfiedAtEventIndex)) ? "measured" : "no-completed-dependents";
+    }
+    function saturationReason(ir, omissions) {
+      const { objectives: items, events } = ir;
+      if (excluded(omissions, "objectives") || excluded(omissions, "events")) return "excluded";
+      if (Array.isArray(items) && items.length > 5000 || Array.isArray(events) && events.length > 5000) return "oversized";
+      if (!Array.isArray(items) || items.length === 0) return "no-objectives";
+      // Upstream synthesizes events from agent events; the definition fails closed.
+      if (!Array.isArray(events)) return "no-events";
+      if (!items.every(record)) return "malformed-objective";
+      const satisfied = items.map(({ satisfiedAtEventIndex }) => satisfiedAtEventIndex);
+      if (satisfied.some((value) => value === null || value === undefined)) return "not-saturated";
+      if (!satisfied.every(index)) return "invalid-satisfaction-index";
+      if (!events.every((event) => record(event) && index(event.index))) return "invalid-event-index";
+      const indexes = new Set(events.map((event) => event.index));
+      return satisfied.every((value) => indexes.has(value)) ? "measured" : "satisfaction-event-missing";
+    }
+    // Visit order is exact only when every IR event index is its position and
+    // every present firstEventIndex is a safe integer; otherwise the
+    // definitions fail closed as "unordered". String "" states are visits
+    // upstream but not archive-states visits, so they also fail closed.
+    function recurrenceReason(ir) {
+      const states = Array.isArray(ir.states) ? ir.states : [];
+      const { events } = ir;
+      const ordered = Array.isArray(events) && events.every((event, position) => record(event) && event.index === position) &&
+        !states.includes("") && states.every((state) => !record(state) || !("firstEventIndex" in state) || Number.isSafeInteger(state.firstEventIndex));
+      if (!ordered) return "unordered";
+      if (states.length > 5000 || events.length > 5000) return "oversized";
+      const visits = states.filter((state) => typeof state === "string" || record(state) && typeof state.id === "string" && state.id !== "");
+      return visits.length < 4 ? "fewer-than-four-visits" : "measured";
     }
     function grade(events) {
       let lookups;
@@ -121,11 +169,22 @@ function replaySessionArchiveGraders() {
           const expected = upstreamResult.results.find(({ id }) => id === query.id);
           const row = query.fullResult.rows.find((row) => row.RunId === runId);
           assert.ok(row, `${scenario.name}: exact trace/run-attempt result`);
-          assert.equal(row.value, expected.value, `${scenario.name}/${runId}/${query.id}: full upstream metric`);
-          assert.equal(row.availability, expected.status === "unavailable" ? "unavailable" : "measured");
+          const omissions = runId === "123" ? scenario.omissions ?? [] : [];
+          const phase5 = {
+            "dependency-order-violation-rate": dependencyReason, "evidence-saturation-stopping-lag": saturationReason,
+          }[query.id] ?? (recurrenceGraders.has(query.id) ? recurrenceReason : undefined);
+          const phase5Reason = phase5?.(lastIR(evidence), omissions);
+          // Declared fail-closed divergences: upstream may measure, the definition reports unavailable.
+          if (phase5Reason === "unordered" || phase5Reason === "no-events") {
+            assert.equal(row.value, null, `${scenario.name}/${runId}/${query.id}: fail-closed divergence`);
+            assert.equal(row.availability, "unavailable");
+          } else {
+            assert.equal(row.value, expected.value, `${scenario.name}/${runId}/${query.id}: full upstream metric`);
+            assert.equal(row.availability, expected.status === "unavailable" ? "unavailable" : "measured");
+          }
           const lookups = graders.createSessionLookups(evidence);
           const selected = lookups.trace.tokenUsageEntries;
-          let reason = itemGraders.has(query.id) ? itemReason(query.id, evidence, runId === "123" ? scenario.omissions ?? [] : []) : undefined;
+          let reason = itemGraders.has(query.id) ? itemReason(query.id, evidence, omissions) : phase5Reason;
           switch (query.id) {
             case "execution-step-count": reason = selected.length ? "measured" : "no-requests"; break;
             case "execution-duration": {
@@ -143,7 +202,6 @@ function replaySessionArchiveGraders() {
               reason = expected.value === null ? "incomplete-unsafe-or-zero-usage" : "measured";
               break;
             case "artifact-production": {
-              const omissions = runId === "123" ? scenario.omissions ?? [] : [];
               reason = omissions.includes("data.status:excluded") ? "excluded" : omissions.includes("data.status:redacted") ? "redacted" : "measured";
               break;
             }
@@ -191,7 +249,7 @@ function replaySessionArchiveGraders() {
       upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources, kustoReplay,
       verification: ["CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1",
         "node scripts/replay-session-archive-graders.mjs [private-report-directory]"],
-      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Ten full declarative metrics execute through real DuckDB, five of them over trajectory.ir item sources and two (recurrence-rate, artifact-production) through two-stage query chaining, with the same definitions replayed through real Kusto when configured; the other five remain unsupported. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its explicitly separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are separately checked against pinned lookup state. No missing provenance is filled. Live Azure acceptance is not exercised.",
+      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Fourteen full declarative metrics execute through real DuckDB, nine of them over trajectory.ir item sources, two (recurrence-rate, artifact-production) through two-stage query chaining and four (dependency-order-violation-rate, evidence-saturation-stopping-lag, recurrence-laminarity, recurrence-trapping-time) through trace-scoped joins and nested item sources, with the same definitions replayed through real Kusto when configured; the other six remain unsupported. Recurrence definitions fail closed as unordered, and saturation as no-events, where upstream may measure synthesized or non-positional events, strings or invalid firstEventIndex values, or empty string states. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its explicitly separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are separately checked against pinned lookup state. No missing provenance is filled. Live Azure acceptance is not exercised.",
       matrix, scenarios: replays,
     };
     writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });

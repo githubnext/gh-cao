@@ -1,0 +1,530 @@
+{
+  "name": "evidence-saturation-stopping-lag",
+  "subject": "Recompute gh-aw evidence saturation stopping lag.",
+  "queries": [
+    {
+      "name": "hits",
+      "subject": "Event indexes.",
+      "from": "archive-ir-events",
+      "filter": {
+        "predicates": [
+          {
+            "field": "Index",
+            "gte": 0
+          }
+        ]
+      },
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest",
+          "Index"
+        ],
+        "values": [
+          {
+            "field": "Ordinal",
+            "as": "hit",
+            "reducer": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "goals",
+      "subject": "Objectives.",
+      "from": "archive-objectives",
+      "joins": [
+        {
+          "source": "hits",
+          "type": "left",
+          "on": [
+            {
+              "left": "SatisfiedAtEventIndex",
+              "right": "Index"
+            }
+          ],
+          "fields": [
+            {
+              "field": "hit"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest"
+        ],
+        "values": [
+          {
+            "field": "Items",
+            "as": "gn",
+            "reducer": "max"
+          },
+          {
+            "field": "TraceId",
+            "as": "gx",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "Items",
+                  "state": "excluded"
+                }
+              ]
+            }
+          },
+          {
+            "field": "Ordinal",
+            "as": "gr",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "Kind",
+                  "equals": "object"
+                }
+              ]
+            }
+          },
+          {
+            "field": "SatisfiedAtEventIndex",
+            "as": "gs",
+            "reducer": "count"
+          },
+          {
+            "field": "Ordinal",
+            "as": "gi",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "SatisfiedAtEventIndex",
+                  "state": "invalid"
+                }
+              ]
+            }
+          },
+          {
+            "field": "hit",
+            "as": "gh",
+            "reducer": "count"
+          },
+          {
+            "field": "SatisfiedAtEventIndex",
+            "as": "at",
+            "reducer": "max"
+          }
+        ]
+      }
+    }
+  ],
+  "from": "archive-ir-events",
+  "joins": [
+    {
+      "source": "goals",
+      "fields": [
+        {
+          "field": "gn"
+        },
+        {
+          "field": "gx"
+        },
+        {
+          "field": "gr"
+        },
+        {
+          "field": "gs"
+        },
+        {
+          "field": "gi"
+        },
+        {
+          "field": "gh"
+        },
+        {
+          "field": "at"
+        }
+      ]
+    }
+  ],
+  "compute": [
+    {
+      "as": "late",
+      "function": "gt",
+      "args": [
+        {
+          "field": "Index"
+        },
+        {
+          "field": "at"
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "by": [
+      "Namespace",
+      "Repository",
+      "RunId",
+      "RunAttempt",
+      "TraceId",
+      "ProjectionId",
+      "PolicyDigest"
+    ],
+    "values": [
+      {
+        "field": "Items",
+        "as": "m",
+        "reducer": "max"
+      },
+      {
+        "field": "gn",
+        "as": "n",
+        "reducer": "max"
+      },
+      {
+        "field": "gx",
+        "as": "x",
+        "reducer": "max"
+      },
+      {
+        "field": "gr",
+        "as": "r",
+        "reducer": "max"
+      },
+      {
+        "field": "gs",
+        "as": "s",
+        "reducer": "max"
+      },
+      {
+        "field": "gi",
+        "as": "i",
+        "reducer": "max"
+      },
+      {
+        "field": "gh",
+        "as": "h",
+        "reducer": "max"
+      },
+      {
+        "field": "TraceId",
+        "as": "d",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "Items",
+              "state": "excluded"
+            }
+          ]
+        }
+      },
+      {
+        "field": "Index",
+        "as": "k",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "Index",
+              "gte": 0
+            }
+          ]
+        }
+      },
+      {
+        "field": "Index",
+        "as": "lag",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "late",
+              "equals": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "post-aggregate": [
+    {
+      "as": "q",
+      "function": "if",
+      "args": [
+        {
+          "function": "gt",
+          "args": [
+            {
+              "field": "n"
+            },
+            {
+              "function": "sum",
+              "args": [
+                {
+                  "field": "s"
+                },
+                {
+                  "field": "i"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "value": "not-saturated"
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "gt",
+              "args": [
+                {
+                  "field": "i"
+                },
+                {
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "value": "invalid-satisfaction-index"
+            },
+            {
+              "function": "if",
+              "args": [
+                {
+                  "function": "gt",
+                  "args": [
+                    {
+                      "field": "m"
+                    },
+                    {
+                      "field": "k"
+                    }
+                  ]
+                },
+                {
+                  "value": "invalid-event-index"
+                },
+                {
+                  "function": "if",
+                  "args": [
+                    {
+                      "function": "gt",
+                      "args": [
+                        {
+                          "field": "n"
+                        },
+                        {
+                          "field": "h"
+                        }
+                      ]
+                    },
+                    {
+                      "value": "satisfaction-event-missing"
+                    },
+                    {
+                      "value": "measured"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "reason",
+      "function": "if",
+      "args": [
+        {
+          "function": "gt",
+          "args": [
+            {
+              "function": "sum",
+              "args": [
+                {
+                  "field": "x"
+                },
+                {
+                  "field": "d"
+                }
+              ]
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "value": "excluded"
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "gt",
+              "args": [
+                {
+                  "field": "n"
+                },
+                {
+                  "value": 5000
+                }
+              ]
+            },
+            {
+              "value": "oversized"
+            },
+            {
+              "function": "if",
+              "args": [
+                {
+                  "function": "gt",
+                  "args": [
+                    {
+                      "field": "m"
+                    },
+                    {
+                      "value": 5000
+                    }
+                  ]
+                },
+                {
+                  "value": "oversized"
+                },
+                {
+                  "function": "if",
+                  "args": [
+                    {
+                      "function": "lte",
+                      "args": [
+                        {
+                          "function": "coalesce",
+                          "args": [
+                            {
+                              "field": "n"
+                            },
+                            {
+                              "value": 0
+                            }
+                          ]
+                        },
+                        {
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "value": "no-objectives"
+                    },
+                    {
+                      "function": "if",
+                      "args": [
+                        {
+                          "function": "is-null",
+                          "args": [
+                            {
+                              "field": "m"
+                            }
+                          ]
+                        },
+                        {
+                          "value": "no-events"
+                        },
+                        {
+                          "function": "if",
+                          "args": [
+                            {
+                              "function": "gt",
+                              "args": [
+                                {
+                                  "field": "n"
+                                },
+                                {
+                                  "field": "r"
+                                }
+                              ]
+                            },
+                            {
+                              "value": "malformed-objective"
+                            },
+                            {
+                              "field": "q"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "value",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "reason"
+            },
+            {
+              "value": "measured"
+            }
+          ]
+        },
+        {
+          "field": "lag"
+        },
+        {
+          "value": null,
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "as": "availability",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "reason"
+            },
+            {
+              "value": "measured"
+            }
+          ]
+        },
+        {
+          "value": "measured"
+        },
+        {
+          "value": "unavailable"
+        }
+      ]
+    }
+  ]
+}

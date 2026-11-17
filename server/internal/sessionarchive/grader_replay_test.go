@@ -114,6 +114,24 @@ func TestGraderReplayEvidence(t *testing.T) {
 			safeOutput("agent", "agent/log", `{"type":5}`) + safeOutput("agent", "agent/log", `{}`) + safeOutput("agent", "agent/log", `{"type":""}`) +
 			safeOutput("safe_outputs", "usage/aw_session.jsonl", `{"type":"","status":null}`) + safeOutput("agent", "agent/log", `{"type":"x","status":"pending"}`) +
 			safeOutput("safe_outputs", "other.jsonl", `{"type":"push","status":"failure"}`) + safeOutput("agent", "agent/log", `{"type":"push"}`)},
+		{"ir-measured", header + trajectoryIR(`{"objectives":[{"id":"a","satisfiedAtEventIndex":0},{"id":"b","dependsOn":["a"],"satisfiedAtEventIndex":2},{"id":"c","dependsOn":["a","b"],"satisfiedAtEventIndex":1}],`+
+			`"events":[{"kind":"state_change","index":0,"ref":"A"},{"kind":"action","index":1},{"kind":"state_change","index":2,"ref":"B"},{"kind":"action","index":3},{"kind":"action","index":4},{"kind":"state_change","index":5,"ref":"C"},{"kind":"action","index":6},{"kind":"action","index":7}],`+
+			`"states":[{"id":"A","firstEventIndex":0},{"id":"A","firstEventIndex":1},{"id":"B","firstEventIndex":2},{"id":"A","firstEventIndex":4},{"id":"A","firstEventIndex":3},{"id":"B","firstEventIndex":4},{"id":"C"},{"id":"A","firstEventIndex":7}]}`)},
+		{"ir-unknown-dependency", header + trajectoryIR(`{"objectives":[{"id":"a","satisfiedAtEventIndex":0,"dependsOn":["zz"]},{"id":"b","satisfiedAtEventIndex":9}],`+
+			`"events":[{"kind":"action","index":0},{"kind":"action","index":5}],`+
+			`"states":[{"id":"A","firstEventIndex":0},{"id":"B","firstEventIndex":5},{"id":"A","firstEventIndex":0},{"id":"B","firstEventIndex":5}]}`)},
+		{"ir-invalid-indexes", header + trajectoryIR(`{"objectives":[{"id":"a","satisfiedAtEventIndex":0,"dependsOn":"a"},{"id":"b","satisfiedAtEventIndex":0}],`+
+			`"events":[{"kind":"x","index":0},{"kind":"y","index":"1"}],"states":["x","","x","y"]}`)},
+		{"ir-uncompleted-null-order", header + trajectoryIR(`{"objectives":[{"id":"a","satisfiedAtEventIndex":null},{"id":"b","dependsOn":["a"]}],`+
+			`"events":[{"kind":"x","index":0},{"kind":"y","index":1}],`+
+			`"states":[{"id":"A","firstEventIndex":null},{"id":5,"firstEventIndex":1},{"id":"B"},{"id":"A"},{"id":"B","firstEventIndex":0}]}`)},
+		{"ir-duplicate-ids-no-events", header + trajectoryIR(`{"objectives":[{"id":"a","satisfiedAtEventIndex":0},{"id":"a","satisfiedAtEventIndex":0}],`+
+			`"states":[{"id":"A"},{"id":"B"},{"id":"A"},{"id":"B"}]}`)},
+		{"ir-positional-no-recurrence", header + trajectoryIR(`{"objectives":[{"id":"a","satisfiedAtEventIndex":3},{"id":"b","dependsOn":["a"],"satisfiedAtEventIndex":3}],`+
+			`"events":[{"kind":"x","index":0},{"kind":"y","index":1},{"kind":"y","index":2},{"kind":"y","index":3}],`+
+			`"states":[{"id":"A","firstEventIndex":3},{"id":"B","firstEventIndex":2},"C",{"id":"D","firstEventIndex":0}]}`)},
+		{"ir-few-visits", header + trajectoryIR(`{"objectives":[{"id":"a","dependsOn":[],"satisfiedAtEventIndex":-1}],`+
+			`"events":[{"index":0},{"index":1}],"states":["A",{"id":""},{"id":"B","firstEventIndex":1},"A",null]}`)},
 		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
@@ -188,7 +206,8 @@ func TestGraderReplayEvidence(t *testing.T) {
 				component, full := replayQuery(t, attempt.ID+"-component", attempt.Component), replayQuery(t, attempt.ID+"-full", attempt.Full)
 				supported := slices.Contains([]string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
 					"objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
-					"recurrence-rate", "artifact-production"}, attempt.ID)
+					"recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
+					"recurrence-laminarity", "recurrence-trapping-time"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {
@@ -270,4 +289,8 @@ func safeOutput(phase, path, data string) string {
 
 func usageEvent(family, input, output, duration string) string {
 	return `{"type":"` + family + `","provenance":{"phase":"agent","component":"agent"},"data":{"usage":{"inputTokens":` + input + `,"outputTokens":` + output + `},"durationMs":` + duration + `}}` + "\n"
+}
+
+func trajectoryIR(data string) string {
+	return `{"type":"trajectory.ir","provenance":{"component":"agent","phase":"agent","path":"agent/log"},"data":` + data + "}\n"
 }

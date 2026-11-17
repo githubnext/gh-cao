@@ -350,10 +350,12 @@ Archive status and queries use the separate authenticated
 hosted readers additionally need a current OAuth session, fresh strong-authentication
 assurance, an exact reader allowlist and POST CSRF protection. Ordinary dashboard
 membership, administrator status, or Blob/ADX credentials alone are insufficient.
-Trusted `timeline` and `summary` queries are bounded; local-only
-Dashboard Language `session-query` uses `archive-events` scalar columns and
-does not expose `PayloadJSON`, joins or arbitrary SQL/KQL. Hosted ADX does not
-yet execute `session-query`. Queries never fall back to dashboard storage.
+Trusted `timeline` and `summary` queries are bounded; Dashboard Language
+`session-query` uses `archive-events` scalar columns and approved item sources,
+with chaining and joins confined to one trace. It does not expose
+`PayloadJSON`, cross-trace joins or arbitrary SQL/KQL. Hosted ADX executes the
+same plans only behind its separate default-off analytical acceptance gate.
+Queries never fall back to dashboard storage.
 
 **Deployment qualification:** the archive is independently default-off and its
 ADR remains proposed pending required acceptance evidence. Persistent

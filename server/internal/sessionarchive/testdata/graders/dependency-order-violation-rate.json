@@ -1,0 +1,537 @@
+{
+  "name": "dependency-order-violation-rate",
+  "subject": "Recompute gh-aw dependency order violation rate.",
+  "queries": [
+    {
+      "name": "ids",
+      "subject": "Objective ids.",
+      "from": "archive-objectives",
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest",
+          "Id"
+        ],
+        "values": [
+          {
+            "field": "Ordinal",
+            "as": "o",
+            "reducer": "count"
+          },
+          {
+            "field": "SatisfiedAtEventIndex",
+            "as": "at",
+            "reducer": "max"
+          }
+        ]
+      }
+    },
+    {
+      "name": "edges",
+      "subject": "Dependency edges.",
+      "from": "archive-objective-dependencies",
+      "filter": {
+        "predicates": [
+          {
+            "field": "Position",
+            "gte": 0
+          }
+        ]
+      },
+      "joins": [
+        {
+          "source": "ids",
+          "type": "left",
+          "on": [
+            {
+              "left": "Value",
+              "right": "Id"
+            }
+          ],
+          "fields": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "at"
+            }
+          ]
+        },
+        {
+          "source": "archive-objectives",
+          "on": [
+            {
+              "left": "Ordinal",
+              "right": "Ordinal"
+            }
+          ],
+          "fields": [
+            {
+              "field": "SatisfiedAtEventIndex"
+            }
+          ]
+        }
+      ],
+      "compute": [
+        {
+          "as": "u0",
+          "function": "if",
+          "args": [
+            {
+              "function": "is-null",
+              "args": [
+                {
+                  "field": "o"
+                }
+              ]
+            },
+            {
+              "value": 1,
+              "type": "integer"
+            },
+            {
+              "value": 0,
+              "type": "integer"
+            }
+          ]
+        },
+        {
+          "as": "l0",
+          "function": "if",
+          "args": [
+            {
+              "function": "lte",
+              "args": [
+                {
+                  "field": "at"
+                },
+                {
+                  "field": "SatisfiedAtEventIndex"
+                }
+              ]
+            },
+            {
+              "value": 0,
+              "type": "integer"
+            },
+            {
+              "value": 1,
+              "type": "integer"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest",
+          "Ordinal"
+        ],
+        "values": [
+          {
+            "field": "u0",
+            "as": "u",
+            "reducer": "max"
+          },
+          {
+            "field": "l0",
+            "as": "l",
+            "reducer": "max"
+          },
+          {
+            "field": "SatisfiedAtEventIndex",
+            "as": "d",
+            "reducer": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "deps",
+      "subject": "Violations.",
+      "from": "edges",
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest"
+        ],
+        "values": [
+          {
+            "field": "u",
+            "as": "du",
+            "reducer": "sum"
+          },
+          {
+            "field": "Ordinal",
+            "as": "dc",
+            "reducer": "count",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "d",
+                  "gte": 1
+                }
+              ]
+            }
+          },
+          {
+            "field": "l",
+            "as": "dv",
+            "reducer": "sum",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "d",
+                  "gte": 1
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "from": "archive-objectives",
+  "joins": [
+    {
+      "source": "deps",
+      "type": "left",
+      "fields": [
+        {
+          "field": "du"
+        },
+        {
+          "field": "dc"
+        },
+        {
+          "field": "dv"
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "by": [
+      "Namespace",
+      "Repository",
+      "RunId",
+      "RunAttempt",
+      "TraceId",
+      "ProjectionId",
+      "PolicyDigest"
+    ],
+    "values": [
+      {
+        "field": "Items",
+        "as": "n",
+        "reducer": "max"
+      },
+      {
+        "field": "TraceId",
+        "as": "x",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "Items",
+              "state": "excluded"
+            }
+          ]
+        }
+      },
+      {
+        "field": "Id",
+        "as": "k",
+        "reducer": "distinct-count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "Id",
+              "gte": ""
+            }
+          ]
+        }
+      },
+      {
+        "field": "Ordinal",
+        "as": "e",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "DependsOn",
+              "state": "invalid"
+            }
+          ]
+        }
+      },
+      {
+        "field": "Ordinal",
+        "as": "g",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "DependsOn",
+              "gte": 1
+            }
+          ]
+        }
+      },
+      {
+        "field": "du",
+        "as": "u",
+        "reducer": "max"
+      },
+      {
+        "field": "dc",
+        "as": "c",
+        "reducer": "max"
+      },
+      {
+        "field": "dv",
+        "as": "v",
+        "reducer": "max"
+      }
+    ]
+  },
+  "post-aggregate": [
+    {
+      "as": "q",
+      "function": "if",
+      "args": [
+        {
+          "function": "gt",
+          "args": [
+            {
+              "field": "u"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "value": "unknown-dependency"
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "lte",
+              "args": [
+                {
+                  "field": "c"
+                },
+                {
+                  "value": 0
+                }
+              ]
+            },
+            {
+              "value": "no-completed-dependents"
+            },
+            {
+              "value": "measured"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "reason",
+      "function": "if",
+      "args": [
+        {
+          "function": "gt",
+          "args": [
+            {
+              "field": "x"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "value": "excluded"
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "gt",
+              "args": [
+                {
+                  "field": "n"
+                },
+                {
+                  "value": 5000
+                }
+              ]
+            },
+            {
+              "value": "oversized"
+            },
+            {
+              "function": "if",
+              "args": [
+                {
+                  "function": "lte",
+                  "args": [
+                    {
+                      "function": "coalesce",
+                      "args": [
+                        {
+                          "field": "n"
+                        },
+                        {
+                          "value": 0
+                        }
+                      ]
+                    },
+                    {
+                      "value": 0
+                    }
+                  ]
+                },
+                {
+                  "value": "no-objectives"
+                },
+                {
+                  "function": "if",
+                  "args": [
+                    {
+                      "function": "gt",
+                      "args": [
+                        {
+                          "field": "n"
+                        },
+                        {
+                          "field": "k"
+                        }
+                      ]
+                    },
+                    {
+                      "value": "invalid-objective-ids"
+                    },
+                    {
+                      "function": "if",
+                      "args": [
+                        {
+                          "function": "gt",
+                          "args": [
+                            {
+                              "field": "e"
+                            },
+                            {
+                              "value": 0
+                            }
+                          ]
+                        },
+                        {
+                          "value": "invalid-dependencies"
+                        },
+                        {
+                          "function": "if",
+                          "args": [
+                            {
+                              "function": "lte",
+                              "args": [
+                                {
+                                  "field": "g"
+                                },
+                                {
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "value": "no-dependencies"
+                            },
+                            {
+                              "field": "q"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "value",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "reason"
+            },
+            {
+              "value": "measured"
+            }
+          ]
+        },
+        {
+          "function": "quotient",
+          "args": [
+            {
+              "field": "v"
+            },
+            {
+              "field": "c"
+            }
+          ]
+        },
+        {
+          "value": null,
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "as": "availability",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "reason"
+            },
+            {
+              "value": "measured"
+            }
+          ]
+        },
+        {
+          "value": "measured"
+        },
+        {
+          "value": "unavailable"
+        }
+      ]
+    }
+  ]
+}

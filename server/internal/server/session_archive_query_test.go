@@ -115,7 +115,7 @@ func TestSessionArchiveAnalyticalHTTPValidation(t *testing.T) {
 		"version-on-summary": `{"kind":"summary","repository":"octo/one","language-version":"0.2.0"}`,
 		"payload-field":      strings.Replace(analyticalArchiveRequest, `"Sequence"`, `"PayloadJSON"`, 1),
 		"file-source":        strings.Replace(analyticalArchiveRequest, `"archive-events"`, `"/private/data.parquet"`, 1),
-		"unknown-key":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"joins":[],"aggregate":`, 1),
+		"unknown-key":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"crossJoins":[],"aggregate":`, 1),
 		"malformed-filter":   strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":{"predicates":[]},"aggregate":`, 1),
 		"null-filter":        strings.Replace(analyticalArchiveRequest, `"aggregate":`, `"filter":null,"aggregate":`, 1),
 		"body-budget":        strings.Replace(analyticalArchiveRequest, `"subject":`, `"description":"`+strings.Repeat("x", 4096)+`","subject":`, 1),

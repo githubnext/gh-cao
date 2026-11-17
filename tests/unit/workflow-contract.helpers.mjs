@@ -35,6 +35,26 @@ export function portableSkill(name) {
   return `${guidance}\n${guidance.replace(/\s+/g, " ")}`;
 }
 
+// Central Agentic Ops task guide: .github/cao/instructions/<name>.md plus the Markdown
+// references in its .github/cao/instructions/<name>/ directory.
+export const caoInstructionsDirectory = join(root, ".github", "cao", "instructions");
+
+export function caoTaskGuide(name) {
+  const references = join(caoInstructionsDirectory, name);
+  const guide = join(caoInstructionsDirectory, `${name}.md`);
+  const guidance = [
+    ...(existsSync(guide) ? [readFileSync(guide, "utf8")] : []),
+    ...(existsSync(references)
+      ? readdirSync(references, { withFileTypes: true })
+          .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+          .sort((left, right) => left.name.localeCompare(right.name))
+          .map((entry) => readFileSync(join(references, entry.name), "utf8"))
+      : []),
+  ].join("\n").replaceAll("\r\n", "\n");
+  assert.ok(guidance, `missing CAO task guide: ${name}`);
+  return `${guidance}\n${guidance.replace(/\s+/g, " ")}`;
+}
+
 export function controlPrecompute() {
   return [
     workflow("shared/control.md"),

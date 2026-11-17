@@ -145,6 +145,12 @@
                     "maximum": 2147483647,
                     "description": "Maximum earlier definitions a session-query may chain through queries. Omitted means chained queries are rejected."
                 },
+                "joins": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Maximum trace-scoped joins one definition may declare. Omitted means joins are rejected."
+                },
                 "compute": {
                     "type": "boolean",
                     "description": "Row-level compute before aggregate. Omitted means compute is rejected."
@@ -227,11 +233,19 @@
                         },
                         {
                             "type": "string",
+                            "const": "archive-objective-dependencies"
+                        },
+                        {
+                            "type": "string",
                             "const": "archive-actions"
                         },
                         {
                             "type": "string",
                             "const": "archive-states"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-ir-events"
                         }
                     ]
                 },

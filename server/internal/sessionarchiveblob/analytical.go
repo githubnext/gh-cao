@@ -135,70 +135,153 @@ func kqlExpression(e sessionarchive.PlannedExpression) string {
 
 const traceKeyKQL = "Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId"
 
-// itemSourceKQL flattens one approved collection of each trace's last
-// agent-phase trajectory.ir event, mirroring the DuckDB item source. Missing
-// keys, JSON null and invalid types stay distinct field states; anchor rows keep
-// traces whose collection is absent, empty or invalid. Payload JSON is read only
-// inside these let statements and never reaches the projected source.
-func itemSourceKQL(path, key string, element sessionarchive.Column, events string) (string, string) {
-	walk := "| extend archive_has=true,archive_value=parse_json(PayloadJSON)\n"
-	for _, segment := range strings.Split(path, ".") {
-		walk += "| extend archive_has=archive_has and gettype(archive_value)==\"dictionary\" and bag_has_key(archive_value," + literal(segment) + ")\n" +
-			"| extend archive_value=iff(archive_has,archive_value[" + literal(segment) + "],dynamic(null))\n"
-	}
-	lets := "let archive_events=materialize(" + events + "| project " + traceKeyKQL +
+// itemTracesKQL binds each trace to its last agent-phase trajectory.ir
+// payload once for every item source of a query.
+func itemTracesKQL(events string) string {
+	return "let archive_events=materialize(" + events + "| project " + traceKeyKQL +
 		",Sequence,PolicyDigest,Gaps,OmissionReasons,archive_ir=(Type==\"trajectory.ir\" and Phase==\"agent\"),PayloadJSON\n" +
 		"| extend PayloadJSON=iff(archive_ir,PayloadJSON,\"\"));\n" +
 		"let archive_traces=materialize(archive_events\n" +
 		// make_set flattens per-event Gaps into their distinct union.
 		"| summarize PolicyDigest=tostring(array_sort_desc(make_set(PolicyDigest))[0]),Gaps=make_set(Gaps) by " + traceKeyKQL + "\n" +
 		"| join kind=leftouter (archive_events | where archive_ir | summarize arg_max(Sequence,PayloadJSON,OmissionReasons) by " + traceKeyKQL + ") on " + traceKeyKQL + "\n" +
-		"| project-away Namespace1,Repository1,RunId1,RunAttempt1,TraceId1,ProjectionId1\n" + walk +
+		"| project-away Namespace1,Repository1,RunId1,RunAttempt1,TraceId1,ProjectionId1);\n"
+}
+
+// itemSourceKQL flattens one approved collection of each trace's last
+// agent-phase trajectory.ir event, mirroring the DuckDB item source. Missing
+// keys, JSON null and invalid types stay distinct field states; anchor rows keep
+// traces whose collection is absent, empty or invalid, and a nested source
+// keeps one anchor for a trace without nested elements. Payload JSON is read
+// only inside these let statements and never reaches the projected source.
+func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
+	suffix := strconv.Itoa(index)
+	collection := "archive_collection_" + suffix
+	walk := "| extend archive_has=true,archive_value=parse_json(PayloadJSON)\n"
+	for _, segment := range strings.Split(item.Path, ".") {
+		walk += "| extend archive_has=archive_has and gettype(archive_value)==\"dictionary\" and bag_has_key(archive_value," + literal(segment) + ")\n" +
+			"| extend archive_value=iff(archive_has,archive_value[" + literal(segment) + "],dynamic(null))\n"
+	}
+	lets := "let " + collection + "=materialize(archive_traces\n" + walk +
 		"| extend archive_collection=iff(archive_has,gettype(archive_value),\"\")\n" +
 		"| extend Items=iff(archive_collection==\"array\",array_length(archive_value),long(null)));\n"
-	name := literal(element.Name)
 	numeric := "(\"int\",\"long\",\"real\",\"decimal\")"
-	var value, valid string
-	present := "archive_has_key"
-	switch element.Type {
-	case "integer":
-		number := "iff(archive_raw_kind in " + numeric + ",toreal(archive_raw),real(null))"
-		valid = "(isnotnull(" + number + ") and " + number + "==floor(" + number + ",1.0) and " + number + ">=0.0 and " + number + "<=9007199254740991.0)"
-		value = "iff(" + valid + ",tolong(" + number + "),long(null))"
-	case "boolean":
-		valid = "(archive_raw_kind==\"bool\")"
-		value = "iff(" + valid + ",tobool(archive_raw),bool(null))"
-	default:
-		// States are visits: a string element is its own id; a record contributes its string id.
-		valid = "(archive_raw_kind==\"string\")"
-		value = "case(archive_kind==\"string\",tostring(Element),archive_kind==\"dictionary\" and " + valid + ",tostring(archive_raw),\"\")"
-		present = "(archive_kind==\"string\" or archive_has_key)"
+	parents := "(" + collection + " | where Items>0 | mv-expand with_itemindex=Ordinal Element=archive_value to typeof(dynamic))"
+	source := "(union (" + collection + " | where coalesce(Items,0)==0 | extend Ordinal=long(null),Element=dynamic(null)),\n" + parents + ")\n"
+	position := ""
+	if item.Nested != "" {
+		nested := "archive_nested_" + suffix
+		lets += "let " + nested + "=materialize(" + parents + "\n" +
+			"| extend archive_children=iff(gettype(Element)==\"dictionary\" and bag_has_key(Element," + literal(item.Nested) + ")," +
+			"Element[" + literal(item.Nested) + "],dynamic(null))\n" +
+			"| where gettype(archive_children)==\"array\" and array_length(archive_children)>0\n" +
+			"| project-away Element\n| mv-expand with_itemindex=Position Element=archive_children to typeof(dynamic));\n"
+		source = "(union " + nested + ",\n(" + collection + " | join kind=leftanti (" + nested + " | distinct " + traceKeyKQL + ") on " +
+			traceKeyKQL + "\n| extend Ordinal=long(null),Position=long(null),Element=dynamic(null)))\n"
+		position = "Position,"
 	}
-	fields := func(collection, item string) string {
-		return "array_concat(iff(" + collection + ",pack_array(\"Items\"),dynamic([])),iff(" + item + ",pack_array(" + name + "),dynamic([])))"
-	}
-	source := "(union (archive_traces | where coalesce(Items,0)==0 | extend Ordinal=long(null),Element=dynamic(null)),\n" +
-		"(archive_traces | where Items>0 | mv-expand with_itemindex=Ordinal Element=archive_value to typeof(dynamic)))\n" +
-		"| extend archive_kind=iff(isnull(Ordinal),\"\",gettype(Element))\n" +
-		"| extend archive_has_key=archive_kind==\"dictionary\" and bag_has_key(Element," + literal(key) + ")\n" +
-		"| extend archive_raw=iff(archive_has_key,Element[" + literal(key) + "],dynamic(null))\n" +
-		"| extend archive_raw_kind=iff(archive_has_key,gettype(archive_raw),\"\")\n" +
+	source += "| extend archive_kind=iff(isnull(Ordinal),\"\",gettype(Element))\n" +
 		"| extend Kind=case(archive_kind==\"dictionary\",\"object\",archive_kind==\"array\",\"array\",archive_kind==\"string\",\"string\"," +
-		"archive_kind==\"bool\",\"boolean\",archive_kind==\"null\",\"null\",archive_kind in " + numeric + ",\"number\",\"\")\n" +
-		"| extend " + kqlIdentifier(element.Name) + "=" + value + ",\n" +
-		"OmissionReasons=iff(isnull(OmissionReasons),dynamic([]),OmissionReasons),\n" +
-		"PresentFields=" + fields("archive_collection!=\"\"", present) + ",\n" +
-		"NullFields=" + fields("archive_collection==\"null\"", "archive_raw_kind==\"null\"") + ",\n" +
-		"InvalidFields=" + fields("archive_collection!=\"\" and archive_collection!=\"null\" and archive_collection!=\"array\"",
-		"(archive_has_key and archive_raw_kind!=\"null\" and not"+valid+")") + "\n" +
-		"| project " + traceKeyKQL + ",PolicyDigest,Sequence,Ordinal,Items,Kind," + kqlIdentifier(element.Name) +
+		"archive_kind==\"bool\",\"boolean\",archive_kind==\"null\",\"null\",archive_kind in " + numeric + ",\"number\",\"\")\n"
+	presents := make([]string, 0, 1+len(item.Elements))
+	nulls := make([]string, 0, 1+len(item.Elements))
+	invalids := make([]string, 0, 1+len(item.Elements))
+	presents = append(presents, `iff(archive_collection!="",pack_array("Items"),dynamic([]))`)
+	nulls = append(nulls, `iff(archive_collection=="null",pack_array("Items"),dynamic([]))`)
+	invalids = append(invalids, `iff(archive_collection!="" and archive_collection!="null" and archive_collection!="array",pack_array("Items"),dynamic([]))`)
+	columns := make([]string, 0, len(item.Elements))
+	for i, element := range item.Elements {
+		n := strconv.Itoa(i)
+		has, raw, kind := "archive_has_key_"+n, "archive_raw_"+n, "archive_raw_kind_"+n
+		if element.Key == "" {
+			source += "| extend " + has + "=archive_kind!=\"\"\n| extend " + raw + "=Element\n"
+		} else {
+			source += "| extend " + has + "=archive_kind==\"dictionary\" and bag_has_key(Element," + literal(element.Key) + ")\n" +
+				"| extend " + raw + "=iff(" + has + ",Element[" + literal(element.Key) + "],dynamic(null))\n"
+		}
+		source += "| extend " + kind + "=iff(" + has + ",gettype(" + raw + "),\"\")\n"
+		var value, valid string
+		present := has
+		switch element.Typing {
+		case "unsigned", "signed":
+			low := "0.0"
+			if element.Typing == "signed" {
+				low = "-9007199254740991.0"
+			}
+			number := "iff(" + kind + " in " + numeric + ",toreal(" + raw + "),real(null))"
+			valid = "(isnotnull(" + number + ") and " + number + "==floor(" + number + ",1.0) and " + number + ">=" + low + " and " + number + "<=9007199254740991.0)"
+			value = "iff(" + valid + ",tolong(" + number + "),long(null))"
+		case "boolean":
+			valid = "(" + kind + "==\"bool\")"
+			value = "iff(" + valid + ",tobool(" + raw + "),bool(null))"
+		case "length":
+			valid = "(" + kind + "==\"array\")"
+			value = "iff(" + valid + ",array_length(" + raw + "),long(null))"
+		case "visit":
+			// States are visits: a string element is its own id; a record contributes its string id.
+			valid = "(" + kind + "==\"string\")"
+			value = "case(archive_kind==\"string\",tostring(Element),archive_kind==\"dictionary\" and " + valid + ",tostring(" + raw + "),\"\")"
+			present = "(archive_kind==\"string\" or " + has + ")"
+		default:
+			valid = "(" + kind + "==\"string\")"
+			value = "iff(" + valid + ",tostring(" + raw + "),\"\")"
+		}
+		name := literal(element.Column.Name)
+		member := func(condition string) string {
+			return "iff(" + condition + ",pack_array(" + name + "),dynamic([]))"
+		}
+		source += "| extend " + kqlIdentifier(element.Column.Name) + "=" + value + "\n"
+		columns = append(columns, kqlIdentifier(element.Column.Name))
+		presents = append(presents, member(present))
+		nulls = append(nulls, member(kind+"==\"null\""))
+		invalids = append(invalids, member("("+has+" and "+kind+"!=\"null\" and not"+valid+")"))
+	}
+	source += "| extend OmissionReasons=iff(isnull(OmissionReasons),dynamic([]),OmissionReasons),\n" +
+		"PresentFields=array_concat(" + strings.Join(presents, ",") + "),\n" +
+		"NullFields=array_concat(" + strings.Join(nulls, ",") + "),\n" +
+		"InvalidFields=array_concat(" + strings.Join(invalids, ",") + ")\n" +
+		"| project " + traceKeyKQL + ",PolicyDigest,Sequence,Ordinal,Items,Kind," + position + strings.Join(columns, ",") +
 		",Gaps,OmissionReasons,PresentFields,NullFields,InvalidFields\n"
 	return lets, source
 }
 
-// stageKQL lowers one plan's filter, reduce and post-aggregate phases. A
-// chained stage reads the rows its predecessor produced in the same pipeline.
-func stageKQL(plan sessionarchive.Plan) (string, error) {
+// joinKQL lowers one trace-scoped join with an explicit kind (Kusto's
+// default innerunique would deduplicate left rows). Right rows with a
+// missing explicit key are removed first because Kusto matches "" with "".
+func joinKQL(join sessionarchive.PlannedJoin, right string) string {
+	projected := make([]string, 0, len(join.On)+len(join.Fields))
+	conditions := make([]string, 0, len(join.On))
+	var present []string
+	for i, key := range join.On {
+		alias := "archive_key_" + strconv.Itoa(i)
+		projected = append(projected, alias+"="+kqlIdentifier(key.Right.Name))
+		conditions = append(conditions, "$left."+kqlIdentifier(key.Left.Name)+"==$right."+alias)
+		if !key.Binding {
+			check := "isnotnull("
+			if key.Right.Type == "string" {
+				check = "isnotempty("
+			}
+			present = append(present, check+kqlIdentifier(key.Right.Name)+")")
+		}
+	}
+	for _, field := range join.Fields {
+		projected = append(projected, kqlIdentifier(field.As)+"="+kqlIdentifier(field.Field.Name))
+	}
+	filter := ""
+	if len(present) > 0 {
+		filter = " | where " + strings.Join(present, " and ")
+	}
+	kind := "inner"
+	if join.Type == "left" {
+		kind = "leftouter"
+	}
+	return "| join kind=" + kind + " (" + right + filter + " | project " + strings.Join(projected, ",") + ") on " +
+		strings.Join(conditions, ",") + "\n| project-away archive_key_*\n"
+}
+
+// stageKQL lowers one plan's join, filter, reduce and post-aggregate phases
+// over its input, joining rights in join order.
+func stageKQL(plan sessionarchive.Plan, rights []string) (string, error) {
 	predicates := make([]string, 0, len(plan.Predicates))
 	groups := make([]string, 0, len(plan.By))
 	reductions := make([]string, 0, len(plan.Values))
@@ -260,6 +343,9 @@ func stageKQL(plan sessionarchive.Plan) (string, error) {
 		reductions = append(reductions, kqlIdentifier(value.As)+"="+expression)
 	}
 	kql := ""
+	for i, join := range plan.Joins {
+		kql += joinKQL(join, rights[i])
+	}
 	if len(predicates) > 0 {
 		kql += "| where " + strings.Join(predicates, " and ") + "\n"
 	}
@@ -351,28 +437,70 @@ func rowKQL(plan sessionarchive.Plan) string {
 	return kql
 }
 
-// analyticalKQL lowers a reviewed plan over exact pinned events. Item sources
-// and earlier chained stages lower into the same single query; omission
-// coverage always counts the unfiltered base source.
+// analyticalKQL lowers a reviewed plan over exact pinned events. Item
+// sources and earlier stages lower into materialized lets of one query;
+// omission coverage always counts the unfiltered base source.
 func analyticalKQL(plan sessionarchive.Plan, events string) (string, error) {
-	stages := []sessionarchive.Plan{}
-	for stage := &plan; stage != nil; stage = stage.Input {
-		stages = append([]sessionarchive.Plan{*stage}, stages...)
-	}
-	base := stages[0]
-	lets, source := "", events
-	if path, key, element, ok := sessionarchive.ItemSourceSpec(base.Source); ok {
-		lets, source = itemSourceKQL(path, key, element, events)
-	} else if base.Source != "archive-events" {
-		return "", sessionarchive.ErrQuery
-	}
-	inputs := slices.Clone(base.Inputs)
-	for _, name := range []string{"TraceId", "Gaps"} {
-		if !slices.Contains(inputs, name) {
-			inputs = append(inputs, name)
+	names, sourceInputs := plan.SourceInputs()
+	kql := ""
+	read := map[string]string{}
+	for i, name := range names {
+		source := events
+		if item, ok := sessionarchive.ItemSourceSpec(name); ok {
+			if !strings.Contains(kql, "let archive_traces=") {
+				kql += itemTracesKQL(events)
+			}
+			var lets string
+			lets, source = itemSourceKQL(item, i)
+			kql += lets
+		} else if name != "archive-events" {
+			return "", sessionarchive.ErrQuery
 		}
+		read[name] = "source_" + strconv.Itoa(i)
+		projected := make([]string, 0, len(sourceInputs[name]))
+		for _, input := range sourceInputs[name] {
+			projected = append(projected, kqlIdentifier(input))
+		}
+		kql += "let " + read[name] + "=materialize(" + source + "| project " + strings.Join(projected, ",") + ");\n"
 	}
-	projected := make([]string, 0, len(inputs))
+	outputs := map[*sessionarchive.Plan]string{}
+	lower := func(stage *sessionarchive.Plan) (string, error) {
+		from, rights := read[stage.Source], make([]string, 0, len(stage.Joins))
+		if stage.Input != nil {
+			from = outputs[stage.Input]
+		}
+		for _, join := range stage.Joins {
+			right := read[join.Source]
+			if join.Input != nil {
+				right = outputs[join.Input]
+			}
+			rights = append(rights, right)
+		}
+		text, err := stageKQL(*stage, rights)
+		return from + "\n" + text, err
+	}
+	dependencies := plan.Dependencies()
+	for i, stage := range dependencies[:len(dependencies)-1] {
+		text, err := lower(stage)
+		if err != nil {
+			return "", err
+		}
+		if !stage.Aggregate() {
+			// A row-level stage exposes only its selected row, including its key.
+			selected := make([]string, 0, len(stage.Selections))
+			for _, selection := range stage.Selections {
+				selected = append(selected, kqlIdentifier(selection.As)+"="+kqlIdentifier(selection.Field.Name))
+			}
+			text += "| project " + strings.Join(selected, ",") + "\n"
+		}
+		outputs[stage] = "stage_" + strconv.Itoa(i)
+		kql += "let " + outputs[stage] + "=materialize(" + text + ");\n"
+	}
+	outer, err := lower(&plan)
+	if err != nil {
+		return "", err
+	}
+	kql += outer
 	selections := make([]string, 0, len(plan.Selections)+len(plan.Ties))
 	orders := make([]string, 0, 2*(len(plan.Orders)+len(plan.Ties)))
 	emptyKeys := make([]string, 0, len(plan.Orders)+len(plan.Ties))
@@ -386,9 +514,6 @@ func analyticalKQL(plan sessionarchive.Plan, events string) (string, error) {
 			orders = append(orders, empty+" asc")
 		}
 		orders = append(orders, name+" "+direction+" nulls last")
-	}
-	for _, name := range inputs {
-		projected = append(projected, kqlIdentifier(name))
 	}
 	for _, selection := range plan.Selections {
 		selections = append(selections, kqlIdentifier(selection.As)+"="+kqlIdentifier(selection.Field.Name))
@@ -404,22 +529,6 @@ func analyticalKQL(plan sessionarchive.Plan, events string) (string, error) {
 	for _, column := range plan.Columns {
 		packed = append(packed, literal(column.Name), kqlIdentifier(column.Name))
 	}
-	kql := lets + "let source=materialize(" + source + "| project " + strings.Join(projected, ",") + ");\nsource\n"
-	for i, stage := range stages {
-		text, err := stageKQL(stage)
-		if err != nil {
-			return "", err
-		}
-		kql += text
-		if i < len(stages)-1 && !stage.Aggregate() {
-			// A row-level stage exposes only its selected row, including its key.
-			selected := make([]string, 0, len(stage.Selections))
-			for _, selection := range stage.Selections {
-				selected = append(selected, kqlIdentifier(selection.As)+"="+kqlIdentifier(selection.Field.Name))
-			}
-			kql += "| project " + strings.Join(selected, ",") + "\n"
-		}
-	}
 	kql += "| project " + strings.Join(selections, ",") + "\n"
 	if len(emptyKeys) > 0 {
 		kql += "| extend " + strings.Join(emptyKeys, ",") + "\n"
@@ -431,7 +540,7 @@ func analyticalKQL(plan sessionarchive.Plan, events string) (string, error) {
 	// serialize preserves ordered make_list input; the limit+1 probe is bounded.
 	return kql + "| take " + strconv.Itoa(plan.Limit+1) +
 		"\n| serialize\n| summarize rows=make_list(bag_pack(" + strings.Join(packed, ",") + "),4097)\n" +
-		"| extend tracesWithGaps=toscalar(source | where array_length(Gaps)>0 | summarize by TraceId | count)\n" +
+		"| extend tracesWithGaps=toscalar(source_0 | where array_length(Gaps)>0 | summarize by TraceId | count)\n" +
 		"| project rows,tracesWithGaps", nil
 }
 

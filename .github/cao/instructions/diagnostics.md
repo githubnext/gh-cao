@@ -1,10 +1,3 @@
----
-name: debug-cao
-description: Diagnose a Central Agentic Ops deployment failure and leave bounded, reproducible evidence for the next action.
-metadata:
-  argument-hint: "Provide the control repository and a run URL, issue URL, failure code, or symptom"
----
-
 # Debug Central Agentic Ops
 
 ## Deterministic boundary
@@ -27,7 +20,7 @@ interpretation, and the next bounded observation.
    Node, actions, runtime, and target revisions.
 4. Read the run summary and annotations, then the smallest log excerpt containing
    the first causal error and its preceding context.
-5. Use the [failure routes](references/failure-routes.md) to inspect the narrowest
+5. Use the [failure routes](diagnostics/failure-routes.md) to inspect the narrowest
    boundary at the failing workflow commit.
 6. Classify exactly one primary boundary: installation/version drift,
    policy/admission, authentication/authorization, Copilot inference, gh-aw
@@ -47,7 +40,7 @@ interpretation, and the next bounded observation.
    change policy to `debug`, or claim that staged proposals were executed.
    Repository-memory staging depends on gh-aw support.
 9. Search for an exact existing issue before creating one. Use the
-   [diagnostic report](references/diagnostic-report.md); include immutable links,
+   [diagnostic report](diagnostics/diagnostic-report.md); include immutable links,
    redactions, the next bounded observation, and an acceptance condition.
 10. Report incomplete diagnosis rather than guessing when required evidence is
     inaccessible.
@@ -67,9 +60,9 @@ interpretation, and the next bounded observation.
 
 ## Targeted references
 
-- [Failure routes](references/failure-routes.md): symptom-to-boundary dispatch,
+- [Failure routes](diagnostics/failure-routes.md): symptom-to-boundary dispatch,
   source locations, and diagnostics.
-- [Diagnostic report](references/diagnostic-report.md): issue fields and
+- [Diagnostic report](diagnostics/diagnostic-report.md): issue fields and
   completion checklist.
 - [Monitor, Recover, and Maintain](https://github.com/githubnext/gh-cao/blob/main/docs/operations.md): operational
   recovery.

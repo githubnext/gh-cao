@@ -17,7 +17,7 @@ grader's semantics.
 | Upstream pin | `github/gh-aw` `5ac122295e5e839aa15a727ecf4762f3e680cc24` ([`grader-source-pins.json`](../server/internal/sessionarchive/testdata/grader-source-pins.json)) |
 | Last upstream review | `main` `789cc9c2` (2026-11-16); grader code identical to the pin. Previously `a25e38ee6b9740b10008559bd2c9290ef1f925aa`, where `graders-specification.md` changed one link only |
 | Upstream sources | `actions/setup/js/builtin_graders.json`, `grader_session.cjs`, `trace_graders.cjs`, `trajectory_graders.cjs`, `working_set_metrics.cjs`, `operational_value_grader.cjs`, `custom_graders.cjs` |
-| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1 item sources, Phase 2 chaining and Phase 4 row-level compute, windows and structured-family states |
+| Query profile | `session-query`, `language-version: "0.2.0"`, source `archive-events` (`AnalyticalCapabilities` in `server/internal/sessionarchive/analytical.go`); every backend also advertises the Phase 1 and Phase 5 item sources, Phase 2 chaining, Phase 4 row-level compute, windows and structured-family states, and Phase 5 joins |
 | Graders in scope | 35 built-ins; operational-value and custom graders are listed as out of scope |
 
 Re-review when the pin moves: compare the pin with upstream `main` through
@@ -88,7 +88,7 @@ MUST reject the query rather than approximate it.
 | L1 | `difference` and `product` post-aggregate and compute functions | DL §5.5.1 | Same null and finite-number rules as `quotient`. |
 | L2 | Row-level `compute` before `aggregate`, with `if`, `equals-any`, `greater-than` and `and` | DL `compute` | Classifies rows before counting, for example a disjunctive tool failure. Avoids adding OR predicates. |
 | L3 | Query chaining: a definition reads one earlier definition in the same request | DLS-QUERY-017 | Supports two-stage aggregation, such as per call key then per trace, or per state id then per trace. Every stage keeps exact trace and projection identity. |
-| L4 | Equality joins (`inner`, `left`, `inner-many`), at most four per query | DLS-QUERY-005..008 | Applies only within one trace and projection. Expansion fails closed at the row budget. No cross joins. Lowering constraints are in §3.1. |
+| L4 | Equality joins (`inner`, `left`, `inner-many`), at most four per query | DLS-QUERY-005..008 | Applies only within one trace and projection. Expansion fails closed at the row budget. No cross joins. Lowering constraints are in §3.1. Phase 5 ships `inner` and `left` with a unique right key; `inner-many` is not needed by any grader and stays unimplemented (§10). |
 | L5 | `previous` and `row-number` windows with `groupby`, usable before aggregation through L3 | DL §5.5.4 | Ordering must be on `Sequence` or a preserved element ordinal, never on ingestion order. Lowering constraints are in §3.1. |
 | L6 | `state` predicate over approved structured families, for example `Error` non-null or `RetryHint` present | Archive-specific | Reads the existing presence metadata only. Never exposes or stringifies values. |
 | S1 | Child-row sources that flatten approved arrays: `archive-objectives`, `archive-actions`, `archive-states`, `archive-ir-events`, `archive-attempt-results`, and nested `archive-objective-dependencies` | Archive-specific | One row per original element, with parent trace, projection, `Sequence` and element ordinal. Element scalars come from generated `@evidence` paths with the same state metadata. Preserves values without deriving state identity or scores. Changes the generated archive schema and contract version. |
@@ -97,6 +97,7 @@ MUST reject the query rather than approximate it.
 | G2 | `log` and `exp` functions | — | Not in Dashboard Language. Adding them is a language change, not a profile port. Rejected while replay requires exact equality, because DuckDB and V8 results differ in the last bit (§3.1). |
 | G3 | Recursion, graph reachability, or iterative or dynamic-programming algorithms | — | Rejected. Blocks provenance lineage, LZ76 and DTW. The RQA graders do not need it (§4.2). |
 | G4 | Caller-supplied grader configuration or reference data (constraints, reference trajectories or patches, process models) | — | Rejected for the authenticated archive profile. Would need separately reviewed reference evidence. |
+| G5 | Window partitions over eight fields, or definitions over the 4,096-byte request budget | — | Profile budgets, not Dashboard Language gaps. Raising either is a reviewed profile change with new Kusto acceptance. Blocks `recurrence-determinism` (§10). |
 | E1 | Approval of IR `observations`, `toolCalls`, `provenanceEdges`, `resources` or `reference` | — | Privacy review. Observations can carry tool output, which stays excluded. |
 
 ### 3.1 Backend lowering constraints
@@ -139,9 +140,10 @@ Phases 1b and 2b found two emulator-only constraints:
     from `prev()`'s default value.
 - **L4 joins.**
   - **DuckDB lowering:** hash joins.
-  - **KQL lowering:** an explicit `kind` (`inner` or `leftouter`) with
-    `hint.strategy=shuffle` on the trace key. KQL's default `innerunique`
-    silently deduplicates the left side and MUST NOT be emitted.
+  - **KQL lowering:** an explicit `kind` (`inner` or `leftouter`). KQL's
+    default `innerunique` silently deduplicates the left side and MUST NOT be
+    emitted. Phase 5 emits no `hint.strategy`; a shuffle hint changes only
+    the cost and remains a tuning option.
   - **Trace and projection key:** every join key includes the trace and
     projection key.
   - **Missing keys:** missing keys are excluded explicitly, because DuckDB
@@ -256,9 +258,9 @@ are outside the fixture; they need S1 over `attemptResults`.
 
 All rows below read the S2-selected `trajectory.ir` collections. Upstream
 reports unavailable above 5,000 items, and S1 sources must preserve that
-guard. S1 (`objectives`, `actions`, `states`), S2 and L1 shipped in Phase 1
-and are no longer listed as needs. L3 shipped in Phase 2 but is still listed
-for graders that also need other extensions.
+guard. S1 (`objectives`, `actions`, `states`), S2 and L1 shipped in Phase 1;
+L3 in Phase 2; L2, L5 and L6 in Phase 4; and L4 with the nested and IR-event
+S1 sources in Phase 5 (§10).
 
 | Grader | Upstream formula | CAO | Status | Needs | Effort |
 | --- | --- | --- | --- | --- | --- |
@@ -267,11 +269,11 @@ for graders that also need other extensions.
 | `grounding-accuracy` | Actions with `validAtIssueTime` true ÷ actions; unavailable unless every flag is boolean | yes | `implemented` | — | — |
 | `state-revisit-probability-rep` | (visits − distinct states) ÷ visits, for at least 2 visits. Order only affects diagnostics | yes | `implemented` | — | — |
 | `recurrence-rate` | Σ c(c−1) over per-state counts ÷ n(n−1), for at least 2 visits | yes | `implemented` | — | — |
-| `recurrence-laminarity` | Vertical-line recurrent points ÷ recurrent points (vmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
-| `recurrence-determinism` | Diagonal-line recurrent points ÷ recurrent points (lmin 2, n ≥ 4) | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
-| `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `extension-ready` | L2, L3, L5; visit order needs S1 (`firstEventIndex`, IR `events`) and L4 | M, linear |
-| `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `extension-ready` | S1 (nested `dependsOn`), L2, L3, L4 | M |
-| `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `extension-ready` | S1 (IR `events`), L2, L3, L4 | M |
+| `recurrence-laminarity` | Vertical-line recurrent points ÷ recurrent points (vmin 2, n ≥ 4) | no | `implemented` | — | — |
+| `recurrence-determinism` | Diagonal-line recurrent points ÷ recurrent points (lmin 2, n ≥ 4) | no | `vocabulary-gated` | G5: the trigram window needs nine partition fields, and the exact join-back plan is 4,317 bytes (§10) | — |
+| `recurrence-trapping-time` | Mean vertical line length for lines of length ≥ 2 | no | `implemented` | — | — |
+| `dependency-order-violation-rate` | Completed dependent objectives whose prerequisite is unsatisfied or later ÷ completed dependent objectives | no | `implemented` | — | — |
+| `evidence-saturation-stopping-lag` | IR events after the maximum satisfaction index; every index must exist in the events | no | `implemented` | — | — |
 | `exploration-error` | clamp(1 − observations ÷ distinct visited states) when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
 | `exploitation-error` | Unused observations ÷ observations when an objective is unmet | no | `evidence-gated` | E1 (`observations`) | — |
 | `tool-output-consumption-rate` | Tool-originated observations that were consumed ÷ tool-originated observations | no | `evidence-gated` | E1 (`observations`, `toolCalls`), L4 | — |
@@ -360,19 +362,19 @@ not executed (§3.1).
 
 | Status | Count | Graders |
 | --- | ---: | --- |
-| `implemented` | 10 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained) |
-| `extension-ready` | 5 | State recurrence (3), objective ordering (2) |
+| `implemented` | 14 | step count, duration, rebuild factor, context growth; objective coverage, premature termination, grounding accuracy, state revisit; recurrence rate, artifact production (chained); laminarity, trapping time, dependency order, evidence saturation (joined) |
+| `extension-ready` | 0 | — |
 | `evidence-gated` | 3 | exploration error, exploitation error, tool-output consumption |
-| `vocabulary-gated` | 16 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6) |
+| `vocabulary-gated` | 17 | Tool reconciliation (3), retries, policy near-miss, skill constraints, entropy, LZ, lineage (2), reference and config graders (6), determinism (G5) |
 | `out-of-scope` | 1 | loops |
 
-Every backend advertises the item sources and chaining through
+Every backend advertises the item sources, chaining and joins through
 `AnalyticalCapabilities`:
 
 | Backend | Recomputed graders | Acceptance |
 | --- | --- | --- |
-| Local DuckDB | All 10 `implemented` graders | `TestGraderReplayEvidence` |
-| Hosted and native ADX (Kusto) | All 10 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728)) |
+| Local DuckDB | All 14 `implemented` graders | `TestGraderReplayEvidence` |
+| Hosted and native ADX (Kusto) | All 14 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5) |
 
 ## 5. Invariants for every new definition
 
@@ -417,7 +419,7 @@ development hosts lack the emulator. Phases 1b and 2b were accepted in
 - [x] **Phase 2b:** KQL lowering of L3 chaining, accepted in the same run. Brings hosted ADX to all 10 `implemented` graders (§8).
 - [x] **Reconciliation fixture:** a pinned parity fixture for upstream tool-call reconciliation, including ID skips, gateway deduplication and resume mapping through `previousScopes` (§4.1). Resume mapping is linear, but the FIFO pointer's skips are sequential state, so the three tool graders are `vocabulary-gated` (G3). Phase 4 still delivers L2, L5 and L6 for Phase 5.
 - [x] **Phase 4:** L2, L5 (with gaps-and-islands over `row-number`) and L6, lowered under the §3.1 constraints on DuckDB and KQL and accepted in the `session-archive-kusto` job. L2, L5 and L6 replay on DuckDB and real Kusto (§9; [run 43917614253](https://github.com/githubnext/gh-cao/actions/runs/43917614253), and after rebasing with an `Error`-present subtest, [run 43920740101](https://github.com/githubnext/gh-cao/actions/runs/43920740101)), so every backend advertises them. The reconciliation fixture made the three tool graders G3, so Phase 4 unlocks no grader and delivers its vocabulary for Phase 5.
-- [ ] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job. Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag` and, through the linear closed forms in §4.2, `recurrence-laminarity`, `recurrence-determinism` and `recurrence-trapping-time`.
+- [x] **Phase 5:** L4 and nested S1 (`dependsOn`, IR `events`, state `firstEventIndex`), lowered on DuckDB and KQL and accepted in the `session-archive-kusto` job ([run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793)). Unlocks `dependency-order-violation-rate`, `evidence-saturation-stopping-lag`, `recurrence-laminarity` and `recurrence-trapping-time`. `recurrence-determinism` is exact but needs G5, so it is reclassified (§10).
 - [ ] Decide on E1 through privacy review; until then the `evidence-gated` graders stay unsupported.
 - [ ] Decide whether to approve the retry message and objective `description` fields. Only then consider a closed ASCII keyword-match predicate (G1, §3.1) for `retries` and `policy-near-miss`; typed upstream retry or guard flags would remove the need.
 
@@ -530,18 +532,71 @@ Declared limits, all rejected rather than approximated:
 - Tool reconciliation stays G3 (§6): the FIFO pointer's skips are sequential
   state that no bounded window composition expresses.
 
-## 10. Smallest next delta
+## 10. Phase 5 implementation notes
 
-Hosted parity is done: Phases 1b and 2b brought ADX to all 10 `implemented`
-graders. Every later phase must be accepted on DuckDB and in the
-`session-archive-kusto` job together, so the backends do not diverge again.
+L4 adds up to four `joins` per definition, and definitions may chain up to
+eight earlier definitions as a DAG. The planner always pairs the complete
+seven-field binding (the six trace fields plus `PolicyDigest`); `on` adds at
+most four further integer or string keys and must not repeat a binding field.
+The binding plus `on` must cover the right input's row key, so a join never
+multiplies left rows; this unique-right rule replaces `inner-many`. Right rows
+whose explicit key is null or `""` never match on either engine, because Kusto
+encodes an absent string as `""`. `inner` keeps matched rows; `left` keeps
+every left row, with imported values null, or `""` for strings. Imported names
+are reserved case-insensitively and accept no `state` predicate.
 
-The reconciliation fixture is done. Resume mapping is linear, but the FIFO
-pointer's skips are sequential state, so `tool-failure-count`,
-`tool-success-rate` and `trajectory-efficiency` are G3 (§6).
+S1 gains `archive-objective-dependencies` (one row per `dependsOn` value, with
+the parent `Ordinal`, a zero-based `Position` and `Value`) and
+`archive-ir-events` (`Index`, `EventKind`, `Ref`); `archive-objectives` adds
+`Id` and the `DependsOn` length, and `archive-states` adds `FirstEventIndex`.
+Each collection keeps upstream's 5,000-item cap (5,001 reads as unavailable),
+and a wrong JSON type reads as null or `""` under the declared strict typing.
 
-Phase 4 lands L2, L5 and L6 (§9), accepted on real Kusto. Phase 4 alone does not unlock
-`recurrence-laminarity`: its visit order follows state `firstEventIndex`
-through the IR `events`, which needs nested S1 and L4 (Phase 5). The three RQA
-graders then share one linear plan, already executed on DuckDB in
-`TestDuckDBLoweringEvidenceIntegration` (§4.2).
+The DuckDB lowering joins CTEs, comparing binding strings through
+`coalesce(…, '')` and other binding fields with `IS NOT DISTINCT FROM`. The
+KQL lowering emits an explicit `kind=inner` or `kind=leftouter`, filters the
+right keys with `isnotempty`/`isnotnull`, and adds no `hint.strategy` (§3.1).
+
+The four definitions reproduce upstream on the `ir-measured` scenario
+(dependency order 0.5, saturation lag 5, laminarity 6/11, trapping time 2)
+through `TestGraderReplayEvidence`, the node mirror, and
+`TestKustoUsageGraderReplay` ([run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793)). Declared divergences, all reported
+rather than approximated:
+
+- The recurrence graders report `unordered` where upstream would still
+  measure: synthesized events, non-positional event indexes, a null, string or
+  otherwise invalid `firstEventIndex` (upstream applies `Number()`), or a `""`
+  state. Excluded or redacted collections report `unordered` or
+  `fewer-than-four-visits`, not upstream's `excluded`.
+- `evidence-saturation-stopping-lag` reports `no-events` where upstream
+  synthesizes events.
+- `recurrence-determinism` is exact on DuckDB, but its trigram window needs
+  nine partition fields (limit eight), and the exact plan that joins trigrams
+  back is 4,317 bytes, over the 4,096-byte request budget. It is reclassified
+  as G5 rather than shortened.
+
+The request budget includes the repository name. Measured with an empty
+repository, the tightest definitions leave this many repository characters
+before the HTTP request fails closed as an invalid bounded archive query
+(HTTP 400):
+
+| Definition | Wrapped bytes | Repository headroom |
+|---|---:|---:|
+| `recurrence-trapping-time` | 4,073 | 23 |
+| `dependency-order-violation-rate` | 4,064 | 32 |
+| `context-growth` (Phase 3) | 4,049 | 47 |
+| `evidence-saturation-stopping-lag` | 3,942 | 154 |
+| `recurrence-laminarity` | 3,933 | 163 |
+
+## 11. Smallest next delta
+
+Hosted parity holds for all 14 `implemented` graders. Every later phase must
+be accepted on DuckDB and in the `session-archive-kusto` job together, so the
+backends do not diverge again.
+
+Tool reconciliation stays G3 (§6): the FIFO pointer's skips are sequential
+state. `recurrence-determinism` needs G5: either a nine-field window partition
+or a larger request budget, each a reviewed profile change with new Kusto
+acceptance. The trajectory-IR collections proposed by E1 (`observations`,
+`toolCalls`) reuse the Phase 5 multi-element, nested and join mechanisms once
+approved as evidence.

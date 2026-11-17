@@ -160,7 +160,7 @@ attempt; they must launch their own manual run.
 
 When using a local debugger agent, give it the control repository, worker,
 development ref, target, and observed failure. The
-[`debug-cao` skill](https://github.com/githubnext/gh-cao/blob/main/skills/debug-cao/SKILL.md)
+[`central-agentic-ops` diagnostics guide](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/diagnostics.md)
 provides a bounded diagnostic procedure. Keep it on the human operator's
 authentication and require the single-worker command above; do not let it
 enable workflows, promote a campaign, or widen scope as a workaround.
