@@ -91,7 +91,7 @@ for (const width of [1440, 390]) {
       await expect(readiness.getByRole('list', { name: 'Server-checked task scope and phase' })).toHaveCount(0);
       await expect(overview).toContainText('Synthetic API behavior is documented.');
       await expect(overview).toContainText('assessor');
-      await expect(overview).toContainText('Native validation is required before approval.');
+      await expect(overview).toContainText('Currently approved plan');
       await tabs.getByRole('tab', { name: 'Overview', exact: true }).focus();
       await page.keyboard.press('Tab');
       await expect(overview).toBeFocused();

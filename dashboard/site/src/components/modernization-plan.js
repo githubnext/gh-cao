@@ -59,7 +59,7 @@ function renderFields(object, excluded, depth = 0) {
  * Presentation of unsaved form input only. Native validation owns plan semantics.
  * @param {string} text
  */
-export function renderModernizationPlanOverview(text) {
+export function renderModernizationPlanOverview(text, approved = false) {
   if (!text.trim()) return h('p', { className: 'modernization-description', role: 'status' },
     'Import a plan or open the JSON tab to start drafting.');
   /** @type {unknown} */
@@ -76,7 +76,9 @@ export function renderModernizationPlanOverview(text) {
   return h('div', { className: 'modernization-plan-overview' },
     h('header', { className: 'modernization-plan-intro' },
       h('h5', {}, typeof plan.id === 'string' ? plan.id : 'Plan ID not provided'),
-      h('p', { className: 'modernization-description' }, 'Draft preview only. Native validation is required before approval.'),
+      h('p', { className: 'modernization-description' }, approved
+        ? 'Currently approved plan, as reported by the native readiness check. Edits become a new draft that needs approval.'
+        : 'Draft preview only. Native validation is required before approval.'),
       h('div', { className: 'modernization-plan-objective' }, renderValue(plan.objective)),
       renderFields(plan, ['objective', 'repositories', 'tasks', 'integration_acceptance', ...(typeof plan.id === 'string' ? ['id'] : [])])),
     h('section', { 'aria-label': 'Plan repositories' },

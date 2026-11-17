@@ -91,6 +91,11 @@ describe('Modernization operator interaction', () => {
     expect(native.execute.mock.calls.map(([id]) => id)).toEqual(['modernization-status']);
     await vi.waitFor(() => expect(/** @type {HTMLTextAreaElement} */ (root.querySelector('textarea')).value).toContain('synthetic-plan'));
     expect(button(root, 'Review / approve plan').getAttribute('aria-expanded')).toBe('true');
+    expect(root.querySelector('.modernization-plan-panel')?.textContent).toContain('Currently approved plan');
+    const editor = /** @type {HTMLTextAreaElement} */ (root.querySelector('textarea'));
+    editor.value = '{"id":"edited"}';
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(root.querySelector('.modernization-plan-panel')?.textContent).toContain('Draft preview only');
   });
 
   it('does nothing on mount, checks current state, previews review mode and requires separate one-use confirmation', async () => {
