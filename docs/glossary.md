@@ -30,6 +30,10 @@ A hosted-server requirement that every administrator operation comes from a fres
 
 The optional hosted-server check, served at `POST /api/admission`, that decides whether a participating gh-aw execution may start. It authenticates the isolated admission job with GitHub Actions OIDC, requires reviewed workflow enrollment and fresh AI Credit accounting, and returns policy-defined allowances. It is a cooperative start-time check, not a billing API or reservation system, and it never enables a campaign, widens repository scope, promotes review to live, or grants writes; those remain control-policy decisions. See [Set up the admission gate](admission-gate.md).
 
+## Adoption
+
+The stage at which a delivered safe output satisfies its versioned human-decision rule. Where GitHub exposes no authoritative human-decision channel for an output type, successful delivery is the frozen fallback adoption event. Adoption is distinct from delivery and from attributed contribution. See the [Value specification](https://github.com/githubnext/gh-cao/blob/main/specs/value.md#22-delivery-adoption-survival-and-attributed-contribution).
+
 ## Agent catalog
 
 The protocol-independent listing of agent-facing dashboard pages and named Dashboard Language queries, derived once from the dashboard page definitions and shared by every agent transport (the `cao` CLI, the read-only CAO MCP server, and WebMCP) so none of them maintains a second catalog. See [Agent analysis](agent-analysis.md).
@@ -45,6 +49,10 @@ An evidence-backed warning that a workflow may be harder to control, secure, ope
 ## Artifact backlog
 
 The persisted, per-repository queue of discovered agentic runs whose artifacts have not yet been collected, kept newest first, capped at 5,000 runs, and pruned to the collection window. Each collection pass requests artifacts for up to `--count` backlog runs, so runs deferred by the two-minute or quota ceiling still have their safe outputs, including issue references, ingested after the history cursor has moved on. See the [Architecture](https://github.com/githubnext/gh-cao/blob/main/ARCHITECTURE.md) local dashboard collection notes.
+
+## Attributed contribution
+
+The diagnostic that evaluates a frozen operational-value function around an adoption event, and credits it only when the adopted effect survives the complete post-adoption measurement window. It remains a diagnostic beside the actor-independent primary repository measure. Attribution supports an operational claim, not exclusive causation, and zero and negative measured effects are retained. See the [Value specification](https://github.com/githubnext/gh-cao/blob/main/specs/value.md#22-delivery-adoption-survival-and-attributed-contribution).
 
 ## Automation
 
@@ -121,6 +129,10 @@ A `safe_output_mode: debug` request for exactly one manually launched `workflow_
 ## Declarative query
 
 A reusable result declared in `dashboard.queries` as a closed, structured projection over database tables or earlier queries, using only named clauses (`from`, `joins`, `filter`, `compute`, `aggregate`, `select`, `order-by`, `limit`) rather than SQL text, scripts, callbacks, or templates. Dashboard views must derive their data through declarative queries executed by the canonical data model's query engine and Web Worker; JavaScript-based dashboard views are not permitted. See the Dashboard Language Specification, Section 5.5.
+
+## Delivery
+
+A safe-output operation that completed successfully and created or applied its declared effect. A recorded request, staged preview, deferred output, delegated placeholder, skipped action, or failed handler is not delivery. Delivery is the first of three lifecycle stages, followed by adoption and attributed contribution. See the [Value specification](https://github.com/githubnext/gh-cao/blob/main/specs/value.md#22-delivery-adoption-survival-and-attributed-contribution).
 
 ## Dispatch
 
@@ -202,6 +214,10 @@ The run-scoped result produced by gh-aw's upstream `operational-value` grader pr
 
 The provider-neutral storage contract in `server/internal/operational/` that exposes immutable per-feature cache, request-limit, OAuth, quota, collection, coordination, and diagnostic capabilities. PostgreSQL is the default adapter for a selector-free reviewed host, using only its own `cao_operational_*` tables and never the canonical dashboard entity/query schema; explicit Redis configuration remains supported, and an explicit, acknowledged single-process in-memory adapter is a bounded, volatile alternative that loses all operational state on restart. See [Server operational storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
 
+## Output lifecycle
+
+The canonical record of one successful safe output, owned by its producing repository, workflow, and run. It retains delivery, adoption, reversal, and observed survival state for every safe output, whether or not the workflow defines Operational Value, and is retained independently of run-detail expiry. It does not calculate impact, contribution, or Value. See [Safe-output lifecycle](dashboard-data-model.md#safe-output-lifecycle).
+
 ## Private-preview acceptance contract
 
 The proposed, reviewable commitment in `.github/cao/private-preview.json` that bounds a monitoring-first private evaluation: profile, candidate release and SHA, decision and support owners, and the operator journeys with their evidence. Null fields are unresolved decisions, not defaults, and the contract does not select a release, admit participants, change CAO policy, or enable execution. See [Private-preview acceptance](private-preview.md).
@@ -253,6 +269,10 @@ An agentic workflow that participates directly in CAO without a campaign, orches
 ## Statistical runs
 
 The `statistical-runs` source: a separate, bounded, lazy query projection that never replaces exact `runs`, retention, or linked detail. Selection runs inside the canonical storage query boundary, never ingestion, against a recorded logical UTC watermark. A cached Run-summary snapshot retains one frame across consumers; canonical revisions mark it stale until a demand-driven refresh is eligible. The configurable minimum rebuild-attempt interval defaults to five minutes. It draws a deterministic, seeded sample of terminal Runs from the seven days before the watermark, stratified by execution UTC date and outcome, and reports unavailability rather than exact-empty when no recorded clock exists or a sampling input limit is exceeded. Linked detail is not independently archived. See the Dashboard Language Data Specification, Section 5.1.1.
+
+## Survival gate
+
+The check an adopted effect must pass over the half-open post-adoption window `(acceptedAt, windowEnd]`. A human reversal, unknown-actor reversal, resource deletion, content removal, reopened decision, parent rejection, downstream failure, or loss of complete observation coverage prevents positive attributed Value. A reversal after the window is recorded as a post-window reversal and never rewrites a finalized result. See the [Value specification](https://github.com/githubnext/gh-cao/blob/main/specs/value.md#22-delivery-adoption-survival-and-attributed-contribution).
 
 ## Target repository
 
