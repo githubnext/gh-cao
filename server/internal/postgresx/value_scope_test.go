@@ -13,17 +13,27 @@ import (
 
 func valueViewDefinitions(t *testing.T) []query.Definition {
 	t.Helper()
-	content, err := os.ReadFile("../../../dashboard/site/dashboard-fragments/workflow-value.json")
+	var shared, workflow struct {
+		Queries []query.Definition `json:"queries"`
+	}
+	sharedContent, err := os.ReadFile("../../../dashboard/site/dashboard-fragments/shared-value.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	var fragment struct {
-		Queries []query.Definition `json:"queries"`
-	}
-	if err := json.Unmarshal(content, &fragment); err != nil {
+	if err := json.Unmarshal(sharedContent, &shared); err != nil {
 		t.Fatal(err)
 	}
-	return append(canonicalProjectionDefinitions(t), fragment.Queries...)
+	workflowContent, err := os.ReadFile("../../../dashboard/site/dashboard-fragments/workflow-value.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(workflowContent, &workflow); err != nil {
+		t.Fatal(err)
+	}
+	definitions := make([]query.Definition, 0, len(shared.Queries)+len(workflow.Queries))
+	definitions = append(definitions, shared.Queries...)
+	definitions = append(definitions, workflow.Queries...)
+	return append(canonicalProjectionDefinitions(t), definitions...)
 }
 
 func TestValueViewsExecuteAgainstHostedEvidence(t *testing.T) {

@@ -421,6 +421,14 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
     'Rejected / lifecycle',
     'Unknown / not applicable',
     'First evidence blockerNo delivered output observed',
+    'Evidence progressionNo delivery evidence',
+    'Native ValueInsufficient',
+    'Measured repository coverage',
+    'Improving',
+    'Worsening',
+    'Unchanged',
+    'Mixed',
+    'Insufficient',
     'AIC',
     'Registration'
   ]);

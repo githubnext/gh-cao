@@ -1,0 +1,605 @@
+{
+  "queries": [
+    {
+      "name": "value-measurement-facts",
+      "subject": "Original native primary and diagnostic observations from reviewed batch evaluators.",
+      "objective": "Keep periods, native units, evaluator identity and missingness inspectable without inventing delivery events.",
+      "acceptance": "Null is unavailable, not zero. Interval measurements are not snapshots or cumulative accepted contributions.",
+      "from": "workflow-value-measurements",
+      "time": { "range": "all" },
+      "compute": [
+        { "as": "measurement-missing", "function": "equals-any", "args": [{ "field": "value" }, { "value": null }] },
+        { "as": "known-measurement", "function": "concat", "args": [{ "field": "value" }, { "value": " " }, { "field": "metric-unit" }] },
+        { "as": "measurement-label", "function": "if", "args": [{ "field": "measurement-missing" }, { "value": "Not measured" }, { "field": "known-measurement" }] },
+        { "as": "measurement-context", "function": "concat", "args": [{ "field": "repository" }, { "value": " · " }, { "field": "workflow-name" }] },
+        { "as": "period-start-ms", "function": "timestamp", "args": [{ "field": "window-start" }] },
+        { "as": "period-end-ms", "function": "timestamp", "args": [{ "field": "window-end" }] },
+        { "as": "period-duration-ms", "function": "difference", "args": [{ "field": "period-end-ms" }, { "field": "period-start-ms" }] },
+        { "as": "metric-name-key", "function": "coalesce", "args": [{ "field": "metric-name" }, { "value": "unknown" }] },
+        { "as": "metric-unit-key", "function": "coalesce", "args": [{ "field": "metric-unit" }, { "value": "unknown" }] },
+        { "as": "evaluator-key", "function": "coalesce", "args": [{ "field": "evaluator-digest" }, { "value": "unknown" }] }
+      ]
+    },
+    {
+      "name": "value-primary-measurements",
+      "subject": "Retained repository-scoped primary Operational Value observations.",
+      "objective": "Compare only primary native measures while preserving every assessment, including unavailable assessments.",
+      "acceptance": "Diagnostic metrics never replace or reorder the primary measure history.",
+      "from": "value-measurement-facts",
+      "filter": { "predicates": [{ "field": "metric-role", "equals": "primary" }] }
+    },
+    {
+      "name": "value-measurement-predecessor-core",
+      "subject": "Immediate prior assessments for each exact repository, workflow, campaign and native measure.",
+      "objective": "Retain the predecessor before selecting the latest assessment.",
+      "acceptance": "Ordering includes unavailable assessments and uses exact period, assessment and identity tie-breakers.",
+      "from": "value-primary-measurements",
+      "window": [
+        {
+          "operation": "previous", "field": "id", "as": "previous-id",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "value", "as": "previous-value",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "window-start", "as": "previous-window-start",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "window-end", "as": "previous-window-end",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "observed-at", "as": "previous-observed-at",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "evaluator-digest", "as": "previous-evaluator-digest",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "metric-name", "as": "previous-metric-name",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "metric-unit", "as": "previous-metric-unit",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        }
+      ]
+    },
+    {
+      "name": "value-measurement-predecessor-contract",
+      "subject": "Contract and quality fields from each immediate prior assessment.",
+      "objective": "Make every comparison requirement explicit before movement is classified.",
+      "acceptance": "Unit, direction, kind, cadence, duration, coverage, maturity and population remain native fields.",
+      "from": "value-measurement-predecessor-core",
+      "window": [
+        {
+          "operation": "previous", "field": "metric-direction", "as": "previous-metric-direction",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "measurement-kind", "as": "previous-measurement-kind",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "cadence-days", "as": "previous-cadence-days",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "period-duration-ms", "as": "previous-period-duration-ms",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "coverage-status", "as": "previous-coverage-status",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "maturity-status", "as": "previous-maturity-status",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "eligible-count", "as": "previous-eligible-count",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "population-digest", "as": "previous-population-digest",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        }
+      ]
+    },
+    {
+      "name": "value-measurement-order",
+      "subject": "Latest-first primary assessment order with immediate predecessor context.",
+      "objective": "Select the latest assessment only after preserving the preceding retained assessment.",
+      "acceptance": "A newer unavailable, partial, immature or null assessment remains rank one.",
+      "from": "value-measurement-predecessor-contract",
+      "window": [
+        {
+          "operation": "previous", "field": "missing-reason", "as": "previous-missing-reason",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "evidence-digest", "as": "previous-evidence-digest",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "evaluation-mode", "as": "previous-evaluation-mode",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "previous", "field": "adoption-at", "as": "previous-adoption-at",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "asc" }, { "field": "observed-at", "direction": "asc" }, { "field": "id", "direction": "asc" }]
+        },
+        {
+          "operation": "row-number", "field": "id", "as": "latest-assessment-rank",
+          "groupby": ["repository", "workflow-route", "campaign", "value-id"],
+          "order-by": [{ "field": "window-end", "direction": "desc" }, { "field": "observed-at", "direction": "desc" }, { "field": "id", "direction": "desc" }]
+        }
+      ]
+    },
+    {
+      "name": "value-current-measurement-quality",
+      "subject": "Quality gates for the latest primary assessment and its immediate predecessor.",
+      "objective": "Distinguish a valid baseline from unavailable, partial, immature or unsupported current evidence.",
+      "acceptance": "Complete mature non-null native evidence with explicit evaluator, unit, cadence and period is required.",
+      "from": "value-measurement-order",
+      "filter": { "predicates": [{ "field": "latest-assessment-rank", "equals": 1 }] },
+      "compute": [
+        { "as": "current-value-known", "function": "equals-any", "args": [{ "field": "measurement-missing" }, { "value": false }] },
+        { "as": "current-coverage-complete", "function": "equals-any", "args": [{ "field": "coverage-status" }, { "value": "complete" }] },
+        { "as": "current-mature", "function": "equals-any", "args": [{ "field": "maturity-status" }, { "value": "matured" }] },
+        { "as": "current-direction-supported", "function": "equals-any", "args": [{ "field": "metric-direction" }, { "value": "increase" }, { "value": "decrease" }] },
+        { "as": "current-kind-supported", "function": "equals-any", "args": [{ "field": "measurement-kind" }, { "value": "interval" }, { "value": "snapshot" }] },
+        { "as": "current-cadence-positive", "function": "greater-than", "args": [{ "field": "cadence-days" }, { "value": 0 }] },
+        { "as": "current-duration-positive", "function": "greater-than", "args": [{ "field": "period-duration-ms" }, { "value": 0 }] },
+        { "as": "current-unit-missing", "function": "equals-any", "args": [{ "field": "metric-unit-key" }, { "value": "unknown" }] },
+        { "as": "current-unit-available", "function": "equals-any", "args": [{ "field": "current-unit-missing" }, { "value": false }] },
+        { "as": "current-evaluator-missing", "function": "equals-any", "args": [{ "field": "evaluator-key" }, { "value": "unknown" }] },
+        { "as": "current-evaluator-available", "function": "equals-any", "args": [{ "field": "current-evaluator-missing" }, { "value": false }] },
+        { "as": "current-quality-ready", "function": "if", "args": [{ "field": "current-coverage-complete" }, { "field": "current-mature" }, { "value": false }] },
+        { "as": "current-period-ready", "function": "if", "args": [{ "field": "current-kind-supported" }, { "field": "current-cadence-positive" }, { "value": false }] },
+        { "as": "current-period-valid", "function": "if", "args": [{ "field": "current-period-ready" }, { "field": "current-duration-positive" }, { "value": false }] },
+        { "as": "current-identity-ready", "function": "if", "args": [{ "field": "current-unit-available" }, { "field": "current-evaluator-available" }, { "value": false }] },
+        { "as": "current-contract-ready", "function": "if", "args": [{ "field": "current-direction-supported" }, { "field": "current-identity-ready" }, { "value": false }] },
+        { "as": "current-evidence-ready", "function": "if", "args": [{ "field": "current-value-known" }, { "field": "current-quality-ready" }, { "value": false }] },
+        { "as": "current-complete", "function": "if", "args": [{ "field": "current-evidence-ready" }, { "field": "current-contract-ready" }, { "value": false }] },
+        { "as": "current-valid", "function": "if", "args": [{ "field": "current-complete" }, { "field": "current-period-valid" }, { "value": false }] },
+        { "as": "predecessor-missing", "function": "equals-any", "args": [{ "field": "previous-id" }, { "value": null }] },
+        { "as": "previous-value-missing", "function": "equals-any", "args": [{ "field": "previous-value" }, { "value": null }] },
+        { "as": "previous-value-known", "function": "equals-any", "args": [{ "field": "previous-value-missing" }, { "value": false }] },
+        { "as": "previous-coverage-complete", "function": "equals-any", "args": [{ "field": "previous-coverage-status" }, { "value": "complete" }] },
+        { "as": "previous-mature", "function": "equals-any", "args": [{ "field": "previous-maturity-status" }, { "value": "matured" }] },
+        { "as": "previous-cadence-positive", "function": "greater-than", "args": [{ "field": "previous-cadence-days" }, { "value": 0 }] },
+        { "as": "previous-duration-positive", "function": "greater-than", "args": [{ "field": "previous-period-duration-ms" }, { "value": 0 }] },
+        { "as": "previous-quality-ready", "function": "if", "args": [{ "field": "previous-coverage-complete" }, { "field": "previous-mature" }, { "value": false }] },
+        { "as": "previous-period-ready", "function": "if", "args": [{ "field": "previous-cadence-positive" }, { "field": "previous-duration-positive" }, { "value": false }] },
+        { "as": "previous-evidence-ready", "function": "if", "args": [{ "field": "previous-value-known" }, { "field": "previous-quality-ready" }, { "value": false }] },
+        { "as": "previous-valid", "function": "if", "args": [{ "field": "previous-evidence-ready" }, { "field": "previous-period-ready" }, { "value": false }] }
+      ]
+    },
+    {
+      "name": "value-current-measurement-comparability",
+      "subject": "Explicit comparability checks between the latest and immediately preceding primary assessments.",
+      "objective": "Permit movement only for the same frozen native contract and valid adjacent period semantics.",
+      "acceptance": "Intervals have equal duration and abut exactly; snapshots compare advancing declared cutoffs.",
+      "from": "value-current-measurement-quality",
+      "compute": [
+        { "as": "evaluator-match", "function": "equals-any", "args": [{ "field": "evaluator-digest" }, { "field": "previous-evaluator-digest" }] },
+        { "as": "measure-name-match", "function": "equals-any", "args": [{ "field": "metric-name" }, { "field": "previous-metric-name" }] },
+        { "as": "unit-match", "function": "equals-any", "args": [{ "field": "metric-unit" }, { "field": "previous-metric-unit" }] },
+        { "as": "direction-match", "function": "equals-any", "args": [{ "field": "metric-direction" }, { "field": "previous-metric-direction" }] },
+        { "as": "kind-match", "function": "equals-any", "args": [{ "field": "measurement-kind" }, { "field": "previous-measurement-kind" }] },
+        { "as": "cadence-match", "function": "equals-any", "args": [{ "field": "cadence-days" }, { "field": "previous-cadence-days" }] },
+        { "as": "duration-match", "function": "equals-any", "args": [{ "field": "period-duration-ms" }, { "field": "previous-period-duration-ms" }] },
+        { "as": "population-match", "function": "equals-any", "args": [{ "field": "population-digest" }, { "field": "previous-population-digest" }] },
+        { "as": "eligible-count-match", "function": "equals-any", "args": [{ "field": "eligible-count" }, { "field": "previous-eligible-count" }] },
+        { "as": "same-measure-contract", "function": "if", "args": [{ "field": "evaluator-match" }, { "field": "measure-name-match" }, { "value": false }] },
+        { "as": "same-native-contract", "function": "if", "args": [{ "field": "same-measure-contract" }, { "field": "unit-match" }, { "value": false }] },
+        { "as": "same-directed-contract", "function": "if", "args": [{ "field": "same-native-contract" }, { "field": "direction-match" }, { "value": false }] },
+        { "as": "same-period-contract", "function": "if", "args": [{ "field": "same-directed-contract" }, { "field": "kind-match" }, { "value": false }] },
+        { "as": "same-cadence-contract", "function": "if", "args": [{ "field": "same-period-contract" }, { "field": "cadence-match" }, { "value": false }] },
+        { "as": "same-duration-contract", "function": "if", "args": [{ "field": "same-cadence-contract" }, { "field": "duration-match" }, { "value": false }] },
+        { "as": "same-population-contract", "function": "if", "args": [{ "field": "same-duration-contract" }, { "field": "population-match" }, { "value": false }] },
+        { "as": "comparable-contract", "function": "if", "args": [{ "field": "same-population-contract" }, { "field": "eligible-count-match" }, { "value": false }] },
+        { "as": "previous-period-end-ms", "function": "timestamp", "args": [{ "field": "previous-window-end" }] },
+        { "as": "cutoff-advances", "function": "greater-than", "args": [{ "field": "period-end-ms" }, { "field": "previous-period-end-ms" }] },
+        { "as": "periods-abut", "function": "equals-any", "args": [{ "field": "period-start-ms" }, { "field": "previous-period-end-ms" }] },
+        { "as": "period-gap", "function": "greater-than", "args": [{ "field": "period-start-ms" }, { "field": "previous-period-end-ms" }] },
+        { "as": "interval-kind", "function": "equals-any", "args": [{ "field": "measurement-kind" }, { "value": "interval" }] },
+        { "as": "snapshot-kind", "function": "equals-any", "args": [{ "field": "measurement-kind" }, { "value": "snapshot" }] },
+        { "as": "interval-cutoff-valid", "function": "if", "args": [{ "field": "cutoff-advances" }, { "field": "periods-abut" }, { "value": false }] },
+        { "as": "interval-period-comparable", "function": "if", "args": [{ "field": "duration-match" }, { "field": "interval-cutoff-valid" }, { "value": false }] },
+        { "as": "snapshot-period-comparable", "function": "if", "args": [{ "field": "duration-match" }, { "field": "cutoff-advances" }, { "value": false }] },
+        { "as": "known-period-comparable", "function": "if", "args": [{ "field": "interval-kind" }, { "field": "interval-period-comparable" }, { "field": "snapshot-period-comparable" }] },
+        { "as": "period-comparable", "function": "if", "args": [{ "field": "snapshot-kind" }, { "field": "known-period-comparable" }, { "field": "interval-period-comparable" }] },
+        { "as": "predecessor-present", "function": "equals-any", "args": [{ "field": "predecessor-missing" }, { "value": false }] },
+        { "as": "comparison-prepared", "function": "if", "args": [{ "field": "current-valid" }, { "field": "predecessor-present" }, { "value": false }] },
+        { "as": "comparison-quality-valid", "function": "if", "args": [{ "field": "comparison-prepared" }, { "field": "previous-valid" }, { "value": false }] },
+        { "as": "comparison-contract-valid", "function": "if", "args": [{ "field": "comparison-quality-valid" }, { "field": "comparable-contract" }, { "value": false }] },
+        { "as": "comparison-valid", "function": "if", "args": [{ "field": "comparison-contract-valid" }, { "field": "period-comparable" }, { "value": false }] }
+      ]
+    },
+    {
+      "name": "value-current-measurements",
+      "subject": "Current native Operational Value state and immediately preceding comparable period.",
+      "objective": "Expose Baseline, Improving, Worsening, Unchanged or Insufficient with exact native evidence.",
+      "acceptance": "Current selection precedes quality gates. Missing, partial, immature, unsupported or incomparable evidence remains Insufficient.",
+      "from": "value-current-measurement-comparability",
+      "compute": [
+        { "as": "native-change", "function": "difference", "args": [{ "field": "value" }, { "field": "previous-value" }] },
+        { "as": "change-rising", "function": "greater-than", "args": [{ "field": "native-change" }, { "value": 0 }] },
+        { "as": "change-falling", "function": "greater-than", "args": [{ "value": 0 }, { "field": "native-change" }] },
+        { "as": "change-unchanged", "function": "equals-any", "args": [{ "field": "native-change" }, { "value": 0 }] },
+        { "as": "decrease-direction", "function": "equals-any", "args": [{ "field": "metric-direction" }, { "value": "decrease" }] },
+        { "as": "direction-improving", "function": "if", "args": [{ "field": "decrease-direction" }, { "field": "change-falling" }, { "field": "change-rising" }] },
+        { "as": "changed-state", "function": "if", "args": [{ "field": "direction-improving" }, { "value": "Improving" }, { "value": "Worsening" }] },
+        { "as": "comparable-state", "function": "if", "args": [{ "field": "change-unchanged" }, { "value": "Unchanged" }, { "field": "changed-state" }] },
+        { "as": "current-comparison-state", "function": "if", "args": [{ "field": "comparison-valid" }, { "field": "comparable-state" }, { "value": "Insufficient" }] },
+        { "as": "valid-current-state", "function": "if", "args": [{ "field": "predecessor-missing" }, { "value": "Baseline" }, { "field": "current-comparison-state" }] },
+        { "as": "movement-state", "function": "if", "args": [{ "field": "current-valid" }, { "field": "valid-current-state" }, { "value": "Insufficient" }] },
+        { "as": "baseline-state", "function": "equals-any", "args": [{ "field": "movement-state" }, { "value": "Baseline" }] },
+        { "as": "insufficient-movement-state", "function": "equals-any", "args": [{ "field": "movement-state" }, { "value": "Insufficient" }] },
+        { "as": "previous-measurement-known", "function": "concat", "args": [{ "field": "previous-value" }, { "value": " " }, { "field": "previous-metric-unit" }] },
+        { "as": "previous-measurement-label", "function": "if", "args": [{ "field": "previous-value-missing" }, { "value": "Not measured" }, { "field": "previous-measurement-known" }] },
+        { "as": "reference-measurement-label", "function": "if", "args": [{ "field": "predecessor-missing" }, { "value": "No retained reference" }, { "field": "previous-measurement-label" }] },
+        { "as": "change-number", "function": "format-count", "args": [{ "field": "native-change" }] },
+        { "as": "positive-change-label", "function": "concat", "args": [{ "value": "+" }, { "field": "change-number" }, { "value": " " }, { "field": "metric-unit" }] },
+        { "as": "nonpositive-change-label", "function": "concat", "args": [{ "field": "change-number" }, { "value": " " }, { "field": "metric-unit" }] },
+        { "as": "signed-change-label", "function": "if", "args": [{ "field": "change-rising" }, { "field": "positive-change-label" }, { "field": "nonpositive-change-label" }] },
+        { "as": "movement-change-label", "function": "concat", "args": [{ "field": "signed-change-label" }, { "value": " · " }, { "field": "comparable-state" }] },
+        { "as": "baseline-label", "function": "concat", "args": [{ "field": "measurement-label" }, { "value": " · Baseline" }] },
+        { "as": "insufficient-label", "function": "concat", "args": [{ "field": "measurement-label" }, { "value": " · Insufficient" }] },
+        { "as": "available-movement-label", "function": "if", "args": [{ "field": "baseline-state" }, { "field": "baseline-label" }, { "field": "movement-change-label" }] },
+        { "as": "movement-label", "function": "if", "args": [{ "field": "insufficient-movement-state" }, { "field": "insufficient-label" }, { "field": "available-movement-label" }] },
+        { "as": "current-missing-label", "function": "coalesce", "args": [{ "field": "missing-reason" }, { "value": "Latest native value is unavailable" }] },
+        { "as": "current-coverage-label", "function": "coalesce", "args": [{ "field": "missing-reason" }, { "value": "Latest coverage is not complete" }] },
+        { "as": "current-quality-reason", "function": "if", "args": [{ "field": "current-coverage-complete" }, { "value": "Latest assessment is not mature" }, { "field": "current-coverage-label" }] },
+        { "as": "current-evidence-reason", "function": "if", "args": [{ "field": "current-value-known" }, { "field": "current-quality-reason" }, { "field": "current-missing-label" }] },
+        { "as": "current-kind-reason", "function": "if", "args": [{ "field": "current-kind-supported" }, { "value": "Cadence is unavailable" }, { "value": "Measurement kind is unsupported" }] },
+        { "as": "current-period-reason", "function": "if", "args": [{ "field": "current-cadence-positive" }, { "value": "Measurement duration is unavailable" }, { "field": "current-kind-reason" }] },
+        { "as": "current-unit-reason", "function": "if", "args": [{ "field": "current-unit-available" }, { "value": "Evaluator identity is unavailable" }, { "value": "Native unit is unavailable" }] },
+        { "as": "current-contract-reason", "function": "if", "args": [{ "field": "current-direction-supported" }, { "field": "current-unit-reason" }, { "value": "Goal direction is unsupported" }] },
+        { "as": "current-shape-reason", "function": "if", "args": [{ "field": "current-period-valid" }, { "field": "current-contract-reason" }, { "field": "current-period-reason" }] },
+        { "as": "current-invalid-reason", "function": "if", "args": [{ "field": "current-quality-ready" }, { "field": "current-shape-reason" }, { "field": "current-evidence-reason" }] },
+        { "as": "previous-missing-label", "function": "coalesce", "args": [{ "field": "previous-missing-reason" }, { "value": "Previous native value is unavailable" }] },
+        { "as": "previous-coverage-label", "function": "coalesce", "args": [{ "field": "previous-missing-reason" }, { "value": "Previous coverage is not complete" }] },
+        { "as": "previous-quality-reason", "function": "if", "args": [{ "field": "previous-coverage-complete" }, { "value": "Previous assessment is not mature" }, { "field": "previous-coverage-label" }] },
+        { "as": "previous-evidence-reason", "function": "if", "args": [{ "field": "previous-value-known" }, { "field": "previous-quality-reason" }, { "field": "previous-missing-label" }] },
+        { "as": "previous-invalid-reason", "function": "if", "args": [{ "field": "previous-quality-ready" }, { "value": "Previous period metadata is unavailable" }, { "field": "previous-evidence-reason" }] },
+        { "as": "eligible-mismatch-reason", "function": "if", "args": [{ "field": "eligible-count-match" }, { "value": "Comparable contract retained" }, { "value": "Eligible population changed" }] },
+        { "as": "population-mismatch-reason", "function": "if", "args": [{ "field": "population-match" }, { "field": "eligible-mismatch-reason" }, { "value": "Population identity changed" }] },
+        { "as": "duration-mismatch-reason", "function": "if", "args": [{ "field": "duration-match" }, { "field": "population-mismatch-reason" }, { "value": "Measurement duration changed" }] },
+        { "as": "cadence-mismatch-reason", "function": "if", "args": [{ "field": "cadence-match" }, { "field": "duration-mismatch-reason" }, { "value": "Cadence changed" }] },
+        { "as": "kind-mismatch-reason", "function": "if", "args": [{ "field": "kind-match" }, { "field": "cadence-mismatch-reason" }, { "value": "Measurement kind changed" }] },
+        { "as": "direction-mismatch-reason", "function": "if", "args": [{ "field": "direction-match" }, { "field": "kind-mismatch-reason" }, { "value": "Goal direction changed" }] },
+        { "as": "unit-mismatch-reason", "function": "if", "args": [{ "field": "unit-match" }, { "field": "direction-mismatch-reason" }, { "value": "Native unit changed" }] },
+        { "as": "measure-mismatch-reason", "function": "if", "args": [{ "field": "measure-name-match" }, { "field": "unit-mismatch-reason" }, { "value": "Measure identity changed" }] },
+        { "as": "contract-mismatch-reason", "function": "if", "args": [{ "field": "evaluator-match" }, { "field": "measure-mismatch-reason" }, { "value": "Evaluator changed" }] },
+        { "as": "interval-relation-reason", "function": "if", "args": [{ "field": "period-gap" }, { "value": "Interval periods have a gap" }, { "value": "Interval periods overlap" }] },
+        { "as": "period-relation-reason", "function": "if", "args": [{ "field": "interval-kind" }, { "field": "interval-relation-reason" }, { "value": "Snapshot cutoff did not advance" }] },
+        { "as": "period-reason", "function": "if", "args": [{ "field": "duration-match" }, { "field": "period-relation-reason" }, { "value": "Measurement duration changed" }] },
+        { "as": "comparable-reason", "function": "if", "args": [{ "field": "interval-kind" }, { "value": "Adjacent comparable intervals" }, { "value": "Comparable snapshot cutoffs" }] },
+        { "as": "period-comparison-reason", "function": "if", "args": [{ "field": "period-comparable" }, { "field": "comparable-reason" }, { "field": "period-reason" }] },
+        { "as": "contract-comparison-reason", "function": "if", "args": [{ "field": "comparable-contract" }, { "field": "period-comparison-reason" }, { "field": "contract-mismatch-reason" }] },
+        { "as": "predecessor-comparison-reason", "function": "if", "args": [{ "field": "previous-valid" }, { "field": "contract-comparison-reason" }, { "field": "previous-invalid-reason" }] },
+        { "as": "baseline-comparison-reason", "function": "if", "args": [{ "field": "predecessor-missing" }, { "value": "No preceding retained assessment" }, { "field": "predecessor-comparison-reason" }] },
+        { "as": "comparison-reason", "function": "if", "args": [{ "field": "current-valid" }, { "field": "baseline-comparison-reason" }, { "field": "current-invalid-reason" }] },
+        { "as": "cadence-label", "function": "concat", "args": [{ "field": "cadence-days" }, { "value": " days" }] },
+        { "as": "period-duration-days", "function": "quotient", "args": [{ "field": "period-duration-ms" }, { "value": 86400000 }] },
+        { "as": "previous-period-duration-days", "function": "quotient", "args": [{ "field": "previous-period-duration-ms" }, { "value": 86400000 }] },
+        { "as": "current-period-label", "function": "concat", "args": [{ "field": "window-start" }, { "value": " → " }, { "field": "window-end" }] },
+        { "as": "reference-period-label", "function": "concat", "args": [{ "field": "previous-window-start" }, { "value": " → " }, { "field": "previous-window-end" }] }
+      ],
+      "select": [
+        { "field": "id" },
+        { "field": "repository" },
+        { "field": "workflow-route" },
+        { "field": "campaign" },
+        { "field": "workflow-slug" },
+        { "field": "workflow-name" },
+        { "field": "value-id" },
+        { "field": "value" },
+        { "field": "metric-role" },
+        { "field": "metric-name" },
+        { "field": "metric-unit" },
+        { "field": "metric-direction" },
+        { "field": "evaluator-digest" },
+        { "field": "observed-at" },
+        { "field": "window-start" },
+        { "field": "window-end" },
+        { "field": "measurement-kind" },
+        { "field": "maturity-status" },
+        { "field": "coverage-status" },
+        { "field": "missing-reason" },
+        { "field": "evidence-digest" },
+        { "field": "eligible-count" },
+        { "field": "population-digest" },
+        { "field": "cadence-days" },
+        { "field": "evaluation-mode" },
+        { "field": "adoption-at" },
+        { "field": "measurement-missing" },
+        { "field": "measurement-label" },
+        { "field": "measurement-context" },
+        { "field": "period-duration-ms" },
+        { "field": "previous-id" },
+        { "field": "previous-value" },
+        { "field": "previous-window-start" },
+        { "field": "previous-window-end" },
+        { "field": "previous-observed-at" },
+        { "field": "previous-evaluator-digest" },
+        { "field": "previous-metric-name" },
+        { "field": "previous-metric-unit" },
+        { "field": "previous-metric-direction" },
+        { "field": "previous-measurement-kind" },
+        { "field": "previous-cadence-days" },
+        { "field": "previous-period-duration-ms" },
+        { "field": "previous-coverage-status" },
+        { "field": "previous-maturity-status" },
+        { "field": "previous-eligible-count" },
+        { "field": "previous-population-digest" },
+        { "field": "previous-missing-reason" },
+        { "field": "previous-evidence-digest" },
+        { "field": "previous-evaluation-mode" },
+        { "field": "previous-adoption-at" },
+        { "field": "current-valid" },
+        { "field": "previous-valid" },
+        { "field": "comparison-valid" },
+        { "field": "native-change" },
+        { "field": "movement-state" },
+        { "field": "reference-measurement-label" },
+        { "field": "movement-label" },
+        { "field": "comparison-reason" },
+        { "field": "cadence-label" },
+        { "field": "period-duration-days" },
+        { "field": "previous-period-duration-days" },
+        { "field": "current-period-label" },
+        { "field": "reference-period-label" }
+      ],
+      "order-by": [
+        { "field": "repository", "direction": "asc" },
+        { "field": "workflow-route", "direction": "asc" },
+        { "field": "metric-name", "direction": "asc" },
+        { "field": "value-id", "direction": "asc" }
+      ]
+    },
+    {
+      "name": "value-native-workflow-topology",
+      "subject": "Canonical workflow topology used to validate native Value membership.",
+      "objective": "Derive campaign and standalone membership only from workflow inventory.",
+      "acceptance": "Measurement rows do not grant campaign membership or change workflow role.",
+      "from": "workflows",
+      "compute": [
+        { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "workflow-route", "function": "concat", "args": [{ "field": "repository-coordinate" }, { "value": ":" }, { "field": "workflow" }] },
+        { "as": "campaign-missing", "function": "equals-any", "args": [{ "field": "campaign" }, { "value": null }] }
+      ]
+    },
+    {
+      "name": "value-native-campaign-topology",
+      "subject": "Canonical campaign worker deployments for native Value aggregation.",
+      "objective": "Exclude orchestrators, standalone workflows and unclassified campaign identities.",
+      "acceptance": "Only declared workers contribute to campaign repository movement.",
+      "from": "value-native-workflow-topology",
+      "filter": { "predicates": [
+        { "field": "workflow-role", "equals": "worker" },
+        { "field": "campaign-missing", "equals": false }
+      ] }
+    },
+    {
+      "name": "value-native-campaign-result-context",
+      "subject": "Current native movement joined to canonical campaign worker topology.",
+      "objective": "Validate exact repository and campaign identity before campaign aggregation.",
+      "acceptance": "A measurement's campaign text cannot synthesize worker membership.",
+      "from": "value-current-measurements",
+      "joins": [{
+        "source": "value-native-campaign-topology",
+        "type": "inner",
+        "on": [{ "left": "workflow-route", "right": "workflow-route" }],
+        "fields": [
+          { "field": "repository-coordinate", "as": "declared-repository" },
+          { "field": "campaign", "as": "declared-campaign" },
+          { "field": "campaign-name", "as": "declared-campaign-name" },
+          { "field": "campaign-icon", "as": "declared-campaign-icon" }
+        ]
+      }],
+      "compute": [
+        { "as": "repository-membership-match", "function": "equals-any", "args": [{ "field": "repository" }, { "field": "declared-repository" }] },
+        { "as": "campaign-membership-match", "function": "equals-any", "args": [{ "field": "campaign" }, { "field": "declared-campaign" }] }
+      ]
+    },
+    {
+      "name": "value-native-campaign-results",
+      "subject": "Current native movement for exact canonical campaign worker deployments.",
+      "objective": "Provide one latest primary result per native measure before repository aggregation.",
+      "acceptance": "Repository and campaign identity must both match canonical topology.",
+      "from": "value-native-campaign-result-context",
+      "filter": { "predicates": [
+        { "field": "repository-membership-match", "equals": true },
+        { "field": "campaign-membership-match", "equals": true }
+      ] }
+    },
+    {
+      "name": "value-native-campaign-repository-measures",
+      "subject": "Current measure-state counts for each exact campaign repository.",
+      "objective": "Prepare categorical repository rollup without summing native values.",
+      "acceptance": "Baseline contributes to Insufficient movement; current valid evidence still counts as measured coverage.",
+      "from": "value-native-campaign-results",
+      "compute": [
+        { "as": "improving-state", "function": "equals-any", "args": [{ "field": "movement-state" }, { "value": "Improving" }] },
+        { "as": "worsening-state", "function": "equals-any", "args": [{ "field": "movement-state" }, { "value": "Worsening" }] },
+        { "as": "unchanged-state", "function": "equals-any", "args": [{ "field": "movement-state" }, { "value": "Unchanged" }] },
+        { "as": "insufficient-state", "function": "equals-any", "args": [{ "field": "movement-state" }, { "value": "Baseline" }, { "value": "Insufficient" }] },
+        { "as": "improving-value", "function": "if", "args": [{ "field": "improving-state" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "worsening-value", "function": "if", "args": [{ "field": "worsening-state" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "unchanged-value", "function": "if", "args": [{ "field": "unchanged-state" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "insufficient-value", "function": "if", "args": [{ "field": "insufficient-state" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "measured-value", "function": "if", "args": [{ "field": "current-valid" }, { "value": 1 }, { "value": 0 }] }
+      ],
+      "aggregate": {
+        "by": ["declared-campaign", "declared-campaign-name", "declared-campaign-icon", "declared-repository"],
+        "values": [
+          { "field": "id", "as": "latest-measures", "reducer": "count" },
+          { "field": "improving-value", "as": "improving-measures", "reducer": "sum" },
+          { "field": "worsening-value", "as": "worsening-measures", "reducer": "sum" },
+          { "field": "unchanged-value", "as": "unchanged-measures", "reducer": "sum" },
+          { "field": "insufficient-value", "as": "insufficient-measures", "reducer": "sum" },
+          { "field": "measured-value", "as": "measured-measures", "reducer": "sum" }
+        ]
+      }
+    },
+    {
+      "name": "value-native-campaign-repository-status",
+      "subject": "One categorical native Value status per campaign repository.",
+      "objective": "Deduplicate repositories after latest primary measure selection.",
+      "acceptance": "Any insufficient measure makes the repository Insufficient; opposing movement is Mixed before Worsening, Improving or Unchanged.",
+      "from": "value-native-campaign-repository-measures",
+      "compute": [
+        { "as": "has-insufficient", "function": "greater-than", "args": [{ "field": "insufficient-measures" }, { "value": 0 }] },
+        { "as": "has-improving", "function": "greater-than", "args": [{ "field": "improving-measures" }, { "value": 0 }] },
+        { "as": "has-worsening", "function": "greater-than", "args": [{ "field": "worsening-measures" }, { "value": 0 }] },
+        { "as": "mixed-candidate", "function": "if", "args": [{ "field": "has-improving" }, { "field": "has-worsening" }, { "value": false }] },
+        { "as": "known-direction-state", "function": "if", "args": [{ "field": "mixed-candidate" }, { "value": "Mixed" }, { "value": "Unchanged" }] },
+        { "as": "worsening-direction-state", "function": "if", "args": [{ "field": "has-worsening" }, { "value": "Worsening" }, { "field": "known-direction-state" }] },
+        { "as": "improving-direction-state", "function": "if", "args": [{ "field": "has-improving" }, { "value": "Improving" }, { "field": "worsening-direction-state" }] },
+        { "as": "direction-state", "function": "if", "args": [{ "field": "mixed-candidate" }, { "value": "Mixed" }, { "field": "improving-direction-state" }] },
+        { "as": "repository-value-state", "function": "if", "args": [{ "field": "has-insufficient" }, { "value": "Insufficient" }, { "field": "direction-state" }] },
+        { "as": "repository-measured", "function": "greater-than", "args": [{ "field": "measured-measures" }, { "value": 0 }] },
+        { "as": "repository-measured-value", "function": "if", "args": [{ "field": "repository-measured" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "repository-improving", "function": "equals-any", "args": [{ "field": "repository-value-state" }, { "value": "Improving" }] },
+        { "as": "repository-worsening", "function": "equals-any", "args": [{ "field": "repository-value-state" }, { "value": "Worsening" }] },
+        { "as": "repository-unchanged", "function": "equals-any", "args": [{ "field": "repository-value-state" }, { "value": "Unchanged" }] },
+        { "as": "repository-mixed", "function": "equals-any", "args": [{ "field": "repository-value-state" }, { "value": "Mixed" }] },
+        { "as": "repository-insufficient", "function": "equals-any", "args": [{ "field": "repository-value-state" }, { "value": "Insufficient" }] },
+        { "as": "repository-improving-value", "function": "if", "args": [{ "field": "repository-improving" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "repository-worsening-value", "function": "if", "args": [{ "field": "repository-worsening" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "repository-unchanged-value", "function": "if", "args": [{ "field": "repository-unchanged" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "repository-mixed-value", "function": "if", "args": [{ "field": "repository-mixed" }, { "value": 1 }, { "value": 0 }] },
+        { "as": "repository-insufficient-value", "function": "if", "args": [{ "field": "repository-insufficient" }, { "value": 1 }, { "value": 0 }] }
+      ]
+    },
+    {
+      "name": "value-native-campaign-movement-counts",
+      "subject": "Repository-deduplicated native Value movement counts per campaign.",
+      "objective": "Expose categorical movement and measured repository coverage.",
+      "acceptance": "Each repository counts once and unlike native metrics are never averaged, summed or scored.",
+      "from": "value-native-campaign-repository-status",
+      "aggregate": {
+        "by": ["declared-campaign", "declared-campaign-name", "declared-campaign-icon"],
+        "values": [
+          { "field": "declared-repository", "as": "measurement-repositories", "reducer": "count" },
+          { "field": "repository-measured-value", "as": "measured-repositories", "reducer": "sum" },
+          { "field": "repository-improving-value", "as": "improving-repositories", "reducer": "sum" },
+          { "field": "repository-worsening-value", "as": "worsening-repositories", "reducer": "sum" },
+          { "field": "repository-unchanged-value", "as": "unchanged-repositories", "reducer": "sum" },
+          { "field": "repository-mixed-value", "as": "mixed-repositories", "reducer": "sum" },
+          { "field": "repository-insufficient-value", "as": "insufficient-repositories", "reducer": "sum" }
+        ]
+      }
+    },
+    {
+      "name": "value-native-campaign-population",
+      "subject": "Canonical repository population represented by each campaign's workers.",
+      "objective": "Provide a declared worker-repository denominator for measured coverage.",
+      "acceptance": "This is workflow topology, not target enrollment or proof every eligible repository was measured.",
+      "from": "value-native-campaign-topology",
+      "aggregate": {
+        "by": ["campaign"],
+        "values": [
+          { "field": "repository-coordinate", "as": "worker-repositories", "reducer": "distinct-count" }
+        ]
+      }
+    },
+    {
+      "name": "value-campaign-measurement-summary",
+      "subject": "Native Operational Value movement diagnosis for every retained campaign.",
+      "objective": "Retain zero-measurement campaigns and expose repository-deduplicated movement counts and measured coverage.",
+      "acceptance": "Counts are categorical evidence, not a score, causal attribution or aggregation of unlike native values.",
+      "from": "campaigns",
+      "joins": [
+        {
+          "source": "value-native-campaign-population",
+          "type": "left",
+          "on": [{ "left": "campaign", "right": "campaign" }],
+          "fields": [{ "field": "worker-repositories", "as": "observed-worker-repositories" }]
+        },
+        {
+          "source": "value-native-campaign-movement-counts",
+          "type": "left",
+          "on": [{ "left": "campaign", "right": "declared-campaign" }],
+          "fields": [
+            { "field": "measurement-repositories", "as": "observed-measurement-repositories" },
+            { "field": "measured-repositories", "as": "observed-measured-repositories" },
+            { "field": "improving-repositories", "as": "observed-improving-repositories" },
+            { "field": "worsening-repositories", "as": "observed-worsening-repositories" },
+            { "field": "unchanged-repositories", "as": "observed-unchanged-repositories" },
+            { "field": "mixed-repositories", "as": "observed-mixed-repositories" },
+            { "field": "insufficient-repositories", "as": "observed-insufficient-repositories" }
+          ]
+        }
+      ],
+      "compute": [
+        { "as": "worker-repositories", "function": "coalesce", "args": [{ "field": "observed-worker-repositories" }, { "value": 0 }] },
+        { "as": "measurement-repositories", "function": "coalesce", "args": [{ "field": "observed-measurement-repositories" }, { "value": 0 }] },
+        { "as": "measured-repositories", "function": "coalesce", "args": [{ "field": "observed-measured-repositories" }, { "value": 0 }] },
+        { "as": "improving-repositories", "function": "coalesce", "args": [{ "field": "observed-improving-repositories" }, { "value": 0 }] },
+        { "as": "worsening-repositories", "function": "coalesce", "args": [{ "field": "observed-worsening-repositories" }, { "value": 0 }] },
+        { "as": "unchanged-repositories", "function": "coalesce", "args": [{ "field": "observed-unchanged-repositories" }, { "value": 0 }] },
+        { "as": "mixed-repositories", "function": "coalesce", "args": [{ "field": "observed-mixed-repositories" }, { "value": 0 }] },
+        { "as": "insufficient-repositories", "function": "coalesce", "args": [{ "field": "observed-insufficient-repositories" }, { "value": 0 }] },
+        { "as": "no-measurements", "function": "equals-any", "args": [{ "field": "measurement-repositories" }, { "value": 0 }] },
+        { "as": "has-insufficient-repositories", "function": "greater-than", "args": [{ "field": "insufficient-repositories" }, { "value": 0 }] },
+        { "as": "has-mixed-repositories", "function": "greater-than", "args": [{ "field": "mixed-repositories" }, { "value": 0 }] },
+        { "as": "has-worsening-repositories", "function": "greater-than", "args": [{ "field": "worsening-repositories" }, { "value": 0 }] },
+        { "as": "has-improving-repositories", "function": "greater-than", "args": [{ "field": "improving-repositories" }, { "value": 0 }] },
+        { "as": "gain-state", "function": "if", "args": [{ "field": "has-improving-repositories" }, { "value": "Improving" }, { "value": "Unchanged" }] },
+        { "as": "adverse-state", "function": "if", "args": [{ "field": "has-worsening-repositories" }, { "value": "Worsening" }, { "field": "gain-state" }] },
+        { "as": "mixed-state", "function": "if", "args": [{ "field": "has-mixed-repositories" }, { "value": "Mixed" }, { "field": "adverse-state" }] },
+        { "as": "known-diagnosis", "function": "if", "args": [{ "field": "has-insufficient-repositories" }, { "value": "Insufficient" }, { "field": "mixed-state" }] },
+        { "as": "value-diagnosis", "function": "if", "args": [{ "field": "no-measurements" }, { "value": "Insufficient" }, { "field": "known-diagnosis" }] },
+        { "as": "value-diagnosis-reason", "function": "if", "args": [{ "field": "no-measurements" }, { "value": "No native Value measurements" }, { "value": "Repository-deduplicated native movement" }] },
+        { "as": "measured-repositories-label", "function": "format-count", "args": [{ "field": "measured-repositories" }] },
+        { "as": "worker-repositories-label", "function": "format-count", "args": [{ "field": "worker-repositories" }] },
+        { "as": "value-coverage", "function": "concat", "args": [{ "field": "measured-repositories-label" }, { "value": "/" }, { "field": "worker-repositories-label" }, { "value": " worker repositories measured" }] },
+        { "as": "improving-label", "function": "format-count", "args": [{ "field": "improving-repositories" }] },
+        { "as": "worsening-label", "function": "format-count", "args": [{ "field": "worsening-repositories" }] },
+        { "as": "unchanged-label", "function": "format-count", "args": [{ "field": "unchanged-repositories" }] },
+        { "as": "mixed-label", "function": "format-count", "args": [{ "field": "mixed-repositories" }] },
+        { "as": "insufficient-label", "function": "format-count", "args": [{ "field": "insufficient-repositories" }] },
+        { "as": "value-movement-leading", "function": "concat", "args": [
+          { "field": "improving-label" }, { "value": " improving · " },
+          { "field": "worsening-label" }, { "value": " worsening · " },
+          { "field": "unchanged-label" }, { "value": " unchanged" }
+        ] },
+        { "as": "value-movement-summary", "function": "concat", "args": [
+          { "field": "value-movement-leading" }, { "value": " · " },
+          { "field": "mixed-label" }, { "value": " mixed · " },
+          { "field": "insufficient-label" }, { "value": " insufficient" }
+        ] }
+      ],
+      "order-by": [{ "field": "campaign-name", "direction": "asc" }]
+    }
+  ]
+}

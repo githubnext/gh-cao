@@ -13,7 +13,7 @@ test("SelfCare agent discoverability audits bounded access-path routing", () => 
   const source = workflow("self-care-agent-discoverability.md");
 
   assert.match(source, /worker: agent-discoverability/);
-  assert.match(source, /canonical `skills\/analyze-cao\/SKILL\.md` entry point/);
+  assert.match(source, /canonical `skills\/central-agentic-ops\/SKILL\.md` entry point/);
   assert.match(source, /explicitly selected snapshot or the authenticated cloud service/);
   assert.doesNotMatch(source, /https:\/\/githubnext\.github\.io\/gh-cao\/cao\//);
   assert.match(source, /unavailable evidence stays unavailable, with no synthetic fallback/);

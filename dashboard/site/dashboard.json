@@ -140,13 +140,19 @@
         "id": "campaign-value-overview",
         "icon": "goal",
         "title": { "field": "campaign-name", "title": "Campaign" },
-        "status": { "field": "campaign-value-status", "title": "Value review" },
+        "status": { "field": "campaign-value-status", "title": "Native Value movement" },
         "detail-labels": "visible",
         "labels": [
           { "field": "value-deployments", "title": "Value deployments" },
-          { "field": "value-repositories", "title": "Repositories" }
+          { "field": "worker-repositories", "title": "Worker repositories" },
+          { "field": "measured-repositories", "title": "Measured repositories" }
         ],
         "details": [
+          { "field": "improving-repositories", "title": "Improving" },
+          { "field": "worsening-repositories", "title": "Worsening" },
+          { "field": "unchanged-repositories", "title": "Unchanged" },
+          { "field": "mixed-repositories", "title": "Mixed" },
+          { "field": "insufficient-repositories", "title": "Insufficient" },
           { "field": "configured-deployments", "title": "Configured" },
           { "field": "current-evidence-deployments", "title": "Current retained results" },
           { "field": "unconfigured-deployments", "title": "Unconfigured" },
@@ -1496,6 +1502,7 @@
     "dashboard-fragments/governance.json",
     "dashboard-fragments/shared-events.json",
     "dashboard-fragments/shared-inventory.json",
+    "dashboard-fragments/shared-value.json",
     "dashboard-fragments/shared-campaigns.json",
     "dashboard-fragments/controls.json",
     "dashboard-fragments/repositories.json",

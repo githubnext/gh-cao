@@ -6,19 +6,12 @@ import path from "node:path";
 import { afterEach, test } from "node:test";
 import {
   MAX_SKILL_ENTRY_BYTES,
+  commonTaskRoutes as taskRoutes,
   validateAgentDocs,
 } from "../../scripts/validate-agent-docs.mjs";
 
 const roots = [];
 const pagesBase = "https://githubnext.github.io/gh-cao";
-const taskRoutes = [
-  ["Set up a CAO control plane", "setup-cao"],
-  ["Debug a CAO failure", "debug-cao"],
-  ["Add an existing campaign", "add-cao-campaign"],
-  ["Create a new campaign", "create-cao-campaign"],
-  ["Analyze CAO activity", "analyze-cao"],
-  ["Use or extend the CAO CLI", "cao-cli"],
-];
 const routeTypes = {
   architecture: "architecture",
   "cao-cli": "cli-reference",
@@ -42,8 +35,6 @@ async function createFixture() {
   await mkdir(dist, { recursive: true });
   const docs = path.join(root, "docs");
   await mkdir(docs, { recursive: true });
-  const skills = path.join(root, "skills");
-  await mkdir(skills, { recursive: true });
   const summaries = [];
   for (const route of Object.keys(routeTypes)) {
     const directory = path.join(dist, route);
@@ -138,12 +129,11 @@ async function createFixture() {
     agent: `${pagesBase}/index.json`,
   });
   const skillLinks = taskRoutes.map(
-    ([task, skill]) =>
-      `- [${task}](https://github.com/githubnext/gh-cao/blob/main/skills/${skill}/SKILL.md)`,
+    ([task, route]) => `- [${task}](https://github.com/githubnext/gh-cao/blob/main/${route})`,
   );
-  for (const [, skill] of taskRoutes) {
-    await mkdir(path.join(skills, skill), { recursive: true });
-    await writeFile(path.join(skills, skill, "SKILL.md"), `# ${skill}\n`);
+  for (const [, route] of taskRoutes) {
+    await mkdir(path.dirname(path.join(root, route)), { recursive: true });
+    await writeFile(path.join(root, route), `# ${route}\n`);
   }
   await writeFile(path.join(dist, "llms.txt"), [
     "# Central Agentic Ops",
@@ -204,7 +194,7 @@ test("rejects a missing required route", async () => {
   const indexPath = path.join(root, "dist", "llms.txt");
   const index = await import("node:fs/promises").then(({ readFile }) => readFile(indexPath, "utf8"));
   await writeFile(indexPath, index.replace(
-    "- [Analyze CAO activity](https://github.com/githubnext/gh-cao/blob/main/skills/analyze-cao/SKILL.md)\n",
+    "- [Analyze CAO activity](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/dashboard-analysis.md)\n",
     "",
   ));
   assert.ok((await validateAgentDocs({ root })).some((error) => error.includes("Analyze CAO activity")));
@@ -215,51 +205,52 @@ test("rejects an ambiguous one-hop task route", async () => {
   const indexPath = path.join(root, "dist", "llms.txt");
   const index = await readFile(indexPath, "utf8");
   await writeFile(indexPath, index.replace(
-    "skills/analyze-cao/SKILL.md)",
-    "skills/analyze-cao/SKILL.md) [debug](https://github.com/githubnext/gh-cao/blob/main/skills/debug-cao/SKILL.md)",
+    ".github/cao/instructions/dashboard-analysis.md)",
+    ".github/cao/instructions/dashboard-analysis.md) [debug](https://github.com/githubnext/gh-cao/blob/main/.github/cao/instructions/diagnostics.md)",
   ));
-  assert.ok((await validateAgentDocs({ root })).some((error) => error.includes("only the analyze-cao skill")));
+  assert.ok((await validateAgentDocs({ root })).some((error) =>
+    error.includes("Analyze CAO activity\" must route to only .github/cao/instructions/dashboard-analysis.md")
+  ));
 });
 
 test("rejects oversized routing, context, and skill entry points", async () => {
   const root = await createFixture();
   await writeFile(path.join(root, "dist", "llms-small.txt"), "x".repeat(65 * 1024));
   await writeFile(
-    path.join(root, "skills", "cao-cli", "SKILL.md"),
+    path.join(root, "skills", "central-agentic-ops", "SKILL.md"),
     "x".repeat(MAX_SKILL_ENTRY_BYTES + 1),
   );
   const errors = await validateAgentDocs({ root });
   assert.ok(errors.some((error) => error.includes("llms-small.txt exceeds")));
-  assert.ok(errors.some((error) => error.includes("cao-cli/SKILL.md exceeds")));
+  assert.ok(errors.some((error) => error.includes("central-agentic-ops/SKILL.md exceeds")));
 });
 
-test("accepts compact routed skills and rejects missing local references", async () => {
+test("accepts the compact router and rejects missing task guides", async () => {
   const root = await createFixture();
-  const setupSkill = path.join(root, "skills", "setup-cao", "SKILL.md");
-  await writeFile(setupSkill, "# setup-cao\n\n[Details](references/details.md)\n");
+  const skill = path.join(root, "skills", "central-agentic-ops", "SKILL.md");
+  await writeFile(skill, "# central-agentic-ops\n\nRead `.github/cao/instructions/gh.md`.\n");
   let errors = await validateAgentDocs({ root });
   assert.ok(errors.some((error) =>
-    error.includes("setup-cao/SKILL.md references missing local file: references/details.md")
+    error.includes("central-agentic-ops/SKILL.md references missing guide: .github/cao/instructions/gh.md")
   ));
 
-  await mkdir(path.join(root, "skills", "setup-cao", "references"));
-  await writeFile(path.join(root, "skills", "setup-cao", "references", "details.md"), "# Details\n");
+  await writeFile(path.join(root, ".github", "cao", "instructions", "gh.md"), "# gh\n");
   errors = await validateAgentDocs({ root });
   assert.deepEqual(errors, []);
 });
 
-test("setup-cao entry point honors its budget and links existing local references", async () => {
+test("central-agentic-ops entry point honors its budget and names existing guides", async () => {
   const repositoryRoot = path.resolve(import.meta.dirname, "../..");
-  const skillPath = path.join(repositoryRoot, "skills", "setup-cao", "SKILL.md");
+  const skillPath = path.join(repositoryRoot, "skills", "central-agentic-ops", "SKILL.md");
   assert.ok((await stat(skillPath)).size <= MAX_SKILL_ENTRY_BYTES);
-
-  const source = await readFile(skillPath, "utf8");
-  const links = [...source.matchAll(/\[[^\]]+\]\(([^)#]+\.md)(?:#[^)]+)?\)/g)]
-    .map((match) => match[1])
-    .filter((link) => !/^[a-z]+:/i.test(link));
-  assert.ok(links.length > 0);
-  for (const link of links) {
-    assert.equal((await stat(path.resolve(path.dirname(skillPath), link))).isFile(), true, link);
+  const guides = [...(await readFile(skillPath, "utf8")).matchAll(/`(\.github\/cao\/[^`\s]+\.md)`/g)]
+    .map((match) => match[1]);
+  assert.ok(guides.length > 0);
+  for (const guide of guides) {
+    assert.equal((await stat(path.join(repositoryRoot, guide))).isFile(), true, guide);
+  }
+  for (const [, route] of taskRoutes) {
+    assert.equal((await stat(path.join(repositoryRoot, route))).isFile(), true, route);
   }
 });
 
