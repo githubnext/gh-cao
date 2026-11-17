@@ -3,6 +3,7 @@ package sessionarchiveblob
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -53,6 +54,16 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 	if err := json.Unmarshal(content, &scenarios); err != nil || len(scenarios) < 20 {
 		t.Fatal("missing full upstream replay scenarios")
 	}
+	// User-directed G2 decision: only event-entropy-rate's value may differ, by
+	// the declared absolute log2 rounding tolerance; every other cell is exact.
+	const entropyTolerance = 0x1p-39
+	var entropyCompared, entropyDiffering int
+	var entropyMax float64
+	var entropyMaxULPs uint64
+	defer func() {
+		t.Logf("event-entropy-rate real Kusto vs DuckDB: compared=%d differing=%d max|diff|=%g maxULPs=%d tolerance=%g",
+			entropyCompared, entropyDiffering, entropyMax, entropyMaxULPs, entropyTolerance)
+	}()
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			manifest := fixture(t, 1, "usage-replay")
@@ -110,12 +121,39 @@ func verifyUsageGraderReplay(t *testing.T, execute func(context.Context, string)
 				// JSON number spellings (1 vs 1.0) differ; compare native numeric values after decoding both.
 				expectedContent, _ := json.Marshal(replay.FullResult.Rows)
 				var expected []map[string]any
-				if json.Unmarshal(expectedContent, &expected) != nil || !reflect.DeepEqual(rows, expected) {
+				if json.Unmarshal(expectedContent, &expected) != nil {
+					t.Fatal("invalid DuckDB replay result")
+				}
+				if replay.ID == "event-entropy-rate" && len(rows) == len(expected) {
+					for i := range rows {
+						got, gotOK := rows[i]["value"].(float64)
+						want, wantOK := expected[i]["value"].(float64)
+						if !gotOK || !wantOK || rows[i]["RunId"] != expected[i]["RunId"] {
+							continue
+						}
+						entropyCompared++
+						diff := math.Abs(got - want)
+						if diff == 0 {
+							continue
+						}
+						entropyDiffering++
+						entropyMax = max(entropyMax, diff)
+						ulps := math.Float64bits(got) - math.Float64bits(want)
+						if math.Float64bits(want) > math.Float64bits(got) {
+							ulps = math.Float64bits(want) - math.Float64bits(got)
+						}
+						entropyMaxULPs = max(entropyMaxULPs, ulps)
+						if diff <= entropyTolerance {
+							rows[i]["value"] = want
+						}
+					}
+				}
+				if !reflect.DeepEqual(rows, expected) {
 					t.Fatalf("%s real Kusto differs from actual DuckDB/upstream replay: got %#v want %#v", replay.ID, rows, expected)
 				}
 			}
-			if count != 21 {
-				t.Fatalf("all twenty-one full definitions are required for analytical acceptance, got %d", count)
+			if count != 22 {
+				t.Fatalf("all twenty-two full definitions are required for analytical acceptance, got %d", count)
 			}
 		})
 	}

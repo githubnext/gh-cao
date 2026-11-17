@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 )
 
-var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "difference", "product", "quotient", "coalesce", "is-null", "and", "trim", "strip-prefix"}
+var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "difference", "product", "quotient", "coalesce", "is-null", "and", "trim", "strip-prefix", "log2", "concat"}
 
 // TrimWhitespace is ECMAScript String.prototype.trim's WhiteSpace and
 // LineTerminator set (Unicode Zs plus TAB, VT, FF, ZWNBSP, LF, CR, LS and PS),
@@ -241,6 +241,18 @@ func (e Expression) plan(fields map[string]string, depth int, nodes *int) (Plann
 		}
 	case "trim":
 		if n != 1 || p.Args[0].Type != "string" {
+			return p, ErrQuery
+		}
+		p.Type = "string"
+	case "log2":
+		// Base-2 logarithm of a positive number; null otherwise. Backend math
+		// libraries are faithful, not correctly rounded (see specs/session-archive.md).
+		if n != 1 || !numeric(p.Args[0].Type) {
+			return p, ErrQuery
+		}
+		p.Type = "number"
+	case "concat":
+		if n != 2 || p.Args[0].Type != "string" || p.Args[1].Type != "string" {
 			return p, ErrQuery
 		}
 		p.Type = "string"

@@ -148,6 +148,10 @@ func (e PlannedExpression) sql() string {
 		return "(CAST(" + args[0] + " AS DOUBLE)*CAST(" + args[1] + " AS DOUBLE))"
 	case "quotient":
 		return "(CAST(" + args[0] + " AS DOUBLE)/nullif(CAST(" + args[1] + " AS DOUBLE),0))"
+	case "log2":
+		return "(CASE WHEN CAST(" + args[0] + " AS DOUBLE)>0 THEN log2(CAST(" + args[0] + " AS DOUBLE)) END)"
+	case "concat":
+		return "concat(" + args[0] + "," + args[1] + ")"
 	case "trim":
 		return "regexp_replace(" + args[0] + "," + literal(TrimPattern()) + ",'','g')"
 	case "strip-prefix":

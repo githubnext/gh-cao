@@ -129,6 +129,10 @@ func kqlExpression(e sessionarchive.PlannedExpression) string {
 		return "(toreal(" + args[0] + ")*toreal(" + args[1] + "))"
 	case "quotient":
 		return "iff(toreal(" + args[1] + ")==0.0,real(null),toreal(" + args[0] + ")/toreal(" + args[1] + "))"
+	case "log2":
+		return "iff(toreal(" + args[0] + ")>0.0,log2(toreal(" + args[0] + ")),real(null))"
+	case "concat":
+		return "strcat(" + args[0] + "," + args[1] + ")"
 	case "trim":
 		return "replace_regex(" + args[0] + ",@'" + sessionarchive.TrimPattern() + "','')"
 	case "strip-prefix":

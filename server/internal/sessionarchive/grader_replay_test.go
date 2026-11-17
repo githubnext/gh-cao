@@ -84,6 +84,15 @@ func TestGraderReplayEvidence(t *testing.T) {
 		`"observations":[{"sourceToolCallId":"t","consumedByActionIds":["a"]},{"sourceToolCallId":"t","consumedByActionIds":[""]},` +
 		`{"sourceToolCallId":"t","consumedByActionIds":[null,0,{}]},{"sourceToolCallId":"unknown","consumedByActionIds":[]},` +
 		`{"consumedByActionIds":"not-array"},{"sourceToolCallId":"t","consumedByActionIds":null},null,[],7]}`
+	// A deterministic skewed walk over tool_call refs and kinds exercises many
+	// non-trivial log2 terms in Map first-insertion summation order.
+	var walk strings.Builder
+	for i, state := 0, uint32(7); i < 400; i++ {
+		state = state*1664525 + 1013904223
+		symbols := []string{`"kind":"tool_call","ref":"read"`, `"kind":"tool_call","ref":"edit"`, `"kind":"tool_call","ref":"search"`,
+			`"kind":"message"`, `"kind":"state_change","ref":"A"`, `"kind":"tool_call"`, `"kind":"tool_call:read"`}
+		walk.WriteString(`{` + symbols[min(int(state>>24)%11, 6)] + `},`)
+	}
 	code := func(files, resources, actions string) string {
 		return trajectoryIR(`{"reference":{"patch":{"files":` + files + `}},"resources":` + resources + `,"actions":` + actions + `}`)
 	}
@@ -185,6 +194,18 @@ func TestGraderReplayEvidence(t *testing.T) {
 		{"code-redacted", header + code(`["a"]`, `[{"kind":"file","uri":"secret-text"}]`, `[{"type":"read","consequential":false,"target":"secret-text"}]`)},
 		{"code-redacted-reference", header + code(`["secret-text"]`, `[]`, `[]`)},
 		{"code-oversized-reference", header + code(`[`+strings.TrimSuffix(strings.Repeat(`"a",`, 5001), ",")+`]`, `[]`, `[]`)},
+		// Literal "tool_call:read" and tool_call/ref "read" share one symbol; absent
+		// indexes order by array position with stable ties; non-events are ignored.
+		{"entropy-measured", header + trajectoryIR(`{"events":[{"kind":"tool_call","ref":"read","index":3},{"kind":"tool_call","index":1},`+
+			`{"kind":"tool_call:read","index":2},{"kind":"message"},{"kind":"tool_call","ref":"","index":-1},{"kind":"","index":null},`+
+			`{"kind":5},"text",{"kind":"message","index":10},{"kind":"tool_call","ref":"edit","index":7},{"kind":"message","index":8},`+
+			`{"kind":"tool_call","ref":"read","index":9},{"kind":"tool_call","ref":{},"index":11}]}`)},
+		{"entropy-walk", header + trajectoryIR(`{"events":[`+strings.TrimSuffix(walk.String(), ",")+`]}`)},
+		{"entropy-single-symbol", header + trajectoryIR(`{"events":[{"kind":"a"},{"kind":"a","index":5},{"index":2}]}`)},
+		{"entropy-one-event", header + trajectoryIR(`{"events":[{"kind":"a"},{"kind":""},[]]}`)},
+		{"entropy-null-index", header + trajectoryIR(`{"events":[{"kind":"a","index":null},{"kind":"b"},{"kind":"a"}]}`)},
+		{"entropy-numeric-string-index", header + trajectoryIR(`{"events":[{"kind":"a","index":"1"},{"kind":"b","index":0},{"kind":"a","index":2}]}`)},
+		{"entropy-non-array-events", header + trajectoryIR(`{"events":{"kind":"a"},"states":["A","B"]}`)},
 		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
@@ -267,7 +288,7 @@ func TestGraderReplayEvidence(t *testing.T) {
 					"recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
 					"recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism",
 					"exploration-error", "exploitation-error", "tool-output-consumption-rate",
-					"code-search-recall", "code-read-precision", "code-edit-precision"}, attempt.ID)
+					"code-search-recall", "code-read-precision", "code-edit-precision", "event-entropy-rate"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {

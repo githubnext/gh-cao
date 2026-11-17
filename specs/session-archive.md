@@ -447,14 +447,29 @@ predicates across source and measure filters, 32 post-aggregate computations,
 256 expression nodes and nesting depth 8. Functions use the existing
 `function`/`args` and `field`/`value` vocabulary: `if`, `equals`, `gt`, `lte`,
 `and`, `sum`, `difference`, `product`, `quotient`, `coalesce`, `is-null`,
-`trim` and `strip-prefix`. `trim` removes exactly the JavaScript
+`trim`, `strip-prefix`, `log2` and `concat`. `trim` removes exactly the JavaScript
 `String.prototype.trim` whitespace set (WhiteSpace plus LineTerminator code
 points) from both ends. `strip-prefix(text, prefix, repeated)` removes one
 leading occurrence of a literal `prefix` of 1 to 16 code points, or every
 leading repetition when `repeated` is `true`; the prefix and flag are typed
 literals, never regular expressions or caller-selected patterns. Both lower to
 anchored, code-point-escaped patterns (DuckDB `regexp_replace`, KQL
-`replace_regex`). Computations read only group
+`replace_regex`). `concat(a, b)` joins exactly two strings (DuckDB `concat`,
+KQL `strcat`). `log2(x)` returns the base-2 logarithm of a positive number and
+typed null otherwise (DuckDB `log2`, KQL `log2`, both guarded so non-positive
+input never reaches the math library). Backend math libraries are faithful,
+not correctly rounded: DuckDB, ADX and JavaScript (V8) can differ in the last
+bit, so a `log2`-derived value is not bit-exact. **User-directed decision:**
+the user accepted a small rounding tolerance for `log2`-based results. It is
+never global. The replay contract (`scripts/replay-session-archive-graders.mjs`
+and the real-Kusto replay) declares, per reviewed definition that uses `log2`,
+an absolute bound on the named result fields derived from it, justified by
+analysis of its computation; every other field of that definition (status, availability,
+reason) and every definition that does not use `log2` keeps exact bit
+equality in replay. `event-entropy-rate` declares 2^-39 on `value` (see
+`specs/session-archive-grader-queries.md` §13). Exceeding a declared bound
+fails acceptance; it is never widened to make a backend pass. `ln`, `exp`
+and other transcendental functions remain rejected. Computations read only group
 keys, aggregate results and preceding computations. Null is allowed only in a
 typed numeric literal such as `{"value":null,"type":"number"}`, never as a
 missing filter, predicate, selector or argument. Division by zero produces

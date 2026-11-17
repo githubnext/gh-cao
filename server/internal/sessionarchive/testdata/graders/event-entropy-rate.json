@@ -1,0 +1,951 @@
+{
+  "name": "event-entropy-rate",
+  "subject": "Recompute gh-aw event entropy rate.",
+  "queries": [
+    {
+      "name": "s1",
+      "subject": "Ordered kept events.",
+      "from": "archive-ir-events",
+      "filter": {
+        "predicates": [
+          {
+            "field": "Kind",
+            "equals": "object"
+          }
+        ]
+      },
+      "compute": [
+        {
+          "as": "k",
+          "function": "equals",
+          "args": [
+            {
+              "field": "EventKind"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "as": "o",
+          "function": "coalesce",
+          "args": [
+            {
+              "field": "Index"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        },
+        {
+          "as": "y",
+          "function": "if",
+          "args": [
+            {
+              "function": "equals",
+              "args": [
+                {
+                  "field": "EventKind"
+                },
+                {
+                  "value": "tool_call"
+                }
+              ]
+            },
+            {
+              "function": "if",
+              "args": [
+                {
+                  "function": "equals",
+                  "args": [
+                    {
+                      "field": "Ref"
+                    },
+                    {
+                      "value": ""
+                    }
+                  ]
+                },
+                {
+                  "field": "EventKind"
+                },
+                {
+                  "function": "concat",
+                  "args": [
+                    {
+                      "value": "tool_call:"
+                    },
+                    {
+                      "field": "Ref"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "field": "EventKind"
+            }
+          ]
+        }
+      ],
+      "window": [
+        {
+          "as": "p",
+          "operation": "previous",
+          "field": "y",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "k"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        },
+        {
+          "as": "t",
+          "operation": "row-number",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "k"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "s2",
+      "subject": "First predecessors and bigrams.",
+      "from": "s1",
+      "filter": {
+        "predicates": [
+          {
+            "field": "k",
+            "equals": false
+          }
+        ]
+      },
+      "window": [
+        {
+          "as": "rp",
+          "operation": "row-number",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "p"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        },
+        {
+          "as": "rb",
+          "operation": "row-number",
+          "groupby": [
+            "Namespace",
+            "Repository",
+            "RunId",
+            "RunAttempt",
+            "TraceId",
+            "ProjectionId",
+            "p",
+            "y"
+          ],
+          "order-by": [
+            {
+              "field": "o"
+            },
+            {
+              "field": "Ordinal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nm",
+      "subject": "Kept events.",
+      "from": "s2",
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest"
+        ],
+        "values": [
+          {
+            "field": "Ordinal",
+            "as": "n",
+            "reducer": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "pv",
+      "subject": "Predecessors.",
+      "from": "s2",
+      "filter": {
+        "predicates": [
+          {
+            "field": "t",
+            "gte": 2
+          }
+        ]
+      },
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest",
+          "p"
+        ],
+        "values": [
+          {
+            "field": "t",
+            "as": "pf",
+            "reducer": "max",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "rp",
+                  "equals": 1
+                }
+              ]
+            }
+          },
+          {
+            "field": "Ordinal",
+            "as": "tot",
+            "reducer": "count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bg",
+      "subject": "Bigrams.",
+      "from": "s2",
+      "joins": [
+        {
+          "source": "pv",
+          "on": [
+            {
+              "left": "p",
+              "right": "p"
+            }
+          ],
+          "fields": [
+            {
+              "field": "pf"
+            },
+            {
+              "field": "tot"
+            }
+          ]
+        }
+      ],
+      "filter": {
+        "predicates": [
+          {
+            "field": "t",
+            "gte": 2
+          }
+        ]
+      },
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest",
+          "p",
+          "y"
+        ],
+        "values": [
+          {
+            "field": "Ordinal",
+            "as": "c",
+            "reducer": "count"
+          },
+          {
+            "field": "t",
+            "as": "tb",
+            "reducer": "max",
+            "filter": {
+              "predicates": [
+                {
+                  "field": "rb",
+                  "equals": 1
+                }
+              ]
+            }
+          },
+          {
+            "field": "pf",
+            "as": "f",
+            "reducer": "max"
+          },
+          {
+            "field": "tot",
+            "as": "g",
+            "reducer": "max"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tm",
+      "subject": "Terms in first-insertion order.",
+      "from": "bg",
+      "joins": [
+        {
+          "source": "nm",
+          "fields": [
+            {
+              "field": "n"
+            }
+          ]
+        }
+      ],
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest",
+          "f",
+          "tb"
+        ],
+        "values": [
+          {
+            "field": "c",
+            "as": "cc",
+            "reducer": "max"
+          },
+          {
+            "field": "g",
+            "as": "gg",
+            "reducer": "max"
+          },
+          {
+            "field": "n",
+            "as": "nn",
+            "reducer": "max"
+          }
+        ]
+      },
+      "post-aggregate": [
+        {
+          "as": "term",
+          "function": "product",
+          "args": [
+            {
+              "function": "quotient",
+              "args": [
+                {
+                  "field": "cc"
+                },
+                {
+                  "function": "difference",
+                  "args": [
+                    {
+                      "field": "nn"
+                    },
+                    {
+                      "value": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "function": "log2",
+              "args": [
+                {
+                  "function": "quotient",
+                  "args": [
+                    {
+                      "field": "gg"
+                    },
+                    {
+                      "field": "cc"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "hs",
+      "subject": "Conditional entropy bits.",
+      "from": "tm",
+      "aggregate": {
+        "by": [
+          "Namespace",
+          "Repository",
+          "RunId",
+          "RunAttempt",
+          "TraceId",
+          "ProjectionId",
+          "PolicyDigest"
+        ],
+        "values": [
+          {
+            "field": "term",
+            "as": "H",
+            "reducer": "sum",
+            "order-by": [
+              {
+                "field": "f"
+              },
+              {
+                "field": "tb"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "from": "archive-ir-events",
+  "joins": [
+    {
+      "source": "hs",
+      "type": "left",
+      "fields": [
+        {
+          "field": "H"
+        }
+      ]
+    }
+  ],
+  "compute": [
+    {
+      "as": "e",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "EventKind"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "value": false
+        },
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "Kind"
+            },
+            {
+              "value": "object"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "y",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "EventKind"
+            },
+            {
+              "value": "tool_call"
+            }
+          ]
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "equals",
+              "args": [
+                {
+                  "field": "Ref"
+                },
+                {
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "field": "EventKind"
+            },
+            {
+              "function": "concat",
+              "args": [
+                {
+                  "value": "tool_call:"
+                },
+                {
+                  "field": "Ref"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "field": "EventKind"
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "by": [
+      "Namespace",
+      "Repository",
+      "RunId",
+      "RunAttempt",
+      "TraceId",
+      "ProjectionId",
+      "PolicyDigest"
+    ],
+    "values": [
+      {
+        "field": "Items",
+        "as": "m",
+        "reducer": "max"
+      },
+      {
+        "field": "LargestCollection",
+        "as": "g",
+        "reducer": "max"
+      },
+      {
+        "field": "TraceId",
+        "as": "x",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "Items",
+              "state": "excluded"
+            }
+          ]
+        }
+      },
+      {
+        "field": "TraceId",
+        "as": "r",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "Items",
+              "state": "redacted"
+            }
+          ]
+        }
+      },
+      {
+        "field": "Ordinal",
+        "as": "n",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "e",
+              "equals": true
+            }
+          ]
+        }
+      },
+      {
+        "field": "y",
+        "as": "a",
+        "reducer": "distinct-count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "e",
+              "equals": true
+            }
+          ]
+        }
+      },
+      {
+        "field": "Ordinal",
+        "as": "u",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "e",
+              "equals": true
+            },
+            {
+              "field": "Index",
+              "state": "null"
+            }
+          ]
+        }
+      },
+      {
+        "field": "Ordinal",
+        "as": "v",
+        "reducer": "count",
+        "filter": {
+          "predicates": [
+            {
+              "field": "e",
+              "equals": true
+            },
+            {
+              "field": "Index",
+              "state": "invalid"
+            }
+          ]
+        }
+      },
+      {
+        "field": "H",
+        "as": "z",
+        "reducer": "max"
+      }
+    ]
+  },
+  "post-aggregate": [
+    {
+      "as": "b",
+      "function": "if",
+      "args": [
+        {
+          "function": "gt",
+          "args": [
+            {
+              "field": "x"
+            },
+            {
+              "value": 0
+            }
+          ]
+        },
+        {
+          "value": "excluded"
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "is-null",
+              "args": [
+                {
+                  "field": "g"
+                }
+              ]
+            },
+            {
+              "value": "incomplete-evidence"
+            },
+            {
+              "function": "if",
+              "args": [
+                {
+                  "function": "gt",
+                  "args": [
+                    {
+                      "field": "g"
+                    },
+                    {
+                      "value": 5000
+                    }
+                  ]
+                },
+                {
+                  "value": "oversized"
+                },
+                {
+                  "function": "if",
+                  "args": [
+                    {
+                      "function": "is-null",
+                      "args": [
+                        {
+                          "field": "m"
+                        }
+                      ]
+                    },
+                    {
+                      "value": "no-events"
+                    },
+                    {
+                      "function": "if",
+                      "args": [
+                        {
+                          "function": "gt",
+                          "args": [
+                            {
+                              "field": "r"
+                            },
+                            {
+                              "value": 0
+                            }
+                          ]
+                        },
+                        {
+                          "value": "redacted"
+                        },
+                        {
+                          "function": "if",
+                          "args": [
+                            {
+                              "function": "gt",
+                              "args": [
+                                {
+                                  "function": "sum",
+                                  "args": [
+                                    {
+                                      "field": "u"
+                                    },
+                                    {
+                                      "field": "v"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "value": 0
+                                }
+                              ]
+                            },
+                            {
+                              "value": "unordered"
+                            },
+                            {
+                              "value": ""
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "reason",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "b"
+            },
+            {
+              "value": ""
+            }
+          ]
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "lte",
+              "args": [
+                {
+                  "field": "n"
+                },
+                {
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "value": "fewer-than-two-events"
+            },
+            {
+              "function": "if",
+              "args": [
+                {
+                  "function": "lte",
+                  "args": [
+                    {
+                      "field": "a"
+                    },
+                    {
+                      "value": 1
+                    }
+                  ]
+                },
+                {
+                  "value": "single-symbol"
+                },
+                {
+                  "value": "measured"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "field": "b"
+        }
+      ]
+    },
+    {
+      "as": "q",
+      "function": "quotient",
+      "args": [
+        {
+          "field": "z"
+        },
+        {
+          "function": "log2",
+          "args": [
+            {
+              "field": "a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "value",
+      "function": "if",
+      "args": [
+        {
+          "function": "equals",
+          "args": [
+            {
+              "field": "reason"
+            },
+            {
+              "value": "measured"
+            }
+          ]
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "gt",
+              "args": [
+                {
+                  "field": "q"
+                },
+                {
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "value": 1
+            },
+            {
+              "field": "q"
+            }
+          ]
+        },
+        {
+          "function": "if",
+          "args": [
+            {
+              "function": "equals",
+              "args": [
+                {
+                  "field": "reason"
+                },
+                {
+                  "value": "single-symbol"
+                }
+              ]
+            },
+            {
+              "value": 0
+            },
+            {
+              "value": null,
+              "type": "number"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "as": "availability",
+      "function": "if",
+      "args": [
+        {
+          "function": "is-null",
+          "args": [
+            {
+              "field": "value"
+            }
+          ]
+        },
+        {
+          "value": "unavailable"
+        },
+        {
+          "value": "measured"
+        }
+      ]
+    }
+  ]
+}

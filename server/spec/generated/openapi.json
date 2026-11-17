@@ -5990,7 +5990,9 @@
                     "is-null",
                     "and",
                     "trim",
-                    "strip-prefix"
+                    "strip-prefix",
+                    "log2",
+                    "concat"
                   ]
                 },
                 "args": {
@@ -6008,7 +6010,7 @@
               ]
             },
             "maxItems": 32,
-            "description": "Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. trim removes ECMAScript String.prototype.trim whitespace from both ends of a string; strip-prefix(text, prefix, repeated) removes a non-empty string-literal prefix of at most 16 code points once, or as a repeated leading run when the boolean literal repeated is true. strip-prefix is closed literal matching, never a regular expression. Rejected unless status advertises analytical.compute."
+            "description": "Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. trim removes ECMAScript String.prototype.trim whitespace from both ends of a string; strip-prefix(text, prefix, repeated) removes a non-empty string-literal prefix of at most 16 code points once, or as a repeated leading run when the boolean literal repeated is true. strip-prefix is closed literal matching, never a regular expression. log2(x) returns the base-2 logarithm of a positive number and null otherwise; backend math libraries are faithful, not correctly rounded, so log2-derived results may differ in the last bits across backends and are compared only within an absolute tolerance the replay contract declares for that reviewed definition and field. concat(a, b) joins exactly two strings. Rejected unless status advertises analytical.compute."
           },
           "window": {
             "type": "array",
@@ -6110,7 +6112,9 @@
                     "is-null",
                     "and",
                     "trim",
-                    "strip-prefix"
+                    "strip-prefix",
+                    "log2",
+                    "concat"
                   ]
                 },
                 "args": {
@@ -6205,7 +6209,9 @@
               "is-null",
               "and",
               "trim",
-              "strip-prefix"
+              "strip-prefix",
+              "log2",
+              "concat"
             ]
           },
           "args": {
