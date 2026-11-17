@@ -417,7 +417,7 @@ Every backend advertises the item sources, chaining and joins through
 | Backend | Recomputed graders | Acceptance |
 | --- | --- | --- |
 | Local DuckDB | All 22 `implemented` graders | `TestGraderReplayEvidence` and the pinned upstream replay |
-| Hosted and native ADX (Kusto) | All 22 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5; [run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578) for E1, on the exact tree merged in #21102; [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174), on the exact tree merged in #21122 for Phases 6 and 7; KUSTO_RUN_LINK for G2) |
+| Hosted and native ADX (Kusto) | All 22 `implemented` graders | `TestKustoUsageGraderReplay` in the `session-archive-kusto` job ([run 43915804728](https://github.com/githubnext/gh-cao/actions/runs/43915804728) for the first 10; [run 43983841793](https://github.com/githubnext/gh-cao/actions/runs/43983841793) for Phase 5; [run 44007200578](https://github.com/githubnext/gh-cao/actions/runs/44007200578) for E1, on the exact tree merged in #21102; [run 44023800174](https://github.com/githubnext/gh-cao/actions/runs/44023800174), on the exact tree merged in #21122 for Phases 6 and 7; [run 44056172185](https://github.com/githubnext/gh-cao/actions/runs/44056172185) on head `8655891` for G2) |
 
 The Kusto replay executes every definition that has a full DuckDB result
 through the real engine over the same synthetic approved events. It is not
@@ -504,7 +504,7 @@ new evidence approval unless stated.
   two-string `concat` are closed functions on both backends; only
   `event-entropy-rate`'s `value` carries the declared absolute bound 2^-39,
   derived from its computation, and every other grader stays bit-exact. Unlocks
-  `event-entropy-rate` (§13). Accepted on real Kusto in KUSTO_RUN_LINK.
+  `event-entropy-rate` (§13). Accepted on real Kusto in [run 44056172185](https://github.com/githubnext/gh-cao/actions/runs/44056172185) on head `8655891`.
 - Not planned: tool reconciliation (3 graders), lineage (2), `tool-wise-score`,
   `lempel-ziv-trajectory-complexity` and `trajectory-ndtw` need G3;
   `skill-constraint-coverage`, `process-alignment-fitness` and
@@ -916,7 +916,7 @@ library.
   definitions and events through the real engine and logs `compared`,
   `differing`, `max|diff|` and the ulp distance. The Node replay asserts that
   the Kusto maximum plus the DuckDB maximum is within the tolerance. Result:
-  KUSTO_MEASUREMENT (KUSTO_RUN_LINK).
+  12 measured values compared, 0 differing, maximum `|Δvalue|` 0 (0 ulp), so ADX's `log2` agreed with DuckDB and V8 on every measured term ([run 44056172185](https://github.com/githubnext/gh-cao/actions/runs/44056172185) on head `8655891`).
 
 **Scenarios.** `TestGraderReplayEvidence` adds `entropy-measured`, a skewed
 400-event walk over seven symbols, single-symbol, one-event, null-index,
