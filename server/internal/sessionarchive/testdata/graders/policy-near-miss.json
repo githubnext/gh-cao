@@ -1,0 +1,35 @@
+{
+  "name":"policy-near-miss","subject":"Recompute gh-aw policy near-miss.",
+  "queries":[
+    {"name":"ev","subject":"IR safe_output events.","from":"archive-ir-events","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],"values":[
+      {"field":"Ordinal","as":"s","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"},{"field":"EventKind","equals":"safe_output"}]}},
+      {"field":"TraceId","as":"p","reducer":"count","filter":{"predicates":[{"field":"Items","state":"present"}]}},
+      {"field":"TraceId","as":"y","reducer":"count","filter":{"predicates":[{"field":"Items","state":"redacted"}]}}
+    ]}},
+    {"name":"sy","subject":"Synthesized safe_output events.","from":"archive-events","aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest"],"values":[
+      {"field":"Sequence","as":"z","reducer":"count","filter":{"predicates":[{"field":"Type","equals":"safe_output"},{"field":"Phase","equals":"agent"},{"field":"Component","equals":"agent"}]}}
+    ]}}
+  ],
+  "from":"archive-objectives",
+  "joins":[{"source":"ev","fields":[{"field":"s"},{"field":"p"},{"field":"y"}]},{"source":"sy","fields":[{"field":"z"}]}],
+  "compute":[{"as":"m","function":"keyword-match","args":[{"field":"Description"},{"value":"guard"}]}],
+  "aggregate":{"by":["Namespace","Repository","RunId","RunAttempt","TraceId","ProjectionId","PolicyDigest","s","p","y","z"],"values":[
+    {"field":"Items","as":"n","reducer":"max"},
+    {"field":"LargestCollection","as":"g","reducer":"max"},
+    {"field":"TraceId","as":"r","reducer":"count","filter":{"predicates":[{"field":"Items","state":"redacted"}]}},
+    {"field":"Ordinal","as":"o","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"},{"field":"m","equals":true}]}},
+    {"field":"Ordinal","as":"u","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"},{"field":"m","equals":true},{"field":"SatisfiedAtEventIndex","state":"present"}]}},
+    {"field":"Ordinal","as":"v","reducer":"count","filter":{"predicates":[{"field":"Kind","equals":"object"},{"field":"m","equals":true},{"field":"SatisfiedAtEventIndex","state":"null"}]}}
+  ]},
+  "post-aggregate":[
+    {"as":"reason","function":"if","args":[{"function":"is-null","args":[{"field":"g"}]},{"value":"incomplete-evidence"},
+      {"function":"if","args":[{"function":"gt","args":[{"field":"g"},{"value":5000}]},{"value":"oversized"},
+      {"function":"if","args":[{"function":"lte","args":[{"function":"coalesce","args":[{"field":"n"},{"value":0}]},{"value":0}]},{"value":"no-objectives"},
+      {"function":"if","args":[{"function":"gt","args":[{"function":"sum","args":[{"field":"r"},{"field":"y"}]},{"value":0}]},{"value":"redacted"},
+      {"function":"if","args":[{"function":"lte","args":[{"function":"if","args":[{"function":"gt","args":[{"field":"p"},{"value":0}]},{"field":"s"},{"field":"z"}]},{"value":0}]},{"value":"no-safe-output"},
+      {"function":"if","args":[{"function":"lte","args":[{"field":"o"},{"value":0}]},{"value":"no-guard-objectives"},{"value":"measured"}]}]}]}]}]}]},
+    {"as":"value","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"function":"quotient","args":[{"function":"difference","args":[{"function":"sum","args":[{"field":"o"},{"field":"v"}]},{"field":"u"}]},{"field":"o"}]},{"value":null,"type":"number"}]},
+    {"as":"availability","function":"if","args":[{"function":"equals","args":[{"field":"reason"},{"value":"measured"}]},{"value":"measured"},{"value":"unavailable"}]}
+  ],
+  "select":[{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"PolicyDigest"},{"field":"value"},{"field":"availability"},{"field":"reason"}]
+}
