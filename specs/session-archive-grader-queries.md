@@ -508,7 +508,7 @@ new evidence approval unless stated.
   DuckDB and KQL, plus the `archive-objectives` `Description` field. Unlocks
   `policy-near-miss`. `retries` is reclassified: its harness attempt-history
   half needs S1 `attemptResults`, a startup-scope capture and a deduplicating
-  anti-join (§13). Hosted acceptance: KUSTO_RUN_PLACEHOLDER.
+  anti-join (§13). Hosted acceptance: [run 44055296560](https://github.com/githubnext/gh-cao/actions/runs/44055296560) (`TestKustoKeywordLowering` and `TestKustoUsageGraderReplay` passed against real Kusto).
 - [ ] **User decision (G2):** `event-entropy-rate` needs `log2`. Replay requires
   exact equality and DuckDB and V8 can differ in the last bit (§3.1), so either
   accept a declared ulp tolerance for this grader or keep it rejected.
@@ -855,7 +855,7 @@ Declared divergences, all fail-closed:
 ## 13. G1 implementation notes
 
 G1 adds one definition, `policy-near-miss`, which brings both backends to
-twenty-two `implemented` graders. Hosted acceptance: KUSTO_RUN_PLACEHOLDER.
+twenty-two `implemented` graders. Hosted acceptance: [run 44055296560](https://github.com/githubnext/gh-cao/actions/runs/44055296560) (`TestKustoKeywordLowering` and `TestKustoUsageGraderReplay` passed against real Kusto).
 
 ### User-directed approval
 
