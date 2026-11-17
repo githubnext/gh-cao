@@ -1,34 +1,7 @@
 {
  "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T10:34:17Z",
-   "worker_run_id": "44065389664",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43831754585",
-    "43831980991",
-    "43832040488",
-    "43840581457",
-    "43854851689",
-    "43862265708",
-    "43877103800",
-    "43987917606",
-    "43991571724",
-    "43991770179",
-    "43991897672",
-    "43992363367",
-    "43993695761",
-    "44004300647",
-    "44023953879",
-    "44041835448",
-    "44043184727",
-    "44060953578"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded (0 jobs each); 18 successes (17 push, 1 schedule 44023953879), 0 failed; no docs run in progress or newer than 44060953578 at 2026-11-17T10:34:17Z (stale queued 37642403569 only). HEAD 453e35b is not docs-triggered (server, specs, scripts/replay-* only). Queue (created to build start) median 4 s, p90 15 s, max 64 s (43832040488 behind in-flight 43831980991); 43991897672 queued 15 s after pending-slot replacement of cancelled 43991812013 (0 jobs): latency only, not execution. Exec median 77.5 s, p90 90 s; 15 percent gate 11.6 s and 60 s gate not met. Superseded in-flight builds: 0 (cancel-in-progress false; cancelled runs were pending-slot replacements), so cancel-in-progress true would save 0 s. Avoidable rebuilds: 0 of 18 window heads test-only (17 push heads build-consumed; fcd7e18 via docs/**). Daily schedule 44023953879 (62 s) required for synthetic date refresh. Stored immutable run_timings rows recomputed, no job refetch; one commits fetch for fcd7e18 and one for 453e35b. Next: dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T10:53:34Z",
    "worker_run_id": "44068382025",
@@ -809,6 +782,33 @@
     "43831754585"
    ],
    "outcome": "complete, not actionable. Window unchanged: strict latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at 20:32Z shows no docs run newer than 44060953578 and none queued or in progress; main 453e35b = source_sha. Jobs API spot-check of 44060953578 matched stored transfer rows (handoff 5 s, Configure Pages 1 s, upload 2 s, deploy setup 1 s, exec 79 s). Recomputed from stored rows: removable transfer (handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s (p90 90 s); 15 percent gate 11.63 s and 60 s gate not met; ceiling saving 9 s. Deploy Pages (GitHub-managed, median 6.5 s) excluded. Merge-deploy-into-build (about 6 s) remains rejected: moves id-token and github-pages environment into the job running root npm ci lifecycle scripts. Pages artifact 9.35 MB (2 s upload); shrinking saves about 1 s. Open #20815 (blobless checkout) OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; checkout is another category and not repeated. No issue opened or reused. Next: scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-17T20:53:12Z",
+   "worker_run_id": "44173327786",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800",
+    "43987917606",
+    "43991571724",
+    "43991770179",
+    "43991897672",
+    "43992363367",
+    "43993695761",
+    "44004300647",
+    "44023953879",
+    "44041835448",
+    "44043184727",
+    "44060953578"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded (0 jobs); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at 2026-11-17T20:53:12Z: no docs run newer than 44060953578, none queued or in progress. main = 453e35b = source_sha (gh api commits/main at 10:25Z); compare fcd7e18...main = 1 commit touching only server/, specs/, scripts/replay-session-archive-graders.mjs (no docs.yml trigger path), so no run expected. Stored immutable run_timings recomputed (no job refetch): queue median 4 s, p90 15 s, max 64 s (latency only); exec median 77.5 s, p90 90 s; 15 percent gate 11.6 s and 60 s gate not met. cancel-in-progress false kept: 0 superseded in-flight builds, so cancel-in-progress true saves about 0 s. 0 of 18 window heads test-only; 05:23Z schedule kept for synthetic-date refresh. Open issues: #20815 (blobless checkout) OPEN, 0 comments, unchanged, other category, not repeated; #21153 is the prior incomplete report for this worker (rate-limited read), not a speed item. No suggestion; noop; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1634,7 +1634,7 @@
   "concurrency": "cancel-in-progress false kept; 0 in-flight builds superseded; cancelled runs had 0 jobs",
   "avoidable_rebuilds": "0 of 18 window heads test-only; 453e35b triggered no docs run",
   "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)",
-  "reverified_note": "2026-11-17T15:52:47Z worker 44118554795: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable)."
+  "reverified_note": "2026-11-17T15:52:47Z worker 44118554795: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable). 2026-11-17T20:53:12Z worker 44173327786: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable)."
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-17T12:38:36Z",
