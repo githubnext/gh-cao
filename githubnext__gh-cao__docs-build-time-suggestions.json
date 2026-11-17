@@ -1,36 +1,7 @@
 {
-  "source_sha": "fcd7e182ab90cb514c032abd4f39c187fa7df95e",
-  "next_category": "dependency installation and caching",
+  "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-17T01:01:56Z",
-      "worker_run_id": "43991779756",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "43781088986",
-        "43781377358",
-        "43789359390",
-        "43792211504",
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708",
-        "43877103800",
-        "43987917606",
-        "43991571724",
-        "43991770179",
-        "43991897672"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed non-cancelled docs.yml runs 43781088986 (push f996c9a, created 2026-11-16T00:33Z) to 43991897672 (push 51facb5, created 2026-11-17T00:58Z); 19 push + 1 schedule 43810351164, all success, 0 failed; cancelled 43991812013 excluded and disclosed; 43766933236, 43768376457, 43780290464 dropped by the cap. Source: main 79f91fa = 51facb5 + one non-trigger commit (eu-cra-compliance/implementation-status.md); last build-consumed head 51facb5. Setup Node + Install dependencies + Post Set up Node.js: median 11.5 s, p90 17 s = 15.4% of exec median 74.5 s (15% gate 11.2 s; 60 s gate unmet). Install dependencies alone: median 8 s (10.7%), p90 10 s; any change confined to install is capped at 8 s, below the gate even at zero restore cost. Full removal of setup+install is unreachable (Node setup and dependency materialisation still required); a node_modules cache would net an estimated 5-9 s (7-11%, unmeasured restore). Cache verified from Actions caches API: sole entry node-cache-Linux-x64-npm-7808ecf8 (263412733 B, created 2026-11-13T20:57Z) last accessed 2026-11-17T00:59:06Z by run 43991897672 (setup-node step 00:59:03-00:59:07); post-setup 0-1 s in all 20 runs, so no cache save occurred, consistent with exact-key hits. Root and dashboard package-lock.json unchanged since 7c8faf4 (2026-11-13), so key stable. Queue median 3.5 s (43991897672 queued 15 s; latency only). Not actionable; no open issue opened or reused. Next: Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-17T01:20:39Z",
       "worker_run_id": "43994245379",
@@ -812,6 +783,33 @@
         "44060953578"
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded (0 jobs each); 18 successes (17 push, 1 schedule 44023953879), 0 failed; no docs run in progress or newer than 44060953578 at 2026-11-17T10:34:17Z (stale queued 37642403569 only). HEAD 453e35b is not docs-triggered (server, specs, scripts/replay-* only). Queue (created to build start) median 4 s, p90 15 s, max 64 s (43832040488 behind in-flight 43831980991); 43991897672 queued 15 s after pending-slot replacement of cancelled 43991812013 (0 jobs): latency only, not execution. Exec median 77.5 s, p90 90 s; 15 percent gate 11.6 s and 60 s gate not met. Superseded in-flight builds: 0 (cancel-in-progress false; cancelled runs were pending-slot replacements), so cancel-in-progress true would save 0 s. Avoidable rebuilds: 0 of 18 window heads test-only (17 push heads build-consumed; fcd7e18 via docs/**). Daily schedule 44023953879 (62 s) required for synthetic date refresh. Stored immutable run_timings rows recomputed, no job refetch; one commits fetch for fcd7e18 and one for 453e35b. Next: dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T10:53:34Z",
+      "worker_run_id": "44068382025",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647",
+        "44023953879",
+        "44041835448",
+        "44043184727",
+        "44060953578"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed; gh run list (latest 40): none queued or in progress. Source: main 453e35b = fcd7e18 + one commit outside the docs.yml path filter (server/, specs/, scripts/replay-session-archive-graders.mjs); compare API. Recomputed from stored immutable run_timings rows (no job refetch): setup-node median 3 s p90 6; install median 9.5 s p90 11 = 12.3 percent of exec median 77.5 s; post 0 s; setup+install+post median 12.5 s p90 17 = 16.1 percent. 15 percent gate 11.6 s not met by any install-only change (ceiling 9.5 s); whole-phase removal (16.1 percent) unreachable because the build still needs Node and materialised dependencies; node_modules cache estimated net 3-6 s, unmeasured. Cache: node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57Z, last accessed 10:43Z); exact-key hits inferred (post 0-1 s in 18/18). Open #20815 (blobless checkout, OPEN, 0 comments) is another category and not repeated. No suggestion; noop. next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1631,35 +1629,36 @@
     "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)"
   },
   "dependency_phase": {
-    "evaluated_at": "2026-11-17T05:53:31Z",
-    "worker_run_id": "44026801795",
-    "window": "latest 20 completed docs.yml runs 43810351164..44004300647; cancelled 43991812013 and 43832015521 excluded; 17 push + 1 schedule; 18 successes",
-    "method": "recomputed from stored immutable run_timings rows (no refetch); spot-check 44004300647 via Jobs API matched; median of even n averaged; p90 nearest-rank",
+    "evaluated_at": "2026-11-17T10:53:34Z",
+    "worker_run_id": "44068382025",
+    "window": "strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 17 push + 1 schedule; 18 successes",
+    "method": "recomputed from stored immutable run_timings rows (no refetch); median of even n averaged; p90 nearest-rank",
     "setup_node_s": {
-      "median": 3.5,
+      "median": 3,
       "p90": 6
     },
     "install_s": {
-      "median": 8.5,
+      "median": 9.5,
       "p90": 11
     },
     "post_setup_node_s": {
       "median": 0,
-      "p90": 0
+      "p90": 1
     },
     "setup_install_post_s": {
       "median": 12.5,
-      "p90": 18
+      "p90": 17
     },
-    "share_of_exec_median_pct": 15.8,
+    "share_of_exec_median_pct": 16.1,
     "exec_s": {
-      "median": 79,
-      "p90": 120
+      "median": 77.5,
+      "p90": 90
     },
-    "gate_15pct_s": 11.85,
+    "gate_15pct_s": 11.6,
     "ceiling": "install-only removal <= 8.5 s (10.8%); whole phase unreachable (npm ci required); node_modules cache est net 3-6 s (unmeasured)",
-    "decision": "not actionable (best realistic saving below 15% gate; 60 s gate unreachable)",
-    "root_lifecycle": "root package.json defines no preinstall/install/postinstall/prepare; dependency install scripts still run inside root npm ci (not measured)"
+    "decision": "not actionable (install-only ceiling 9.5 s = 12.3 percent below 15 percent gate; whole-phase removal unreachable; node_modules cache net 3-6 s unmeasured)",
+    "root_lifecycle": "root package.json defines no preinstall/install/postinstall/prepare; dependency install scripts still run inside root npm ci (not measured)",
+    "install_share_of_exec_median_pct": 12.3
   },
   "astro_step_verified": {
     "verified_at": "2026-11-17T09:35:50Z",
