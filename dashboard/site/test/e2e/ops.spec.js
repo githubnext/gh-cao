@@ -33,9 +33,29 @@ for (const width of [1440, 390]) {
       await expect(controls).toBeVisible();
       await expect(controls.locator('datalist option').first()).toHaveAttribute('value', repository);
       await controls.getByLabel('Control repository', { exact: true }).fill(repository);
+      for (const colorScheme of /** @type {const} */ (['dark', 'light'])) {
+        await page.emulateMedia({ colorScheme });
+        await expect(controls.getByLabel('Control repository', { exact: true })).toHaveCSS('border-top-style', 'solid');
+        const colors = await controls.evaluate(element => ({
+          text: getComputedStyle(element).color,
+          description: getComputedStyle(/** @type {Element} */ (element.querySelector('.modernization-description'))).color,
+          input: getComputedStyle(/** @type {Element} */ (element.querySelector('input'))).backgroundColor,
+          ready: getComputedStyle(/** @type {Element} */ (element.querySelector('.modernization-inputs button'))).backgroundColor,
+          disabled: getComputedStyle(/** @type {Element} */ (element.querySelector('button:disabled'))).backgroundColor
+        }));
+        expect(colors.description).not.toBe(colors.text);
+        expect(colors.input).not.toBe('rgba(0, 0, 0, 0)');
+        expect(colors.ready).not.toBe(colors.disabled);
+      }
+      const help = controls.locator('.modernization-help');
+      await expect(help).not.toHaveAttribute('open');
+      await help.locator('summary').click();
+      await expect(help.getByText('Every write needs', { exact: false })).toBeVisible();
+      await help.locator('summary').click();
       expect(operator.requests).toHaveLength(0);
       await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
       await expect(controls).toContainText('Synthetic operator task');
+      await expect(controls.getByRole('button', { name: 'Check readiness', exact: true })).toHaveClass('cli-action-cancel');
       await controls.getByRole('button', { name: 'Review next run', exact: true }).click();
       const review = controls.getByRole('region', { name: 'Review Modernization action', exact: true });
       await expect(review).toBeVisible();

@@ -64,6 +64,26 @@ afterEach(() => {
 });
 
 describe('Modernization operator interaction', () => {
+  it('keeps safeguards discoverable and distinguishes readiness, supporting actions and confirmation', async () => {
+    const root = mount();
+    expect(root.textContent).toContain('Check readiness to enable authorized actions.');
+    const help = /** @type {HTMLDetailsElement} */ (root.querySelector('.modernization-help'));
+    expect(help.open).toBe(false);
+    expect(help.querySelector('summary')?.textContent).toBe('Scope and safeguards');
+    expect(help.textContent).toContain('Every write needs a fresh native policy check and your confirmation.');
+    expect(button(root, 'Assess system').classList.contains('cli-action-cancel')).toBe(true);
+    expect(native.execute).not.toHaveBeenCalled();
+    await check(root);
+    expect(button(root, 'Check readiness').classList.contains('cli-action-cancel')).toBe(true);
+    expect(button(root, 'Review next run').classList.contains('cli-action-confirm')).toBe(true);
+    expect(root.textContent).not.toContain('Reviewed scope available');
+    const plan = button(root, 'Review / approve plan');
+    expect(plan.getAttribute('aria-expanded')).toBe('false');
+    plan.click();
+    expect(button(root, 'Review / approve plan').getAttribute('aria-expanded')).toBe('true');
+    expect(root.querySelector(`#${plan.getAttribute('aria-controls')}`)?.textContent).toContain('Concrete plan approval');
+  });
+
   it('does nothing on mount, checks current state, previews review mode and requires separate one-use confirmation', async () => {
     const root = mount();
     expect(native.execute).not.toHaveBeenCalled();

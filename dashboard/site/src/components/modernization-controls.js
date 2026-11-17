@@ -51,7 +51,7 @@ export function renderModernizationControls(context) {
   const ui = state({
     repository: initial.length === 1 ? String(initial[0]['control-repository'] ?? '') : '',
     mode: /** @type {'review'|'live'} */ ('review'),
-    busy: false, error: '', message: '', planText: '', planOpen: false, expired: false,
+    busy: false, error: '', message: '', planText: '', planOpen: false, helpOpen: false, expired: false,
     status: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null),
     preview: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null),
     execution: /** @type {import('../modernization-protocol.js').ModernizationResult | null} */ (null)
@@ -144,7 +144,7 @@ export function renderModernizationControls(context) {
     const rows = suggestions();
     return h('div', {},
       h(context.headingTag, {}, 'Modernization'),
-      h('p', { className: 'modernization-description' }, 'Assess → review and approve a concrete plan → run the next batch → verify. Every write needs a fresh native policy check and your confirmation.'),
+      h('p', { className: 'modernization-description' }, 'Check readiness, then review the next authorized action.'),
       !available ? h('p', { className: 'modernization-notice', role: 'status' },
         'Read-only deployment. Authorized native operator actions are unavailable here; no browser GitHub credentials or execution fallback is used.') : null,
       h('div', { className: 'modernization-inputs' },
@@ -155,28 +155,43 @@ export function renderModernizationControls(context) {
               repository: /** @type {HTMLInputElement} */ (event.target).value.trim(),
               status: null, preview: null, execution: null, message: '', error: '' })) })),
         h('datalist', { id: `${id}-repositories` }, ...rows.map(row => h('option', { value: String(row['control-repository'] ?? '') }))),
-        h('button', { type: 'button', className: 'cli-action-confirm', disabled, onClick: check }, current.busy ? 'Working…' : 'Check readiness'),
+        h('button', { type: 'button', className: current.status ? 'cli-action-cancel' : 'cli-action-confirm',
+          disabled, onClick: check }, current.busy ? 'Working…' : 'Check readiness'),
         h('label', { htmlFor: `${id}-mode` }, 'Next-batch mode',
           h('select', { id: `${id}-mode`, value: current.mode, disabled: !available || current.busy,
             onChange: (/** @type {Event} */ event) => ui.set(value => ({ ...value, preview: null,
               mode: /** @type {'review'|'live'} */ (/** @type {HTMLSelectElement} */ (event.target).value) })) },
           h('option', { value: 'review' }, 'Review only'), h('option', { value: 'live' }, 'Live issues / draft PRs')))
       ),
-      h('p', { className: 'modernization-description' }, 'Repository suggestions come from retained inventory, not authorization. Review is the default; live mode cannot exceed checked-in policy.'),
       current.error ? h('p', { role: 'alert', className: 'modernization-error' }, current.error) : null,
-      h('output', { role: 'status', 'aria-live': 'polite', className: 'modernization-status' }, current.message),
-      h('div', { className: 'modernization-action-bar' },
-        .../** @type {const} */ (['assess', 'run', 'verify']).map(operation => h('div', {},
-          h('button', { type: 'button', className: 'cli-action-confirm',
+      h('output', { role: 'status', 'aria-live': 'polite', className: 'modernization-status' },
+        current.message || (current.status || !available ? '' : validRepository()
+          ? 'Check readiness to enable authorized actions.' : 'Choose a control repository to check available actions.')),
+      h('div', { className: 'modernization-action-bar', role: 'group', 'aria-label': 'Modernization lifecycle' },
+        .../** @type {const} */ (['assess', 'approve-plan', 'run', 'verify']).map(operation => operation === 'approve-plan'
+          ? h('button', { type: 'button', className: 'cli-action-cancel', disabled,
+            'aria-expanded': current.planOpen, 'aria-controls': `${id}-approval`,
+            onClick: () => ui.set(value => ({ ...value, planOpen: !value.planOpen, preview: null })) }, 'Review / approve plan')
+          : h('div', {},
+          h('button', { type: 'button', className: operation === 'run' ? 'cli-action-confirm' : 'cli-action-cancel',
             disabled: disabled || !authorized(operation), onClick: () => preview(operation) },
           operation === 'run' ? 'Review next run' : labels[operation]),
-          current.status?.capabilities?.[operation]?.reason ? h('p', { className: 'modernization-description' },
+          !authorized(operation) && current.status?.capabilities?.[operation]?.reason ? h('p', { className: 'modernization-description' },
             current.status.capabilities[operation]?.reason) : null
-        )),
-        h('button', { type: 'button', className: 'cli-action-confirm', disabled,
-          onClick: () => ui.set(value => ({ ...value, planOpen: !value.planOpen, preview: null })) }, 'Review / approve plan'),
-        h('a', { href: '#page-campaign-issues?campaign=modernization' }, 'Retained reports'),
-        h('a', { href: '#page-campaign-runs?campaign=modernization' }, 'Run history')
+        ))
+      ),
+      h('div', { className: 'modernization-footer' },
+        h('nav', { className: 'modernization-links', 'aria-label': 'Modernization evidence' },
+          h('a', { href: '#page-campaign-issues?campaign=modernization' }, 'Retained reports'),
+          h('a', { href: '#page-campaign-runs?campaign=modernization' }, 'Run history')),
+        h('details', { className: 'modernization-help', open: current.helpOpen,
+          onToggle: (/** @type {Event} */ event) => {
+            const open = /** @type {HTMLDetailsElement} */ (event.target).open;
+            if (open !== ui.get().helpOpen) ui.set(value => ({ ...value, helpOpen: open }));
+          } },
+        h('summary', {}, 'Scope and safeguards'),
+        h('p', {}, 'Assess → review and approve a concrete plan → run the next batch → verify. Every write needs a fresh native policy check and your confirmation.'),
+        h('p', {}, 'Repository suggestions come from retained inventory, not authorization. Review is the default; live mode cannot exceed checked-in policy.'))
       ),
       current.status ? h('div', { className: 'modernization-current' },
         h('p', {}, h('strong', {}, 'Current check: '), current.status.status, ' · ', current.status.controlRepository,
@@ -186,7 +201,7 @@ export function renderModernizationControls(context) {
         externalLink(current.status.links?.issuesUrl, 'Inspect issues'), ' ',
         externalLink(current.status.links?.pullRequestsUrl, 'Inspect pull requests')
       ) : null,
-      current.planOpen ? h('div', { className: 'modernization-plan' },
+      current.planOpen ? h('div', { id: `${id}-approval`, className: 'modernization-plan' },
         h('h4', {}, 'Concrete plan approval'),
         h('p', {}, 'Paste or import the concrete engagement JSON. The native operator validates scope, exact baselines, specialists and dependencies. Confirmation publishes only the reviewed plan, never policy or rollout changes.'),
         current.status?.capabilities?.['approve-plan']?.reason ? h('p', { className: 'modernization-description' },
@@ -208,7 +223,7 @@ export function renderModernizationControls(context) {
           h('textarea', { id: `${id}-plan`, value: current.planText, rows: 10, disabled: current.busy, spellcheck: false,
             onInput: (/** @type {Event} */ event) => ui.set(value => ({ ...value,
               planText: /** @type {HTMLTextAreaElement} */ (event.target).value, preview: null })) })),
-        h('button', { type: 'button', className: 'cli-action-confirm',
+        h('button', { type: 'button', className: 'cli-action-cancel',
           disabled: disabled || !current.planText.trim() || !authorized('approve-plan'), onClick: () => preview('approve-plan') }, 'Review approval')
       ) : null,
       reviewed ? h('section', { className: 'modernization-preview', 'aria-label': 'Review Modernization action' },
@@ -225,7 +240,7 @@ export function renderModernizationControls(context) {
         h('div', { className: 'modernization-action-bar' },
           h('button', { type: 'button', className: 'cli-action-confirm',
             disabled: disabled || current.expired || reviewed.canExecute !== true, onClick: confirm }, labels[reviewed.action ?? 'run']),
-          h('button', { type: 'button', className: 'cli-action-confirm', disabled: current.busy,
+          h('button', { type: 'button', className: 'cli-action-cancel', disabled: current.busy,
             onClick: () => ui.set(value => ({ ...value, preview: null, message: 'Preview dismissed. Nothing was dispatched or published.' })) }, 'Dismiss')
         )
       ) : null,
