@@ -1,35 +1,7 @@
 {
   "source_sha": "dc5ce588fc46e19690b460f25e9d514d72f441eb",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T17:35:35Z",
-      "worker_run_id": "43919444308",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "43766933236",
-        "43768376457",
-        "43780290464",
-        "43781088986",
-        "43781377358",
-        "43789359390",
-        "43792211504",
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708",
-        "43877103800"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 comparable successes (18 push + 1 schedule 43810351164). gh run list 17:35Z: same 20 IDs, none newer, none queued or in progress; source ac6d75b = HEAD = source_sha. Queue (created to build start) median 3 s, p90 5 s; one 64 s outlier (43832040488 behind in-flight 43831980991, latency only). Exec (build start to deploy end) median 76 s, p90 129 s; 15 percent gate 11.4 s and 60 s absolute not met. Concurrency documentation-pages with cancel-in-progress false kept: protects in-flight Pages deploys; superseded pending run 43832015521 cancelled after 12 s with no compute; burst finding unchanged. Avoidable rebuilds: every window push except test-only 5b8b842 (43780290464) touches build-consumed paths (build.mjs copies dashboard/site/src and dashboard-fragments); test-only saving about 4 s per run averaged, below gates. Daily 05:23Z schedule (43810351164, exec 63 s) refreshes synthetic dates and is not skippable without a freshness change. No suggestion. Open #20815 (blobless checkout; checkout median 25 s, 33 percent of exec) is the only threshold-clearing candidate, already tracked, not repeated. next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T17:54:40Z",
       "worker_run_id": "43922348549",
@@ -55,7 +27,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z), including cancelled 43832015521 (excluded and disclosed): 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list 17:53Z: same 20 IDs, none newer, none queued or in progress. Source ac6d75b = HEAD = source_sha (non-trigger since 0cfeed6). Dependency phase (setup-node + install + post) recomputed from stored run_timings rows, no refetch: median 13 s, p90 18 s = 17.1 percent of exec median 76 s; 15 percent gate 11.4 s not met; install median 8 s. Cache: main key node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57Z, 263 MB), last accessed 17:50Z; post step 0-1 s in 19/19 (hit inferred; logs API not used). node_modules restore est 3-6 s net, unmeasured, below gate; npm ci cannot be skipped. Open #20815 (checkout) verified OPEN, 0 comments, updated 2026-11-13; other category, not repeated. No suggestion; next_category advanced to Astro documentation generation.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z), including cancelled 43832015521 (excluded and disclosed): 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list 17:53Z: same 20 IDs, none newer, none queued  [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -83,7 +55,7 @@
         "43862265708",
         "43877103800"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164); gh run list 18:21Z shows no newer run. Stored Jobs-API rows reused; spot-check 43814432358 matched (Build documentation 11 s). Build documentation step (astro build + validate-agent-docs + agent-docs-discovery test): median 11 s, p90 15 s, 14.5 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met. Ceiling: removing the whole step saves at most 11 s, below gate, and it contains validation and tests that cannot be dropped. Output reuse rejected: PUBLIC_PAGES_BUILD_COMMIT=github.sha is embedded in output, so cross-commit reuse publishes stale provenance. Partial Astro caching unmeasured and bounded by the same ceiling. Sub-step split unavailable (job logs API HTTP 403). No open issue for this category; open #20815 is checkout (different category). No suggestion; noop; next_category advanced to reusable dashboard generation.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164); gh run list 18:21Z shows no newer run. Stored Jobs-API rows reused; spot-check 43814432358 matched (Build docum [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -111,7 +83,7 @@
         43862265708,
         43877103800
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766019418 (push eccbdd6) excluded by the 20-run cap rule; window 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164); 0 failures; gh run list re-read 18:35Z: no newer docs run, none in progress. Source ac6d75b = local HEAD = source_sha. Stored run_timings rows reused (immutable); Jobs API spot-check of 43877103800 matched (demo step 5 s, build docs 11 s, exec 73 s). Demo step (dashboard:pages:build -> simulate-dashboard-pages.mjs -> buildDashboardSite, then cp to dist/cao) median 5 s, p90 6 s, max 8 s = 6.6 percent of exec median 76 s; ceiling 5 s vs gate 11.4 s and 60 s absolute not met. Reuse blocked by simulate-dashboard-pages.mjs:78 now=Date.now() and daily 05:23Z refresh. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766019418 (push eccbdd6) excluded by the 20-run cap rule; window 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164); 0 failures; gh run list re-read 18:35Z: no n [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -139,7 +111,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 18:55Z: no newer docs run, none queued or in progress. Source ac6d75b = local HEAD = source_sha; no docs trigger since 0cfeed6. Transfer phase (deploy handoff 5 s + Configure Pages 0 s + Upload artifact 2 s + deploy Set up job 1 s) recomputed from stored transfer_model rows, no refetch: median 8 s, p90 10 s = 10.5 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met; ceiling saving 8 s. Deploy Pages (GitHub-managed, median 7 s) excluded; merging deploy into build saves about 6 to 8 s but removes the Pages environment and id-token boundary. Open #20815 (checkout, other category) not repeated. No suggestion; noop. next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 18:55Z: no newer docs run, none queued or in progress. [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -167,7 +139,7 @@
         43768376457,
         43766933236
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 19:17Z: no docs run queued or in progress (only stale queued 37642403569, created 2026-10-07, outside window). Compare API 0cfeed6..ac6d75b: 1 commit (#21058), files outside docs.yml paths filter, so no new docs run expected; source_sha = HEAD ac6d75b. Stored immutable run_timings rows recomputed: queue median 3 s, p90 5 s (one 64 s outlier 43832040488 behind in-flight 43831980991); exec median 76 s, p90 129 s; 15 percent gate 11.4 s and 60 s gate not met. Concurrency (cancel-in-progress false) protects in-flight Pages deploys and already coalesces superseded pending runs; cancel-in-progress true saves about 0 s of median. Avoidable rebuilds: 17 of 18 push commits touch build-consumed paths; only test-only push 5b8b842 (43780290464) qualifies, about 4 s per run averaged; below gates. Daily 05:23Z schedule (43810351164, 63 s) refreshes synthetic dates and is required. Checkout (median 25 s) stays with open issue 20815 (not duplicated). No suggestion; noop; next_category advanced to dependency installation and caching.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed. gh run list at 19:17Z: no docs run queued or in progress (only stale queued 3764240 [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -195,7 +167,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list 19:31Z: no newer docs run, none queued or in progress. Source ac6d75b = HEAD = source_sha (non-trigger since 0cfeed6). Dependency phase (setup-node + install + post) from stored run_timings rows, no refetch: median 13 s, p90 18 s = 17.1 percent of exec median 76 s; 15 percent gate 11.4 s not met; setup-node median 3 s, install median 8 s, post median 0 s. Jobs API spot-check of 43877103800 matched (setup-node 6 s, install 8 s, post 0 s). Cache: key node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57Z, last accessed 19:28Z); hit inferred from post step 0-1 s; no miss in window. Lock history via commits API: root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56Z), before the cache entry was created. Whole-phase removal unreachable (npm ci required); node_modules restore est 3-6 s net, unmeasured, below gate. Open #20815 is checkout (other category, OPEN, updated 2026-11-13); not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list 19:31Z: no newer docs run, none queued or in progress. So [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -223,7 +195,7 @@
         "43862265708",
         "43877103800"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 success (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list at evaluation shows no newer docs run, none queued or in progress (stale queued 37642403569 outside window). Source ac6d75b = HEAD = source_sha; compare 0cfeed6...ac6d75b changes 6 files outside docs trigger paths (scripts/generate-session-query-lowering-cases.mjs, server/internal/sessionarchive/*, specs/session-archive-grader-queries.md). Build documentation step (astro build && validate-agent-docs && agent-docs-discovery test) recomputed from immutable rows: median 11 s, p90 15 s, 14.5 percent of exec median 76 s; gate 11.4 s (15 percent) and 60 s not met; whole-step removal ceiling 11 s, so no Astro-only change can qualify. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Not repeated. Next: reusable dashboard generation.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 success (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list at evaluation shows no newer docs run, none queued or in progress (stale queued 376 [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -251,7 +223,7 @@
         "43862265708",
         "43877103800"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failures; gh run list at evaluation: no docs run newer than 43877103800, none queued or in progress; stale queued 37642403569 outside window. Source ac6d75b = HEAD = source_sha (unchanged). Category: Build synthetic enterprise demo step (npm run dashboard:pages:build -> simulate-dashboard-pages.mjs -> buildDashboardSite; no separate dashboard job exists) median 5 s, p90 6 s, max 8 s = 6.6 percent of exec median 76 s (exec p90 129 s); 15 percent gate = 11.4 s and 60 s absolute not met even at 100 percent ceiling (5 s). Jobs API spot-check of 43877103800 matched stored row (demo 5 s, exec 73 s). Reuse blocked: simulate-dashboard-pages.mjs defaults now to Date.now() and the daily 05:23Z schedule refreshes synthetic dates. Open issue 20815 (blobless checkout) unchanged; not re-proposed. next_category advanced to artifact transfer and Pages packaging.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failures; gh run list at evaluation: no docs run newer than 43877103800, none queued or in  [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -279,7 +251,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 success (18 push, 1 schedule 43810351164), 0 failed; gh run list at 20:34Z: no newer docs run, none queued or in progress. Source ac6d75b = HEAD = source_sha; compare 0cfeed6...ac6d75b is 1 commit with no docs trigger path (scripts/generate-session-query-lowering-cases.mjs, server/internal/sessionarchive/*, specs/session-archive-grader-queries.md). Live Jobs API spot-check of 43877103800, 43840581457, 43814432358 matched stored transfer_model rows (handoff 5/6/5 s, upload 2/3/3 s, exec 73/132/120 s). Recomputed from stored rows: removable phase (deploy handoff + Configure Pages + Upload artifact + deploy Set up job) median 8 s, p90 10 s = 10.5 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met; ceiling saving 8 s. Deploy Pages (GitHub-managed, median 7 s) excluded; merging deploy into build saves about 6 s and removes the pages write and id-token boundary. Open issue 20815 (blobless checkout, checkout median 25 s) verified OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not duplicated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded and disclosed; 19 success (18 push, 1 schedule 43810351164), 0 failed; gh run list at 20:34Z: no newer docs run, none queued or in progress. Source a [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -307,7 +279,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164). gh run list at 20:52Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = local HEAD = source_sha. Queue median 3 s, p90 5 s, one 64 s outlier (43832040488 behind in-flight 43831980991). Exec median 76 s, p90 129 s; 15 percent gate 11.4 s and 60 s gate not met. Group documentation-pages is used only by docs.yml; cancel-in-progress false protects in-flight Pages deploys; pending-slot coalescing already active (43832015521). Test-only push 5b8b842 (1 of 19) removal saves about 4 s per run on average (0 s median); not re-opened. Schedule 43810351164 is the required synthetic-date refresh. Largest step (checkout median 25 s) is already tracked by open issue 20815 (OPEN, 0 comments); not re-proposed. Next category: dependency installation and caching.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164). gh run list at 20:52Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = local [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -335,7 +307,7 @@
         "43862265708",
         "43877103800"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; 0 failed; gh run list at 21:1xZ shows no docs run queued or in progress and none newer than 43877103800. Source ac6d75b = HEAD = source_sha (unchanged). Jobs API spot-check of 43877103800 matched stored rows (checkout 23, setup 6, install 8, build docs 11, demo 5, upload 2, deploy job 9 s); no ETag returned. Cache: node-cache-Linux-x64-npm-7808ecf8 entry live (263412733 B, created 2026-11-13T20:57Z, ref main; caches API last_accessed 21:15Z); post Set up Node.js 0-1 s in 19/19 (inferred hit). Setup+install+post median 13 s (p90 18) = 17.1% of exec median 76 s (p90 129); gate 11.4 s (15%) and 60 s absolute not met. Whole phase not removable (npm ci still required); node_modules cache restore est 3-6 s net, unmeasured, below gate. Watch items unchanged. Not actionable.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; 0 failed; gh run list at 21:1xZ shows no docs run queued or in progress and none newer than 4 [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -363,7 +335,7 @@
         "43862265708",
         "43877103800"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 21:32Z: no newer docs run, none queued or in progress (only stale 37642403569, 2026-10-07). Source ac6d75b = HEAD = source_sha; compare 0cfeed6...ac6d75b changes no docs.yml-triggering path. Build documentation step (astro build + validate-agent-docs + agent-docs-discovery test): strict median 11 s, p90 15 s (14.5 percent of exec median 76 s); push-only n=18 median 11.5 s, p90 15 s (14.7 percent of exec median 78 s). 15 percent gate 11.4 s and 60 s gate not met; whole-step removal ceiling 11 s is below gate, so no Astro-only change can qualify without dropping validation. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Checkout bottleneck covered by open #20815 (not re-proposed). Next: reusable dashboard generation.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); 19 successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded; gh run list 21:32Z: no newer docs run, none queued or in progress (only stale 37642403569, 2026-10-07). Sourc [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -391,7 +363,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164), 0 failed; gh run list 21:53Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = HEAD = source_sha (unchanged). Demo step (Build synthetic enterprise demo; no dashboard job exists) recomputed from stored run_timings rows: median 5 s, p90 6 s, max 8 s = 6.6 percent of exec median 76 s; 15 percent gate 11.4 s and 60 s absolute not met; whole-step removal ceiling 5 s. Jobs API spot-check of 43877103800 matched (demo 5 s, build docs 11 s, exec 73 s). Reuse blocked: simulate-dashboard-pages.mjs:78 defaults now to Date.now(); daily 05:23Z schedule refresh required; dist/cao deployed. Open #20815 (checkout, other category) verified OPEN, 0 comments, unchanged; not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164), 0 failed; gh run list 21:53Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b =  [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -419,7 +391,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164); none queued or in progress; no newer docs run at evaluation. Source ac6d75b = source_sha; no docs-path push since 0cfeed6 (compare checked 20:52Z). Transfer phase recomputed from stored immutable Jobs API rows (no refetch); live Jobs API spot-check of 43877103800 matched exactly (handoff 5, configure 0, upload 2, deploy setup 1, Deploy Pages 7, exec 73). Removable (handoff + Configure Pages + upload + deploy Set up job) median 8 s, p90 10 s, max 10 s = 10.5% of exec median 76 s (p90 129 s); gate 60 s or 15% = 11.4 s not met. Artifact github-pages about 9.2 MB; upload median 2 s, so compression cannot reach gate. Deploy Pages 7 s median is GitHub-managed. Rejected: merging deploy into build (saves about 6 s and removes environment gate and id-token split); dropping Configure Pages (0 s); compressing artifact (at most 2 s). Next category: scheduling, concurrency, and avoidable rebuilds.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164); none queued or in progress; no newer docs run at evaluation. Source ac6d75b = source_sha; no  [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -447,7 +419,7 @@
         43862265708,
         43877103800
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 comparable successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded. gh run list at 2026-11-16T22:34:20Z: no newer docs run, none queued or in progress. Source ac6d75b = HEAD = source_sha; compare 0cfeed6...ac6d75b is 1 commit touching no docs.yml trigger path (no run expected). Recomputed from immutable run_timings rows (no refetch): queue median 3 s, p90 5 s, max 64 s (latency only); exec median 76 s, p90 129 s. Concurrency group serialises with cancel-in-progress false (deliberate Pages ordering); removing queue time saves 0 s at median. Schedule run 43810351164 (63 s) is the required synthetic-date refresh. Avoidable rebuilds: 1 of 19 runs test-only (5b8b842, 76 s); removal saves 0 s median and about 4 s per window run; 60 s and 15 percent (11.4 s) gates not met; watch item unchanged. Next: dependency installation and caching.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); 19 comparable successes (18 push, 1 schedule 43810351164); cancelled 43832015521 excluded. gh run list at 2026-11-16T22:34:20Z: no newer docs run, none queued or in progress [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -475,7 +447,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 22:52Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = HEAD = source_sha (1 non-trigger commit ahead of 0cfeed6). Dependency phase (setup-node + install + post) recomputed from stored immutable run_timings rows: median 13 s, p90 18 s = 17.1% of exec median 76 s; 15% gate 11.4 s; 60 s gate not met. Cache node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57Z, 263412733 B, last accessed 22:44Z); post step 0-1 s in 19/19 rows (exact hit inferred). Root and dashboard/site package-lock.json last changed 2026-11-13T20:56Z, so no cache-key change. Removing the whole install step saves at most 8 s median (below gate); npm ci cannot be skipped; node_modules restore est. 3-6 s net, unmeasured. Dashboard-only lock cache-key coverage stays a watch item with no current effect. Open #20815 (checkout, other category) OPEN, 0 comments, unchanged; not repeated. Next: Astro documentation generation.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 22:52Z: no docs run newer than 43877103800, none queued or in progre [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -503,7 +475,7 @@
         "43862265708",
         "43877103800"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164), 0 failed. gh run list at 23:15Z: no newer docs run, none queued or in progress; main = ac6d75b = source_sha. Build documentation step (docs.yml line 51; npm run docs:build = astro build && validate-agent-docs && agent-docs-discovery test) recomputed from stored immutable run_timings rows: median 11 s, p90 15 s, 14.5% of exec median 76 s; 15% gate 11.4 s and 60 s gate not met. Jobs API spot-check of 43877103800 matched (Build documentation 11 s). Whole-step ceiling 11 s and would drop validation and discovery test; output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT at docs/components/SiteFooter.astro:9, enforced at scripts/validate-agent-docs.mjs:571). Next: reusable dashboard generation.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 success (18 push, 1 schedule 43810351164), 0 failed. gh run list at 23:15Z: no newer docs run, none queued or in progress; main = ac6d75b  [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -531,7 +503,7 @@
         "43862265708",
         "43877103800"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 2026-11-16T23:35:29Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = HEAD = source_sha (unchanged). Dashboard generation = Build synthetic enterprise demo step (npm run dashboard:pages:build -> simulate-dashboard-pages.mjs; docs workflow has no dashboard job), recomputed from stored run_timings rows (no refetch): median 5 s, p90 6 s, max 8 s = 6.6 percent of exec median 76 s (p90 129 s). 15 percent gate 11.4 s and 60 s absolute not met; whole-step ceiling 5 s. Rejected: skipping (scripts/simulate-dashboard-pages.mjs:78 defaults now=Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed); running demo in parallel with docs build saves at most 5 s (below gate); separate dashboard job re-pays checkout (median 25 s) plus setup and install (about 11 s). Open #20815 (blobless checkout, other category) OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not repeated; no duplicate created. Next: artifact transfer and Pages packaging.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 2026-11-16T23:35:29Z: no docs run newer than 43877103800, none queue [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -559,7 +531,7 @@
         "43768376457",
         "43766933236"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 2026-11-16T23:54:30Z: no docs run newer than 43877103800, none queued or in progress. Source ac6d75b = HEAD = source_sha (unchanged). Removable handoff+configure+upload+deploy setup recomputed from stored transfer_model rows (no refetch): median 8 s, p90 10 s, max 10 s = 10.5 percent of exec median 76 s (p90 129 s); 15 percent gate 11.4 s and 60 s absolute not met. Deploy Pages (GitHub-managed, median 7 s) excluded. Ceiling of merging build and deploy jobs is about 6 s (handoff plus deploy setup) and changes the environment-scoped deploy job boundary; artifact compression is about 1 s at 2 s median upload. Checkout (median 25 s) is outside this category and already tracked by open #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); not repeated, no duplicate created. Next: scheduling, concurrency, and avoidable rebuilds.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z); cancelled 43832015521 excluded; 19 successes (18 push, 1 schedule 43810351164), 0 failed; gh run list at 2026-11-16T23:54:30Z: no docs run newer than 43877103800, none queue [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -588,7 +560,7 @@
         "43877103800",
         "43987917606"
       ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed non-cancelled docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43987917606 (push 139ce75, created 2026-11-17T00:28Z); 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 and 43766019418 (outside cap) excluded. gh run list: no docs run queued or in progress. Compare 0cfeed6..139ce75 = 2 commits: ac6d75b (non-trigger) and 139ce75 (build-consumed via docs/**, astro.config.mjs, dashboard/site/src); docs.yml unchanged since 063cbe9. Queue (run created to build start) median 3.5 s, p90 5 s, max 64 s (43832040488 behind in-flight 43831980991; latency only). Exec (build start to deploy end) median 77.5 s, p90 120 s; new run 43987917606 = 79 s. cancel-in-progress false preserved; 0 in-flight builds superseded. Avoidable rebuilds: only test-only run 5b8b842 (76 s) in window, about 3.8 s per run averaged; 15 percent gate 11.6 s and 60 s gate not met. Daily 05:23Z schedule refresh is intentional. Checkout covered by open #20815; not repeated. Next: dependency installation and caching.",
+      "outcome": "complete, not actionable. Window: strict latest 20 completed non-cancelled docs.yml runs 43766933236 (push e75f80a, created 2026-11-15T22:01Z) to 43987917606 (push 139ce75, created 2026-11-17T00:28Z); 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 and 43766019418 (outside cap) excluded. gh run list: no docs run queued or in progress. Co [truncated]",
       "suggestion_fingerprint": null
     },
     {
@@ -671,7 +643,8 @@
         43992363367,
         43993695761
       ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43798031034 (push 4121d56, created 2026-11-16T03:24Z) to 43993695761 (push b737e3c, created 2026-11-17T01:11Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 43810351164), 0 failed. gh run list at 01:32Z: no docs run newer than 43993695761, none queued or in progress. Source 98f489f = source_sha (unchanged). Dashboard generation = 'Build synthetic enterprise demo' step (npm run dashboard:pages:build, then cp to dist/cao): median 5 s, p90 6 s, max 8 s (n=18), 6.5 percent of exec median 77.5 s. Jobs API spot-check of 43993695761 matched stored row (demo 3 s; checkout 21 s; build docs 10 s). Ceiling if the whole step were removed = 5 s, below the 15 percent gate (11.6 s) and the 60 s gate. Reuse still blocked (scripts/simulate-dashboard-pages.mjs defaults now to Date.now(); daily 05:23Z schedule; dist/cao published). No dashboard job exists. Open issue 20815 (checkout) not repeated. Next: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43798031034 (push 4121d56, created 2026-11-16T03:24Z) to 43993695761 (push b737e3c, created 2026-11-17T01:11Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 43810351164), 0 failed. gh run list at 01:32Z: no docs run newer than 43993695761, none queued or in progress. Source 98f489f = source_sha (unchanged). Dashboard generation = 'Build synthetic enterprise demo' step (npm run dashboard:pages:build, then cp to dist/cao): median 5 s, p90 6 s, max 8 s (n=18), 6.5 percent of exec median 77.5 s. Jobs API spot-check of 43993695761 matched stored row (demo 3 s; checkout 21 s; build docs 10 s). Ceiling if the whole step were removed = 5 s, below the 15 percent gate (11.6 s) and the 60 s gate. Reuse still blocked (scripts/simulate-dashboard-pages.mjs defaults now to Date.now(); daily 05:23Z schedule; dist/cao published). No dashboard job exists. Open issue 20815 (checkout) not repeated. Next: artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     },
     {
       "evaluated_at": "2026-11-17T01:54:01Z",
@@ -833,6 +806,33 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43810351164 (schedule, 2026-11-16T05:27Z) to 44004300647 (push 7b85edf, created 2026-11-17T02:36Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule), 0 failed; gh run list 03:34Z: none queued or in progress. Source dc5ce58 = HEAD = source_sha; compare 7b85edf..dc5ce58 touched only server/ files (no docs trigger path), so no docs run expected. Transfer phase (deploy handoff + Configure Pages + Upload artifact + deploy Set up job) from stored transfer_model rows plus Jobs API for 44004300647 (handoff 6, configure 0, upload 2, deploy setup 1, exec 79): median 9 s, p90 10 s, max 10 s = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate not met; ceiling saving 9 s. Deploy Pages (GitHub-managed, median 7 s) excluded; merging deploy into build saves about 9 s but removes the github-pages environment and id-token boundary, rejected. Artifact github-pages 9315324 B (run 44004300647). Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T03:54:11Z",
+      "worker_run_id": "44012785677",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "43810351164",
+        "43814432358",
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43810351164 (schedule 2026-11-16T05:27Z) .. 44004300647 (push 7b85edf 2026-11-17T02:36Z); cancelled 43991812013 (no jobs, coalesced while pending) and 43832015521 excluded; 18 successes (17 push, 1 schedule), 0 failed. gh run list at evaluation: no newer docs run, none queued or in progress. Source dc5ce58 = HEAD = source_sha. Queue median 4 s, p90 15 s, max 64 s (43832040488 behind in-flight 43831980991). Exec median 79 s, p90 120 s; 15 percent gate 11.85 s and 60 s absolute not met. Concurrency documentation-pages cancel-in-progress false kept: 0 in-flight builds superseded in window; cancel-in-progress true saves about 0 s. Path filter: 13 missing head commits fetched once (REST) and classified; 18 of 18 head commits touch build-consumed paths; 0 test-only pushes (prior watch item not triggered); shared/policy.mjs is imported by dashboard/site/scripts/build.mjs, so the shared/** trigger is consumed. Daily 05:23Z schedule (43810351164, 63 s) refreshes Date.now()-based synthetic dates; skipping it weakens freshness, rejected. Stale queued workflow_run 37642403569 (2026-10-07) outside window; housekeeping only. Open #20815 (checkout) not re-proposed (checkout median 25 s unchanged; other category). No suggestion; noop; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1656,21 +1656,21 @@
     "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
   },
   "scheduling_verified": {
-    "verified_at": "2026-11-17T02:25:04Z",
-    "window": "latest 20 completed docs.yml runs 43798031034..43993695761; cancelled 43991812013 and 43832015521 excluded; 18 successes",
-    "method": "stored immutable run_timings rows recomputed; Jobs API spot-check of 43991770179, 43991897672, 43993695761",
+    "verified_at": "2026-11-17T03:54:11Z",
+    "window": "latest 20 completed docs.yml runs 43810351164..44004300647; cancelled 43991812013 and 43832015521 excluded; 18 successes",
+    "method": "stored immutable run_timings rows recomputed (no refetch); cancelled 43991812013 confirmed no jobs via gh run view",
     "queue_s": {
       "median": 4,
       "p90_nearest_rank": 15,
       "max": 64
     },
     "exec_build_start_to_deploy_end_s": {
-      "median": 77.5,
+      "median": 79,
       "p90_nearest_rank": 120
     },
-    "concurrency": "cancel-in-progress false kept; pending supersession already coalesces; 0 in-flight builds superseded in window",
-    "avoidable_rebuilds": "0 of 18 window runs test-only; test-only 5b8b842 (43780290464) outside window",
-    "decision": "not actionable (no saving meets 60 s or 15 percent of median exec, 11.6 s)"
+    "concurrency": "cancel-in-progress false kept; 0 in-flight builds superseded in window",
+    "avoidable_rebuilds": "0 of 18 window head commits test-only (see path_filter_verified)",
+    "decision": "not actionable (no saving meets 11.85 s or 60 s)"
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-17T02:37:01Z",
@@ -1724,5 +1724,30 @@
     "finding": "Sequential, non-superseding builds: each in-flight run finished before the next started; 43832015521 cancelled while pending at 12 s (no compute); 43832040488 waited 64 s behind in-flight 43831980991 (latency only).",
     "candidate_considered": "build-stage cancel-in-progress true with deploy-stage cancel false",
     "decision": "rejected for this window: no in-flight build was superseded, so execution-time saving is about 0 s; would add deploy-safety risk for latency only"
+  },
+  "path_filter_verified": {
+    "verified_at": "2026-11-17T03:54:11Z",
+    "method": "gh api commits/<sha> file lists; commits immutable, fetched once; trigger paths from docs.yml on.push.paths",
+    "window_head_classification": {
+      "4121d56": "build-consumed (schedule head; earlier verified)",
+      "dbf9df7": "build-consumed",
+      "2fdf4a0": "build-consumed",
+      "f343b8b": "build-consumed",
+      "fa5faeb": "build-consumed (docs/**)",
+      "17a3b7a": "build-consumed",
+      "70f59d2": "build-consumed",
+      "f0e71a1": "build-consumed",
+      "fade88d": "build-consumed",
+      "1a03d21": "build-consumed (docs/**)",
+      "0cfeed6": "build-consumed",
+      "139ce75": "build-consumed (docs/**, dashboard/site/src, astro.config.mjs)",
+      "b601783": "build-consumed",
+      "be0c06f": "build-consumed (docs/**)",
+      "51facb5": "build-consumed",
+      "105be55": "build-consumed (docs/styles/branding.css)",
+      "b737e3c": "build-consumed",
+      "7b85edf": "build-consumed"
+    },
+    "avoidable_pushes_in_window": 0
   }
 }
