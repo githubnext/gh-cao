@@ -102,3 +102,69 @@ describe('safe-output lifecycle model', () => {
     });
   });
 });
+
+describe('safe-output lifecycle debug logging', () => {
+  const base = {
+    id: 'output:secret-id', repositoryId: 'repository:1', workflowId: 'workflow:1', runId: 'run:1',
+    safeOutputType: 'create_issue', deliveryState: 'delivered', deliverySignal: 'safe_output.result',
+    ruleVersion: 'v1', adoptionState: 'pending', adoptionSignal: 'human_decision_pending',
+    adoptionObservedAt: '2026-11-15T10:00:00Z', adoptionSource: 'adoption-registry'
+  };
+
+  /** @param {string} search */
+  async function loadWithSearch(search) {
+    window.history.replaceState({}, '', search);
+    vi.resetModules();
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const module = await import('../../src/data/model/safe-output-lifecycle.js');
+    return { debug, module };
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('stays silent without a matching debug category', async () => {
+    const { debug, module } = await loadWithSearch('/?debug=other-category');
+    expect(() => module.mergeOutputLifecycle(base, { ...base, safeOutputType: 'add_comment' })).toThrow(TypeError);
+    expect(debug).not.toHaveBeenCalled();
+  });
+
+  it.each(['?debug=safe-output-lifecycle:*', '?debug=safe-output-lifecycle:merge-conflict', '?debug=1'])(
+    'logs only the conflicting field label for %s',
+    async (search) => {
+      const { debug, module } = await loadWithSearch(`/${search}`);
+      const incoming = { ...base, safeOutputType: 'secret-type', targetUrl: 'https://example.test/secret' };
+      expect(() => module.mergeOutputLifecycle(base, incoming)).toThrow(
+        'output lifecycle output:secret-id has conflicting safeOutputType'
+      );
+      expect(debug).toHaveBeenCalledTimes(1);
+      expect(debug).toHaveBeenCalledWith(
+        '[cao:safe-output-lifecycle:merge-conflict]',
+        { event: 'merge-conflict', conflict: 'safeOutputType' }
+      );
+      const logged = JSON.stringify(debug.mock.calls);
+      expect(logged).not.toContain('secret');
+      expect(logged).not.toContain('example.test');
+    }
+  );
+
+  it('logs evidence conflicts without evidence values', async () => {
+    const { debug, module } = await loadWithSearch('/?debug=safe-output-lifecycle:*');
+    const left = { ...base, adoptionState: 'accepted' };
+    const right = { ...base, adoptionState: 'rejected' };
+    expect(() => module.mergeOutputLifecycle(left, right)).toThrow('conflicting adoption evidence');
+    expect(debug).toHaveBeenCalledWith(
+      '[cao:safe-output-lifecycle:merge-conflict]',
+      { event: 'merge-conflict', conflict: 'adoption evidence' }
+    );
+    expect(JSON.stringify(debug.mock.calls)).not.toContain('rejected');
+  });
+
+  it('does not log successful merges', async () => {
+    const { debug, module } = await loadWithSearch('/?debug=1');
+    expect(module.mergeOutputLifecycle(base, { ...base })).toMatchObject({ id: base.id });
+    expect(debug).not.toHaveBeenCalled();
+  });
+});
