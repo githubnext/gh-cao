@@ -1,36 +1,7 @@
 {
   "source_sha": "dc5ce588fc46e19690b460f25e9d514d72f441eb",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-16T17:20:17Z",
-      "worker_run_id": "43916474925",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585",
-        "43829639369",
-        "43825070138",
-        "43814432358",
-        "43810351164",
-        "43798031034",
-        "43792211504",
-        "43789359390",
-        "43781377358",
-        "43781088986",
-        "43780290464",
-        "43768376457",
-        "43766933236",
-        "43766019418"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 43766019418 (push eccbdd6, created 2026-11-15T21:51Z) to 43877103800 (push 0cfeed6, created 2026-11-16T13:34Z): 19 push + 1 schedule 43810351164, all success; cancelled 43832015521 excluded; gh run list 17:19Z: no newer docs run, none queued or in progress. HEAD ac6d75b is a non-trigger change. Transfer phase (deploy handoff 5 s + Configure Pages 0 s + Upload artifact 2 s + deploy setup 1 s) median 8 s, p90 10 s, max 10 s = 10.3% of exec median 78 s; 15% gate 11.7 s and 60 s gate not met; ceiling saving 8 s. Deploy Pages (GitHub-managed, median 7 s) excluded; merging deploy into build saves about 6 s and weakens the Pages environment and permission boundary. Stored rows recomputed; Jobs API spot-check of 43877103800 matched. Open #20815 (checkout) is another category, not re-proposed. Next: scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-16T17:35:35Z",
       "worker_run_id": "43919444308",
@@ -836,6 +807,33 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43810351164 (schedule, 2026-11-16T05:27Z) to 44004300647 (push 7b85edf, created 2026-11-17T02:36Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule), 0 failed. gh run list at 03:21Z: no newer docs run, none queued or in progress. HEAD dc5ce58 is 2 commits past 7b85edf (3b429f4, dc5ce58) touching only server/ files, outside docs.yml path filter (compare API). Stored immutable run_timings rows recomputed, no refetch; Jobs API spot-check of 44004300647 matched (demo 6 s). Build synthetic enterprise demo step median 5 s, p90 6 s, max 8 s = 6.3 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s absolute not met even at 100 percent removal (ceiling 5 s). Reuse still blocked: scripts/simulate-dashboard-pages.mjs:78 now=Date.now() and daily 05:23Z refresh; dist/cao deployed. Checkout (median 25 s, 33 percent) remains tracked by OPEN #20815 (0 comments, updated 2026-11-13), not repeated. Next: artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T03:35:32Z",
+      "worker_run_id": "44010778578",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "43810351164",
+        "43814432358",
+        "43825070138",
+        "43829639369",
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43810351164 (schedule, 2026-11-16T05:27Z) to 44004300647 (push 7b85edf, created 2026-11-17T02:36Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule), 0 failed; gh run list 03:34Z: none queued or in progress. Source dc5ce58 = HEAD = source_sha; compare 7b85edf..dc5ce58 touched only server/ files (no docs trigger path), so no docs run expected. Transfer phase (deploy handoff + Configure Pages + Upload artifact + deploy Set up job) from stored transfer_model rows plus Jobs API for 44004300647 (handoff 6, configure 0, upload 2, deploy setup 1, exec 79): median 9 s, p90 10 s, max 10 s = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate not met; ceiling saving 9 s. Deploy Pages (GitHub-managed, median 7 s) excluded; merging deploy into build saves about 9 s but removes the github-pages environment and id-token boundary, rejected. Artifact github-pages 9315324 B (run 44004300647). Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1278,8 +1276,8 @@
     ]
   },
   "transfer_model": {
-    "verified_at": "2026-11-17T01:55:00Z",
-    "window": "43798031034 (push 4121d56, 2026-11-16T03:24Z) .. 43993695761 (push b737e3c, 2026-11-17T01:11Z); 18 completed non-cancelled successes: 17 push + 1 schedule 43810351164; cancelled 43991812013 and 43832015521 excluded; 6 newest rows from Jobs API 2026-11-17T01:5xZ, others reused (immutable)",
+    "verified_at": "2026-11-17T03:35:32Z",
+    "window": "43810351164 (schedule, 2026-11-16T05:27Z) .. 44004300647 (push 7b85edf, 2026-11-17T02:36Z); 18 completed non-cancelled successes; cancelled 43991812013 and 43832015521 excluded; 1 new row from Jobs API 2026-11-17T03:3xZ, others reused (immutable); 43798031034 dropped",
     "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
     "columns": [
       "run",
@@ -1294,18 +1292,6 @@
       "exec_s"
     ],
     "rows": [
-      [
-        "43798031034",
-        "push",
-        5,
-        1,
-        2,
-        0,
-        7,
-        9,
-        8,
-        67
-      ],
       [
         "43810351164",
         "schedule",
@@ -1509,16 +1495,28 @@
         9,
         10,
         64
+      ],
+      [
+        "44004300647",
+        "push",
+        6,
+        0,
+        2,
+        1,
+        7,
+        11,
+        9,
+        79
       ]
     ],
     "summary": {
-      "removable_median_s": 8,
+      "removable_median_s": 9,
       "removable_p90_s": 10,
       "removable_max_s": 10,
-      "exec_median_s": 78,
+      "exec_median_s": 79,
       "exec_p90_s": 120,
-      "removable_pct_of_exec_median": 10.3,
-      "gate_15pct_s": 11.7,
+      "removable_pct_of_exec_median": 11.4,
+      "gate_15pct_s": 11.85,
       "gate_60s_absolute": "not met"
     },
     "reverified_note": "Window rolled to 43877103800 (0cfeed6): Jobs API rows added for 43862265708 (handoff 5, configure 0, upload 2, deploy setup 1, exec 80) and 43877103800 (handoff 5, configure 0, upload 2, deploy setup 1, exec 73); 18 stored rows reused; 43757990961 and 43756384109 dropped. Spot-check 43854851689 recomputed from Jobs API matched stored row (removable 8, exec 76). Artifact github-pages 9233422 B (run 43854851689). Re-evaluated 2026-11-16T15:43Z: window unchanged (no newer docs run); rows reused, decision unchanged. Re-evaluated 2026-11-16T23:54:30Z by worker 43982721721: window unchanged (no newer docs run since 43877103800); stored rows recomputed (median 8 s, p90 10 s); decision unchanged (not actionable).",
@@ -1563,7 +1561,8 @@
       "removable_pct_of_exec_median": 10.5,
       "gate_15pct_s": 11.4,
       "decision": "not actionable"
-    }
+    },
+    "evaluated_note": "2026-11-17T03:35:32Z worker 44010778578: window rolled to 44004300647; decision unchanged (not actionable); removable median 9 s, p90 10 s."
   },
   "commit_paths": {
     "verified_at": "2026-11-16T02:26:27Z",
