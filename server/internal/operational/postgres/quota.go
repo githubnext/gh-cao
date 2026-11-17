@@ -222,10 +222,10 @@ func (s *Store) ReleaseGitHubQuota(ctx context.Context, bucket, id string) (bool
 		return false, operational.GitHubQuotaState{}, err
 	}
 	var released bool
-	state, err := s.updateQuota(ctx, bucket, func(q *quota) error {
+	state, err := s.updateQuota(ctx, bucket, func(q *quota) (bool, error) {
 		_, released = q.Reservations[id]
 		delete(q.Reservations, id)
-		return nil
+		return released, nil
 	})
 	return released && err == nil, state, err
 }
@@ -235,25 +235,29 @@ func (s *Store) ParkGitHubQuota(ctx context.Context, bucket string, until time.T
 		return false, operational.GitHubQuotaState{}, invalid("invalid parking time or reason")
 	}
 	var extended bool
-	state, err := s.updateQuota(ctx, bucket, func(q *quota) error {
+	state, err := s.updateQuota(ctx, bucket, func(q *quota) (bool, error) {
 		until = until.Truncate(time.Millisecond)
 		if until.After(q.State.ParkedUntil) {
 			q.State.ParkedUntil, q.State.ParkReason = until, reason
 			extended = true
 		}
-		return nil
+		return extended, nil
 	})
 	return extended && err == nil, state, err
 }
 
 func (s *Store) UnparkGitHubQuota(ctx context.Context, bucket string) (operational.GitHubQuotaState, error) {
-	return s.updateQuota(ctx, bucket, func(q *quota) error {
+	return s.updateQuota(ctx, bucket, func(q *quota) (bool, error) {
+		changed := !q.State.ParkedUntil.IsZero() || q.State.ParkReason != ""
 		q.State.ParkedUntil, q.State.ParkReason = time.Time{}, ""
-		return nil
+		return changed, nil
 	})
 }
 
-func (s *Store) updateQuota(ctx context.Context, bucket string, change func(*quota) error) (operational.GitHubQuotaState, error) {
+// updateQuota persists the bucket only when change reports a mutation, so a
+// no-op release, unpark or parking extension never creates or rewrites a
+// protected record, matching the memory and Redis adapters.
+func (s *Store) updateQuota(ctx context.Context, bucket string, change func(*quota) (bool, error)) (operational.GitHubQuotaState, error) {
 	if err := quotaNames(bucket); err != nil {
 		return operational.GitHubQuotaState{}, err
 	}
@@ -263,15 +267,20 @@ func (s *Store) updateQuota(ctx context.Context, bucket string, change func(*quo
 		if err != nil {
 			return err
 		}
-		if err := change(&q); err != nil {
+		changed, err := change(&q)
+		if err != nil {
 			return err
 		}
-		if err := t.saveQuota(bucket, q); err != nil {
-			return err
+		if changed {
+			if err := t.saveQuota(bucket, q); err != nil {
+				return err
+			}
+			if q, err = t.quota(bucket); err != nil {
+				return err
+			}
 		}
-		q, err = t.quota(bucket)
 		state = q.State
-		return err
+		return nil
 	})
 	return state, err
 }
