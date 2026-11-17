@@ -29,7 +29,7 @@ The built-in dashboard keeps its shared query foundations and its controls, repo
 
 1. The activity action collects bounded raw inventory and run evidence for operational artifacts. The collectors under `dashboard/report/` retain evidence acquisition and normalization, not dashboard query projections.
 2. Operational artifacts contain `inventory-sources.json`, normalized run and record JSONL shards and their `payload-hashes.json` manifest, not database files. Production and local development use the same Go/PostgreSQL boundary.
-3. Pages instead generates synthetic enterprise raw samples through production normalization, then the data Web Worker incrementally ingests them into canonical IndexedDB. It has no operational input, SQLite download, agent summary, or live services.
+3. Pages instead runs its synthesizer on demand in the browser data Web Worker. It generates 1,000,000 repositories, three campaigns, and 200 installed agentic workflows across selected repositories, passing raw samples through production normalization and incremental canonical IndexedDB ingestion in bounded batches. The build pregenerates no sample snapshots. It has no operational input, SQLite download, agent summary, or live services.
 4. Dashboard Language queries in `src/data/queries/database.json` and the composed dashboard document perform selection, joins, aggregation, and projection at the production data-layer boundary. Supplied report rows cannot override canonical producers; undeclared sources are unavailable.
 5. The renderer loads the active page declaration and subscribes to its query payload with an abort-scoped lifetime. Database updates refresh the active view; only requested sources cross the worker boundary.
 
@@ -37,7 +37,7 @@ All profiles execute the same canonical Dashboard Language definitions and
 shared views. The Pages demo is not presenter fixtures: its declarative
 **Synthetic enterprise demo** callout on Overview accompanies a full canonical
 pipeline without a site-wide notification.
-Demo data files live under `demo-data/`, not root `payload-hashes.json`;
+The demo source namespace remains under `demo-data/`, not root `payload-hashes.json`;
 browser storage keys use `synthetic-demo` and service-worker caches use
 `demo`. The changed URLs prevent old same-origin cached real data from being
 selected. Operational downloaders require an explicit direct manifest URL or
@@ -52,15 +52,15 @@ The Ingestion page identifies browser-local IndexedDB or server PostgreSQL stora
 
 Work-item queries rank runs by canonical `startedAt`, falling back to `createdAt`, then break ties by run identity and attempt. Inventory observation times are not Run timestamps.
 
-Add `?online=1` to the dashboard URL to require fresh network responses for the page, its assets, and dashboard data instead of falling back to the service worker's offline cache. The worker bypasses the browser HTTP cache for these requests and redownloads unchanged activity shards during automatic data updates; if the network is unavailable, requests fail rather than showing cached files. Removing the parameter restores offline fallback.
+Add `?online=1` to the dashboard URL to require fresh network responses for the page and its assets instead of falling back to the service worker's offline cache. If the network is unavailable, requests fail rather than showing cached files. Removing the parameter restores offline fallback. Demo evidence is generated locally, not downloaded as activity shards.
 
 The service worker caches dashboard JavaScript only while the dashboard is open as a pinned/installed app (standalone or minimal-ui display mode, including iOS Home Screen apps). Regular browser tabs fetch JavaScript from the network and never fall back to the app's cached scripts, even when an installed app is open alongside them. App-mode detection runs inline before the dashboard module loads so offline startup also works after the worker restarts; this browser lifecycle behavior is outside Dashboard Language.
 
 Once the installed app has cached its assets successfully, the synthetic demo
-shell, JavaScript, and page chunks are available offline. Previously downloaded
-demo data remains in local storage; data never downloaded is unavailable offline.
-On data-saving or slow connections, eligible cached files are preferred and
-automatic downloads are deferred. `?clear-app=1` or **Clear app** in Settings
+shell, JavaScript, and page chunks are available offline. Compatible completed
+demo data remains in IndexedDB; synthesis needs no enterprise-data download.
+On data-saving or slow connections, eligible cached files are preferred.
+`?clear-app=1` or **Clear app** in Settings
 clears the app's scoped storage before reopening (network access is then required).
 
 Redeploying the demo replaces current Pages artifacts, not historical

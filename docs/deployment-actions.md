@@ -84,18 +84,22 @@ npm run dashboard:pages:build
 npm run dashboard:pages -- --base-path /gh-cao/
 ```
 
-The builder generates synthetic enterprise raw samples and applies production
-normalization and canonical ingestion. It accepts no real-data input option.
+The builder publishes the dashboard and synthesizer without pregenerating sample
+inventory or run/detail files. The browser data worker generates raw synthetic
+enterprise samples on demand, using production normalization and canonical
+IndexedDB ingestion in bounded batches. Compatible completed browser samples
+are reused. The builder accepts no real-data input option.
 The output includes no SQLite snapshot or operational agent summary. A
 declarative **Synthetic enterprise demo** callout identifies the sample, and
-data lives under `demo-data/`, not a root manifest. Browser storage keys use
+the demo source namespace remains under `demo-data/`, not a root manifest. Browser storage keys use
 the `synthetic-demo` suffix and service-worker caches use `demo`.
 New data URLs prevent old same-origin service-worker caches from returning
 previous real-data payloads.
 
-The enterprise sample includes two campaigns and standalone workflows across
-12 repositories, with a reproducible probabilistic run population spanning two
-weeks. Repository-specific activity rates, weekday/weekend seasonality and
+The enterprise sample includes 1,000,000 repositories, three campaigns, and 200
+installed agentic workflows across selected repositories, with a reproducible
+probabilistic run population spanning three weeks.
+Repository-specific activity rates, weekday/weekend seasonality and
 bursty Poisson run arrivals produce quiet periods and busy services. Each
 repository/workflow pair has persistent activity, failure, output, acceptance,
 and resolution traits. Some workflows produce no outputs over the sample

@@ -40,6 +40,8 @@ import { cliQueueOperation, cliQueueEnabled, configureCliQueue, isCliQueueQuery,
 import { createGitHubDataService } from './data/github-service.js';
 import { isGitHubQuerySource, githubSnapshotSource } from './data/github-query-sources.js';
 import { queryCalloutVisibility } from './data/queries/callouts.js';
+import { DEMO_MODE } from './deployment-profile.js';
+import { synthesizeEnterpriseDemo, syntheticMemoryManifest, syntheticMemoryContent } from './data/demo/synthesis.js';
 
 const debugIngestion = createDebug('data:ingestion');
 const debugPerformance = createDebug('data:performance');
@@ -408,11 +410,11 @@ async function queryRepositoryMemory(request, signal) {
         && memoryRoot.origin !== globalThis.location.origin)) {
     throw new Error('Repository-memory root must be same-origin.');
   }
-  const manifestResponse = await fetch(new URL('manifest.json', memoryRoot), {
+  const manifestResponse = DEMO_MODE ? null : await fetch(new URL('manifest.json', memoryRoot), {
     cache: 'no-store', credentials: 'same-origin', signal
   });
-  if (!manifestResponse.ok) throw new Error(`Manifest request returned ${manifestResponse.status}.`);
-  const manifest = await manifestResponse.json();
+  if (manifestResponse && !manifestResponse.ok) throw new Error(`Manifest request returned ${manifestResponse.status}.`);
+  const manifest = DEMO_MODE ? syntheticMemoryManifest(campaignIds) : await manifestResponse?.json();
   if (manifest?.version !== 1 || !Array.isArray(manifest.campaigns)) {
     throw new Error('Repository-memory manifest is invalid.');
   }
@@ -432,6 +434,7 @@ async function queryRepositoryMemory(request, signal) {
   const filePath = repositoryMemoryPath(request.path);
   const file = campaign.files.find((entry) => entry.path === filePath);
   if (!file) throw new Error('Memory file path is invalid.');
+  if (DEMO_MODE) return syntheticMemoryContent(campaignId, filePath);
   const campaignRoot = new URL(`${encodeURIComponent(campaignId)}/`, memoryRoot);
   const fileUrl = new URL(filePath.split('/').map(encodeURIComponent).join('/'), campaignRoot);
   if (fileUrl.origin !== memoryRoot.origin || !fileUrl.href.startsWith(campaignRoot.href)) {
@@ -1018,7 +1021,8 @@ export function processDataRequest(request, signal) {
       dashboardIngestionCount += 1;
       const progress = startIngestionProgress(
         undefined,
-        typeof request.id === 'number' ? request.id : undefined
+        typeof request.id === 'number' ? request.id : undefined,
+        DEMO_MODE ? { detailsSubtitle: 'Generating synthetic enterprise evidence locally in this browser. Completed batches are reused; no dashboard data is downloaded.' } : undefined
       );
       /** @type {typeof fetch} */
       const ingestionFetch = (input, init) => fetch(input, { ...init, signal: init?.signal ?? signal });
@@ -1031,6 +1035,16 @@ export function processDataRequest(request, signal) {
         inFlightDashboardSources.set(request.id, sources);
       }
       try {
+        if (DEMO_MODE) {
+          if (!sourceUrl.pathname.endsWith('/demo-data/')) throw new TypeError('Synthetic demo requires its isolated data namespace.');
+          progress.log('Synthesizing 1,000,000 repositories, 3 campaigns and 200 installed agentic workflows locally.');
+          const demo = await synthesizeEnterpriseDemo(indexedDB, {
+            signal, storage: globalThis.navigator?.storage,
+            onProgress: (completed, total) => progress.reportImportProgress(completed, total, 'inventory'),
+          });
+          sources = demo.sources;
+          changed = demo.changed;
+        } else {
         progress.log(activity ? 'Loading ingestion metadata.' : 'Downloading dashboard source data.');
         sources = activity ? {} : await loadDashboardSources(ingestionFetch, sourceUrl.href, {
           onShardLoaded: ({ name, sizeBytes, cacheStatus }) => {
@@ -1339,6 +1353,7 @@ export function processDataRequest(request, signal) {
             ? 'Dashboard source data is already current.'
             : `Dashboard ingestion committed ${ingestion.committedRecords} canonical records.`);
           progress.reportImportProgress(2, 3, 'queries');
+        }
         }
         if (signal?.aborted) throw new DashboardQueryCancelledError('data ingestion was cancelled', 'aborted');
         progress.log('Refreshing active dashboard queries.');

@@ -222,12 +222,15 @@ discovers a legacy dashboard bundle or bootstraps empty operational evidence.
 
 Production uses the same-origin Go/PostgreSQL host. Local development uses the
 same Go handler, PostgreSQL adapters and declarative views. Pages is only a
-synthetic enterprise demo: generated raw samples pass
+synthetic enterprise demo: raw samples generated on demand in the browser pass
 through production normalization, canonical ingestion, worker queries, and the
 same views. It has no real-data input option, SQLite download, agent summary, or
 live services. Its declarative **Synthetic enterprise demo** Overview callout identifies
-the evidence. Browser download, ingestion, persistence, and queries run in a
-dedicated Web Worker. Demo data URLs are under `demo-data/`, not the former
+the evidence. Synthesis, ingestion, persistence, and queries run in a
+dedicated Web Worker, in bounded batches rather than downloading a pregenerated
+enterprise snapshot. The sample contains 1,000,000 repositories, three campaigns,
+and 200 installed agentic workflows across selected repositories.
+The demo source namespace remains under `demo-data/`, not the former
 root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
 service-worker caches use `demo`. Changing data URLs as well as storage keys
 prevents old same-origin service-worker responses from supplying real evidence.
@@ -294,9 +297,10 @@ against explicitly configured PostgreSQL storage; `serve-hosted` retains the rev
 PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared synthetic Pages
 artifact unchanged, including repository base paths, so the browser exercises
 IndexedDB rather than the hosted HTTP backend. The local Pages preparation
-command, `npm run dashboard:pages:build`, generates synthetic enterprise raw
-samples and runs production normalization and Dashboard building. It accepts no
-operational snapshot input and publishes neither SQLite nor agent summaries.
+command, `npm run dashboard:pages:build`, builds the Dashboard and its browser
+synthesizer without pregenerating sample evidence. Browser synthesis uses
+production normalization and canonical ingestion. The builder accepts no
+operational snapshot input and publishes neither data shards, SQLite nor agent summaries.
 `npm run dashboard:pages` remains a demo-only preview. Daily `docs.yml` builds
 refresh the demo independently of operational collection or artifact freshness.
 

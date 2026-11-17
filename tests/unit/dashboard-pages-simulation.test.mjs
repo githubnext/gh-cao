@@ -3,23 +3,51 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
-import { Readable } from "node:stream";
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import {
   assertSafePagesOutput, parsePagesArguments, prepareDashboardPages,
 } from "../../scripts/simulate-dashboard-pages.mjs";
-import { ingestCachedGhAwJsonl, ingestDashboardSources, ingestNormalizedJsonl } from "../../dashboard/site/src/data/ingest/coordinator.js";
-import { enterpriseSample } from "../../scripts/dashboard-demo-data.mjs";
+import { ingestCachedGhAwJsonl, ingestDashboardSources, ingestDashboardSourceBatches } from "../../dashboard/site/src/data/ingest/coordinator.js";
+import { enterpriseDemo, enterpriseRepositorySources, enterpriseSample } from "../../scripts/dashboard-demo-data.mjs";
+import { demoSha256 } from "../../dashboard/site/src/data/demo/hash.mjs";
 import { loadDashboardSourceSync } from "../../dashboard/report/bundle-dashboards.mjs";
 import { queryDatabaseSources } from "../../dashboard/site/src/data/queries/database.js";
 import { compileDashboardViewPayloadQueries } from "../../dashboard/site/src/data/queries/view-payload-compiler.js";
 import { processDataRequest } from "../../dashboard/site/src/data-worker.js";
 import { readCollection } from "../../dashboard/site/src/data/storage/indexeddb.js";
-import { relationshipErrors } from "../../dashboard/site/src/data/model/schema.js";
 import { isExpiredCanonicalRecord } from "../../dashboard/site/src/data/storage/retention.js";
 
 const root = path.resolve(".");
+
+test("browser sample SHA-256 matches standard UTF-8 hashing across block boundaries", () => {
+  for (const input of ["", "abc", "👩🏽‍💻 synthetic enterprise", "a".repeat(55), "b".repeat(64), "c".repeat(1_000)]) {
+    assert.equal(demoSha256(input), createHash("sha256").update(input).digest("hex"));
+  }
+});
+
+test("bounded raw repository inventory uses production normalization and preserves earlier batches", async () => {
+  const indexedDB = new IDBFactory();
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  async function* batches() {
+    yield enterpriseRepositorySources(0, 100, now);
+    yield enterpriseRepositorySources(100, 100, now);
+  }
+  const result = await ingestDashboardSourceBatches(indexedDB, batches());
+  assert.equal(result.committedRecords, 200);
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 200);
+  const controller = new AbortController();
+  async function* aborted() {
+    yield enterpriseRepositorySources(200, 100, now);
+    controller.abort();
+    yield enterpriseRepositorySources(300, 100, now);
+  }
+  await assert.rejects(ingestDashboardSourceBatches(indexedDB, aborted(), { signal: controller.signal }), /abort/i);
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 300);
+  await ingestDashboardSourceBatches(indexedDB, batches());
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 300, "replay upserts rather than duplicating");
+  assert.deepEqual([enterpriseDemo.repositories, enterpriseDemo.campaigns, enterpriseDemo.installedWorkflows], [1_000_000, 3, 200]);
+});
 
 test("enterprise distributions are reproducible, seasonal and uneven rather than one run per workflow per day", () => {
   for (const date of ["2040-06-15T12:00:00Z", "2040-06-17T23:59:00Z", "2040-06-20T00:00:00Z"]) {
@@ -203,7 +231,7 @@ test("Pages output refuses repository paths, unowned data, and symlink ancestors
   assert.equal(await readFile(path.join(directory, "keep.txt"), "utf8"), "important");
 });
 
-test("sample-only build produces verified canonical enterprise data and no operational exports", { timeout: 120_000 }, async (t) => {
+test("data-free build leaves browser samples to production canonical ingestion, without operational exports", { timeout: 120_000 }, async (t) => {
   const directory = await workspace(t);
   const output = path.join(directory, "site");
   const now = Date.parse("2040-06-15T12:00:00.000Z");
@@ -224,32 +252,17 @@ test("sample-only build produces verified canonical enterprise data and no opera
   const html = await readFile(path.join(output, "index.html"), "utf8");
   assert.match(html, /dashboard-deployment" content="synthetic-demo"/);
   assert.match(html, /connect-src 'self'/);
-  const data = path.join(output, "demo-data");
-  const inventory = JSON.parse(await readFile(path.join(data, "inventory-sources.json"), "utf8"));
+  assert.ok(!names.includes("demo-data"), "build must not pregenerate demo data or manifests");
+  const sample = enterpriseSample(now, { count: enterpriseDemo.installedRepositories });
+  const inventory = sample.sources;
   assert.equal(inventory.workflows.metadata["source-kind"], "synthetic");
   assert.equal(inventory.workflows.metadata["as-of"], new Date(now).toISOString());
-  const manifest = JSON.parse(await readFile(path.join(data, "payload-hashes.json"), "utf8"));
   const indexedDB = new IDBFactory();
   await ingestDashboardSources(indexedDB, inventory, { now, deferMaintenance: true });
-  const records = {};
-  // Use the canonical production boundary, including run-before-detail ingestion.
-  const shards = Object.entries(manifest).sort(([a], [b]) =>
-    Number(b.startsWith("gh-aw-logs-runs/")) - Number(a.startsWith("gh-aw-logs-runs/")) || a.localeCompare(b));
-  for (const [name, expected] of shards) {
-    assert.match(name, /^gh-aw-logs-(?:runs|records)\/[^/]+\.jsonl$/);
-    const bytes = await readFile(path.join(data, name));
-    assert.equal(createHash("sha256").update(bytes).digest("hex"), expected);
-    for (const entry of bytes.toString().trim().split("\n").map(line => JSON.parse(line))) {
-      if (entry.kind === "record") (records[entry.collection] ??= []).push(entry.record);
-    }
-    await ingestNormalizedJsonl(indexedDB, Readable.from([bytes]), {
-      payloadIdentity: expected, payloadScope: name, now, deferMaintenance: true,
-      expectedPhase: name.startsWith("gh-aw-logs-runs/") ? "runs" : "records",
-    });
-  }
-  assert.deepEqual(relationshipErrors(records), []);
+  await ingestCachedGhAwJsonl(indexedDB, sample.records.map(record => JSON.stringify(record)).join("\n"), { now });
   const runs = await readCollection(indexedDB, "runs");
-  assert.equal(runs.length, marker.runs);
+  assert.equal(runs.length, sample.runs);
+  assert.equal(marker.repositories, 1_000_000);
   const dashboardDocument = loadDashboardSourceSync(path.join(root, "dashboard/site/dashboard.json")).document.dashboard;
   const overview = dashboardDocument.pages.find(page => page.id === "overview");
   const rhythmQuery = compileDashboardViewPayloadQueries(overview, "overview", {
@@ -267,8 +280,9 @@ test("sample-only build produces verified canonical enterprise data and no opera
   assert.equal(rhythm.rows[0].rhythm.days.length, 7);
   assert.ok(rhythm.rows[0].rhythm.days.some(day => day.current > 0), "current week has visible bars");
   assert.ok(rhythm.rows[0].rhythm.days.every(day => day.previous > 0), "last week has visible bars");
-  assert.equal((await readCollection(indexedDB, "repositories")).length, 12);
-  assert.equal((await readCollection(indexedDB, "workflows")).length, 48);
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 50);
+  assert.equal((await readCollection(indexedDB, "workflows")).length, 200);
+  assert.equal((await readCollection(indexedDB, "campaigns")).length, 3);
   const expectedOutputs = new Map();
   const lifecycleByUrl = new Map();
   for (const { run } of enterpriseSample(now).records.filter(record => record.kind === "run")) {
@@ -299,8 +313,7 @@ test("sample-only build produces verified canonical enterprise data and no opera
   for (const field of ["agentVersion", "modelId", "engine", "duration", "aicTotal", "inputTokens", "outputTokens"]) {
     assert.ok(runs.every(run => run[field] !== undefined && run[field] !== null && run[field] !== ""), `run.${field}`);
   }
-  const memory = JSON.parse(await readFile(path.join(data, "memory/manifest.json"), "utf8"));
-  assert.equal(memory.campaigns.length, 2);
+  assert.equal(sample.memory.length, 3);
   assert.ok(runs.some(run => run.conclusion === "failure"));
   assert.ok(runs.every(run => run.id.includes("sample-enterprise/")));
   const tools = await readCollection(indexedDB, "tools");

@@ -213,8 +213,13 @@ with shared Dashboard Language accounting, retains request evidence needed by
 run-page views, and drops unused inventory and generic proxy events.
 
 The activity shard manifest describes operational artifact input. The Pages
-demo generates equivalent synthetic input through the production normalizer;
-it never downloads that operational manifest. The canonical ingestion expression
+demo instead generates synthetic raw input on demand in the browser data worker,
+using the production normalizer and bounded canonical ingestion.
+Its default population is 1,000,000 repositories, three campaigns, and 200
+installed agentic workflows across selected repositories. The build publishes
+no pregenerated enterprise inventory or run/detail snapshot; compatible completed
+browser-local samples are reused. It never downloads an operational manifest.
+The canonical ingestion expression
 maps raw `workflow_runs` rows to Repository, Workflow, and Run observations.
 Enriched `run` envelopes update the same Run identities and create deterministic
 Domain, Tool, Audit, and Issue records owned by those Runs.
@@ -227,7 +232,7 @@ The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnex
 The canonical model is version 37. The browser database is
 logically `gh-aw-cao-dashboard-data`, IndexedDB version 50. Pages storage keys
 carry the `synthetic-demo` suffix and deployment scope; service-worker caches
-use `demo`. Demo payloads live under `demo-data/`, not the old root
+use `demo`. The demo source namespace remains under `demo-data/`, not the old root
 manifest URL, preventing old same-origin cached real data from being reused.
 Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,

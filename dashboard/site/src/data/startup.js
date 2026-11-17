@@ -334,7 +334,7 @@ export async function startDashboardData(options) {
   };
   configureSourceLoader(createBatchedSourceLoader(dashboardContext));
   const startAutomaticUpdates = () => {
-    if (usesRemoteDataBackend(document)) return;
+    if (DEMO_MODE || usesRemoteDataBackend(document)) return;
     stopAutomaticDataUpdates = startAutomaticDashboardDataUpdates([
       new URL("./payload-hashes.json", sourceUrl).href,
       sourceUrl,

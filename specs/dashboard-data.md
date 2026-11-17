@@ -436,9 +436,14 @@ through one Go/PostgreSQL origin. Local development SHALL use the same Go
 serving/query boundary and PostgreSQL storage, ingesting explicitly acquired
 operational artifacts. Neither profile SHALL fall back to Pages or browser ingestion.
 
-Pages SHALL contain only a synthetic enterprise sample. Its build SHALL
-generate raw sample evidence and pass it through the production normalization,
+Pages SHALL contain only a synthetic enterprise sample. Its browser data worker SHALL
+generate raw sample evidence on demand and pass it through the production normalization,
 canonical ingestion, Dashboard Language queries, and shared declarative views.
+Generation and writes SHALL be bounded rather than retaining the enterprise
+population in memory. The default sample SHALL contain 1,000,000 repositories,
+three campaigns, and 200 installed agentic workflows across selected repositories.
+The build SHALL publish the synthesizer, not pregenerated inventory or run/detail
+shards. Reopening the demo SHALL reuse completed, compatible browser-local data.
 It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
 a separate demo query implementation. A declarative **Synthetic enterprise demo**
 callout SHALL identify the sample; live services SHALL be unavailable.
@@ -458,7 +463,7 @@ No Actions workflow publishes an operational snapshot artifact; native
 Operational downloaders SHALL reject synthetic manifests and manifests without
 canonical shard checksums. No canvas acquisition or serving path is supported.
 
-The demo SHALL put data files under `demo-data/`, not root
+The demo SHALL keep its source namespace under `demo-data/`, not root
 `payload-hashes.json`, suffix browser storage keys with `synthetic-demo`,
 and use the `demo` service-worker cache namespace. Changed data URLs SHALL
 prevent reuse of real-data responses from old same-origin service-worker caches.
@@ -1432,10 +1437,12 @@ concurrent GitHub API pressure and reuse shared analysis state. The consolidated
 The `gh-aw-logs-shards/` directory SHALL retain the authoritative collection
 transport within the operational cache. Artifact publication SHALL provide
 compacted normalized run-information and record JSONL plus
-`payload-hashes.json`, as specified in §5. Pages SHALL generate equivalent
-transport solely from synthetic raw samples. Browsers SHALL use manifest
-identities to skip unchanged demo downloads and imports, and SHALL NOT fall
-back to raw source shards or operational artifacts.
+`payload-hashes.json`, as specified in §5. Pages SHALL instead generate raw
+synthetic samples locally in the browser worker and use the production
+normalization and canonical ingestion contracts without downloading a sample
+snapshot. The worker SHALL distinguish incomplete generation from a completed
+compatible sample, honor cancellation, and SHALL NOT fall back to operational
+artifacts.
 
 ### 5.4.1 Canonical join contract
 

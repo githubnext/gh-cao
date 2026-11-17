@@ -106,10 +106,14 @@ npm run dashboard:pages:build
 npm run dashboard:pages -- --base-path /gh-cao/
 ```
 
-Preparation generates synthetic enterprise raw samples through production
-Activity normalization, canonical ingestion, hashes, and Dashboard build steps.
-There is no real-data input option. Published output contains no SQLite snapshot
-or agent summary. It does not contact GitHub or simulate Actions permissions,
+Preparation builds the dashboard and browser synthesizer without pregenerating
+data files. On demand, the browser data worker generates 1,000,000 repositories,
+three campaigns, and 200 installed agentic workflows across selected repositories,
+using production normalization and canonical IndexedDB ingestion in bounded batches.
+Compatible completed samples are reused on subsequent visits.
+There is no real-data input option. Published output contains no inventory or
+run/detail snapshot, SQLite snapshot, or agent summary.
+It does not contact GitHub or simulate Actions permissions,
 caches/artifact transport, or Pages infrastructure.
 The existing Actions runtime simulator supports compiled dry-run agentic locks,
 not the ordinary Activity/Dashboard workflows' cache and artifact transport.
@@ -121,7 +125,7 @@ API, or fallback. Use `--site ../.tmp/OTHER` to select other prepared output.
 
 The declarative **Synthetic enterprise demo** callout on Overview identifies the
 sample without a site-wide notification.
-Data URLs live under `demo-data/`; browser storage keys use
+The demo source namespace remains under `demo-data/`; browser storage keys use
 `synthetic-demo` and service-worker caches use `demo`. Old same-origin
 real-data responses cannot be selected through the changed data URLs.
 IndexedDB, Web Worker, service-worker caching, and cross-adapter conformance
