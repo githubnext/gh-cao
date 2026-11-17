@@ -1375,6 +1375,27 @@
           "fields": [
             { "field": "accepted", "as": "observed-accepted" }
           ]
+        },
+        {
+          "source": "value-campaign-measurement-summary",
+          "type": "left",
+          "on": [
+            { "left": "campaign", "right": "campaign" }
+          ],
+          "fields": [
+            { "field": "worker-repositories", "as": "value-worker-repositories" },
+            { "field": "measurement-repositories", "as": "value-measurement-repositories" },
+            { "field": "measured-repositories", "as": "value-measured-repositories" },
+            { "field": "improving-repositories", "as": "value-improving-repositories" },
+            { "field": "worsening-repositories", "as": "value-worsening-repositories" },
+            { "field": "unchanged-repositories", "as": "value-unchanged-repositories" },
+            { "field": "mixed-repositories", "as": "value-mixed-repositories" },
+            { "field": "insufficient-repositories", "as": "value-insufficient-repositories" },
+            { "field": "value-diagnosis", "as": "value-diagnosis" },
+            { "field": "value-diagnosis-reason", "as": "value-diagnosis-reason" },
+            { "field": "value-coverage", "as": "value-coverage" },
+            { "field": "value-movement-summary", "as": "value-movement-summary" }
+          ]
         }
       ],
       "compute": [
@@ -1430,6 +1451,40 @@
             { "value": "No delivered output observed" },
             { "field": "adoption-blocker" }
           ]
+        },
+        {
+          "as": "known-value-diagnosis",
+          "function": "coalesce",
+          "args": [
+            { "field": "value-diagnosis" },
+            { "value": "Insufficient" }
+          ]
+        },
+        {
+          "as": "accepted-value-progression",
+          "function": "concat",
+          "args": [
+            { "value": "Accepted event · Value " },
+            { "field": "known-value-diagnosis" }
+          ]
+        },
+        {
+          "as": "delivered-progression",
+          "function": "if",
+          "args": [
+            { "field": "no-adoption" },
+            { "value": "Delivered · no accepted event" },
+            { "field": "accepted-value-progression" }
+          ]
+        },
+        {
+          "as": "evidence-progression",
+          "function": "if",
+          "args": [
+            { "field": "no-delivery" },
+            { "value": "No delivery evidence" },
+            { "field": "delivered-progression" }
+          ]
         }
       ],
       "select": [
@@ -1440,7 +1495,20 @@
         { "field": "pending" },
         { "field": "rejected-lifecycle" },
         { "field": "unknown-not-applicable" },
-        { "field": "first-blocker" }
+        { "field": "first-blocker" },
+        { "field": "value-worker-repositories" },
+        { "field": "value-measurement-repositories" },
+        { "field": "value-measured-repositories" },
+        { "field": "value-improving-repositories" },
+        { "field": "value-worsening-repositories" },
+        { "field": "value-unchanged-repositories" },
+        { "field": "value-mixed-repositories" },
+        { "field": "value-insufficient-repositories" },
+        { "field": "known-value-diagnosis", "as": "value-diagnosis" },
+        { "field": "value-diagnosis-reason" },
+        { "field": "value-coverage" },
+        { "field": "value-movement-summary" },
+        { "field": "evidence-progression" }
       ],
       "order-by": [
         { "field": "campaign-name", "direction": "asc" }
@@ -1574,6 +1642,58 @@
             {
               "field": "first-blocker",
               "as": "first-blocker"
+            },
+            {
+              "field": "value-worker-repositories",
+              "as": "value-worker-repositories"
+            },
+            {
+              "field": "value-measurement-repositories",
+              "as": "value-measurement-repositories"
+            },
+            {
+              "field": "value-measured-repositories",
+              "as": "value-measured-repositories"
+            },
+            {
+              "field": "value-improving-repositories",
+              "as": "value-improving-repositories"
+            },
+            {
+              "field": "value-worsening-repositories",
+              "as": "value-worsening-repositories"
+            },
+            {
+              "field": "value-unchanged-repositories",
+              "as": "value-unchanged-repositories"
+            },
+            {
+              "field": "value-mixed-repositories",
+              "as": "value-mixed-repositories"
+            },
+            {
+              "field": "value-insufficient-repositories",
+              "as": "value-insufficient-repositories"
+            },
+            {
+              "field": "value-diagnosis",
+              "as": "value-diagnosis"
+            },
+            {
+              "field": "value-diagnosis-reason",
+              "as": "value-diagnosis-reason"
+            },
+            {
+              "field": "value-coverage",
+              "as": "value-coverage"
+            },
+            {
+              "field": "value-movement-summary",
+              "as": "value-movement-summary"
+            },
+            {
+              "field": "evidence-progression",
+              "as": "evidence-progression"
             }
           ]
         }
@@ -1781,6 +1901,45 @@
         },
         {
           "field": "first-blocker"
+        },
+        {
+          "field": "value-worker-repositories"
+        },
+        {
+          "field": "value-measurement-repositories"
+        },
+        {
+          "field": "value-measured-repositories"
+        },
+        {
+          "field": "value-improving-repositories"
+        },
+        {
+          "field": "value-worsening-repositories"
+        },
+        {
+          "field": "value-unchanged-repositories"
+        },
+        {
+          "field": "value-mixed-repositories"
+        },
+        {
+          "field": "value-insufficient-repositories"
+        },
+        {
+          "field": "value-diagnosis"
+        },
+        {
+          "field": "value-diagnosis-reason"
+        },
+        {
+          "field": "value-coverage"
+        },
+        {
+          "field": "value-movement-summary"
+        },
+        {
+          "field": "evidence-progression"
         }
       ],
       "order-by": [

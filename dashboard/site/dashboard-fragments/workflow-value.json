@@ -1,41 +1,6 @@
 {
   "queries": [
     {
-      "name": "value-measurement-facts",
-      "subject": "Original native primary and diagnostic observations from reviewed batch evaluators.",
-      "objective": "Keep periods, native units, evaluator identity and missingness inspectable without inventing delivery events.",
-      "acceptance": "Null is unavailable, not zero. Interval measurements are not snapshots or cumulative accepted contributions.",
-      "from": "workflow-value-measurements",
-      "time": { "range": "all" },
-      "compute": [
-        { "as": "measurement-marker", "function": "literal", "args": [{ "value": 1 }] },
-        { "as": "measurement-missing", "function": "equals-any", "args": [{ "field": "value" }, { "value": null }] },
-        { "as": "known-measurement", "function": "concat", "args": [{ "field": "value" }, { "value": " " }, { "field": "metric-unit" }] },
-        { "as": "measurement-label", "function": "if", "args": [{ "field": "measurement-missing" }, { "value": "Not measured" }, { "field": "known-measurement" }] },
-        { "as": "measurement-context", "function": "concat", "args": [{ "field": "repository" }, { "value": " · " }, { "field": "workflow-name" }] }
-      ]
-    },
-    {
-      "name": "value-measurement-order",
-      "subject": "Latest assessment of each workflow measure, including unavailable assessments.",
-      "objective": "Do not let an older numeric value hide a newer incomplete period.",
-      "acceptance": "Choose latest cutoff and assessment before considering value or coverage; preserve evaluator digest.",
-      "from": "value-measurement-facts",
-      "window": [{
-        "operation": "change", "field": "measurement-marker", "as": "older-measurement", "mode": "absolute",
-        "groupby": ["repository", "workflow-route", "workflow-slug", "campaign", "value-id"],
-        "order-by": [{ "field": "window-end", "direction": "desc" }, { "field": "observed-at", "direction": "desc" }]
-      }]
-    },
-    {
-      "name": "value-current-measurements",
-      "subject": "Latest native primary measurements, separately from event-ledger reports.",
-      "objective": "Expose ordinary reviewed batch results on the same Value surface.",
-      "acceptance": "Do not infer healthy outcomes, accepted implementations or complete coverage from a non-null value.",
-      "from": "value-measurement-order",
-      "filter": { "predicates": [{ "field": "older-measurement", "equals": "unknown" }, { "field": "metric-role", "equals": "primary" }] }
-    },
-    {
       "name": "value-evidence-facts",
       "subject": "Published original evidence for frozen workflow value contracts.",
       "objective": "Keep report identity, target repository, workflow and capture together.",
@@ -408,7 +373,6 @@
       "from": "value-workflow-headlines",
       "compute": [
         { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
-        { "as": "headline-campaign", "function": "literal", "args": [{ "value": null }] },
         { "as": "headline-evidence", "function": "literal", "args": [{ "value": "Rich evidence retained" }] },
         { "as": "headline-unavailable", "function": "literal", "args": [{ "value": false }] },
         { "as": "headline-priority", "function": "literal", "args": [{ "value": 2 }] },
@@ -416,7 +380,7 @@
       ],
       "select": [
         { "field": "report-id", "as": "headline-id" }, { "field": "workflow-route" },
-        { "field": "repository-coordinate" }, { "field": "workflow-label" }, { "field": "headline-campaign" },
+        { "field": "repository-coordinate" }, { "field": "workflow-label" },
         { "field": "observed-at", "as": "headline-captured" }, { "field": "window-end", "as": "headline-cutoff" },
         { "field": "change-label", "as": "headline-trend-label" }, { "field": "movement", "as": "headline-trend-movement" },
         { "field": "snapshot-name", "as": "headline-trend-measure" }, { "field": "headline-evidence" },
@@ -426,14 +390,13 @@
     },
     {
       "name": "value-native-headline-overview",
-      "subject": "Native batch measurements normalized for universal Value subject selection.",
-      "objective": "Expose the current native result while keeping comparison unavailable unless a reviewed comparison exists.",
-      "acceptance": "A numeric measurement is not a trend or causal result. Missing remains unavailable and routes to workflow detail.",
+      "subject": "Native Operational Value movement normalized for universal Value subject selection.",
+      "objective": "Expose the latest-first Baseline, Improving, Worsening, Unchanged or Insufficient result.",
+      "acceptance": "Movement uses only comparable native periods. Missing or incomparable evidence stays Insufficient and routes to workflow detail.",
       "from": "value-native-headlines",
       "compute": [
         { "as": "workflow-label", "function": "coalesce", "args": [{ "field": "workflow-name" }, { "field": "workflow-slug" }] },
-        { "as": "headline-trend-movement", "function": "if", "args": [{ "field": "measurement-missing" }, { "value": "Measurement unavailable" }, { "value": "Native value retained" }] },
-        { "as": "headline-evidence", "function": "if", "args": [{ "field": "measurement-missing" }, { "value": "Latest assessment unavailable" }, { "value": "Native measurement retained" }] },
+        { "as": "headline-unavailable", "function": "equals-any", "args": [{ "field": "movement-state" }, { "value": "Insufficient" }] },
         { "as": "encoded-workflow", "function": "url-encode", "args": [{ "field": "workflow-route" }] },
         { "as": "headline-href", "function": "concat", "args": [{ "value": "#page-workflow-value?workflow=" }, { "field": "encoded-workflow" }] },
         { "as": "headline-priority", "function": "literal", "args": [{ "value": 1 }] }
@@ -441,11 +404,10 @@
       "select": [
         { "field": "id", "as": "headline-id" }, { "field": "workflow-route" },
         { "field": "repository", "as": "repository-coordinate" }, { "field": "workflow-label" },
-        { "field": "campaign", "as": "headline-campaign" },
         { "field": "observed-at", "as": "headline-captured" }, { "field": "window-end", "as": "headline-cutoff" },
-        { "field": "measurement-label", "as": "headline-trend-label" }, { "field": "headline-trend-movement" },
-        { "field": "metric-name", "as": "headline-trend-measure" }, { "field": "headline-evidence" },
-        { "field": "measurement-missing", "as": "headline-unavailable" },
+        { "field": "movement-label", "as": "headline-trend-label" }, { "field": "movement-state", "as": "headline-trend-movement" },
+        { "field": "metric-name", "as": "headline-trend-measure" }, { "field": "comparison-reason", "as": "headline-evidence" },
+        { "field": "headline-unavailable" },
         { "field": "headline-href" }, { "field": "headline-priority" }, { "field": "headline-marker" }
       ]
     },
@@ -528,7 +490,6 @@
           "fields": [
             { "field": "headline-id", "as": "headline-id" },
             { "field": "workflow-label", "as": "headline-workflow-label" },
-            { "field": "headline-campaign", "as": "headline-campaign" },
             { "field": "headline-captured", "as": "headline-captured" },
             { "field": "headline-cutoff", "as": "headline-cutoff" },
             { "field": "headline-trend-label", "as": "headline-trend-label" },
@@ -559,7 +520,7 @@
         { "as": "workflow-href", "function": "concat", "args": [{ "value": "#page-workflow-value?workflow=" }, { "field": "encoded-workflow" }] },
         { "as": "overview-href", "function": "if", "args": [{ "field": "headline-missing" }, { "field": "workflow-href" }, { "field": "headline-href" }] },
         { "as": "workflow-role", "function": "coalesce", "args": [{ "field": "declared-workflow-role" }, { "value": "unknown" }] },
-        { "as": "campaign", "function": "coalesce", "args": [{ "field": "declared-campaign" }, { "field": "headline-campaign" }] },
+        { "as": "campaign", "function": "literal", "args": [{ "field": "declared-campaign" }] },
         { "as": "campaign-name", "function": "coalesce", "args": [{ "field": "declared-campaign-name" }, { "field": "campaign" }] },
         { "as": "campaign-icon", "function": "coalesce", "args": [{ "field": "declared-campaign-icon" }, { "value": "goal" }] },
         { "as": "standalone-workflow", "function": "equals-any", "args": [{ "field": "workflow-role" }, { "value": "standalone" }] },
@@ -575,13 +536,16 @@
         { "as": "failed-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "failed" }] },
         { "as": "failed-value", "function": "if", "args": [{ "field": "failed-state" }, { "value": 1 }, { "value": 0 }] },
         { "as": "current-evidence-value", "function": "if", "args": [{ "field": "headline-missing" }, { "value": 0 }, { "value": 1 }] },
-        { "as": "worse-movement", "function": "equals-any", "args": [{ "field": "trend-movement" }, { "value": "Worse" }] },
+        { "as": "worse-movement", "function": "equals-any", "args": [{ "field": "trend-movement" }, { "value": "Worse" }, { "value": "Worsening" }] },
+        { "as": "insufficient-movement", "function": "equals-any", "args": [{ "field": "trend-movement" }, { "value": "Insufficient" }, { "value": "Measurement unavailable" }] },
         { "as": "attention-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "unconfigured" }, { "value": "deferred" }, { "value": "failed" }] },
         { "as": "state-or-missing-review", "function": "if", "args": [{ "field": "attention-state" }, { "value": true }, { "field": "headline-missing" }] },
-        { "as": "needs-review", "function": "if", "args": [{ "field": "worse-movement" }, { "value": true }, { "field": "state-or-missing-review" }] },
+        { "as": "state-or-evidence-review", "function": "if", "args": [{ "field": "insufficient-movement" }, { "value": true }, { "field": "state-or-missing-review" }] },
+        { "as": "needs-review", "function": "if", "args": [{ "field": "worse-movement" }, { "value": true }, { "field": "state-or-evidence-review" }] },
         { "as": "missing-attention-reason", "function": "if", "args": [{ "field": "headline-missing" }, { "value": "No retained Value result" }, { "value": "No review triggered" }] },
         { "as": "state-attention-reason", "function": "if", "args": [{ "field": "attention-state" }, { "field": "overview-reason" }, { "field": "missing-attention-reason" }] },
-        { "as": "attention-reason", "function": "if", "args": [{ "field": "worse-movement" }, { "value": "Measured outcome worsened" }, { "field": "state-attention-reason" }] },
+        { "as": "evidence-attention-reason", "function": "if", "args": [{ "field": "insufficient-movement" }, { "field": "overview-evidence" }, { "field": "state-attention-reason" }] },
+        { "as": "attention-reason", "function": "if", "args": [{ "field": "worse-movement" }, { "value": "Measured outcome worsened" }, { "field": "evidence-attention-reason" }] },
         { "as": "review-value", "function": "if", "args": [{ "field": "needs-review" }, { "value": 1 }, { "value": 0 }] }
       ],
       "order-by": [{ "field": "overview-title", "direction": "asc" }]
@@ -641,7 +605,7 @@
         { "as": "failed-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "failed" }] },
         { "as": "failed-value", "function": "if", "args": [{ "field": "failed-state" }, { "value": 1 }, { "value": 0 }] },
         { "as": "current-evidence-value", "function": "if", "args": [{ "field": "headline-incomplete" }, { "value": 0 }, { "value": 1 }] },
-        { "as": "worse-movement", "function": "equals-any", "args": [{ "field": "headline-trend-movement" }, { "value": "Worse" }] },
+        { "as": "worse-movement", "function": "equals-any", "args": [{ "field": "headline-trend-movement" }, { "value": "Worse" }, { "value": "Worsening" }] },
         { "as": "attention-state", "function": "equals-any", "args": [{ "field": "overview-state" }, { "value": "unconfigured" }, { "value": "deferred" }, { "value": "failed" }] },
         { "as": "state-or-missing-review", "function": "if", "args": [{ "field": "attention-state" }, { "value": true }, { "field": "headline-incomplete" }] },
         { "as": "needs-review", "function": "if", "args": [{ "field": "worse-movement" }, { "value": true }, { "field": "state-or-missing-review" }] },
@@ -698,23 +662,49 @@
     },
     {
       "name": "value-campaign-overview",
-      "subject": "Campaign Value coverage and attention presentation.",
-      "objective": "Find campaigns requiring evidence or outcome review before drilling into their workers.",
-      "acceptance": "Presentation fields derive only from bounded campaign deployment counts. No native outcome values are combined.",
-      "from": "value-campaign-totals",
+      "subject": "Campaign native Value movement, measured coverage and worker collection context.",
+      "objective": "Review repository-deduplicated movement before drilling into exact worker evidence.",
+      "acceptance": "All campaigns remain visible. Movement counts never average or sum unlike native measures, and worker collection gaps remain separate.",
+      "from": "value-campaign-measurement-summary",
+      "joins": [{
+        "source": "value-campaign-totals",
+        "type": "left",
+        "on": [{ "left": "campaign", "right": "campaign" }],
+        "fields": [
+          { "field": "value-deployments", "as": "observed-value-deployments" },
+          { "field": "value-repositories", "as": "observed-value-repositories" },
+          { "field": "configured-deployments", "as": "observed-configured-deployments" },
+          { "field": "current-evidence-deployments", "as": "observed-current-evidence-deployments" },
+          { "field": "missing-evidence-deployments", "as": "observed-missing-evidence-deployments" },
+          { "field": "unknown-deployments", "as": "observed-unknown-deployments" },
+          { "field": "unconfigured-deployments", "as": "observed-unconfigured-deployments" },
+          { "field": "deferred-deployments", "as": "observed-deferred-deployments" },
+          { "field": "failed-deployments", "as": "observed-failed-deployments" },
+          { "field": "review-deployments", "as": "observed-review-deployments" }
+        ]
+      }],
       "compute": [
+        { "as": "value-deployments", "function": "coalesce", "args": [{ "field": "observed-value-deployments" }, { "value": 0 }] },
+        { "as": "value-repositories", "function": "coalesce", "args": [{ "field": "observed-value-repositories" }, { "value": 0 }] },
+        { "as": "configured-deployments", "function": "coalesce", "args": [{ "field": "observed-configured-deployments" }, { "value": 0 }] },
+        { "as": "current-evidence-deployments", "function": "coalesce", "args": [{ "field": "observed-current-evidence-deployments" }, { "value": 0 }] },
+        { "as": "missing-evidence-deployments", "function": "coalesce", "args": [{ "field": "observed-missing-evidence-deployments" }, { "value": 0 }] },
+        { "as": "unknown-deployments", "function": "coalesce", "args": [{ "field": "observed-unknown-deployments" }, { "value": 0 }] },
+        { "as": "unconfigured-deployments", "function": "coalesce", "args": [{ "field": "observed-unconfigured-deployments" }, { "value": 0 }] },
+        { "as": "deferred-deployments", "function": "coalesce", "args": [{ "field": "observed-deferred-deployments" }, { "value": 0 }] },
+        { "as": "failed-deployments", "function": "coalesce", "args": [{ "field": "observed-failed-deployments" }, { "value": 0 }] },
+        { "as": "review-deployments", "function": "coalesce", "args": [{ "field": "observed-review-deployments" }, { "value": 0 }] },
         { "as": "review-present", "function": "greater-than", "args": [{ "field": "review-deployments" }, { "value": 0 }] },
         { "as": "review-count-label", "function": "format-count", "args": [{ "field": "review-deployments" }] },
         { "as": "review-status-label", "function": "concat", "args": [{ "field": "review-count-label" }, { "value": " need review" }] },
-        { "as": "campaign-value-status", "function": "if", "args": [{ "field": "review-present" }, { "field": "review-status-label" }, { "value": "No review triggered" }] },
+        { "as": "worker-review-label", "function": "if", "args": [{ "field": "review-present" }, { "field": "review-status-label" }, { "value": "No worker review triggered" }] },
+        { "as": "campaign-value-status", "function": "literal", "args": [{ "field": "value-diagnosis" }] },
         { "as": "encoded-campaign", "function": "url-encode", "args": [{ "field": "campaign" }] },
         { "as": "campaign-value-href", "function": "concat", "args": [{ "value": "#page-campaign-value?campaign=" }, { "field": "encoded-campaign" }] },
         { "as": "worker-count-label", "function": "format-count", "args": [{ "field": "value-deployments" }] },
         { "as": "repository-count-label", "function": "format-count", "args": [{ "field": "value-repositories" }] },
         { "as": "value-context", "function": "concat", "args": [{ "field": "worker-count-label" }, { "value": " workers · " }, { "field": "repository-count-label" }, { "value": " repositories" }] },
-        { "as": "current-count-label", "function": "format-count", "args": [{ "field": "current-evidence-deployments" }] },
-        { "as": "missing-count-label", "function": "format-count", "args": [{ "field": "missing-evidence-deployments" }] },
-        { "as": "value-evidence", "function": "concat", "args": [{ "field": "current-count-label" }, { "value": " current results · " }, { "field": "missing-count-label" }, { "value": " unavailable" }] },
+        { "as": "value-evidence", "function": "literal", "args": [{ "field": "value-coverage" }] },
         { "as": "collection-gap-deployments", "function": "sum", "args": [
           { "field": "unconfigured-deployments" },
           { "field": "deferred-deployments" },
@@ -727,14 +717,20 @@
         { "as": "value-icon", "function": "literal", "args": [{ "value": "goal" }] },
         { "as": "value-title", "function": "coalesce", "args": [{ "field": "campaign-name" }, { "field": "campaign" }] },
         { "as": "value-status", "function": "literal", "args": [{ "field": "campaign-value-status" }] },
-        { "as": "value-plot-status", "function": "if", "args": [{ "field": "review-present" }, { "value": "Needs review" }, { "value": "No review triggered" }] },
-        { "as": "value-measure", "function": "literal", "args": [{ "value": "Worker Value rollup" }] },
-        { "as": "value-attention", "function": "literal", "args": [{ "field": "campaign-value-status" }] },
+        { "as": "value-plot-status", "function": "literal", "args": [{ "field": "campaign-value-status" }] },
+        { "as": "value-measure", "function": "literal", "args": [{ "field": "value-movement-summary" }] },
+        { "as": "value-attention", "function": "literal", "args": [{ "field": "worker-review-label" }] },
         { "as": "value-href", "function": "literal", "args": [{ "field": "campaign-value-href" }] },
         { "as": "value-captured", "function": "literal", "args": [{ "value": null }] },
         { "as": "value-cutoff", "function": "literal", "args": [{ "value": null }] }
       ],
-      "order-by": [{ "field": "review-deployments", "direction": "desc" }, { "field": "campaign-name", "direction": "asc" }]
+      "order-by": [
+        { "field": "mixed-repositories", "direction": "desc" },
+        { "field": "worsening-repositories", "direction": "desc" },
+        { "field": "insufficient-repositories", "direction": "desc" },
+        { "field": "improving-repositories", "direction": "desc" },
+        { "field": "campaign-name", "direction": "asc" }
+      ]
     },
     {
       "name": "value-campaign-deployments",
@@ -806,8 +802,8 @@
     {
       "name": "value-overview-status-counts",
       "subject": "Status counts for top-level campaign rollups and standalone workflows.",
-      "objective": "Compare campaign review state and standalone workflow outcome movement without merging their meanings.",
-      "acceptance": "Count each top-level entry once by its own type and categorical status. Campaign worker review counts are not categories or native outcome values; missing standalone status remains explicit.",
+      "objective": "Compare categorical native Value movement without combining underlying metrics.",
+      "acceptance": "Count each top-level entry once by type and status. Campaign repositories are deduplicated before rollup and missing standalone status remains explicit.",
       "from": "value-overview",
       "aggregate": {
         "by": ["value-plot-status", "value-kind"],
@@ -1003,13 +999,45 @@
         },
         "layout": "full-view", "empty-message": "No accepted Value evidence is retained for this workflow. See collection health above; missing evidence is not zero value."
       }, {
-        "id": "workflow-native-measurements", "title": "Native measurements",
+        "id": "workflow-native-measurements",
+        "subject": "Latest native primary assessment and its immediately preceding comparable period.",
+        "objective": "Inspect Baseline, Improving, Worsening, Unchanged or Insufficient with exact periods and evaluator identity.",
+        "acceptance": "The latest assessment remains current even when unavailable. Movement requires complete mature comparable native periods.",
         "data": { "source": "value-current-measurements", "route-field": "workflow-route", "query-context": false, "time": { "range": "all" } },
         "disclosure": "supplemental",
-        "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph",
-          "drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] } },
-        "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] },
-        "layout": "full", "empty-message": "No native batch measurements are retained for this workflow."
+        "mark": "table", "controls": "interactive", "lazy-list": true,
+        "card-drill": { "type": "query", "page": "value-measurement", "query": "value-measurement-facts", "title-field": "metric-name", "arguments": [{ "name": "measurement", "field": "id" }] },
+        "encoding": { "columns": [
+          { "field": "movement-state", "type": "nominal", "title": "Movement", "display": "status" },
+          { "field": "metric-name", "type": "nominal", "title": "Measure" },
+          { "field": "measurement-label", "type": "nominal", "title": "Current native value" },
+          { "field": "reference-measurement-label", "type": "nominal", "title": "Reference native value" },
+          { "field": "native-change", "type": "quantitative", "title": "Native change" },
+          { "field": "metric-unit", "type": "nominal", "title": "Unit" },
+          { "field": "metric-direction", "type": "nominal", "title": "Direction" },
+          { "field": "measurement-kind", "type": "nominal", "title": "Kind" },
+          { "field": "cadence-days", "type": "quantitative", "title": "Cadence days" },
+          { "field": "period-duration-days", "type": "quantitative", "title": "Current duration days" },
+          { "field": "previous-period-duration-days", "type": "quantitative", "title": "Reference duration days" },
+          { "field": "coverage-status", "type": "nominal", "title": "Current coverage" },
+          { "field": "maturity-status", "type": "nominal", "title": "Current maturity" },
+          { "field": "previous-coverage-status", "type": "nominal", "title": "Reference coverage" },
+          { "field": "previous-maturity-status", "type": "nominal", "title": "Reference maturity" },
+          { "field": "window-start", "type": "temporal", "title": "Current period start", "format": "human-friendly-timestamp" },
+          { "field": "window-end", "type": "temporal", "title": "Current period end", "format": "human-friendly-timestamp" },
+          { "field": "previous-window-start", "type": "temporal", "title": "Reference period start", "format": "human-friendly-timestamp" },
+          { "field": "previous-window-end", "type": "temporal", "title": "Reference period end", "format": "human-friendly-timestamp" },
+          { "field": "observed-at", "type": "temporal", "title": "Current assessed", "format": "human-friendly-timestamp" },
+          { "field": "previous-observed-at", "type": "temporal", "title": "Reference assessed", "format": "human-friendly-timestamp" },
+          { "field": "evaluator-digest", "type": "nominal", "title": "Current evaluator" },
+          { "field": "previous-evaluator-digest", "type": "nominal", "title": "Reference evaluator" },
+          { "field": "eligible-count", "type": "quantitative", "title": "Current eligible population" },
+          { "field": "previous-eligible-count", "type": "quantitative", "title": "Reference eligible population" },
+          { "field": "population-digest", "type": "nominal", "title": "Current population identity" },
+          { "field": "previous-population-digest", "type": "nominal", "title": "Reference population identity" },
+          { "field": "comparison-reason", "type": "nominal", "title": "Comparison basis" }
+        ] },
+        "layout": "full", "empty-message": "No native Operational Value measurements are retained for this workflow."
       }]
     },
     {
@@ -1052,7 +1080,7 @@
         "id": "value-type-status-chart", "title": "Statuses in this type",
         "subject": "Categorical statuses among Value entries of the selected type.",
         "objective": "Drill into the exact entries behind each status count.",
-        "acceptance": "Count top-level entries only; campaign review and standalone movement remain separate.",
+        "acceptance": "Count top-level entries only; movement categories do not combine underlying native values.",
         "data": { "source": "value-overview-by-status", "arguments": [{ "name": "kind", "field": "value-kind" }], "query-context": false, "time": { "range": "all" } },
         "disclosure": "supplemental",
         "mark": "chart", "chart": "bar", "layout": "full",
@@ -1073,7 +1101,7 @@
     },
     {
       "id": "value-status", "kind": "custom", "title": "Value entries by status", "icon": "trophy",
-      "description": "Inspect entries behind a Value status bar while keeping campaign review and standalone movement separate.",
+      "description": "Inspect entries behind a categorical Value movement bar without combining native measures.",
       "intent": "Explain the entries counted for one Value type and status.",
       "subject": "Campaign rollups or standalone workflows sharing one categorical status.",
       "objective": "Inspect collection and evidence details before opening the original Value entry.",
@@ -1141,7 +1169,7 @@
       "intent": "Review the unified campaign and standalone workflow inventory without combining native Value outcomes.",
       "subject": "Canonical campaign worker rollups and standalone workflows with their latest retained Value evidence.",
       "objective": "Review entry-type and status counts, inspect complete Value cards, or compare the same entries in a table.",
-      "acceptance": "Campaign Value is only the rollup of its canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Plot counts describe entries by type or by type-specific status, not combined native outcomes; missing and unknown evidence remains explicit.",
+      "acceptance": "Campaign Value is only the repository-deduplicated rollup of canonical workers. Workers do not also appear as top-level entries. Standalone workflows appear once. Plot counts are categorical, not combined native outcomes.",
       "view-mode-control": true,
       "views": [
         {
@@ -1160,10 +1188,10 @@
         },
         {
           "id": "value-overview-status-chart", "title": "Value entries by status",
-          "subject": "Campaign review states and standalone workflow outcome movements in the unified Value inventory.",
-          "objective": "Compare counts of entry statuses without treating worker review counts as categories or campaign review as native movement.",
-          "acceptance": "Each bar counts top-level entries of one canonical type and categorical status. Unknown standalone status remains visible and incompatible native outcomes are not combined.",
-          "description": "Campaign statuses reflect whether any worker needs review; standalone statuses describe measured movement or unavailable evidence. Counts are entries, not measured value.",
+          "subject": "Categorical native Value movement among campaign rollups and standalone workflows.",
+          "objective": "Compare Baseline, Improving, Worsening, Unchanged, Mixed and Insufficient entry states.",
+          "acceptance": "Each bar counts top-level entries. Campaign repositories are deduplicated first and incompatible native values are never combined.",
+          "description": "Campaign statuses summarize repository movement; standalone statuses show their latest native comparison. Counts are entries, not measured value.",
           "data": { "source": "value-overview-by-status", "query-context": false, "time": { "range": "all" } },
           "mark": "chart", "chart": "bar", "layout": "full",
           "encoding": {
@@ -1230,16 +1258,16 @@
       },
       "views": [
         {
-          "id": "campaign-value-summary", "title": "Worker Value rollup",
-          "subject": "Coverage and review counts rolled up from the selected campaign's canonical workers.",
-          "objective": "Explain whether worker attention comes from configuration, collection or missing results before opening exact evidence.",
-          "acceptance": "Counts include only the selected campaign's workers and do not combine incompatible native outcome values.",
+          "id": "campaign-value-summary", "title": "Native Value movement",
+          "subject": "Repository-deduplicated movement and measured coverage for the selected campaign's canonical workers.",
+          "objective": "Review Improving, Worsening, Unchanged, Mixed and Insufficient counts before opening exact worker evidence.",
+          "acceptance": "Each repository counts once. Counts do not combine native values, imply causation or replace worker collection diagnostics.",
           "data": { "source": "value-campaign-overview", "arguments": [{ "name": "campaign", "field": "campaign" }], "query-context": false, "time": { "range": "all" } },
           "mark": "list",
           "list": { "style": "entity-cards", "card": "campaign-value-overview", "icon": "goal" },
           "encoding": { "columns": [{ "field": "campaign-name", "type": "nominal", "title": "Campaign" }] },
           "layout": "full",
-          "empty-message": "The selected campaign has no retained Value deployment context."
+          "empty-message": "The selected campaign has no retained native Value measurement context."
         },
         {
           "id": "campaign-value-workflows", "title": "Workflow deployments",

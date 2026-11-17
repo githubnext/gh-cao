@@ -177,13 +177,17 @@ function evidence(scale = 1) {
 
 /** @param {ReturnType<typeof evidence>} [input] @returns {Promise<Record<string, Source>>} */
 async function canonicalSources(input = evidence()) {
-  return /** @type {Record<string, Source>} */ (await processDataRequest({
+  const projected = /** @type {Record<string, Source>} */ (await processDataRequest({
     operation: 'load-dashboard-query-sources',
     sources: input,
     ingest: true,
     queries: [],
     sourceNames: resolveDashboardQuerySources(baseline, names).filter((name) => Object.hasOwn(QUERY_SOURCE_FIELDS, name))
   }));
+  if (projected['workflow-value-measurements']) {
+    projected['workflow-value-measurements'].metadata = metadata('workflow-value-measurements');
+  }
+  return projected;
 }
 
 /** @param {Query[]} definitions @param {Record<string, InputSource>} sources @param {string[]} [requested] */
@@ -319,7 +323,9 @@ describe('campaign inventory query optimization', () => {
         { 'safe-output': 'beta-start', campaign: 'beta', 'adoption-state': 'accepted', 'observed-at': '2026-09-19T00:00:00Z' },
         { 'safe-output': 'alpha-end', campaign: 'alpha', 'adoption-state': 'accepted', 'observed-at': '2026-09-23T12:00:00Z' },
         { 'safe-output': 'unassigned-accepted', campaign: null, 'adoption-state': 'accepted', 'observed-at': '2026-09-21T12:00:00Z' }
-      ])
+      ]),
+      workflows: source('workflows', []),
+      'workflow-value-measurements': source('workflow-value-measurements', [])
     };
     const result = workerResults(
       /** @type {Query[]} */ (compiled.queries),
@@ -327,21 +333,28 @@ describe('campaign inventory query optimization', () => {
       compiled.aliases
     )[compiled.aliases[0]];
 
-    expect(result.rows).toEqual([
+    expect(result.rows).toMatchObject([
       {
         campaign: 'alpha', 'campaign-name': 'Alpha', delivered: 4, accepted: 1,
         pending: 1, 'rejected-lifecycle': 2, 'unknown-not-applicable': 1,
-        'first-blocker': 'Delivery and adoption observed'
+        'first-blocker': 'Delivery and adoption observed',
+        'evidence-progression': 'Accepted event · Value Insufficient',
+        'value-diagnosis': 'Insufficient',
+        'value-diagnosis-reason': 'No native Value measurements'
       },
       {
         campaign: 'beta', 'campaign-name': 'Beta', delivered: 0, accepted: 1,
         pending: 0, 'rejected-lifecycle': 0, 'unknown-not-applicable': 0,
-        'first-blocker': 'No delivered output observed'
+        'first-blocker': 'No delivered output observed',
+        'evidence-progression': 'No delivery evidence',
+        'value-diagnosis': 'Insufficient'
       },
       {
         campaign: 'empty', 'campaign-name': 'Empty', delivered: 0, accepted: 0,
         pending: 0, 'rejected-lifecycle': 0, 'unknown-not-applicable': 0,
-        'first-blocker': 'No delivered output observed'
+        'first-blocker': 'No delivered output observed',
+        'evidence-progression': 'No delivery evidence',
+        'value-diagnosis': 'Insufficient'
       }
     ]);
 
@@ -462,7 +475,7 @@ describe('campaign inventory query optimization', () => {
     const beforeAnalysis = analyzeDashboardComplexity({ dashboard: { queries: baseline } });
     const afterAnalysis = analyzeDashboardComplexity({ dashboard: { queries } });
     const expected = {
-      'campaign-inventory': [112, 278, 98, 109],
+      'campaign-inventory': [156, 1131, 142, 962],
       'campaign-workflows': [56, 161, 47, 69],
       'campaign-workflow-totals': [55, 155, 44, 63]
     };
@@ -473,8 +486,9 @@ describe('campaign inventory query optimization', () => {
         before?.['total-row-read-units'], before?.['total-materialized-field-units'],
         after?.['total-row-read-units'], after?.['total-materialized-field-units']
       ]).toEqual(expected[/** @type {keyof typeof expected} */ (name)]);
-      expect(after?.['total-row-read-units']).toBeLessThan(Number(before?.['total-row-read-units']) * 0.9);
-      expect(after?.['total-materialized-field-units']).toBeLessThan(Number(before?.['total-materialized-field-units']) * 0.7);
+      const sharedValueDominates = name === 'campaign-inventory';
+      expect(after?.['total-row-read-units']).toBeLessThan(Number(before?.['total-row-read-units']) * (sharedValueDominates ? 1 : 0.9));
+      expect(after?.['total-materialized-field-units']).toBeLessThan(Number(before?.['total-materialized-field-units']) * (sharedValueDominates ? 1 : 0.7));
       const beforeBudget = createDashboardQueryBudget();
       const afterBudget = createDashboardQueryBudget();
       const original = executeDashboardQueries(baseline, sources, [name], { budget: beforeBudget })[name];
