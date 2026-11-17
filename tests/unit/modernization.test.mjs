@@ -201,6 +201,18 @@ test("compiled workers use the native Squad agent and run trusted guards before 
   assert.ok(coordinator.indexOf("Resolve dependency-ready modernization tasks") < coordinator.indexOf("Freeze modernization dispatch evidence"));
 });
 
+test("system assessments publish Markdown without turning the report into executable approval", () => {
+  const source = readFileSync(new URL("../../.github/workflows/modernization-system.md", import.meta.url), "utf8");
+  const config = parse(/^---\n([\s\S]*?)\n---/.exec(source)[1]);
+  assert.equal(config["safe-outputs"]["create-issue"].max, 1);
+  assert.equal(config["safe-outputs"]["create-issue"]["deduplicate-by-title"], true);
+  assert.match(source, /Do not embed JSON, YAML/);
+  assert.doesNotMatch(source, /Include a fenced JSON plan/);
+  assert.match(source, /workflow run's numeric ID in\s+the title/);
+  assert.match(source, /previous assessment issues and their contents unchanged/);
+  assert.match(source, /Do not write\s+or commit that approval file/);
+});
+
 test("native team setup materializes the complete runtime including required local skills", () => {
   const workspace = mkdtempSync(join(tmpdir(), "cao-modernization-team-"));
   try {

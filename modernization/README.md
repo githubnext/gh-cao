@@ -38,8 +38,8 @@ credentials remain separate and must already be configured through CAO.
 
 | Phase | Result and completion criterion |
 |---|---|
-| Assess | Run `modernization-system` with explicit `target_repos`. Squad files one central proposal with exact baselines, an acyclic task graph, named specialists and measurable task/system acceptance. No target issue or PR is created. |
-| Approve | A human reviews the proposal and commits its concrete JSON as `.github/cao/modernization.json`. Every repository must be admitted by CAO at that workflow SHA. This record approves intent, not rollout or credentials. |
+| Assess | Run `modernization-system` with explicit `target_repos`. Squad files a new human-readable Markdown proposal with exact baselines, an acyclic task graph, named specialists and measurable task/system acceptance. Its title includes the run ID; earlier assessments remain unchanged. No target issue or PR is created. |
+| Approve | A human reviews the Markdown proposal. Prepare its concrete JSON separately, validate it with `engagement.mjs`, and commit it as `.github/cao/modernization.json` in a reviewed approval commit. Every repository must be admitted by CAO at that workflow SHA. This record approves intent, not rollout or credentials. |
 | File issues | The coordinator dispatches at most three ready tasks per run, additionally bounded by CAO's effective repository count. One worker creates one linked issue per task, including dependency IDs and the plan digest. Dependent issues can be filed before their prerequisites finish. |
 | Implement | After the issue exists, a single-target worker can implement only when all predecessors are complete. Different Squad specialists author and review the patch. Live outputs are tested **draft** PRs; no merge or deployment capability is granted. |
 | Unblock | A predecessor must have one matching merged PR into the approved default branch, an independent approving GitHub review on its exact head, and at least one successful check/status with no failing or pending evidence. Closing an issue does not unblock anything. |
@@ -67,6 +67,13 @@ with forged or manually altered inputs.
 The production validator is [`engagement.mjs`](engagement.mjs). No additional
 fields are accepted. Use actual roster directory IDs from
 `squad/.squad/agents/` in `specialists`, not invented job titles.
+
+Assessment issues contain Markdown summaries, baseline and task tables, and
+acceptance checklists, not embedded JSON plans. The machine-readable example
+below describes the separate approval file, not the assessment's issue format.
+Converting a reviewed proposal must preserve its baselines, task IDs, objectives,
+acceptance criteria, dependencies and specialists; it is not permission to
+silently change the proposed work.
 
 ```json
 {
