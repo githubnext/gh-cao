@@ -169,7 +169,7 @@ type ItemSource struct {
 // ItemElement types one element field. Key names the JSON key of a record
 // element; an empty Key reads a nested element itself. Typing is one of
 // unsigned or signed (safe integers), boolean, string (record string, else
-// ""), visit (a string element or a record's string id, else "") or length
+// ""), visit (a string element or a record's string Key, else "") or length
 // (an array's length; invalid when present, non-null and not an array).
 type ItemElement struct {
 	Key    string
@@ -185,7 +185,10 @@ var itemSources = []ItemSource{
 	{Name: "archive-objective-dependencies", Path: "data.objectives", Nested: "dependsOn", Elements: []ItemElement{
 		{"", Column{"Value", "string"}, "string"}}},
 	{Name: "archive-actions", Path: "data.actions", Elements: []ItemElement{
-		{"validAtIssueTime", Column{"ValidAtIssueTime", "boolean"}, "boolean"}}},
+		{"validAtIssueTime", Column{"ValidAtIssueTime", "boolean"}, "boolean"},
+		{"type", Column{"ActionType", "string"}, "string"},
+		{"consequential", Column{"Consequential", "boolean"}, "boolean"},
+		{"target", Column{"Target", "string"}, "string"}}},
 	{Name: "archive-states", Path: "data.states", Elements: []ItemElement{
 		{"id", Column{"Id", "string"}, "visit"},
 		{"firstEventIndex", Column{"FirstEventIndex", "integer"}, "signed"}}},
@@ -200,6 +203,12 @@ var itemSources = []ItemSource{
 		{"", Column{"Value", "string"}, "string"}}},
 	{Name: "archive-tool-calls", Path: "data.toolCalls", Elements: []ItemElement{
 		{"id", Column{"Id", "string"}, "string"}}},
+	{Name: "archive-resources", Path: "data.resources", Elements: []ItemElement{
+		{"kind", Column{"ResourceKind", "string"}, "string"},
+		{"uri", Column{"Uri", "string"}, "string"}}},
+	// Reference patch files are strings or records naming a string path.
+	{Name: "archive-reference-patch-files", Path: "data.reference.patch.files", Elements: []ItemElement{
+		{"path", Column{"Path", "string"}, "visit"}}},
 }
 
 var itemColumns = []Column{
@@ -466,6 +475,15 @@ const (
 )
 
 var windowOperations = []string{"previous", "row-number"}
+
+// MaxWindowPartition bounds a window's groupby: the six trace-binding fields
+// plus three row fields, enough for a (previous, previous, state) trigram.
+const MaxWindowPartition = 9
+
+// MaxRequestBytes bounds one wrapped session-query request, including the
+// repository name. Every reviewed grader definition fits with the maximum
+// GitHub repository shape (39-character owner, slash, 100-character name).
+const MaxRequestBytes = 8192
 
 // stateFamily returns the generated path of an approved structured family.
 // Families have field states only; their values are never query inputs.
@@ -1191,7 +1209,7 @@ func (j AnalyticalJoin) plan(stages map[string]*Plan, read func(string) (Column,
 // groupby plus order-by must cover the row key so the order is total.
 func (w AnalyticalWindow) plan(read func(string) (Column, error), fields map[string]string, key []Column) (PlannedWindow, error) {
 	p := PlannedWindow{Operation: w.Operation, As: w.As}
-	if len(w.GroupBy) < 1 || len(w.GroupBy) > 8 || len(w.OrderBy) < 1 || len(w.OrderBy) > 8 {
+	if len(w.GroupBy) < 1 || len(w.GroupBy) > MaxWindowPartition || len(w.OrderBy) < 1 || len(w.OrderBy) > 8 {
 		return p, ErrQuery
 	}
 	covered := map[string]bool{}

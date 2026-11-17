@@ -3,9 +3,49 @@ package sessionarchive
 import (
 	"encoding/json"
 	"slices"
+	"strconv"
+	"unicode/utf8"
 )
 
-var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "difference", "product", "quotient", "coalesce", "is-null", "and"}
+var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "difference", "product", "quotient", "coalesce", "is-null", "and", "trim", "strip-prefix"}
+
+// TrimWhitespace is ECMAScript String.prototype.trim's WhiteSpace and
+// LineTerminator set (Unicode Zs plus TAB, VT, FF, ZWNBSP, LF, CR, LS and PS),
+// as code-point ranges. U+0085 and U+180E are deliberately absent.
+var TrimWhitespace = [][2]rune{{0x09, 0x0d}, {0x20, 0x20}, {0xa0, 0xa0}, {0x1680, 0x1680}, {0x2000, 0x200a},
+	{0x2028, 0x2029}, {0x202f, 0x202f}, {0x205f, 0x205f}, {0x3000, 0x3000}, {0xfeff, 0xfeff}}
+
+// maxStripPrefix bounds the closed literal prefix of strip-prefix.
+const maxStripPrefix = 16
+
+// TrimPattern is the RE2 pattern both backends use for trim: one leading and
+// one trailing run of TrimWhitespace, anchored to the whole text.
+func TrimPattern() string {
+	class := "["
+	for _, r := range TrimWhitespace {
+		class += codePoint(r[0])
+		if r[1] != r[0] {
+			class += "-" + codePoint(r[1])
+		}
+	}
+	class += "]+"
+	return `\A` + class + "|" + class + `\z`
+}
+
+// StripPrefixPattern escapes a validated literal prefix code point by code
+// point, so no caller text is interpreted as regular-expression syntax.
+func StripPrefixPattern(prefix string, repeated bool) string {
+	escaped := ""
+	for _, r := range prefix {
+		escaped += codePoint(r)
+	}
+	if repeated {
+		return `\A(?:` + escaped + ")+"
+	}
+	return `\A` + escaped
+}
+
+func codePoint(r rune) string { return `\x{` + strconv.FormatInt(int64(r), 16) + "}" }
 
 // Expressions use Dashboard Language's function/args and field/value vocabulary,
 // with strict decoding rather than the dashboard's contextual argument resolver.
@@ -199,8 +239,28 @@ func (e Expression) plan(fields map[string]string, depth int, nodes *int) (Plann
 		if p.Type != p.Args[1].Type {
 			p.Type = "number"
 		}
+	case "trim":
+		if n != 1 || p.Args[0].Type != "string" {
+			return p, ErrQuery
+		}
+		p.Type = "string"
+	case "strip-prefix":
+		// Closed literal stripping: a non-empty string literal prefix, removed
+		// once or as a repeated run when the boolean literal is true.
+		if n != 3 || p.Args[0].Type != "string" || !p.Args[1].literal("string") || !p.Args[2].literal("boolean") {
+			return p, ErrQuery
+		}
+		prefix := p.Args[1].Literal.String
+		if prefix == "" || !utf8.ValidString(prefix) || utf8.RuneCountInString(prefix) > maxStripPrefix {
+			return p, ErrQuery
+		}
+		p.Type = "string"
 	}
 	return p, nil
+}
+
+func (e PlannedExpression) literal(kind string) bool {
+	return e.Function == "" && e.Field == "" && e.Type == kind && e.Literal != nil
 }
 
 // rowLevel rejects null tests over strings: archive strings use "" for

@@ -415,7 +415,9 @@ CSRF protection.
 Timeline requires a positive GitHub run ID and exact positive attempt.
 Summary rejects run/attempt selectors. Neither accepts SQL/KQL, directories,
 object names, raw filenames, namespace overrides, or caller-selected generations.
-Requests are at most 4096 bytes. Responses are at most 8 MiB and 10000 rows.
+Requests are at most 8192 bytes, including the repository name; every
+reviewed grader definition fits with the maximum GitHub repository shape
+(39-character owner, slash, 100-character name). Responses are at most 8 MiB and 10000 rows.
 Execution is at most 30 seconds, with tighter backend budgets preserved.
 Exceeding a complete-result budget returns an error, not partial success.
 An unknown trace is distinct from a complete empty trace.
@@ -444,7 +446,15 @@ The additional vocabulary is deliberately bounded: at most 16 measures, 64
 predicates across source and measure filters, 32 post-aggregate computations,
 256 expression nodes and nesting depth 8. Functions use the existing
 `function`/`args` and `field`/`value` vocabulary: `if`, `equals`, `gt`, `lte`,
-`and`, `sum`, `difference`, `product`, `quotient`, `coalesce`, and `is-null`. Computations read only group
+`and`, `sum`, `difference`, `product`, `quotient`, `coalesce`, `is-null`,
+`trim` and `strip-prefix`. `trim` removes exactly the JavaScript
+`String.prototype.trim` whitespace set (WhiteSpace plus LineTerminator code
+points) from both ends. `strip-prefix(text, prefix, repeated)` removes one
+leading occurrence of a literal `prefix` of 1 to 16 code points, or every
+leading repetition when `repeated` is `true`; the prefix and flag are typed
+literals, never regular expressions or caller-selected patterns. Both lower to
+anchored, code-point-escaped patterns (DuckDB `regexp_replace`, KQL
+`replace_regex`). Computations read only group
 keys, aggregate results and preceding computations. Null is allowed only in a
 typed numeric literal such as `{"value":null,"type":"number"}`, never as a
 missing filter, predicate, selector or argument. Division by zero produces
@@ -464,22 +474,27 @@ These lowerers are not a universal compiler or a new canonical resolver.
 The item-source vocabulary comprises `archive-objectives`,
 `archive-objective-dependencies`, `archive-actions`, `archive-states`,
 `archive-ir-events`, `archive-observations`, `archive-observation-consumers`
-and `archive-tool-calls`. Each binds the last agent-phase `trajectory.ir` event of
+`archive-tool-calls`, `archive-resources` and
+`archive-reference-patch-files`. Each binds the last agent-phase `trajectory.ir` event of
 every complete active trace and flattens its `data.objectives`,
-`data.actions`, `data.states`, `data.events`, `data.observations` or
-`data.toolCalls` array at query time; no item
+`data.actions`, `data.states`, `data.events`, `data.observations`,
+`data.toolCalls`, `data.resources` or `data.reference.patch.files` array at
+query time; no item
 rows are persisted. Every trace yields one anchor row with null `Ordinal` and
 `Items` when it has no array, plus one row per element. Rows carry the
 complete trace binding, `PolicyDigest`, the bound IR `Sequence`, `Items`,
 `Ordinal`, element `Kind`, and only reviewed typed element fields:
 `SatisfiedAtEventIndex` (a safe non-negative JSON integer), `Id` (a string)
 and `DependsOn` (the `dependsOn` array length) for objectives;
-`ValidAtIssueTime` (a JSON boolean) for actions; `Id` (a string element or an
+`ValidAtIssueTime` and `Consequential` (JSON booleans) and `ActionType` and
+`Target` (strings, from `type` and `target`) for actions; `Id` (a string element or an
 object's string `id`) and `FirstEventIndex` (a safe JSON integer) for states;
 and `Index` (a safe JSON integer), `EventKind` and `Ref` (strings) for IR
 events; `SourceToolCallId` (a string) and `ConsumedByActionIds` (an array
-length, not a consumption judgment) for observations; and `Id` (a string)
-for tool calls. `archive-observation-consumers` further flattens each
+length, not a consumption judgment) for observations; `Id` (a string)
+for tool calls; `ResourceKind` and `Uri` (strings, from `kind` and `uri`) for
+resources; and `Path` (a string element or an object's string `path`) for
+reference patch files. `archive-observation-consumers` further flattens each
 observation's `consumedByActionIds` with the same parent `Ordinal`, zero-based
 `Position` and string `Value` contract as dependencies; non-string values
 remain invalid and empty strings do not contribute to count.
@@ -498,9 +513,12 @@ same IR with materialized `let` statements and expands elements with
 `mv-expand with_itemindex`; a backend without a lowering accepted against real
 Kusto MUST omit them and reject such plans.
 
-The E1 observation, consumer and tool-call sources have production DuckDB
-replay and shared KQL fixtures; real Kusto acceptance of these additions remains
-pending. Their presence in the shared vocabulary is not deployment acceptance.
+ADX's `parse_json` turns date-, GUID- and timespan-like JSON strings into
+`datetime`, `guid` or `timespan` values. The KQL lowering types those kinds as
+strings and recovers their exact JSON text with `extract_json` on the bound
+payload, inside the source `let` only; ordinary strings never reparse it.
+Every item source and both functions are accepted against real Kusto by the
+pinned grader replay of the `session-archive-kusto` job.
 
 Both backends also accept query chaining (Dashboard Language DLS-QUERY-017)
 for multi-stage aggregation. A definition may list at most eight earlier
@@ -552,7 +570,8 @@ row-level `compute` values, evaluated after `filter` and before `window` and
 `aggregate` with the post-aggregate function vocabulary over input columns and
 earlier computations; `is-null` and `coalesce` over strings are rejected
 because empty and absent strings are indistinguishable. It may also declare up
-to eight `window` entries, each `previous` (the prior row's `field`, typed null
+to eight `window` entries, each with at most nine `groupby` fields (the six
+trace fields plus three row fields) and eight `order-by` fields, each `previous` (the prior row's `field`, typed null
 or the empty string on a partition's first row) or `row-number` (1-based).
 Windows port Dashboard Language §5.5.4: `groupby` MUST include the complete
 trace binding, and `groupby` plus `order-by` MUST cover the input's row key

@@ -31,7 +31,7 @@
             "type": "string",
             "maxLength": 128,
             "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
-            "description": "One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers or archive-tool-calls, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies and archive-observation-consumers further flatten dependsOn and consumedByActionIds into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
+            "description": "One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers, archive-tool-calls, archive-resources or archive-reference-patch-files, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies and archive-observation-consumers further flatten dependsOn and consumedByActionIds into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there."
         },
         "joins": {
             "type": "array",
@@ -110,6 +110,14 @@
                             {
                                 "type": "string",
                                 "const": "and"
+                            },
+                            {
+                                "type": "string",
+                                "const": "trim"
+                            },
+                            {
+                                "type": "string",
+                                "const": "strip-prefix"
                             }
                         ]
                     },
@@ -128,7 +136,7 @@
                 ]
             },
             "maxItems": 32,
-            "description": "Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. Rejected unless status advertises analytical.compute."
+            "description": "Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. trim removes ECMAScript String.prototype.trim whitespace from both ends of a string; strip-prefix(text, prefix, repeated) removes a non-empty string-literal prefix of at most 16 code points once, or as a repeated leading run when the boolean literal repeated is true. strip-prefix is closed literal matching, never a regular expression. Rejected unless status advertises analytical.compute."
         },
         "window": {
             "type": "array",
@@ -274,6 +282,14 @@
                             {
                                 "type": "string",
                                 "const": "and"
+                            },
+                            {
+                                "type": "string",
+                                "const": "trim"
+                            },
+                            {
+                                "type": "string",
+                                "const": "strip-prefix"
                             }
                         ]
                     },
@@ -549,7 +565,8 @@
                         "type": "string"
                     },
                     "minItems": 1,
-                    "maxItems": 8
+                    "maxItems": 9,
+                    "description": "At most nine fields: the six trace and projection identity fields plus three row fields."
                 }
             },
             "required": [
@@ -715,6 +732,14 @@
                         {
                             "type": "string",
                             "const": "and"
+                        },
+                        {
+                            "type": "string",
+                            "const": "trim"
+                        },
+                        {
+                            "type": "string",
+                            "const": "strip-prefix"
                         }
                     ]
                 },

@@ -84,6 +84,9 @@ func TestGraderReplayEvidence(t *testing.T) {
 		`"observations":[{"sourceToolCallId":"t","consumedByActionIds":["a"]},{"sourceToolCallId":"t","consumedByActionIds":[""]},` +
 		`{"sourceToolCallId":"t","consumedByActionIds":[null,0,{}]},{"sourceToolCallId":"unknown","consumedByActionIds":[]},` +
 		`{"consumedByActionIds":"not-array"},{"sourceToolCallId":"t","consumedByActionIds":null},null,[],7]}`
+	code := func(files, resources, actions string) string {
+		return trajectoryIR(`{"reference":{"patch":{"files":` + files + `}},"resources":` + resources + `,"actions":` + actions + `}`)
+	}
 	var replays []graderEvidenceReplay
 	for _, scenario := range []struct{ name, raw string }{
 		{"measured", string(measured)},
@@ -139,6 +142,9 @@ func TestGraderReplayEvidence(t *testing.T) {
 			`"states":[{"id":"A","firstEventIndex":3},{"id":"B","firstEventIndex":2},"C",{"id":"D","firstEventIndex":0}]}`)},
 		{"ir-few-visits", header + trajectoryIR(`{"objectives":[{"id":"a","dependsOn":[],"satisfiedAtEventIndex":-1}],`+
 			`"events":[{"index":0},{"index":1}],"states":["A",{"id":""},{"id":"B","firstEventIndex":1},"A",null]}`)},
+		// Visit order A B A B A C B C A C gives partial diagonal lines and a fractional DET.
+		{"ir-recurrence-lines", header + trajectoryIR(`{"events":[{"index":0},{"index":1},{"index":2},{"index":3},{"index":4},{"index":5},{"index":6},{"index":7},{"index":8},{"index":9}],`+
+			`"states":["A","B",{"id":"A","firstEventIndex":2},"B",{"id":"C","firstEventIndex":9},{"id":"A","firstEventIndex":4},"B","C","A",{"id":"C","firstEventIndex":5}]}`)},
 		{"e1-measured", header + trajectoryIR(e1)},
 		{"e1-excluded-observations", header + trajectoryIR(e1)},
 		{"e1-excluded-tool-calls", header + trajectoryIR(e1)},
@@ -159,6 +165,26 @@ func TestGraderReplayEvidence(t *testing.T) {
 			`"observations":[{"sourceToolCallId":"t","consumedByActionIds":["a"]}]}`)},
 		{"e1-oversized-resources", header + trajectoryIR(strings.TrimSuffix(e1, "}")+
 			`,"resources":[`+strings.TrimSuffix(strings.Repeat(`{},`, 5001), ",")+`]}`)},
+		// Paths normalize with JavaScript trim (U+FEFF, U+3000, U+00A0, U+2028 and tab
+		// trim; U+0085 and U+180E do not), one leading "./" and every leading "/".
+		{"code-measured", header + code(`["\uFEFF./src/a.go\u3000",{"path":"//src/b.go"},"src/a.go",".//src/c.go","././d","./8c5b0b7e-1111-4222-8333-944444444444"]`,
+			`[{"kind":"file","uri":" src/a.go\u00a0"},{"kind":"file","uri":"src/b.go\u2028"},{"kind":"dir","uri":"src/c.go"},{"kind":"file","uri":"/./d"},`+
+				`{"kind":"file","uri":"\t8c5b0b7e-1111-4222-8333-944444444444\n"},{"kind":"file","uri":5},{"kind":"file","uri":"\u0085src/c.go"},{"kind":"file","uri":"\u180Esrc/c.go"}]`,
+			`[{"type":"read","consequential":false,"target":"./src/a.go"},{"type":"inspect","consequential":false,"target":"/src/z.go"},`+
+				`{"type":"read","consequential":false,"target":"2024-01-01"},{"type":" read","consequential":false,"target":""},{"type":"read","consequential":true},`+
+				`{"type":"read","consequential":false,"target":"src/a.go"},{"type":"edit","consequential":true,"target":"src/b.go "},`+
+				`{"type":"edit","consequential":true,"target":"./8c5b0b7e-1111-4222-8333-944444444444"},{"type":"edit","consequential":true,"target":"2024-01-01"}]`)},
+		{"code-missing-reference-path", header + code(`["src/a.go",{"path":7}]`, `[{"kind":"file","uri":"src/a.go"}]`, `[{"type":"read","consequential":false,"target":"src/a.go"}]`)},
+		{"code-whitespace-reference-path", header + code(`[{"path":"\u3000./"}]`, `[]`, `[]`)},
+		{"code-empty-reference", header + code(`[]`, `[]`, `[{"type":"edit","consequential":true,"target":"a"}]`)},
+		{"code-malformed", header + code(`["a"]`, `[{"kind":"file","uri":"a"},7]`, `[{"type":"read","consequential":false,"target":"a"},{"type":"\u00a0 ","consequential":true}]`)},
+		{"code-invalid-flags", header + code(`["a"]`, `{}`, `[{"type":"read","consequential":"false","target":"a"}]`)},
+		{"code-edit-rules", header + code(`["a"]`, `[]`, `[{"type":"edit","consequential":false,"target":"a"},{"type":"read","consequential":false,"target":" ./ "}]`)},
+		{"code-edit-missing-target", header + code(`["/a"]`, `[{"kind":"file","uri":"b"}]`, `[{"type":"edit","consequential":true,"target":"./"},{"type":"read","consequential":false,"target":"a"}]`)},
+		{"code-no-reads", header + code(`["a"]`, `[{"kind":"file","uri":"b"}]`, `[{"type":"edit","consequential":true,"target":"/a"},{"type":"inspect","consequential":true,"target":"a"}]`)},
+		{"code-redacted", header + code(`["a"]`, `[{"kind":"file","uri":"secret-text"}]`, `[{"type":"read","consequential":false,"target":"secret-text"}]`)},
+		{"code-redacted-reference", header + code(`["secret-text"]`, `[]`, `[]`)},
+		{"code-oversized-reference", header + code(`[`+strings.TrimSuffix(strings.Repeat(`"a",`, 5001), ",")+`]`, `[]`, `[]`)},
 		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
@@ -239,8 +265,9 @@ func TestGraderReplayEvidence(t *testing.T) {
 				supported := slices.Contains([]string{"execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
 					"objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
 					"recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
-					"recurrence-laminarity", "recurrence-trapping-time",
-					"exploration-error", "exploitation-error", "tool-output-consumption-rate"}, attempt.ID)
+					"recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism",
+					"exploration-error", "exploitation-error", "tool-output-consumption-rate",
+					"code-search-recall", "code-read-precision", "code-edit-precision"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {
@@ -250,12 +277,10 @@ func TestGraderReplayEvidence(t *testing.T) {
 					if json.Unmarshal(full, &envelope) != nil {
 						t.Fatal("invalid reviewed definition")
 					}
-					repository := "githubnext/gh-cao"
-					if slices.Contains([]string{"exploration-error", "exploitation-error", "tool-output-consumption-rate"}, attempt.ID) {
-						repository = strings.Repeat("o", 39) + "/" + strings.Repeat("r", 100)
-					}
+					// Every definition must fit with the maximum GitHub repository shape.
+					repository := strings.Repeat("o", 39) + "/" + strings.Repeat("r", 100)
 					request, _ := json.Marshal(map[string]any{"kind": "session-query", "repository": repository, "language-version": "0.2.0", "query": envelope})
-					if len(request) > 4096 {
+					if len(request) > MaxRequestBytes {
 						t.Fatalf("%s exceeds actual MCP/HTTP argument budget: %d", attempt.ID, len(request))
 					}
 				}
@@ -285,6 +310,16 @@ func TestGraderReplayEvidence(t *testing.T) {
 						}
 						if _, family := row["family"]; family && row["RunId"] == "456" && row["family"] != "usage.report" {
 							t.Fatal("proxy presence leaked across trace/run-attempt bindings")
+						}
+						if row["RunId"] == "123" && scenario.name == "code-measured" {
+							expected := map[string]float64{"code-search-recall": 0.8, "code-read-precision": 1.0 / 3, "code-edit-precision": 2.0 / 3}
+							if value, ok := expected[attempt.ID]; ok {
+								number, numeric := row["value"].(json.Number)
+								actual, err := number.Float64()
+								if !numeric || err != nil || actual != value || row["availability"] != "measured" {
+									t.Fatalf("%s changed closed path normalization: %#v", attempt.ID, row)
+								}
+							}
 						}
 						if row["RunId"] == "123" && (scenario.name == "e1-measured" || scenario.name == "e1-harmless-redaction") {
 							expected := map[string]float64{"exploration-error": 0, "exploitation-error": 0.5, "tool-output-consumption-rate": 0.25}

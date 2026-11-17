@@ -129,6 +129,10 @@ func kqlExpression(e sessionarchive.PlannedExpression) string {
 		return "(toreal(" + args[0] + ")*toreal(" + args[1] + "))"
 	case "quotient":
 		return "iff(toreal(" + args[1] + ")==0.0,real(null),toreal(" + args[0] + ")/toreal(" + args[1] + "))"
+	case "trim":
+		return "replace_regex(" + args[0] + ",@'" + sessionarchive.TrimPattern() + "','')"
+	case "strip-prefix":
+		return "replace_regex(" + args[0] + ",@'" + sessionarchive.StripPrefixPattern(e.Args[1].Literal.String, e.Args[2].Literal.Boolean) + "','')"
 	}
 	panic("unvalidated analytical expression")
 }
@@ -196,6 +200,9 @@ func largestCollectionKQL() string {
 // traces whose collection is absent, empty or invalid, and a nested source
 // keeps one anchor for a trace without nested elements. Payload JSON is read
 // only inside these let statements and never reaches the projected source.
+// textKinds are the dynamic kinds parse_json produces from JSON strings.
+const textKinds = `("string","datetime","guid","timespan")`
+
 func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
 	suffix := strconv.Itoa(index)
 	collection := "archive_collection_" + suffix
@@ -222,8 +229,23 @@ func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
 			traceKeyKQL + "\n| extend Ordinal=long(null),Position=long(null),Element=dynamic(null)))\n"
 		position = "Position,"
 	}
+	// parse_json turns date-, GUID- and timespan-like JSON strings into
+	// datetime, guid and timespan values; JSON has no such literals, so those
+	// kinds are strings whose exact text extract_json recovers without conversion.
+	element := "strcat(" + literal("$."+item.Path+"[") + ",tostring(Ordinal),\"]\""
+	if item.Nested != "" {
+		element += "," + literal("."+item.Nested+"[") + ",tostring(Position),\"]\""
+	}
+	text := func(kind, raw, key string) string {
+		path := element + ")"
+		if key != "" {
+			path = element + "," + literal("."+key) + ")"
+		}
+		// Only converted elements hand the payload to extract_json, so ordinary strings never reparse it.
+		return "iff(" + kind + "==\"string\",tostring(" + raw + "),extract_json(" + path + ",iff(" + kind + "==\"string\",\"\",PayloadJSON),typeof(string)))"
+	}
 	source += "| extend archive_kind=iff(isnull(Ordinal),\"\",gettype(Element))\n" +
-		"| extend Kind=case(archive_kind==\"dictionary\",\"object\",archive_kind==\"array\",\"array\",archive_kind==\"string\",\"string\"," +
+		"| extend Kind=case(archive_kind==\"dictionary\",\"object\",archive_kind==\"array\",\"array\",archive_kind in " + textKinds + ",\"string\"," +
 		"archive_kind==\"bool\",\"boolean\",archive_kind==\"null\",\"null\",archive_kind in " + numeric + ",\"number\",\"\")\n"
 	presents := make([]string, 0, 1+len(item.Elements))
 	presents = append(presents, `iff(archive_collection!="",pack_array("Items"),dynamic([]))`)
@@ -260,13 +282,14 @@ func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
 			valid = "(" + kind + "==\"array\")"
 			value = "iff(" + valid + ",array_length(" + raw + "),long(null))"
 		case "visit":
-			// States are visits: a string element is its own id; a record contributes its string id.
-			valid = "(" + kind + "==\"string\")"
-			value = "case(archive_kind==\"string\",tostring(Element),archive_kind==\"dictionary\" and " + valid + ",tostring(" + raw + "),\"\")"
-			present = "(archive_kind==\"string\" or " + has + ")"
+			// A string element is its own value; a record contributes its string Key.
+			valid = "(" + kind + " in " + textKinds + ")"
+			value = "case(archive_kind in " + textKinds + "," + text("archive_kind", "Element", "") + ",archive_kind==\"dictionary\" and " + valid + "," +
+				text(kind, raw, element.Key) + ",\"\")"
+			present = "(archive_kind in " + textKinds + " or " + has + ")"
 		default:
-			valid = "(" + kind + "==\"string\")"
-			value = "iff(" + valid + ",tostring(" + raw + "),\"\")"
+			valid = "(" + kind + " in " + textKinds + ")"
+			value = "iff(" + valid + "," + text(kind, raw, element.Key) + ",\"\")"
 		}
 		name := literal(element.Column.Name)
 		member := func(condition string) string {

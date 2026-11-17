@@ -148,6 +148,10 @@ func (e PlannedExpression) sql() string {
 		return "(CAST(" + args[0] + " AS DOUBLE)*CAST(" + args[1] + " AS DOUBLE))"
 	case "quotient":
 		return "(CAST(" + args[0] + " AS DOUBLE)/nullif(CAST(" + args[1] + " AS DOUBLE),0))"
+	case "trim":
+		return "regexp_replace(" + args[0] + "," + literal(TrimPattern()) + ",'','g')"
+	case "strip-prefix":
+		return "regexp_replace(" + args[0] + "," + literal(StripPrefixPattern(e.Args[1].Literal.String, e.Args[2].Literal.Boolean)) + ",'')"
 	}
 	panic("unvalidated analytical expression")
 }
@@ -524,7 +528,7 @@ func itemFieldSQL(element ItemElement) (value, present, null, invalid string) {
 	case "length":
 		return "CASE WHEN " + kind + "='ARRAY' THEN CAST(json_array_length(" + raw + ") AS BIGINT) END", present, null, failed(kind + "<>'ARRAY'")
 	case "visit":
-		// States are visits: a string element is its own id; a record contributes its string id.
+		// A string element is its own value; a record contributes its string Key.
 		return "coalesce(CASE WHEN json_type(Element)='VARCHAR' THEN json_extract_string(Element,'$') " +
 				"WHEN json_type(Element)='OBJECT' AND " + kind + "='VARCHAR' THEN " + text + " END,'')",
 			"(json_type(Element)='VARCHAR' OR " + present + ")", null, failed(kind + "<>'VARCHAR'")

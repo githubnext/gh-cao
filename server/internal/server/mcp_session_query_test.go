@@ -187,7 +187,7 @@ func TestMCPSessionDataLakeDiscoveryAndValidation(t *testing.T) {
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"sql":"SELECT 1","query":`, 1)),
 		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"query":`, `"path":"/private/archive.parquet","query":`, 1)),
 		json.RawMessage(`{"repository":"octo/one","language-version":"0.2.0","query":null}`),
-		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"Inspect retained synthetic events."`, `"`+strings.Repeat("x", 4096)+`"`, 1)),
+		json.RawMessage(strings.Replace(string(sessionMCPArguments), `"Inspect retained synthetic events."`, `"`+strings.Repeat("x", sessionArchiveRequestBytes)+`"`, 1)),
 	} {
 		request := mcpLogsRequest(t, "tools/call", map[string]any{"name": "cao_session_query", "arguments": arguments})
 		authorize(request)
