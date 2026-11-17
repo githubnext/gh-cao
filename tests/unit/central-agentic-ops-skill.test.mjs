@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
@@ -41,6 +43,47 @@ test("central-agentic-ops resolves guides outside a checkout for gh skill instal
   assert.match(skill, /^\s*curl -fsSL "https:\/\/raw\.githubusercontent\.com\/githubnext\/gh-cao\/REF\/PATH"$/m);
   assert.match(skill, /metadata\.github-ref/);
   assert.doesNotMatch(skill, /Former skill|\b(?:setup-cao|add-cao-campaign|create-cao-campaign|debug-cao|analyze-cao)\b|\bcao-cli\b(?!\.md)/);
+});
+
+const ghSkillAvailable = spawnSync("gh", ["skill", "--help"], { stdio: "ignore" }).status === 0;
+
+test("gh skill validates and installs central-agentic-ops from the current commit", {
+  skip: !ghSkillAvailable && !process.env.CI && "gh skill is unavailable",
+}, () => {
+  const temp = mkdtempSync(join(tmpdir(), "cao-gh-skill-"));
+  try {
+    const source = join(temp, "source");
+    const installed = join(temp, "installed");
+    mkdirSync(source);
+    execFileSync("tar", ["-x", "-C", source], { input: execFileSync("git", ["archive", "HEAD", "skills"], { cwd: root }) });
+    const env = { ...process.env, GH_CONFIG_DIR: join(temp, "gh"), GH_PROMPT_DISABLED: "1", GH_TOKEN: "", GITHUB_TOKEN: "" };
+    const gh = (...args) => {
+      const result = spawnSync("gh", ["skill", ...args], { env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 60_000 });
+      assert.equal(result.status, 0, `gh skill ${args.join(" ")}\n${result.stdout}${result.stderr}`);
+      return `${result.stdout}${result.stderr}`;
+    };
+
+    const published = gh("publish", "--dry-run", source);
+    assert.doesNotMatch(published, /^error\b/im);
+    assert.doesNotMatch(published, /^\S+\s+central-agentic-ops\b/m, "central-agentic-ops must validate without warnings");
+
+    gh("install", source, "central-agentic-ops", "--from-local", "--dir", installed);
+    const installedDir = join(installed, "central-agentic-ops");
+    assert.deepEqual(readdirSync(installedDir), readdirSync(join(source, "skills", "central-agentic-ops")));
+    const installedSkill = readFileSync(join(installedDir, "SKILL.md"), "utf8");
+    assert.match(installedSkill, /^name: central-agentic-ops$/m);
+    assert.match(installedSkill, /^\s+local-path: .+central-agentic-ops$/m);
+    const body = (text) => text.slice(text.indexOf("\n---\n", 4) + 5).trim();
+    assert.equal(body(installedSkill), body(readFileSync(join(source, "skills", "central-agentic-ops", "SKILL.md"), "utf8")));
+
+    // A standalone install fetches guides by raw URL at its ref, so each must exist at this commit.
+    const tracked = new Set(execFileSync("git", ["ls-tree", "-r", "--name-only", "HEAD", ".github/cao"], { cwd: root, encoding: "utf8" }).split("\n"));
+    const guides = [...installedSkill.matchAll(/`(\.github\/cao\/[^`\s]+\.md)`/g)].map(([, path]) => path);
+    assert.ok(guides.length >= Object.keys(taskGuides).length);
+    for (const guide of guides) assert.ok(tracked.has(guide), `${guide} is not committed at HEAD`);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
 });
 
 test("former CAO skills are removed without legacy aliases", () => {
