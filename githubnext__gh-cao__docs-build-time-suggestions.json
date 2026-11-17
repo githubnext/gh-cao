@@ -1,34 +1,7 @@
 {
  "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T11:57:30Z",
-   "worker_run_id": "44077513087",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "43831754585",
-    "43831980991",
-    "43832040488",
-    "43840581457",
-    "43854851689",
-    "43862265708",
-    "43877103800",
-    "43987917606",
-    "43991571724",
-    "43991770179",
-    "43991897672",
-    "43992363367",
-    "43993695761",
-    "44004300647",
-    "44023953879",
-    "44041835448",
-    "44043184727",
-    "44060953578"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed; gh run list at 11:56Z: none queued or in progress, no docs run newer than 44060953578. Source 453e35b = checkout HEAD = source_sha; its changed files (server/, specs/, scripts/replay-session-archive-graders.mjs) are outside the docs.yml paths filter, so no run was expected. Recomputed from stored immutable transfer_model rows (no refetch): removable phase (deploy handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate not met; even 100 percent removal saves 9 s. Merging deploy into build saves about 6 s median (handoff + deploy setup) and would drop the github-pages environment and id-token boundary; rejected. Jobs API spot-check of 44060953578 matched the stored row (handoff 5, configure 1, upload 2, deploy setup 1, exec 79). Open #20815 (checkout) verified OPEN with 0 comments; checkout is another category, not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T12:24:33Z",
    "worker_run_id": "44082259816",
@@ -809,6 +782,33 @@
     "44060953578"
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed; gh run list (latest 30) at 2026-11-17T21:53:14Z: no newer, queued or in-progress docs run; source 453e35b = checkout HEAD = source_sha (not docs-triggered). Dashboard generation = single Build synthetic enterprise demo step (node scripts/simulate-dashboard-pages.mjs + cp to dist/cao; no dashboard job): median 5 s, p90 6 s, n 18 (stored immutable run_timings rows, no refetch); 6.5 percent of exec median 77.5 s; 100 percent removal ceiling 5 s is below the 15 percent gate (11.6 s) and the 60 s gate. Reuse still blocked: prepareDashboardPages defaults now=Date.now() (scripts/simulate-dashboard-pages.mjs:78) and dist/cao is deployed every run. Parallel demo job rejected: it would need its own checkout (median 25 s) and install. Open #20815 (checkout) is the only open issue for this worker; not repeated. Worker run 44183804620 (correlation 44182878772-4258). Next: artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-17T22:18:22Z",
+   "worker_run_id": "44188045698",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800",
+    "43987917606",
+    "43991571724",
+    "43991770179",
+    "43991897672",
+    "43992363367",
+    "43993695761",
+    "44004300647",
+    "44023953879",
+    "44041835448",
+    "44043184727",
+    "44060953578"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at 22:16Z: none queued or in progress (only stale 37642403569, created 2026-10-07, outside window); no docs run newer than 44060953578. main = source_sha 453e35b (compare identical). Recomputed from stored immutable transfer_model rows (no refetch): removable transfer (handoff + Configure Pages + Upload Pages artifact + deploy Set up job) median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s gate not met; even 100 percent removal saves 9 s. Jobs API spot-check of 44060953578 matched (handoff 5, configure 1, upload 2, deploy setup 1, exec 79). Deploy Pages (GitHub-managed, median 6.5 s) excluded. Merging deploy into build saves about 6 s (handoff plus deploy setup) and drops the github-pages environment and id-token separation: rejected. Open #20815 (checkout, other category, OPEN, 0 comments, updated 2026-11-13) not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
   }
  ],
