@@ -897,6 +897,7 @@ func TestAnalyticalRowLevelPlans(t *testing.T) {
 		"window":  `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
 		"family":  `"filter":{"predicates":[{"field":"Usage","state":"present"}]},"select":[{"field":"Sequence"}]`,
 		"path":    `"compute":[{"as":"p","function":"strip-prefix","args":[{"function":"trim","args":[{"field":"Type"}]},{"value":"./"},{"value":true}]}],"select":[{"field":"p"}]`,
+		"keyword": `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Message"},{"value":"guard"}]}],"select":[{"field":"m"}]`,
 		"log2":    `"compute":[{"as":"l","function":"log2","args":[{"function":"quotient","args":[{"field":"Sequence"},{"value":3}]}]}],"select":[{"field":"l"}]`,
 		"concat":  `"compute":[{"as":"c","function":"concat","args":[{"value":"tool_call:"},{"field":"Type"}]}],"select":[{"field":"c"}]`,
 	}
@@ -931,6 +932,10 @@ func TestAnalyticalRowLevelPlans(t *testing.T) {
 		"empty prefix":              `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":""},{"value":false}]}],"select":[{"field":"p"}]`,
 		"long prefix":               `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"aaaaaaaaaaaaaaaaa"},{"value":false}]}],"select":[{"field":"p"}]`,
 		"computed repeat":           `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"/"},{"function":"gt","args":[{"field":"Sequence"},{"value":1}]}]}],"select":[{"field":"p"}]`,
+		"unknown keyword set":       `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Message"},{"value":"\\bretry\\b"}]}],"select":[{"field":"m"}]`,
+		"field keyword set":         `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Message"},{"field":"Type"}]}],"select":[{"field":"m"}]`,
+		"keyword of number":         `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Sequence"},{"value":"retry"}]}],"select":[{"field":"m"}]`,
+		"keyword without set":       `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Message"}]}],"select":[{"field":"m"}]`,
 		"missing repeat":            `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"/"}]}],"select":[{"field":"p"}]`,
 		"log2 of string":            `"compute":[{"as":"l","function":"log2","args":[{"field":"Type"}]}],"select":[{"field":"l"}]`,
 		"log2 arity":                `"compute":[{"as":"l","function":"log2","args":[{"field":"Sequence"},{"value":2}]}],"select":[{"field":"l"}]`,

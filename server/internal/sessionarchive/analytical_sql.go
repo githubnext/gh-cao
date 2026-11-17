@@ -156,6 +156,8 @@ func (e PlannedExpression) sql() string {
 		return "regexp_replace(" + args[0] + "," + literal(TrimPattern()) + ",'','g')"
 	case "strip-prefix":
 		return "regexp_replace(" + args[0] + "," + literal(StripPrefixPattern(e.Args[1].Literal.String, e.Args[2].Literal.Boolean)) + ",'')"
+	case "keyword-match":
+		return "coalesce(regexp_matches(" + args[0] + "," + literal(KeywordPattern(e.Args[1].Literal.String)) + "),false)"
 	}
 	panic("unvalidated analytical expression")
 }
@@ -602,15 +604,15 @@ func (s *Snapshot) itemSQL(ctx context.Context, item ItemSource) (string, error)
 		nested = `SELECT * EXCLUDE (Element,Children),json_extract(Element,'$.` + item.Nested + `['||Position||']') AS Element
 FROM (SELECT *,unnest(range(Children)) AS Position FROM (SELECT *,CASE WHEN json_type(` + children + `)='ARRAY'
 THEN CAST(json_array_length(` + children + `) AS BIGINT) ELSE 0 END AS Children FROM elements) WHERE Children>0)
-UNION ALL BY NAME SELECT s.*,NULL::BIGINT AS Ordinal,NULL::BIGINT AS Position,NULL::JSON AS Element FROM sized s
+UNION ALL BY NAME SELECT s.* EXCLUDE (Members),NULL::BIGINT AS Ordinal,NULL::BIGINT AS Position,NULL::JSON AS Element FROM sized s
 WHERE NOT EXISTS (SELECT 1 FROM elements e WHERE e.Namespace=s.Namespace AND e.Repository=s.Repository AND e.RunId=s.RunId
 AND e.RunAttempt=s.RunAttempt AND e.TraceId=s.TraceId AND e.ProjectionId=s.ProjectionId AND json_type(` + children + `)='ARRAY'
 AND json_array_length(` + children + `)>0)`
 	}
 	fields := make([]string, 0, len(item.Elements))
-	presents := []string{"CASE WHEN Collection IS NOT NULL THEN ['Items'] ELSE [] END"}
-	nulls := []string{"CASE WHEN json_type(Collection)='NULL' THEN ['Items'] ELSE [] END"}
-	invalids := []string{"CASE WHEN Collection IS NOT NULL AND json_type(Collection) NOT IN ('NULL','ARRAY') THEN ['Items'] ELSE [] END"}
+	presents := []string{"CASE WHEN CollectionType IS NOT NULL THEN ['Items'] ELSE [] END"}
+	nulls := []string{"CASE WHEN CollectionType='NULL' THEN ['Items'] ELSE [] END"}
+	invalids := []string{"CASE WHEN CollectionType NOT IN ('NULL','ARRAY') THEN ['Items'] ELSE [] END"}
 	for _, element := range item.Elements {
 		value, present, null, invalid := itemFieldSQL(element)
 		name := literal(element.Column.Name)
@@ -632,9 +634,10 @@ bound AS (SELECT a.Namespace,a.Repository,a.RunId,a.RunAttempt,a.TraceId,a.Proje
 t.Sequence,coalesce(t.OmissionReasons,[]) AS OmissionReasons,json_extract(t.Payload,'$.` + item.Path + `') AS Collection,
 ` + largestCollectionSQL() + ` AS LargestCollection
 FROM active a LEFT JOIN traces t USING(` + activeColumns + `)),
-sized AS (SELECT *,CASE WHEN json_type(Collection)='ARRAY' THEN CAST(json_array_length(Collection) AS BIGINT) END AS Items FROM bound),
-items AS (SELECT *,unnest(CASE WHEN Items>0 THEN range(Items) ELSE [NULL::BIGINT] END) AS Ordinal FROM sized),
-elements AS (SELECT *,CASE WHEN Ordinal IS NOT NULL THEN json_extract(Collection,'$['||Ordinal||']') END AS Element FROM items),
+sized AS (SELECT * EXCLUDE (Collection),json_type(Collection) AS CollectionType,CASE WHEN json_type(Collection)='ARRAY'
+THEN CAST(json_array_length(Collection) AS BIGINT) END AS Items,CASE WHEN json_type(Collection)='ARRAY' THEN json_extract(Collection,'$[*]') END AS Members FROM bound),
+elements AS (SELECT * EXCLUDE (Members),unnest(CASE WHEN Items>0 THEN range(Items) ELSE [NULL::BIGINT] END) AS Ordinal,
+unnest(CASE WHEN Items>0 THEN Members ELSE [NULL::JSON] END) AS Element FROM sized),
 nested AS (` + nested + `)
 SELECT Namespace,Repository,RunId,RunAttempt,TraceId,ProjectionId,PolicyDigest,Sequence,Ordinal,Items,
 coalesce(CASE json_type(Element) WHEN 'OBJECT' THEN 'object' WHEN 'ARRAY' THEN 'array' WHEN 'VARCHAR' THEN 'string'

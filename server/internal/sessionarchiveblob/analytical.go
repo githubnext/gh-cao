@@ -137,6 +137,8 @@ func kqlExpression(e sessionarchive.PlannedExpression) string {
 		return "replace_regex(" + args[0] + ",@'" + sessionarchive.TrimPattern() + "','')"
 	case "strip-prefix":
 		return "replace_regex(" + args[0] + ",@'" + sessionarchive.StripPrefixPattern(e.Args[1].Literal.String, e.Args[2].Literal.Boolean) + "','')"
+	case "keyword-match":
+		return "(" + args[0] + " matches regex @'" + sessionarchive.KeywordPattern(e.Args[1].Literal.String) + "')"
 	}
 	panic("unvalidated analytical expression")
 }
