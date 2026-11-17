@@ -173,3 +173,24 @@ func TestExportAuditPaginatesInOrder(t *testing.T) {
 		t.Fatalf("export after head = %q, %v", out.String(), err)
 	}
 }
+
+func TestAuditExportFilter(t *testing.T) {
+	got, err := auditExportFilter(7, "cli_command.admitted", "octocat")
+	want := operational.AuditFilter{AfterSequence: 7, Event: "cli_command.admitted", Actor: "octocat"}
+	if err != nil || got != want {
+		t.Fatalf("valid flags: got %+v, %v; want %+v", got, err, want)
+	}
+	if got, err := auditExportFilter(0, "", ""); err != nil || got != (operational.AuditFilter{}) {
+		t.Fatalf("zero cursor: got %+v, %v", got, err)
+	}
+	got, err = auditExportFilter(-1, "event", "actor")
+	if err == nil || err.Error() != "--after must not be negative" || got != (operational.AuditFilter{}) {
+		t.Fatalf("negative cursor: got %+v, %v", got, err)
+	}
+}
+
+func TestAuditExportRejectsNegativeAfterBeforeOpeningStore(t *testing.T) {
+	if _, err := runAudit(t, "export", "--after", "-5"); err == nil || err.Error() != "--after must not be negative" {
+		t.Fatalf("export --after -5 error = %v", err)
+	}
+}

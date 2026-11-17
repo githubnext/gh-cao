@@ -66,14 +66,25 @@ func newAuditExportCommand() *cobra.Command {
 	event := cmd.Flags().String("event", "", "export only this event name")
 	actor := cmd.Flags().String("actor", "", "export only events by this actor")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
-		if *after < 0 {
-			return errors.New("--after must not be negative")
+		filter, err := auditExportFilter(*after, *event, *actor)
+		if err != nil {
+			return err
 		}
 		return runAuditCommand(func(ctx context.Context, store operational.AuditLog) error {
-			return exportAudit(ctx, store, operational.AuditFilter{AfterSequence: *after, Event: *event, Actor: *actor}, cmd.OutOrStdout())
+			return exportAudit(ctx, store, filter, cmd.OutOrStdout())
 		})
 	}
 	return cmd
+}
+
+// auditExportFilter builds the export filter from CLI flag values and rejects a
+// negative sequence cursor before any audit store is opened.
+func auditExportFilter(after int64, event, actor string) (operational.AuditFilter, error) {
+	if after < 0 {
+		auditCommandLog.Printf("audit export input rejected: reason=negative_after")
+		return operational.AuditFilter{}, errors.New("--after must not be negative")
+	}
+	return operational.AuditFilter{AfterSequence: after, Event: event, Actor: actor}, nil
 }
 
 func runAuditCommand(run func(context.Context, operational.AuditLog) error) error {
