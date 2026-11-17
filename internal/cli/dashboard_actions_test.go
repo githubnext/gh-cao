@@ -63,6 +63,42 @@ func TestDashboardEnrollmentExecutesWithoutTerminalApproval(t *testing.T) {
 	}
 }
 
+func TestDashboardSetupExecutesWithoutTerminalInput(t *testing.T) {
+	filename, cleanup, err := startDashboardActionAdapterWithExecutable(t.Context(), []string{"octo/control"}, t.TempDir(),
+		dashboardTestActionExecutable(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config struct{ AdapterURL string }
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, config.AdapterURL+"/execute",
+		strings.NewReader(`["setup","--repository","octo/control"]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("X-Command-ID", "2")
+	response, err := (&http.Client{Timeout: 5 * time.Second}).Do(request)
+	if err != nil {
+		t.Fatalf("queued setup did not execute without terminal input: %v", err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	body, err := io.ReadAll(response.Body)
+	if err != nil || response.StatusCode != http.StatusOK ||
+		!bytes.Contains(body, []byte(`"data":"setup\n"`)) ||
+		!bytes.Contains(body, []byte(`"data":"--repository\n"`)) ||
+		!bytes.Contains(body, []byte(`"data":"octo/control\n"`)) ||
+		!bytes.Contains(body, []byte(`"complete":true,"exitCode":0`)) {
+		t.Fatalf("setup did not execute through the native queue adapter: %s %v", body, err)
+	}
+}
+
 func TestDashboardActionScopeAndPublication(t *testing.T) {
 	scope := []string{"octo/control"}
 	for _, args := range [][]string{
@@ -77,6 +113,8 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 		{"disable", "--repo", "octo/control"},
 		{"repos", "add", "octo/new-service"},
 		{"repos", "add", "octo/service-*"},
+		{"setup", "--repository", "octo/control"},
+		{"setup", "--repository", "octo/*"},
 	} {
 		if err := dashboardActionArgs(args, scope); err != nil {
 			t.Fatalf("valid maintenance rejected: %v", err)
@@ -105,6 +143,11 @@ func TestDashboardActionScopeAndPublication(t *testing.T) {
 		{"repos", "add", "octo/../other"},
 		{"repos", "add", "--repo", "octo/api"},
 		{"repos", "add", "octo"},
+		{"setup"},
+		{"setup", "--repository"},
+		{"setup", "--repository", "octo/../other"},
+		{"setup", "--repo", "octo/control"},
+		{"setup", "--repository", "octo"},
 	} {
 		if dashboardActionArgs(args, scope) == nil {
 			t.Fatalf("unscoped or unsupported maintenance accepted: %v", args)
@@ -119,6 +162,7 @@ func TestDashboardOperationsExcludeUpstreamButNotSiblingRepositories(t *testing.
 		{"update", "--repo", "GitHub/GH-AW", "--create-pull-request"},
 		{"disable", "--repo", "github/gh-aw"},
 		{"repos", "add", "github/gh-aw"},
+		{"setup", "--repository", "github/gh-aw"},
 	} {
 		if dashboardActionArgs(args, scope) == nil {
 			t.Fatalf("upstream repository operation was allowed: %v", args)

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { state } from '../../src/reactive.js';
 import { renderFactoryFloor } from '../../src/components/factory-floor.js';
 import { renderFactoryHeader } from '../../src/components/factory-header.js';
+import { factoryOnboardingState } from '../../src/components/factory-onboarding.js';
 import { renderFactoryRhythm } from '../../src/components/factory-rhythm.js';
 import { renderFactoryStation } from '../../src/components/factory-station.js';
 
@@ -14,6 +15,18 @@ function binding({ pending = false, unavailable = false, rows = [] } = {}) {
     rows: () => rows,
     pending: () => pending,
     unavailable: () => unavailable
+  };
+}
+
+/**
+ * @template {Record<string, unknown>} T
+ * @param {{ get: () => T[], set: (value: T[] | ((current: T[]) => T[])) => T[] }} rows
+ */
+function reactiveBinding(rows) {
+  return {
+    rows: rows.get,
+    pending: () => false,
+    unavailable: () => false
   };
 }
 
@@ -187,6 +200,80 @@ describe('Overview component boundaries', () => {
     controller.abort();
   });
 
+  it('replaces factory stations with actionable onboarding until both choices are ready', () => {
+    const controller = new AbortController();
+    const onboardingRows = state([{
+      'show-onboarding': true,
+      'current-step': 'setup',
+      'has-repositories': false,
+      'has-artifacts': false
+    }]);
+    const sources = {
+      'overview-onboarding-state': reactiveBinding(onboardingRows),
+      'overview-factory-station': binding({ rows: [{
+        value: 1,
+        'display-value': '100%',
+        detail: '2/2 healthy workflows',
+        description: '100% factory health'
+      }] }),
+      'overview-repository-station': binding({ rows: [{
+        value: 1,
+        'display-value': '100%',
+        detail: '2/2 repositories reached',
+        description: '100% average repository coverage'
+      }] })
+    };
+    const rendered = renderFactoryFloor(
+      sources,
+      false,
+      { signal: controller.signal },
+      {
+        onboarding: 'overview-onboarding-state',
+        campaigns: 'overview-factory-station',
+        repositories: 'overview-repository-station'
+      },
+      ['campaigns', 'repositories']
+    );
+
+    expect(rendered.classList.contains('factory-floor-onboarding')).toBe(true);
+    expect(rendered.querySelector('.factory-stations')?.hasAttribute('hidden')).toBe(true);
+    expect(rendered.querySelector('.factory-onboarding')?.hasAttribute('hidden')).toBe(false);
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) h3')?.textContent).toBe('Set up CAO');
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) button')?.textContent).toContain('Copy gh cao setup');
+    expect(rendered.querySelector('.factory-onboarding-step-icon')).toBeNull();
+
+    onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'repositories',
+      'has-repositories': false,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) h3')?.textContent).toBe('Choose repositories');
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) a')?.getAttribute('href')).toBe('#page-repositories');
+
+    onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'artifacts',
+      'has-repositories': true,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) h3')?.textContent).toBe('Add workflows or campaigns');
+    expect(rendered.querySelector('.factory-onboarding-step:not([hidden]) a')?.getAttribute('href')).toBe('#page-marketplace');
+
+    onboardingRows.set([{
+      'show-onboarding': false,
+      'current-step': 'complete',
+      'has-repositories': true,
+      'has-artifacts': true
+    }]);
+    expect(rendered.classList.contains('factory-floor-onboarding')).toBe(false);
+    expect(rendered.querySelector('.factory-stations')?.hasAttribute('hidden')).toBe(false);
+    expect(rendered.querySelector('.factory-onboarding')?.hasAttribute('hidden')).toBe(true);
+    expect([...rendered.querySelectorAll('.factory-station strong')].map((element) => element.textContent))
+      .toEqual(['100%', '100%']);
+    controller.abort();
+  });
+
   it('header presents declarative heading and rhythm composition without subtext', () => {
     const controller = new AbortController();
     const sources = {
@@ -215,5 +302,77 @@ describe('Overview component boundaries', () => {
     expect(withStatus.querySelector('.dashboard-ingestion-status')?.textContent).toContain('Data ingestion');
 
     controller.abort();
+  });
+
+  it('replaces the generic factory message with onboarding copy and hides rhythm', () => {
+    const controller = new AbortController();
+    const onboardingRows = state([{
+      'show-onboarding': true,
+      'current-step': 'setup',
+      'has-repositories': false,
+      'has-artifacts': false
+    }]);
+    const sources = {
+      'overview-onboarding-state': reactiveBinding(onboardingRows),
+      'overview-header-presentation': binding({ rows: [{ heading: 'Your factory is idle.' }] }),
+      'overview-rhythm': binding({ rows: rhythmRows() })
+    };
+    const rendered = renderFactoryHeader(
+      sources,
+      { signal: controller.signal },
+      {
+        onboarding: 'overview-onboarding-state',
+        presentation: 'overview-header-presentation',
+        rhythm: 'overview-rhythm'
+      }
+    );
+
+    expect(rendered.querySelector('h2')?.textContent).toBe('Welcome to CAO!');
+    expect(rendered.querySelector('.factory-intro-copy > p')?.textContent)
+      .toBe('Set up CAO in this checkout before choosing what it should operate.');
+    expect(rendered.querySelector('.factory-rhythm')?.hasAttribute('hidden')).toBe(true);
+    expect(rendered.classList.contains('factory-intro-onboarding')).toBe(true);
+
+    onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'repositories',
+      'has-repositories': false,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-intro-copy > p')?.textContent)
+      .toBe('Choose the repositories this control plane should include.');
+
+    onboardingRows.set([{
+      'show-onboarding': true,
+      'current-step': 'artifacts',
+      'has-repositories': true,
+      'has-artifacts': false
+    }]);
+    expect(rendered.querySelector('.factory-intro-copy > p')?.textContent)
+      .toBe('Add an Agentic Workflow or campaign.');
+
+    onboardingRows.set([{
+      'show-onboarding': false,
+      'current-step': 'complete',
+      'has-repositories': true,
+      'has-artifacts': true
+    }]);
+    expect(rendered.querySelector('h2')?.textContent).toBe('Your factory is idle.');
+    expect(rendered.querySelector('.factory-intro-copy > p')?.hasAttribute('hidden')).toBe(true);
+    expect(rendered.querySelector('.factory-rhythm')?.hasAttribute('hidden')).toBe(false);
+    expect(rendered.classList.contains('factory-intro-onboarding')).toBe(false);
+    controller.abort();
+  });
+
+  it('does not infer onboarding from unavailable inventory evidence', () => {
+    const rows = state([{
+      'show-onboarding': true,
+      'current-step': 'setup',
+      'has-repositories': false,
+      'has-artifacts': false
+    }]);
+    const source = reactiveBinding(rows);
+    source.unavailable = () => true;
+    expect(factoryOnboardingState(source).show).toBe(false);
   });
 });

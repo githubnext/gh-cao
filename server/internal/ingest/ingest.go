@@ -345,8 +345,8 @@ func readShard(ctx context.Context, writer *postgresx.Writer, path, expected str
 		default:
 			return fmt.Errorf("%s:%d has unsupported canonical envelope", path, line)
 		}
-		localIngestion := envelope.Collection == "transactions"
-		if !postgresx.IsCanonicalCollection(envelope.Collection) && !localIngestion {
+		localTransaction := envelope.Collection == "transactions"
+		if !postgresx.IsCanonicalCollection(envelope.Collection) && !localTransaction {
 			return errors.New("normalized shard collection is not registered by TypeSpec")
 		}
 		runCollection := false
@@ -363,8 +363,8 @@ func readShard(ctx context.Context, writer *postgresx.Writer, path, expected str
 		if err := decoder.Decode(&row); err != nil || row == nil {
 			return fmt.Errorf("%s:%d record must be an object", path, line)
 		}
-		if localIngestion && (row["id"] != "local-dashboard-ingestion" || row["kind"] != "local-dashboard-ingestion") {
-			return errors.New("normalized transactions may contain only the local ingestion receipt")
+		if localTransaction && !localDashboardTransaction(row) {
+			return errors.New("normalized transactions may contain only local dashboard receipts")
 		}
 		if err := writer.Append(ctx, "$"+envelope.Collection, row); err != nil {
 			return fmt.Errorf("%s:%d: %w", path, line, err)
@@ -390,6 +390,12 @@ func readShard(ctx context.Context, writer *postgresx.Writer, path, expected str
 	return writer.Append(ctx, "$transactions", model.Row{"id": "shard:" + hex.EncodeToString(identity[:]), "kind": kind,
 		"payloadScope": scope,
 		"payloadHash":  strings.ToLower(expected), "records": count, "committedRecords": count})
+}
+
+func localDashboardTransaction(row model.Row) bool {
+	id, _ := row["id"].(string)
+	kind, _ := row["kind"].(string)
+	return id == kind && (id == "local-dashboard-ingestion" || id == "local-dashboard-configuration")
 }
 
 func skipValue(decoder *json.Decoder, budget *boundedJSONReader) error {

@@ -693,12 +693,14 @@ describe('dashboard document validation', () => {
     const header = overview.views.find((/** @type {{ element?: string }} */ view) => view.element === 'factory-header');
     floor.config.sources = { campaigns: 'overview-factory-station' };
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
+    floor.config.sources = { onboarding: 'overview-onboarding-state' };
+    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
     floor.config.sources = { issues: 'overview-issue-station', 'value-gains': 'overview-value-station' };
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
     floor.config.sources = { workers: 'overview-worker-summary' };
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
     delete floor.config.sources;
-    header.config = { sources: { presentation: 'overview-header-presentation' } };
+    header.config = { sources: { onboarding: 'overview-onboarding-state', presentation: 'overview-header-presentation' } };
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
     header.config.sources = { status: 'overview-factory-status' };
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
@@ -1428,7 +1430,7 @@ describe('dashboard document validation', () => {
       expect.objectContaining({
         id: 'overview-header',
         description: 'Factory health measures all workflows across CAO and targeted repositories without current runtime failures; repository coverage measures registered repositories reached by successful worker execution. Weekly rhythm compares all workflow runs regardless of status or conclusion.',
-        data: { sources: ['overview-header-presentation', 'overview-rhythm'] },
+        data: { sources: ['overview-onboarding-state', 'overview-header-presentation', 'overview-rhythm'] },
         mark: 'element',
         element: 'factory-header',
         layout: 'full',
@@ -1436,7 +1438,15 @@ describe('dashboard document validation', () => {
       }),
       expect.objectContaining({
         id: 'overview-floor',
-        data: { sources: ['overview-factory-station', 'overview-repository-station', 'overview-issue-station', 'overview-value-station'] },
+        data: {
+          sources: [
+            'overview-onboarding-state',
+            'overview-factory-station',
+            'overview-repository-station',
+            'overview-issue-station',
+            'overview-value-station'
+          ]
+        },
         mark: 'element',
         element: 'factory-floor',
         config: expect.objectContaining({ animate: 'number' }),

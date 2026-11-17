@@ -162,7 +162,7 @@ if [[ "\${1:-}" == cao ]]; then
   fi
   exec "$executable" "$@"
 fi
-if [[ "$*" == "auth status" ]]; then
+if [[ "$*" == "auth status" || "$*" == "auth status --hostname github.com" ]]; then
   [[ -z "\${FAKE_AUTH_DELAY:-}" ]] || sleep "$FAKE_AUTH_DELAY"
   [[ -z "\${FAKE_AUTH_FAILURE:-}" ]] || { echo "not signed in" >&2; exit 1; }
   exit 0

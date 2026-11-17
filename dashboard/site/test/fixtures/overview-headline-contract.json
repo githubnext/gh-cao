@@ -1,7 +1,7 @@
 {
   "page": "overview",
   "view": "overview-floor",
-  "sources": ["overview-factory-station", "overview-repository-station", "overview-issue-station", "overview-value-station"],
+  "sources": ["overview-onboarding-state", "overview-factory-station", "overview-repository-station", "overview-issue-station", "overview-value-station"],
   "stations": ["campaigns", "repositories", "issues", "value-gains"],
   "inputs": {
     "issues": [
