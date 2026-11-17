@@ -12,8 +12,9 @@ const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.i
 
 /** @param {string} viewId */
 function payload(viewId) {
+  const view = page.views.find((/** @type {{id: string}} */ view) => view.id === viewId);
   return compileDashboardViewPayloadQueries(page, page.id, {
-    viewId, sourceNames: [viewId], queries: dashboard.queries
+    viewId, sourceNames: view.data.sources ?? [view.data.source], queries: dashboard.queries
   });
 }
 
@@ -32,15 +33,37 @@ async function canonicalView(viewId) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Ops retained-evidence contract', () => {
-  it('uses shared page subscriptions and exposes no mutation actions', () => {
+  it('keeps retained evidence read-only and declares a separate confirmed native action surface', () => {
     expect(dashboard.navigation.find((/** @type {{ label: string }} */ section) => section.label === 'Experimental').pages).toContain(page.id);
     expect(page).toMatchObject({ experimental: true, 'query-binding': 'page' });
-    expect(page.views.map((/** @type {{ id: string }} */ view) => view.id)).toEqual(contract.views);
-    for (const view of page.views) {
+    expect(page.views.map((/** @type {{ id: string }} */ view) => view.id)).toEqual([contract['action-view'], ...contract.views]);
+    expect(page.views[0]).toMatchObject({
+      element: 'modernization-controls', config: { actions: {
+        status: 'modernization-status', preview: 'modernization-preview', execute: 'modernization-execute'
+      } }
+    });
+    for (const view of page.views.slice(1)) {
       expect(view.actions).toBeUndefined();
       expect(view.mark).toBe('table');
       expect(view['lazy-list']).toBe(true);
     }
+  });
+
+  it('resolves deduplicated control-repository suggestions through the canonical worker without granting readiness', async () => {
+    const indexedDB = new IDBFactory();
+    vi.stubGlobal('indexedDB', indexedDB);
+    const batch = opsEvidence();
+    for (const [id, repositoryId, role] of [
+      ['modernization:one', batch.repositories[0].id, 'orchestrator'],
+      ['modernization:duplicate', batch.repositories[0].id, 'orchestrator'],
+      ['modernization:other', batch.repositories[1].id, 'orchestrator'],
+      ['modernization:worker', batch.repositories[1].id, 'worker']
+    ]) batch.workflows.push({ ...batch.workflows[0], id, repositoryId, role, path: '.github/workflows/modernization.md' });
+    await replaceCanonicalBatch(indexedDB, batch);
+    const result = await canonicalView(contract['action-view']);
+    expect(result.metadata.availability).toBe('available');
+    expect(result.rows.map(row => row['control-repository'])).toEqual(['octodemo/no-evidence', 'octodemo/ops-synthetic']);
+    expect(result.rows.every(row => row['operator-campaign'] === 'modernization' && row.authorized === undefined)).toBe(true);
   });
 
   it('resolves latest-workflow attention, native attempts, coverage and adoption through canonical worker queries', async () => {

@@ -1,7 +1,84 @@
 import { expect, test } from '@playwright/test';
 import { opsEvidence } from '../fixtures/ops-evidence.js';
+import { startModernizationOperator } from '../fixtures/modernization-operator.mjs';
 const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
 const { writeDashboardSnapshot } = await import(new URL('../../../../tests/helpers/dashboard-snapshot.mjs', import.meta.url).href);
+
+for (const width of [1440, 390]) {
+  test(`Modernization uses confirmed native queue actions without browser GitHub writes at ${width}px`, async ({ page }) => {
+    test.setTimeout(120_000);
+    const repository = 'octodemo/ops-synthetic';
+    const operator = await startModernizationOperator(repository);
+    const preview = await startDashboardServer({
+      repository, operatorConfig: operator.operatorConfig,
+      prepareSnapshot: async (/** @type {string} */ destination) => {
+        const evidence = opsEvidence(new Date().toISOString());
+        evidence.workflows.push({ ...evidence.workflows[0], id: 'workflow:modernization',
+          role: 'orchestrator', path: '.github/workflows/modernization.md' });
+        await writeDashboardSnapshot(destination, evidence);
+      }
+    }).catch(async (/** @type {unknown} */ error) => { await operator.close(); throw error; });
+    try {
+      await page.setExtraHTTPHeaders(preview.headers);
+      await page.setViewportSize({ width, height: 900 });
+      await page.addInitScript(() => {
+        IDBFactory.prototype.open = () => { throw new Error('Native actions must not use a browser-storage fallback.'); };
+      });
+      const githubWrites = /** @type {string[]} */ ([]);
+      page.on('request', request => {
+        if (request.url().includes('api.github.com') && request.method() !== 'GET') githubWrites.push(request.url());
+      });
+      await page.goto(`${preview.url}/#page-ops`);
+      const controls = page.getByRole('region', { name: 'Modernization actions', exact: true });
+      await expect(controls).toBeVisible();
+      await expect(controls.locator('datalist option').first()).toHaveAttribute('value', repository);
+      await controls.getByLabel('Control repository', { exact: true }).fill(repository);
+      expect(operator.requests).toHaveLength(0);
+      await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
+      await expect(controls).toContainText('Synthetic operator task');
+      await controls.getByRole('button', { name: 'Review next run', exact: true }).click();
+      const review = controls.getByRole('region', { name: 'Review Modernization action', exact: true });
+      await expect(review).toBeVisible();
+      expect(operator.requests.some(request => request.args[1] === 'execute')).toBe(false);
+      await controls.getByLabel('Next-batch mode').selectOption('live');
+      await expect(review).toHaveCount(0);
+      await controls.getByRole('button', { name: 'Review next run', exact: true }).click();
+      await expect(review).toContainText('mode live');
+      await review.getByRole('button', { name: 'Run next batch', exact: true }).click();
+      await expect(controls).toContainText('Dispatch accepted—not proof');
+      expect(operator.requests.filter(request => request.args[1] === 'execute')).toHaveLength(1);
+      await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
+      await expect(controls).toContainText('Current check: available');
+      await controls.getByRole('button', { name: 'Review / approve plan', exact: true }).click();
+      const plan = '{"id":"synthetic-browser-approval"}';
+      await controls.getByLabel('Import plan JSON').setInputFiles({
+        name: 'synthetic-plan.json', mimeType: 'application/json', buffer: Buffer.from(plan)
+      });
+      await expect(controls.getByLabel('Engagement JSON')).toHaveValue(plan);
+      await controls.getByRole('button', { name: 'Review approval', exact: true }).click();
+      await expect(review).toBeVisible();
+      expect(operator.requests.at(-1)?.input).toBe(plan);
+      await review.getByRole('button', { name: 'Publish approved plan', exact: true }).click();
+      await expect(controls).toContainText('The approved plan was published');
+      await controls.getByRole('button', { name: 'Check readiness', exact: true }).click();
+      await expect(controls).toContainText('Current check: available');
+      for (const [label, operation] of [['Assess system', 'assess'], ['Verify results', 'verify']]) {
+        await controls.getByRole('button', { name: label, exact: true }).click();
+        await expect(review).toBeVisible();
+        expect(operator.requests.at(-1)?.args).toEqual([
+          'modernization', 'preview', '--repo', repository, '--action', operation, '--mode', 'review'
+        ]);
+        await review.getByRole('button', { name: 'Dismiss', exact: true }).click();
+      }
+      expect(githubWrites).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    } finally {
+      await page.goto('about:blank');
+      await preview.close();
+      await operator.close();
+    }
+  });
+}
 
 for (const width of [1440, 390]) {
   test(`Ops navigates from empty evidence and reacts to PostgreSQL revisions at ${width}px`, async ({ page }, testInfo) => {

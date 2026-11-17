@@ -37,6 +37,20 @@
   ],
   "queries": [
     {
+      "name": "modernization-control-repositories",
+      "subject": "Retained control repositories declaring the Modernization coordinator.",
+      "objective": "Suggest explicit control-repository selections for authorized Modernization actions.",
+      "acceptance": "Return one coordinate per retained coordinator repository. This inventory suggests a selection only; it does not authorize actions or establish plan approval or readiness.",
+      "from": "workflows",
+      "filter": { "predicates": [{ "field": "workflow", "equals": ".github/workflows/modernization.md" }, { "field": "workflow-role", "equals": "orchestrator" }] },
+      "aggregate": { "by": ["organization", "repository", "control-repository", "operator-campaign"], "values": [{ "field": "workflow", "as": "registered-workflows", "reducer": "count" }] },
+      "compute": [
+        { "as": "control-repository", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "operator-campaign", "function": "literal", "args": [{ "value": "modernization" }] }
+      ],
+      "order-by": [{ "field": "control-repository", "direction": "asc" }]
+    },
+    {
       "name": "ops-attention",
       "subject": "Latest retained workflow states in the selected scope and horizon.",
       "objective": "Inspect blockers, pending review and missing run evidence.",
@@ -133,20 +147,31 @@
     "experimental": true,
     "title": "Ops",
     "icon": "pulse",
-    "intent": "Give operators an attention-first, read-only view of the retained CAO farm, inspired by Merge Harbor. Inspect blockers and review work before execution, repository coverage and output evidence. This page observes; it cannot install, dispatch, alter rollout or merge.",
+    "intent": "Give operators an attention-first view of retained farm evidence and explicitly confirmed Modernization actions. Review authoritative native plan and policy previews before dispatch or approval. Installation, rollout changes, merging and deployment remain unavailable.",
     "subject": "Retained CAO evidence in the selected scope and horizon.",
-    "objective": "Choose the next evidence-backed investigation across the farm.",
-    "acceptance": "Show attention, nonterminal attempts, repository coverage and output lifecycles. Preserve partial, stale, unavailable and empty states. Missing evidence is not idle; delivery or run success is not human acceptance or operational Value.",
-    "description": "Inspect retained farm evidence and choose the next investigation without changing execution or rollout.",
+    "objective": "Investigate farm evidence and review the next authorized Modernization step.",
+    "acceptance": "Keep retained evidence distinct from current native action checks. Require an explicit, revision-bound confirmation for every plan approval or workflow dispatch. Preserve partial, stale, unavailable and empty evidence; missing evidence is not idle and delivery is not acceptance or Value.",
+    "description": "Inspect retained farm evidence and review policy-checked Modernization actions.",
     "query-binding": "page",
     "sections": [{
       "id": "ops-watch",
-      "title": "Read-only farm watch",
+      "title": "Farm watch and actions",
       "description": "Coverage: retained evidence in the selected scope and horizon, not a live queue or a complete enrolled-farm census. Missing evidence is not an idle farm. Delivery and run success are not human acceptance or operational Value; adoption may use a registry delivery fallback.",
       "layout": "full",
-      "views": ["ops-attention", "ops-in-flight", "ops-repositories", "ops-recent-outputs"]
+      "views": ["ops-modernization-actions", "ops-attention", "ops-in-flight", "ops-repositories", "ops-recent-outputs"]
     }],
     "views": [
+      {
+        "id": "ops-modernization-actions",
+        "title": "Modernization",
+        "description": "Interaction-only native operator controls. Retained inventory suggests control repositories; current policy, plan validation, task readiness, approval and dispatch are owned by the authorized native service, never derived from dashboard evidence.",
+        "mark": "element",
+        "element": "modernization-controls",
+        "show-title": false,
+        "layout": "full",
+        "data": { "sources": ["modernization-control-repositories"], "query-context": false, "time": { "range": "all" } },
+        "config": { "actions": { "status": "modernization-status", "preview": "modernization-preview", "execute": "modernization-execute" } }
+      },
       {
         "id": "ops-attention",
         "title": "Attention needed",

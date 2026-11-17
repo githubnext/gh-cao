@@ -7,14 +7,15 @@
     {
       "id": "ops",
       "title": "Ops",
-      "description": "Inspect retained farm evidence and choose the next investigation without changing execution or rollout.",
-      "intent": "Give operators an attention-first, read-only view of the retained CAO farm, inspired by Merge Harbor. Inspect blockers and review work before execution, repository coverage and output evidence. This page observes; it cannot install, dispatch, alter rollout or merge.",
+      "description": "Inspect retained farm evidence and review policy-checked Modernization actions.",
+      "intent": "Give operators an attention-first view of retained farm evidence and explicitly confirmed Modernization actions. Review authoritative native plan and policy previews before dispatch or approval. Installation, rollout changes, merging and deployment remain unavailable.",
       "subject": "Retained CAO evidence in the selected scope and horizon.",
-      "objective": "Choose the next evidence-backed investigation across the farm.",
-      "acceptance": "Show attention, nonterminal attempts, repository coverage and output lifecycles. Preserve partial, stale, unavailable and empty states. Missing evidence is not idle; delivery or run success is not human acceptance or operational Value.",
+      "objective": "Investigate farm evidence and review the next authorized Modernization step.",
+      "acceptance": "Keep retained evidence distinct from current native action checks. Require an explicit, revision-bound confirmation for every plan approval or workflow dispatch. Preserve partial, stale, unavailable and empty evidence; missing evidence is not idle and delivery is not acceptance or Value.",
       "experimental": true,
       "parameters": [],
       "queries": [
+        "modernization-control-repositories",
         "ops-attention",
         "ops-in-flight",
         "ops-recent-outputs",
@@ -715,7 +716,8 @@
         "campaign-insight-tab-counts",
         "campaign-issue-tab-counts",
         "campaign-problem-tab-counts",
-        "campaign-readme-details"
+        "campaign-readme-details",
+        "modernization-control-repositories"
       ]
     },
     {
@@ -1745,6 +1747,33 @@
     }
   ],
   "queries": [
+    {
+      "id": "modernization-control-repositories",
+      "subject": "Retained control repositories declaring the Modernization coordinator.",
+      "objective": "Suggest explicit control-repository selections for authorized Modernization actions.",
+      "acceptance": "Return one coordinate per retained coordinator repository. This inventory suggests a selection only; it does not authorize actions or establish plan approval or readiness.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "campaign",
+          "field": "operator-campaign"
+        }
+      ],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [
+        "campaign-detail",
+        "ops"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
     {
       "id": "ops-attention",
       "subject": "Latest retained workflow states in the selected scope and horizon.",

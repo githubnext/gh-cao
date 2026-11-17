@@ -66,6 +66,17 @@ worker's queue transport. Queue history, status filtering, ordering and counts
 remain declarative queries over the registered operational sources. Published
 dashboards neither enable this transport nor request queue data.
 
+The interaction-only `modernization-controls` element declares its repository
+suggestion query in `data.sources` and references declared CLI actions through
+`config.actions.status`, `preview` and `execute`. Retained rows suggest a control
+repository only; they never establish authorization, plan approval or task
+readiness. Native checks own the full Modernization lifecycle. Each write requires
+an explicit, expiring preview bound to the reviewed control revision and task batch.
+The shared element supports Ops and the Modernization campaign
+(`config.body: campaign`); other campaign routes omit the controls. Unsupported
+deployments remain read-only without browser credentials or execution fallbacks.
+Installation, rollout changes, merging and deployment are not exposed.
+
 The `storage-info` element also declares `data.sources: []`. It presents deployment
 configuration rather than activity evidence: browser-local IndexedDB, local-server
 or server PostgreSQL. Unknown server configuration remains unknown; this
@@ -1530,7 +1541,7 @@ A smell row identifies one detected condition with a stable `smell-id` and uniqu
 The optional table-column field `display` is `text`, `status`, `grader-status`, `mode`, `active-state`, `label`, `ref`, `digest`, `outcome-link`, `run-link`, `repository-link`, `workflow-link`, or `evidence-link` and defaults to `text`. It selects presentation independently from the field name. The optional table-column field `filter` is boolean and defaults to `true`; `false` excludes the column from interactive facet filters without changing its display or sorting. Named UI element values are `campaign-route`, `workflow-route-page`, `outcome-detail`, `outcome-detail-section`, `problem-detail`, `entity-route`, `configuration-policy`, `measure-history`, `factory-header`, `factory-floor`, `link-button-list`, and `markdown`; renderers dispatch these values without inferring behavior from page IDs, view IDs, or source contents.
 
 A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
-The dashboard may declare at most 24 CLI actions. This authoring bound does not
+The dashboard may declare at most 32 CLI actions. This authoring bound does not
 grant execution authority or change command-service allowlists.
 
 CLI command text supports literal `{{field}}` substitutions, not expressions or

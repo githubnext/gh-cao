@@ -1,5 +1,6 @@
 {
   "page": "ops",
+  "action-view": "ops-modernization-actions",
   "views": ["ops-attention", "ops-in-flight", "ops-repositories", "ops-recent-outputs"],
   "attention-states": ["blocked", "review", "unknown"],
   "in-flight-runs": ["102", "103"],

@@ -57,7 +57,7 @@ const ELEMENT_RENDERERS = new Map([
 const ASYNC_SOURCE_ELEMENTS = new Set(['factory-header', 'factory-floor', 'all-campaign-memory', 'link-button-list', 'measure-history']);
 
 /** Elements that retain their DOM while the active page publishes subscribed results. */
-const PAGE_BOUND_ELEMENTS = new Set(['problem-detail', 'campaign-route', 'workflow-value-report', 'workflow-value-snapshot']);
+const PAGE_BOUND_ELEMENTS = new Set(['problem-detail', 'campaign-route', 'workflow-value-report', 'workflow-value-snapshot', 'modernization-controls']);
 
 /** @param {string} name */
 export function elementBindsPageSources(name) {
@@ -89,11 +89,12 @@ const EMPTY_AWARE_ELEMENTS = new Set([
   'workflow-value-report',
   'workflow-value-snapshot',
   'command-terminal',
+  'modernization-controls',
   'storage-info',
   'environment-defaults',
   'prompt-wizard'
 ]);
-const UNAVAILABLE_AWARE_ELEMENTS = new Set(['configuration-policy', 'problem-detail', 'campaign-route', 'workflow-value-report', 'workflow-value-snapshot']);
+const UNAVAILABLE_AWARE_ELEMENTS = new Set(['configuration-policy', 'problem-detail', 'campaign-route', 'workflow-value-report', 'workflow-value-snapshot', 'modernization-controls']);
 
 /**
  * Builds a lazy element renderer that dynamically imports a module on first
@@ -116,6 +117,10 @@ function lazyElementRenderer(importModule, render) {
 
 /** @type {Map<string, (context: ElementRenderContext, signal?: AbortSignal) => Promise<HTMLElement | null>>} */
 const LAZY_ELEMENT_RENDERERS = new Map([
+  ['modernization-controls-lazy', lazyElementRenderer(
+    () => import('./modernization-controls.js'),
+    ({ renderModernizationControls }, context) => renderModernizationControls(context)
+  )],
   ['prompt-wizard-lazy', lazyElementRenderer(
     () => import('./prompt-wizard.js'),
     ({ renderPromptWizard }, context) => renderPromptWizard(context)
