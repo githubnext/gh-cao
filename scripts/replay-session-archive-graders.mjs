@@ -295,8 +295,9 @@ function replaySessionArchiveGraders() {
     let kustoReplay = "unavailable: no approved real Kusto endpoint";
     if (process.env.CAO_KUSTO_EMULATOR_URL || process.env.CAO_SESSION_ARCHIVE_REQUIRE_KUSTO === "1") {
       const kustoLog = execFileSync("go", ["-C", "server", "test", "./internal/sessionarchiveblob",
-        "-run", "^TestKustoUsageGraderReplay$", "-count=1", "-v"], {
-        cwd: root, encoding: "utf8", timeout: 180000,
+        "-run", "^TestKustoUsageGraderReplay$", "-count=1", "-timeout=10m", "-v"], {
+        // Every definition runs once per scenario against the emulator; keep within the job's 25 minutes.
+        cwd: root, encoding: "utf8", timeout: 660000, maxBuffer: 64 * 1024 * 1024,
         env: { ...process.env, CAO_SESSION_ARCHIVE_REQUIRE_KUSTO: "1", CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR: temporary },
       });
       writeFileSync(join(output, "kusto-verification.log"), kustoLog, { mode: 0o600 });
