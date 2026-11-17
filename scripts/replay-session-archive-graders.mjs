@@ -68,13 +68,15 @@ function replaySessionArchiveGraders() {
     const supported = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth",
       "objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
       "recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
-      "recurrence-laminarity", "recurrence-trapping-time",
-      "exploration-error", "exploitation-error", "tool-output-consumption-rate"]);
-    const recurrenceGraders = new Set(["recurrence-laminarity", "recurrence-trapping-time"]);
+      "recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism",
+      "exploration-error", "exploitation-error", "tool-output-consumption-rate",
+      "code-search-recall", "code-read-precision", "code-edit-precision"]);
+    const recurrenceGraders = new Set(["recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism"]);
     const itemGraders = new Set(["objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
       "recurrence-rate"]);
     const usageGraders = new Set(["execution-step-count", "execution-duration", "working-set-rebuild-factor", "context-growth"]);
     const e1Graders = new Set(["exploration-error", "exploitation-error", "tool-output-consumption-rate"]);
+    const codeGraders = new Set(["code-search-recall", "code-read-precision", "code-edit-precision"]);
     // Item sources read the last agent-phase trajectory.ir, matching grader_session.cjs IR selection.
     function lastIR(evidence) {
       const irs = evidence.filter((event) => event.type === "trajectory.ir" && event.provenance?.phase === "agent");
@@ -124,6 +126,31 @@ function replaySessionArchiveGraders() {
       const unsupportedRef = unmet && (Array.isArray(ir.events) ? ir.events : []).filter(record)
         .some((event) => event.kind === "state_change" && typeof event.ref !== "string");
       return { blocked: omissions.includes("data.events:redacted") || unsupportedRef };
+    }
+    // Phase 7 reason ladders. Upstream returns at the first failing action; every
+    // failure is unavailable, so the definition's aggregate order changes only the reason.
+    const normalizePath = (value) => value.trim().replace(/^\.\//, "").replace(/^\/+/, "");
+    function codeQualification(id, evidence, omissions) {
+      const ir = lastIR(evidence);
+      const limits = e1Qualification("exploration-error", evidence, omissions);
+      if (limits.blocked && (limits.reason === "incomplete-evidence" || limits.reason === "oversized")) return limits;
+      const files = record(ir.reference) && record(ir.reference.patch) ? ir.reference.patch.files : undefined;
+      if (!Array.isArray(files) || files.length === 0) return { blocked: false, reason: "no-reference-files" };
+      if (files.some((file) => normalizePath(typeof file === "string" ? file : record(file) && typeof file.path === "string" ? file.path : "") === "")) {
+        return { blocked: false, reason: "missing-reference-path" };
+      }
+      const key = id === "code-search-recall" ? "resources" : "actions";
+      if (omissions.includes(`data.${key}:redacted`)) return { blocked: true, reason: "redacted" };
+      const items = ir[key];
+      if (!Array.isArray(items) || !items.every(record)) return { blocked: false, reason: `malformed-${key}` };
+      if (key === "resources") return { blocked: false, reason: "measured" };
+      if (items.some(({ type }) => typeof type !== "string" || type.trim() === "")) return { blocked: false, reason: "missing-type" };
+      if (items.some(({ consequential }) => typeof consequential !== "boolean")) return { blocked: false, reason: "missing-consequential" };
+      const edit = id === "code-edit-precision";
+      if (edit && items.some(({ type, consequential }) => type === "edit" && !consequential)) return { blocked: false, reason: "non-consequential-edit" };
+      const selected = items.filter(({ type, consequential }) => edit ? type === "edit" : !consequential && (type === "read" || type === "inspect"));
+      if (selected.some(({ target }) => typeof target !== "string" || normalizePath(target) === "")) return { blocked: false, reason: "missing-target" };
+      return { blocked: false, reason: selected.length ? "measured" : edit ? "no-edits" : "no-reads" };
     }
     // Phase 5 reason ladders, in the order each reviewed definition evaluates them.
     function dependencyReason(ir, omissions) {
@@ -204,7 +231,7 @@ function replaySessionArchiveGraders() {
           const expected = upstreamResult.results.find(({ id }) => id === query.id);
           const row = query.fullResult.rows.find((row) => row.RunId === runId);
           assert.ok(row, `${scenario.name}: exact trace/run-attempt result`);
-          if (scenario.name === "e1-oversized-resources" && runId === "123" && !e1Graders.has(query.id)) {
+          if (scenario.name === "e1-oversized-resources" && runId === "123" && !e1Graders.has(query.id) && !codeGraders.has(query.id)) {
             // §4.2 already records that legacy definitions lack the sibling
             // collection guard. This regression gates E1, not a legacy retrofit.
             continue;
@@ -215,9 +242,10 @@ function replaySessionArchiveGraders() {
           }[query.id] ?? (recurrenceGraders.has(query.id) ? recurrenceReason : undefined);
           const phase5Reason = phase5?.(lastIR(evidence), omissions);
           const e1 = e1Graders.has(query.id) ? e1Qualification(query.id, evidence, omissions) : undefined;
+          const codeState = codeGraders.has(query.id) ? codeQualification(query.id, evidence, omissions) : undefined;
           const itemState = itemGraders.has(query.id) ? itemReason(query.id, evidence, omissions) : undefined;
           // Declared fail-closed divergences: upstream may measure, the definition reports unavailable.
-          if (phase5Reason === "unordered" || phase5Reason === "no-events" || e1?.blocked ||
+          if (phase5Reason === "unordered" || phase5Reason === "no-events" || e1?.blocked || codeState?.blocked ||
             itemState === "redacted" || itemState === "excluded") {
             assert.equal(row.value, null, `${scenario.name}/${runId}/${query.id}: fail-closed divergence`);
             assert.equal(row.availability, "unavailable");
@@ -229,6 +257,7 @@ function replaySessionArchiveGraders() {
           const selected = lookups.trace.tokenUsageEntries;
           let reason = itemState ?? phase5Reason;
           if (e1) reason = query.id === "tool-output-consumption-rate" ? e1.reason : row.availability;
+          if (codeState) reason = codeState.reason;
           switch (query.id) {
             case "execution-step-count": reason = selected.length ? "measured" : "no-requests"; break;
             case "execution-duration": {
@@ -266,8 +295,9 @@ function replaySessionArchiveGraders() {
     let kustoReplay = "unavailable: no approved real Kusto endpoint";
     if (process.env.CAO_KUSTO_EMULATOR_URL || process.env.CAO_SESSION_ARCHIVE_REQUIRE_KUSTO === "1") {
       const kustoLog = execFileSync("go", ["-C", "server", "test", "./internal/sessionarchiveblob",
-        "-run", "^TestKustoUsageGraderReplay$", "-count=1", "-v"], {
-        cwd: root, encoding: "utf8", timeout: 180000,
+        "-run", "^TestKustoUsageGraderReplay$", "-count=1", "-timeout=10m", "-v"], {
+        // Every definition runs once per scenario against the emulator; keep within the job's 25 minutes.
+        cwd: root, encoding: "utf8", timeout: 660000, maxBuffer: 64 * 1024 * 1024,
         env: { ...process.env, CAO_SESSION_ARCHIVE_REQUIRE_KUSTO: "1", CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR: temporary },
       });
       writeFileSync(join(output, "kusto-verification.log"), kustoLog, { mode: 0o600 });
@@ -293,7 +323,7 @@ function replaySessionArchiveGraders() {
       upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources, kustoReplay,
       verification: ["CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1",
         "node scripts/replay-session-archive-graders.mjs [private-report-directory]"],
-      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Seventeen full declarative metrics execute through real DuckDB; six attempted candidates remain unsupported. E1 adds exploration-error, exploitation-error and tool-output-consumption-rate through trace-scoped joins and approved observation/tool-call sources, with nested consumer strings. E1 fails closed on excluded guard inputs, relevant redaction, non-string state_change refs (upstream uses JavaScript JSON.stringify) and missing/null IR toolCalls requiring reconciliation. Harmless redaction preserves record counts, satisfaction nullness and consumer array lengths. The same definitions replay through real Kusto only when configured; fixtures alone do not prove hosted acceptance. Recurrence definitions fail closed as unordered, and saturation as no-events, where upstream may measure synthesized or non-positional events, strings or invalid firstEventIndex values, or empty string states. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are checked separately. No missing provenance is filled. Live Azure acceptance is not exercised.",
+      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Twenty-one full declarative metrics execute through real DuckDB; five attempted candidates remain unsupported. E1 adds exploration-error, exploitation-error and tool-output-consumption-rate through trace-scoped joins and approved observation/tool-call sources, with nested consumer strings. Phase 7 adds code-search-recall, code-read-precision and code-edit-precision through JavaScript-trim and closed literal prefix normalization over typed reference patch file, resource and action sources; resource or action redaction fails closed. E1 fails closed on excluded guard inputs, relevant redaction, non-string state_change refs (upstream uses JavaScript JSON.stringify) and missing/null IR toolCalls requiring reconciliation. Harmless redaction preserves record counts, satisfaction nullness and consumer array lengths. The same definitions replay through real Kusto only when configured; fixtures alone do not prove hosted acceptance. Recurrence definitions fail closed as unordered, and saturation as no-events, where upstream may measure synthesized or non-positional events, strings or invalid firstEventIndex values, or empty string states. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are checked separately. No missing provenance is filled. Live Azure acceptance is not exercised.",
       matrix, scenarios: replays,
     };
     writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });

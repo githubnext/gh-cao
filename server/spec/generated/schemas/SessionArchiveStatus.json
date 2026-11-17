@@ -258,6 +258,14 @@
                         {
                             "type": "string",
                             "const": "archive-tool-calls"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-resources"
+                        },
+                        {
+                            "type": "string",
+                            "const": "archive-reference-patch-files"
                         }
                     ]
                 },

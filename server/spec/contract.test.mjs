@@ -177,7 +177,7 @@ test('private archive queries preserve explicit full-content authority and the s
   const definition = openapi.components.schemas.SessionArchiveDefinition
   assert.deepEqual(definition.required, ['name', 'subject', 'from'])
   assert.equal(definition.properties.from.pattern, '^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')
-  assert.match(definition.properties.from.description, /archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers or archive-tool-calls, or the name of an earlier definition/)
+  assert.match(definition.properties.from.description, /archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers, archive-tool-calls, archive-resources or archive-reference-patch-files, or the name of an earlier definition/)
   assert.equal(definition.properties.queries.maxItems, 8)
   assert.equal(definition.properties.queries.items.$ref, '#/components/schemas/SessionArchiveDefinition')
   assert.match(definition.properties.queries.description, /DLS-QUERY-017/)
@@ -213,7 +213,7 @@ test('private archive queries preserve explicit full-content authority and the s
   assert.deepEqual(capabilities.properties['language-version'].enum, ['0.2.0'])
   assert.deepEqual(capabilities.properties.source.enum, ['archive-events'])
   assert.equal(capabilities.properties.fields.items.$ref, '#/components/schemas/SessionArchiveColumn')
-  assert.deepEqual(openapi.components.schemas.SessionArchiveSourceCapability.properties.name.enum, ['archive-objectives', 'archive-objective-dependencies', 'archive-actions', 'archive-states', 'archive-ir-events', 'archive-observations', 'archive-observation-consumers', 'archive-tool-calls'])
+  assert.deepEqual(openapi.components.schemas.SessionArchiveSourceCapability.properties.name.enum, ['archive-objectives', 'archive-objective-dependencies', 'archive-actions', 'archive-states', 'archive-ir-events', 'archive-observations', 'archive-observation-consumers', 'archive-tool-calls', 'archive-resources', 'archive-reference-patch-files'])
   assert.deepEqual(capabilities.required, ['language-version', 'source', 'fields', 'predicates', 'reducers', 'functions', 'fieldStates', 'maxRows'])
   assert.equal(capabilities.properties.chaining.type, 'integer')
   assert.equal(capabilities.properties.joins.type, 'integer')

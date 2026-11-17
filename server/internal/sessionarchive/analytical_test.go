@@ -534,7 +534,7 @@ func TestAnalyticalItemSourcePlans(t *testing.T) {
 		itemDefinition(t, "archive-states", `"select":[{"field":"PayloadJSON"}]`),
 		itemDefinition(t, "archive-states", `"aggregate":{"values":[{"field":"Id","as":"first","reducer":"first","order-by":[{"field":"Ordinal"}]}]}`),
 		itemDefinition(t, "archive-actions", `"filter":{"predicates":[{"field":"Kind","state":"valid"}]},"select":[{"field":"Kind"}]`),
-		itemDefinition(t, "archive-resources", `"select":[{"field":"Ordinal"}]`),
+		itemDefinition(t, "archive-provenance-edges", `"select":[{"field":"Ordinal"}]`),
 	} {
 		if _, err := definition.Plan(); !errors.Is(err, ErrQuery) {
 			t.Fatalf("invalid item-source plan accepted: %v", err)
@@ -835,7 +835,7 @@ func TestAnalyticalJoinPlans(t *testing.T) {
 		"too many stages":     {stage(9), join(`{"source":"ids0","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
 		"joined state":        {idStage, `"from":"archive-objective-dependencies","joins":[{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"filter":{"predicates":[{"field":"copies","state":"valid"}]},"select":[{"field":"Value"}]`},
 		"unknown join source": {idStage, join(`{"source":"missing","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]},{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}`)},
-		"wide window":         {idStage, `"from":"archive-objective-dependencies","joins":[{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"window":[{"as":"n","operation":"row-number","groupby":[` + joinBinding + `,"Value","copies"],"order-by":[{"field":"Ordinal"},{"field":"Position"}]}],"select":[{"field":"n"}]`},
+		"wide window":         {idStage, `"from":"archive-objective-dependencies","joins":[{"source":"ids","on":[{"left":"Value","right":"Id"}],"fields":[{"field":"copies"}]}],"window":[{"as":"n","operation":"row-number","groupby":[` + joinBinding + `,"Value","copies","Kind"],"order-by":[{"field":"Ordinal"},{"field":"Position"}]}],"select":[{"field":"n"}]`},
 		"ordered item sum":    {idStage, `"from":"archive-states","aggregate":{"by":[` + joinBinding + `],"values":[{"field":"FirstEventIndex","as":"s","reducer":"sum","order-by":[{"field":"Ordinal"}]}]},"joins":[{"source":"ids","on":[{"left":"Id","right":"Id"}],"fields":[{"field":"copies"}]}]`},
 	} {
 		if _, err := chainedDefinition(t, test.stages, test.clauses).Plan(); !errors.Is(err, ErrQuery) {
@@ -896,6 +896,7 @@ func TestAnalyticalRowLevelPlans(t *testing.T) {
 		"compute": `"compute":[{"as":"late","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"select":[{"field":"late"}]`,
 		"window":  `"window":[{"as":"n","operation":"row-number",` + windowBy + `,"order-by":[{"field":"Sequence"}]}],"select":[{"field":"n"}]`,
 		"family":  `"filter":{"predicates":[{"field":"Usage","state":"present"}]},"select":[{"field":"Sequence"}]`,
+		"path":    `"compute":[{"as":"p","function":"strip-prefix","args":[{"function":"trim","args":[{"field":"Type"}]},{"value":"./"},{"value":true}]}],"select":[{"field":"p"}]`,
 	}
 	for name, clauses := range accepted {
 		plan, err := analyticalDefinition(t, clauses).Plan()
@@ -923,6 +924,12 @@ func TestAnalyticalRowLevelPlans(t *testing.T) {
 		"compute in main filter":    `"compute":[{"as":"late","function":"gt","args":[{"field":"Sequence"},{"value":1}]}],"filter":{"predicates":[{"field":"late","equals":true}]},"select":[{"field":"late"}]`,
 		"string null test":          `"compute":[{"as":"untyped","function":"is-null","args":[{"field":"Type"}]}],"select":[{"field":"untyped"}]`,
 		"string coalesce":           `"compute":[{"as":"kind","function":"coalesce","args":[{"field":"Type"},{"value":"x"}]}],"select":[{"field":"kind"}]`,
+		"trim of number":            `"compute":[{"as":"p","function":"trim","args":[{"field":"Sequence"}]}],"select":[{"field":"p"}]`,
+		"field prefix":              `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"field":"Type"},{"value":false}]}],"select":[{"field":"p"}]`,
+		"empty prefix":              `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":""},{"value":false}]}],"select":[{"field":"p"}]`,
+		"long prefix":               `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"aaaaaaaaaaaaaaaaa"},{"value":false}]}],"select":[{"field":"p"}]`,
+		"computed repeat":           `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"/"},{"function":"gt","args":[{"field":"Sequence"},{"value":1}]}]}],"select":[{"field":"p"}]`,
+		"missing repeat":            `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"/"}]}],"select":[{"field":"p"}]`,
 		"row stage drops key":       `"queries":[` + rowStage + `{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
 		"row stage renames key":     `"queries":[` + rowStage + `{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence","as":"seq"},{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
 		"family over item source":   `"from-items":true`,

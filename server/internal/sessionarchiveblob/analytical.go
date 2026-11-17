@@ -129,6 +129,10 @@ func kqlExpression(e sessionarchive.PlannedExpression) string {
 		return "(toreal(" + args[0] + ")*toreal(" + args[1] + "))"
 	case "quotient":
 		return "iff(toreal(" + args[1] + ")==0.0,real(null),toreal(" + args[0] + ")/toreal(" + args[1] + "))"
+	case "trim":
+		return "replace_regex(" + args[0] + ",@'" + sessionarchive.TrimPattern() + "','')"
+	case "strip-prefix":
+		return "replace_regex(" + args[0] + ",@'" + sessionarchive.StripPrefixPattern(e.Args[1].Literal.String, e.Args[2].Literal.Boolean) + "','')"
 	}
 	panic("unvalidated analytical expression")
 }
@@ -151,8 +155,20 @@ func itemTracesKQL(events string) string {
 		"| summarize PolicyDigest=tostring(array_sort_desc(make_set(PolicyDigest))[0]),Gaps=make_set(Gaps)," +
 		"archive_synthesized=countif(archive_synthesized),archive_tools=countif(archive_tool) by " + traceKeyKQL + "\n" +
 		"| join kind=leftouter (archive_events | where archive_ir | summarize arg_max(Sequence,PayloadJSON,OmissionReasons) by " + traceKeyKQL + ") on " + traceKeyKQL + "\n" +
-		"| project-away Namespace1,Repository1,RunId1,RunAttempt1,TraceId1,ProjectionId1\n" + largestCollectionKQL() + ");\n"
+		"| project-away Namespace1,Repository1,RunId1,RunAttempt1,TraceId1,ProjectionId1\n" + largestCollectionKQL() +
+		"| extend PayloadJSON=" + markedPayloadKQL + ");\n"
 }
+
+// markedPayloadKQL prefixes every JSON string value, but not member names,
+// with textMarker. parse_json turns date-, GUID- and timespan-like strings into
+// datetime, guid and timespan values; marked strings are never converted, so
+// item sources recover the exact text by removing the marker. Unescaped quotes
+// in valid JSON only delimit strings, so the left-to-right string-token match
+// starts at each opening quote; the second pass unmarks tokens followed by ":".
+const markedPayloadKQL = `replace_regex(replace_regex(PayloadJSON,@'"((?:[^"\\]|\\.)*)"',@'"` + textMarker + `\1"'),` +
+	`@'"` + textMarker + `((?:[^"\\]|\\.)*)"(\s*):',@'"\1"\2:')`
+
+const textMarker = "#"
 
 // largestCollectionKQL mirrors the DuckDB LargestCollection guard input:
 // the longest guarded IR or reference array, with upstream's synthesized
@@ -222,6 +238,10 @@ func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
 			traceKeyKQL + "\n| extend Ordinal=long(null),Position=long(null),Element=dynamic(null)))\n"
 		position = "Position,"
 	}
+	// Marked strings (markedPayloadKQL) drop their one-character marker.
+	text := func(raw string) string {
+		return "substring(tostring(" + raw + "),1)"
+	}
 	source += "| extend archive_kind=iff(isnull(Ordinal),\"\",gettype(Element))\n" +
 		"| extend Kind=case(archive_kind==\"dictionary\",\"object\",archive_kind==\"array\",\"array\",archive_kind==\"string\",\"string\"," +
 		"archive_kind==\"bool\",\"boolean\",archive_kind==\"null\",\"null\",archive_kind in " + numeric + ",\"number\",\"\")\n"
@@ -260,13 +280,13 @@ func itemSourceKQL(item sessionarchive.ItemSource, index int) (string, string) {
 			valid = "(" + kind + "==\"array\")"
 			value = "iff(" + valid + ",array_length(" + raw + "),long(null))"
 		case "visit":
-			// States are visits: a string element is its own id; a record contributes its string id.
+			// A string element is its own value; a record contributes its string Key.
 			valid = "(" + kind + "==\"string\")"
-			value = "case(archive_kind==\"string\",tostring(Element),archive_kind==\"dictionary\" and " + valid + ",tostring(" + raw + "),\"\")"
+			value = "case(archive_kind==\"string\"," + text("Element") + ",archive_kind==\"dictionary\" and " + valid + "," + text(raw) + ",\"\")"
 			present = "(archive_kind==\"string\" or " + has + ")"
 		default:
 			valid = "(" + kind + "==\"string\")"
-			value = "iff(" + valid + ",tostring(" + raw + "),\"\")"
+			value = "iff(" + valid + "," + text(raw) + ",\"\")"
 		}
 		name := literal(element.Column.Name)
 		member := func(condition string) string {

@@ -16,7 +16,7 @@ model SessionArchivePredicate {
   state?: "present" | "absent" | "null" | "invalid" | "excluded" | "redacted" | "valid";
 }
 
-alias SessionArchiveFunction = "if" | "equals" | "gt" | "lte" | "sum" | "difference" | "product" | "quotient" | "coalesce" | "is-null" | "and";
+alias SessionArchiveFunction = "if" | "equals" | "gt" | "lte" | "sum" | "difference" | "product" | "quotient" | "coalesce" | "is-null" | "and" | "trim" | "strip-prefix";
 model SessionArchiveFieldArgument {
   field: string;
 }
@@ -49,12 +49,12 @@ model SessionArchiveDefinition {
   acceptance?: string;
   /** Query chaining (Dashboard Language DLS-QUERY-017): earlier definitions in the same request, evaluated in order before this one. Each reads an archive source or any earlier definition through from or joins, and every earlier definition is read by a later one or by this definition, so no stage is unused. An earlier definition either aggregates with every trace and projection identity field (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId) in aggregate.by, outputting its groups, aggregates and computations, or is row-level and selects its input key unrenamed (the trace and projection identity plus Sequence for archive-events, Ordinal for item sources), outputting the selected fields. Earlier definitions must not declare queries, order-by or limit, and aggregating ones must not declare select. Names are unique and never shadow a source. Rejected unless status advertises analytical.chaining at least this length. */
   @maxItems(8) queries?: SessionArchiveDefinition[];
-  /** One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers or archive-tool-calls, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies and archive-observation-consumers further flatten dependsOn and consumedByActionIds into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there. */
+  /** One of archive-events, archive-objectives, archive-objective-dependencies, archive-actions, archive-states, archive-ir-events, archive-observations, archive-observation-consumers, archive-tool-calls, archive-resources or archive-reference-patch-files, or the name of an earlier definition in queries. archive-events is the shared event source. The item sources flatten the last agent-phase trajectory.ir collection of each complete active trace at query time, with one anchor row per trace; archive-objective-dependencies and archive-observation-consumers further flatten dependsOn and consumedByActionIds into rows keyed by the parent Ordinal and Position. Local DuckDB and hosted KQL both lower them, and they are rejected unless status advertises them in analytical.sources. Any other value names an earlier definition in queries; an aggregate over it must keep complete trace binding in aggregate.by, and field-state predicates and first are unavailable there. */
   @pattern("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$") @maxLength(128) from: string;
   /** Trace-scoped equality joins (Dashboard Language DLS-QUERY-005..008), applied in order before filter. Both sides always match on the complete trace binding (Namespace, Repository, RunId, RunAttempt, TraceId, ProjectionId, PolicyDigest); on adds integer or string keys, never a binding field. on must cover the right side's row key (an earlier aggregate's by fields, or the source key), so each left row meets at most one right row. Right rows with a null or empty-string key never match. inner drops unmatched left rows; left keeps them with null joined fields (empty string for strings). Imported names must not collide with input fields, case-insensitively, and cannot be targets of field-state predicates. Rejected unless status advertises analytical.joins at least this length. */
   @maxItems(4) joins?: SessionArchiveJoin[];
   filter?: { @minItems(1) @maxItems(64) predicates: SessionArchivePredicate[] };
-  /** Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. Rejected unless status advertises analytical.compute. */
+  /** Row-level computations after filter and before window and aggregate, in Dashboard Language order. Each may reference input fields and preceding computations; filter cannot read them. is-null and coalesce over strings are rejected because archive strings are never null. trim removes ECMAScript String.prototype.trim whitespace from both ends of a string; strip-prefix(text, prefix, repeated) removes a non-empty string-literal prefix of at most 16 code points once, or as a repeated leading run when the boolean literal repeated is true. strip-prefix is closed literal matching, never a regular expression. Rejected unless status advertises analytical.compute. */
   @maxItems(32) compute?: { as: string; function: SessionArchiveFunction; @maxItems(3) args: SessionArchiveExpression[] }[];
   /** Dashboard Language previous and row-number windows (DLS §5.5.4) over row-level queries only; forbidden with aggregate. groupby must include every trace and projection identity field, and groupby with order-by must cover the input key so window order is total. previous returns the field from the preceding row in its partition, or null (empty string for strings) on the first row. Rejected unless status advertises each operation in analytical.windows. */
   @maxItems(8) window?: SessionArchiveWindow[];
@@ -149,7 +149,7 @@ model SessionArchiveCounters {
 }
 
 model SessionArchiveSourceCapability {
-  name: "archive-objectives" | "archive-objective-dependencies" | "archive-actions" | "archive-states" | "archive-ir-events" | "archive-observations" | "archive-observation-consumers" | "archive-tool-calls";
+  name: "archive-objectives" | "archive-objective-dependencies" | "archive-actions" | "archive-states" | "archive-ir-events" | "archive-observations" | "archive-observation-consumers" | "archive-tool-calls" | "archive-resources" | "archive-reference-patch-files";
   fields: SessionArchiveColumn[];
 }
 
@@ -168,7 +168,8 @@ model SessionArchiveWindow {
   as: string;
   operation: "previous" | "row-number";
   @encodedName("application/json", "order-by") @minItems(1) @maxItems(8) orderBy: OrderField[];
-  @minItems(1) @maxItems(8) groupby: string[];
+  /** At most nine fields: the six trace and projection identity fields plus three row fields. */
+  @minItems(1) @maxItems(9) groupby: string[];
 }
 
 model SessionArchiveCapabilities {
@@ -214,7 +215,7 @@ namespace SessionArchive {
   @route("/api/v1/session-archive/status")
   @get op status(): SessionArchiveStatus | Unauthorized | Forbidden | TooManyRequests | Unavailable;
 
-  /** Execute timeline, summary, or the shared session-query Dashboard Language profile for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 4096 bytes, result 8 MiB/10000 rows, and execution 30 seconds; ADX is limited to 4096 output rows. Hosted session-query additionally requires separate analytical-plan destination acceptance; existing capture acceptance and native privacy identity remain unchanged. Unsupported operators and backend budget failures are explicit errors, never fallbacks. Authorization is rechecked inside withdrawal-aware result delivery through the final response write. Corrections use active projection membership before any analytical operation; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. An explicit query.limit is intentional selection, reported separately from evidence coverage. Ordinary dashboard queries remain on PostgreSQL. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence. */
+  /** Execute timeline, summary, or the shared session-query Dashboard Language profile for one exact authorized repository, with an additional full-trace-read grant and (hosted) CSRF token. Maximum request 8192 bytes, including the repository name, result 8 MiB/10000 rows, and execution 30 seconds; ADX is limited to 4096 output rows. Hosted session-query additionally requires separate analytical-plan destination acceptance; existing capture acceptance and native privacy identity remain unchanged. Unsupported operators and backend budget failures are explicit errors, never fallbacks. Authorization is rechecked inside withdrawal-aware result delivery through the final response write. Corrections use active projection membership before any analytical operation; withdrawal overrides historical/pinned readers. A budget failure is an error, not a complete-looking truncated trace. An explicit query.limit is intentional selection, reported separately from evidence coverage. Ordinary dashboard queries remain on PostgreSQL. Hosted Blob/ADX query activation additionally requires generation-bound live Azure conformance; upload success or a local simulator does not establish that evidence. */
   @route("/api/v1/session-archive/query")
   @post op query(
     @header("X-CSRF-Token") csrfToken?: string,

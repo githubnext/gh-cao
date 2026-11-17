@@ -408,7 +408,7 @@ func TestAnalyticalKQLLowersJoins(t *testing.T) {
 
 func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 	entries, err := os.ReadDir("../sessionarchive/testdata/graders")
-	if err != nil || len(entries) != 17 {
+	if err != nil || len(entries) != 21 {
 		t.Fatal("missing reviewed grader definitions")
 	}
 	for _, entry := range entries {
@@ -432,6 +432,12 @@ func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 		start := strings.LastIndex(kql, "let source_")
 		_, query, _ := strings.Cut(kql[start:], ");\n")
 		sources := regexp.MustCompile(`(?s)let (source|stage)_\d+=materialize\(.*?\);\n`).FindAllString(kql, -1)
+		// parse_json converts date-, GUID- and timespan-like strings, so every item
+		// source must read the marked payload and drop the marker from string values.
+		if strings.Contains(kql, "let archive_traces=") && (!strings.Contains(kql, "| extend PayloadJSON="+markedPayloadKQL+");") ||
+			strings.Contains(kql, "extract_json(")) {
+			t.Fatalf("%s: item strings are not recovered from the marked payload", entry.Name())
+		}
 		if strings.Contains(query, "PayloadJSON") || strings.Contains(strings.Join(sources, ""), "PayloadJSON") ||
 			strings.Contains(kql, "dcount(") || strings.Count(kql, "join ") != strings.Count(kql, "join kind=") {
 			t.Fatalf("%s: payload escaped the item source or a join/count is implicit", entry.Name())

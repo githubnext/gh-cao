@@ -40,7 +40,7 @@ func (runtime *mcpRuntime) callSessionQuery(ctx context.Context, arguments json.
 	if !ok || delivery.request == nil || !runtime.app.sessionDataLakeAvailable(delivery.request.WithContext(ctx)) {
 		return sessionArchiveResult{}, errors.New("session data lake queries require an enabled archive and separately approved full-trace-read access")
 	}
-	if len(arguments) == 0 || len(arguments) > 4096 || delivery.reader != nil {
+	if len(arguments) == 0 || len(arguments) > sessionArchiveRequestBytes || delivery.reader != nil {
 		return sessionArchiveResult{}, errors.New("session data lake query exceeds its request budget")
 	}
 	var input struct {
