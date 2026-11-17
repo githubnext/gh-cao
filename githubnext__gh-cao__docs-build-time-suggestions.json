@@ -1,34 +1,7 @@
 {
   "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-17T02:37:01Z",
-      "worker_run_id": "44003865494",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "43798031034",
-        "43810351164",
-        "43814432358",
-        "43825070138",
-        "43829639369",
-        "43831754585",
-        "43831980991",
-        "43832040488",
-        "43840581457",
-        "43854851689",
-        "43862265708",
-        "43877103800",
-        "43987917606",
-        "43991571724",
-        "43991770179",
-        "43991897672",
-        "43992363367",
-        "43993695761"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43798031034 (push 4121d56, created 2026-11-16T03:24Z) to 43993695761 (push b737e3c, created 2026-11-17T01:11Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 43810351164), 0 failed; gh run list 02:36Z shows no newer docs run and none queued or in progress. Source 98f489f6 = local HEAD = source_sha; docs.yml unchanged. Dependency phase (setup-node + install + post) from stored immutable run_timings rows: median 12.5 s, p90 18 s = 16.1 percent of exec median 77.5 s; 15 percent gate 11.6 s. Setup-node median 3.5 s p90 6; install median 8 s p90 11; post median 0 s p90 0. Jobs API spot-check of 43993695761 matched the stored row (setup 2, install 6, post 0, exec 64). Cache: exact key node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57Z, last accessed 02:32Z); post step 0-1 s in 18/18 (exact hit inferred; no save, so no miss). Ceiling: whole-phase removal unreachable (npm ci required); install-only removal at most 8 s; node_modules cache est 3-6 s net, unmeasured; all below gate. Open #20815 (blobless checkout) verified OPEN with 0 comments; checkout is another category, not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-17T02:54:00Z",
       "worker_run_id": "44005833899",
@@ -811,6 +784,33 @@
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at evaluation: no docs run newer than 44060953578, none in progress; only queued item is stale 37642403569 (created 2026-10-07, outside window, housekeeping). Source 453e35b = origin main = source_sha; its file list (server/, specs/, scripts/replay-session-archive-graders.mjs) matches no docs.yml path filter, so no run is expected and none occurred. Reused immutable run_timings rows (recomputed, no job refetch): queue median 4 s, p90 15 s, max 64 s (serialization latency, not build time); exec median 77.5 s, p90 90 s; gates 11.6 s (15 percent) and 60 s not met. cancel-in-progress false kept: 0 in-flight builds superseded in window, so cancel-in-progress true saves about 0 s; pending coalescing already active. 0 of 18 window heads test-only; 05:23Z schedule 44023953879 (62 s) is the required synthetic-date refresh, removal rejected. No suggestion; noop; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-17T12:38:36Z",
+      "worker_run_id": "44084360320",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "43831754585",
+        "43831980991",
+        "43832040488",
+        "43840581457",
+        "43854851689",
+        "43862265708",
+        "43877103800",
+        "43987917606",
+        "43991571724",
+        "43991770179",
+        "43991897672",
+        "43992363367",
+        "43993695761",
+        "44004300647",
+        "44023953879",
+        "44041835448",
+        "44043184727",
+        "44060953578"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed; gh run list at 12:37Z: none queued or in progress, no docs run newer than 44060953578; main = source_sha 453e35b (not docs-triggered). Stored run_timings recomputed (no job refetch): setup-node median 3 s p90 6; install median 9.5 s p90 11; post median 0 s p90 1 (exact-key hit in 18/18); setup+install+post median 12.5 s p90 17 = 16.1 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet; install-only ceiling 9.5 s (12.3 percent). Jobs API spot-check of 44060953578 matched (setup 3, install 10, post 1). Cache node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57Z, last accessed 12:32Z). Lock files unchanged since 7c8faf4 (2026-11-13T20:56Z), so the cache-key watch item has no effect. node_modules cache net 3-6 s (unmeasured) stays below gate. No issue; open #20815 (checkout) is another category, not repeated. Next: Astro documentation generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -825,7 +825,7 @@
     "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
     "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
     "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-    "live_entry_last_accessed": "2026-11-17T09:18:03Z (caches API read 09:20Z; key node-cache-Linux-x64-npm-7808ecf8; post step 0-1 s in 18/18 window runs)",
+    "live_entry_last_accessed": "2026-11-17T12:32:41Z (caches API read 12:37Z; key node-cache-Linux-x64-npm-7808ecf8; post step 0-1 s in 18/18 window runs)",
     "window_2026_11_15T1930Z": {
       "n_success": 8,
       "setup_node_median_s": 4,
@@ -1630,8 +1630,8 @@
     "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)"
   },
   "dependency_phase": {
-    "evaluated_at": "2026-11-17T10:53:34Z",
-    "worker_run_id": "44068382025",
+    "evaluated_at": "2026-11-17T12:38:36Z",
+    "worker_run_id": "44084360320",
     "window": "strict latest 20 completed docs.yml runs 43831754585..44060953578; cancelled 43991812013 and 43832015521 excluded; 17 push + 1 schedule; 18 successes",
     "method": "recomputed from stored immutable run_timings rows (no refetch); median of even n averaged; p90 nearest-rank",
     "setup_node_s": {
