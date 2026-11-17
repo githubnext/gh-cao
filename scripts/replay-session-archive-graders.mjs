@@ -384,7 +384,10 @@ function replaySessionArchiveGraders() {
         ? `${scenario.name}: lookup error preserved: ${scenario.original.error}`
         : `${scenario.name}: ${scenario.original.results.map(({ id, value, status }) => `${id}=${value ?? status}`).join("; ")}`),
       "", report.qualification, "",
-      ...Object.entries(report.tolerances).map(([id, t]) => `${id}: ${t.compared} measured values compared, ${t.differing} differ from V8, max |diff| ${t.maxAbsDiff} <= declared ${t.absolute}.`),
+      ...Object.entries(report.tolerances).flatMap(([id, t]) => [
+        `${id}: ${t.compared} measured values compared, ${t.differing} differ from V8, max |diff| ${t.maxAbsDiff} <= declared ${t.absolute}.`,
+        ...(t.kusto ? [`${id} real Kusto vs DuckDB: ${t.kusto.compared} compared, ${t.kusto.differing} differ, max |diff| ${t.kusto.maxAbsDiff} (${t.kusto.maxULPs} ulp).`] : []),
+      ]),
       "", kustoReplay,
     ].join("\n") + "\n";
     writeFileSync(join(output, "report.md"), text, { mode: 0o600 });
