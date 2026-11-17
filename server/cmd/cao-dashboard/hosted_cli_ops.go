@@ -70,18 +70,27 @@ func newHostedCLIQueueListCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			response := map[string]any{
-				"commands": hostedCLICommandSummaries(page.Commands),
-				"limit":    filter.Limit, "hasMore": page.HasMore,
-				"revision": page.Revision, "recoveryBlocked": page.RecoveryBlocked,
-			}
-			if page.HasMore && len(page.Commands) > 0 {
-				response["nextContinuationToken"] = hostedCLIContinuationToken(page.Commands[len(page.Commands)-1].ID)
-			}
-			return writeHostedCLIQueueJSON(cmd, response)
+			return writeHostedCLIQueueJSON(cmd, hostedCLIQueuePageResponse(filter.Limit, page))
 		})
 	}
 	return cmd
+}
+
+// hostedCLIQueuePageResponse describes one queue page and, when more commands
+// remain, the continuation token that resumes before the page's last command.
+func hostedCLIQueuePageResponse(limit int, page operational.CLICommandCursorPage) map[string]any {
+	response := map[string]any{
+		"commands": hostedCLICommandSummaries(page.Commands),
+		"limit":    limit, "hasMore": page.HasMore,
+		"revision": page.Revision, "recoveryBlocked": page.RecoveryBlocked,
+	}
+	hasToken := page.HasMore && len(page.Commands) > 0
+	if hasToken {
+		response["nextContinuationToken"] = hostedCLIContinuationToken(page.Commands[len(page.Commands)-1].ID)
+	}
+	hostedCLILog.Printf("queue list page built: commands=%d has_more=%t continuation=%t recovery_blocked=%t",
+		len(page.Commands), page.HasMore, hasToken, page.RecoveryBlocked)
+	return response
 }
 
 // hostedCLIQueueFilter validates list flags and builds the queue cursor filter.
