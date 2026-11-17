@@ -41,6 +41,7 @@ for (const width of [1440, 390]) {
       await expect(ops).toContainText('No repository evidence is retained');
       await expect(ops).toContainText('No nonterminal run attempts are retained');
       const evidence = opsEvidence(new Date().toISOString());
+      evidence.runs[2].status = 'in_progress';
       await writeDashboardSnapshot(snapshot, evidence);
       await preview.ingestSnapshot();
       const attention = ops.locator('[data-view-id="ops-attention"]');

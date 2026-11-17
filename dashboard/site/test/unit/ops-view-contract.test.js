@@ -72,6 +72,17 @@ describe('Ops retained-evidence contract', () => {
     });
   });
 
+  it.each(contract['active-run-statuses'])('includes native and retained active run status %s through the worker', async status => {
+    const indexedDB = new IDBFactory();
+    vi.stubGlobal('indexedDB', indexedDB);
+    const batch = opsEvidence();
+    batch.runs[2].status = status;
+    await replaceCanonicalBatch(indexedDB, batch);
+    const flight = (await canonicalView('ops-in-flight')).rows;
+    expect(flight.map(row => row.run)).toEqual(contract['in-flight-runs']);
+    expect(flight.find(row => row.run === '102')?.['run-status']).toBe(status);
+  });
+
   it('keeps same-path workflows in different repositories separate and replaces obsolete blockers reactively', async () => {
     const indexedDB = new IDBFactory();
     vi.stubGlobal('indexedDB', indexedDB);

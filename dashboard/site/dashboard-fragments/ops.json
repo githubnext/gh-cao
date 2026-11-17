@@ -61,9 +61,9 @@
       "name": "ops-in-flight",
       "subject": "Retained run attempts with a nonterminal native status.",
       "objective": "Inspect the last recorded execution state, not a live queue.",
-      "acceptance": "Include queued, requested, pending, waiting and in-progress attempts; order newest creation then identity. Keep attempts distinct, missing timestamps and links unknown, and completed runs out.",
+      "acceptance": "Include queued, requested, pending, waiting and native in_progress attempts, retaining compatibility with in-progress; order newest creation then identity. Keep attempts distinct, missing timestamps and links unknown, and completed runs out.",
       "from": "runs",
-      "filter": { "predicates": [{ "field": "run-status", "in": ["queued", "requested", "pending", "waiting", "in-progress"] }] },
+      "filter": { "predicates": [{ "field": "run-status", "in": ["queued", "requested", "pending", "waiting", "in_progress", "in-progress"] }] },
       "order-by": [
         { "field": "created-at", "direction": "desc" },
         { "field": "id", "direction": "asc" }
@@ -173,7 +173,7 @@
       {
         "id": "ops-in-flight",
         "title": "Work in flight",
-        "description": "Last recorded nonterminal run attempts. Retained status may be stale; this is not live execution telemetry.",
+        "description": "Last recorded nonterminal run attempts, including GitHub in_progress status. Retained status may be stale; this is not live execution telemetry.",
         "mark": "table",
         "locked": true,
         "layout": "half",

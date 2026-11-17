@@ -1768,7 +1768,7 @@
       "id": "ops-in-flight",
       "subject": "Retained run attempts with a nonterminal native status.",
       "objective": "Inspect the last recorded execution state, not a live queue.",
-      "acceptance": "Include queued, requested, pending, waiting and in-progress attempts; order newest creation then identity. Keep attempts distinct, missing timestamps and links unknown, and completed runs out.",
+      "acceptance": "Include queued, requested, pending, waiting and native in_progress attempts, retaining compatibility with in-progress; order newest creation then identity. Keep attempts distinct, missing timestamps and links unknown, and completed runs out.",
       "description": "",
       "parameters": [],
       "sources": [
