@@ -22,15 +22,12 @@ test("central-agentic-ops is a discoverable, packaged, compact skill", () => {
   assert.match(skill, /^---\nname: central-agentic-ops\ndescription: "[^"\n]+"\n/);
   assert.ok(Buffer.byteLength(skill) <= 6 * 1024, "router must stay lightweight");
 
-  // gh aw auto-scans skills/ and .github/skills/; a second copy there collides on install.
-  assert.equal(existsSync(join(root, ".github", "skills", "central-agentic-ops")), false);
-  const local = join(root, ".agents", "skills", "central-agentic-ops");
-  assert.equal(lstatSync(local).isSymbolicLink(), false, "repository-local skill must not be a symlink");
-  assert.deepEqual(readdirSync(local), ["SKILL.md"]);
-  const router = read(".agents/skills/central-agentic-ops/SKILL.md");
-  assert.match(router, /^---\nname: central-agentic-ops\ndescription: "[^"\n]+"\n---\n/);
-  assert.match(router, /\]\(\.\.\/\.\.\/\.\.\/skills\/central-agentic-ops\/SKILL\.md\)/);
-  assert.ok(Buffer.byteLength(router) <= 1024, "repository-local router must stay tiny");
+  assert.equal(lstatSync(join(root, "skills", "central-agentic-ops")).isSymbolicLink(), false);
+  // skills/ is the only copy: gh skill discovers skills/*, and gh aw collides on a second copy.
+  for (const copy of [[".github", "skills"], [".agents", "skills"]]) {
+    assert.equal(existsSync(join(root, ...copy, "central-agentic-ops")), false, copy.join("/"));
+  }
+  assert.match(read("AGENTS.md"), /\[`central-agentic-ops` skill\]\(skills\/central-agentic-ops\/SKILL\.md\)/);
 
   const manifest = read("aw.yml");
   assert.match(manifest, /^\s+- skills\/central-agentic-ops$/m);
