@@ -55,24 +55,38 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "hosted CLI egress socket is unavailable")
 		return 125
 	}
-	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp4", cliegress.RelayAddress)
+	listener, err := startRelay(ctx, cancel, cliegress.RelayAddress, cliegress.SocketPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "hosted CLI egress relay is unavailable")
 		return 125
 	}
 	defer func() { _ = listener.Close() }()
-	go func() {
-		if err := cliegress.Relay(ctx, listener, cliegress.SocketPath); err != nil {
-			fmt.Fprintln(os.Stderr, "hosted CLI egress relay stopped unexpectedly")
-			cancel()
-		}
-	}()
 	// #nosec G204 G702 -- fixed bootstrap and validated CLI arguments supplied by the Docker lifecycle, never host execution.
 	command := exec.CommandContext(ctx, os.Args[1], os.Args[2:]...)
 	command.Stdin, command.Stdout, command.Stderr = os.Stdin, os.Stdout, os.Stderr
 	command.Env = workloadEnv(os.Environ())
 	relayLog.Printf("starting workload: args=%d", len(os.Args)-2)
 	return workloadExitCode(command.Run())
+}
+
+// startRelay listens on address and relays accepted connections to socket in
+// the background. An unexpected relay failure cancels the workload context so
+// the workload never keeps running without a working proxy.
+func startRelay(ctx context.Context, cancel context.CancelFunc, address, socket string) (net.Listener, error) {
+	listener, err := (&net.ListenConfig{}).Listen(ctx, "tcp4", address)
+	if err != nil {
+		relayLog.Printf("egress relay listen failed: ctx_done=%t", ctx.Err() != nil)
+		return nil, err
+	}
+	go func() {
+		if err := cliegress.Relay(ctx, listener, socket); err != nil {
+			relayLog.Printf("egress relay stopped unexpectedly")
+			fmt.Fprintln(os.Stderr, "hosted CLI egress relay stopped unexpectedly")
+			cancel()
+		}
+	}()
+	relayLog.Printf("egress relay listening")
+	return listener, nil
 }
 
 // probeEgressSocket confirms the host egress socket accepts a connection before
