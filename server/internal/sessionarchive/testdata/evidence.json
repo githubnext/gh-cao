@@ -14,6 +14,7 @@
     "dependency-order-violation-rate", "evidence-saturation-stopping-lag", "recurrence-determinism",
     "recurrence-laminarity", "recurrence-trapping-time",
     "exploration-error", "exploitation-error", "tool-output-consumption-rate",
-    "code-search-recall", "code-read-precision", "code-edit-precision"
+    "code-search-recall", "code-read-precision", "code-edit-precision",
+    "event-entropy-rate"
   ]
 }

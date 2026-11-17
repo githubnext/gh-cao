@@ -70,7 +70,7 @@ function replaySessionArchiveGraders() {
       "recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
       "recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism",
       "exploration-error", "exploitation-error", "tool-output-consumption-rate",
-      "code-search-recall", "code-read-precision", "code-edit-precision", "policy-near-miss"]);
+      "code-search-recall", "code-read-precision", "code-edit-precision", "policy-near-miss", "event-entropy-rate"]);
     const recurrenceGraders = new Set(["recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism"]);
     const itemGraders = new Set(["objective-coverage", "premature-termination-gap", "grounding-accuracy", "state-revisit-probability-rep",
       "recurrence-rate"]);
@@ -211,6 +211,29 @@ function replaySessionArchiveGraders() {
       const visits = states.filter((state) => typeof state === "string" || record(state) && typeof state.id === "string" && state.id !== "");
       return visits.length < 4 ? "fewer-than-four-visits" : "measured";
     }
+    // G2: event-entropy-rate. The definition fails closed (unavailable) as
+    // excluded, incomplete-evidence, no-events (upstream synthesizes events),
+    // redacted or unordered (a kept event with a null or non-safe-integer index,
+    // which upstream coerces with Number()).
+    const guardedKeys = ["events", "states", "actions", "toolCalls", "observations", "resources", "provenanceEdges", "objectives", "reference"];
+    function entropyReason(ir, omissions) {
+      if (excluded(omissions, "events")) return "excluded";
+      if (guardedKeys.some((key) => excluded(omissions, key)) || omissions.includes("data.reference:redacted")) return "incomplete-evidence";
+      if (guardedKeys.some((key) => Array.isArray(ir[key]) && ir[key].length > 5000) ||
+        record(ir.reference) && (Object.values(ir.reference).some((v) => Array.isArray(v) && v.length > 5000) ||
+          Array.isArray(ir.reference.patch?.files) && ir.reference.patch.files.length > 5000)) return "oversized";
+      if (!Array.isArray(ir.events)) return "no-events";
+      if (omissions.includes("data.events:redacted")) return "redacted";
+      const kept = ir.events.filter((event) => record(event) && typeof event.kind === "string" && event.kind !== "");
+      if (kept.some((event) => "index" in event && !Number.isSafeInteger(event.index))) return "unordered";
+      if (kept.length < 2) return "fewer-than-two-events";
+      const symbols = new Set(kept.map(({ kind, ref }) => kind === "tool_call" && typeof ref === "string" && ref !== "" ? `tool_call:${ref}` : kind));
+      return symbols.size < 2 ? "single-symbol" : "measured";
+    }
+    // User-directed G2 decision: only event-entropy-rate's value may differ from
+    // V8 by the declared absolute log2 rounding tolerance; everything else is exact.
+    const tolerances = { "event-entropy-rate": 2 ** -39 };
+    const toleranceObserved = Object.fromEntries(Object.keys(tolerances).map((id) => [id, { compared: 0, differing: 0, maxAbsDiff: 0 }]));
     function grade(events) {
       let lookups;
       try {
@@ -248,7 +271,7 @@ function replaySessionArchiveGraders() {
           const row = query.fullResult.rows.find((row) => row.RunId === runId);
           assert.ok(row, `${scenario.name}: exact trace/run-attempt result`);
           if (scenario.name === "e1-oversized-resources" && runId === "123" && !e1Graders.has(query.id) && !codeGraders.has(query.id) &&
-            query.id !== "policy-near-miss") {
+            query.id !== "policy-near-miss" && query.id !== "event-entropy-rate") {
             // §4.2 already records that legacy definitions lack the sibling
             // collection guard. This regression gates E1, not a legacy retrofit.
             continue;
@@ -262,18 +285,28 @@ function replaySessionArchiveGraders() {
           const codeState = codeGraders.has(query.id) ? codeQualification(query.id, evidence, omissions) : undefined;
           const itemState = itemGraders.has(query.id) ? itemReason(query.id, evidence, omissions) : undefined;
           const pnmReason = query.id === "policy-near-miss" ? policyNearMissReason(evidence, omissions) : undefined;
+          const entropyState = query.id === "event-entropy-rate" ? entropyReason(lastIR(evidence), omissions) : undefined;
           // Declared fail-closed divergences: upstream may measure, the definition reports unavailable.
           if (phase5Reason === "unordered" || phase5Reason === "no-events" || e1?.blocked || codeState?.blocked ||
-            itemState === "redacted" || itemState === "excluded" || pnmReason === "redacted" || pnmReason === "incomplete-evidence") {
+            itemState === "redacted" || itemState === "excluded" || pnmReason === "redacted" || pnmReason === "incomplete-evidence" ||
+            ["excluded", "incomplete-evidence", "no-events", "redacted", "unordered"].includes(entropyState)) {
             assert.equal(row.value, null, `${scenario.name}/${runId}/${query.id}: fail-closed divergence`);
             assert.equal(row.availability, "unavailable");
+          } else if (query.id in tolerances && typeof row.value === "number" && typeof expected.value === "number") {
+            const diff = Math.abs(row.value - expected.value);
+            const observed = toleranceObserved[query.id];
+            observed.compared += 1;
+            if (diff > 0) observed.differing += 1;
+            observed.maxAbsDiff = Math.max(observed.maxAbsDiff, diff);
+            assert.ok(diff <= tolerances[query.id], `${scenario.name}/${runId}/${query.id}: |${row.value} - ${expected.value}| within declared log2 tolerance`);
+            assert.equal(row.availability, "measured");
           } else {
             assert.equal(row.value, expected.value, `${scenario.name}/${runId}/${query.id}: full upstream metric`);
             assert.equal(row.availability, expected.status === "unavailable" ? "unavailable" : "measured");
           }
           const lookups = graders.createSessionLookups(evidence);
           const selected = lookups.trace.tokenUsageEntries;
-          let reason = itemState ?? phase5Reason ?? pnmReason;
+          let reason = itemState ?? phase5Reason ?? pnmReason ?? entropyState;
           if (e1) reason = query.id === "tool-output-consumption-rate" ? e1.reason : row.availability;
           if (codeState) reason = codeState.reason;
           switch (query.id) {
@@ -319,6 +352,12 @@ function replaySessionArchiveGraders() {
         env: { ...process.env, CAO_SESSION_ARCHIVE_REQUIRE_KUSTO: "1", CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR: temporary },
       });
       writeFileSync(join(output, "kusto-verification.log"), kustoLog, { mode: 0o600 });
+      // Kusto is compared with DuckDB; the two measured differences must still sum within the declared bound.
+      const entropy = /event-entropy-rate real Kusto vs DuckDB: compared=(\d+) differing=(\d+) max\|diff\|=(\S+) maxULPs=(\d+)/.exec(kustoLog);
+      assert.ok(entropy, "real Kusto must report event-entropy-rate log2 differences");
+      const [compared, differing, maxAbsDiff, maxULPs] = entropy.slice(1).map(Number);
+      assert.ok(maxAbsDiff + toleranceObserved["event-entropy-rate"].maxAbsDiff <= tolerances["event-entropy-rate"]);
+      toleranceObserved["event-entropy-rate"].kusto = { compared, differing, maxAbsDiff, maxULPs };
       kustoReplay = "matched: same definitions and synthetic approved events through real Kusto; not live external-table acceptance";
     }
     const measured = replays.find(({ name }) => name === "measured");
@@ -339,9 +378,10 @@ function replaySessionArchiveGraders() {
     });
     const report = {
       upstreamRepository: "github/gh-aw", upstreamRevision: revision, sources, kustoReplay,
+      tolerances: Object.fromEntries(Object.entries(tolerances).map(([id, bound]) => [id, { field: "value", absolute: bound, ...toleranceObserved[id] }])),
       verification: ["CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1",
         "node scripts/replay-session-archive-graders.mjs [private-report-directory]"],
-      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Twenty-two full declarative metrics execute through real DuckDB; four attempted candidates remain unsupported. E1 adds exploration-error, exploitation-error and tool-output-consumption-rate through trace-scoped joins and approved observation/tool-call sources, with nested consumer strings. Phase 7 adds code-search-recall, code-read-precision and code-edit-precision through JavaScript-trim and closed literal prefix normalization over typed reference patch file, resource and action sources; resource or action redaction fails closed. G1 adds policy-near-miss through the closed keyword-match guard set over the user-approved objective description; the safe_output check reads IR events or, when the key is absent, retained agent-phase agent-component event types, and objectives or events redaction fails closed. E1 fails closed on excluded guard inputs, relevant redaction, non-string state_change refs (upstream uses JavaScript JSON.stringify) and missing/null IR toolCalls requiring reconciliation. Harmless redaction preserves record counts, satisfaction nullness and consumer array lengths. The same definitions replay through real Kusto only when configured; fixtures alone do not prove hosted acceptance. Recurrence definitions fail closed as unordered, and saturation as no-events, where upstream may measure synthesized or non-positional events, strings or invalid firstEventIndex values, or empty string states. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are checked separately. No missing provenance is filled. Live Azure acceptance is not exercised.",
+      qualification: "Replay compares original approved events, not excluded or pre-redaction content. Twenty-three full declarative metrics execute through real DuckDB; four attempted candidates remain unsupported. Every value matches upstream bit for bit except event-entropy-rate, whose value carries the user-directed, declared absolute log2 rounding tolerance of 2^-39 (status, availability and reason stay exact); event-entropy-rate fails closed as unordered on null or non-integer event indexes and as no-events where upstream synthesizes events. E1 adds exploration-error, exploitation-error and tool-output-consumption-rate through trace-scoped joins and approved observation/tool-call sources, with nested consumer strings. Phase 7 adds code-search-recall, code-read-precision and code-edit-precision through JavaScript-trim and closed literal prefix normalization over typed reference patch file, resource and action sources; resource or action redaction fails closed. G1 adds policy-near-miss through the closed keyword-match guard set over the user-approved objective description; the safe_output check reads IR events or, when the key is absent, retained agent-phase agent-component event types, and objectives or events redaction fails closed. E1 fails closed on excluded guard inputs, relevant redaction, non-string state_change refs (upstream uses JavaScript JSON.stringify) and missing/null IR toolCalls requiring reconciliation. Harmless redaction preserves record counts, satisfaction nullness and consumer array lengths. The same definitions replay through real Kusto only when configured; fixtures alone do not prove hosted acceptance. Recurrence definitions fail closed as unordered, and saturation as no-events, where upstream may measure synthesized or non-positional events, strings or invalid firstEventIndex values, or empty string states. Item-source reasons are derived from the last agent-phase trajectory.ir and approved omissions. The intentionally malformed original-preservation fixture retains its upstream lookup error and cannot establish metric equivalence; its separate valid-envelope scenario is compared. Upstream emits unavailable status without reason codes; query reasons are checked separately. No missing provenance is filled. Live Azure acceptance is not exercised.",
       matrix, scenarios: replays,
     };
     writeFileSync(join(output, "report.json"), JSON.stringify(report, null, 2) + "\n", { mode: 0o600 });
@@ -360,7 +400,12 @@ function replaySessionArchiveGraders() {
       ...replays.map((scenario) => scenario.original.stage === "lookup"
         ? `${scenario.name}: lookup error preserved: ${scenario.original.error}`
         : `${scenario.name}: ${scenario.original.results.map(({ id, value, status }) => `${id}=${value ?? status}`).join("; ")}`),
-      "", report.qualification, "", kustoReplay,
+      "", report.qualification, "",
+      ...Object.entries(report.tolerances).flatMap(([id, t]) => [
+        `${id}: ${t.compared} measured values compared, ${t.differing} differ from V8, max |diff| ${t.maxAbsDiff} <= declared ${t.absolute}.`,
+        ...(t.kusto ? [`${id} real Kusto vs DuckDB: ${t.kusto.compared} compared, ${t.kusto.differing} differ, max |diff| ${t.kusto.maxAbsDiff} (${t.kusto.maxULPs} ulp).`] : []),
+      ]),
+      "", kustoReplay,
     ].join("\n") + "\n";
     writeFileSync(join(output, "report.md"), text, { mode: 0o600 });
     process.stdout.write(text);

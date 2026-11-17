@@ -408,7 +408,7 @@ func TestAnalyticalKQLLowersJoins(t *testing.T) {
 
 func TestAnalyticalKQLLowersItemSourcesAndChains(t *testing.T) {
 	entries, err := os.ReadDir("../sessionarchive/testdata/graders")
-	if err != nil || len(entries) != 22 {
+	if err != nil || len(entries) != 23 {
 		t.Fatal("missing reviewed grader definitions")
 	}
 	for _, entry := range entries {

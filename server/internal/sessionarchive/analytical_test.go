@@ -898,6 +898,8 @@ func TestAnalyticalRowLevelPlans(t *testing.T) {
 		"family":  `"filter":{"predicates":[{"field":"Usage","state":"present"}]},"select":[{"field":"Sequence"}]`,
 		"path":    `"compute":[{"as":"p","function":"strip-prefix","args":[{"function":"trim","args":[{"field":"Type"}]},{"value":"./"},{"value":true}]}],"select":[{"field":"p"}]`,
 		"keyword": `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Message"},{"value":"guard"}]}],"select":[{"field":"m"}]`,
+		"log2":    `"compute":[{"as":"l","function":"log2","args":[{"function":"quotient","args":[{"field":"Sequence"},{"value":3}]}]}],"select":[{"field":"l"}]`,
+		"concat":  `"compute":[{"as":"c","function":"concat","args":[{"value":"tool_call:"},{"field":"Type"}]}],"select":[{"field":"c"}]`,
 	}
 	for name, clauses := range accepted {
 		plan, err := analyticalDefinition(t, clauses).Plan()
@@ -935,6 +937,10 @@ func TestAnalyticalRowLevelPlans(t *testing.T) {
 		"keyword of number":         `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Sequence"},{"value":"retry"}]}],"select":[{"field":"m"}]`,
 		"keyword without set":       `"compute":[{"as":"m","function":"keyword-match","args":[{"field":"Message"}]}],"select":[{"field":"m"}]`,
 		"missing repeat":            `"compute":[{"as":"p","function":"strip-prefix","args":[{"field":"Type"},{"value":"/"}]}],"select":[{"field":"p"}]`,
+		"log2 of string":            `"compute":[{"as":"l","function":"log2","args":[{"field":"Type"}]}],"select":[{"field":"l"}]`,
+		"log2 arity":                `"compute":[{"as":"l","function":"log2","args":[{"field":"Sequence"},{"value":2}]}],"select":[{"field":"l"}]`,
+		"concat of number":          `"compute":[{"as":"c","function":"concat","args":[{"field":"Type"},{"field":"Sequence"}]}],"select":[{"field":"c"}]`,
+		"concat arity":              `"compute":[{"as":"c","function":"concat","args":[{"field":"Type"},{"value":"a"},{"value":"b"}]}],"select":[{"field":"c"}]`,
 		"row stage drops key":       `"queries":[` + rowStage + `{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
 		"row stage renames key":     `"queries":[` + rowStage + `{"field":"Namespace"},{"field":"Repository"},{"field":"RunId"},{"field":"RunAttempt"},{"field":"TraceId"},{"field":"ProjectionId"},{"field":"Sequence","as":"seq"},{"field":"n"}]}],"from":"rows","select":[{"field":"n"}]`,
 		"family over item source":   `"from-items":true`,

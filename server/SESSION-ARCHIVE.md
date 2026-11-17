@@ -29,7 +29,7 @@ The generated scalar columns are qualified by `PresentFields`, `NullFields`,
 for original structured evidence. Physical empty strings are not proof of source
 absence, and nullable/invalid measurements are not zero. The
 [fresh evidence contract](../specs/session-archive.md#21-fresh-original-evidence-contract)
-defines the 15 conditional grader-evidence families. Twenty-two upstream
+defines the 15 conditional grader-evidence families. Twenty-three upstream
 built-in graders are reviewed declarative `session-query` definitions under
 `internal/sessionarchive/testdata/graders/`, accepted on local DuckDB and real
 Kusto: the four usage formulas; objective coverage, premature termination,
@@ -38,10 +38,13 @@ and artifact production; joined dependency order, evidence saturation and the
 recurrence laminarity, trapping-time and determinism metrics; exploration
 error, exploitation error and tool-output consumption over the E1 collections;
 and code search recall, code read precision and code edit precision over the
-reference patch, resources and actions; and policy near-miss through the
-closed `keyword-match` function over the user-approved objective description.
-Four attempted candidates (the three tool-call graders and retries, whose
-harness attempt history is not expressible) remain unsupported. The
+reference patch, resources and actions; policy near-miss through the closed
+`keyword-match` function over the user-approved objective description; and
+event entropy rate over IR events, which uses the closed `log2` function and is
+compared within a declared 2^-39 tolerance on its `value` only (user-directed;
+every other field and definition is bit-exact). Four attempted candidates (the
+three tool-call graders and retries, whose harness attempt history is not
+expressible) remain unsupported. The
 [grader query feasibility tracker](../specs/session-archive-grader-queries.md)
 classifies all 35 upstream built-ins and the extensions each one needs.
 It preserves every original observation rather than reconciling invocations,
@@ -177,9 +180,11 @@ Parquet reconstructions. The focused Go regression is
 `CAO_SESSION_ARCHIVE_REQUIRE_DUCKDB=1 go -C server test ./internal/sessionarchive -run '^TestGraderReplayEvidence$' -count=1`.
 
 Reports separate approved-input preservation, pinned-grader replay, and attempted
-full public JSON query support. The twenty-two definitions in
+full public JSON query support. The twenty-three definitions in
 `internal/sessionarchive/testdata/graders/` execute in real DuckDB and compare
-their values and unavailable states with the pinned upstream graders. Reason
+their values and unavailable states with the pinned upstream graders, exactly
+except for `event-entropy-rate`'s `value`, which must be within its declared
+2^-39 `log2` tolerance (reported with the observed maximum difference). Reason
 codes are query qualifications; upstream v2 provides status but no reason
 codes. Successful scalar component queries for the four unsupported candidates
 are not complete metrics. Every definition must also fit the 8192-byte request
@@ -202,7 +207,7 @@ its `ACCEPT_EULA=Y` gate.
 For separately approved live destination acceptance, set
 `CAO_SESSION_ARCHIVE_GRADER_REPLAY_DIR` to the retained replay directory containing
 `evidence.json`; the live gate (`verifyLiveAnalytical`) replays every
-scenario's full DuckDB result for all twenty-two reviewed definitions through
+scenario's full DuckDB result for all twenty-three reviewed definitions through
 real Kusto, requiring the recorded definition to equal the current reviewed file,
 before emitting the new analytical binding. `TestKustoUsageGraderReplay` runs
 the same check against the emulator in the `session-archive-kusto` job. This is not production

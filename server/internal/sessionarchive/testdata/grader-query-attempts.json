@@ -24,5 +24,6 @@
   {"id":"tool-output-consumption-rate","component":{"aggregate":{"values":[{"field":"Sequence","as":"value","reducer":"count"}]}},"full":{},"blocker":""},
   {"id":"code-search-recall","component":{"aggregate":{"values":[{"field":"Sequence","as":"value","reducer":"count"}]}},"full":{},"blocker":""},
   {"id":"code-read-precision","component":{"aggregate":{"values":[{"field":"Sequence","as":"value","reducer":"count"}]}},"full":{},"blocker":""},
-  {"id":"code-edit-precision","component":{"aggregate":{"values":[{"field":"Sequence","as":"value","reducer":"count"}]}},"full":{},"blocker":""}
+  {"id":"code-edit-precision","component":{"aggregate":{"values":[{"field":"Sequence","as":"value","reducer":"count"}]}},"full":{},"blocker":""},
+  {"id":"event-entropy-rate","component":{"aggregate":{"values":[{"field":"Sequence","as":"value","reducer":"count"}]}},"full":{},"blocker":""}
 ]
