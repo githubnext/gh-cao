@@ -110,7 +110,11 @@ export function renderDashboardHeader(options) {
       h(
         'div',
         { className: 'report-actions' },
-        options.dashboardHorizon,
+        h(
+          'div',
+          { className: 'dashboard-data-controls', role: 'group', 'aria-label': 'Time window and data status' },
+          options.dashboardHorizon
+        ),
         options.dashboardRepository
           ? h(
               'a',
