@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T07:35:26Z",
-   "worker_run_id": "44259500589",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. gh run list at 2026-11-18T07:35:26Z: no docs run newer than 44254629254, none queued or in progress. main = 5d00b89 = source_sha. Recomputed from stored immutable run_timings rows (no job refetch): setup-node median 3 s p90 5; install median 10 s p90 11 (range 5-11); post-setup-node median 0 s p90 1; setup+install+post median 12 s p90 14 = 15.8 percent of exec median 76 s, but npm ci is required by the build so the whole phase is not removable; install-only ceiling 10 s = 13.2 percent, below the 15 percent gate (11.4 s) and the 60 s gate. Cache verified from caches API (metadata, not logs): single entry node-cache-Linux-x64-npm-7808ecf8 (263412733 B, created 2026-11-13T20:57:12Z, ref refs/heads/main, last_accessed 07:29Z); created after lock commit 7c8faf4 (20:56:33Z), which also last changed both package-lock files, so every window run used the exact key (hit); post step 0-1 s; no save since creation. Open #20815 (checkout, other category, OPEN, 0 comments, updated 2026-11-13T17:41:19Z) not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T07:54:22Z",
    "worker_run_id": "44261902290",
@@ -841,6 +813,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs, all successes (cancelled 43991812013 falls outside the 20-run window): 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. gh run list before 17:32Z: no docs run queued or in progress (stale queued 37642403569 outside window). Recomputed from stored immutable run_timings rows plus one Jobs API read of 44357668509 (queue 5 s, build job 96 s, checkout 54 s = disclosed checkout outlier, exec 113 s). Queue median 4 s, p90 5 s, max 15 s (43991897672 behind in-flight 43991770179, which is outside the window); exec median 79 s, p90 108 s; outlier 44337804857 (exec 139 s, deploy 73 s) disclosed. Concurrency: no true build overlap among window runs (closest idle gap 123 s), 0 superseded in-flight builds, 0 pending cancellations; cancel-in-progress true saves 0 s median. Avoidable rebuilds: 0 of 18 push heads; 7145c59 build-consumed via dashboard/site/src, dashboard-fragments, dashboard.json and docs/dashboard-language-*.md. Schedule runs (2 of 20, cron 23 5 * * *) are the synthetic-date refresh; removal saves no push-time and weakens freshness. 15 percent gate 11.85 s and 60 s gate unmet. Checkout (median 24 s) is outside this category and covered by open #20815 (OPEN, 0 comments, unchanged since 2026-11-13), not repeated. No suggestion; noop; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T17:52:45Z",
+   "worker_run_id": "44362905605",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. gh run list 17:52Z: no docs run newer than 44357668509, none queued or in progress; HEAD 7145c59 = source_sha. Recomputed from stored immutable run_timings rows (no job or log refetch; nearest-rank p90, n=20): setup-node median 3 s (p90 5), install median 10 s (p90 12), post median 0 s (p90 0); setup+install+post median 13 s (p90 17) = 16.5 percent of exec median 79 s (p90 108). 15 percent gate 11.85 s and 60 s gate unmet; install-only ceiling 10 s = 12.7 percent. Whole phase not removable (npm ci required by build; Node 24 pin). Cache (caches API metadata): exact key node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57:12Z, 263412733 B, last accessed 17:44Z, no save since); package-lock.json and dashboard/site/package-lock.json last changed 7c8faf4 (2026-11-13), so all window runs restored the exact key (post 0-1 s). node_modules cache net 3-6 s unmeasured and below gate. Checkout (median 24 s, outside this category) still covered by OPEN #20815 (0 comments, updated 2026-11-13), not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1712,10 +1713,10 @@
   "decision": "not actionable (median saving 0 s; queue median 4 s; 15 percent gate 11.85 s and 60 s gate unmet)"
  },
  "dependency_phase": {
-  "evaluated_at": "2026-11-18T16:21:39Z",
-  "worker_run_id": "44345287020",
-  "window": "strict latest 20 completed docs.yml runs 44343962371 (push 53a040c, created 2026-11-18T16:09:45Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
-  "method": "recomputed from stored run_timings rows plus Jobs API read of 44343962371 (setup 5, install 8, post 0, build job 62, exec 79); nearest-rank p90 (n=19)",
+  "evaluated_at": "2026-11-18T17:52:45Z",
+  "worker_run_id": "44362905605",
+  "window": "latest 20 completed docs.yml runs 44357668509..43991897672 (cancelled 43991812013 outside window); 20 successes (18 push, 2 schedule), 0 failed",
+  "method": "recomputed from stored run_timings rows (no refetch); nearest-rank p90, n=20",
   "setup_node_s": {
    "median": 3,
    "p90": 5
@@ -1726,7 +1727,7 @@
   },
   "post_setup_node_s": {
    "median": 0,
-   "p90": 1
+   "p90": 0
   },
   "setup_install_post_s": {
    "median": 13,
@@ -1739,8 +1740,7 @@
    "p90": 108
   },
   "gate_15pct_s": 11.85,
-  "install_ceiling_saving_s": 10,
-  "verdict": "not actionable: install-only ceiling below 15 percent and 60 s gates; setup+install+post not removable (npm ci required by build, Node 24 pin); node_modules cache net 3-6 s unmeasured with stale-dependency risk; split install job adds artifact transfer"
+  "verdict": "not actionable: install-only ceiling below 15 percent and 60 s gates; setup+install+post not removable (npm ci required by build, Node 24 pin); node_modules cache net 3-6 s unmeasured and below gate"
  },
  "astro_step_verified": {
   "verified_at": "2026-11-18T16:34:50Z",
@@ -1853,8 +1853,8 @@
   "decision": "not actionable"
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-18T16:21:39Z",
-  "worker_run_id": "44345287020",
-  "verdict": "not actionable (window 44343962371..43991897672; see dependency_phase)"
+  "evaluated_at": "2026-11-18T17:52:45Z",
+  "worker_run_id": "44362905605",
+  "verdict": "not actionable (window 44357668509..43991897672; see dependency_phase)"
  }
 }
