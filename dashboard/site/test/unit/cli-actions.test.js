@@ -583,7 +583,8 @@ describe('CLI actions', () => {
     ));
   });
 
-  it('opens the durable command view after approval without attaching or cancelling in the dialog', async () => {
+  it('queues after approval and closes the dialog without navigating, attaching, or cancelling', async () => {
+    window.location.hash = 'page-maintenance';
     const root = renderCliActions([{
       id: 'compile-workflows', label: 'Compile workflows', icon: 'play', command: 'gh aw compile'
     }]);
@@ -600,7 +601,8 @@ describe('CLI actions', () => {
     trigger.click();
     expect(queue.enqueue).not.toHaveBeenCalled();
     confirm.click();
-    await vi.waitFor(() => expect(window.location.hash).toBe('#page-command?command=command-1'));
+    await vi.waitFor(() => expect(root.querySelector('.cli-action-dialog')?.hasAttribute('open')).toBe(false));
+    expect(window.location.hash).toBe('#page-maintenance');
     expect(confirm.disabled).toBe(true);
     confirm.click();
     expect(queue.enqueue).toHaveBeenCalledTimes(1);
@@ -637,8 +639,8 @@ describe('CLI actions', () => {
     expect(approval.open).toBe(true);
     expect(approval.querySelector('header button')?.getAttribute('aria-label')).toBe('Close action approval');
     finish({ id: 'command-1', status: 'queued' });
-    await vi.waitFor(() => expect(window.location.hash).toBe('#page-command?command=command-1'));
-    expect(approval.open).toBe(false);
+    await vi.waitFor(() => expect(approval.open).toBe(false));
+    expect(window.location.hash).toBe('#page-maintenance');
     expect(document.activeElement).toBe(trigger);
     expect(queue.cancel).not.toHaveBeenCalled();
     root.remove();
@@ -715,7 +717,8 @@ describe('CLI actions', () => {
       arguments: { 'pre-releases': true },
       idempotencyKey: expect.any(String)
     });
-    await vi.waitFor(() => expect(window.location.hash).toBe('#page-command?command=command-1'));
+    await vi.waitFor(() => expect(root.querySelector('.cli-action-dialog')?.hasAttribute('open')).toBe(false));
+    expect(window.location.hash).not.toContain('page-command');
     expect(root.querySelector('.cli-action-terminal')).toBeNull();
     expect(confirm.disabled).toBe(true);
     confirm.click();

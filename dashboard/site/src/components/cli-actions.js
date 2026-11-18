@@ -318,7 +318,6 @@ function renderCliActionControl(action, options = {}) {
       if (admitted) {
         enqueued.set(true);
         close();
-        window.location.hash = 'page-commands';
       }
     } finally {
       busy.set(false);
@@ -352,7 +351,11 @@ function renderCliActionControl(action, options = {}) {
           enqueued.set(true);
           debugCliActions({ event: 'execute-queued', actionId: action.id });
           close();
-          window.location.hash = `page-command?command=${encodeURIComponent(command.id)}`;
+          publishNotification({
+            message: `${action.label}: command queued.`,
+            href: `#page-command?command=${encodeURIComponent(command.id)}`,
+            tone: 'success'
+          });
         } catch (error) {
           if (scope.signal.aborted) return;
           const message = error instanceof Error ? error.message : 'Could not queue command.';

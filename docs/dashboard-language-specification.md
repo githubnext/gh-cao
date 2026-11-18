@@ -1591,9 +1591,9 @@ whereas campaign policy disable leaves active runs running. Exact repository
 and workflow targets require fresh approval independently of update evidence.
 Updates/upgrades still require pull-request publication in the native adapter;
 the disable exception does not expand the hosted execution allowlist.
-The approval dialog executes at most once and
-opens the command's full-page, read-only console, with no separate
-terminal-window option. Its first output line shows the executed command.
+The approval dialog queues at most once, then
+closes without navigating; a notification links to the read-only console
+(no terminal window). Its first output line shows the executed command.
 Terminal emulation cannot be expressed by data marks and does not query or
 derive dashboard evidence.
 Displayed `gh aw` and `gh cao` commands use a pseudo-terminal with ANSI color
