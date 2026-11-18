@@ -116,13 +116,14 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
      row, see .sidebar-header), which stays well under this cap, so animating max-height here can
      never clip real content; it only exists to give the collapse-on-scroll transition below a
      finite value to animate toward, since CSS cannot transition to/from "none". */
-  .dashboard-full-view .org-sidebar { --full-view-sidebar-max-height: 480px; /* generous headroom over the ~70px .sidebar-header row this cap actually bounds */ max-height: var(--full-view-sidebar-max-height); overflow: hidden; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 0s; }
+  .dashboard-full-view .org-sidebar { margin-bottom: 0; --full-view-sidebar-max-height: 480px; /* generous headroom over the ~70px .sidebar-header row this cap actually bounds */ max-height: var(--full-view-sidebar-max-height); overflow: hidden; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 0s; }
   .dashboard-root.dashboard-full-view-scrolled .org-sidebar { max-height: 0; overflow: hidden; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border-color: transparent; opacity: 0; visibility: hidden; pointer-events: none; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 200ms; }
   /* Let the viewport-height navigation drawer escape the full-view header's clipping.
      The collapse-on-scroll state keeps its clip because the menu collapses with the header. */
-  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled) .org-sidebar:has(.mobile-nav-menu[open]) { overflow: visible; }
-  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(.mobile-nav-menu[open]), .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(.mobile-nav-menu[open]) .app-shell { overflow: visible; }
+  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled) .org-sidebar:has(:is(.mobile-nav-menu, .cli-actions-add-menu)[open]) { overflow: visible; }
+  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(:is(.mobile-nav-menu, .cli-actions-add-menu)[open]), .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(:is(.mobile-nav-menu, .cli-actions-add-menu)[open]) .app-shell { overflow: visible; }
   .sidebar-header { position: relative; margin: 0 0 8px; }
+  .sidebar-header > .cli-actions-add-menu > .cli-actions-toggle { min-height: 44px; padding: 8px; }
   .mobile-history-back:not([hidden]) { width: 44px; height: 44px; display: grid; flex: 0 0 44px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--fg); cursor: pointer; }
   .mobile-history-back:hover { background: var(--neutral-muted); }
   .mobile-history-back-icon { width: 28px; height: 28px; flex-basis: 28px; }
@@ -137,6 +138,7 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-page-header .overview-header .lede { height: 0; min-height: 0; margin: 0; overflow: hidden; line-height: 0; visibility: hidden; }
   .dashboard-root:has(.command-terminal) .mobile-page-header .overview-header .lede { height: auto; min-height: 1.25rem; margin-top: 3px; line-height: 1.25rem; visibility: visible; }
   .mobile-page-header .overview-header .title-area { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  [data-page-help] .tooltip-trigger { width: 44px; height: 44px; }
   .mobile-page-header .overview-header h1 { margin: 0; overflow: hidden; color: var(--fg); font-size: 1rem; font-weight: 600; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-view-mode-toggle:not([hidden]) { width: 44px; height: 44px; display: grid; flex: 0 0 44px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--fg); cursor: pointer; }
   .mobile-view-mode-toggle:hover { background: var(--neutral-muted); }
@@ -145,21 +147,20 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-nav-menu-actions .report-actions > .filter-bar { width: 100%; margin: 0; }
   .mobile-nav-menu-actions .dashboard-data-controls { min-width: 0; flex-direction: column; align-items: stretch; }
   .mobile-nav-menu-actions .dashboard-horizon { width: 100%; max-width: 100%; padding-right: 0; border-right: 0; }
-  .mobile-nav-menu-actions .horizon-summary { width: 100%; position: static; }
-  .mobile-nav-menu-actions .dashboard-horizon.filter-bar-expanded > .filter-tuning-controls { position: static; width: 100%; max-height: none; overflow: visible; padding: 8px; box-shadow: none; }
-  .mobile-nav-menu-actions .horizon-tooltip { top: calc(100% + 4px); right: 0; left: auto; }
+  .mobile-nav-menu-actions .dashboard-horizon .horizon-details { display: block; font-weight: 400; }
+  .mobile-nav-menu-actions .dashboard-horizon > .filter-tuning-controls { display: grid; grid-template-columns: minmax(0, 1fr); border: 0; animation: none; position: static; width: 100%; max-height: none; overflow: visible; padding: 8px; box-shadow: none; }
   .mobile-nav-menu-actions .account-menu { width: 100%; }
   .mobile-nav-menu-actions .dashboard-current-status { width: 100%; display: block; }
   .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger { width: 100%; height: auto; min-height: 44px; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px; border: 0; border-radius: 6px; background: transparent; text-align: left; }
   .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger:hover { background: var(--neutral-muted); }
   .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger > .octicon { width: 16px; height: 16px; flex: none; }
   .mobile-nav-menu-actions .dashboard-current-status .action-label { position: static; width: auto; height: auto; overflow: visible; margin: 0; padding: 0; clip: auto; color: var(--fg); font-size: .8125rem; font-weight: 500; white-space: normal; }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) { width: 100%; height: auto; min-height: 32px; display: flex; flex: none; align-items: center; justify-content: flex-start; place-items: unset; gap: 10px; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font-weight: 500; text-align: left; }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar):hover { background: var(--neutral-muted); }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) > .octicon { width: 16px; height: 16px; color: var(--muted); }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar) { width: 100%; height: auto; min-height: 32px; display: flex; flex: none; align-items: center; justify-content: flex-start; place-items: unset; gap: 10px; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font-weight: 500; text-align: left; }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar):hover { background: var(--neutral-muted); }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar) > .octicon { width: 16px; height: 16px; color: var(--muted); }
   .mobile-nav-menu-actions .account-menu-avatar { border-radius: 6px; box-shadow: none; }
   .mobile-nav-menu-actions .account-menu-avatar-image { width: 20px; height: 20px; border-radius: 50%; }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) .action-label { position: static; width: auto; height: auto; overflow: visible; margin: 0; padding: 0; clip: auto; color: var(--fg); font-size: .8125rem; font-weight: 500; white-space: normal; }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar) .action-label { position: static; width: auto; height: auto; overflow: visible; margin: 0; padding: 0; clip: auto; color: var(--fg); font-size: .8125rem; font-weight: 500; white-space: normal; }
   .mobile-nav-menu-actions .account-menu-popover { width: 100%; position: static; margin-top: 4px; box-shadow: none; }
   .sidebar-toggle { display: none; }
   .sidebar-collapsed .org-sidebar { padding: 14px 12px 10px; }
@@ -229,13 +230,14 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .app-main:has(.dashboard-overview-page:not([hidden])) { min-height: 100vh; min-height: 100dvh; }
   .dashboard-full-view .app-main { height: 100%; min-height: 0; overflow: hidden; }
   main.dashboard-prototype { overflow: visible; overflow-x: clip; padding: var(--dashboard-mobile-page-padding-top) var(--dashboard-page-padding-inline) var(--dashboard-mobile-page-padding-bottom); }
-  .dashboard-full-view main.dashboard-prototype { padding: 0 var(--dashboard-page-padding-inline); }
+  .dashboard-full-view main.dashboard-prototype { padding: 0; }
   main.dashboard-prototype:has(.dashboard-overview-page:not([hidden])) { padding: 0; }
   .dashboard-full-view .custom-view-grid > .custom-view { padding-inline: var(--dashboard-page-padding-inline); }
   .dashboard-full-view .custom-view-grid > .chart-view-swimlane { padding-bottom: 12px; }
-  .dashboard-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid { margin-inline: calc(-1 * var(--dashboard-page-padding-inline)); }
+  .dashboard-root:not(.dashboard-full-view) .dashboard-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid { margin-inline: calc(-1 * var(--dashboard-page-padding-inline)); }
   .dashboard-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid > .custom-view { padding-inline: 0; }
   .campaign-insights-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid > .custom-view { padding-inline: var(--dashboard-page-padding-inline); }
+  .dashboard-full-view .custom-view-grid > .custom-view[data-view-layout="full-view"] { padding-inline: 0; }
   .data-state-summary, .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .layout-section[data-section-layout="wide"], .layout-section[data-section-layout="narrow"] { grid-column: span 12; }
   .custom-view[data-view-layout="half"], .custom-view[data-view-layout="third"] { grid-column: span 12; }

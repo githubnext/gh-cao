@@ -27,7 +27,7 @@ describe('Commands view contract', () => {
     expect(page.requires).toEqual(commandsContract.requires);
     const view = page.views.find((/** @type {{ id: string }} */ view) => view.id === commandsContract.view);
     expect(view).toMatchObject({
-      mark: 'table', layout: 'full', 'lazy-list': true,
+      mark: 'table', layout: 'full-view', 'lazy-list': true,
       data: { source: commandsContract.query, 'query-context': false },
       encoding: { card: commandsContract.card }
     });

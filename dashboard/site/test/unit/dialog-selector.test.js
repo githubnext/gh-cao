@@ -303,7 +303,7 @@ describe('declarative external dialog selector', () => {
     await vi.dynamicImportSettled();
     await vi.advanceTimersByTimeAsync(0);
     expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ id: action.id, arguments: {}, values: { repository: 'octo/repo' }, idempotencyKey: expect.any(String) });
-    expect(window.location.hash).toBe('#page-command?command=persistent-1');
+    expect(window.location.hash).not.toContain('page-command');
     expect(root.querySelector('dialog')?.open).toBe(false);
     expect(fetch).toHaveBeenCalledTimes(2);
     root.remove();
@@ -316,6 +316,19 @@ describe('declarative external dialog selector', () => {
     invalid.dashboard['cli-actions'].find((/** @type {{ id: string }} */ candidate) => candidate.id === action.id).selector.mapping.target = 'undeclared';
     expect(validateDashboardDocument(JSON.stringify(invalid)).ok).toBe(false);
   });
+
+  it('permits executable toolbar selectors but rejects row, settings, and copy-only selectors', () => {
+    for (const placement of ['toolbar', 'view', 'row', 'settings']) {
+      const document = structuredClone(authoritativeDashboard);
+      const declaration = document.dashboard['cli-actions'].find((/** @type {{ id: string }} */ candidate) => candidate.id === action.id);
+      declaration.placement = placement;
+      const permitted = ['toolbar', 'view'].includes(placement);
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(permitted);
+      if (!permitted) continue;
+      declaration['copy-only'] = true;
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    }
+  }, 20_000);
 
   it('rejects missing, duplicate, and non-view action references', () => {
     validationState.declaredCliActions = new Map(authoritativeDashboard.dashboard['cli-actions'].map(

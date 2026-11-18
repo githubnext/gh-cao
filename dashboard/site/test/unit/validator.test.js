@@ -34,6 +34,14 @@ dashboard:
 
 describe('dashboard document validation', () => {
   describe.each(['built-in', 'custom'])('%s page analysis contracts', (kind) => {
+    it('validates explicit page help using the shared tooltip contract', () => {
+      const document = JSON.parse(authoritativeDashboardSource);
+      const page = document.dashboard.pages.find((/** @type {{ kind: string }} */ candidate) => candidate.kind === kind);
+      page.tooltip = { label: 'Page help', description: 'Explain this page.' };
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
+      page.tooltip.description = '';
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    });
     it('accepts omitted optional annotations', () => {
       const document = JSON.parse(authoritativeDashboardSource);
       const page = document.dashboard.pages.find((/** @type {{ kind: string }} */ candidate) => candidate.kind === kind);
@@ -122,7 +130,9 @@ describe('dashboard document validation', () => {
   ])('rejects invalid batch action context $fields', ({ fields }) => {
     const document = JSON.parse(authoritativeDashboardSource);
     const page = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
-    page.views[0].list['action-context'] = fields;
+    page.views[0].mark = 'list';
+    delete page.views[0]['lazy-list'];
+    page.views[0].list = { style: 'cards', icon: 'repo', action: 'upgrade-repository', 'action-context': fields };
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
       ok: false, errors: expect.arrayContaining([expect.objectContaining({
         path: expect.stringContaining('.list.action-context')
@@ -133,8 +143,8 @@ describe('dashboard document validation', () => {
   it('rejects a batch action against an incrementally loaded list', () => {
     const document = JSON.parse(authoritativeDashboardSource);
     const page = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
-    page.views[0].list.action = 'upgrade-repository';
-    page.views[0].list['action-context'] = ['repository'];
+    page.views[0].mark = 'list';
+    page.views[0].list = { style: 'entity-cards', card: 'maintenance-repository', icon: 'repo', action: 'upgrade-repository', 'action-context': ['repository'] };
     page.views[0]['lazy-list'] = true;
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({ ok: false });
   });

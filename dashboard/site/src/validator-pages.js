@@ -189,6 +189,9 @@ export function validatePage(page, pageNode, path, pageIds, errors) {
     errors
   );
   validateOptionalStringField(page.description, `${path}.description`, errors);
+  if (page.tooltip !== undefined) {
+    validateTooltip(page.tooltip, getValueNodeByKey(pageNode, 'tooltip'), `${path}.tooltip`, errors);
+  }
   for (const field of ['intent', 'subject', 'objective', 'acceptance']) {
     if (page[field] !== undefined) {
       validateStringField(page[field], `${path}.${field}`, true, errors);

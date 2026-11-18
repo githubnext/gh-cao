@@ -70,9 +70,9 @@ describe('persistent command terminal', () => {
     expect(buttonLabels).not.toContain('Reconnect output');
     expect(buttonLabels).not.toContain('Back to Commands');
     await vi.waitFor(() => expect(queue.attach).toHaveBeenCalledOnce());
-    expect(allocation.mock.calls.at(-1)?.[0].detail).toEqual({
-      title: 'gh aw compile --strict', description: 'persistent-1 · running'
-    });
+    expect(allocation.mock.calls.at(-1)?.[0].detail).toEqual({ description: 'persistent-1 · running' });
+    expect(root.querySelector('.command-terminal-command-text')?.textContent).toBe('gh aw compile --strict');
+    expect(/** @type {HTMLElement} */ (root.querySelector('.command-terminal-origin')).hidden).toBe(true);
     expect(root.querySelector('header')).toBeNull();
     const styles = document.createElement('style');
     styles.textContent = shellStyles;
@@ -82,7 +82,7 @@ describe('persistent command terminal', () => {
       expect(actions && getComputedStyle(actions).right).toBe('24px');
       expect(actions && getComputedStyle(actions).bottom).toBe('24px');
       expect(root.querySelector('.command-terminal-copy .octicon-copy')).not.toBeNull();
-      expect(root.querySelector('.cli-action-cancel')).toBeNull();
+      expect(root.querySelector('.command-terminal-actions .cli-action-cancel')).toBeNull();
     } finally {
       styles.remove();
     }
@@ -94,6 +94,34 @@ describe('persistent command terminal', () => {
     expect(signal.aborted).toBe(true);
     expect(queue.cancel).not.toHaveBeenCalled();
     expect(queue.retry).not.toHaveBeenCalled();
+  });
+
+  it('links back to a valid dashboard origin and ignores unsafe origins', async () => {
+    queue.available.mockReturnValue(true);
+    queue.attach.mockImplementation(() => new Promise(() => {}));
+    queue.get.mockResolvedValue({
+      id: 'persistent-1', status: 'queued', command: 'gh aw upgrade --repo octo/app',
+      origin: '#page-maintenance?repository=octo%2Fapp'
+    });
+    const root = renderCommandTerminal(context);
+    document.body.append(root);
+    const link = /** @type {HTMLAnchorElement} */ (root.querySelector('.command-terminal-origin'));
+    await vi.waitFor(() => expect(link.hidden).toBe(false));
+    expect(link.getAttribute('href')).toBe('#page-maintenance?repository=octo%2Fapp');
+    expect(link.textContent).toBe('Back to origin');
+    expect(link.querySelector('.octicon-arrow-left')).not.toBeNull();
+    root.remove();
+
+    for (const origin of ['javascript:alert(1)', 'https://example.com/#page-x', '#page-x"><b>']) {
+      queue.get.mockResolvedValueOnce({ id: 'persistent-1', status: 'queued', command: 'gh aw compile', origin });
+      const unsafe = renderCommandTerminal(context);
+      document.body.append(unsafe);
+      await vi.waitFor(() => expect(unsafe.querySelector('.command-terminal-command-text')?.textContent).toBe('gh aw compile'));
+      const unsafeLink = /** @type {HTMLAnchorElement} */ (unsafe.querySelector('.command-terminal-origin'));
+      expect(unsafeLink.hidden).toBe(true);
+      expect(unsafeLink.hasAttribute('href')).toBe(false);
+      unsafe.remove();
+    }
   });
 
   it('renders a missing-selection state without fetching a command', () => {
@@ -133,7 +161,7 @@ describe('persistent command terminal', () => {
     });
     const root = renderCommandTerminal(context);
     document.body.append(root);
-    const link = /** @type {HTMLAnchorElement} */ (root.querySelector('a'));
+    const link = /** @type {HTMLAnchorElement} */ (root.querySelector('.command-terminal-pull-request'));
     expect(link.hidden).toBe(true);
     await vi.waitFor(() => expect(link.hidden).toBe(false));
     expect(link.textContent).toBe('Open pull request');
@@ -154,8 +182,8 @@ describe('persistent command terminal', () => {
     queue.attach.mockResolvedValue({ command, result: { ok: true } });
     const root = renderCommandTerminal(context);
     document.body.append(root);
-    await vi.waitFor(() => expect(root.querySelector('a')?.getAttribute('href')).toBe(pullRequestUrl));
-    expect(/** @type {HTMLAnchorElement} */ (root.querySelector('a')).hidden).toBe(false);
+    await vi.waitFor(() => expect(root.querySelector('.command-terminal-pull-request')?.getAttribute('href')).toBe(pullRequestUrl));
+    expect(/** @type {HTMLAnchorElement} */ (root.querySelector('.command-terminal-pull-request')).hidden).toBe(false);
   });
 
   it('reattaches on reopening and ignores output from the closed console', async () => {
@@ -233,7 +261,7 @@ describe('persistent command terminal', () => {
     expect(terminalWrites).toHaveBeenLastCalledWith('\r\nExit 1\r\n', 'stderr');
     expect(root.querySelector('output')?.textContent).toBe('persistent-1 · failed');
     expect(/** @type {HTMLButtonElement} */ (root.querySelector('.command-terminal-retry')).hidden).toBe(false);
-    expect(root.querySelector('.cli-action-cancel')).toBeNull();
+    expect(root.querySelector('.command-terminal-actions .cli-action-cancel')).toBeNull();
   });
 
   it.each(['completed', 'failed', 'canceled', 'timed-out'])('keeps the console view after %s until the user navigates away', async (status) => {
@@ -243,7 +271,7 @@ describe('persistent command terminal', () => {
     const root = renderCommandTerminal(context);
     document.body.append(root);
     await vi.waitFor(() => expect(root.querySelector('output')?.textContent).toBe(`persistent-1 · ${status}`));
-    expect(/** @type {HTMLAnchorElement} */ (root.querySelector('a')).hidden).toBe(true);
+    expect(/** @type {HTMLAnchorElement} */ (root.querySelector('.command-terminal-pull-request')).hidden).toBe(true);
     expect(root.isConnected).toBe(true);
     expect(window.location.hash).toBe('#page-command?command=persistent-1');
     expect(queue.cancel).not.toHaveBeenCalled();

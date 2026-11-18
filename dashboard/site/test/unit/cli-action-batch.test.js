@@ -50,7 +50,8 @@ it('reviews batch options before queuing every explicit target without attaching
   expect(root.querySelector('.cli-action-command')?.textContent).toBe(rows.map(({ repository }) =>
     `gh aw upgrade --repo ${repository} --create-pull-request`).join('\n'));
   confirm.click();
-  await vi.waitFor(() => expect(window.location.hash).toBe('#page-commands'));
+  await vi.waitFor(() => expect(root.querySelector('dialog')?.open).toBe(false));
+  expect(window.location.hash).toBe('');
   expect(queue.enqueue.mock.calls.map(([payload]) => payload.values)).toEqual(rows);
   expect(queue.enqueue.mock.calls.map(([payload]) => payload.arguments))
     .toEqual(rows.map(() => ({ pr: true, 'auto-merge': false })));
@@ -133,18 +134,20 @@ it('waits for every admission and prevents double activation while enqueueing', 
   expect(trigger.disabled).toBe(true);
   expect(window.location.hash).toBe('');
   admit?.({ id: 'other/second' });
-  await vi.waitFor(() => expect(window.location.hash).toBe('#page-commands'));
+  await vi.waitFor(() => expect(document.body.textContent).toContain('2 commands queued.'));
+  expect(window.location.hash).toBe('');
   expect(queue.cancel).not.toHaveBeenCalled();
   expect(queue.attach).not.toHaveBeenCalled();
 });
 
-it('shows partial admission failures and still navigates to admitted commands', async () => {
+it('shows partial admission failures and closes without navigating', async () => {
   queue.enqueue.mockRejectedValueOnce(new Error('Admission denied'));
-  const { trigger, confirm } = control(rows);
+  const { root, trigger, confirm } = control(rows);
   trigger.click();
   confirm.click();
-  await vi.waitFor(() => expect(window.location.hash).toBe('#page-commands'));
-  expect(document.body.textContent).toContain('1 commands queued; 1 could not be queued.');
+  await vi.waitFor(() => expect(document.body.textContent).toContain('1 commands queued; 1 could not be queued.'));
+  expect(root.querySelector('dialog')?.open).toBe(false);
+  expect(window.location.hash).toBe('');
 });
 
 it('keeps failed admissions on the current page and allows retry', async () => {
@@ -167,6 +170,7 @@ it('binds campaign updates to separate scoped CLI commands', async () => {
   if (!root) throw new Error('Missing campaign action');
   document.body.append(root);
   /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-trigger')).click();
-  await vi.waitFor(() => expect(window.location.hash).toBe('#page-commands'));
+  await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledTimes(2));
+  expect(window.location.hash).toBe('');
   expect(queue.enqueue.mock.calls.map(([payload]) => payload.values)).toEqual(targets);
 });

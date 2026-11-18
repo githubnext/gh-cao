@@ -11,11 +11,11 @@ afterEach(() => {
 });
 
 describe('worker command queue', () => {
-  it('declares a single full-width lazy card table with server-backed filtering', () => {
+  it('declares a single full-view lazy card table with server-backed filtering', () => {
     expect(commands.pages[0].route).toEqual({ 'navigation-page': 'overview' });
     expect(commands.pages[0].views).toHaveLength(1);
     expect(commands.pages[0].views[0]).toMatchObject({
-      id: 'commands-history', mark: 'table', layout: 'full', 'lazy-list': true,
+      id: 'commands-history', mark: 'table', layout: 'full-view', 'lazy-list': true,
       'show-title': false,
       prompt: 'none',
       controls: 'filter-only', 'column-summaries': false,
@@ -23,9 +23,10 @@ describe('worker command queue', () => {
     });
   });
 
-  it('declares full-view command output with Commands as its Back navigation parent', () => {
+  it('declares full-view command output with Commands as its Back navigation parent but no breadcrumb', () => {
+    expect(commands.pages[1].title).toBe('Command');
     expect(commands.pages[1].route).toEqual({
-      'hash-query-parameter': 'command', 'navigation-page': 'commands'
+      'hash-query-parameter': 'command', 'navigation-page': 'commands', breadcrumbs: [{ page: 'command' }]
     });
     expect(commands.pages[1].views[0]).toMatchObject({
       id: 'command-terminal', element: 'command-terminal', layout: 'full-view'
