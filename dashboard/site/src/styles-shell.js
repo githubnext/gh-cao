@@ -38,6 +38,7 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .mobile-table-card-toolbar > .card-filter-bar { flex: 1; min-width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .mobile-table-card-toolbar > .semantic-prompt-action { position: static; flex: none; margin: 0 0 0 auto; }
 .dashboard-full-view .custom-view[data-view-layout="full-view"] > .mobile-table-card-list { min-height: 0; flex: 1; overflow: hidden; }
+.custom-view[data-view-layout="full-view"] > .mobile-table-card-list.table-card-list { border: 0; border-radius: 0; }
 .dashboard-full-view .dashboard-page[data-view-mode="card"] > .custom-view-grid > .custom-view[data-view-layout="full-view"]:has(> .mobile-table-card-list) { padding: 16px 0 0; }
 .dashboard-full-view .mobile-table-card-list-items { min-height: 0; flex: 1; overflow-y: auto; }
 .mobile-table-card-list-items { display: block; min-height: 0; overflow-y: auto; border: 0; background: transparent; }

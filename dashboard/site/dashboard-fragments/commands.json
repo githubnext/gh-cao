@@ -41,7 +41,7 @@
           "mark": "table",
           "prompt": "none",
           "controls": "filter-only",
-          "layout": "full",
+          "layout": "full-view",
           "lazy-list": true,
           "column-summaries": false,
           "card-drill": { "type": "external", "field": "command-dashboard-link" },

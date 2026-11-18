@@ -13,7 +13,7 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 
 1. Read `docs/dashboard-language-specification.md`, the affected dashboard document, and the existing presenter and component patterns.
 2. Express data shaping under `dashboard.queries`; keep joins, projections, aggregates, filters, ordering, and computed fields out of view-specific JavaScript.
-3. Prefer an existing Dashboard Language mark, encoding, layout, section, route, control, or named UI element.
+3. Prefer an existing Dashboard Language mark, encoding, layout, section, route, control, or named UI element. For lists of items that may grow large, prefer a full-view lazy card list (`lazy-list: true`, `layout: full-view`, a declared card template) over eager tables or custom list rendering.
 4. Extend a shared declarative renderer when the missing behavior applies to an existing mark.
 5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Record a concise `intent` and declare every source it consumes.
 6. Do not infer specialized behavior from page IDs, view IDs, source names, or source contents.

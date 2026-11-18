@@ -11,11 +11,11 @@ afterEach(() => {
 });
 
 describe('worker command queue', () => {
-  it('declares a single full-width lazy card table with server-backed filtering', () => {
+  it('declares a single full-view lazy card table with server-backed filtering', () => {
     expect(commands.pages[0].route).toEqual({ 'navigation-page': 'overview' });
     expect(commands.pages[0].views).toHaveLength(1);
     expect(commands.pages[0].views[0]).toMatchObject({
-      id: 'commands-history', mark: 'table', layout: 'full', 'lazy-list': true,
+      id: 'commands-history', mark: 'table', layout: 'full-view', 'lazy-list': true,
       'show-title': false,
       prompt: 'none',
       controls: 'filter-only', 'column-summaries': false,

@@ -1047,7 +1047,8 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
           }
         });
         const cardToolbar = selectedViewMode === 'card'
-          ? rendered.querySelector('.mobile-table-card-toolbar') : null;
+          ? rendered.querySelector('.mobile-table-card-toolbar')
+          : rendered.querySelector('.table-card-list > .mobile-table-card-toolbar');
         if (cardToolbar) {
           cardToolbar.querySelector('.mobile-table-card-toolbar-title')?.remove();
           cardToolbar.append(filterBar);

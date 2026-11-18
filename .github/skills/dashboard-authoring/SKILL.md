@@ -19,6 +19,10 @@ Create one dashboard that helps an operator make a bounded decision from the can
 
 ## Graphical patterns
 
+### Full-view lazy item lists
+
+For a page whose primary content is a potentially large list of items, use one full-view lazy card list instead of a bounded or eagerly rendered table: `lazy-list: true`, `layout: full-view`, a declared card template (`list.style: entity-cards` with `list.card`, or a table's `encoding.card`), and `show-title: false` when the page title names the list. Put filters in the view `filter-bar` and creation actions in the chrome `+` menu (`verb: add`, `placement: toolbar`). Examples: `maintenance` in `dashboard/site/dashboard-fragments/operations.json` and `commands` in `dashboard/site/dashboard-fragments/commands.json`.
+
 ### Flat supplemental diagnostics
 
 When a diagnostic page has one essential summary table and several supporting tables, render the summary first and make each supporting table a sibling `supplemental` disclosure. Omit layout sections so a table is not nested inside both a section and a disclosure.
