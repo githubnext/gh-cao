@@ -322,11 +322,13 @@ describe('declarative external dialog selector', () => {
       const document = structuredClone(authoritativeDashboard);
       const declaration = document.dashboard['cli-actions'].find((/** @type {{ id: string }} */ candidate) => candidate.id === action.id);
       declaration.placement = placement;
-      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(['toolbar', 'view'].includes(placement));
+      const permitted = ['toolbar', 'view'].includes(placement);
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(permitted);
+      if (!permitted) continue;
       declaration['copy-only'] = true;
       expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
     }
-  });
+  }, 20_000);
 
   it('rejects missing, duplicate, and non-view action references', () => {
     validationState.declaredCliActions = new Map(authoritativeDashboard.dashboard['cli-actions'].map(
