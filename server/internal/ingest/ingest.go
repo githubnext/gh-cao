@@ -171,9 +171,13 @@ func directoryRevision(manifest Manifest, inventoryHash string, additionalRevisi
 
 func Run(ctx context.Context, store *postgresx.Store, directory string, options Options) (result Result, err error) {
 	ctx, span := telemetry.Tracer().Start(ctx, telemetry.SpanIngestRun)
+	stage := "verify-manifest"
+	started := time.Now()
 	defer func() {
 		if err != nil {
 			span.SetStatus(codes.Error, "ingestion failed")
+			ingestLog.Printf("snapshot ingestion failed: stage=%q error_type=%T duration_ms=%d",
+				stage, err, time.Since(started).Milliseconds())
 		} else {
 			span.SetAttributes(attribute.Int64("cao_dashboard.ingest.revision", result.Revision), attribute.Int("cao_dashboard.ingest.source_count", len(result.Counts)))
 			span.SetStatus(codes.Ok, "")
@@ -207,6 +211,7 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 		return Result{}, errors.New("supplement requires a content revision")
 	}
 	if !options.Force {
+		stage = "check-revision"
 		current, err := store.HasDataRevision(ctx, dataRevision)
 		if err != nil {
 			return Result{}, err
@@ -241,15 +246,18 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 	}
 	// Canonical run identity is authoritative and always precedes linked records.
 	for _, phase := range [][]string{runs, records} {
+		stage = "read-shards"
 		for _, name := range phase {
 			if err := readShard(ctx, writer, filepath.Join(directory, filepath.FromSlash(name)), manifest[name]); err != nil {
 				return Result{}, err
 			}
 		}
+		stage = "flush-shards"
 		if err := writer.Flush(ctx); err != nil {
 			return Result{}, err
 		}
 	}
+	stage = "read-inventory"
 	_, err = loadDefinitions(options.DatabaseQueriesPath)
 	if err != nil {
 		return Result{}, err
@@ -262,6 +270,7 @@ func Run(ctx context.Context, store *postgresx.Store, directory string, options 
 			return Result{}, fmt.Errorf("project server evidence: %w", err)
 		}
 	}
+	stage = "publish"
 	active, err := writer.PublishVerifiedSnapshot(ctx, dataRevision, verifiedSnapshot)
 	if err != nil {
 		return Result{}, err

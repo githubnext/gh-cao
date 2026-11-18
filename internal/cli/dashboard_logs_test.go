@@ -29,6 +29,45 @@ func finishDashboardLogStream(output io.Writer) error {
 	return err
 }
 
+func TestDashboardLogsFinalSummaryRespectsRunBundleLimit(t *testing.T) {
+	for _, count := range []int{17, 200} {
+		t.Run(strconv.Itoa(count), func(t *testing.T) {
+			var received []map[string]any
+			batches := 0
+			err := streamDashboardLogs(t.Context(), dashboardLogRequest{
+				Count: count,
+				OnRuns: func(_ context.Context, rows []map[string]any) error {
+					if len(rows) == 0 || len(rows) > 16 {
+						return fmt.Errorf("summary exceeded the Run-bundle publication limit: %d", len(rows))
+					}
+					received = append(received, rows...)
+					batches++
+					return nil
+				},
+			}, nil, func(_ context.Context, _ []string, output io.Writer) error {
+				rows := make([]map[string]any, count)
+				for index := range rows {
+					rows[index] = map[string]any{"run_id": index + 1}
+				}
+				encoder := json.NewEncoder(output)
+				if err := encoder.Encode(map[string]any{"type": "summary", "data": map[string]any{"runs": rows}}); err != nil {
+					return err
+				}
+				return encoder.Encode(map[string]any{"type": "complete"})
+			})
+			if err != nil || len(received) != count || batches != (count+15)/16 {
+				t.Fatalf("final summary was not fully published in bounded batches: rows=%d batches=%d err=%v",
+					len(received), batches, err)
+			}
+			for index, row := range received {
+				if nativeScalar(row["run_id"]) != strconv.Itoa(index+1) {
+					t.Fatal("summary batching lost ordering or duplicated a Run")
+				}
+			}
+		})
+	}
+}
+
 func TestDashboardLogsBatchRunsPeriodicallyBeforeCollectionCompletes(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		var batches []int

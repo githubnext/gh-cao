@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/githubnext/gh-cao/server/internal/ingest"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
 
 func TestIngestStreamReusesRunnerAndReportsFailedPublications(t *testing.T) {
@@ -67,6 +69,60 @@ func TestIngestStreamExplicitlyRoutesRunBundles(t *testing.T) {
 		})
 	if err != nil || strings.Join(modes, ",") != "run-bundles,snapshot" {
 		t.Fatalf("explicit ingestion mode was not honored: %v %v", modes, err)
+	}
+}
+
+func TestIngestStreamReconcilesOnlyOwnershipConflicts(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		mode        string
+		failure     error
+		snapshotErr error
+		canceled    bool
+		wantModes   string
+		wantType    string
+	}{
+		{"ownership change", "run-bundles", fmt.Errorf("publish: %w", &postgresx.RunBundleReconciliationError{Collection: "$issues"}),
+			nil, false, "run-bundles,snapshot", "complete"},
+		{"failed reconciliation", "run-bundles", &postgresx.RunBundleReconciliationError{Collection: "$graders"},
+			errors.New("invalid snapshot"), false, "run-bundles,snapshot", "error"},
+		{"invalid delta", "run-bundles", errors.New("checksum mismatch"), nil, false, "run-bundles", "error"},
+		{"snapshot failure", "snapshot", &postgresx.RunBundleReconciliationError{Collection: "$issues"},
+			nil, false, "snapshot", "error"},
+		{"canceled delta", "run-bundles", &postgresx.RunBundleReconciliationError{Collection: "$issues"},
+			nil, true, "run-bundles", "error"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			var output bytes.Buffer
+			var modes []string
+			err := runIngestStream(ctx, strings.NewReader(fmt.Sprintf("{\"type\":\"ingest\",\"mode\":%q}\n", test.mode)),
+				&output, func(_ context.Context, request ingestStreamRequest) (ingest.Result, error) {
+					modes = append(modes, request.Mode)
+					if len(modes) == 1 {
+						if test.canceled {
+							cancel()
+						}
+						return ingest.Result{}, test.failure
+					}
+					return ingest.Result{Revision: 42}, test.snapshotErr
+				})
+			if err != nil || strings.Join(modes, ",") != test.wantModes {
+				t.Fatalf("incorrect reconciliation routing: modes=%v err=%v", modes, err)
+			}
+			decoder := json.NewDecoder(&output)
+			var ready, response ingestStreamResponse
+			if err := decoder.Decode(&ready); err != nil {
+				t.Fatal(err)
+			}
+			if err := decoder.Decode(&response); err != nil || response.Type != test.wantType {
+				t.Fatalf("incorrect reconciliation response: %+v %v", response, err)
+			}
+			if test.wantType == "complete" && (response.Result == nil || response.Result.Revision != 42) {
+				t.Fatal("completion did not carry the authoritative snapshot revision")
+			}
+		})
 	}
 }
 

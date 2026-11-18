@@ -150,7 +150,9 @@ subtrees**, not arbitrary nested paths. Approving `usage`, `objectives`,
 `provenanceEdges`, `reference`, `attemptResults` or `startupAttemptResults` can
 retain extra nested values; operators MUST explicitly review that actual privacy
 scope. Textual retry messages/objective descriptions and original errors need
-specific event-field approval and retain redaction qualification.
+specific event-field approval and retain redaction qualification; Section 2.3
+records the user-directed approval of the retry message and objective
+description for keyword matching.
 `provenanceFields: ["attemptId", "startupAttemptId"]` separately and explicitly
 admits only those two provenance names. Its default is empty, and other names,
 duplicates and nested-path approvals fail. This grants no content beyond the
@@ -228,6 +230,26 @@ titles/URLs remain unapproved. Exclusion and redaction are recorded under the
 generated family paths, and excluded, redacted, invalid or oversized
 collections keep dependent grader results unavailable. Nothing is derived or
 persisted at capture; dependent graders compute at query time.
+
+### 2.3 Retry message and objective description approval (user-directed)
+
+The MCP retry `message` (`data.message`, typed `Message`) and the trajectory-IR
+objective `description` (an element field of the approved `objectives`
+subtree, typed `Description` in `archive-objectives`) are approved archive
+evidence for the `retries` and `policy-near-miss` graders. This is a
+**user-directed privacy decision** for grader-query extension G1: the user
+approved exactly these two fields when asked to approve the retry message and
+objective description fields ("Yes to both"). They are read only through the closed
+`keyword-match` function over fixed upstream keyword sets; no free-text search,
+caller-supplied pattern, guard classification or score is persisted.
+
+The decision is bounded. It approves nothing beyond these two fields. Event
+policy stays explicit and off by default: `message` is retained only when the
+reviewed policy approves it, and `description` only when the policy approves
+the `objectives` subtree. Exclusion and redaction stay recorded. Relevant
+redaction of a required value fails closed as in Section 2.2: when the
+objectives or IR events collection is redacted, `policy-near-miss` is
+unavailable with reason `redacted` rather than reading the placeholder text.
 
 ## 3. Durable publication and recovery
 
@@ -447,14 +469,39 @@ predicates across source and measure filters, 32 post-aggregate computations,
 256 expression nodes and nesting depth 8. Functions use the existing
 `function`/`args` and `field`/`value` vocabulary: `if`, `equals`, `gt`, `lte`,
 `and`, `sum`, `difference`, `product`, `quotient`, `coalesce`, `is-null`,
-`trim` and `strip-prefix`. `trim` removes exactly the JavaScript
+`trim`, `strip-prefix`, `keyword-match`, `log2` and `concat`. `trim` removes exactly the JavaScript
 `String.prototype.trim` whitespace set (WhiteSpace plus LineTerminator code
 points) from both ends. `strip-prefix(text, prefix, repeated)` removes one
 leading occurrence of a literal `prefix` of 1 to 16 code points, or every
 leading repetition when `repeated` is `true`; the prefix and flag are typed
 literals, never regular expressions or caller-selected patterns. Both lower to
 anchored, code-point-escaped patterns (DuckDB `regexp_replace`, KQL
-`replace_regex`). Computations read only group
+`replace_regex`). `keyword-match(text, set)` returns a boolean: whether a
+string contains a whole word from a closed, reviewed keyword set copied from
+the pinned upstream graders, named by the string literal `set`: `retry`
+(`retry`, `retrying`) or `guard` (`check`, `verify`, `verification`,
+`policy`, `approval`, `approve`, `guard`, `confirm`, `authorize`,
+`authorization`). Letters match case-insensitively over ASCII only (JavaScript
+`/i` without `u`, so the Kelvin sign and long s never match), and a word
+boundary is any position whose neighbor is outside `[A-Za-z0-9_]`. Both engines
+lower it to the same explicit ASCII character-class pattern, never `\b`, `\w`,
+`(?i)` or KQL `has`; caller-supplied patterns, unknown sets and non-literal sets
+are rejected. `concat(a, b)` joins exactly two strings (DuckDB `concat`,
+KQL `strcat`). `log2(x)` returns the base-2 logarithm of a positive number and
+typed null otherwise (DuckDB `log2`, KQL `log2`, both guarded so non-positive
+input never reaches the math library). Backend math libraries are faithful,
+not correctly rounded: DuckDB, ADX and JavaScript (V8) can differ in the last
+bit, so a `log2`-derived value is not bit-exact. **User-directed decision:**
+the user accepted a small rounding tolerance for `log2`-based results. It is
+never global. The replay contract (`scripts/replay-session-archive-graders.mjs`
+and the real-Kusto replay) declares, per reviewed definition that uses `log2`,
+an absolute bound on the named result fields derived from it, justified by
+analysis of its computation; every other field of that definition (status, availability,
+reason) and every definition that does not use `log2` keeps exact bit
+equality in replay. `event-entropy-rate` declares 2^-39 on `value` (see
+`specs/session-archive-grader-queries.md` §14). Exceeding a declared bound
+fails acceptance; it is never widened to make a backend pass. `ln`, `exp`
+and other transcendental functions remain rejected. Computations read only group
 keys, aggregate results and preceding computations. Null is allowed only in a
 typed numeric literal such as `{"value":null,"type":"number"}`, never as a
 missing filter, predicate, selector or argument. Division by zero produces
@@ -484,8 +531,9 @@ rows are persisted. Every trace yields one anchor row with null `Ordinal` and
 `Items` when it has no array, plus one row per element. Rows carry the
 complete trace binding, `PolicyDigest`, the bound IR `Sequence`, `Items`,
 `Ordinal`, element `Kind`, and only reviewed typed element fields:
-`SatisfiedAtEventIndex` (a safe non-negative JSON integer), `Id` (a string)
-and `DependsOn` (the `dependsOn` array length) for objectives;
+`SatisfiedAtEventIndex` (a safe non-negative JSON integer), `Id` (a string),
+`Description` (a string, user-approved in Section 2.3) and `DependsOn` (the
+`dependsOn` array length) for objectives;
 `ValidAtIssueTime` and `Consequential` (JSON booleans) and `ActionType` and
 `Target` (strings, from `type` and `target`) for actions; `Id` (a string element or an
 object's string `id`) and `FirstEventIndex` (a safe JSON integer) for states;

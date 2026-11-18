@@ -11,9 +11,11 @@ For where the dashboard is served, see [Deployment options](deployment.md).
 
 ## Data flow
 
-Agentic workflows produce Actions logs. The Activity workflow collects a bounded
-snapshot into read-only operational artifacts. Consumers apply the shared model rules to build
-separate projections: local and hosted Go deployments ingest into PostgreSQL;
+Agentic workflows produce Actions logs. Native collection, either `gh cao
+dashboard` locally or the authenticated Go server when hosted, reads a bounded
+slice of that evidence into canonical records. Consumers apply the shared model
+rules to build separate projections: local and hosted Go deployments ingest
+into PostgreSQL;
 native command-line tools use its canonical read boundary. Pages uses only
 generated synthetic enterprise samples, passed through the same normalization,
 canonical ingestion, queries, and views with browser IndexedDB. These are
@@ -112,7 +114,7 @@ receipt, or object existence.
 
 ## Completeness and duplicates
 
-The scheduled Activity workflow is a rolling operational snapshot, not a full historical archive. Data can be incomplete at these boundaries:
+Native collection produces a rolling operational snapshot, not a full historical archive. Data can be incomplete at these boundaries:
 
 | Boundary | What can be missing |
 | --- | --- |
@@ -441,7 +443,7 @@ Authenticated callers use two endpoints. Reading full traces requires an explici
 | `GET /api/v1/session-archive/status` | Reports whether the archive is available, with bounded counters |
 | `POST /api/v1/session-archive/query` | Runs a trusted `timeline` or `summary` template, or a local-only `session-query`, for one approved repository |
 
-`timeline` needs a positive GitHub run ID and attempt; `summary` rejects them. Requests are limited to 8192 bytes, and responses to 8 MiB and 10,000 rows. A `session-query` takes a Dashboard Language `query` over `archive-events` or an approved item source such as `archive-objectives` or `archive-ir-events`. It can chain up to eight earlier definitions and join them only within one trace, and doesn't accept SQL, cross-trace joins, or `PayloadJSON`. Exceeding a budget returns an error rather than partial results, and archive queries never fall back to dashboard queries. Local DuckDB runs them; hosted ADX runs the same plans only after its separate default-off analytical acceptance gate is enabled.
+`timeline` needs a positive GitHub run ID and attempt; `summary` rejects them. Requests are limited to 8192 bytes, and responses to 8 MiB and 10,000 rows. A `session-query` takes a Dashboard Language `query` over `archive-events` or an approved item source such as `archive-objectives` or `archive-ir-events`. It can chain up to eight earlier definitions and join them only within one trace, and doesn't accept SQL, cross-trace joins, or `PayloadJSON`. Text matching is limited to closed functions such as `keyword-match`, which matches whole words from fixed reviewed keyword sets; caller-supplied regular expressions are rejected. Exceeding a budget returns an error rather than partial results, and archive queries never fall back to dashboard queries. Local DuckDB runs them; hosted ADX runs the same plans only after its separate default-off analytical acceptance gate is enabled.
 
 For the full contract, see the [Private unified-session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
 

@@ -11,6 +11,30 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
 
+func TestRunBundleOwnershipConflictLeavesCanonicalRevisionIntact(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	at := seedBundleRuns(t, store)
+	before, err := store.State(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	tuple := bundleTuple(t, store, "tools", "tool:run-a")
+	input := bundleUpdate(at)
+	input.Runs[0].Run["id"] = "run-b"
+	input.Runs[0].Collections = map[string]RunBundleCollection{
+		"tools": {Coverage: "partial", Rows: []model.Row{{"id": "tool:run-a", "runId": "run-b", "name": "read"}}},
+	}
+	_, err = store.PublishRunBundles(t.Context(), input)
+	var conflict *RunBundleReconciliationError
+	if !errors.As(err, &conflict) || conflict.Collection != "$tools" {
+		t.Fatalf("ownership conflict did not request authoritative reconciliation: %v", err)
+	}
+	after, err := store.State(t.Context())
+	if err != nil || !reflect.DeepEqual(before, after) || tuple != bundleTuple(t, store, "tools", "tool:run-a") {
+		t.Fatalf("rejected ownership change modified canonical evidence: before=%+v after=%+v err=%v", before, after, err)
+	}
+}
+
 func TestRunBundlesFenceSharedParentsAndSnapshotReplay(t *testing.T) {
 	store, _ := nativeTestStore(t)
 	at := seedBundleRuns(t, store)

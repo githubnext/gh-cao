@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -206,10 +207,11 @@ func readLoweringCases(t *testing.T) loweringCases {
 		t.Fatalf("lowering cases generated from %s@%s, sources pinned at %s@%s; regenerate cases.json",
 			cases.UpstreamRepository, cases.UpstreamRevision, pins.UpstreamRepository, pins.UpstreamRevision)
 	}
-	// keywords.sql spells these closed patterns out as ASCII classes.
+	// KeywordSets spells these closed patterns out as ASCII classes.
 	if cases.UpstreamPatterns.Retries != `/\bretry(?:ing)?\b/i` ||
-		cases.UpstreamPatterns.Guard != `/\b(check|verify|verification|policy|approval|approve|guard|confirm|authorize|authorization)\b/i` {
-		t.Fatalf("upstream keyword patterns changed; update keywords.sql: %+v", cases.UpstreamPatterns)
+		cases.UpstreamPatterns.Guard != `/\b(`+strings.Join(KeywordSets["guard"], "|")+`)\b/i` ||
+		!slices.Equal(KeywordSets["retry"], []string{"retry", "retrying"}) {
+		t.Fatalf("upstream keyword patterns changed; update KeywordSets: %+v", cases.UpstreamPatterns)
 	}
 	if len(cases.Recurrence) == 0 || len(cases.Keywords) == 0 || len(cases.Reconciliation) == 0 {
 		t.Fatal("lowering cases are empty")
@@ -378,7 +380,9 @@ func keywordLoweringSQL(t *testing.T, cases []keywordCase) string {
 		rows[i] = []string{literal(c.ID), literal(c.Text)}
 	}
 	return loweringTemplate(t, "keywords.sql", map[string]string{
-		"{{texts}}": rowSet([]string{"id", "text"}, []string{"VARCHAR", "VARCHAR"}, rows),
+		"{{texts}}":   rowSet([]string{"id", "text"}, []string{"VARCHAR", "VARCHAR"}, rows),
+		"{{retries}}": KeywordMatchExpression("text", "retry").sql(),
+		"{{guard}}":   KeywordMatchExpression("text", "guard").sql(),
 	})
 }
 

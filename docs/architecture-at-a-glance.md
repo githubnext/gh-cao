@@ -24,9 +24,9 @@ tools and permissions. These AWs form the building blocks of CAO as we scale.
 
 ## How it works
 
-1. **Observe activity.** [CAO Activity](activity.md) collects a bounded,
-   read-only snapshot from explicitly configured repositories for dashboards,
-   reports, and agents. Existing workflows keep running where they are.
+1. **Observe activity.** [Evidence collection](activity.md) gathers a bounded,
+   read-only view of the repositories you select for dashboards, reports, and
+   agents. Existing workflows keep running where they are.
 2. **Evaluate results.** Follow runs and outputs back to GitHub; check
    [freshness and completeness](dashboard.md#read-a-result) and
    [accepted outcomes](operational-value-how-to.md), not just run success.

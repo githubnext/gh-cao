@@ -16,6 +16,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/githubnext/gh-cao/internal/dashboardingest"
 )
 
 func prepareDashboardCache(directory string) error {
@@ -148,7 +150,7 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 			}
 		}
 		encoder := json.NewEncoder(&content)
-		if err := encoder.Encode(map[string]any{"kind": "metadata", "phase": phase, "records": count}); err != nil {
+		if err := encoder.Encode(map[string]any{"kind": "metadata", "schemaVersion": dashboardingest.SchemaVersion, "phase": phase, "records": count}); err != nil {
 			return err
 		}
 		for _, store := range stores {

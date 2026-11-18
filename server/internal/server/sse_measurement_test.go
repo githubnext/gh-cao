@@ -46,7 +46,7 @@ func TestSSEFanoutAcrossReplicasAndDrain(t *testing.T) {
 				t.Fatal(err)
 			}
 			request.Header.Set("Authorization", "Bearer "+testAccessToken)
-			response, err := (&http.Client{Timeout: 4 * time.Second}).Do(request)
+			response, err := (&http.Client{Timeout: 10 * time.Second}).Do(request)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -2309,7 +2309,7 @@ func (hub *eventHub) publishLocked() {
 
 func (hub *eventHub) observe(ctx context.Context, app *App) {
 	defer hub.workers.Done()
-	poll := time.NewTicker(time.Second)
+	poll := time.NewTicker(5 * time.Second)
 	defer poll.Stop()
 	for {
 		select {

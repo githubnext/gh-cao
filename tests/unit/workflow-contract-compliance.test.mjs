@@ -122,7 +122,8 @@ test("EU CRA workflows preserve advisory and human-review boundaries", () => {
     if (displayName) {
       assert.match(source, new RegExp(`^name: "EU CRA / ${displayName}"$`, "m"));
     }
-    assert.match(source, /engine:\n\s+id: pi\n\s+model-routing:\n\s+goal: cost\n\s+mode: auto/);
+    assert.match(source, /^engine:\n +id: pi$/m);
+    assert.match(source, /^model: router$/m);
     assert.match(source, /copilot-requests: write/);
     assert.match(source, /tools:\n\s+cli-proxy: true\n\s+github:\n\s+mode: gh-proxy/);
   }
