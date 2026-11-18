@@ -209,7 +209,8 @@ describe('splitDashboardDocument / resolveDashboardDocument round-trip', () => {
     }
     expect(pageChunks.size).toBe(4);
     expect(core.dashboard.pages.find((page) => page.id === 'factory-page')?.['independent-source-bindings']).toBe(true);
-    expect(core.dashboard.pages.find((page) => page.id === 'alpha-page')?.['independent-source-bindings']).toBe(false);
+    expect(core.dashboard.pages.find((page) => page.id === 'alpha-page')?.['independent-source-bindings']).toBeUndefined();
+    expect(dashboardPageSourcesAreIndependentlyBound(core.dashboard.pages.find((page) => page.id === 'alpha-page'))).toBe(false);
   });
 
   it('only includes the queries a page actually needs in its chunk', () => {

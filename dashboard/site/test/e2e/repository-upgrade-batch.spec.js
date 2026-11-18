@@ -177,7 +177,7 @@ for (const width of [1440, 390]) {
       await disableRepositoryDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await unknownRepository.getByRole('button', { name: 'Update', exact: true }).click();
       const repositoryUpdateDialog = page.getByRole('dialog', { name: 'Approve Update', exact: true });
-      await expect(repositoryUpdateDialog.locator('.cli-action-command')).toHaveText('gh aw update --repo octo/unknown --create-pull-request');
+      await expect(repositoryUpdateDialog.locator('.cli-action-command')).toHaveText('gh aw upgrade --repo octo/unknown --create-pull-request');
       await repositoryUpdateDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       const repositoryScreenshot = testInfo.outputPath(`maintenance-repositories-${width}.png`);
       await page.screenshot({ path: repositoryScreenshot, fullPage: true });

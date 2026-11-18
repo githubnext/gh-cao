@@ -239,21 +239,21 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
             view?.data && (typeof view.data.source === "string" || Array.isArray(view.data.sources))
           ));
           const unavailable = activePage.locator('[data-view-state="unavailable"][role="alert"]');
-          if (definition.route?.["availability-view"] && await unavailable.isVisible()) {
-            await expect(views, "Unavailable detail pages replace their views with recovery actions").toHaveCount(0);
-            await expect(unavailable).toContainText(definition.route["availability-message"]);
-            await expect(unavailable.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
-            await expect(unavailable.getByRole("link")).toHaveAttribute(
-              "href", `#page-${definition.route["navigation-page"]}`,
-            );
-            result.availability = "unavailable";
-          } else {
-            const rendered = await views.evaluateAll((items) =>
-              items.map((item) => item.getAttribute("data-view-id")));
-            for (const viewId of declared) {
-              if (!rendered.includes(viewId)) result.errors.push(`Missing view: ${viewId}`);
+          await expect(async () => {
+            if (definition.route?.["availability-view"] && await unavailable.isVisible()) {
+              await expect(views, "Unavailable detail pages replace their views with recovery actions").toHaveCount(0);
+              await expect(unavailable).toContainText(definition.route["availability-message"]);
+              await expect(unavailable.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+              await expect(unavailable.getByRole("link")).toHaveAttribute(
+                "href", `#page-${definition.route["navigation-page"]}`,
+              );
+              result.availability = "unavailable";
+            } else {
+              const rendered = await views.evaluateAll((items) =>
+                items.map((item) => item.getAttribute("data-view-id")));
+              expect(rendered, `Declared views for ${definition.id}`).toEqual(expect.arrayContaining(declared));
             }
-          }
+          }).toPass({ timeout: 30_000 });
           await scrollRenderedViewsIntoView(activePage);
           await expect(activePage.locator(visibleBusyViewSelector)).toHaveCount(0, { timeout: 30_000 });
           const failures = await activePage.locator('[aria-label^="Unable to load "]')
