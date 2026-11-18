@@ -1,34 +1,7 @@
 {
- "source_sha": "b350331a9f4b5cacbb240a9e0b11fba95b039b5f",
- "next_category": "dependency installation and caching",
+ "source_sha": "53a040c6bec498774423c5beb581bb38c7f68824",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T05:52:52Z",
-   "worker_run_id": "44246887002",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457",
-    "43832040488",
-    "43831980991"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44244171280 (schedule, 215fd92, created 2026-11-18T05:25Z) .. 43831980991 (push 17a3b7a, created 2026-11-16T08:31Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (16 push, 2 schedule), 0 failed; gh run list shows no newer or queued docs run. Workspace HEAD = source_sha 215fd92, clean; docs.yml and package locks unchanged since source_sha. Stored immutable run_timings recomputed, no refetch: setup-node median 3 s p90 5; install median 9 s p90 11; post median 0 s. Install-only ceiling 9 s = 11.9 percent of exec median 75.5 s; 15 percent gate 11.3 s unmet. Setup+install+post per-run median 12 s p90 14 = 15.9 percent, but removing it needs Node and materialised deps, so no realistic single change meets the gate. Cache from caches API (trusted metadata): node-cache-Linux-x64-npm-7808ecf8 (263.4 MB, created 2026-11-13T20:57Z, last accessed 2026-11-18T05:43Z) is the only docs key; no save since creation, so every window run is an exact-key hit. Job-log reads previously returned HTTP 403 and were not bypassed. Checkout (median 24.5 s, 32 percent of exec) is another category and remains covered by open #20815 (OPEN, 0 comments, unchanged since 2026-11-13); not re-proposed. No issue. Next: Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T06:26:45Z",
    "worker_run_id": "44250879693",
@@ -837,6 +810,34 @@
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44337804857 (push b350331, created 2026-11-18T15:37:34Z) .. 43991770179 (push be0c06f, created 2026-11-17T00:57:19Z); cancelled 43991812013 excluded (cancelled while pending at 00:58:21Z, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. Source b350331 = main HEAD = source_sha; no docs run queued or in progress at 15:51Z. Fresh Jobs API read for 44337804857 only (others from stored immutable rows). Queue median 3 s, p90 5 s (max 15 s on 43991897672, latency only). Exec median 79 s, p90 108 s; excluding outlier 44337804857 (exec 139 s, Deploy Pages 69 s, GitHub-managed) median 78.5 s, p90 96 s; 15 percent gate 11.8 s and 60 s gate unmet. Concurrency: cancel-in-progress false kept; 0 in-flight builds superseded; 43991897672 queued 15 s behind in-flight 43991770179 and was not cancelled; cancel-in-progress true saves 0 s median. Avoidable rebuilds: 0 of 17 push heads (5 new heads build-consumed). Schedule 05:23Z kept for synthetic-date refresh (exec 72 s and 62 s). Next: dependency installation and caching.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T16:21:39Z",
+   "worker_run_id": "44345287020",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44343962371 (push 53a040c, created 2026-11-18T16:09:45Z) .. 43991812013 (cancelled, excluded, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed; no docs run queued or in progress. Only window change since 15:53 evaluation: 44343962371 added (Jobs API read: queue 4, build job 62, checkout 29, setup-node 5, install 8, post 0, build docs 11, demo 3, upload 3, deploy job 9, exec 79); 43991770179 dropped. Recomputed from stored rows, nearest-rank p90: exec median 79 s p90 108 (96 excluding outlier 44337804857); build job median 62 p90 70; deploy job median 9 p90 18 (outlier 73 s, handoff 6 s). Dependency phase: setup-node median 3 s p90 5; install median 10 s p90 12; post median 0 s p90 1; setup+install+post median 13 s p90 17 = 16.5 percent of exec median (not removable: npm ci required by build; Node 24 pin). Install-only ceiling 10 s = 12.7 percent; 15 percent gate 11.85 s and 60 s gate unmet. Cache node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57Z, no save since, last accessed 16:16Z); no package-lock change since 7c8faf4, and 53a040c touches no lockfile, so every window run is an exact-key hit (post 0-1 s). Rejected: node_modules cache (net 3-6 s, unmeasured, stale-dependency risk) and split install job (needs node_modules transfer). Job-log reads not attempted. Checkout (other category) remains covered by OPEN #20815 (0 comments, unchanged since 2026-11-13); not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -961,8 +962,8 @@
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-18T15:53:24Z",
-  "window": "strict latest 20 completed docs.yml runs 44337804857 (push b350331, created 2026-11-18T15:37:34Z) .. 43991770179 (push be0c06f, created 2026-11-17T00:57:19Z); cancelled 43991812013 excluded (cancelled while pending at 00:58:21Z, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
+  "evaluated_at": "2026-11-18T16:21:39Z",
+  "window": "strict latest 20 completed docs.yml runs 44343962371 (push 53a040c, created 2026-11-18T16:09:45Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
   "columns": [
    "run",
    "event",
@@ -980,8 +981,25 @@
    "deploy_job_s",
    "exec_s"
   ],
-  "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end (= build_job + handoff + deploy_job); queue = run created to build start. Medians (19 successes, 2026-11-18T15:53:24Z): exec 79 s (p90 108; excluding outlier 44337804857 median 78.5 s p90 96), queue 3 s, checkout 24 s, setup-node 3 s, install 10 s, build docs 14 s, demo 4 s, upload 2 s, deploy job 10 s. Fresh Jobs API read this run: 44337804857 (added; 43991571724 dropped from window).",
+  "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end (= build_job + handoff + deploy_job); queue = run created to build start. Medians (19 successes, 2026-11-18T16:21:39Z): exec 79 s (p90 108), queue 4 s, checkout 24 s, setup-node 3 s, install 10 s, build docs 14 s, demo 4 s, upload 2 s, deploy job 9 s. Added 44343962371 via Jobs API; 43991770179 dropped from window.",
   "rows": [
+   [
+    "44343962371",
+    "push",
+    "success",
+    "53a040c",
+    4,
+    62,
+    29,
+    5,
+    8,
+    0,
+    11,
+    3,
+    3,
+    9,
+    79
+   ],
    [
     "44337804857",
     "push",
@@ -1287,23 +1305,6 @@
     3,
     9,
     72
-   ],
-   [
-    "43991770179",
-    "push",
-    "success",
-    "be0c06f",
-    3,
-    54,
-    24,
-    3,
-    6,
-    0,
-    9,
-    3,
-    2,
-    11,
-    70
    ]
   ]
  },
@@ -1702,35 +1703,35 @@
   "decision": "not actionable (median saving 0 s; queue median 3 s; 15 percent gate 11.8 s and 60 s gate unmet)"
  },
  "dependency_phase": {
-  "evaluated_at": "2026-11-18T14:22:10Z",
-  "worker_run_id": "44322423800",
-  "window": "strict latest 20 completed docs.yml runs 44318642809 (push 241f8db, created 2026-11-18T13:55:10Z) .. 43862265708 (push 1a03d21, created 2026-11-16T11:57:32Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed",
-  "method": "recomputed from stored run_timings rows plus Jobs API read of 44318642809 (setup 3, install 6, post 0, build job 49, exec 62); nearest-rank p90",
+  "evaluated_at": "2026-11-18T16:21:39Z",
+  "worker_run_id": "44345287020",
+  "window": "strict latest 20 completed docs.yml runs 44343962371 (push 53a040c, created 2026-11-18T16:09:45Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
+  "method": "recomputed from stored run_timings rows plus Jobs API read of 44343962371 (setup 5, install 8, post 0, build job 62, exec 79); nearest-rank p90 (n=19)",
   "setup_node_s": {
    "median": 3,
-   "p90": 4
+   "p90": 5
   },
   "install_s": {
-   "median": 9,
-   "p90": 11
+   "median": 10,
+   "p90": 12
   },
   "post_setup_node_s": {
    "median": 0,
    "p90": 1
   },
   "setup_install_post_s": {
-   "median": 12,
-   "p90": 14
+   "median": 13,
+   "p90": 17
   },
-  "share_of_exec_median_pct": 16,
-  "install_ceiling_share_pct": 12,
+  "share_of_exec_median_pct": 16.5,
+  "install_ceiling_share_pct": 12.7,
   "exec_s": {
-   "median": 75,
-   "p90": 82
+   "median": 79,
+   "p90": 108
   },
-  "gate_15pct_s": 11.25,
-  "install_ceiling_saving_s": 9,
-  "verdict": "not actionable: install-only ceiling below 15 percent and 60 s gates; setup+install+post share is not removable (npm ci required for build, Node 24 pin, setup-node cache restore keeps npm ci fast)"
+  "gate_15pct_s": 11.85,
+  "install_ceiling_saving_s": 10,
+  "verdict": "not actionable: install-only ceiling below 15 percent and 60 s gates; setup+install+post not removable (npm ci required by build, Node 24 pin); node_modules cache net 3-6 s unmeasured with stale-dependency risk; split install job adds artifact transfer"
  },
  "astro_step_verified": {
   "verified_at": "2026-11-17T14:35:26Z",
@@ -1862,8 +1863,8 @@
   "decision": "not actionable"
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-18T14:22:10Z",
-  "worker_run_id": "44322423800",
-  "verdict": "not actionable (window rolled to 44318642809; see dependency_phase)"
+  "evaluated_at": "2026-11-18T16:21:39Z",
+  "worker_run_id": "44345287020",
+  "verdict": "not actionable (window 44343962371..43991897672; see dependency_phase)"
  }
 }
