@@ -1,34 +1,7 @@
 {
-  "source_sha": "5d00b8911fbd0143b782e1247f87ef1dce01db07",
-  "next_category": "reusable dashboard generation",
+  "source_sha": "346b7e1d49fd412a659a9cfbf9f5c8e4ba14945e",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-18T03:21:42Z",
-      "worker_run_id": "44229555644",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb) .. 44060953578 (push fcd7e18); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 03:21Z: no docs run newer than 44060953578, none queued or in progress (stale 37642403569 only). Source 453e35b = source_sha. Recomputed from stored immutable run_timings rows (no refetch): Build synthetic enterprise demo step median 5 s, p90 6, min 3, max 8, n 18; exec median 77.5 s so share 6.5 percent; 15 percent gate 11.63 s and 60 s gate unmet; ceiling 5 s. Jobs API spot-check of 44060953578 matched stored row (build 64 s, checkout 23, install 10, docs 15, demo 5). Reuse still blocked: scripts/simulate-dashboard-pages.mjs:78 now=Date.now(); dist/cao deployed each run. Open #20815 (blobless checkout, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z) is out of cycle and a duplicate; not repeated. No suggestion; noop. Next: artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-18T03:35:35Z",
       "worker_run_id": "44231022197",
@@ -830,6 +803,34 @@
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded; 19 successes (17 push, 2 schedule), 0 failed. gh run list 12:51Z: no docs run newer than 44254629254, none queued or in progress; main = source_sha 5d00b89 (window unchanged). Stored run_timings recomputed, no refetch: docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 11 s, nearest-rank p90 15, min 9, max 15; push-only median 13 s, p90 15; exec median 76 s, p90 82; share 14.5 percent; 15 percent gate 11.4 s and 60 s gate unmet; whole-step removal ceiling 11 s (all) so no Astro-only change can qualify. Push-only gate 11.7 s would need about 90 percent of the step removed, not achievable without weakening validate-agent-docs and discovery tests, which read dist/ from the Astro build. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Sub-step split unmeasurable (job logs HTTP 403 DIFC, not bypassed). Open issues: only #20815 (checkout, other category), not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-18T13:19:00Z",
+      "worker_run_id": "44311791707",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672",
+        "43991770179",
+        "43991571724",
+        "43987917606",
+        "43877103800",
+        "43862265708",
+        "43854851689"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44311127214 (push 346b7e1, created 2026-11-18T13:11:07Z) .. 43854851689 (push fade88d, created 2026-11-16T11:06:56Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed. Live check 13:18Z: no docs run queued or in progress (only stale 37642403569 from 2026-10-07, outside window). Source 346b7e1 = main HEAD = source_sha; the commit touched dashboard-chunks.js, generate-dashboard-ingest.mjs and tests, and the demo command is unchanged (scripts/simulate-dashboard-pages.mjs:78 still defaults now=Date.now()). Fresh Jobs API for 44311127214: demo step 6 s (13:12:08-13:12:14), exec 87 s, consistent with stored rows. Recomputed from stored run_timings plus that row (no other refetch): demo median 5 s, p90 6, min 3, max 8, n 19; exec median 76 s (p90 82); demo share 6.6 percent; 15 percent gate 11.4 s and 60 s gate unmet; ceiling saving 5 s. Reuse still blocked: output non-deterministic from Date.now default, dist/cao copied and deployed each run, and cache restore overhead would offset most of a 5 s saving. Open issues: #20815 (checkout, other category, not repeated) and #21153 (incomplete report, not repeated). No suggestion; noop. Next: artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -946,8 +947,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-18T06:56:38Z",
-    "window": "strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879)",
+    "evaluated_at": "2026-11-18T13:19:00Z",
+    "window": "strict latest 20 completed docs.yml runs 44311127214 (push 346b7e1, created 2026-11-18T13:11:07Z) .. 43854851689 (push fade88d, created 2026-11-16T11:06:56Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed",
     "columns": [
       "run",
       "event",
@@ -965,8 +966,25 @@
       "deploy_job_s",
       "exec_s"
     ],
-    "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end; queue = run created to build start. Medians (19 successes): exec 76 s (p90 82), queue 4 s, checkout 24 s, setup-node 3 s, install 10 s, build docs 11 s, demo 5 s, upload 2 s, deploy job 9 s. Components for 44254629254 (not in transfer_model rows until recorded): handoff 5 s, configure 0 s, upload 3 s, deploy setup 1 s, deploy job 10 s, removable 9 s, exec 82 s.",
+    "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end; queue = run created to build start. Medians (19 successes, window 44311127214..43854851689): exec 76 s (p90 82), queue 3 s, checkout 24 s, setup-node 3 s, install 10 s, build docs 11 s, demo 5 s, upload 2 s, deploy job 9 s. 43840581457 (132 s outlier) left the window; 44311127214 added from fresh Jobs API.",
     "rows": [
+      [
+        "44311127214",
+        "push",
+        "success",
+        "346b7e1",
+        3,
+        70,
+        25,
+        4,
+        12,
+        1,
+        14,
+        6,
+        3,
+        11,
+        87
+      ],
       [
         "44254629254",
         "push",
@@ -1272,23 +1290,6 @@
         2,
         9,
         76
-      ],
-      [
-        "43840581457",
-        "push",
-        "success",
-        "f0e71a1",
-        4,
-        118,
-        73,
-        5,
-        11,
-        1,
-        14,
-        6,
-        3,
-        8,
-        132
       ]
     ]
   },
@@ -1616,9 +1617,10 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-18T11:33:06Z",
-    "worker_run_id": "44295159862",
-    "window": "strict latest 20 completed docs.yml runs 44254629254..43840581457 (cancelled 43991812013 excluded); 19 successes; recomputed from immutable run_timings rows; Jobs API spot check 44254629254",
+    "verified_at": "2026-11-18T13:19:00Z",
+    "worker_run_id": "44311791707",
+    "window": "strict latest 20 completed docs.yml runs 44311127214 (push 346b7e1, created 2026-11-18T13:11:07Z) .. 43854851689 (push fade88d, created 2026-11-16T11:06:56Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed",
+    "method": "recomputed from immutable run_timings rows plus fresh Jobs API for 44311127214; nearest-rank p90",
     "demo_step_s": {
       "median": 5,
       "p90": 6,
@@ -1635,7 +1637,7 @@
     "gate_15pct_s": 11.4,
     "ceiling_saving_s": 5,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); dist/cao deployed every run; cache overhead would reduce net saving",
-    "decision": "not actionable (complete evaluation, worker 44295159862)"
+    "decision": "not actionable (complete evaluation, worker 44311791707)"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
