@@ -1,4 +1,4 @@
-import { authoritativeDashboard, expect, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
+import { authoritativeDashboard, expect, registerSmokeRoutes, selectViewMode, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
 
@@ -63,7 +63,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(view.locator('.semantic-prompt-action')).toHaveCount(0);
       await cards.nth(1).locator('[data-card-drill]').click();
     } else {
-      await page.locator('[data-view-mode-value="table"]').click();
+      await selectViewMode(page, 'table');
       const rows = view.locator('tbody > tr');
       await expect(rows).toHaveCount(3);
       await expect(rows.nth(0)).toContainText('recent');

@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { assert, authoritativeDashboard, buildPresenterModuleUrl, builtInPage, expect, hydrateView, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
@@ -401,7 +402,7 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
   const dispatchChart = page.locator('[data-view-id="campaigns-dispatches"]');
   await expect(dispatchChart.locator('[data-chart-widget="pie"]')).toBeVisible();
   await expect(dispatchChart.locator('.chart-legend-pie')).toContainText('Ambient Context');
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(page.locator('[data-page-id="campaigns"] [data-view-layout="full-view"]')).toBeVisible();
   await expect(page.locator('[data-page-id="campaigns"] [data-lazy-list]')).toBeVisible();
   await expect(page.locator('[data-page-id="campaigns"] [data-table-filter]')).toBeVisible();
@@ -439,7 +440,7 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
   await expect(awDoctorSummary.getByRole('link', { name: 'View AW Doctor campaign dashboard' })).toHaveAttribute('href', '#page-campaign-insights?campaign=aw-doctor');
   await expect(awDoctorSummary.locator('[data-field="modes"] .mode-badge')).toHaveText('review');
   await expect(awDoctorSummary.locator('[data-field="registration"] .status')).toHaveText('Active');
-  await page.getByRole('button', { name: 'Cards' }).click();
+  await selectViewMode(page, 'card');
   const awDoctorCard = page.locator('[data-page-id="campaigns"] [data-mobile-card-list] .entity-card-list-card').filter({ hasText: 'AW Doctor' });
   await expect(awDoctorCard.locator('[data-card-drill]')).toHaveAttribute('href', '#page-campaign-insights?campaign=aw-doctor');
   await awDoctorCard.click({ position: { x: 6, y: 6 } });
@@ -478,7 +479,7 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
     window.location.hash = '#page-campaign-workflows?campaign=ambient-context';
   });
   await expect(campaignNavigation.locator('[aria-current="page"]')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(page.getByRole('heading', { name: 'Orchestrator and workers', level: 2 })).toBeVisible();
   const campaignWorkflowRows = page.locator('[data-page-id="campaign-workflows"] .custom-table tbody tr');
   await expect(campaignWorkflowRows).toHaveCount(2);
@@ -504,19 +505,20 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
   await expect(campaignNavigation.locator('[aria-current="page"]')).toHaveCount(0);
   await expect(campaignRunsPage.locator('[data-view-id="campaign-run-status"] [data-chart-widget="pie"]')).toBeVisible();
   await expect(campaignRunsPage.locator('[data-view-id="campaign-failure-reason-distribution"] [data-chart-widget="pie"]')).toBeVisible();
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(campaignRunsPage.locator('[data-view-id="campaign-run-table"] tbody tr')).toHaveCount(5);
-  await page.getByRole('button', { name: 'Chart' }).click();
+  await selectViewMode(page, 'chart');
   await campaignNavigation.getByRole('link', { name: 'Reports' }).click();
   await expect(campaignNavigation.getByRole('link', { name: 'Reports' })).toHaveAttribute('aria-current', 'page');
-  await page.getByRole('button', { name: 'Cards' }).click();
+  await expect(page.locator('[data-page-id="campaign-issues"]')).toBeVisible();
+  await selectViewMode(page, 'card');
   const campaignIssueView = page.locator('[data-page-id="campaign-issues"] [data-view-id="campaign-issue-table"]');
   await expect(campaignIssueView).toBeVisible();
   await expect(campaignIssueView).toContainText('Review worker finding');
   await expect(campaignIssueView.getByRole('listitem')).toHaveCount(1);
   await expect(campaignIssueView).not.toContainText('Review ambient context proposal');
   await expect(campaignNavigation.locator('.count-badge')).toHaveText(campaignTabBadges);
-  await page.getByRole('button', { name: 'Chart' }).click();
+  await selectViewMode(page, 'chart');
   await page.evaluate(() => {
     window.location.hash = '#page-campaign-detail?campaign=ambient-context';
   });
@@ -555,13 +557,10 @@ test('DLS-PAGE-014 DLS-PAGE-015 built-in campaigns page renders dispatches, inve
   }
   await expect(campaignInsights.locator('.view-description-tooltip')).toHaveCount(0);
   await expect(campaignInsights.locator('[data-view-id="campaign-audit-event-summary-buckets"]')).toHaveCount(0);
-  for (let step = 0; step < 3 && await campaignInsights.getAttribute('data-view-mode') !== 'table'; step++) {
-    const before = await campaignInsights.getAttribute('data-view-mode');
-    await page.locator('.mobile-view-mode-toggle').click();
-    await expect(campaignInsights).not.toHaveAttribute('data-view-mode', before ?? '');
-  }
+  await selectViewMode(page, 'table');
   await expect(campaignInsights).toHaveAttribute('data-view-mode', 'table');
-  await expect(campaignInsights.locator('.view-mode-control')).toHaveCount(1);
+  await expect(campaignInsights.locator('.view-mode-control')).toHaveCount(0);
+  await expect(page.locator('.mobile-view-mode-toggle')).toBeVisible();
   await expect(campaignInsights.getByRole('navigation', { name: 'Ambient Context views' })).toBeVisible();
   await expect(campaignInsights.getByRole('navigation', { name: 'Ambient Context views' })).toHaveCSS('display', 'grid');
   const mobileBack = page.getByRole('button', { name: 'Go back' });
@@ -668,7 +667,7 @@ test('DLS-SAFE-004 DLS-SAFE-007 DLS-SAFE-008 DLS-SAFE-010 custom findings table 
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Findings', exact: true, level: 1 })).toBeVisible();
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(page.locator('[data-view-id="finding-review-table"] .custom-table')).toBeVisible();
   await expect(page.locator('.data-state-summary')).toBeHidden();
   await expect(page.getByRole('columnheader', { name: 'Issue Link' })).toBeVisible();
@@ -933,7 +932,7 @@ test('DLS-VIEW-013 DLS-VIEW-014 DLS-VIEW-015 DLS-SAFE-006 custom views render av
   await expect(metricSection).not.toContainText('Source: usage');
   await expect(metricSection).not.toContainText('Filters:');
 
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(page.getByRole('heading', { name: 'Findings Table' })).toBeVisible();
   await expect(page.locator('.custom-table tbody tr')).toHaveCount(1);
   await expect(page.getByRole('link', { name: 'PR 1' })).toHaveAttribute('href', 'https://example.com/pull/1');
@@ -943,7 +942,7 @@ test('DLS-VIEW-013 DLS-VIEW-014 DLS-VIEW-015 DLS-SAFE-006 custom views render av
   await expect(tableSection).not.toContainText('Out of scope finding');
   await expect(tableSection).not.toContainText('Out of range finding');
 
-  await page.getByRole('button', { name: 'Chart' }).click();
+  await selectViewMode(page, 'chart');
   await expect(page.getByRole('heading', { name: 'Daily Runs' })).toBeVisible();
   await expect(page.locator('.chart-default')).toHaveCount(0);
   await expect(page.locator('[data-chart-legend="text"]')).toHaveCount(0);
@@ -958,7 +957,7 @@ test('DLS-VIEW-013 DLS-VIEW-014 DLS-VIEW-015 DLS-SAFE-006 custom views render av
   const emptySection = page.locator('.page-section').filter({ has: page.getByRole('heading', { name: 'Empty Usage' }) });
   await expect(emptySection).toContainText('Affected source: empty-usage');
 
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await hydrateView(page, 'Missing Source');
   await expect(page.getByRole('heading', { name: 'Missing Source' })).toBeVisible();
   await expect(page.locator('[data-view-availability="unavailable"]')).toHaveText('This view cannot be shown because its data query failed.');

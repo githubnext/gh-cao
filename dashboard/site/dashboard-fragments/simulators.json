@@ -194,9 +194,9 @@
           "acceptance": "Three modeled table sizes after 30 days and their final total use the authored byte-per-record assumptions, with run summaries retained and detailed records limited to 30 days; no value is presented as observed storage.",
           "description": "Modeled data size, not measured storage: 512 bytes per run summary or issue and 256 bytes per tool. Run summaries persist; tool and issue records expire after 30 days. Indexes, metadata, compression, and other tables are excluded.",
           "data": { "source": "simulator-database-summary" },
-          "mark": "table",
-          "controls": "static",
-          "layout": "full",
+          "mark": "table", "lazy-list": true,
+          "controls": "interactive",
+          "layout": "full-view",
           "encoding": {
             "columns": [
               { "field": "table", "type": "nominal", "title": "Table" },
@@ -311,9 +311,9 @@
             "source": "simulator-pr-summary",
             "query-context": false
           },
-          "mark": "table",
-          "controls": "static",
-          "layout": "full",
+          "mark": "table", "lazy-list": true,
+          "controls": "interactive",
+          "layout": "full-view",
           "encoding": {
             "columns": [
               {

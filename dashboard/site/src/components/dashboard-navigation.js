@@ -310,20 +310,19 @@ function enableMobileNavigationKeyboard(menu) {
 export function syncMobileViewModeToggle(root) {
   const toggle = root.querySelector('.mobile-view-mode-toggle');
   const activePage = root.querySelector('.dashboard-page:not([hidden])');
-  const modeButtons = [...activePage?.querySelectorAll('[data-view-mode-value]') ?? []]
-    .filter((button) => button instanceof HTMLButtonElement);
-  if (!(toggle instanceof HTMLButtonElement) || modeButtons.length < 2) {
+  const modes = pageViewModes(activePage);
+  if (!(toggle instanceof HTMLButtonElement) || modes.length < 2) {
     if (toggle instanceof HTMLButtonElement) toggle.hidden = true;
     return;
   }
 
-  const activeIndex = Math.max(0, modeButtons.findIndex((button) => button.getAttribute('aria-pressed') === 'true'));
-  const activeMode = modeButtons[activeIndex]?.getAttribute('data-view-mode-value');
+  const activeIndex = Math.max(0, modes.findIndex((mode) => mode === activePage?.getAttribute('data-view-mode')));
+  const activeMode = modes[activeIndex];
   if (activeMode !== 'chart' && activeMode !== 'table' && activeMode !== 'card') {
     toggle.hidden = true;
     return;
   }
-  const nextMode = modeButtons[(activeIndex + 1) % modeButtons.length]?.getAttribute('data-view-mode-value');
+  const nextMode = modes[(activeIndex + 1) % modes.length];
   const nextLabel = nextMode === 'chart' || nextMode === 'table' || nextMode === 'card'
     ? VIEW_MODE_LABELS[nextMode]
     : 'next';
@@ -340,13 +339,19 @@ function enableMobileViewModeToggle(root) {
   if (!(toggle instanceof HTMLButtonElement)) return;
   toggle.addEventListener('click', () => {
     const activePage = root.querySelector('.dashboard-page:not([hidden])');
-    const modeButtons = [...activePage?.querySelectorAll('[data-view-mode-value]') ?? []]
-      .filter((button) => button instanceof HTMLButtonElement);
-    if (modeButtons.length < 2) return;
-    const activeIndex = Math.max(0, modeButtons.findIndex((button) => button.getAttribute('aria-pressed') === 'true'));
-    modeButtons[(activeIndex + 1) % modeButtons.length]?.click();
-    syncMobileViewModeToggle(root);
+    const modes = pageViewModes(activePage);
+    if (modes.length < 2) return;
+    const activeIndex = Math.max(0, modes.findIndex((mode) => mode === activePage?.getAttribute('data-view-mode')));
+    activePage?.dispatchEvent(new CustomEvent('dashboard-view-mode-change', {
+      detail: modes[(activeIndex + 1) % modes.length]
+    }));
   });
+}
+
+/** @param {Element | null} page */
+function pageViewModes(page) {
+  const declared = page?.getAttribute('data-view-modes')?.split(' ') ?? [];
+  return /** @type {const} */ (['chart', 'card', 'table']).filter((mode) => declared.includes(mode));
 }
 
 /** @param {Record<string, unknown>} page */

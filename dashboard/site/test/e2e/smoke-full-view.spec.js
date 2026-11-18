@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { assert, buildPresenterModuleUrl, expect, expectTableFilterIsContained, pageUpAndExpectCompactWindow, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
@@ -114,7 +115,7 @@ test('JSON full-view mode fills the viewport and supports repeated lazy-list scr
   await expect(siteCallout).toBeVisible();
   await expect(warningCallout).toBeVisible();
   await expect(summary).toBeVisible();
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(warningCallout).toBeHidden();
   await expect(summary).toBeHidden();
   await expect(pageTitle).toBeVisible();
@@ -151,7 +152,8 @@ test('JSON full-view mode fills the viewport and supports repeated lazy-list scr
     await expect(siteCallout).toBeVisible();
     await expect(warningCallout).toBeHidden();
     await expect(summary).toBeHidden();
-    await expect(pageTitle).toBeHidden();
+    await expect(pageTitle).toBeVisible();
+    await expect(page.locator('.top-nav .mobile-view-mode-toggle')).toBeVisible();
     await expect(fieldName).toHaveCSS('opacity', '0.8');
     await expect(summaryCell).toHaveCSS('opacity', '0');
     await expect(summaryCell).toHaveCSS('transition-property', 'opacity');
@@ -159,7 +161,8 @@ test('JSON full-view mode fills the viewport and supports repeated lazy-list scr
     assert(expandedScrollBox);
     expect(expandedScrollBox.x).toBeGreaterThanOrEqual(sidebarBox.x + sidebarBox.width);
     expect(expandedScrollBox.width).toBeCloseTo(initialScrollBox.width, 0);
-    expect((await lazyList.boundingBox())?.height).toBeGreaterThanOrEqual(830);
+    const headerHeight = (await page.locator('.top-nav').boundingBox())?.height ?? 0;
+    expect((await lazyList.boundingBox())?.height).toBeGreaterThanOrEqual(830 - headerHeight);
     await scroll.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
       element.dispatchEvent(new Event('scroll'));
@@ -183,8 +186,8 @@ test('JSON full-view mode fills the viewport and supports repeated lazy-list scr
     }
   }
 
-  await page.getByRole('button', { name: 'Cards' }).click();
-  await page.getByRole('button', { name: 'Chart' }).click();
+  await selectViewMode(page, 'card');
+  await selectViewMode(page, 'chart');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(dashboardRoot).not.toHaveClass(/dashboard-full-view-scrolled/);
   await expect(page.locator('.org-sidebar')).toBeVisible();
@@ -214,9 +217,11 @@ test('JSON full-view mode fills the viewport and supports repeated lazy-list scr
     element.dispatchEvent(new Event('scroll'));
   });
   await expect(dashboardRoot).toHaveClass(/dashboard-full-view-scrolled/);
-  await expect(page.locator('.top-nav')).toBeHidden();
+  await expect(page.locator('.top-nav')).toBeVisible();
+  await expect(page.locator('.top-nav .mobile-view-mode-toggle')).toBeVisible();
   await expect(page.locator('.org-sidebar')).toBeVisible();
-  expect((await lazyList.boundingBox())?.height).toBeGreaterThanOrEqual(830);
+  const headerHeight = (await page.locator('.top-nav').boundingBox())?.height ?? 0;
+  expect((await lazyList.boundingBox())?.height).toBeGreaterThanOrEqual(830 - headerHeight);
 });
 
 test('full-view scrolling with a small overscroll range does not jitter the app chrome', async ({ page }) => {

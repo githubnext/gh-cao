@@ -439,37 +439,37 @@ operational artifacts. Neither profile SHALL fall back to Pages or browser inges
 Pages SHALL contain only a synthetic enterprise sample. Its browser data worker SHALL
 generate raw sample evidence on demand and pass it through the production normalization,
 canonical ingestion, Dashboard Language queries, and shared declarative views.
-Generation and writes SHALL be bounded rather than retaining the enterprise
-population in memory. The default sample SHALL contain 1,000 repositories,
-exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories.
-Repository names SHALL consist of four hyphen-separated words from a predefined
-256-word safe vocabulary. A deterministic bijection over unsigned 32-bit indices
-SHALL select the four word positions without collisions: a 32-bit naming space,
-not a secret or security token. Installed workflows SHALL select their display
-names from 64 predefined safe names across four behavior archetypes, consistently
-across inventory, Runs, and Value evidence.
-Run generation SHALL reserve at least one run per repository when the budget permits,
-then allocate the remaining budget proportionally to deterministic log-normal repository
-activity rates. Workflow/day allocation SHALL preserve heterogeneous, Poisson-bursty,
-weekday/weekend and partial-current-day cadence. These are illustrative synthetic
-distributions, not an empirical estimate of enterprise activity.
+Generation and writes SHALL be bounded, never retaining the enterprise population
+in memory. Defaults SHALL be 1,000 repositories, exactly 5,000 runs, three campaigns,
+and 4,000 installed agentic workflows fleet-wide.
+Repository, catalog, and run identities SHALL use the synthetic organization `contoso`.
+Repository names SHALL use four hyphen-separated words from a predefined 256-word
+safe vocabulary, selected collision-free by a deterministic unsigned 32-bit
+bijection: a naming space, not a secret or security token.
+Installed workflow display names SHALL come from 64 predefined safe names across
+four behavior archetypes, consistent across inventory, Runs, and Value evidence.
+Generation SHALL reserve one run per repository when budget permits, allocating
+the remainder proportionally to deterministic log-normal repository activity rates.
+Workflow/day allocation SHALL preserve heterogeneous Poisson bursts, weekday/weekend
+and partial-current-day cadence: illustrative, not empirical enterprise estimates.
 Run identities SHALL remain stable across partitions.
-The worker SHALL publish fleet inventory before activity, then sample
-repositories without replacement in proportion to their remaining allocated runs,
-using a deterministic keyed random stream. One run per active repository SHALL be
-reserved at randomly selected positions within the first three runs per active
-repository (at most the total budget). This bounded coverage window SHALL prevent
-repository starvation without imposing a uniform round-robin order: busy repositories
-MAY appear repeatedly in early partial results. Raw activity SHALL enter normalization in
-batches of at most 100 runs; Value-only batches SHALL contain at most 100 raw records.
-Synthetic run evidence SHALL include bounded, multi-turn version-1 unified sessions
-through the production session parser, with correlated tool calls, per-request
-usage and cache growth, phase-scoped accounting, and outcome-appropriate lifecycle
-and safe-output evidence. The default sample SHALL include at least 100 distinct
-blocked domains under the reserved `.invalid` namespace within retained firewall
-evidence. A deterministic coverage cohort SHALL reserve one run three days before
-the sample day for each of 128 domains, distributed across repositories and workflow
+The worker SHALL publish fleet inventory first, then sample repositories without
+replacement proportionally to remaining allocated runs via a deterministic keyed
+random stream. One run per active repository SHALL occupy a random position within
+the first min(three times active repositories, total budget) runs. This bounded
+window SHALL prevent starvation without uniform round-robin order: busy repositories
+MAY recur in early results. Normalization batches SHALL contain at most 100 raw
+activity runs or 100 raw Value-only records.
+Synthetic runs SHALL include bounded multi-turn version-1 unified sessions through
+the production parser, with correlated tool calls, per-request usage and cache
+growth, phase-scoped accounting, and outcome-appropriate lifecycle and safe outputs.
+Retained firewall evidence SHALL cover at least 100 distinct blocked `.invalid`
+domains by default. A deterministic cohort SHALL reserve one run per domain for
+128 domains three days before the sample day, across repositories and workflow
 archetypes; other blocked activity SHALL remain probabilistic.
+Retained sessions SHALL include at least eight distinct public approved domains and
+15 distinct MCP tool names across GitHub and workflow-observability servers, with
+public identifiers informed by bounded live evidence and illustrative request volumes.
 Network request volume SHALL scale with generated tool activity and bounded
 background traffic. Value throughput SHALL use the allocated workflow run rate,
 not an independent per-repository activity multiplier, so detail volume remains

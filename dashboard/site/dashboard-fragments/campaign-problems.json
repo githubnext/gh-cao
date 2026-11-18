@@ -578,7 +578,7 @@
               }
             ]
           },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": {
             "style": "entity-cards",
             "card": "problem",
@@ -609,7 +609,7 @@
             }
           },
           "empty-message": "No current runtime problems were observed for this campaign in the selected horizon.",
-          "layout": "full",
+          "layout": "full-view",
           "encoding": {
             "columns": [
               {

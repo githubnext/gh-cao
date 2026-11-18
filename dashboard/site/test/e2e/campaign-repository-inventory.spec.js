@@ -1,4 +1,4 @@
-import { authoritativeDashboard, expect, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
+import { authoritativeDashboard, expect, registerSmokeRoutes, selectViewMode, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
 
@@ -75,7 +75,7 @@ test('campaign repository topology stays subscribed without run/import inputs an
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(chart.getByRole('img', { name: 'octo/control: 3', exact: true })).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.locator('[data-page-id="campaign-repositories"] [data-view-mode-value="table"]:visible').first().click();
+  await selectViewMode(page, 'table');
   const table = page.locator('[data-view-id="campaign-repository-table"]');
   await expect(table.locator('tbody > tr')).toHaveCount(3);
   await expect(table).toContainText('second-worker');

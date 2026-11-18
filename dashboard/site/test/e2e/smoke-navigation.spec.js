@@ -1,4 +1,4 @@
-import { authoritativeDashboard, buildPresenterModuleUrl, builtInPage, expect, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
+import { authoritativeDashboard, buildPresenterModuleUrl, builtInPage, expect, registerSmokeRoutes, selectViewMode, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
 
@@ -389,7 +389,7 @@ test('phone pages toggle between chart, full-view table, and card-list modes', a
   await expect(table.locator('[data-mobile-card-list]')).toBeHidden();
   await expect(root).toHaveClass(/dashboard-full-view/);
   await expect(table.getByRole('heading', { name: 'Runs', level: 3 })).toBeHidden();
-  await expect(page.locator('[data-page-id="runs"] [data-view-mode-value="table"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-page-id="runs"]')).toHaveAttribute('data-view-mode', 'table');
   await page.locator('.mobile-nav-menu > summary').click();
   const drawer = page.locator('.mobile-nav-menu-list');
   await expect(drawer).toBeVisible();
@@ -501,23 +501,43 @@ test('production chart and table pages expose consistent desktop and mobile view
     </script>
   `);
 
+  const sharedToggle = page.locator('.mobile-view-mode-toggle');
+  await expect(sharedToggle).toBeVisible();
+  await expect(page.locator('.top-nav .report-actions > .mobile-view-mode-toggle')).toBeVisible();
+  await expect(sharedToggle).toHaveCSS('width', '44px');
+  await expect(sharedToggle).toHaveCSS('height', '44px');
+  await expect(sharedToggle).toHaveCSS('border-radius', '50%');
+  const toggleElement = await sharedToggle.elementHandle();
+
   for (const pageId of ['repositories', 'mcps', 'firewall', 'runs']) {
     await page.evaluate((id) => { window.location.hash = '#page-' + id; }, pageId);
     const dashboardPage = page.locator(`[data-page-id="${pageId}"]`);
     await expect(dashboardPage).toBeVisible();
-    const modes = dashboardPage.locator(':scope > .page-chrome [data-view-mode-value]');
-    await expect(modes).toHaveText(['Chart', 'Cards', 'Table']);
-    await expect(modes.first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(dashboardPage.locator('.view-mode-control')).toHaveCount(0);
+    await expect(dashboardPage).toHaveAttribute('data-view-modes', 'chart card table');
+    const toggle = page.locator('.mobile-view-mode-toggle');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-label', 'Switch to Cards view');
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(dashboardPage).toHaveAttribute('data-view-mode', 'card');
+    await expect(page.locator('.dashboard-root')).toHaveClass(/dashboard-full-view/);
+    await page.keyboard.press('Space');
+    await expect(dashboardPage).toHaveAttribute('data-view-mode', 'table');
+    await expect(page.locator('.dashboard-root')).toHaveClass(/dashboard-full-view/);
     if (pageId === 'firewall') {
       const domains = dashboardPage.locator('[data-view-id="security-firewall-domains"]');
-      await expect(domains).toBeHidden();
-      await modes.last().click();
       await expect(domains).toBeVisible();
-      await modes.first().click();
     }
+    await selectViewMode(page, 'chart');
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.sidebar-header > .mobile-view-mode-toggle')).toBeVisible();
+  expect(await toggleElement.evaluate(element => element === document.querySelector('.mobile-view-mode-toggle'))).toBe(true);
+  await expect(sharedToggle).toHaveCSS('width', '44px');
+  await expect(sharedToggle).toHaveCSS('height', '44px');
+  await expect(sharedToggle).toHaveCSS('border-radius', '50%');
   for (const pageId of ['repositories', 'mcps', 'firewall', 'runs']) {
     await page.evaluate((id) => { window.location.hash = '#page-' + id; }, pageId);
     await expect(page.locator(`[data-page-id="${pageId}"]`)).toBeVisible();

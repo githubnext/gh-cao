@@ -807,7 +807,7 @@
       ] },
       "views": [
         {
-          "id": "routing-health", "title": "Routing health by workflow", "mark": "table", "layout": "full", "locked": true,
+          "id": "routing-health", "title": "Routing health by workflow", "mark": "table", "lazy-list": true, "layout": "full-view", "locked": true,
           "subject": "Routed runs per repository and workflow.",
           "objective": "Decide whether routing should stay enabled or its goal or mode should change.",
           "acceptance": "Compare sums for the same complete main-request population against each named baseline; absent or incomplete estimates stay unknown.",
@@ -843,7 +843,7 @@
           "empty-message": "No timed complete-cost samples are available."
         },
         {
-          "id": "routing-problems", "title": "Problems", "mark": "table", "layout": "full", "locked": true,
+          "id": "routing-problems", "title": "Problems", "mark": "table", "lazy-list": true, "layout": "full-view", "locked": true,
           "subject": "Routing failures, deviations, resolution failures, upstream errors and candidate coverage per run.",
           "objective": "Choose which model or effort setting and allowed-model policy needs correction.",
           "acceptance": "One row per run and kind; missing counters never diagnose unrankable candidates, and upstream events are not duplicated as generic failures.",
@@ -857,7 +857,7 @@
           "empty-message": "No routing failures, deviations or resolution failures were recorded; missing evidence does not establish success."
         },
         {
-          "id": "routing-runs", "title": "Routing runs", "mark": "table", "layout": "full", "controls": "interactive",
+          "id": "routing-runs", "title": "Routing runs", "mark": "table", "lazy-list": true, "layout": "full-view", "controls": "interactive",
           "subject": "One compact routing aggregate per identified run.",
           "objective": "Open the run detail and usage artifact before changing a workflow's routing policy.",
           "acceptance": "One row per run preserves its pick, scope and drill-down link without counting requests as runs.",
@@ -896,7 +896,7 @@
       "description": "Trace one run's proxy decisions, advisory reports, accounting and collection coverage.",
       "views": [
         {
-          "id": "routing-run-cost", "title": "Agent-phase accounting coverage", "mark": "table", "layout": "full",
+          "id": "routing-run-cost", "title": "Agent-phase accounting coverage", "mark": "table", "lazy-list": true, "layout": "full-view",
           "subject": "The selected run's compact routing aggregate and accounting coverage.",
           "objective": "Compare known main-request cost to the named baseline before acting.",
           "acceptance": "Incomplete baseline estimates stay explicitly incomplete; deeper evidence is available from the Actions run's usage artifact.",

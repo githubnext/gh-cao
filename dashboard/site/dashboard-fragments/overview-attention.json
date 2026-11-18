@@ -679,7 +679,7 @@
               }
             ]
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "controls": "interactive",
           "column-summaries": true,
           "empty-message": "No blocked work was observed in the selected horizon.",
@@ -738,7 +738,7 @@
               }
             ]
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "controls": "interactive",
           "column-summaries": true,
           "empty-message": "No work is awaiting review in the selected horizon.",
@@ -794,7 +794,7 @@
               }
             ]
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "controls": "interactive",
           "column-summaries": true,
           "empty-message": "No security findings were observed in the selected horizon.",

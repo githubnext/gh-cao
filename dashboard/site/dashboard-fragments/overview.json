@@ -2291,7 +2291,7 @@
           "data": {
             "source": "overview-needs-attention"
           },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": {
             "style": "entity-cards",
             "appearance": "grouped",
