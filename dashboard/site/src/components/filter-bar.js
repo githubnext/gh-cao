@@ -2,7 +2,6 @@ import { h } from '../dom.js';
 import { createDebug } from '../debug.js';
 import { debounce } from '../debounce.js';
 import { dashboardHorizonHours, formatDashboardHorizon } from '../horizon.js';
-import { octicon } from '../octicons.js';
 import { effect, state } from '../reactive.js';
 import { scopedStorageKey } from '../storage-scope.js';
 import { renderCountBadge, renderLabeledControl, renderIconSpan } from './ui-primitives.js';
@@ -15,8 +14,6 @@ const TIME_RANGE_OPTIONS = ['1h', '6h', '24h', '3d', '1w', '2w', '4w', '30d'];
 const MODE_OPTIONS = ['review', 'live', 'unknown'];
 const ALL_RECORDED = 'all';
 const TIME_WINDOW_SELECT_LABEL = 'Time window';
-const VIEW_MODE_LABELS = { chart: 'Chart', table: 'Table', card: 'Cards' };
-const VIEW_MODE_ICONS = { chart: 'graph', table: 'table', card: 'stack' };
 export const HORIZON_FILTER_STORAGE_KEY = scopedStorageKey('central-agentic-ops.dashboard.horizon-filter-settings');
 
 /**
@@ -140,50 +137,6 @@ export function renderFilterBar(onChange, options = {}) {
     || hasModeOverride;
   if (hasCustomizedSettings && options.restoreSettings !== false) queueMicrotask(() => {
     if (!options.signal?.aborted) emit();
-  });
-  return root;
-}
-
-/**
- * @param {Array<'chart'|'table'|'card'>} modes
- * @param {'chart'|'table'|'card'|undefined} initialMode
- * @param {(mode: 'chart'|'table'|'card') => void} onChange
- */
-export function renderViewModeControl(modes, initialMode, onChange) {
-  const root = h('div', { className: 'view-mode-control', role: 'group', 'aria-label': 'View mode' });
-  const selectedMode = state(initialMode);
-  const buttons = new Map(modes.map((mode) => {
-    const button = h(
-      'button',
-      { type: 'button', className: 'view-mode-option', 'data-view-mode-value': mode },
-      octicon(VIEW_MODE_ICONS[mode]),
-      h('span', null, VIEW_MODE_LABELS[mode])
-    );
-    button.addEventListener('click', () => {
-      if (selectedMode.get() === mode) return;
-      selectedMode.set(mode);
-      onChange(mode);
-    });
-    button.addEventListener('keydown', (event) => {
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
-      event.preventDefault();
-      const modeIndex = modes.indexOf(mode);
-      const nextIndex = event.key === 'Home'
-        ? 0
-        : event.key === 'End'
-          ? modes.length - 1
-          : (modeIndex + ((event.key === 'ArrowRight' || event.key === 'ArrowDown') ? 1 : -1) + modes.length) % modes.length;
-      buttons.get(modes[nextIndex])?.click();
-      buttons.get(modes[nextIndex])?.focus();
-    });
-    return [mode, button];
-  }));
-  root.append(...buttons.values());
-  effect(() => {
-    const activeMode = selectedMode.get();
-    for (const [mode, button] of buttons) {
-      button.setAttribute('aria-pressed', String(mode === activeMode));
-    }
   });
   return root;
 }

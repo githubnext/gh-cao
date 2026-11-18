@@ -773,7 +773,7 @@
           }
         ]
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "firewall-workflow",

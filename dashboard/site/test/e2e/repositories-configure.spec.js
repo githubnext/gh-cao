@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { createServer } from 'node:http';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -84,7 +85,7 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
         await page.getByRole('button', { name: 'Switch to Cards view', exact: true }).click();
         await page.getByRole('button', { name: 'Switch to Table view', exact: true }).click();
       } else {
-        await page.getByRole('button', { name: 'Table', exact: true }).click();
+        await selectViewMode(page, 'table');
       }
       await expect(addMenu).not.toHaveAttribute('open');
       await addToggle.click();

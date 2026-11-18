@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { test, expect } from '@playwright/test';
 import { cp, mkdtemp, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -63,7 +64,7 @@ async function showTables(page, width) {
         if (await activePage.getAttribute('data-view-mode') === 'table') break;
         await page.locator('.mobile-view-mode-toggle').click();
       }
-    } else await page.getByRole('button', { name: 'Table', exact: true }).click();
+    } else await selectViewMode(page, 'table');
     await expect(activePage).toHaveAttribute('data-view-mode', 'table', { timeout: 1000 });
   }).toPass();
 }
