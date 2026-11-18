@@ -46,7 +46,7 @@ test("bounded raw repository inventory uses production normalization and preserv
   assert.equal((await readCollection(indexedDB, "repositories")).length, 300);
   await ingestDashboardSourceBatches(indexedDB, batches());
   assert.equal((await readCollection(indexedDB, "repositories")).length, 300, "replay upserts rather than duplicating");
-  assert.deepEqual([enterpriseDemo.repositories, enterpriseDemo.campaigns, enterpriseDemo.installedWorkflows], [1_000_000, 3, 200]);
+  assert.deepEqual([enterpriseDemo.repositories, enterpriseDemo.campaigns, enterpriseDemo.installedWorkflows], [10_000, 3, 200]);
 });
 
 test("enterprise distributions are reproducible, seasonal and uneven rather than one run per workflow per day", () => {
@@ -262,7 +262,7 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   await ingestCachedGhAwJsonl(indexedDB, sample.records.map(record => JSON.stringify(record)).join("\n"), { now });
   const runs = await readCollection(indexedDB, "runs");
   assert.equal(runs.length, sample.runs);
-  assert.equal(marker.repositories, 1_000_000);
+  assert.equal(marker.repositories, 10_000);
   const dashboardDocument = loadDashboardSourceSync(path.join(root, "dashboard/site/dashboard.json")).document.dashboard;
   const overview = dashboardDocument.pages.find(page => page.id === "overview");
   const rhythmQuery = compileDashboardViewPayloadQueries(overview, "overview", {

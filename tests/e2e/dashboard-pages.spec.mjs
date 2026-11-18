@@ -176,7 +176,7 @@ for (const width of [1440, 390]) {
       } finally { database.close(); }
     });
     console.log("Default browser synthesis", JSON.stringify({ width, elapsedMs: Date.now() - synthesisStarted, ...canonicalCounts }));
-    expect(canonicalCounts.repositories).toBe(1_000_000);
+    expect(canonicalCounts.repositories).toBe(10_000);
     expect(canonicalCounts.workflows).toBe(200);
     expect(canonicalCounts.campaigns).toBe(3);
     expect(canonicalCounts.runs).toBeGreaterThan(300);

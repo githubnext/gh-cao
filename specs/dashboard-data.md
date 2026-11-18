@@ -440,7 +440,7 @@ Pages SHALL contain only a synthetic enterprise sample. Its browser data worker 
 generate raw sample evidence on demand and pass it through the production normalization,
 canonical ingestion, Dashboard Language queries, and shared declarative views.
 Generation and writes SHALL be bounded rather than retaining the enterprise
-population in memory. The default sample SHALL contain 1,000,000 repositories,
+population in memory. The default sample SHALL contain 10,000 repositories,
 three campaigns, and 200 installed agentic workflows across selected repositories.
 The build SHALL publish the synthesizer, not pregenerated inventory or run/detail
 shards. Reopening the demo SHALL reuse completed, compatible browser-local data

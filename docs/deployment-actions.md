@@ -99,7 +99,7 @@ the `synthetic-demo` suffix and service-worker caches use `demo`.
 New data URLs prevent old same-origin service-worker caches from returning
 previous real-data payloads.
 
-The enterprise sample includes 1,000,000 repositories, three campaigns, and 200
+The enterprise sample includes 10,000 repositories, three campaigns, and 200
 installed agentic workflows across selected repositories, with a reproducible
 probabilistic run population spanning three weeks.
 Repository-specific activity rates, weekday/weekend seasonality and

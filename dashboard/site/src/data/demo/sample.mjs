@@ -413,7 +413,7 @@ function valueSample(repository, workflow, now, profile) {
 }
 
 export const enterpriseDemo = Object.freeze({
-  version: 1, repositories: 1_000_000, campaigns: 3, installedWorkflows: 200,
+  version: 2, repositories: 10_000, campaigns: 3, installedWorkflows: 200,
   activeRepositories: 12, installedRepositories: 50,
 });
 

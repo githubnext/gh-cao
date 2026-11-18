@@ -1038,7 +1038,7 @@ export function processDataRequest(request, signal) {
         if (DEMO_MODE) {
           if (!sourceUrl.pathname.endsWith('/demo-data/')) throw new TypeError('Synthetic demo requires its isolated data namespace.');
           hasCompleteDashboardSnapshot = false;
-          progress.log('Synthesizing 1,000,000 repositories, 3 campaigns and 200 installed agentic workflows locally.');
+          progress.log('Synthesizing 10,000 repositories, 3 campaigns and 200 installed agentic workflows locally.');
           const demo = await synthesizeEnterpriseDemo(indexedDB, {
             signal, storage: globalThis.navigator?.storage,
             onProgress: (completed, total) => progress.reportImportProgress(completed, total, 'inventory'),

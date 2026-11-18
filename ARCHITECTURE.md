@@ -228,7 +228,7 @@ same views. It has no real-data input option, SQLite download, agent summary, or
 live services. Its declarative **Synthetic enterprise demo** Overview callout identifies
 the evidence. Synthesis, ingestion, persistence, and queries run in a
 dedicated Web Worker, in bounded batches rather than downloading a pregenerated
-enterprise snapshot. The sample contains 1,000,000 repositories, three campaigns,
+enterprise snapshot. The sample contains 10,000 repositories, three campaigns,
 and 200 installed agentic workflows across selected repositories.
 Completed samples are reused within the same UTC day. A new day or incompatible
 generator/schema resets only the scoped demo database before regeneration, so

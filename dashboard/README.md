@@ -107,7 +107,7 @@ npm run dashboard:pages -- --base-path /gh-cao/
 ```
 
 Preparation builds the dashboard and browser synthesizer without pregenerating
-data files. On demand, the browser data worker generates 1,000,000 repositories,
+data files. On demand, the browser data worker generates 10,000 repositories,
 three campaigns, and 200 installed agentic workflows across selected repositories,
 using production normalization and canonical IndexedDB ingestion in bounded batches.
 Compatible completed samples are reused on subsequent visits.
