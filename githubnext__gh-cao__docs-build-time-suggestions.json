@@ -1,34 +1,7 @@
 {
  "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T13:53:18Z",
-   "worker_run_id": "44096585784",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "43831754585",
-    "43831980991",
-    "43832040488",
-    "43840581457",
-    "43854851689",
-    "43862265708",
-    "43877103800",
-    "43987917606",
-    "43991571724",
-    "43991770179",
-    "43991897672",
-    "43992363367",
-    "43993695761",
-    "44004300647",
-    "44023953879",
-    "44041835448",
-    "44043184727",
-    "44060953578"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 13:52Z: no docs run queued or in progress; nothing newer than 44060953578. Recomputed from immutable run_timings (no refetch). Queue median 4 s, p90 15 s, max 64 s (latency only; 43832040488 behind in-flight 43831980991). Exec median 77.5 s, p90 90 s; 15 percent gate 11.6 s and 60 s gate not met. Outlier 43840581457 (exec 132 s, checkout 73 s) kept as a success and disclosed; median unaffected. cancel-in-progress false kept: 0 in-flight builds superseded, so true saves 0 s. Avoidable rebuilds: 0 of 18 window heads test-only; HEAD 453e35b (gh api file list, 17 files, server/specs/scripts) matches no docs.yml trigger path. Daily 05:23Z schedule kept for synthetic-date freshness. Open issues: only #20815 (checkout, other category, OPEN, 0 comments), not duplicated. No suggestion; noop; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T14:21:03Z",
    "worker_run_id": "44101354426",
@@ -810,6 +783,32 @@
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 23:51Z: window unchanged, no newer or in-progress docs run. main = local HEAD = 453e35b = source_sha (no docs trigger path). Recomputed from stored transfer_model rows (no refetch): removable (handoff 5 + Configure Pages 0 + upload 2 + deploy Set up 1) median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s gate not met; ceiling 9 s. Deploy Pages (GitHub-managed, median 6.5 s) excluded. Merge-deploy-into-build stays rejected (weakens github-pages environment and id-token separation; saves about 6 s). Artifact 9.35 MB caps upload saving near 1 s. Open #20815 (checkout, other category) OPEN, not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T00:36:31Z",
+   "worker_run_id": "44208637658",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672",
+    "43991770179",
+    "43991571724",
+    "43987917606",
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 00:35Z: window unchanged, no newer docs run; the one queued run is stale workflow_run 37642403569 (created 2026-10-07), 0 in progress. main = 453e35b = source_sha; 453e35b file list has no docs trigger path. Recomputed from stored run_timings (no refetch): queue median 4 s, p90 15 s; exec median 77.5 s, p90 90 s. Queue is latency only; 0 of 18 heads test-only; no in-flight build superseded (cancel-in-progress false kept; pending 43832015521 cancelled with 0 jobs). Schedule 44023953879 is the intentional synthetic-date refresh (cron 23 5 * * *). Scheduling savings are 0 s of execution; 11.6 s and 60 s gates not met. docs.yml has no separate dashboard job; demo generation is the build job's step (median 5 s). No suggestion; noop; next_category advanced to dependency installation and caching."
   }
  ],
  "docs_cache_model": {
@@ -1634,7 +1633,7 @@
   "concurrency": "cancel-in-progress false kept; 0 in-flight builds superseded; cancelled runs had 0 jobs",
   "avoidable_rebuilds": "0 of 18 window heads test-only; 453e35b triggered no docs run",
   "decision": "not actionable (0 s execution saving; queue is latency only; gates 11.6 s and 60 s not met)",
-  "reverified_note": "2026-11-17T15:52:47Z worker 44118554795: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable). 2026-11-17T20:53:12Z worker 44173327786: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable). 2026-11-17T22:33:56Z worker 44190584593: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed (queue median 4 s, exec median 77.5 s); avoidable-rebuild heads f939bbb and 58c3e57 classified build-consumed; decision unchanged (not actionable)."
+  "reverified_note": "2026-11-17T15:52:47Z worker 44118554795: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable). 2026-11-17T20:53:12Z worker 44173327786: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed, no refetch; decision unchanged (not actionable). 2026-11-17T22:33:56Z worker 44190584593: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored rows recomputed (queue median 4 s, exec median 77.5 s); avoidable-rebuild heads f939bbb and 58c3e57 classified build-consumed; decision unchanged (not actionable). 2026-11-18T00:36:31Z worker 44208637658: window unchanged (no docs run newer than 44060953578; queued run 37642403569 stale; main 453e35b = source_sha, no trigger path); stored rows recomputed (queue median 4 s, exec median 77.5 s); decision unchanged (not actionable)."
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-17T21:18:53Z",
