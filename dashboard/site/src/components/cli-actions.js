@@ -689,8 +689,10 @@ export function attachCliActions(dashboard, actions, options = {}) {
         const destination = media.matches ? mobileHeader : desktopActions;
         if (addActions.parentElement !== destination) {
           addActions.removeAttribute('open');
-          if (media.matches) destination.insertBefore(addActions, destination.querySelector('.mobile-nav-menu'));
-          else destination.prepend(addActions);
+          if (media.matches) {
+            destination.insertBefore(addActions,
+              destination.querySelector('.mobile-ingestion-indicator') ?? destination.querySelector('.mobile-nav-menu'));
+          } else destination.prepend(addActions);
         }
       };
       place();

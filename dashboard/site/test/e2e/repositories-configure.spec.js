@@ -72,6 +72,10 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       await expect(page.locator('.custom-view').getByRole('button', { name: 'Add repository', exact: true })).toHaveCount(0);
       if (width <= 700) await expect(page.locator('.sidebar-header > .cli-actions-add-menu')).toBeVisible();
       else await expect(page.locator('.report-actions > .cli-actions-add-menu')).toBeVisible();
+      expect(await addMenu.evaluate((menu) => {
+        const status = menu.parentElement?.querySelector('.mobile-ingestion-indicator, .dashboard-current-status');
+        return !status || Boolean(menu.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING);
+      })).toBe(true);
       await addToggle.click();
       await expect(add).toBeVisible({ timeout: 30_000 });
       await page.screenshot({ path: testInfo.outputPath(`repositories-${width}.png`), fullPage: true });
