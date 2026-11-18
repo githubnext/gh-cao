@@ -314,7 +314,9 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .command-terminal-actions > .cli-action-cancel:hover { background: var(--accent); filter: brightness(1.08); }
 .cli-action-confirm:hover { filter: brightness(1.08); }
 .cli-action-cancel:disabled, .cli-action-confirm:disabled { cursor: default; opacity: .6; }
-.dashboard-horizon { position: relative; max-width: none; flex: none; display: flex; align-items: center; margin-bottom: 0; padding-right: 6px; border-right: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 600; }
+.dashboard-data-controls { display: inline-flex; flex: none; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas); }
+.dashboard-data-controls .dashboard-current-status .tooltip-trigger { width: 28px; height: 28px; border-radius: 6px; }
+.dashboard-horizon { position: relative; max-width: none; flex: none; display: flex; align-items: center; margin-bottom: 0; color: var(--muted); font-size: .75rem; font-weight: 600; }
 .dashboard-horizon.filter-bar-expanded > .filter-tuning-controls { z-index: 30; display: grid; grid-template-columns: minmax(0, 1fr); left: auto; right: 0; top: calc(100% + 8px); width: min(280px, calc(100vw - 28px)); max-height: calc(100dvh - 100px); overflow-y: auto; padding: 12px; border: 1px solid var(--border); border-radius: 6px; }
 .dashboard-horizon.filter-bar-expanded .horizon-details { display: block; font-weight: 400; }
 .dashboard-horizon .horizon-details > summary { color: var(--muted); font-size: .6875rem; cursor: pointer; }
@@ -457,7 +459,7 @@ main.dashboard-prototype { width: 100%; min-height: 0; flex: 1; overflow-y: auto
 .title-link .octicon { width: 18px; height: 18px; }
 .title-link[hidden] { display: none; }
 .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-.report-actions > .filter-bar { position: relative; margin-bottom: 0; }
+.report-actions > .filter-bar, .dashboard-data-controls > .filter-bar { position: relative; margin-bottom: 0; }
 .filter-tuning-controls { display: none; }
 .page-chrome { min-height: 44px; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 .page-chrome > .filter-bar { min-width: 0; flex: 1; justify-content: flex-end; margin-bottom: 0; }

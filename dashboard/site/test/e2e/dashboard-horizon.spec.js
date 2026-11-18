@@ -9,6 +9,7 @@ for (const width of [1200, 390, 320]) {
       <div id="root"></div>
       <script type="module">
         import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+        import { renderDashboardCurrentStatus } from 'http://dashboard.test/src/components/refresh-error.js';
         import { prepareDashboardViewSources } from 'http://dashboard.test/test/e2e/helpers/dashboard-view-sources.js';
         localStorage.clear();
         const dashboardDocument = {
@@ -35,7 +36,7 @@ for (const width of [1200, 390, 320]) {
           { run: 'quarter', 'observed-at': '2026-07-01T12:00:00Z', 'rollout-mode': 'review' },
           { run: 'older', 'observed-at': '2025-09-01T12:00:00Z', 'rollout-mode': 'review' }
         ] } };
-        document.querySelector('#root').append(renderDashboard({
+        const dashboard = renderDashboard({
           document: dashboardDocument,
           sources,
           loadPageSources: async (pageId, options) => {
@@ -45,11 +46,40 @@ for (const width of [1200, 390, 320]) {
               ...options, evaluatedAt: metadata['as-of']
             });
           }
-        }));
+        });
+        dashboard.querySelector('.dashboard-horizon').after(renderDashboardCurrentStatus(
+          { createdAt: metadata['as-of'] }, { refreshing: true, mobileHeader: dashboard }
+        ));
+        document.querySelector('#root').append(dashboard);
       </script>
     `);
     await expect(page.locator('body')).toHaveAttribute('data-loaded-page', 'runs');
     if (width < 700) await page.locator('.mobile-nav-menu > summary').click();
+    const dataControls = page.getByRole('group', { name: 'Time window and data status', exact: true });
+    await expect(dataControls.locator('.dashboard-horizon')).toBeVisible();
+    const status = dataControls.locator('.dashboard-current-status .tooltip-trigger');
+    await expect(status).toBeVisible();
+    const statusBounds = await status.boundingBox();
+    assert(statusBounds);
+    expect(statusBounds.height).toBe(width < 700 ? 44 : 28);
+    await expect(dataControls).toHaveCSS('border-top-style', 'solid');
+    await expect(dataControls.locator('.dashboard-horizon')).toHaveCSS('border-right-width', '0px');
+    if (width > 700) {
+      const clockBounds = await dataControls.locator('.horizon-toggle').boundingBox();
+      assert(clockBounds);
+      expect(statusBounds.y).toBe(clockBounds.y);
+      expect(statusBounds.x - clockBounds.x - clockBounds.width).toBe(2);
+    }
+    if (width < 700) await status.click();
+    else await status.focus();
+    const statusPopup = page.locator('#dashboard-current-status-tooltip');
+    await expect(statusPopup).toBeVisible();
+    await expect(statusPopup).toContainText('while dashboard data refreshes');
+    if (width < 700) {
+      await page.keyboard.press('Escape');
+      await page.locator('.mobile-nav-menu > summary').click();
+      await expect(dataControls.locator('.dashboard-current-status')).toBeVisible();
+    }
     const horizon = page.locator('.dashboard-horizon');
     const toggle = horizon.locator('.horizon-toggle');
     await toggle.click();

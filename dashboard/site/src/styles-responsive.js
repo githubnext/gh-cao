@@ -143,6 +143,7 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-nav-menu-actions { min-width: 0; display: flex; margin: 0 0 8px; padding: 0 0 8px; border-bottom: 1px solid var(--border-muted); }
   .mobile-nav-menu-actions .report-actions { width: 100%; flex-direction: column; flex-wrap: nowrap; align-items: stretch; position: static; margin-left: 0; gap: 2px; }
   .mobile-nav-menu-actions .report-actions > .filter-bar { width: 100%; margin: 0; }
+  .mobile-nav-menu-actions .dashboard-data-controls { min-width: 0; flex-direction: column; align-items: stretch; }
   .mobile-nav-menu-actions .dashboard-horizon { width: 100%; max-width: 100%; padding-right: 0; border-right: 0; }
   .mobile-nav-menu-actions .horizon-summary { width: 100%; position: static; }
   .mobile-nav-menu-actions .dashboard-horizon.filter-bar-expanded > .filter-tuning-controls { position: static; width: 100%; max-height: none; overflow: visible; padding: 8px; box-shadow: none; }
@@ -482,7 +483,7 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
 }
 @media (max-width: 350px) {
   .report-actions { flex-wrap: wrap; }
-  .dashboard-horizon { max-width: 100%; gap: 2px; padding-right: 4px; }
+  .dashboard-horizon { max-width: 100%; gap: 2px; }
 }
 @media (max-width: 340px) {
   .primary-nav, .nav-section-items { gap: 2px; }
