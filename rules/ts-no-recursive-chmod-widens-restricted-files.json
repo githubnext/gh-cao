@@ -132,8 +132,8 @@
   "language": "typescript",
   "last_seen_at": "2026-11-06T06:50:00Z",
   "last_updated": "2026-11-13T09:48:00Z",
-  "last_updated_by_run": "39067866988",
-  "last_updated_target_repo": "github/gh-aw-firewall",
+  "last_updated_by_run": "42175727885",
+  "last_updated_target_repo": "githubnext/gh-cao",
   "likely_false_positives": "Recursive chmod on directories that are guaranteed never to contain restricted-mode files (e.g. purely public build-output directories) is safe; the rule should allow an explicit exclusion/allowlist comment or a narrower non-recursive alternative to suppress.",
   "mechanical_correction": "Restrict the chmod to the specific top-level directory and its direct (non-recursive) files only, or explicitly enumerate/exclude known-sensitive subpaths before any recursive step. When a file must stay private, create it with the restrictive mode via `fs.openSync(path, flags, 0o600)` + `fs.fchmodSync` (or equivalent) rather than relying on a later broad chmod pass to skip it.",
   "normalization": {

@@ -170,8 +170,8 @@
   "language": "typescript",
   "last_seen_at": "2026-11-13T07:04:00Z",
   "last_updated": "2026-11-13T07:04:00Z",
-  "last_updated_by_run": "39067866988",
-  "last_updated_target_repo": "github/gh-aw-firewall",
+  "last_updated_by_run": "43380365286",
+  "last_updated_target_repo": "githubnext/gh-cao",
   "likely_false_positives": "A barrel test file without an explicit 'shape-only, no duplication' scope comment is not a violation; adding the first behavioral test for a function that has no dedicated module test file elsewhere is legitimate and should not be flagged.",
   "mechanical_correction": "When adding coverage for a function, first check whether it already has a behavioral test file for its defining module (e.g. via existing `<module>.test.ts` or `<module>-host-config.test.ts` conventions) before adding assertions to a barrel/re-export test file. If the barrel file's header comment states it checks re-export shape only, confine additions there to `typeof x === 'function'`-style shape checks and add real behavioral assertions to the defining module's own test file instead.",
   "normalization": {

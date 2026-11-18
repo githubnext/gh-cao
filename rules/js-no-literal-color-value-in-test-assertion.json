@@ -126,8 +126,8 @@
     "reason": "Searched all *.test.ts/*.test.js/*.test.cjs/*.test.mjs files under github/gh-aw for hex-color/color-mix() literal assertions copied from an actively-tuned themed source (docs/src/components/*.astro, docs/src/styles): zero hits. Only hex-like matches found are HTML-entity escapes such as &#124; in Markdown table test output, not color literals.",
     "txn_id": "refiner-37835259305-4"
   },
-  "last_updated_by_run": "https://github.com/githubnext/gh-aw-cao/actions/runs/38065270021",
-  "last_updated_target_repo": "githubnext/gh-aw-cao",
+  "last_updated_by_run": "https://github.com/githubnext/gh-cao/actions/runs/43380365286",
+  "last_updated_target_repo": "githubnext/gh-cao",
   "last_seen_at": "2026-11-13T07:04:00Z",
   "additional_target_evaluations": [
     {

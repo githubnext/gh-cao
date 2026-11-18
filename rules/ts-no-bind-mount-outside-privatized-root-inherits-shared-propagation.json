@@ -192,8 +192,8 @@
   "language": "typescript",
   "last_seen_at": "2026-11-06T06:50:00Z",
   "last_updated": "2026-11-13T09:48:00Z",
-  "last_updated_by_run": "39067866988",
-  "last_updated_target_repo": "github/gh-aw-firewall",
+  "last_updated_by_run": "42175727885",
+  "last_updated_target_repo": "githubnext/gh-cao",
   "likely_false_positives": "A bind whose destination is itself located inside a path that was already privatized (e.g. binding two paths both under the same already-private allocation root) is safe and should not be flagged; only binds that cross into a separately-rooted, potentially-shared destination are unsafe.",
   "mechanical_correction": "After every `mount --bind <source> <destination>` where `destination` is not itself inside a path that was just privatized, immediately run `mount --make-private <destination>` (non-recursive, scoped to exactly that mount) and then verify via `/proc/self/mountinfo` that the resulting entry shows private propagation before trusting the mount. Do this for each distinct bind destination separately; privatizing an ancestor/source does not substitute for privatizing the specific destination mount.",
   "normalization": {
