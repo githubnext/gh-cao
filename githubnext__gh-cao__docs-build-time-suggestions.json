@@ -1,34 +1,7 @@
 {
   "source_sha": "5d00b8911fbd0143b782e1247f87ef1dce01db07",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-18T02:54:07Z",
-      "worker_run_id": "44226136468",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb) .. 44060953578 (push fcd7e18); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed. Re-check at evaluation: no docs run newer than 44060953578, none queued or in progress (stale queued 37642403569 only); source 453e35b = source_sha. Recomputed from stored run_timings rows (no refetch): Build documentation step (npm run docs:build) median 11 s, p90 15 nearest-rank, min 9, max 15; exec median 77.5 s, p90 90; share 14.2 percent; 15 percent gate 11.62 s and 60 s gate both unmet; whole-step removal ceiling 11 s. Jobs API spot-check of 44060953578 matched (build docs 15 s). Job-log read retried once: HTTP 403 DIFC (not bypassed), sub-step split unmeasurable. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). No open issue for this category; open #20815 (checkout, other category) OPEN, 0 comments, not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-18T03:21:42Z",
       "worker_run_id": "44229555644",
@@ -828,6 +801,34 @@
         "43840581457"
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53Z) .. 43840581457; cancelled 43991812013 excluded; 19 successes (17 push, 2 schedule), 0 failed; no docs run queued or in progress; main = source_sha 5d00b89 (unchanged window, identical to prior evaluations since 06:53Z). Stored run_timings recomputed, no refetch: setup-node median 3 s p90 5; install median 10 s p90 11; post median 0 s; exec median 76 s p90 82. Install-only ceiling 10 s = 13.2 percent, below the 11.4 s 15 percent gate and 60 s absolute gate; setup+install+post (about 13 s) would pass the gate but needs Node and materialised deps for the build, so no realistic removal. node_modules cache net about 3-6 s, unmeasured and below gate. Live spot-check 44254629254 jobs API matched (setup 3 s, install 11 s, build docs 15 s, demo 6 s). Cache API: node-cache-Linux-x64-npm-7808ecf8 unchanged (created 2026-11-13T20:57Z, 263412733 B, last accessed 12:32Z), no save since creation, exact-key hit every run. Checkout (median 24-25 s) is outside this cycle and covered by open #20815, not repeated. No suggestion; noop. Cadence note: identical-window evaluations continue at roughly 15-20 minute intervals; the window will not change until a new docs run. Next: Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-18T12:52:14Z",
+      "worker_run_id": "44307433355",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672",
+        "43991770179",
+        "43991571724",
+        "43987917606",
+        "43877103800",
+        "43862265708",
+        "43854851689",
+        "43840581457"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded; 19 successes (17 push, 2 schedule), 0 failed. gh run list 12:51Z: no docs run newer than 44254629254, none queued or in progress; main = source_sha 5d00b89 (window unchanged). Stored run_timings recomputed, no refetch: docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 11 s, nearest-rank p90 15, min 9, max 15; push-only median 13 s, p90 15; exec median 76 s, p90 82; share 14.5 percent; 15 percent gate 11.4 s and 60 s gate unmet; whole-step removal ceiling 11 s (all) so no Astro-only change can qualify. Push-only gate 11.7 s would need about 90 percent of the step removed, not achievable without weakening validate-agent-docs and discovery tests, which read dist/ from the Astro build. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Sub-step split unmeasurable (job logs HTTP 403 DIFC, not bypassed). Open issues: only #20815 (checkout, other category), not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1736,6 +1737,18 @@
       "gate_15pct_push_s": 11.7,
       "validation_coupling": "scripts/validate-agent-docs.mjs and tests/integration/agent-docs-discovery.test.mjs read dist/ from astro build; the docs:build chain is strictly serial, so no reordering or parallelization saves time",
       "decision": "still not actionable: a 15 percent saving needs about 90 percent of the push docs:build median removed, which is not achievable without weakening validation; 60 s gate unmet"
+    },
+    "last_reverified": {
+      "evaluated_at": "2026-11-18T12:52:14Z",
+      "worker_run_id": "44307433355",
+      "window": "44254629254..43840581457 (unchanged)",
+      "build_docs_s": {
+        "median": 11,
+        "p90_nearest_rank": 15,
+        "n": 19
+      },
+      "push_only_build_docs_s_median": 13,
+      "decision": "not actionable (unchanged)"
     }
   },
   "burst_analysis": {
