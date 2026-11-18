@@ -1,34 +1,7 @@
 {
   "source_sha": "5d00b8911fbd0143b782e1247f87ef1dce01db07",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-18T01:19:40Z",
-      "worker_run_id": "44214468080",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at evaluation: no newer, queued, or in-progress docs run; main 453e35b = source_sha (unchanged, no docs trigger path). Recomputed from stored immutable run_timings rows (no job or log refetch): Build documentation step (npm run docs:build) median 11 s, p90 15 nearest-rank, min 9, max 15; exec median 77.5 s, p90 90; share 14.2 percent. Gates: 15 percent = 11.63 s and 60 s absolute; whole-step removal ceiling 11 s, so no implementation inside this step can meet either gate. Sub-step split unmeasurable (job logs HTTP 403). Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Open #20815 (checkout, other category, OPEN, 0 comments, unchanged) not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-18T01:34:04Z",
       "worker_run_id": "44216289267",
@@ -823,6 +796,34 @@
         "43840581457"
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list at 2026-11-18T10:53:13Z: no newer, queued, or in-progress docs run; main 5d00b89 = source_sha. Stored run_timings recomputed (no job or log refetch; nearest-rank p90): setup-node median 3 s (p90 5), install median 10 s (p90 11), post median 0 s; setup+install+post median 12 s = 15.8 percent of exec median 76 s (p90 82); 15 percent gate 11.4 s and 60 s gate unmet; install-only ceiling 10 s = 13.2 percent; whole phase not removable (npm ci required by build; Node 24 pin). Outlier 43840581457 (exec 132 s, checkout 73 s, install 11 s) kept in medians; install result unchanged. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 unchanged (created 2026-11-13T20:57:12Z, 263412733 B); no package-lock.json commit since 7c8faf4, so every window run restored it (exact-key hit; post step 0-1 s). Spot check: Jobs API 44254629254 matched stored row (checkout 24, setup 3, install 11, docs 15, post 0). Same window as the 09:21Z and 10:33Z evaluations; re-verified, not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-18T11:18:00Z",
+      "worker_run_id": "44292852089",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672",
+        "43991770179",
+        "43991571724",
+        "43987917606",
+        "43877103800",
+        "43862265708",
+        "43854851689",
+        "43840581457"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254..43840581457 (cancelled 43991812013 excluded, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 11:17Z: no docs run newer than 44254629254, none queued or in progress; HEAD 5d00b89 = source_sha, docs.yml trigger paths unchanged. Recomputed from stored immutable run_timings (no refetch): build docs step (docs:build = astro build, validate-agent-docs, node --test agent-docs-discovery) median 11 s, p90 15 nearest-rank, min 9, max 15; push-only median 13 s, p90 15; exec median 76 s (p90 82), push 78 s. 15 percent gate 11.4 s (push 11.7 s) and 60 s gate unmet; whole-step removal ceiling 11 s (push 13 s). Live Jobs API spot-check of 44254629254 matched (build docs 15 s). Validation reads dist/ from astro build, so the chain is serial; sub-step split unmeasurable from Jobs API; splitting into a parallel job repeats checkout and install (about 34 s) for at most a few seconds of saving. Output reuse still blocked (PUBLIC_PAGES_BUILD_COMMIT provenance). Open #20815 (checkout, other category, OPEN, 0 comments, unchanged) not repeated; no open issue for this category. No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1720,7 +1721,7 @@
     "repeated_build": "none",
     "sub_step_split": "not measurable from Jobs API; job logs HTTP 403 DIFC, not retried",
     "decision": "not actionable: whole-step ceiling 11 s < 15 percent gate 11.62 s and < 60 s; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
-    "reverified_note": "2026-11-17T23:17:00Z worker 44197559436: window unchanged; Jobs API spot-check 44060953578 build docs 15 s; decision unchanged (not actionable). 2026-11-18T04:35:07Z worker 44237911167: window unchanged; stored rows recomputed (build docs median 11 s, p90 15 s); decision unchanged (not actionable).",
+    "reverified_note": "2026-11-17T23:17:00Z worker 44197559436: window unchanged; Jobs API spot-check 44060953578 build docs 15 s; decision unchanged (not actionable). 2026-11-18T04:35:07Z worker 44237911167: window unchanged; stored rows recomputed (build docs median 11 s, p90 15 s); decision unchanged (not actionable). 2026-11-18T11:18:00Z worker 44292852089: window unchanged since 10:53Z (19 successes, 44254629254..43840581457); stored rows recomputed (build docs median 11 s, p90 15 s; push median 13 s); live Jobs API 44254629254 build docs 15 s; decision unchanged (not actionable).",
     "like_for_like_correction": {
       "verified_at": "2026-11-18T07:54:22Z",
       "worker_run_id": "44261902290",
