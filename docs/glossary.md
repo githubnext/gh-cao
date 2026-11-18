@@ -194,6 +194,10 @@ The dashboard page for gh-aw compiler defaults at organization, enterprise, or r
 
 The read-only dashboard catalog of campaign packages resolved from an operator-ordered list of registries declared in `control-plane.marketplace.registries`. It shows normalized package metadata, provenance, and an immutable source coordinate, and only ever offers a copy-only `gh cao add` command; it never installs a package or contacts a registry from the browser. Package rows carry declaratively sorted and filtered verification, maintenance, popularity, installation, and adoption signals, each reported as a known value with its provenance source or `unknown`; these signals describe discovery only and never grant or infer control-plane authority. See [Browse Campaign Packages](marketplace.md).
 
+## Native collection
+
+The Go-native acquisition path that reads a bounded, scoped slice of GitHub Actions evidence into canonical records without subprocesses or Activity files. `gh cao dashboard` runs it locally against PostgreSQL, and the authenticated Go server runs it when hosted. It replaces the retired scheduled Activity workflow and produces a rolling operational snapshot, not a full historical archive. See [Evidence collection](activity.md) and [Server ingestion](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md).
+
 ## Operator
 
 A person who configures, supervises, pauses, reviews, or evaluates campaigns. Do not use **operator** as a synonym for coordinator, orchestrator, worker, or agent.
@@ -285,6 +289,10 @@ The `statistical-runs` source: a separate, bounded, lazy query projection that n
 ## Survival gate
 
 The check an adopted effect must pass over the half-open post-adoption window `(acceptedAt, windowEnd]`. A human reversal, unknown-actor reversal, resource deletion, content removal, reopened decision, parent rejection, downstream failure, or loss of complete observation coverage prevents positive attributed Value. A reversal after the window is recorded as a post-window reversal and never rewrites a finalized result. See the [Value specification](https://github.com/githubnext/gh-cao/blob/main/specs/value.md#22-delivery-adoption-survival-and-attributed-contribution).
+
+## Synthetic enterprise demo
+
+The GitHub Pages sample of a generated enterprise, labelled as such, and never operational evidence. The published synthesizer produces it on demand in the browser through production normalization, canonical ingestion, Dashboard Language queries, and shared views. It accepts no real-data input, publishes no SQLite database or agent summary, and enables no live services. See the [Dashboard data specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md).
 
 ## Target repository
 
