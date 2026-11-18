@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderDashboardHorizon } from '../../src/components/dashboard-horizon.js';
+import { bindStatusToHorizon, renderDashboardHorizon } from '../../src/components/dashboard-horizon.js';
 
 /** @returns {import('../../src/presenter.js').PresentableDashboard} */
 function makeDashboard() {
@@ -25,7 +25,7 @@ describe('dashboard horizon', () => {
 
     horizon.update({ available: true, evaluatedAt: '2024-01-02T00:00:00Z', duration: '3 days', start: '2024-01-01T00:00:00Z', end: '2024-01-02T00:00:00Z' });
 
-    expect(horizon.element.hasAttribute('aria-label')).toBe(false);
+    expect(horizon.element.getAttribute('aria-label')).toBe('Horizon 3 days');
     expect(horizon.element.dataset.dashboardEvaluatedAt).toBe('2024-01-02T00:00:00Z');
 
     horizon.dispose();
@@ -44,8 +44,14 @@ describe('dashboard horizon', () => {
       formatDate: (value) => value,
       onChange
     });
-    document.body.append(horizon.element);
-    const toggle = /** @type {HTMLButtonElement} */ (horizon.element.querySelector('.horizon-toggle'));
+    const status = document.createElement('div');
+    const toggle = document.createElement('button');
+    toggle.className = 'tooltip-trigger';
+    status.append(toggle);
+    document.body.append(horizon.element, status);
+    bindStatusToHorizon(status, horizon.element);
+    expect(horizon.element.querySelector('.horizon-toggle')).toBeNull();
+    expect(horizon.element.getAttribute('aria-label')).toBe('Horizon 1 week');
     toggle.click();
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     const select = /** @type {HTMLSelectElement} */ (horizon.element.querySelector('[aria-label="Time window"]'));
@@ -61,10 +67,15 @@ describe('dashboard horizon', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     toggle.click();
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    select.focus();
     horizon.element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(toggle);
+    status.classList.add('tooltip-mobile-popup');
+    toggle.click();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     horizon.dispose();
+    status.remove();
     window.localStorage.clear();
   });
 
@@ -92,7 +103,7 @@ describe('dashboard horizon', () => {
     horizon.update({ available: true, evaluatedAt: '2024-01-02T00:00:00Z', duration: '3 days', start: '2024-01-01T00:00:00Z', end: '2024-01-02T00:00:00Z' });
     expect(output.debug).toHaveBeenCalledWith('[cao:dashboard-horizon]', { event: 'resolved', duration: '3 days' });
 
-    /** @type {HTMLButtonElement} */ (horizon.element.querySelector('.horizon-toggle')).click();
+    horizon.element.dispatchEvent(new Event('dashboard-horizon-toggle'));
     expect(output.debug).toHaveBeenCalledWith('[cao:dashboard-horizon]', { event: 'toggled', expanded: true });
 
     horizon.dispose();
@@ -129,7 +140,7 @@ describe('dashboard horizon', () => {
     document.body.append(horizon.element);
 
     horizon.update({ available: true, evaluatedAt: '2024-01-02T00:00:00Z', duration: '3 days', start: '2024-01-01T00:00:00Z', end: '2024-01-02T00:00:00Z' });
-    /** @type {HTMLButtonElement} */ (horizon.element.querySelector('.horizon-toggle')).click();
+    horizon.element.dispatchEvent(new Event('dashboard-horizon-toggle'));
     horizon.dispose();
 
     expect(output.debug).not.toHaveBeenCalled();

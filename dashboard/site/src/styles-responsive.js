@@ -147,21 +147,20 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-nav-menu-actions .report-actions > .filter-bar { width: 100%; margin: 0; }
   .mobile-nav-menu-actions .dashboard-data-controls { min-width: 0; flex-direction: column; align-items: stretch; }
   .mobile-nav-menu-actions .dashboard-horizon { width: 100%; max-width: 100%; padding-right: 0; border-right: 0; }
-  .mobile-nav-menu-actions .horizon-summary { width: 100%; position: static; }
-  .mobile-nav-menu-actions .dashboard-horizon.filter-bar-expanded > .filter-tuning-controls { position: static; width: 100%; max-height: none; overflow: visible; padding: 8px; box-shadow: none; }
-  .mobile-nav-menu-actions .horizon-tooltip { top: calc(100% + 4px); right: 0; left: auto; }
+  .mobile-nav-menu-actions .dashboard-horizon .horizon-details { display: block; font-weight: 400; }
+  .mobile-nav-menu-actions .dashboard-horizon > .filter-tuning-controls { display: grid; grid-template-columns: minmax(0, 1fr); border: 0; animation: none; position: static; width: 100%; max-height: none; overflow: visible; padding: 8px; box-shadow: none; }
   .mobile-nav-menu-actions .account-menu { width: 100%; }
   .mobile-nav-menu-actions .dashboard-current-status { width: 100%; display: block; }
   .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger { width: 100%; height: auto; min-height: 44px; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px; border: 0; border-radius: 6px; background: transparent; text-align: left; }
   .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger:hover { background: var(--neutral-muted); }
   .mobile-nav-menu-actions .dashboard-current-status .tooltip-trigger > .octicon { width: 16px; height: 16px; flex: none; }
   .mobile-nav-menu-actions .dashboard-current-status .action-label { position: static; width: auto; height: auto; overflow: visible; margin: 0; padding: 0; clip: auto; color: var(--fg); font-size: .8125rem; font-weight: 500; white-space: normal; }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) { width: 100%; height: auto; min-height: 32px; display: flex; flex: none; align-items: center; justify-content: flex-start; place-items: unset; gap: 10px; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font-weight: 500; text-align: left; }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar):hover { background: var(--neutral-muted); }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) > .octicon { width: 16px; height: 16px; color: var(--muted); }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar) { width: 100%; height: auto; min-height: 32px; display: flex; flex: none; align-items: center; justify-content: flex-start; place-items: unset; gap: 10px; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font-weight: 500; text-align: left; }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar):hover { background: var(--neutral-muted); }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar) > .octicon { width: 16px; height: 16px; color: var(--muted); }
   .mobile-nav-menu-actions .account-menu-avatar { border-radius: 6px; box-shadow: none; }
   .mobile-nav-menu-actions .account-menu-avatar-image { width: 20px; height: 20px; border-radius: 50%; }
-  .mobile-nav-menu-actions :is(.horizon-toggle, .repository-link, .account-menu-avatar) .action-label { position: static; width: auto; height: auto; overflow: visible; margin: 0; padding: 0; clip: auto; color: var(--fg); font-size: .8125rem; font-weight: 500; white-space: normal; }
+  .mobile-nav-menu-actions :is(.repository-link, .account-menu-avatar) .action-label { position: static; width: auto; height: auto; overflow: visible; margin: 0; padding: 0; clip: auto; color: var(--fg); font-size: .8125rem; font-weight: 500; white-space: normal; }
   .mobile-nav-menu-actions .account-menu-popover { width: 100%; position: static; margin-top: 4px; box-shadow: none; }
   .sidebar-toggle { display: none; }
   .sidebar-collapsed .org-sidebar { padding: 14px 12px 10px; }

@@ -2743,11 +2743,6 @@
                 "title": "Workflow"
               },
               {
-                "field": "workflow-source",
-                "type": "nominal",
-                "title": "Source"
-              },
-              {
                 "field": "workflow-source-version",
                 "type": "nominal",
                 "title": "Installed"

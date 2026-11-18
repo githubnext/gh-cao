@@ -79,22 +79,16 @@ export function renderFilterBar(onChange, options = {}) {
     null
   );
   const expanded = state(false);
-  // The smallest DOM update needed from expanded state: the sibling horizon
-  // toggle's accessible state and the root's expanded class.
+  // Reflect expanded state on the root; external triggers mirror the event.
   effect(() => {
     const isExpanded = expanded.get();
-    root.querySelector('.horizon-toggle')?.setAttribute('aria-expanded', String(isExpanded));
     root.classList.toggle('filter-bar-expanded', isExpanded);
+    root.dispatchEvent(new CustomEvent('dashboard-horizon-expanded', { detail: isExpanded }));
   }, { signal: options.signal });
-  root.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element) || !event.target.closest('.horizon-toggle')) return;
-    expanded.set((current) => !current);
-  }, { signal: options.signal });
+  root.addEventListener('dashboard-horizon-toggle', () => expanded.set((current) => !current), { signal: options.signal });
   root.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || !expanded.get()) return;
-    const toggle = root.querySelector('.horizon-toggle');
     expanded.set(false);
-    if (toggle instanceof HTMLElement) toggle.focus();
     event.stopPropagation();
   }, { signal: options.signal });
   root.addEventListener('dashboard-horizon-collapse', () => expanded.set(false), { signal: options.signal });
@@ -202,13 +196,12 @@ export function renderViewModeControl(modes, initialMode, onChange) {
 export function enableHorizonOutsideClickDismissal(root, collapseDashboardHorizon = () => {}) {
   root.addEventListener('click', (event) => {
     const target = event.target;
-    if (!(target instanceof Element)) return;
+    if (!(target instanceof Element) || target.closest('[data-horizon-trigger]')) return;
     const expanded = [...root.querySelectorAll('.filter-bar-expanded')]
       .filter((element) => element instanceof HTMLElement);
     if (expanded.length === 0 || expanded.some((element) => element.contains(target))) return;
     for (const element of expanded) {
       element.dispatchEvent(new Event('dashboard-horizon-collapse'));
-      element.querySelector('.horizon-toggle')?.setAttribute('aria-expanded', 'false');
       element.classList.remove('filter-bar-expanded');
     }
     collapseDashboardHorizon();

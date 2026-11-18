@@ -981,10 +981,6 @@
           { "field": "repository-coordinate", "title": "Repository" },
           { "field": "workflow", "title": "Exact workflow" },
           {
-            "field": "workflow-source",
-            "title": "Source"
-          },
-          {
             "field": "workflow-source-version",
             "title": "Installed"
           },

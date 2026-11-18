@@ -590,7 +590,7 @@ describe('Configuration dashboard view', () => {
     expect(views[1].encoding.columns.map((/** @type {{ field: string }} */ column) => column.field))
       .toEqual([
         'workflow-name',
-        'workflow-source',
+
         'workflow-source-version',
         'workflow-source-current-version',
         'repository-coordinate',

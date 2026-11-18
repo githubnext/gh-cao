@@ -34,9 +34,9 @@ test('persisted display horizons settle without restarting page queries as the c
       }));
     </script>
   `);
-  await expect(page.locator('.horizon-toggle')).toHaveAttribute('aria-label', /Horizon 30 days/);
+  await expect(page.locator('.dashboard-horizon')).toHaveAttribute('aria-label', /Horizon 30 days/);
   await expect(page.locator('body')).toHaveAttribute('data-page-query-loads', '2');
-  await page.locator('.horizon-toggle').click();
+  await page.locator('.dashboard-horizon').dispatchEvent('dashboard-horizon-toggle');
   await expect(page.getByRole('combobox', { name: 'Time window' })).toHaveValue('30d');
   await expect(page.locator('body')).toHaveAttribute('data-page-query-loads', '2');
 });
@@ -1735,7 +1735,7 @@ test('outcome page template follows its JSON-declared hash query route in browse
   await expect(page.locator('[data-page-title-link]')).toHaveText('Open #403 on GitHub');
   await expect(page.locator('[data-page-title-link]')).toHaveAttribute('href', 'https://github.com/githubnext/gh-cao/issues/403');
   await expect(page.locator('.overview-header [data-page-description]')).toHaveText('Daily review · Pull Request · Closed');
-  await page.locator('.horizon-toggle').click();
+  await page.locator('.dashboard-horizon').dispatchEvent('dashboard-horizon-toggle');
   await expect(page.getByRole('searchbox', { name: 'Current filters' })).toHaveValue('');
   await expect(page.locator('.outcome-detail')).toHaveAttribute('data-outcome', 'outcome-1');
   await expect(page.locator('.discussion-post')).toContainText('All checks passed.');
