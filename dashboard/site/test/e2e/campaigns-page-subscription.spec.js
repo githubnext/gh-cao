@@ -1,4 +1,4 @@
-import { authoritativeDashboard, expect, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
+import { authoritativeDashboard, expect, registerSmokeRoutes, selectViewMode, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
 
@@ -140,7 +140,7 @@ test('Campaigns uses the shared page binding and refreshes its charts, table, an
   await expect(root.locator('[data-view-id="campaigns-repository-coverage"]')).toContainText('alpha');
   await expect(root.locator('[data-view-state="unavailable"]')).toHaveCount(0);
   expect(await page.evaluate(() => Reflect.get(window, '__campaignPageBindings'))).toBe(1);
-  await root.locator('[data-view-mode-value="table"]').click();
+  await selectViewMode(page, 'table');
   const row = root.locator('[data-view-id="campaigns-inventory"] tbody > tr').filter({ hasText: 'alpha' });
   await expect(row.locator('[data-field="runs"]')).toHaveText('1');
   await expect(row.locator('[data-field="dispatches"]')).toHaveText('1');

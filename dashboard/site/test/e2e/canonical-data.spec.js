@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { test, expect } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -478,7 +479,7 @@ test('Evals renders persisted artifact answers from the real data worker after r
     return { evals: batch.evals?.length, observations: batch.evalObservations?.length };
   });
   expect(counts).toEqual({ evals: 3, observations: 3 });
-  await page.getByRole('button', { name: 'Table', exact: true }).click();
+  await selectViewMode(page, 'table');
   const view = page.locator('[data-view-id="evals-statuses"]');
   await expect(view).toContainText('quality');
   await expect(view).toContainText('correctness');
@@ -486,7 +487,7 @@ test('Evals renders persisted artifact answers from the real data worker after r
   await expect(view).toContainText('UNKNOWN');
   await expect(view).toContainText('.github/workflows/worker.md');
   await expect(view.locator('td[data-field="run"] a[href="https://github.com/octo/api/actions/runs/303"]')).toHaveCount(3);
-  await page.getByRole('button', { name: 'Chart', exact: true }).click();
+  await selectViewMode(page, 'chart');
   const chart = page.locator('[data-view-id="evals-answer-distribution"]');
   await expect(chart.locator('[data-chart-widget="horizontal-bar"]')).toHaveCount(1);
   await expect(chart.locator('.horizontal-bar-chart-section')).toHaveCount(3);
@@ -500,25 +501,6 @@ test('Evals renders persisted artifact answers from the real data worker after r
   await expect(chart).toBeVisible();
   expect(await chart.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
-
-/** @param {import('@playwright/test').Page} page @param {'chart'|'table'} mode @param {number} width */
-async function selectLocalDashboardMode(page, mode, width) {
-  const active = page.locator('.dashboard-page:visible');
-  await expect(active).toHaveAttribute('data-view-mode', /^(chart|cards|table)$/);
-  if (width >= 768) {
-    await page.locator(`[data-view-mode-value="${mode}"]:visible`).click();
-    await expect(active).toHaveAttribute('data-view-mode', mode);
-    return;
-  }
-  const toggle = page.locator('.mobile-view-mode-toggle');
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const before = await active.getAttribute('data-view-mode');
-    if (before === mode) return;
-    await toggle.click();
-    await expect(active).not.toHaveAttribute('data-view-mode', before ?? '');
-  }
-  await expect(active).toHaveAttribute('data-view-mode', mode);
-}
 
 for (const width of [1200, 390]) {
   test(`Canonical ingestion preserves standard navigation and views at ${width}px`, async ({ page }) => {
@@ -561,13 +543,13 @@ for (const width of [1200, 390]) {
       await expect(active).not.toContainText('data query failed');
       if (id === 'repositories') await expect(active).toContainText('octo/api');
       if (id === 'workflows') {
-        await selectLocalDashboardMode(page, 'table', width);
+        await selectViewMode(page, 'table');
         await expect(active).toContainText('Agent');
       }
       if (id === 'runs') {
-        await selectLocalDashboardMode(page, 'chart', width);
+        await selectViewMode(page, 'chart');
         await expect(active.locator('[data-view-id="runs-last-week"] svg:visible').first()).toBeVisible();
-        await selectLocalDashboardMode(page, 'table', width);
+        await selectViewMode(page, 'table');
         await expect(active.locator('[data-view-id="runs-runs-source"]')).toContainText('octo/api');
       }
       if (id === 'cost') {

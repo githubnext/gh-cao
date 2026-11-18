@@ -275,27 +275,23 @@ describe('dashboard sidebar', () => {
     expect(mobileMenuSummary?.getAttribute('aria-label')).toBe('Select view, updates available and 1 more');
   });
 
-  it('cycles the active page view from the mobile header control', () => {
+  it('cycles the active page view from chrome without page-level buttons', () => {
     const sidebar = renderDashboardNavigation([{ id: 'runs', title: 'Runs' }], 'Example', undefined);
     const page = document.createElement('section');
     page.className = 'dashboard-page';
-    for (const [mode, pressed] of [['chart', 'true'], ['card', 'false'], ['table', 'false']]) {
-      const button = document.createElement('button');
-      button.dataset.viewModeValue = mode;
-      button.setAttribute('aria-pressed', pressed);
-      button.addEventListener('click', () => {
-        for (const candidate of page.querySelectorAll('[data-view-mode-value]')) {
-          candidate.setAttribute('aria-pressed', String(candidate === button));
-        }
-      });
-      page.append(button);
-    }
+    page.dataset.viewModes = 'chart card table';
+    page.dataset.viewMode = 'chart';
     const shell = document.createElement('div');
     shell.className = 'app-shell';
     shell.append(sidebar, page);
     const root = document.createElement('div');
     root.append(shell);
     document.body.append(root);
+    page.addEventListener('dashboard-view-mode-change', (event) => {
+      if (!(event instanceof CustomEvent)) return;
+      page.dataset.viewMode = event.detail;
+      syncMobileViewModeToggle(root);
+    });
 
     enableDashboardNavigation(root);
     syncMobileViewModeToggle(root);
@@ -310,6 +306,17 @@ describe('dashboard sidebar', () => {
     expect(toggle.dataset.viewMode).toBe('card');
     expect(toggle.getAttribute('aria-label')).toBe('Switch to Table view');
     expect(toggle.querySelector('.octicon-stack')).not.toBeNull();
+    toggle.click();
+    expect(toggle.dataset.viewMode).toBe('table');
+    toggle.click();
+    expect(toggle.dataset.viewMode).toBe('chart');
+
+    page.removeAttribute('data-view-modes');
+    syncMobileViewModeToggle(root);
+    expect(toggle.hidden).toBe(true);
+    page.dataset.viewModes = 'card';
+    syncMobileViewModeToggle(root);
+    expect(toggle.hidden).toBe(true);
   });
 });
 

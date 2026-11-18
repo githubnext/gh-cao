@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { assert, buildPresenterModuleUrl, expect, expectTableFilterIsContained, pageUpAndExpectCompactWindow, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
@@ -114,7 +115,7 @@ test('JSON full-view mode fills the viewport and supports repeated lazy-list scr
   await expect(siteCallout).toBeVisible();
   await expect(warningCallout).toBeVisible();
   await expect(summary).toBeVisible();
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(warningCallout).toBeHidden();
   await expect(summary).toBeHidden();
   await expect(pageTitle).toBeVisible();
@@ -183,8 +184,8 @@ test('JSON full-view mode fills the viewport and supports repeated lazy-list scr
     }
   }
 
-  await page.getByRole('button', { name: 'Cards' }).click();
-  await page.getByRole('button', { name: 'Chart' }).click();
+  await selectViewMode(page, 'card');
+  await selectViewMode(page, 'chart');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(dashboardRoot).not.toHaveClass(/dashboard-full-view-scrolled/);
   await expect(page.locator('.org-sidebar')).toBeVisible();

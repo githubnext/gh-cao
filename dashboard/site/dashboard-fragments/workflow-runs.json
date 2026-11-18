@@ -432,7 +432,7 @@
           }
         ]
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "run",
@@ -604,7 +604,7 @@
             "source": "workflow-reports",
             "route-field": "workflow-route"
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "controls": "interactive",
           "empty-message": "No safe outputs have been attributed to this workflow.",
           "encoding": {
@@ -646,7 +646,7 @@
               }
             ]
           },
-          "layout": "full"
+          "layout": "full-view"
         }
       ]
     },

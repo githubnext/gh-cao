@@ -534,7 +534,7 @@
           }
         ]
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "event",
@@ -545,7 +545,7 @@
         }
       },
       "empty-message": "No events were retained for this run.",
-      "layout": "full",
+      "layout": "full-view",
       "encoding": {
         "columns": [
           {

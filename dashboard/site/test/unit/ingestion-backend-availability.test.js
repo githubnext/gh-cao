@@ -178,7 +178,9 @@ describe('Ingestion backend contract', () => {
     for (const document of [documentInput, unloaded, loaded]) {
       expect(dashboardPageSourceNames(document, contract.page).toSorted()).toEqual(contract.staticSources.toSorted());
       expect(dashboardTableSourceNames(document, contract.page)).toEqual([]);
-      expect(dashboardPageLazySourceNames(document, contract.page)).toEqual([]);
+      expect(dashboardPageLazySourceNames(document, contract.page).toSorted()).toEqual([
+        'indexing-shards', 'indexing-transactions'
+      ]);
     }
     const names = dashboardPageSourceNames(loaded, contract.page);
     const fetch = vi.fn();

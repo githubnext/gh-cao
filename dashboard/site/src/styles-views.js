@@ -98,7 +98,9 @@ export const viewStyles = `.dashboard-pages { display: flex; flex-direction: col
 .dashboard-full-view .custom-view-grid > .custom-view.command-terminal { padding: 0; }
 .dashboard-root:has(.command-terminal) .overview-header .lede { display: block; visibility: visible; }
 .dashboard-full-view :is(.report-body, .dashboard-pages, .dashboard-page:not([hidden]), .custom-view-grid) { height: 100%; min-height: 0; }
-.dashboard-full-view .dashboard-page[data-view-mode]:not([hidden]) { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.dashboard-full-view .dashboard-page[data-view-mode]:not([hidden]) { display: flex; flex-direction: column; }
+.dashboard-full-view .dashboard-page > :is(.custom-view-grid, .page-layout-grid) { flex: 1; min-height: 0; }
+.dashboard-full-view .dashboard-page > :is(.page-chrome, .route-tab-navigation, [data-route-tabs]) { flex: none; }
 .dashboard-full-view .dashboard-page[data-view-mode] > .page-chrome { padding-top: 12px; margin-bottom: 0; }
 .dashboard-full-view .dashboard-pages,
 .dashboard-full-view .custom-view-grid { gap: 0; }
@@ -112,6 +114,8 @@ export const viewStyles = `.dashboard-pages { display: flex; flex-direction: col
   flex: 1;
   padding-inline: 0;
 }
+.dashboard-full-view .custom-view-grid:has(> .view-disclosure[open]) > .custom-view[data-view-layout="full-view"] { flex-basis: 50%; }
+.dashboard-full-view .custom-view-grid > .view-disclosure[open] { min-height: 0; overflow-y: auto; }
 .dashboard-full-view .dashboard-page[data-view-mode="chart"] > .custom-view-grid:has(> .custom-view[data-view-layout="full-view"]) {
   gap: 16px;
   overflow-y: auto;

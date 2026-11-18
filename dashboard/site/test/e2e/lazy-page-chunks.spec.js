@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -284,7 +285,7 @@ test('core dashboard stays small and page chunks load on demand with in-memory c
   await expect(preview).toContainText('Page intent:\nDetermine which repository most needs CAO operational investigation.');
   await expect(preview).toContainText('https://github.com/githubnext/gh-cao/blob/main/skills/central-agentic-ops/SKILL.md');
   await page.getByRole('button', { name: 'Close prompt preview' }).click();
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect.poll(() => pageText(page, 'repositories')).toMatch(
     /Ingestion %|No repositories discovered\.|gh-cao|Loading Repositories/
   );
@@ -326,7 +327,7 @@ test('built inventory tables resolve partial-source queries through the producti
   await page.waitForFunction(() => Reflect.get(window, '__dashboardImportComplete') === true);
   for (const [pageId, identity] of [['campaigns', 'Dependabot'], ['repositories', 'gh-cao']]) {
     await navigateToPage(page, pageId);
-    await page.getByRole('button', { name: 'Table', exact: true }).click();
+    await selectViewMode(page, 'table');
     const active = page.locator(`[data-page-id="${pageId}"]`);
     await expect(active.locator('table')).toContainText(identity);
     await expect(active.locator('[data-view-state="unavailable"]')).toHaveCount(0);
@@ -334,7 +335,7 @@ test('built inventory tables resolve partial-source queries through the producti
   }
 });
 
-for (const mode of ['table', 'card']) {
+for (const mode of /** @type {const} */ (['table', 'card'])) {
   test(`page-bound Campaigns preserves its ${mode} preview while event records are still loading`, async ({ context, page }) => {
     const recordsName = shardName.replace('gh-aw-logs-runs/', 'gh-aw-logs-records/');
     const shards = normalizedActivityShards(logs, queryDashboardSourceObservations(inventory).observations);
@@ -363,7 +364,7 @@ for (const mode of ['table', 'card']) {
       await page.goto(`${origin}/#page-campaigns`);
       await page.getByRole('button', { name: 'Explore data', exact: true }).click();
       const active = page.locator('[data-page-id="campaigns"]');
-      await active.locator(`[data-view-mode-value="${mode}"]`).click();
+      await selectViewMode(page, mode);
       const inventoryView = active.locator('[data-view-id="campaigns-inventory"]');
       await expect(inventoryView.locator('a[href="#page-campaign-insights?campaign=dependabot"]:visible').first()).toBeVisible();
       await expect(inventoryView).toContainText('Dependabot');
