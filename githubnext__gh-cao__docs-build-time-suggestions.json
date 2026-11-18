@@ -1,34 +1,7 @@
 {
  "source_sha": "215fd929e0e867be6019ab0113b1c8561077bf12",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T18:24:00Z",
-   "worker_run_id": "44146456569",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457",
-    "43832040488",
-    "43831980991",
-    "43831754585"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 18:23Z: no newer or in-progress docs run; main 453e35b = source_sha (no docs trigger path, unchanged). Jobs API spot-check of 44060953578 matched stored row (build docs 15 s, demo 5 s, exec 79 s). Recomputed from stored immutable run_timings rows (no refetch): Build documentation step (npm run docs:build) median 11 s, p90 15 nearest-rank, min 9, max 15; exec median 77.5 s, p90 90; share 14.2 percent; 15 percent gate 11.625 s and 60 s gate both unmet; whole-step removal ceiling 11 s, which cannot meet the gate even if the step were eliminated. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Open issues: #20815 (checkout, other category, OPEN, 0 comments, unchanged) not repeated; #21153 is an incomplete-run report, not a suggestion. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T18:36:00Z",
    "worker_run_id": "44149071437",
@@ -809,6 +782,33 @@
     "43831754585"
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. Re-checked 04:2xZ: no docs run queued or in progress (only stale 37642403569); newest docs run still 44060953578; compare fcd7e18...215fd92 (2 commits) has no docs trigger path, so window unchanged. Stored run_timings recomputed, no job refetch: setup-node median 3 s, install median 9.5 s (p90 11) = 12.3 percent of exec median 77.5 s; setup+install+post median 12.5 s = 16.1 percent. 15 percent gate 11.6 s not met by install-only ceiling 9.5 s; whole phase infeasible (build needs Node and deps). Push-only like-for-like: install median 10 s vs exec median 79 s (gate 11.85 s), not met. Cache: caches API node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57Z, last accessed 04:17Z), no later save. Open #20815 (checkout median 25 s, OPEN, 0 comments, unchanged) and #21153 (incomplete-run report) not repeated. No suggestion; noop. next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T04:35:07Z",
+   "worker_run_id": "44237911167",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672",
+    "43991770179",
+    "43991571724",
+    "43987917606",
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at 04:34Z: no docs run newer than 44060953578, none queued or in progress; local HEAD 215fd92 = source_sha (1 commit, no docs trigger run since). Recomputed from stored immutable run_timings rows (no job refetch): docs:build step (single step: astro build && validate-agent-docs && agent-docs-discovery test) median 11 s, nearest-rank p90 15 s, min 9, max 15; exec median 77.5 s, p90 90 s; share 14.2 percent; 15 percent gate 11.62 s and 60 s gate unmet; whole-step removal ceiling 11 s, so no Astro-only change qualifies; sub-step split unmeasurable (job logs HTTP 403 DIFC, not bypassed). Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT). Open #20815 (checkout) not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation. Cadence note: 31 consecutive identical-window evaluations since 2026-11-17T18:24Z at roughly 20-minute intervals with no new docs runs or source-trigger changes.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1678,7 +1678,7 @@
   "repeated_build": "none",
   "sub_step_split": "not measurable from Jobs API; job logs HTTP 403 DIFC, not retried",
   "decision": "not actionable: whole-step ceiling 11 s < 15 percent gate 11.62 s and < 60 s; output reuse rejected by PUBLIC_PAGES_BUILD_COMMIT provenance",
-  "reverified_note": "2026-11-17T23:17:00Z worker 44197559436: window unchanged; Jobs API spot-check 44060953578 build docs 15 s; decision unchanged (not actionable)."
+  "reverified_note": "2026-11-17T23:17:00Z worker 44197559436: window unchanged; Jobs API spot-check 44060953578 build docs 15 s; decision unchanged (not actionable). 2026-11-18T04:35:07Z worker 44237911167: window unchanged; stored rows recomputed (build docs median 11 s, p90 15 s); decision unchanged (not actionable)."
  },
  "burst_analysis": {
   "verified_at": "2026-11-18T03:53:32Z",
