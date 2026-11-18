@@ -1580,22 +1580,8 @@ There is no Copilot canvas or standalone Node admin preview.
 These capabilities do not change the document vocabulary, copy-only
 restrictions, action authority, or per-run confirmation requirements. Hosted commands start after web confirmation and server authorization; local
 maintenance starts after dashboard confirmation and scoped server authorization.
-Local repository maintenance provides separate Repository, Workflow, and
-Campaign pages under the **Updates** navigation section, each with its own
-navigation entry and evidence-backed update indicator.
-Each page is a full-view lazy card list over bounded query pages (10,000+
-repositories); scrolling or **Load more** fetches more. Per-row and selected-batch
-maintenance keep exact targets and approval. Selection exposes Update, Enable,
-and Disable through the same declared row commands. Workflow enablement does not
-change CAO policy, rollout, or live authority. Native enable/disable remains
-limited to the explicitly selected local repository scope; managed update scope
-does not extend it, and the hosted executor's allowlist is unchanged.
-A break operation uses the existing disable command, not a new
-CLI verb: gh-aw disable cancels in-progress runs before disabling future runs,
-whereas campaign policy disable leaves active runs running. Exact repository
-and workflow targets require fresh approval independently of update evidence.
-Updates/upgrades still require pull-request publication in the native adapter;
-the disable exception does not expand the hosted execution allowlist.
+Local repository maintenance follows the
+[Updates contract](./dashboard-language-list-selection.md#updates-maintenance).
 The approval dialog queues at most once, then
 closes without navigating; a notification links to the read-only console
 (no terminal window). Its first output line shows the executed command.
@@ -1684,55 +1670,8 @@ In full-view card mode, the shared filter row stays above the independently scro
 
 An entity-card list may set `lazy-list: true` to request bounded canonical query pages and append cards as the load boundary approaches the viewport. An accessible **Load more** button remains available without an intersection observer; failed requests expose a manual retry. Existing cards retain focus and identity, and detaching the owning view disconnects its observer and ignores late responses. This changes presentation and transport only, not query ordering, filtering, or evidence completeness.
 
-A lazy entity-card list may declare `list.selection`:
-
-```json
-{
-  "key": ["repository-coordinate", "workflow"],
-  "commands": ["update-workflow-source", "enable-workflow", "disable-workflow"]
-}
-```
-
-`key` is a non-empty sequence of unique source field names whose non-empty string
-or finite numeric values identify each result uniquely. `commands` is a required,
-non-empty sequence of unique action IDs from the referenced card template's
-`actions`, in toolbar order. Context and `when` conditions are reused unchanged;
-selection must not invent a command mapping or widen row eligibility.
-
-Like GitHub issue lists, each rendered card always has an independently operable
-checkbox; no separate selection toggle is required. Shift-click selects or
-deselects the inclusive range between the last clicked checkbox and the current
-one, including cards appended since the previous click. The header checkbox,
-**Select all loaded items**, selects only
-the cards already rendered, not unseen buffered rows or later pages. Its mixed
-state indicates a partial selection of loaded cards; unchecking the checked
-header clears the entire selection, including offscreen query results. View
-filters, selection controls, and commands share a single non-wrapping header row.
-Narrow viewports scroll that row horizontally rather than stacking controls;
-dropdown panels remain visible outside the scrolling row. When all
-loaded items are checked, a compact **Select all N** control selects the entire
-remaining filtered query (or **Select all results** if no total is available).
-It follows the existing view-bound canonical continuation, retaining route,
-global and local filters, search, ordering, and authored query limits. It does
-not issue an unscoped query, derive source rows in JavaScript, or render every
-selected card. Loading more cards does not implicitly select them unless they
-were already included in full-query selection. Individual deselection and
-**Clear selection** remain available.
-
-The command split button appears only while at least one item is selected and
-defaults to the first declared command. Its dropdown changes the selected command
-without running it; the primary button opens that command's exact-target batch approval
-dialog, including boolean arguments, capability checks, and independent queue
-admission. A command is disabled if any selected row fails its row-action
-condition or lacks valid context. Unknown/unavailable evidence, invalid or
-duplicate keys, failed/stale continuation, and mismatched totals fail closed;
-partial evidence warns that only the explicitly listed targets are included.
-Full-query selection is applied atomically after every page succeeds. A failure
-preserves the prior explicit selection and exposes a retryable error; it never
-approves the loaded page as if it were the full query. Clearing selection hides
-bulk commands but keeps checkboxes visible. Source refresh or a changed query context creates a new
-selection lifetime, discarding stale selected rows and approvals. Detaching the
-view ignores late selection results.
+A lazy entity-card list may declare `list.selection` according to the
+[list selection contract](./dashboard-language-list-selection.md).
 
 A table with `lazy-list: true` may declare `encoding.card` as a reusable dashboard card-template identifier to present its rows as cards at every viewport width, rather than only in responsive card mode. Other marks, non-lazy tables, and unknown template references fail validation. The declared columns still define the view payload and available card fields; lazy-list pagination and explicit card drill behavior remain unchanged. The Commands table uses this presentation, with its durable command route opening the interaction-only `command-terminal` element as a modal console log. Closing or escaping the console returns to Commands and detaches output without cancelling execution; cancellation and retry remain separate explicit controls.
 
