@@ -259,6 +259,31 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("no-op quota mutations retained state: entries %d -> %d, %v", before.Entries, after.Entries, err)
 		}
 	})
+	t.Run("quota-rejects-non-positive-epoch-times", func(t *testing.T) {
+		quota := services.GitHubQuota
+		bucket := "github-app-1:epoch-times:core"
+		now := time.Now().UTC()
+		epoch := time.UnixMilli(0).UTC()
+		before := time.UnixMilli(-1).UTC()
+		for name, observation := range map[string]operational.GitHubQuotaObservation{
+			"epoch reset":        {Limit: 5000, Remaining: 4000, ResetAt: epoch},
+			"pre-epoch reset":    {Limit: 5000, Remaining: 4000, ResetAt: before},
+			"pre-epoch observed": {Limit: 5000, Remaining: 4000, ResetAt: now.Add(time.Hour), ObservedAt: before},
+		} {
+			if _, _, _, err := quota.ObserveGitHubQuota(ctx, bucket, observation, ""); err == nil {
+				t.Fatalf("%s observation error = %v, want rejection", name, err)
+			}
+		}
+		for name, until := range map[string]time.Time{"epoch": epoch, "pre-epoch": before} {
+			if _, _, err := quota.ParkGitHubQuota(ctx, bucket, until, "backoff"); err == nil {
+				t.Fatalf("%s parking error = %v, want rejection", name, err)
+			}
+		}
+		state, err := quota.GitHubQuotaSnapshot(ctx, bucket)
+		if err != nil || state.Known || !state.ParkedUntil.IsZero() || !state.ResetAt.IsZero() {
+			t.Fatalf("rejected quota writes changed state: %+v, %v", state, err)
+		}
+	})
 	t.Run("in-flight-blocking-read-cancellation", func(t *testing.T) {
 		queue := services.Queue
 		if err := queue.EnsureQueue(ctx, "cancel-blocking-read", "workers"); err != nil {

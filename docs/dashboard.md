@@ -89,8 +89,8 @@ the production Go server and PostgreSQL.
 Every view follows the same data flow:
 
 1. **A collector acquires evidence.** `gh cao dashboard` reads bounded recent
-	evidence using local GitHub CLI authentication; the separate Activity workflow
-	publishes bounded operational snapshots for shared monitoring.
+	evidence using local GitHub CLI authentication. Hosted deployments collect
+	natively through the Go server instead of a separate Actions workflow.
 2. **The selected backend prepares and queries the data.** Production Go
 	serving uses PostgreSQL; local development uses the same Go server over a real
 	PostgreSQL namespace. Each evaluates Dashboard Language.

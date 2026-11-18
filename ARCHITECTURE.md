@@ -631,7 +631,7 @@ and representative capacity evidence.
 
 Owner-run bootstrap initializes this schema and its UTC daily partitions; runtime
 opens and validates provisioned state without DDL. Daily owner-run maintenance
-keeps historical, current, and 28 upcoming days provisioned, expiring only
+keeps historical, current, and 14 upcoming days provisioned, expiring only
 complete days at each configured retention cutoff. Weekly layouts require a
 fresh canonical schema rebuilt from authoritative inputs without removing
 operational audit/queue state. A fixed schema-qualified

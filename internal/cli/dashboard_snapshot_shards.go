@@ -14,6 +14,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/githubnext/gh-cao/internal/dashboardingest"
 )
 
 const (
@@ -113,7 +115,8 @@ func readDashboardShardIndex(ctx context.Context, cache string, manifest map[str
 	if err := json.Unmarshal(content, &index); err != nil {
 		return index, "", err
 	}
-	if index.Version != 1 || len(index.Shared) == 0 || index.SchemaVersion != 0 && index.SchemaVersion != dashboardSnapshotSchemaVersion {
+	if index.Version != 1 || len(index.Shared) == 0 ||
+		index.SchemaVersion != 0 && index.SchemaVersion != dashboardingest.SchemaVersion {
 		return index, "", errors.New("local dashboard shard index is invalid")
 	}
 	shards, runs, issues := map[string]bool{}, map[string]bool{}, map[string]bool{}
@@ -177,7 +180,8 @@ func writeDashboardIncrementalSnapshot(ctx context.Context, cache string, incomi
 	}
 	previous := map[string][]map[string]any{}
 	if indexName == "" || index.SchemaVersion == 0 {
-		// Republish headerless or full-replacement native snapshots once.
+		// Unversioned native indexes used schema-37 rows without shard headers.
+		// Rewrite them once so full reconciliation cannot synthesize duplicates.
 		previous, err = readDashboardArtifactBatch(ctx, cache)
 		if err != nil {
 			return err
@@ -187,7 +191,7 @@ func writeDashboardIncrementalSnapshot(ctx context.Context, cache string, incomi
 				delete(manifest, name)
 			}
 		}
-		index = dashboardShardIndex{Version: 1, SchemaVersion: dashboardSnapshotSchemaVersion}
+		index = dashboardShardIndex{Version: 1, SchemaVersion: dashboardingest.SchemaVersion}
 	} else {
 		touched := map[string]bool{}
 		issues := map[string]bool{}
@@ -342,7 +346,7 @@ func writeDashboardShardGroup(ctx context.Context, cache string, batch map[strin
 		size := 0
 		flush := func() error {
 			var content bytes.Buffer
-			if err := json.NewEncoder(&content).Encode(map[string]any{"kind": "metadata", "phase": phase, "schemaVersion": dashboardSnapshotSchemaVersion, "records": len(lines)}); err != nil {
+			if err := json.NewEncoder(&content).Encode(map[string]any{"kind": "metadata", "schemaVersion": dashboardingest.SchemaVersion, "phase": phase, "records": len(lines)}); err != nil {
 				return err
 			}
 			for _, line := range lines {

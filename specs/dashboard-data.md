@@ -840,7 +840,7 @@ Go server data profile SHALL:
   canonical storage path; incompatible database layouts require a fresh
   database rebuilt from authoritative deployed inputs;
 * partition Runs and their run-owned records into matching UTC calendar days;
-  owner maintenance SHALL provision retained history, the current day, and 28
+  owner maintenance SHALL provision retained history, the current day, and 14
   upcoming days, and expire only whole days ending at or before each configured
   retention cutoff, dropping linked partitions before their Runs; runtime
   SHALL validate the provisioned window without DDL, and weekly layouts SHALL
@@ -934,6 +934,19 @@ Full reconciliation MUST independently verify recovery files, even when the
 receipt matches. The producer SHALL retain its complete
 on-disk recovery snapshot. Initial and final reconciliations SHALL remain explicit
 full snapshots, and final publication SHALL remove the sidecar's manifest entry.
+When the storage ownership fence explicitly requires authoritative
+reconciliation, the persistent local ingestor MAY perform a verified full
+snapshot from its already configured recovery directory within the same request.
+It MUST preserve source, namespace and credentials, MUST propagate verification
+or publication failure, and MUST NOT convert unrelated delta errors to success.
+Every emitted native snapshot shard SHALL declare the canonical schema version
+of its embedded normalizer; current lifecycle rows MUST NOT trigger legacy
+lifecycle synthesis. Final gh-aw summaries SHALL use the same 16-Run publication
+bound as streamed Run events.
+Unversioned native shard indexes emitted by the schema-37 normalizer SHALL
+undergo a one-time rewrite of all retained shard headers before groups are
+reused. A versioned native index with an unsupported canonical schema SHALL
+fail explicitly rather than relabeling its rows.
 
 The local recovery producer MAY partition canonical evidence into immutable,
 content-addressed Run groups of at most 16 Runs, with byte-targeted JSONL shards

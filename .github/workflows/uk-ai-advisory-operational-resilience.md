@@ -85,9 +85,7 @@ permissions:
 
 engine:
   id: pi
-  model-routing:
-    goal: cost
-    mode: auto
+model: router
 
 strict: true
 

@@ -16,10 +16,9 @@ import (
 	"slices"
 	"strings"
 	"time"
-)
 
-// Canonical JSONL version, distinct from the server's PostgreSQL storage version.
-const dashboardSnapshotSchemaVersion = 37
+	"github.com/githubnext/gh-cao/internal/dashboardingest"
+)
 
 func prepareDashboardCache(directory string) error {
 	if err := os.MkdirAll(directory, 0o700); err != nil {
@@ -85,22 +84,8 @@ func initializeDashboardSnapshot(ctx context.Context, cache string, repositories
 	}
 	defer func() { _ = os.Remove(lock) }()
 	if _, err := os.Stat(filepath.Join(cache, "inventory-sources.json")); err == nil {
-		metadata, err := readDashboardStatus(ctx, cache, repositories)
-		if err != nil {
-			return err
-		}
-		manifest, err := readDashboardSnapshotManifest(ctx, cache)
-		if err != nil {
-			return err
-		}
-		index, name, err := readDashboardShardIndex(ctx, cache, manifest)
-		if err != nil {
-			return err
-		}
-		if name == "" || index.SchemaVersion == 0 {
-			return writeDashboardSnapshot(ctx, cache, map[string][]map[string]any{"transactions": {metadata}}, true)
-		}
-		return nil
+		_, err = readDashboardStatus(ctx, cache, repositories)
+		return err
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -165,7 +150,7 @@ func writeDashboardSnapshotWithBundles(ctx context.Context, cache string, batch 
 			}
 		}
 		encoder := json.NewEncoder(&content)
-		if err := encoder.Encode(map[string]any{"kind": "metadata", "phase": phase, "schemaVersion": dashboardSnapshotSchemaVersion, "records": count}); err != nil {
+		if err := encoder.Encode(map[string]any{"kind": "metadata", "schemaVersion": dashboardingest.SchemaVersion, "phase": phase, "records": count}); err != nil {
 			return err
 		}
 		for _, store := range stores {

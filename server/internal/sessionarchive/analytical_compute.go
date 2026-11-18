@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"slices"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
-var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "difference", "product", "quotient", "coalesce", "is-null", "and", "trim", "strip-prefix"}
+var scalarFunctions = []string{"if", "equals", "gt", "lte", "sum", "difference", "product", "quotient", "coalesce", "is-null", "and", "trim", "strip-prefix", "keyword-match", "log2", "concat"}
 
 // TrimWhitespace is ECMAScript String.prototype.trim's WhiteSpace and
 // LineTerminator set (Unicode Zs plus TAB, VT, FF, ZWNBSP, LF, CR, LS and PS),
@@ -43,6 +44,38 @@ func StripPrefixPattern(prefix string, repeated bool) string {
 		return `\A(?:` + escaped + ")+"
 	}
 	return `\A` + escaped
+}
+
+// KeywordSets are the closed, reviewed upstream keyword lists of
+// keyword-match, from grader_session.cjs (/\bretry(?:ing)?\b/i) and
+// trajectory_graders.cjs (the policy-near-miss guard pattern). Callers select a
+// set by name; no caller text becomes part of a pattern.
+var KeywordSets = map[string][]string{
+	"retry": {"retry", "retrying"},
+	"guard": {"check", "verify", "verification", "policy", "approval", "approve", "guard", "confirm", "authorize", "authorization"},
+}
+
+// KeywordPattern is the RE2 pattern both backends use for keyword-match. It
+// reproduces JavaScript non-Unicode \b and /i: word characters are exactly
+// [A-Za-z0-9_] and only ASCII letters fold, so it never uses \b, \w or (?i),
+// whose RE2 and Rust semantics are Unicode-aware (Kelvin sign, long s).
+func KeywordPattern(set string) string {
+	words := KeywordSets[set]
+	alternatives := make([]string, len(words))
+	for i, word := range words {
+		for _, r := range word {
+			alternatives[i] += "[" + string(r) + string(r-'a'+'A') + "]"
+		}
+	}
+	return "(^|[^A-Za-z0-9_])(" + strings.Join(alternatives, "|") + ")([^A-Za-z0-9_]|$)"
+}
+
+// KeywordMatchExpression is the planned keyword-match over a string field. It
+// lets lowering evidence run the production expression on both engines.
+func KeywordMatchExpression(field, set string) PlannedExpression {
+	return PlannedExpression{Type: "boolean", Function: "keyword-match", Args: []PlannedExpression{
+		{Type: "string", Field: field}, {Type: "string", Literal: &Scalar{Type: "string", String: set}},
+	}}
 }
 
 func codePoint(r rune) string { return `\x{` + strconv.FormatInt(int64(r), 16) + "}" }
@@ -244,6 +277,18 @@ func (e Expression) plan(fields map[string]string, depth int, nodes *int) (Plann
 			return p, ErrQuery
 		}
 		p.Type = "string"
+	case "log2":
+		// Base-2 logarithm of a positive number; null otherwise. Backend math
+		// libraries are faithful, not correctly rounded (see specs/session-archive.md).
+		if n != 1 || !numeric(p.Args[0].Type) {
+			return p, ErrQuery
+		}
+		p.Type = "number"
+	case "concat":
+		if n != 2 || p.Args[0].Type != "string" || p.Args[1].Type != "string" {
+			return p, ErrQuery
+		}
+		p.Type = "string"
 	case "strip-prefix":
 		// Closed literal stripping: a non-empty string literal prefix, removed
 		// once or as a repeated run when the boolean literal is true.
@@ -255,6 +300,12 @@ func (e Expression) plan(fields map[string]string, depth int, nodes *int) (Plann
 			return p, ErrQuery
 		}
 		p.Type = "string"
+	case "keyword-match":
+		// Closed keyword matching: the second argument names a reviewed set.
+		if n != 2 || p.Args[0].Type != "string" || !p.Args[1].literal("string") || KeywordSets[p.Args[1].Literal.String] == nil {
+			return p, ErrQuery
+		}
+		p.Type = "boolean"
 	}
 	return p, nil
 }

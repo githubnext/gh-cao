@@ -84,6 +84,15 @@ func TestGraderReplayEvidence(t *testing.T) {
 		`"observations":[{"sourceToolCallId":"t","consumedByActionIds":["a"]},{"sourceToolCallId":"t","consumedByActionIds":[""]},` +
 		`{"sourceToolCallId":"t","consumedByActionIds":[null,0,{}]},{"sourceToolCallId":"unknown","consumedByActionIds":[]},` +
 		`{"consumedByActionIds":"not-array"},{"sourceToolCallId":"t","consumedByActionIds":null},null,[],7]}`
+	// A deterministic skewed walk over tool_call refs and kinds exercises many
+	// non-trivial log2 terms in Map first-insertion summation order.
+	var walk strings.Builder
+	for i, state := 0, uint32(7); i < 400; i++ {
+		state = state*1664525 + 1013904223
+		symbols := []string{`"kind":"tool_call","ref":"read"`, `"kind":"tool_call","ref":"edit"`, `"kind":"tool_call","ref":"search"`,
+			`"kind":"message"`, `"kind":"state_change","ref":"A"`, `"kind":"tool_call"`, `"kind":"tool_call:read"`}
+		walk.WriteString(`{` + symbols[min(int(state>>24)%11, 6)] + `},`)
+	}
 	code := func(files, resources, actions string) string {
 		return trajectoryIR(`{"reference":{"patch":{"files":` + files + `}},"resources":` + resources + `,"actions":` + actions + `}`)
 	}
@@ -185,6 +194,37 @@ func TestGraderReplayEvidence(t *testing.T) {
 		{"code-redacted", header + code(`["a"]`, `[{"kind":"file","uri":"secret-text"}]`, `[{"type":"read","consequential":false,"target":"secret-text"}]`)},
 		{"code-redacted-reference", header + code(`["secret-text"]`, `[]`, `[]`)},
 		{"code-oversized-reference", header + code(`[`+strings.TrimSuffix(strings.Repeat(`"a",`, 5001), ",")+`]`, `[]`, `[]`)},
+		// Guard keywords use ASCII word boundaries: "re-check" and "CONFIRM" match;
+		// "guard_rail", "policyholder", the Kelvin-sign "chec\u212A" and non-string
+		// descriptions do not. Non-null satisfaction (even invalid) is met.
+		{"pnm-measured", header + trajectoryIR(`{"events":[{"kind":"other"},"safe_output",{"kind":"safe_output"}],"objectives":[`+
+			`{"id":"a","description":"Verify the output","satisfiedAtEventIndex":0},{"description":"needs APPROVAL","satisfiedAtEventIndex":null},`+
+			`{"description":"re-check","satisfiedAtEventIndex":"x"},{"description":"guard_rail"},{"description":"policyholder"},`+
+			`{"description":"chec\u212A"},{"description":7},"check",{"description":"CONFIRM","satisfiedAtEventIndex":-1},{"description":"authorize"}]}`)},
+		{"pnm-no-safe-output", header + trajectoryIR(`{"events":[{"kind":"safe_output.result"},"safe_output",{"kind":"Safe_output"}],"objectives":[{"description":"verify"}]}`)},
+		{"pnm-null-events", header + "{\"type\":\"safe_output\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{}}\n" +
+			trajectoryIR(`{"events":null,"objectives":[{"description":"verify"}]}`)},
+		{"pnm-no-guard", header + trajectoryIR(`{"events":[{"kind":"safe_output"}],"objectives":[{"description":"guard_rail"},{"description":"unverified"},{"description":"approvals"}]}`)},
+		// Absent IR events fall back to one synthesized event per agent-phase,
+		// agent-component event; the unapproved "safe_output" type is retained.
+		{"pnm-synthesized", header + "{\"type\":\"safe_output\",\"provenance\":{\"component\":\"agent\",\"phase\":\"agent\"},\"data\":{\"secret\":1}}\n" +
+			trajectoryIR(`{"objectives":[{"description":"policy"},{"description":"approve","satisfiedAtEventIndex":2}]}`)},
+		{"pnm-synthesized-other-component", header + "{\"type\":\"safe_output\",\"provenance\":{\"component\":\"gateway\",\"phase\":\"agent\"},\"data\":{}}\n" +
+			"{\"type\":\"safe_output\",\"provenance\":{\"component\":\"agent\",\"phase\":\"safe_outputs\"},\"data\":{}}\n" +
+			trajectoryIR(`{"objectives":[{"description":"policy"}]}`)},
+		{"pnm-oversized", header + trajectoryIR(`{"events":[{"kind":"safe_output"}],"objectives":[`+strings.TrimSuffix(strings.Repeat(`{"description":"check the published output"},`, 5001), ",")+`]}`)},
+		// Literal "tool_call:read" and tool_call/ref "read" share one symbol; absent
+		// indexes order by array position with stable ties; non-events are ignored.
+		{"entropy-measured", header + trajectoryIR(`{"events":[{"kind":"tool_call","ref":"read","index":3},{"kind":"tool_call","index":1},`+
+			`{"kind":"tool_call:read","index":2},{"kind":"message"},{"kind":"tool_call","ref":"","index":-1},{"kind":"","index":null},`+
+			`{"kind":5},"text",{"kind":"message","index":10},{"kind":"tool_call","ref":"edit","index":7},{"kind":"message","index":8},`+
+			`{"kind":"tool_call","ref":"read","index":9},{"kind":"tool_call","ref":{},"index":11}]}`)},
+		{"entropy-walk", header + trajectoryIR(`{"events":[`+strings.TrimSuffix(walk.String(), ",")+`]}`)},
+		{"entropy-single-symbol", header + trajectoryIR(`{"events":[{"kind":"a"},{"kind":"a","index":5},{"index":2}]}`)},
+		{"entropy-one-event", header + trajectoryIR(`{"events":[{"kind":"a"},{"kind":""},[]]}`)},
+		{"entropy-null-index", header + trajectoryIR(`{"events":[{"kind":"a","index":null},{"kind":"b"},{"kind":"a"}]}`)},
+		{"entropy-numeric-string-index", header + trajectoryIR(`{"events":[{"kind":"a","index":"1"},{"kind":"b","index":0},{"kind":"a","index":2}]}`)},
+		{"entropy-non-array-events", header + trajectoryIR(`{"events":{"kind":"a"},"states":["A","B"]}`)},
 		{"ordered-execution-fallback", header + usageEvent("firewall.token_usage", `1`, `1`, `null`) +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\"},\"data\":{\"durationMs\":null}}\n" +
 			"{\"type\":\"execution.result\",\"provenance\":{\"phase\":\"agent\",\"timestampMs\":500},\"data\":{\"durationMs\":3.75}}\n" +
@@ -267,7 +307,7 @@ func TestGraderReplayEvidence(t *testing.T) {
 					"recurrence-rate", "artifact-production", "dependency-order-violation-rate", "evidence-saturation-stopping-lag",
 					"recurrence-laminarity", "recurrence-trapping-time", "recurrence-determinism",
 					"exploration-error", "exploitation-error", "tool-output-consumption-rate",
-					"code-search-recall", "code-read-precision", "code-edit-precision"}, attempt.ID)
+					"code-search-recall", "code-read-precision", "code-edit-precision", "policy-near-miss", "event-entropy-rate"}, attempt.ID)
 				if supported {
 					full, err = os.ReadFile("testdata/graders/" + attempt.ID + ".json")
 					if err != nil {
@@ -319,6 +359,16 @@ func TestGraderReplayEvidence(t *testing.T) {
 								if !numeric || err != nil || actual != value || row["availability"] != "measured" {
 									t.Fatalf("%s changed closed path normalization: %#v", attempt.ID, row)
 								}
+							}
+						}
+						if expected, ok := map[string][2]any{"pnm-measured": {0.4, "measured"}, "pnm-synthesized": {0.5, "measured"},
+							"pnm-no-safe-output": {nil, "no-safe-output"}, "pnm-null-events": {nil, "no-safe-output"},
+							"pnm-synthesized-other-component": {nil, "no-safe-output"}, "pnm-no-guard": {nil, "no-guard-objectives"},
+							"pnm-oversized": {nil, "oversized"}, "redacted-descriptions": {nil, "redacted"}}[scenario.name]; ok && attempt.ID == "policy-near-miss" && row["RunId"] == "123" {
+							value, isNumber := row["value"].(json.Number)
+							actual, _ := value.Float64()
+							if expected[0] == nil && (row["value"] != nil || row["reason"] != expected[1]) || expected[0] != nil && (!isNumber || actual != expected[0] || row["reason"] != "measured") {
+								t.Fatalf("policy-near-miss changed keyword or safe-output semantics: %#v", row)
 							}
 						}
 						if row["RunId"] == "123" && (scenario.name == "e1-measured" || scenario.name == "e1-harmless-redaction") {

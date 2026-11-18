@@ -78,9 +78,7 @@ max-ai-credits: 400
 max-daily-ai-credits: -1
 engine:
   id: pi
-  model-routing:
-    goal: cost
-    mode: auto
+model: router
 strict: true
 timeout-minutes: 30
 concurrency:

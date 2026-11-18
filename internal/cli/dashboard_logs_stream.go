@@ -13,6 +13,8 @@ import (
 
 var errDashboardLogsIncomplete = errors.New("gh-aw JSONL stream ended without a final summary and complete event")
 
+const dashboardLogBatchRuns = 16
+
 func streamDashboardLogs(ctx context.Context, request dashboardLogRequest, args []string, command dashboardLogCommand) error {
 	publishCtx := ctx
 	ctx, cancel := context.WithCancel(ctx)
@@ -80,7 +82,14 @@ func streamDashboardLogs(ctx context.Context, request dashboardLogRequest, args 
 		}
 	}
 	if publish != nil {
-		return publish(ctx, summary)
+		if len(summary) == 0 {
+			return publish(ctx, summary)
+		}
+		for offset := 0; offset < len(summary); offset += dashboardLogBatchRuns {
+			if err := publish(ctx, summary[offset:min(offset+dashboardLogBatchRuns, len(summary))]); err != nil {
+				return err
+			}
+		}
 	}
 	return ctx.Err()
 }
@@ -202,7 +211,7 @@ func readDashboardLogStream(ctx context.Context, input io.Reader, request dashbo
 				}
 			}
 			pending = append(pending, event.Run)
-			if !published || len(pending) == 16 {
+			if !published || len(pending) == dashboardLogBatchRuns {
 				if err := flush(); err != nil {
 					return nil, err
 				}
