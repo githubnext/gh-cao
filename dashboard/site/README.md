@@ -29,7 +29,7 @@ The built-in dashboard keeps its shared query foundations and its controls, repo
 
 1. The activity action collects bounded raw inventory and run evidence for operational artifacts. The collectors under `dashboard/report/` retain evidence acquisition and normalization, not dashboard query projections.
 2. Operational artifacts contain `inventory-sources.json`, normalized run and record JSONL shards and their `payload-hashes.json` manifest, not database files. Production and local development use the same Go/PostgreSQL boundary.
-3. Pages instead runs its synthesizer on demand in the browser data Web Worker. It generates 10,000 repositories, three campaigns, and 200 installed agentic workflows across selected repositories, passing raw samples through production normalization and incremental canonical IndexedDB ingestion in bounded batches. The build pregenerates no sample snapshots. It has no operational input, SQLite download, agent summary, or live services.
+3. Pages instead runs its synthesizer on demand in the browser data Web Worker. It generates 10,000 repositories, exactly 20,000 runs, three campaigns, and 200 installed agentic workflows across selected repositories, passing raw samples through production normalization and incremental canonical IndexedDB ingestion in batches of at most 100 runs. The build pregenerates no sample snapshots. It has no operational input, SQLite download, agent summary, or live services.
 4. Dashboard Language queries in `src/data/queries/database.json` and the composed dashboard document perform selection, joins, aggregation, and projection at the production data-layer boundary. Supplied report rows cannot override canonical producers; undeclared sources are unavailable.
 5. The renderer loads the active page declaration and subscribes to its query payload with an abort-scoped lifetime. Database updates refresh the active view; only requested sources cross the worker boundary.
 
@@ -40,6 +40,19 @@ pipeline without a site-wide notification.
 Completed compatible samples are reused within the same UTC day. A new day or
 incompatible generator/schema resets only the scoped demo database and regenerates
 the sample; interrupted compatible generation resumes committed batches.
+Run sessions use generated, bounded multi-turn timelines modeled on metadata-only
+inspection of this repository's live usage artifacts: prompt-heavy initial
+requests, growing cached context, separate agent/detection usage, native Bash
+and MCP calls, skills, evaluations, and safe-output results. Every session passes
+through the production unified-session parser. Pending, interrupted, and
+approval-gated runs preserve incomplete evidence instead of inventing completion.
+These are illustrative distributions, not replayed sessions or billing estimates;
+the browser and build never fetch live evidence or publish real transcripts.
+Calibration used three hand-selected usage artifacts inspected on 2026-11-18:
+[dashboard review](https://github.com/githubnext/gh-cao/actions/runs/44254492173),
+[documentation review](https://github.com/githubnext/gh-cao/actions/runs/44254400261),
+and [failed code improvement](https://github.com/githubnext/gh-cao/actions/runs/44254439770).
+They inform event shapes, not fleet-wide outcome rates or performance claims.
 The demo source namespace remains under `demo-data/`, not root `payload-hashes.json`;
 browser storage keys use `synthetic-demo` and service-worker caches use
 `demo`. The changed URLs prevent old same-origin cached real data from being

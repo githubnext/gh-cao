@@ -1,4 +1,4 @@
-import { enterpriseDemo, enterpriseMemory, enterpriseRepositorySources, enterpriseSample } from './sample.mjs';
+import { enterpriseActivityBatches, enterpriseDemo, enterpriseMemory, enterpriseRepositorySources, enterpriseSample } from './sample.mjs';
 import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSourceBatches, ingestDashboardSources } from '../ingest/coordinator.js';
 import { canonicalDatabaseName, DATABASE_VERSION, deleteCanonicalDatabase, readTransaction, readTransactions, recordTransaction } from '../storage/indexeddb.js';
 
@@ -55,7 +55,7 @@ async function populateEnterpriseDemo(indexedDB, options) {
   });
   for (let index = 0; index < enterpriseDemo.installedRepositories; index++) {
     options.signal?.throwIfAborted();
-    const sample = enterpriseSample(now, { start: index, count: 1, includeHistory: refreshSample });
+    const sample = enterpriseSample(now, { start: index, count: 1, includeHistory: false });
     for (const [name, source] of Object.entries(sample.sources)) {
       sources[name] ??= { ...source, rows: [] };
       if (index && ['campaigns', 'marketplace-packages', 'marketplace-registries', 'configuration-policy'].includes(name)) continue;
@@ -66,11 +66,14 @@ async function populateEnterpriseDemo(indexedDB, options) {
         ...options, now, deferMaintenance: true,
         payloadScope: `${receiptId}/inventory/${index}`,
       });
-      if (sample.records.length) {
-        await ingestCachedGhAwJsonl(indexedDB, sample.records.map(record => JSON.stringify(record)).join('\n'), {
+      let batchIndex = 0;
+      for (const batch of enterpriseActivityBatches(now, { start: index, count: 1 })) {
+        options.signal?.throwIfAborted();
+        await ingestCachedGhAwJsonl(indexedDB, batch.records.map(record => JSON.stringify(record)).join('\n'), {
           signal: options.signal, storage: options.storage, now, deferMaintenance: true,
-          payloadScope: `${receiptId}/activity/${index}`,
+          payloadScope: `${receiptId}/activity/${index}/${batchIndex++}`,
         });
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
     }
     options.onProgress?.(index + 1, complete ? enterpriseDemo.installedRepositories : enterpriseDemo.repositories);

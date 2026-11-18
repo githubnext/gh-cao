@@ -441,7 +441,18 @@ generate raw sample evidence on demand and pass it through the production normal
 canonical ingestion, Dashboard Language queries, and shared declarative views.
 Generation and writes SHALL be bounded rather than retaining the enterprise
 population in memory. The default sample SHALL contain 10,000 repositories,
-three campaigns, and 200 installed agentic workflows across selected repositories.
+exactly 20,000 runs, three campaigns, and 200 installed agentic workflows across selected repositories.
+Run generation SHALL preserve heterogeneous, seasonal cadence while allocating
+the exact run budget, with stable identities across repository partitions.
+Raw activity SHALL enter normalization in batches of at most 100 runs.
+Synthetic run evidence SHALL include bounded, multi-turn version-1 unified sessions
+through the production session parser, with correlated tool calls, per-request
+usage and cache growth, phase-scoped accounting, and outcome-appropriate lifecycle
+and safe-output evidence. Pending and approval-gated runs SHALL NOT acquire invented
+completion, evaluation, or output events. Live repository evidence MAY inform
+illustrative shapes and distributions during development; the demo SHALL NOT
+copy transcripts, prompts, tool payloads, private identifiers, or runtime data
+acquisition into its published sample.
 The build SHALL publish the synthesizer, not pregenerated inventory or run/detail
 shards. Reopening the demo SHALL reuse completed, compatible browser-local data
 within the same UTC day. A new sample day or incompatible generator/schema SHALL

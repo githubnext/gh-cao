@@ -1,4 +1,5 @@
 import { demoSha256 as sha } from "./hash.mjs";
+import { enterpriseSessionEvents } from "./session.mjs";
 import { buildInventoryDashboardSources } from "../../../../report/inventory-sources.mjs";
 import { parsePackageManifest } from "../../../../report/package-manifest.mjs";
 import { parseUnifiedSessionDocument } from "../adapters/unified-session.js";
@@ -169,7 +170,7 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     ? [["gpt-5.3-codex", 0.6], ["claude-sonnet-5.5", 0.35], ["claude-haiku-5.5", 0.05]]
     : [["gpt-5.3-codex", 0.2], ["claude-sonnet-5.5", 0.3], ["claude-haiku-5.5", 0.5]]);
   const plannedDuration = Math.round(Math.min(7200, Math.max(15,
-    sample.lognormal(130 * complexity * (candidate ? 0.85 : 1) * (failed ? 1.6 : 1), 0.5))));
+    sample.lognormal(260 * complexity * (candidate ? 0.85 : 1) * (failed ? 1.6 : 1), 0.5))));
   const today = Math.floor(now / dayMs) * dayMs;
   const dayStart = today - day * dayMs;
   const availableTime = day === 0 ? now - today : dayMs;
@@ -183,12 +184,13 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
   const completedAt = new Date(start + durationSeconds * 1000).toISOString();
   const input = Math.round(sample.lognormal(8500 * complexity, 0.35));
   const output = Math.round(sample.lognormal(900 * complexity, 0.45));
-  const cacheRead = Math.round(input * sample.random() * 0.75);
+  const cacheRead = Math.round(input * (1.5 + sample.random() * 5));
+  const cacheWrite = Math.round(input * (1 + sample.random() * 2));
   // Illustrative model-relative prices, not a quotation of provider billing.
   const price = { "gpt-5.3-codex": 1.4, "claude-sonnet-5.5": 1, "claude-haiku-5.5": 0.3 }[model];
-  const aic = Number(((input - cacheRead * 0.9 + output * 4) / 6000 * price).toFixed(4));
+  const aic = Number(((input + cacheRead * 0.1 + cacheWrite * 1.25 + output * 4) / 6000 * price).toFixed(4));
   const tokens = { total_input_tokens: input, total_output_tokens: output,
-    total_cache_read_tokens: cacheRead, total_cache_write_tokens: Math.round(input * sample.random() * 0.15),
+    total_cache_read_tokens: cacheRead, total_cache_write_tokens: cacheWrite,
     total_reasoning_tokens: Math.round(output * sample.random() * 0.6), total_aic: aic };
   const outputCount = successful && sample.random() < profile.outputRate
     ? Math.min(8, 1 + sample.poisson(profile.batchSize)) : 0;
@@ -288,7 +290,7 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     evals: [{ id: "behavior-preserved", answer: passed ? "YES" : "NO", runId: String(runId),
       timestamp: completedAt, experimentId: "review-strategy", variant: candidate ? "focused" : "baseline" }],
   };
-  if (pending || approvalRequired || outcome === "cancelled") {
+  if (pending || approvalRequired || outcome === "cancelled" || outcome === "timed_out") {
     run.safe_outputs = [];
     run.safe_items_count = 0;
     run.graders = { results: [] };
@@ -297,36 +299,21 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     run.graders = { results: [] };
     run.evals = [];
   }
-  // Routing samples use gh-aw's actual unified-session parser, never canonical-row fixtures.
-  const events = [
-    { type: "session.format", data: { version: 1 } },
-    { type: "workflow.info", data: { runId: String(runId), engineId: "copilot", model } },
-    { type: "model.config", data: { routing: { enabled: true } } },
-    { type: "firewall.model_routing", data: { stage: "selection", selectedModel: model, selectedEffort: "high",
-      eligibleChoices: 3, catalogueOverlap: 3, mode: "balanced",
-      labels: { task_type: "coding", scope: "repository", task_complexity: complexity > 1.5 ? "high" : "medium" } } },
-    { type: "firewall.model_routing", data: { stage: "request", requestId: `request-${runId}`,
-      requestedModel: model, selectedModel: model, routed: failed ? "deviated" : "as_selected", outcome: failed ? "failed" : "success" } },
-    { type: "firewall.token_usage", data: { requestId: `request-${runId}`, model, aic,
-      usage: { inputTokens: tokens.total_input_tokens, outputTokens: tokens.total_output_tokens } } },
-    ...toolCalls.map(call => ({ type: "mcp.tool_call", timestamp: call.timestamp, data: {
-      serverName: call.server_name, toolName: call.tool_name, toolCallId: call.tool_call_id,
-      status: call.status === "failure" ? "error" : "success", inputSize: call.input_size, outputSize: call.output_size,
-      durationMs: Math.round(sample.lognormal(150 * complexity, 0.6)),
-    } })),
-    ...skillActivations.flatMap(skill => Array.from({ length: skill.invocation_count },
-      () => ({ type: "skill.invoked", timestamp: skill.timestamp, data: { name: skill.name, source: skill.source } }))),
-    ...safeOutputs.map(output => ({ type: "safe_output.result", timestamp: output.timestamp,
-      data: { type: output.type, repo: output.repo, number: output.number, url: output.url } })),
-    { type: "firewall.http_access", data: { host: "api.github.com", method: "GET", status: 200, bytes: 1200, durationMs: 40 } },
-    { type: "workflow.job_result", data: { jobId: "agent", result: pending ? "in_progress" : run.conclusion } },
-    { type: "session.collection", data: { sources: [{ component: "firewall", phase: "agent", path: "firewall/token-usage.jsonl", events: 1 }] } },
-  ].map(event => ({ ...event, timestamp: event.timestamp ?? completedAt,
-    provenance: { phase: event.type === "session.collection" ? "conclusion" : "agent" } }));
+  if (approvalRequired) {
+    run.token_usage_summary = Object.fromEntries(Object.keys(tokens).map(key => [key, 0]));
+    run.mcp_tool_usage.tool_calls = [];
+    run.skill_activations = [];
+    run.firewall_analysis.requests_by_domain = {};
+    run.github_api_calls = 0;
+    run.friction = { ...run.friction, total_events: 0, total_occurrences: 0, counted_occurrences: 0,
+      linked_invocations: 0, total_run_aic: 0, friction_ratio: 0,
+      cost: { aic: 0, tokens: { input: 0, output: 0, total: 0 }, turns: 0, tool_calls: 0, latency_ms: 0 } };
+  }
+  const events = enterpriseSessionEvents(run, distributionFor(`${repository}:${runId}:session`), complexity);
   const session = parseUnifiedSessionDocument(events.map(event => JSON.stringify(event)).join("\n"),
     "usage/aw_session.jsonl", { runId: String(runId), attempt: 1 });
   // Match the production session envelope; lifecycle observations remain separate.
-  if (sample.random() < 0.5) run.cao_unified_session = { version: 1, path: "usage/aw_session.jsonl", ...session };
+  run.cao_unified_session = { version: 1, path: "usage/aw_session.jsonl", ...session };
   return run;
 }
 
@@ -413,7 +400,7 @@ function valueSample(repository, workflow, now, profile) {
 }
 
 export const enterpriseDemo = Object.freeze({
-  version: 2, repositories: 10_000, campaigns: 3, installedWorkflows: 200,
+  version: 4, repositories: 10_000, runs: 20_000, campaigns: 3, installedWorkflows: 200,
   activeRepositories: 12, installedRepositories: 50,
 });
 
@@ -451,51 +438,101 @@ export function enterpriseMemory(now) {
   });
 }
 
-export function enterpriseSample(now, { start = 0, count = 12, includeHistory = true } = {}) {
+function activitySchedule(now, totalRuns) {
+  if (!Number.isSafeInteger(totalRuns) || totalRuns < 0) throw new TypeError("Synthetic run count must be a non-negative safe integer.");
+  const slots = [];
+  for (let coordinate = 0; coordinate < enterpriseDemo.activeRepositories; coordinate++) {
+    const repository = enterpriseRepository(coordinate);
+    const department = ["commerce", "platform", "analytics", "workplace"][Math.floor(coordinate / 3) % 4];
+    const service = ["api", "web", "infrastructure"][coordinate % 3];
+    const profile = repositoryProfile(repository, department, service);
+    for (const [index, workflow] of workflows.entries()) {
+      const behavior = workflowProfile(repository, workflow, profile);
+      for (let day = 0; day < runHistoryDays; day++) {
+        const sample = distributionFor(`${repository}:${workflow.id}:${day}:cadence`);
+        const date = Math.floor(now / dayMs) * dayMs - day * dayMs;
+        const weekday = new Date(date).getUTCDay();
+        const weekdayWeight = weekday === 0 || weekday === 6 ? 0.3 : 1.2;
+        const partialDay = day === 0 ? (now - date) / dayMs : 1;
+        const rate = behavior.activity * Math.min(3, sample.lognormal(1, 0.5)) * weekdayWeight
+          * (0.85 + (runHistoryDays - 1 - day) / 40) * partialDay;
+        slots.push({ coordinate, index, day, weight: sample.poisson(rate), count: 0, firstRunId: 0 });
+      }
+    }
+  }
+  const weight = slots.reduce((sum, slot) => sum + slot.weight, 0);
+  if (!weight) throw new Error("Synthetic activity schedule has no eligible run slots.");
+  for (const slot of slots) slot.count = Math.floor(totalRuns * slot.weight / weight);
+  const remainder = totalRuns - slots.reduce((sum, slot) => sum + slot.count, 0);
+  // Largest remainders preserve uneven cadence while meeting the exact enterprise budget.
+  const ranked = slots.toSorted((left, right) =>
+    totalRuns * right.weight % weight - totalRuns * left.weight % weight);
+  for (let index = 0; index < remainder; index++) ranked[index].count++;
+  let firstRunId = 1;
+  for (const slot of slots) {
+    slot.firstRunId = firstRunId;
+    firstRunId += slot.count;
+  }
+  return slots;
+}
+
+export function* enterpriseActivityBatches(now, { start = 0, count = 12, runs = enterpriseDemo.runs } = {}) {
+  const schedule = activitySchedule(now, runs);
+  let records = [];
+  let runCount = 0;
+  for (let coordinate = start; coordinate < Math.min(start + count, enterpriseDemo.activeRepositories); coordinate++) {
+    const department = ["commerce", "platform", "analytics", "workplace"][Math.floor(coordinate / 3) % 4];
+    const service = ["api", "web", "infrastructure"][coordinate % 3];
+    const repository = enterpriseRepository(coordinate);
+    const profile = repositoryProfile(repository, department, service);
+    for (const [index, workflow] of workflows.entries()) {
+      const behavior = workflowProfile(repository, workflow, profile);
+      for (let day = 0; day < runHistoryDays; day++) {
+        const slot = schedule[(coordinate * workflows.length + index) * runHistoryDays + day];
+        for (let ordinal = 0; ordinal < slot.count; ordinal++) {
+          if (runCount === 100) {
+            yield { records, runs: runCount };
+            records = [];
+            runCount = 0;
+          }
+          const run = runSample(repository, workflow, index, slot.firstRunId + ordinal, day, ordinal, now, behavior);
+          runCount++;
+          records.push({ schema_version: 2, kind: "run", run },
+            ...run.safe_outputs.map(output => ({ schema_version: 2, kind: "safe_output_item",
+              safe_output: { ...output, run_id: run.run_id } })));
+        }
+      }
+      records.push(...valueSample(repository, workflow, now, behavior));
+    }
+  }
+  if (records.length) yield { records, runs: runCount };
+}
+
+export function enterpriseSample(now, { start = 0, count = 12, includeHistory = true, runs = enterpriseDemo.runs } = {}) {
   const generatedAt = new Date(now).toISOString();
   const sources = {};
   const records = [];
-  let runId = start * 100_000;
-  let runs = 0;
+  let runCount = 0;
   let repositoryCount = 0;
   for (let coordinate = start; coordinate < start + count; coordinate++) {
-      const department = ["commerce", "platform", "analytics", "workplace"][Math.floor(coordinate / 3) % 4];
-      const service = ["api", "web", "infrastructure"][coordinate % 3];
-      const repository = enterpriseRepository(coordinate);
-      const profile = repositoryProfile(repository, department, service);
-      const inventory = inventoryFor(repository, coordinate, generatedAt);
-      repositoryCount++;
-      for (const [name, source] of Object.entries(inventory)) {
-        sources[name] ??= { ...source, rows: [], metadata: {
-          ...source.metadata, "source-kind": "synthetic", "collection-operation": "synthetic-enterprise-demo",
-          "collection-reason": "Generated sample enterprise; not observed GitHub activity.",
-        } };
-        // Catalog and campaign identity is enterprise-wide, not per repository.
-        if (["campaigns", "marketplace-packages", "marketplace-registries", "configuration-policy"].includes(name) && repositoryCount > 1) continue;
-        sources[name].rows.push(...source.rows);
-      }
-      for (const [index, workflow] of workflows.entries()) {
-        if (!includeHistory || coordinate >= enterpriseDemo.activeRepositories) continue;
-        const behavior = workflowProfile(repository, workflow, profile);
-        for (let day = 0; day < runHistoryDays; day++) {
-          const sample = distributionFor(`${repository}:${workflow.id}:${day}:cadence`);
-          const date = Math.floor(now / dayMs) * dayMs - day * dayMs;
-          const weekday = new Date(date).getUTCDay();
-          const weekdayWeight = weekday === 0 || weekday === 6 ? 0.3 : 1.2;
-          const partialDay = day === 0 ? (now - date) / dayMs : 1;
-          const rate = behavior.activity * Math.min(3, sample.lognormal(1, 0.5)) * weekdayWeight
-            * (0.85 + (runHistoryDays - 1 - day) / 40) * partialDay;
-          const count = sample.poisson(rate);
-          for (let ordinal = 0; ordinal < count; ordinal++) {
-            const run = runSample(repository, workflow, index, ++runId, day, ordinal, now, behavior);
-            runs++;
-            records.push({ schema_version: 2, kind: "run", run },
-              ...run.safe_outputs.map(output => ({ schema_version: 2, kind: "safe_output_item",
-                safe_output: { ...output, run_id: run.run_id } })));
-          }
-        }
-        records.push(...valueSample(repository, workflow, now, behavior));
-      }
+    const repository = enterpriseRepository(coordinate);
+    const inventory = inventoryFor(repository, coordinate, generatedAt);
+    repositoryCount++;
+    for (const [name, source] of Object.entries(inventory)) {
+      sources[name] ??= { ...source, rows: [], metadata: {
+        ...source.metadata, "source-kind": "synthetic", "collection-operation": "synthetic-enterprise-demo",
+        "collection-reason": "Generated sample enterprise; not observed GitHub activity.",
+      } };
+      // Catalog and campaign identity is enterprise-wide, not per repository.
+      if (["campaigns", "marketplace-packages", "marketplace-registries", "configuration-policy"].includes(name) && repositoryCount > 1) continue;
+      sources[name].rows.push(...source.rows);
+    }
   }
-  return { generatedAt, sources, records, repositories: repositoryCount, runs, memory: enterpriseMemory(now) };
+  if (includeHistory) {
+    for (const batch of enterpriseActivityBatches(now, { start, count, runs })) {
+      records.push(...batch.records);
+      runCount += batch.runs;
+    }
+  }
+  return { generatedAt, sources, records, repositories: repositoryCount, runs: runCount, memory: enterpriseMemory(now) };
 }

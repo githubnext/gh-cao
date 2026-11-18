@@ -14,6 +14,23 @@ vi.mock('../../src/data/demo/sample.mjs', async (importOriginal) => {
     ...actual,
     enterpriseDemo: { ...actual.enterpriseDemo, repositories: 2_101, installedRepositories: 1 },
     enterpriseRepositorySources: vi.fn(actual.enterpriseRepositorySources),
+    enterpriseActivityBatches: function* (/** @type {number} */ now, /** @type {Parameters<typeof actual.enterpriseSample>[1]} */ options) {
+      const sample = actual.enterpriseSample(now, { ...options, runs: 1_200 });
+      // Exercise full production sessions and their children without replaying
+      // three weeks of history on every batching/resume/reset assertion.
+      const runs = sample.records.filter(record => record.kind === 'run');
+      const selected = new Set([
+        runs.find(record => record.run.safe_outputs.length > 0),
+        runs.find(record => record.run.conclusion === 'failure'),
+        runs.find(record => record.run.status !== 'completed')
+      ].filter(record => record !== undefined).map(record => record.run.run_id));
+      yield {
+        runs: selected.size,
+        records: sample.records.filter(record => record.kind === 'run'
+          ? selected.has(record.run.run_id)
+          : record.kind === 'safe_output_item' ? selected.has(record.safe_output.run_id) : true)
+      };
+    },
   };
 });
 
@@ -57,7 +74,9 @@ describe('worker-owned synthetic enterprise population', () => {
     expect((await readCollection(indexedDB, 'repositories')).length).toBe(2_101);
     const clean = new IDBFactory();
     await synthesizeEnterpriseDemo(clean, { now: tomorrow });
-    for (const collection of /** @type {const} */ (['runs', 'tools', 'issues', 'outputLifecycles', 'operationalValues'])) {
+    expect(await readCollection(indexedDB, 'audits')).not.toHaveLength(0);
+    expect(await readCollection(indexedDB, 'outputLifecycles')).not.toHaveLength(0);
+    for (const collection of /** @type {const} */ (['runs', 'audits', 'tools', 'issues', 'outputLifecycles', 'operationalValues'])) {
       expect(await readCollection(indexedDB, collection)).toEqual(await readCollection(clean, collection));
     }
     const manifest = syntheticMemoryManifest(['dependency-health']);

@@ -8,8 +8,10 @@ import { IDBFactory } from "fake-indexeddb";
 import {
   assertSafePagesOutput, parsePagesArguments, prepareDashboardPages,
 } from "../../scripts/simulate-dashboard-pages.mjs";
-import { ingestCachedGhAwJsonl, ingestDashboardSources, ingestDashboardSourceBatches } from "../../dashboard/site/src/data/ingest/coordinator.js";
-import { enterpriseDemo, enterpriseRepositorySources, enterpriseSample } from "../../scripts/dashboard-demo-data.mjs";
+import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSources, ingestDashboardSourceBatches } from "../../dashboard/site/src/data/ingest/coordinator.js";
+import {
+  enterpriseActivityBatches, enterpriseDemo, enterpriseRepositorySources, enterpriseSample as generateEnterpriseSample,
+} from "../../scripts/dashboard-demo-data.mjs";
 import { demoSha256 } from "../../dashboard/site/src/data/demo/hash.mjs";
 import { loadDashboardSourceSync } from "../../dashboard/report/bundle-dashboards.mjs";
 import { queryDatabaseSources } from "../../dashboard/site/src/data/queries/database.js";
@@ -19,6 +21,26 @@ import { readCollection } from "../../dashboard/site/src/data/storage/indexeddb.
 import { isExpiredCanonicalRecord } from "../../dashboard/site/src/data/storage/retention.js";
 
 const root = path.resolve(".");
+const enterpriseSample = (now, options = {}) => generateEnterpriseSample(now, { runs: 1_200, ...options });
+
+test("the default enterprise sample streams exactly 20,000 distinct runs in bounded batches", () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const ids = new Set();
+  let runs = 0;
+  for (const batch of enterpriseActivityBatches(now)) {
+    assert.ok(batch.runs <= 100, "normalization batches stay within the existing query budgets");
+    const records = batch.records.filter(record => record.kind === "run");
+    assert.equal(records.length, batch.runs);
+    for (const { run } of records) ids.add(run.run_id);
+    runs += batch.runs;
+  }
+  assert.equal(runs, 20_000);
+  assert.equal(ids.size, 20_000);
+  const combined = enterpriseSample(now, { count: 2 }).records.filter(record => record.kind === "run");
+  const partitioned = [0, 1].flatMap(start => enterpriseSample(now, { start, count: 1 }).records)
+    .filter(record => record.kind === "run");
+  assert.deepEqual(combined, partitioned, "worker repository partitions preserve run and session identities");
+});
 
 test("browser sample SHA-256 matches standard UTF-8 hashing across block boundaries", () => {
   for (const input of ["", "abc", "👩🏽‍💻 synthetic enterprise", "a".repeat(55), "b".repeat(64), "c".repeat(1_000)]) {
@@ -179,6 +201,92 @@ test("probabilistic outcomes preserve timestamps, output eligibility and delayed
   assert.ok(changes.some(change => change > 0) && changes.some(change => change < 0));
 });
 
+test("synthetic unified sessions conserve usage across turns and phases without inventing terminal evidence", () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const runs = enterpriseSample(now).records.filter(record => record.kind === "run").map(record => record.run);
+  const turns = new Set();
+  for (const run of runs) {
+    const session = run.cao_unified_session;
+    assert.ok(session, "every sample uses the production unified-session parser");
+    const events = session.events;
+    const pending = run.status !== "completed";
+    const approval = run.conclusion === "action_required";
+    const interrupted = pending || ["cancelled", "timed_out"].includes(run.conclusion);
+    const requests = events.filter(event => event.type === "firewall.token_usage" && event.fields.phase === "agent");
+    if (approval) {
+      assert.equal(events.some(event => event.type === "session.start"), false);
+      assert.equal(events.some(event => event.type === "firewall.token_usage"), false);
+      assert.equal(run.token_usage_summary.total_aic, 0);
+    } else {
+      assert.ok(events.some(event => event.type === "session.start"));
+      assert.ok(requests.length >= 2 && requests.length <= 20);
+      turns.add(requests.length);
+      assert.ok(requests[0].fields.inputTokens > requests[1].fields.inputTokens, "initial prompt dominates uncached input");
+      assert.equal(requests[0].fields.cacheReadTokens, 0);
+      assert.ok(requests.at(-1).fields.cacheReadTokens > 0, "later turns reuse context");
+      for (const [field, value] of Object.entries(run.token_usage_summary)) {
+        assert.ok(Math.abs(value - session.run.token_usage_summary[field]) < 1e-8,
+          `${field} conserves totals despite proxy/report/snapshot copies`);
+      }
+    }
+    assert.equal(events.some(event => event.type === "session.result"), !approval && !interrupted);
+    assert.equal(events.some(event => event.type === "detection.result"), !approval && !interrupted);
+    assert.equal(events.some(event => event.type === "session.collection"), !pending);
+    if (pending) {
+      assert.equal(events.some(event => event.type === "session.shutdown"), false);
+      assert.equal(events.some(event => event.type === "workflow.job_result" && event.fields.name === "agent"), false);
+    }
+    for (const event of events) {
+      if (event.timestamp) {
+        assert.ok(Date.parse(event.timestamp) >= Date.parse(run.started_at));
+        assert.ok(Date.parse(event.timestamp) <= Date.parse(run.updated_at));
+      }
+    }
+    const tools = events.filter(event => ["tool.execution_start", "mcp.tool_call"].includes(event.type));
+    assert.equal(tools.reduce((sum, event) => sum + event.fields.invocationCount, 0), run.mcp_tool_usage.tool_calls.length);
+    for (const call of tools.filter(event => event.type === "tool.execution_start")) {
+      assert.ok(events.some(event => event.type === "tool.execution_complete"
+        && event.fields.correlationId === call.fields.correlationId));
+    }
+    const outputs = events.filter(event => event.type === "safe_output.result");
+    assert.equal(outputs.length, run.safe_outputs.length);
+    if (outputs.length) assert.equal(run.conclusion, "success");
+    assert.ok(events.length < 500, "bounded per-run event population");
+  }
+  assert.ok(turns.size >= 10, "session length follows heterogeneous work rather than a fixed template");
+});
+
+test("unified demo telemetry survives canonical ingestion with exact run accounting", async () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const population = enterpriseSample(now).records.filter(record => record.kind === "run");
+  const records = ["success", "failure", "pending", "action_required", "timed_out", "cancelled"]
+    .map(outcome => population.find(record => record.run.classification === outcome
+      && Date.parse(record.run.started_at) >= now - 6 * 86_400_000));
+  const resolution = population.find(record => record.run.cao_unified_session.events
+    .some(event => event.type === "model.resolution") && Date.parse(record.run.started_at) >= now - 6 * 86_400_000);
+  if (!records.includes(resolution)) records.push(resolution);
+  assert.ok(records.every(Boolean));
+  const indexedDB = new IDBFactory();
+  await ingestCachedGhAwJsonl(indexedDB, records.map(record => JSON.stringify(record)).join("\n"), { now });
+  const canonical = await readCollection(indexedDB, "runs");
+  assert.equal(canonical.length, records.length);
+  for (const { run } of records) {
+    const actual = canonical.find(row => row.githubRunId === String(run.run_id));
+    assert.ok(actual);
+    for (const [field, source] of Object.entries({ inputTokens: "total_input_tokens", outputTokens: "total_output_tokens",
+      cacheReadTokens: "total_cache_read_tokens", cacheWriteTokens: "total_cache_write_tokens",
+      reasoningTokens: "total_reasoning_tokens", aicTotal: "total_aic" })) {
+      assert.ok(Math.abs(actual[field] - run.token_usage_summary[source]) < 1e-8, `${field} round trips`);
+    }
+  }
+  const audits = await readCollection(indexedDB, "audits");
+  for (const type of ["session.start", "assistant.message", "session.result", "model.resolution", "detection.result"]) {
+    assert.ok(audits.some(row => row.type === type), `${type} passes through production ingestion`);
+  }
+  const domains = await readCollection(indexedDB, "domains");
+  assert.ok(domains.some(row => row.type === "firewall.http_access" && row.responseBytes > 0 && row.latencyMs > 0));
+});
+
 test("rebuilding the enterprise sample does not duplicate daily Value observations", async () => {
   const indexedDB = new IDBFactory();
   const now = Date.parse("2040-06-15T12:00:00.000Z");
@@ -259,7 +367,16 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   assert.equal(inventory.workflows.metadata["as-of"], new Date(now).toISOString());
   const indexedDB = new IDBFactory();
   await ingestDashboardSources(indexedDB, inventory, { now, deferMaintenance: true });
-  await ingestCachedGhAwJsonl(indexedDB, sample.records.map(record => JSON.stringify(record)).join("\n"), { now });
+  const repositories = Object.groupBy(sample.records, record => record.run?.repository ?? record.safe_output?.repo
+    ?? record.operational_value?.repository ?? record.operational_value_evidence?.repository
+    ?? record.workflow_value_collection?.repository);
+  for (const [repository, records] of Object.entries(repositories)) {
+    assert.notEqual(repository, "undefined", "every raw sample has an owning repository");
+    await ingestCachedGhAwJsonl(indexedDB, records.map(record => JSON.stringify(record)).join("\n"), {
+      now, deferMaintenance: true, payloadScope: `synthetic-demo-test/${repository}`,
+    });
+  }
+  await finalizeNormalizedJsonlIngestion(indexedDB, { now });
   const runs = await readCollection(indexedDB, "runs");
   assert.equal(runs.length, sample.runs);
   assert.equal(marker.repositories, 10_000);
