@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T09:33:57Z",
-   "worker_run_id": "44276562215",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44254629254..43840581457 (cancelled 43991812013 excluded, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879). gh run list 09:33Z: no docs run newer than 44254629254; HEAD 5d00b89 = source_sha. Recomputed from stored run_timings (no refetch): build docs step (docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery) median 11 s, p90 15 nearest-rank, min 9, max 15; push-only median 13 s, p90 15. Exec median 76 s (push 78 s). Whole-step removal ceiling 11 s (push 13 s) vs 15 percent gate 11.4 s (push 11.7 s) and 60 s gate: unmet. docs:build is strictly serial, so split or parallelization saves nothing; an Astro cache restore would save only a fraction of the astro build while adding an actions/cache step. Output reuse still blocked (PUBLIC_PAGES_BUILD_COMMIT provenance). Repeat of window evaluated at 07:54Z; no suggestion; noop; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T09:52:04Z",
    "worker_run_id": "44279436103",
@@ -847,6 +819,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. Live gh run list at 2026-11-18T20:52:03Z: no newer, queued, or in-progress docs run; local HEAD 7145c59 = source_sha. Live caches API: node-cache-Linux-x64-npm-7808ecf8 still live (created 2026-11-13T20:57:12Z, 263412733 B, last accessed 20:43:46Z, no save since), so every window run is an exact-key restore hit. Recomputed from stored immutable run_timings (no job or log refetch; nearest-rank p90, n=20): setup-node median 3 s (p90 5), install median 10 s (p90 12), post median 0 s (p90 0); setup+install+post median 13 s (p90 17) = 16.5 percent of exec median 79 s (p90 108). Install-only ceiling 10 s = 12.7 percent; 15 percent gate 11.85 s and 60 s gate unmet. Whole phase not removable (npm ci required by docs build and dashboard Pages build; Node 24 pin). node_modules cache net 3-6 s (unmeasured) stays below gate and adds stale-dependency risk. Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T21:17:03Z",
+   "worker_run_id": "44399242900",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509..43991897672 (cancelled 43991812013 excluded, 0 jobs); 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 21:17Z: no docs run newer than 44357668509, none queued or in progress; HEAD 7145c59 = source_sha, so window identical to the 18:20Z Astro evaluation. Recomputed from stored run_timings (no refetch): build docs step median 13 s, p90 15 nearest-rank, min 8, max 16; push-only median 14 s; exec median 79 s (p90 108); 15 percent gate 11.85 s and 60 s gate unmet; build docs = 16.5 percent of exec median. Bound: docs:build = astro build + validate-agent-docs + node --test, and both validators read dist/ that deploy requires, so the validators cannot be removed; an Astro-only change can save at most the Astro build share minus cache-step overhead, so reaching 11.85 s would require eliminating about 91 percent of the step. Sub-step split unmeasured (job log reads HTTP 403 DIFC, not bypassed). Astro output reuse still blocked (PUBLIC_PAGES_BUILD_COMMIT provenance). Open issues: only #20815 (checkout, other category, OPEN, 0 comments, unchanged since 2026-11-13); no open Astro issue. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -960,6 +961,10 @@
   {
    "observed_at": "2026-11-18T17:35:00Z",
    "note": "Run 44357668509 (push 7145c59) checkout 54 s, single sample (window median 24 s, p90 31 s; prior max 53 s in 44323919922). Checkout is outside the scheduling cycle and covered by open #20815, not re-proposed."
+  },
+  {
+   "observed_at": "2026-11-18T21:17:03Z",
+   "note": "Open dependabot task #20877 (root npm astro family, updated 2026-11-18T04:41Z) may change Astro build time when merged; re-verify the Astro bound on the next window that includes an Astro upgrade. Stale queued run 37642403569 not re-checked this cycle."
   }
  ],
  "run_timings": {
