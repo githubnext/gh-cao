@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T11:18:00Z",
-   "worker_run_id": "44292852089",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254..43840581457 (cancelled 43991812013 excluded, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 11:17Z: no docs run newer than 44254629254, none queued or in progress; HEAD 5d00b89 = source_sha, docs.yml trigger paths unchanged. Recomputed from stored immutable run_timings (no refetch): build docs step (docs:build = astro build, validate-agent-docs, node --test agent-docs-discovery) median 11 s, p90 15 nearest-rank, min 9, max 15; push-only median 13 s, p90 15; exec median 76 s (p90 82), push 78 s. 15 percent gate 11.4 s (push 11.7 s) and 60 s gate unmet; whole-step removal ceiling 11 s (push 13 s). Live Jobs API spot-check of 44254629254 matched (build docs 15 s). Validation reads dist/ from astro build, so the chain is serial; sub-step split unmeasurable from Jobs API; splitting into a parallel job repeats checkout and install (about 34 s) for at most a few seconds of saving. Output reuse still blocked (PUBLIC_PAGES_BUILD_COMMIT provenance). Open #20815 (checkout, other category, OPEN, 0 comments, unchanged) not repeated; no open issue for this category. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T11:33:06Z",
    "worker_run_id": "44295159862",
@@ -852,6 +824,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded (outside window); 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list at evaluation: no docs run newer than 44357668509, none queued or in progress; main HEAD 7145c59 = source_sha. Cache: node-cache-Linux-x64-npm-7808ecf8 still live (created 2026-11-13T20:57:12Z, 263412733 B, no save since creation, last accessed 22:28:36Z); package-lock.json and dashboard/site/package-lock.json last changed 7c8faf4 (2026-11-13), so the key is unchanged and every window run is an exact-key hit. Jobs API spot check 44357668509 matched stored row (setup 6, install 11, post 0, build docs 12, demo 3, upload 3, deploy 10). Recomputed from stored run_timings (no refetch; nearest-rank p90, n=20): setup-node median 3 s p90 5; install median 10 s p90 12 (min 5, max 12); post median 0; setup+install+post median 13 s p90 17 = 16.5 percent of exec median 79 s (p90 108). 15 percent gate 11.85 s and 60 s gate unmet; install-only ceiling 10 s = 12.7 percent. Setup-node (pinned Node 24) and npm ci are required before astro build, so the phase is not removable without weakening correctness; a node_modules cache would net about 3-6 s (unmeasured) and stays below gate. Checkout (median 24 s) is outside this category and covered by open #20815, not repeated. Identical window to the 17:52Z, 20:52Z and 22:20Z evaluations; re-verified, not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T22:55:00Z",
+   "worker_run_id": "44415141553",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59) .. 43991897672 (push 51facb5); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live 22:52Z: no docs run newer than 44357668509, none queued or in progress; main = source_sha 7145c59; last docs.yml commit 063cbe9 (2026-11-12) predates window. Recomputed from stored run_timings (no refetch): build docs step median 13 s, p90 15, min 8, max 16 (push-only median 14 s); exec median 79 s (p90 108); 15 percent gate 11.85 s and 60 s gate unmet; step = 16.5 percent of exec median, so the gate needs about 91 percent of the step removed. Validators read dist/ that deploy needs; Astro output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT; sub-step split unmeasurable (job logs HTTP 403 DIFC, not bypassed). Open campaign issues: only #20815 (checkout, other category, OPEN, 0 comments, unchanged since 2026-11-13); no open Astro issue. No suggestion; noop; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
   }
  ],
