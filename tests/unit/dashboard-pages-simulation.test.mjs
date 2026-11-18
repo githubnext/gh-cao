@@ -449,14 +449,14 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   assert.match(html, /dashboard-deployment" content="synthetic-demo"/);
   assert.match(html, /connect-src 'self'/);
   assert.ok(!names.includes("demo-data"), "build must not pregenerate demo data or manifests");
-  const sample = enterpriseSample(now, { count: 50, runs: 600 });
+  const sample = enterpriseSample(now, { count: 50 });
   const inventory = sample.sources;
   assert.equal(inventory.workflows.metadata["source-kind"], "synthetic");
   assert.equal(inventory.workflows.metadata["as-of"], new Date(now).toISOString());
   const indexedDB = new IDBFactory();
   await ingestDashboardSources(indexedDB, inventory, { now, deferMaintenance: true });
   let batchIndex = 0;
-  for (const batch of enterpriseActivityBatches(now, { repositories: 12, runs: 600 })) {
+  for (const batch of enterpriseActivityBatches(now, { repositories: 12, runs: sample.runs })) {
     await ingestCachedGhAwJsonl(indexedDB, batch.records.map(record => JSON.stringify(record)).join("\n"), {
       now, deferMaintenance: true, payloadScope: `synthetic-demo-test/activity/${batchIndex}`,
     });
