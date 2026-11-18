@@ -1531,7 +1531,7 @@ A smell row identifies one detected condition with a stable `smell-id` and uniqu
 The optional table-column field `display` is `text`, `status`, `grader-status`, `mode`, `active-state`, `label`, `ref`, `digest`, `outcome-link`, `run-link`, `repository-link`, `workflow-link`, or `evidence-link` and defaults to `text`. It selects presentation independently from the field name. The optional table-column field `filter` is boolean and defaults to `true`; `false` excludes the column from interactive facet filters without changing its display or sorting. Named UI element values are `campaign-route`, `workflow-route-page`, `outcome-detail`, `outcome-detail-section`, `problem-detail`, `entity-route`, `configuration-policy`, `measure-history`, `factory-header`, `factory-floor`, `link-button-list`, and `markdown`; renderers dispatch these values without inferring behavior from page IDs, view IDs, or source contents.
 
 A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. Toolbar `verb: add` actions share the chrome **+** menu, keeping approval and capability checks. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
-The dashboard may declare at most 24 CLI actions. This authoring bound does not
+The dashboard may declare at most 26 CLI actions. This authoring bound does not
 grant execution authority or change command-service allowlists.
 
 CLI command text supports literal `{{field}}` substitutions, not expressions or
@@ -1584,8 +1584,12 @@ Local repository maintenance provides separate Repository, Workflow, and
 Campaign pages under the **Updates** navigation section, each with its own
 navigation entry and evidence-backed update indicator.
 Each page is a full-view lazy card list over bounded query pages (10,000+
-repositories); scrolling or **Load more** fetches more. Per-row maintenance keeps
-exact targets and approval; fleet-wide updates belong in the CLI.
+repositories); scrolling or **Load more** fetches more. Per-row and selected-batch
+maintenance keep exact targets and approval. Selection exposes Update, Enable,
+and Disable through the same declared row commands. Workflow enablement does not
+change CAO policy, rollout, or live authority. Native enable/disable remains
+limited to the explicitly selected local repository scope; managed update scope
+does not extend it, and the hosted executor's allowlist is unchanged.
 A break operation uses the existing disable command, not a new
 CLI verb: gh-aw disable cancels in-progress runs before disabling future runs,
 whereas campaign policy disable leaves active runs running. Exact repository
@@ -1679,6 +1683,46 @@ The Issues view declares separate Labels and Status dropdowns in the declarative
 In full-view card mode, the shared filter row stays above the independently scrolling cards. Desktop uses compact Primer dropdown buttons; mobile uses touch-sized rounded controls and grouped options with explicit apply and clear actions.
 
 An entity-card list may set `lazy-list: true` to request bounded canonical query pages and append cards as the load boundary approaches the viewport. An accessible **Load more** button remains available without an intersection observer; failed requests expose a manual retry. Existing cards retain focus and identity, and detaching the owning view disconnects its observer and ignores late responses. This changes presentation and transport only, not query ordering, filtering, or evidence completeness.
+
+A lazy entity-card list may declare `list.selection`:
+
+```json
+{
+  "key": ["repository-coordinate", "workflow"],
+  "commands": ["update-workflow-source", "enable-workflow", "disable-workflow"]
+}
+```
+
+`key` is a non-empty sequence of unique source field names whose non-empty string
+or finite numeric values identify each result uniquely. `commands` is a required,
+non-empty sequence of unique action IDs from the referenced card template's
+`actions`, in toolbar order. Context and `when` conditions are reused unchanged;
+selection must not invent a command mapping or widen row eligibility.
+
+The shared **Select items** toggle enters checkbox mode. Each rendered card has
+an independently operable checkbox, and **Select all loaded items** selects only
+the cards already rendered, not unseen buffered rows or later pages. When all
+loaded items are checked, a compact **Select all N** control selects the entire
+remaining filtered query (or **Select all results** if no total is available).
+It follows the existing view-bound canonical continuation, retaining route,
+global and local filters, search, ordering, and authored query limits. It does
+not issue an unscoped query, derive source rows in JavaScript, or render every
+selected card. Loading more cards does not implicitly select them unless they
+were already included in full-query selection. Individual deselection and
+**Clear selection** remain available.
+
+Commands appear only in checkbox mode and reuse the exact-target batch approval
+dialog, including boolean arguments, capability checks, and independent queue
+admission. A command is disabled if any selected row fails its row-action
+condition or lacks valid context. Unknown/unavailable evidence, invalid or
+duplicate keys, failed/stale continuation, and mismatched totals fail closed;
+partial evidence warns that only the explicitly listed targets are included.
+Full-query selection is applied atomically after every page succeeds. A failure
+preserves the prior explicit selection and exposes a retryable error; it never
+approves the loaded page as if it were the full query. Leaving checkbox mode
+clears selection. Source refresh or a changed query context creates a new
+selection lifetime, discarding stale selected rows and approvals. Detaching the
+view ignores late selection results.
 
 A table with `lazy-list: true` may declare `encoding.card` as a reusable dashboard card-template identifier to present its rows as cards at every viewport width, rather than only in responsive card mode. Other marks, non-lazy tables, and unknown template references fail validation. The declared columns still define the view payload and available card fields; lazy-list pagination and explicit card drill behavior remain unchanged. The Commands table uses this presentation, with its durable command route opening the interaction-only `command-terminal` element as a modal console log. Closing or escaping the console returns to Commands and detaches output without cancelling execution; cancellation and retry remain separate explicit controls.
 

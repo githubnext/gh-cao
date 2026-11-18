@@ -2664,7 +2664,8 @@ function renderCustomViewContent(pageId, view, index, sources, units, cardTempla
         const next = await sourcePage.load(token);
         return {
           rows: next?.rows ?? [],
-          continuationToken: next?.continuationToken
+          continuationToken: next?.continuationToken,
+          metadata: next?.metadata
         };
       }
     } : undefined

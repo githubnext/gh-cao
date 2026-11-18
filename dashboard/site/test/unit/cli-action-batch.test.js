@@ -170,6 +170,8 @@ it('binds campaign updates to separate scoped CLI commands', async () => {
   if (!root) throw new Error('Missing campaign action');
   document.body.append(root);
   /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-trigger')).click();
+  expect(queue.enqueue).not.toHaveBeenCalled();
+  /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-confirm')).click();
   await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledTimes(2));
   expect(window.location.hash).toBe('');
   expect(queue.enqueue.mock.calls.map(([payload]) => payload.values)).toEqual(targets);

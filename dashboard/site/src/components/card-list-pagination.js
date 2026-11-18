@@ -20,17 +20,41 @@ const restorers = new WeakMap();
  */
 export function enableCardListPagination(section, { rows, renderItems, continuation }) {
   const list = section.querySelector('.entity-card-list');
-  if (!list || (rows.length <= CONTINUATION_PAGE_SIZE && !continuation?.token)) return;
+  if (!list) return;
   const scope = createFactoryScope();
   scope.bind(section);
   const button = /** @type {HTMLButtonElement} */ (h('button', { type: 'button', className: 'entity-card-list-load-more' }, 'Load more'));
   const status = h('span', { className: 'entity-card-list-load-status', role: 'status' });
   const boundary = h('li', { className: 'entity-card-list-boundary', 'data-card-list-boundary': '' }, button, status);
-  list.append(boundary);
-  let buffer = rows;
+  if (rows.length > CONTINUATION_PAGE_SIZE || continuation?.token) list.append(boundary);
+  const buffer = [...rows];
   let offset = Math.min(rows.length, CONTINUATION_PAGE_SIZE);
   let token = continuation?.token;
   const total = continuation ? continuation.totalRows : rows.length;
+  /** @type {Promise<void> | undefined} */
+  let fetching;
+  const consumed = new Set();
+  const fetchNext = () => {
+    if (fetching) return fetching;
+    if (!token || !continuation) return Promise.resolve();
+    const requested = token;
+    fetching = (async () => {
+      if (consumed.has(requested)) throw new Error('The query returned a repeated continuation token.');
+      const next = await continuation.load(requested);
+      if (scope.signal.aborted) throw new DOMException('The list was detached.', 'AbortError');
+      if (next.metadata && (next.metadata.availability !== 'available'
+        || !['complete', 'partial'].includes(next.metadata.completeness))) {
+        throw new Error('The next query page is unavailable or has unknown completeness.');
+      }
+      if (next.continuationToken === requested || next.rows.length === 0 && next.continuationToken) {
+        throw new Error('The query continuation made no progress.');
+      }
+      consumed.add(requested);
+      buffer.push(...next.rows);
+      token = next.continuationToken;
+    })().finally(() => { fetching = undefined; });
+    return fetching;
+  };
   const progress = state({
     phase: /** @type {'idle'|'loading'|'error'|'complete'} */ ('idle'),
     count: offset
@@ -58,11 +82,8 @@ export function enableCardListPagination(section, { rows, renderItems, continuat
     try {
       if (offset >= buffer.length && token && continuation) {
         fetchedPage = true;
-        const next = await continuation.load(token);
+        await fetchNext();
         if (scope.signal.aborted) return;
-        buffer = next.rows;
-        offset = 0;
-        token = next.continuationToken;
       }
       const nextRows = buffer.slice(offset, offset + CONTINUATION_PAGE_SIZE);
       boundary.before(...renderItems(nextRows, current.count));
@@ -98,6 +119,18 @@ export function enableCardListPagination(section, { rows, renderItems, continuat
     observer?.disconnect();
     restorers.delete(section);
   }, { once: true });
+  return {
+    async collectAll() {
+      while (token) {
+        if (scope.signal.aborted) throw new DOMException('The list was detached.', 'AbortError');
+        await fetchNext();
+      }
+      if (total !== undefined && buffer.length !== total) {
+        throw new Error('The complete query result count changed. Refresh the list before selecting all.');
+      }
+      return [...buffer];
+    }
+  };
 }
 
 /**

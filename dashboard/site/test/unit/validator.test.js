@@ -33,6 +33,27 @@ dashboard:
 `;
 
 describe('dashboard document validation', () => {
+  it('validates lazy selection identities and commands against the referenced card row contract', () => {
+    const document = JSON.parse(authoritativeDashboardSource);
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
+    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
+    const valid = structuredClone(view.list.selection);
+    for (const selection of [
+      { key: [], commands: valid.commands },
+      { key: ['missing'], commands: valid.commands },
+      { key: valid.key, commands: [] },
+      { key: valid.key, commands: ['enable-workflow'] },
+      { key: ['repository', 'repository'], commands: valid.commands },
+      { key: valid.key, commands: ['disable-repository-workflows', 'disable-repository-workflows'] },
+      { ...valid, unknown: true }
+    ]) {
+      view.list.selection = selection;
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    }
+    view.list.selection = valid;
+    view['lazy-list'] = false;
+    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+  });
   describe.each(['built-in', 'custom'])('%s page analysis contracts', (kind) => {
     it('validates explicit page help using the shared tooltip contract', () => {
       const document = JSON.parse(authoritativeDashboardSource);

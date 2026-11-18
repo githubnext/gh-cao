@@ -30,6 +30,24 @@ Full-view lazy card lists (`mark: list` with `list.style: entity-cards`, or `mar
 
 Example: the Repository maintenance (`#page-maintenance`) view filters `upgrade-state`, `workflow-state`, and `gh-aw-version` through the `maintenance-repository-*-options` queries.
 
+## Checkbox selection on lazy lists
+
+- For batch commands on a lazy entity-card list, declare `list.selection` with
+  `key` (unique source-backed identity fields, composite when necessary) and
+  `commands` (a required non-empty ordered list of card-template row action IDs).
+  Reuse each row action's context and condition; do not duplicate command text.
+- The shared renderer owns checkbox mode, individual selection, loaded-card
+  selection, and **Select all N** across the existing filtered canonical query
+  continuation. Do not select only the first page, issue an unscoped query, or
+  materialize off-screen cards to select the full query.
+- Keep command eligibility fail-closed for every selected row. Preserve partial
+  evidence warnings and the shared exact-command approval dialog. Selection
+  grants no execution, repository-scope, policy, or rollout authority.
+- Test loaded versus buffered/query-wide selection, composite identities,
+  deselection, paging failures and retry, conditions, detachment, and query
+  refresh. Source refresh intentionally resets selection rather than retaining
+  stale target contexts or approvals.
+
 ## Named UI elements
 
 - Register elements in `dashboard/site/src/components/ui-elements.js` and render only from the supplied `ElementRenderContext`.

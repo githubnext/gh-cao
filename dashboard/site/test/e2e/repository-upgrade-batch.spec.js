@@ -6,6 +6,74 @@ import { expect, test } from '@playwright/test';
 const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
+  test(`Updates checkbox selection follows the filtered query at ${width}px`, async ({ page }, testInfo) => {
+    test.setTimeout(120_000);
+    const preview = await startDashboardServer({
+      repository: 'acme/control',
+      prepareSnapshot: async (/** @type {string} */ destination) => {
+        const metadata = { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' };
+        await writeServerArtifact(destination, { sources: {
+          repositories: { metadata, rows: Array.from({ length: 63 }, (_, index) => ({
+            organization: 'octo', repository: `repo-${String(index).padStart(3, '0')}`
+          })) },
+          workflows: { metadata, rows: [61, 62].map((index) => ({
+            organization: 'octo', repository: `repo-${String(index).padStart(3, '0')}`,
+            workflow: 'review.md', 'workflow-active': 'true'
+          })) }
+        } });
+      }
+    });
+    try {
+      await page.setExtraHTTPHeaders(preview.headers);
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${preview.url}/#page-maintenance`);
+      const view = page.locator('[data-view-id="maintenance-repositories"]');
+      const stateFilter = view.locator('.card-filter-menu').filter({ has: page.locator('summary[id$="-state"]') });
+      await stateFilter.locator('summary').click();
+      await stateFilter.getByRole('checkbox', { name: 'Unknown', exact: true }).check();
+      await stateFilter.getByRole('button', { name: 'Apply filters', exact: true }).click();
+      const cards = view.locator('.entity-card-list-card');
+      await expect(cards).toHaveCount(25);
+      await view.getByRole('button', { name: 'Select items', exact: true }).click();
+      const first = cards.first().getByRole('checkbox');
+      await first.focus();
+      await page.keyboard.press('Space');
+      await expect(first).toBeChecked();
+      await expect(first).toBeFocused();
+      await expect(page).toHaveURL(/#page-maintenance$/);
+      await view.getByRole('checkbox', { name: 'Select all loaded items', exact: true }).check();
+      const controls = view.locator('.entity-card-selection-controls');
+      await expect(controls.getByRole('status')).toHaveText('25 selected');
+      await controls.getByRole('button', { name: 'Select all 61', exact: true }).click();
+      await expect(controls.getByRole('status')).toHaveText('61 selected');
+      await expect(cards).toHaveCount(25);
+      await view.getByRole('button', { name: 'Load more', exact: true }).click();
+      await expect(cards).toHaveCount(50);
+      await expect(cards.last().getByRole('checkbox')).toBeChecked();
+      await first.uncheck();
+      await expect(controls.getByRole('status')).toHaveText('60 selected');
+      const screenshot = testInfo.outputPath(`updates-selection-${width}.png`);
+      await page.screenshot({ path: screenshot, fullPage: true });
+      await testInfo.attach(`updates-selection-${width}`, { path: screenshot, contentType: 'image/png' });
+      await controls.getByRole('button', { name: 'Disable', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Approve Disable', exact: true });
+      await expect(dialog).toBeVisible();
+      const command = dialog.locator('.cli-action-command');
+      await expect(command).toContainText('gh aw disable --repo octo/repo-060');
+      await expect(command).not.toContainText('octo/repo-000');
+      await expect(command).not.toContainText('octo/repo-061');
+      await expect(command).not.toContainText('octo/repo-062');
+      expect((await command.textContent())?.split('\n')).toHaveLength(60);
+      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(controls.getByRole('button', { name: 'Disable', exact: true })).toBeFocused();
+      await view.getByRole('button', { name: 'Cancel selection', exact: true }).click();
+      await expect(first).not.toBeVisible();
+    } finally {
+      await page.goto('about:blank').catch(() => {});
+      await preview.close();
+    }
+  });
+
   test(`Updates lazily render full-view cards for a 10,000-repository fleet at ${width}px`, async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     const preview = await startDashboardServer({

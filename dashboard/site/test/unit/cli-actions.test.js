@@ -43,6 +43,27 @@ afterEach(() => {
 });
 
 describe('CLI actions', () => {
+  it('requires explicit batch approval even for row commands without boolean arguments', async () => {
+    setDeclaredCliActions([{
+      id: 'disable', label: 'Disable', icon: 'pause', placement: 'row',
+      command: 'gh aw disable --repo {{repository}}'
+    }]);
+    const root = renderDeclaredCliAction('disable', {}, {
+      rows: [{ repository: 'octo/one' }, { repository: 'octo/two' }],
+      fields: ['repository'], available: true
+    });
+    if (!root) throw new Error('Missing batch action');
+    document.body.append(root);
+    root.querySelector('.cli-action-trigger')?.dispatchEvent(new MouseEvent('click'));
+    expect(queue.enqueue).not.toHaveBeenCalled();
+    expect(root.querySelector('dialog')?.hasAttribute('open')).toBe(true);
+    root.querySelector('.cli-action-confirm')?.dispatchEvent(new MouseEvent('click'));
+    await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledTimes(2));
+    expect(queue.enqueue.mock.calls.map(([request]) => request.values.repository)).toEqual(['octo/one', 'octo/two']);
+    root.querySelector('.cli-action-confirm')?.dispatchEvent(new MouseEvent('click'));
+    expect(queue.enqueue).toHaveBeenCalledTimes(2);
+    root.remove();
+  });
   it('groups declared add actions in the chrome menu without executing before approval', () => {
     const dashboard = document.createElement('div');
     const chrome = document.createElement('div');
