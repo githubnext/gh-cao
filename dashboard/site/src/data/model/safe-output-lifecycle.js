@@ -1,7 +1,10 @@
+import { createDebug } from '../../debug.js';
 import { canonicalTimestamp, requiredString } from './schema.js';
 import registry from './safe-output-adoption-rules.json' with { type: 'json' };
 
 export const SAFE_OUTPUT_ADOPTION_RULE_VERSION = registry.version;
+
+const debugSafeOutputLifecycle = createDebug('safe-output-lifecycle');
 
 const RULES = new Map(registry.rules.map((rule) => [rule.type, Object.freeze({ ...rule })]));
 const FAILED_DELIVERY_STATES = new Set(['error', 'failure', 'failed', 'skipped']);
@@ -52,6 +55,11 @@ export function outputLifecycleId(runId, outputType, targetUrl, evidenceId) {
 export function evaluateSafeOutputDelivery(outputType, deliveredAt) {
   const rule = safeOutputAdoptionRule(outputType);
   if (!rule) {
+    debugSafeOutputLifecycle({
+      operation: 'evaluate-delivery',
+      status: 'unsupported-output-type',
+      ruleVersion: SAFE_OUTPUT_ADOPTION_RULE_VERSION
+    });
     return { state: 'unknown', signal: 'unsupported_safe_output', source: 'adoption-registry' };
   }
   if (!rule.attributionEligible) {
@@ -175,6 +183,11 @@ function adoptionAuthority(source) {
   return ADOPTION_SOURCE_AUTHORITY.get(String(source)) ?? 0;
 }
 
+/** @param {string} field @param {'identity' | 'evidence'} kind */
+function observeMergeConflict(field, kind) {
+  debugSafeOutputLifecycle({ operation: 'merge-output-lifecycle', status: 'conflict', kind, field });
+}
+
 /**
  * @param {Record<string, unknown> | undefined} previous
  * @param {Record<string, unknown>} incoming
@@ -186,11 +199,13 @@ export function mergeOutputLifecycle(previous, incoming) {
     'deliveryState', 'deliverySignal', 'ruleVersion'
   ]) {
     if (previous[field] !== undefined && incoming[field] !== undefined && previous[field] !== incoming[field]) {
+      observeMergeConflict(field, 'identity');
       throw new TypeError(`output lifecycle ${String(incoming.id)} has conflicting ${field}`);
     }
   }
   for (const field of ['targetRepository', 'targetUrl']) {
     if (previous[field] !== undefined && incoming[field] !== undefined && previous[field] !== incoming[field]) {
+      observeMergeConflict(field, 'identity');
       throw new TypeError(`output lifecycle ${String(incoming.id)} has conflicting ${field}`);
     }
   }
@@ -204,6 +219,7 @@ export function mergeOutputLifecycle(previous, incoming) {
     merged = { ...merged, ...Object.fromEntries(ADOPTION_FIELDS.map((field) => [field, previous[field]])) };
   } else if (previousAuthority === incomingAuthority && previousAdoption === incomingAdoption
       && !fieldsAgree(previous, incoming, ADOPTION_FIELDS)) {
+    observeMergeConflict('adoption', 'evidence');
     throw new TypeError(`output lifecycle ${String(incoming.id)} has conflicting adoption evidence`);
   }
   const previousSurvival = instant(previous.survivalObservedAt);
@@ -211,6 +227,7 @@ export function mergeOutputLifecycle(previous, incoming) {
   if (previousSurvival > incomingSurvival) {
     merged = { ...merged, ...Object.fromEntries(SURVIVAL_FIELDS.map((field) => [field, previous[field]])) };
   } else if (previousSurvival === incomingSurvival && !fieldsAgree(previous, incoming, SURVIVAL_FIELDS)) {
+    observeMergeConflict('survival', 'evidence');
     throw new TypeError(`output lifecycle ${String(incoming.id)} has conflicting survival evidence`);
   }
   if (instant(previous.reversedAt) > instant(incoming.reversedAt)) {
@@ -218,6 +235,7 @@ export function mergeOutputLifecycle(previous, incoming) {
     merged.reversedAt = previous.reversedAt;
   } else if (instant(previous.reversedAt) === instant(incoming.reversedAt)
       && !fieldsAgree(previous, incoming, ['reversalSignal', 'reversedAt'])) {
+    observeMergeConflict('reversal', 'evidence');
     throw new TypeError(`output lifecycle ${String(incoming.id)} has conflicting reversal evidence`);
   }
   merged.deliveryObservedAt = earliestTimestamp(previous.deliveryObservedAt, incoming.deliveryObservedAt);
