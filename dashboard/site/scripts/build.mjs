@@ -52,6 +52,13 @@ export async function buildDashboardSite({
     cp(new URL("src/smells.svg", siteRoot), join(destinationPath, "smells.svg")),
     cp(new URL("src", siteRoot), join(destinationPath, "src"), { recursive: true }),
   ]);
+  // Resolve the shared raw-sample producer from the checkout before bundling the
+  // copied site. No generated evidence is written to the deployment.
+  await build({
+    entryPoints: [fileURLToPath(new URL("src/data/demo/sample.mjs", siteRoot))],
+    outfile: join(destinationPath, "src/data/demo/sample.mjs"),
+    bundle: true, format: "esm", platform: "browser", target: "es2022",
+  });
 
   const indexPath = join(destinationPath, "index.html");
   const configuredIndex = configureSite(await readFile(indexPath, "utf8"), controlSettings);
