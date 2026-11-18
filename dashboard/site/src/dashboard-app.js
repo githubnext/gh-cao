@@ -345,7 +345,7 @@
         if (!document.querySelector('meta[name="dashboard-data-backend"][content="server-http"]')) {
           renderSources({}, "loading");
         }
-        const sourceUrl = new URL(DEMO_MODE ? "./demo-data/payload-hashes.json" : "./payload-hashes.json", window.location.href).href;
+        const sourceUrl = new URL(DEMO_MODE ? "./demo-data/" : "./payload-hashes.json", window.location.href).href;
         try {
           await startDashboardData({
             browserWindow: window,

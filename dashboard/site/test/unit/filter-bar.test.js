@@ -7,7 +7,6 @@ import {
   isTimeWindowFilterActive,
   relativeTimeWindow,
   renderFilterBar,
-  renderViewModeControl,
   setTimeWindowFilter,
   setTimeWindowRange
 } from '../../src/components/filter-bar.js';
@@ -124,26 +123,6 @@ describe('time-window filter bar', () => {
     expect(filterBar.querySelector('[aria-invalid="true"]')).not.toBeNull();
     setTimeWindowFilter('2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z', filterBar);
     expect(onChange).toHaveBeenCalledOnce();
-  });
-
-  describe('view-mode control', () => {
-    it('keeps mode labels ordered and supports consistent keyboard navigation', () => {
-      const onChange = vi.fn();
-      const control = renderViewModeControl(['chart', 'card', 'table'], 'chart', onChange);
-      document.body.append(control);
-      const buttons = /** @type {HTMLButtonElement[]} */ ([...control.querySelectorAll('button')]);
-
-      expect(buttons.map((button) => button.textContent)).toEqual(['Chart', 'Cards', 'Table']);
-      expect(buttons.map((button) => button.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
-
-      buttons[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-      expect(onChange).toHaveBeenLastCalledWith('table');
-      expect(document.activeElement).toBe(buttons[2]);
-
-      buttons[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
-      expect(onChange).toHaveBeenLastCalledWith('chart');
-      expect(document.activeElement).toBe(buttons[0]);
-    });
   });
 
   it('emits preset and custom start/end windows', async () => {

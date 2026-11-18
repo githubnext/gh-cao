@@ -436,9 +436,58 @@ through one Go/PostgreSQL origin. Local development SHALL use the same Go
 serving/query boundary and PostgreSQL storage, ingesting explicitly acquired
 operational artifacts. Neither profile SHALL fall back to Pages or browser ingestion.
 
-Pages SHALL contain only a synthetic enterprise sample. Its build SHALL
-generate raw sample evidence and pass it through the production normalization,
+Pages SHALL contain only a synthetic enterprise sample. Its browser data worker SHALL
+generate raw sample evidence on demand and pass it through the production normalization,
 canonical ingestion, Dashboard Language queries, and shared declarative views.
+Generation and writes SHALL be bounded, never retaining the enterprise population
+in memory. Defaults SHALL be 1,000 repositories, exactly 5,000 runs, three campaigns,
+and 4,000 installed agentic workflows fleet-wide.
+Repository, catalog, and run identities SHALL use the synthetic organization `contoso`.
+Repository names SHALL use four hyphen-separated words from a predefined 256-word
+safe vocabulary, selected collision-free by a deterministic unsigned 32-bit
+bijection: a naming space, not a secret or security token.
+Installed workflow display names SHALL come from 64 predefined safe names across
+four behavior archetypes, consistent across inventory, Runs, and Value evidence.
+Generation SHALL reserve one run per repository when budget permits, allocating
+the remainder proportionally to deterministic log-normal repository activity rates.
+Workflow/day allocation SHALL preserve heterogeneous Poisson bursts, weekday/weekend
+and partial-current-day cadence: illustrative, not empirical enterprise estimates.
+Run identities SHALL remain stable across partitions.
+The worker SHALL publish fleet inventory first, then sample repositories without
+replacement proportionally to remaining allocated runs via a deterministic keyed
+random stream. One run per active repository SHALL occupy a random position within
+the first min(three times active repositories, total budget) runs. This bounded
+window SHALL prevent starvation without uniform round-robin order: busy repositories
+MAY recur in early results. Normalization batches SHALL contain at most 100 raw
+activity runs or 100 raw Value-only records.
+Synthetic runs SHALL include bounded multi-turn version-1 unified sessions through
+the production parser, with correlated tool calls, per-request usage and cache
+growth, phase-scoped accounting, and outcome-appropriate lifecycle and safe outputs.
+Retained firewall evidence SHALL cover at least 100 distinct blocked `.invalid`
+domains by default. A deterministic cohort SHALL reserve one run per domain for
+128 domains three days before the sample day, across repositories and workflow
+archetypes; other blocked activity SHALL remain probabilistic.
+Retained sessions SHALL include at least eight distinct public approved domains and
+15 distinct MCP tool names across GitHub and workflow-observability servers, with
+public identifiers informed by bounded live evidence and illustrative request volumes.
+Network request volume SHALL scale with generated tool activity and bounded
+background traffic. Value throughput SHALL use the allocated workflow run rate,
+not an independent per-repository activity multiplier, so detail volume remains
+within the browser storage budget without evicting the configured run population.
+The run ledger SHALL span 21 UTC days, with ordinary seven-day detail retention,
+so complete recent sessions coexist with the full 5,000-run historical population.
+Pending and approval-gated runs SHALL NOT acquire invented
+completion, evaluation, or output events. Live repository evidence MAY inform
+illustrative shapes and distributions during development; the demo SHALL NOT
+copy transcripts, prompts, tool payloads, private identifiers, or runtime data
+acquisition into its published sample.
+The build SHALL publish the synthesizer, not pregenerated inventory or run/detail
+shards. Reopening the demo SHALL reuse completed, compatible browser-local data
+within the same UTC day. A new sample day or incompatible generator/schema SHALL
+reset only the scoped demo database before regeneration, including old activity
+and derived count receipts. Interrupted compatible samples SHALL resume from
+committed inventory, installation, and interleaved activity batches rather than be
+treated as complete. Resuming SHALL NOT re-ingest completed activity batches.
 It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
 a separate demo query implementation. A declarative **Synthetic enterprise demo**
 callout SHALL identify the sample; live services SHALL be unavailable.
@@ -458,7 +507,7 @@ No Actions workflow publishes an operational snapshot artifact; native
 Operational downloaders SHALL reject synthetic manifests and manifests without
 canonical shard checksums. No canvas acquisition or serving path is supported.
 
-The demo SHALL put data files under `demo-data/`, not root
+The demo SHALL keep its source namespace under `demo-data/`, not root
 `payload-hashes.json`, suffix browser storage keys with `synthetic-demo`,
 and use the `demo` service-worker cache namespace. Changed data URLs SHALL
 prevent reuse of real-data responses from old same-origin service-worker caches.
@@ -1445,10 +1494,12 @@ concurrent GitHub API pressure and reuse shared analysis state. The consolidated
 The `gh-aw-logs-shards/` directory SHALL retain the authoritative collection
 transport within the operational cache. Artifact publication SHALL provide
 compacted normalized run-information and record JSONL plus
-`payload-hashes.json`, as specified in §5. Pages SHALL generate equivalent
-transport solely from synthetic raw samples. Browsers SHALL use manifest
-identities to skip unchanged demo downloads and imports, and SHALL NOT fall
-back to raw source shards or operational artifacts.
+`payload-hashes.json`, as specified in §5. Pages SHALL instead generate raw
+synthetic samples locally in the browser worker and use the production
+normalization and canonical ingestion contracts without downloading a sample
+snapshot. The worker SHALL distinguish incomplete generation from a completed
+compatible sample, honor cancellation, and SHALL NOT fall back to operational
+artifacts.
 
 ### 5.4.1 Canonical join contract
 

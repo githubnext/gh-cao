@@ -57,7 +57,6 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .card-filter-group input { width: 18px; height: 18px; }
   .mobile-table-card-toolbar { padding: 8px 12px; background: var(--canvas); }
   .dashboard-page > .page-chrome { display: none; }
-  .view-mode-control { display: none; }
   body, .dashboard-root { font-size: 1rem; }
   .campaign-tabs { min-height: 0; display: grid; gap: 0; padding-top: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas); }
   .campaign-tabs a { min-height: 44px; padding: 10px 12px; border-radius: 0; background: transparent; font-size: .875rem; }
@@ -140,8 +139,6 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-page-header .overview-header .title-area { display: flex; align-items: center; gap: 4px; min-width: 0; }
   [data-page-help] .tooltip-trigger { width: 44px; height: 44px; }
   .mobile-page-header .overview-header h1 { margin: 0; overflow: hidden; color: var(--fg); font-size: 1rem; font-weight: 600; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-  .mobile-view-mode-toggle:not([hidden]) { width: 44px; height: 44px; display: grid; flex: 0 0 44px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--fg); cursor: pointer; }
-  .mobile-view-mode-toggle:hover { background: var(--neutral-muted); }
   .mobile-nav-menu-actions { min-width: 0; display: flex; margin: 0 0 8px; padding: 0 0 8px; border-bottom: 1px solid var(--border-muted); }
   .mobile-nav-menu-actions .report-actions { width: 100%; flex-direction: column; flex-wrap: nowrap; align-items: stretch; position: static; margin-left: 0; gap: 2px; }
   .mobile-nav-menu-actions .report-actions > .filter-bar { width: 100%; margin: 0; }

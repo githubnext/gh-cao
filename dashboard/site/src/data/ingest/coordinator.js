@@ -427,6 +427,41 @@ export function ingestDashboardSources(indexedDB, sources, options = {}) {
 }
 
 /**
+ * Normalize bounded source documents using the production adapter, sharing one
+ * connection for a large local producer rather than opening one per record.
+ * @param {IDBFactory} indexedDB
+ * @param {AsyncIterable<Record<string, unknown>>} batches
+ * @param {{ storage?: StorageManager, signal?: AbortSignal, onBatchCommitted?: (count: number) => Promise<void> }} [options]
+ */
+export function ingestDashboardSourceBatches(indexedDB, batches, options = {}) {
+  return serializeIngestion(indexedDB, async () => {
+    options.signal?.throwIfAborted();
+    if (options.storage) await inspectStorage(options.storage);
+    const database = await openCanonicalDatabase(indexedDB);
+    let committedRecords = 0;
+    try {
+      for await (const sources of batches) {
+        options.signal?.throwIfAborted();
+        const batch = normalize(queryDashboardSourceObservations(sources).observations);
+        const result = await upsertCanonicalBatchWithConnection(database, batch, {
+          validateRelationships: false, signal: options.signal, batchSize: 1_000,
+        });
+        committedRecords += result.committedRecords;
+        if (options.storage) {
+          const usage = await inspectDatabaseUsage(options.storage);
+          if (usage !== null && usage > MAX_DASHBOARD_DATABASE_BYTES) {
+            throw new DOMException('Synthetic demo exceeds the browser storage budget.', 'QuotaExceededError');
+          }
+        }
+        await options.onBatchCommitted?.(result.committedRecords);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      return { updated: committedRecords > 0, committedRecords };
+    } finally { database.close(); }
+  }, { signal: options.signal });
+}
+
+/**
  * @param {IDBFactory} indexedDB
  * @param {Record<string, unknown>} sources
  * @param {{ storage?: StorageManager, now?: number, retentionWindowMs?: number, retentionWindowMsByStore?: Record<string, number>, maxDatabaseBytes?: number, deferMaintenance?: boolean, payloadIdentity?: string, payloadScope?: string, onWriteProgress?: (progress: { storedRecords: number, totalRecords: number }) => void, signal?: AbortSignal }} options
@@ -841,7 +876,7 @@ async function preserveStreamedStructuralMetadata(database, batch) {
  * Incrementally upserts schema-v2 gh-aw cached JSONL into canonical storage.
  * @param {IDBFactory} indexedDB
  * @param {string | Uint8Array | AsyncIterable<string | Uint8Array>} content
- * @param {{ storage?: StorageManager, now?: number, retentionWindowMs?: number, retentionWindowMsByStore?: Record<string, number>, maxDatabaseBytes?: number, context?: unknown, workflowHints?: { owner: string, repository: string, name: string, path: string }[], onProgress?: (progress: { bytesProcessed: number, linesProcessed: number, recordsIngested: number }) => void, onWriteProgress?: (progress: { storedRecords: number, totalRecords: number }) => void, payloadIdentity?: string, payloadEtag?: string, payloadScope?: string, onLockWait?: () => void, signal?: AbortSignal }} [options]
+ * @param {{ storage?: StorageManager, now?: number, retentionWindowMs?: number, retentionWindowMsByStore?: Record<string, number>, maxDatabaseBytes?: number, deferMaintenance?: boolean, context?: unknown, workflowHints?: { owner: string, repository: string, name: string, path: string }[], onProgress?: (progress: { bytesProcessed: number, linesProcessed: number, recordsIngested: number }) => void, onWriteProgress?: (progress: { storedRecords: number, totalRecords: number }) => void, payloadIdentity?: string, payloadEtag?: string, payloadScope?: string, onLockWait?: () => void, signal?: AbortSignal }} [options]
  */
 export function ingestCachedGhAwJsonl(indexedDB, content, options = {}) {
   return serializeIngestion(
@@ -854,7 +889,7 @@ export function ingestCachedGhAwJsonl(indexedDB, content, options = {}) {
 /**
  * @param {IDBFactory} indexedDB
  * @param {string | Uint8Array | AsyncIterable<string | Uint8Array>} content
- * @param {{ storage?: StorageManager, now?: number, retentionWindowMs?: number, retentionWindowMsByStore?: Record<string, number>, maxDatabaseBytes?: number, context?: unknown, workflowHints?: { owner: string, repository: string, name: string, path: string }[], onProgress?: (progress: { bytesProcessed: number, linesProcessed: number, recordsIngested: number }) => void, onWriteProgress?: (progress: { storedRecords: number, totalRecords: number }) => void, payloadIdentity?: string, payloadEtag?: string, payloadScope?: string, signal?: AbortSignal }} options
+ * @param {{ storage?: StorageManager, now?: number, retentionWindowMs?: number, retentionWindowMsByStore?: Record<string, number>, maxDatabaseBytes?: number, deferMaintenance?: boolean, context?: unknown, workflowHints?: { owner: string, repository: string, name: string, path: string }[], onProgress?: (progress: { bytesProcessed: number; linesProcessed: number; recordsIngested: number }) => void, onWriteProgress?: (progress: { storedRecords: number, totalRecords: number }) => void, payloadIdentity?: string, payloadEtag?: string, payloadScope?: string, signal?: AbortSignal }} options
  */
 async function ingestCachedGhAwJsonlNow(indexedDB, content, options) {
   const createdAt = new Date(options.now ?? Date.now()).toISOString();

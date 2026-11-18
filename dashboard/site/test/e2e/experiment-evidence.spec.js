@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { createHash } from 'node:crypto';
 import { authoritativeDashboard, expect, registerSmokeRoutes, test, hydrateView } from './helpers/smoke-fixtures.js';
 import { normalizedActivityShards } from './normalized-shard.js';
@@ -51,7 +52,7 @@ test('Experiments renders persisted assignments and updates its active worker qu
   }, authoritativeDashboard);
   const coverage = page.locator('[data-view-id="experiments-assignment-chart"]');
   await expect(coverage.getByRole('img', { name: 'prompt: 1', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Table', exact: true }).click();
+  await selectViewMode(page, 'table');
   await hydrateView(page, 'Run assignments');
   const assignments = page.locator('[data-view-id="experiments-assignments"]');
   await expect(assignments.locator('tbody tr')).toHaveCount(1);
@@ -65,9 +66,9 @@ test('Experiments renders persisted assignments and updates its active worker qu
   }, authoritativeDashboard);
   await expect(assignments.locator('tbody tr')).toHaveCount(2);
   await expect(assignments.locator('tbody')).toContainText('control');
-  await page.getByRole('button', { name: 'Chart', exact: true }).click();
+  await selectViewMode(page, 'chart');
   await expect(coverage.getByRole('img', { name: 'prompt: 2', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Table', exact: true }).click();
+  await selectViewMode(page, 'table');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(assignments.locator('tbody')).toContainText('candidate');
   await expect(assignments.locator('tbody')).toContainText('control');

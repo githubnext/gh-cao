@@ -20,7 +20,11 @@ export function registerSmokeRoutes() {
         return;
       }
 
-      const filePath = join(siteRoot, pathname);
+      const filePath = join(
+        siteRoot,
+        pathname.startsWith('/report/') || pathname.startsWith('/lib/') ? '..' : '.',
+        pathname
+      );
       if (existsSync(filePath)) {
         const content = readFileSync(filePath);
         const mime = pathname.endsWith('.json')
@@ -41,6 +45,24 @@ export { assert, DATABASE_NAME, devices, expect, readFileSync, test };
 
 export function buildPresenterModuleUrl() {
   return 'http://dashboard.test/src/presenter.js';
+}
+
+/** @param {import('@playwright/test').Page} page @param {'chart'|'card'|'table'} mode */
+export async function selectViewMode(page, mode) {
+  const pageId = await page.evaluate(() => location.hash.match(/^#page-([a-z0-9-]+)/)?.[1]);
+  const active = pageId ? page.locator(`[data-page-id="${pageId}"]`) : page.locator('.dashboard-page:visible');
+  await expect(active).toBeVisible();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await expect(active).not.toHaveAttribute('data-page-pending', '');
+    await expect(active).toHaveAttribute('data-view-mode', /^(chart|card|table)$/);
+    const previous = await active.getAttribute('data-view-mode');
+    if (previous === mode) return;
+    const modes = (await active.getAttribute('data-view-modes'))?.split(' ') ?? [];
+    const next = modes[(modes.indexOf(previous ?? '') + 1) % modes.length];
+    await page.locator('.mobile-view-mode-toggle').click();
+    await expect(active).toHaveAttribute('data-view-mode', next);
+  }
+  await expect(active).toHaveAttribute('data-view-mode', mode);
 }
 
 /**
