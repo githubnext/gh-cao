@@ -2,7 +2,6 @@ package postgresx
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -295,7 +294,7 @@ func (w *Writer) validateBundleIdentity(ctx context.Context, source string) erro
 		return err
 	}
 	if conflict {
-		return errors.New("run bundle changes a shared parent or evidence owner; authoritative reconciliation is required")
+		return &RunBundleReconciliationError{Collection: source}
 	}
 	return nil
 }

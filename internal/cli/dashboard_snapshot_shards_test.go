@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/githubnext/gh-cao/internal/dashboardingest"
 )
 
 func dashboardShardTestBatch(count int, now time.Time) map[string][]map[string]any {
@@ -65,6 +69,92 @@ func TestDashboardIncrementalSnapshotPublishesOnlyIngestionReceipt(t *testing.T)
 				}
 			}
 		})
+	}
+}
+
+func TestDashboardIncrementalSnapshotUpgradesUnversionedNativeShards(t *testing.T) {
+	ctx, cache, now := t.Context(), t.TempDir(), time.Now().UTC()
+	if err := writeDashboardSnapshot(ctx, cache, dashboardShardTestBatch(33, now), true); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	index, indexName, err := readDashboardShardIndex(ctx, cache, manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rewrite := func(names []string) {
+		t.Helper()
+		for i, name := range names {
+			content, err := readDashboardVerifiedPayload(ctx, cache, name, manifest[name])
+			if err != nil {
+				t.Fatal(err)
+			}
+			header, records, _ := bytes.Cut(content, []byte{'\n'})
+			var metadata map[string]any
+			if err := json.Unmarshal(header, &metadata); err != nil {
+				t.Fatal(err)
+			}
+			delete(metadata, "schemaVersion")
+			header, err = json.Marshal(metadata)
+			if err != nil {
+				t.Fatal(err)
+			}
+			content = append(append(header, '\n'), records...)
+			names[i], err = writeDashboardImmutablePayload(ctx, cache,
+				filepath.ToSlash(filepath.Dir(name))+"/", ".jsonl", content, manifest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			delete(manifest, name)
+		}
+	}
+	rewrite(index.Shared)
+	for _, group := range index.Groups {
+		rewrite(group.Shards)
+	}
+	index.SchemaVersion = 0
+	content, err := json.Marshal(index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delete(manifest, indexName)
+	if _, err := writeDashboardImmutablePayload(ctx, cache, dashboardIndexPath, ".json", content, manifest); err != nil {
+		t.Fatal(err)
+	}
+	content, err = json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cache, "payload-hashes.json"), content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeDashboardSnapshot(ctx, cache, dashboardShardTestBatch(1, now), true); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err = readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, digest := range manifest {
+		if !dashboardCanonicalShard(name) {
+			continue
+		}
+		content, err := readDashboardVerifiedPayload(ctx, cache, name, digest)
+		if err != nil {
+			t.Fatal(err)
+		}
+		header, _, _ := bytes.Cut(content, []byte{'\n'})
+		var metadata struct{ SchemaVersion int }
+		if err := json.Unmarshal(header, &metadata); err != nil || metadata.SchemaVersion != dashboardingest.SchemaVersion {
+			t.Fatalf("retained unversioned native shard %s: %s %v", name, header, err)
+		}
+	}
+	recovered, err := readDashboardArtifactBatch(ctx, cache)
+	if err != nil || len(recovered["runs"]) != 33 || len(recovered["tools"]) != 33 {
+		t.Fatalf("schema upgrade lost retained evidence: %v", err)
 	}
 }
 

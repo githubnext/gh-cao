@@ -7,9 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/githubnext/gh-cao/server/internal/ingest"
 	debuglogger "github.com/githubnext/gh-cao/server/internal/logger"
+	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
 
 var ingestStreamLog = debuglogger.New("cao:dashboard:ingest-stream")
@@ -41,8 +45,28 @@ func runIngestStream(ctx context.Context, input io.Reader, output io.Writer, run
 			ingestStreamLog.Printf("ingestion stream request rejected")
 			return err
 		}
+		started := time.Now()
+		ingestStreamLog.Printf("ingestion stream request started: mode=%q", request.Mode)
 		result, err := run(ctx, request)
-		ingestStreamLog.Printf("ingestion stream request finished: mode=%q ok=%t", request.Mode, err == nil)
+		var conflict *postgresx.RunBundleReconciliationError
+		if request.Mode == "run-bundles" && errors.As(err, &conflict) && ctx.Err() == nil {
+			ingestStreamLog.Printf("ingestion stream authoritative reconciliation required: collection=%q delta_duration_ms=%d",
+				conflict.Collection, time.Since(started).Milliseconds())
+			// The source and namespace are fixed by the process. Re-read and
+			// verify its full snapshot; never relax the delta ownership fence.
+			result, err = run(ctx, ingestStreamRequest{Type: "ingest", Mode: "snapshot"})
+		}
+		if err != nil {
+			var databaseError *pgconn.PgError
+			if errors.As(err, &databaseError) {
+				ingestStreamLog.Printf("ingestion stream request failed: sql_state=%q table=%q constraint=%q",
+					databaseError.Code, databaseError.TableName, databaseError.ConstraintName)
+			} else {
+				ingestStreamLog.Printf("ingestion stream request failed: error_type=%T", err)
+			}
+		}
+		ingestStreamLog.Printf("ingestion stream request finished: mode=%q ok=%t duration_ms=%d revision=%d",
+			request.Mode, err == nil, time.Since(started).Milliseconds(), result.Revision)
 		response := ingestStreamResponse{Type: "error"}
 		if err == nil {
 			response = ingestStreamResponse{Type: "complete", Result: &result}
