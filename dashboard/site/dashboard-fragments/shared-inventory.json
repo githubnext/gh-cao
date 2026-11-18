@@ -1172,6 +1172,40 @@
             { "field": "campaign-action-state" },
             { "value": "update-available" }
           ]
+        },
+        {
+          "as": "campaign-update-available",
+          "function": "equals-any",
+          "args": [
+            { "field": "campaign-update-state" },
+            { "value": "update-available" }
+          ]
+        },
+        {
+          "as": "campaign-update-filter",
+          "function": "if",
+          "args": [
+            { "field": "campaign-update-available" },
+            { "value": "Update available" },
+            { "value": "No update available" }
+          ]
+        },
+        {
+          "as": "campaign-active",
+          "function": "equals-any",
+          "args": [
+            { "field": "campaign-registration" },
+            { "value": "true" }
+          ]
+        },
+        {
+          "as": "campaign-activity",
+          "function": "if",
+          "args": [
+            { "field": "campaign-active" },
+            { "value": "Active" },
+            { "value": "Inactive" }
+          ]
         }
       ],
       "select": [
@@ -1185,11 +1219,37 @@
         { "field": "campaign-update-state" },
         { "field": "campaign-registration" },
         { "field": "campaign-source-unavailable" },
-        { "field": "campaign-update-action-visible" }
+        { "field": "campaign-update-action-visible" },
+        { "field": "campaign-update-filter" },
+        { "field": "campaign-activity" }
       ],
       "order-by": [
         { "field": "campaign-name", "direction": "asc" }
       ]
+    },
+    {
+      "name": "maintenance-campaign-update-options",
+      "subject": "List observed update-availability values for the campaign maintenance Update filter.",
+      "objective": "Choose campaigns with or without a newer upstream revision without scanning presented cards.",
+      "acceptance": "Return distinct observed values in ascending order; unknown update evidence is grouped with no update available and never presented as available.",
+      "from": "maintenance-campaign-packages",
+      "aggregate": {
+        "by": ["campaign-update-filter"],
+        "values": [{ "field": "campaign", "as": "items", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "campaign-update-filter", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-campaign-activity-options",
+      "subject": "List observed registration states for the campaign maintenance Status filter.",
+      "objective": "Choose active or inactive campaigns from retained registration evidence.",
+      "acceptance": "Return distinct observed Active and Inactive values in ascending order; registration is not inferred from run activity.",
+      "from": "maintenance-campaign-packages",
+      "aggregate": {
+        "by": ["campaign-activity"],
+        "values": [{ "field": "campaign", "as": "items", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "campaign-activity", "direction": "asc" }]
     },
     {
       "name": "maintenance-workflow-operation-flags",

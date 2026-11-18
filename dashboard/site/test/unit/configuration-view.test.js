@@ -262,6 +262,42 @@ describe('Configuration dashboard view', () => {
     }
   });
 
+  it('filters campaign packages by update availability and registration through the worker query', () => {
+    const page = authoritativeDashboard.dashboard.pages.find((/** @type {{ id: string }} */ candidate) =>
+      candidate.id === 'maintenance-campaigns');
+    const [view] = page.views;
+    expect(view['filter-bar'].filters.map((/** @type {{ id: string }} */ control) => control.id))
+      .toEqual(['update', 'status']);
+    const campaigns = [...maintenanceNavigationContract.campaigns, {
+      campaign: 'paused', 'campaign-name': 'Paused', 'campaign-source': 'acme/catalog/paused',
+      'campaign-version': '1', 'campaign-current-version': '2',
+      'campaign-update-state': 'update-available', 'campaign-registration': 'false'
+    }];
+    /** @param {Record<string, string[]>} [filters] */
+    const run = (filters) => {
+      const payload = compileDashboardViewPayloadQueries(page, page.id, {
+        viewId: view.id, queries: authoritativeDashboard.dashboard.queries,
+        queryContext: filters ? { viewFilters: { [view.id]: filters } } : undefined
+      });
+      const results = /** @type {Record<string, import('../../src/presenter.js').LogicalSourceInput>} */ (
+        processDataRequest({
+          operation: 'execute-dashboard-queries', queries: payload.queries, sourceNames: payload.aliases,
+          sources: { campaigns: { source: 'campaigns', rows: campaigns, metadata } }
+        })
+      );
+      return payload.aliases.map((alias) => results[alias].rows);
+    };
+    const [all, updateOptions, statusOptions] = run();
+    expect(all.map((row) => row.campaign)).toEqual(['local', 'operations', 'paused']);
+    expect(updateOptions.map((row) => row['campaign-update-filter'])).toEqual(['No update available', 'Update available']);
+    expect(statusOptions.map((row) => row['campaign-activity'])).toEqual(['Active', 'Inactive']);
+    expect(run({ 'campaign-update-filter': ['Update available'] })[0].map((row) => row.campaign))
+      .toEqual(['operations', 'paused']);
+    expect(run({ 'campaign-activity': ['Inactive'] })[0].map((row) => row.campaign)).toEqual(['paused']);
+    expect(run({ 'campaign-update-filter': ['Update available'], 'campaign-activity': ['Active'] })[0]
+      .map((row) => row.campaign)).toEqual(['operations']);
+  });
+
   it('renders campaign and standalone source updates only when exact provenance is actionable', () => {
     const dashboard = authoritativeDashboard.dashboard;
     const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) =>
