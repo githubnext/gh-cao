@@ -1,34 +1,7 @@
 {
- "source_sha": "dec68af7766d1313ce3e95d9be800576e0725552",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "source_sha": "b350331a9f4b5cacbb240a9e0b11fba95b039b5f",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T05:36:03Z",
-   "worker_run_id": "44244768299",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457",
-    "43832040488",
-    "43831980991"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44244171280 (schedule, 215fd92, created 2026-11-18T05:25:33Z) .. 43831980991 (push 17a3b7a, created 2026-11-16T08:31:58Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (16 push, 2 schedule 44244171280 and 44023953879), 0 failed. Window shifted one run: 44244171280 added, 43831754585 dropped. gh run list at evaluation: no docs run queued or in progress; only stale queued 37642403569 (created 2026-10-07, outside window). main HEAD 215fd92 = source_sha; compare fcd7e18...215fd92 (58 files) has 0 docs.yml trigger-path hits, so no push run expected. Stored immutable run_timings rows recomputed plus Jobs API for new run 44244171280 (queue 3, build job 58, handoff 5, deploy 9, exec 72). Exec median 75.5 s, p90 83 s (nearest rank); queue median 4 s, p90 15 s, max 64 s (latency only). cancel-in-progress false kept: one superseded in-flight build in window (43832040488 queued 64 s behind in-flight 43831980991), so cancel true saves 0 s median. 0 of 16 window push heads test-only. Daily 05:23Z schedule kept for synthetic Date.now() refresh; schedule exec 72 s and 62 s. Gates 15 percent = 11.3 s and 60 s unmet. Open issues for this worker: only #20815 (checkout, other category, not repeated). No suggestion; noop; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T05:52:52Z",
    "worker_run_id": "44246887002",
@@ -836,6 +809,34 @@
     "43991571724"
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44336140223 (push dec68af, created 2026-11-18T15:29:01Z) .. 43991571724 (push b601783, created 2026-11-17T00:55:44Z); cancelled 43991812013 excluded and disclosed; 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed; no docs run queued or in progress at 15:31Z. Source dec68af = main HEAD = source_sha; docs.yml unchanged since 063cbe9 (2026-11-12). Fresh Jobs API reads for 44336140223, 44324821276, 44323919922 only (others stored immutable). Removable time (handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded as GitHub-managed): median 9 s, p90 11 s, max 13 s vs 15 percent gate 11.7 s and 60 s gate: not met. Exec median 78 s. Ceiling of the only candidate (merge deploy into build) is about 6 s and would weaken the github-pages environment and OIDC job boundary: rejected. Deploy Pages 14 s in 44336140223 is an outlier on a 7.46 MB artifact; not a regression signal. Log reads not attempted (HTTP 403 DIFC blocker recorded earlier)."
+  },
+  {
+   "evaluated_at": "2026-11-18T15:53:24Z",
+   "worker_run_id": "44339915073",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672",
+    "43991770179"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44337804857 (push b350331, created 2026-11-18T15:37:34Z) .. 43991770179 (push be0c06f, created 2026-11-17T00:57:19Z); cancelled 43991812013 excluded (cancelled while pending at 00:58:21Z, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. Source b350331 = main HEAD = source_sha; no docs run queued or in progress at 15:51Z. Fresh Jobs API read for 44337804857 only (others from stored immutable rows). Queue median 3 s, p90 5 s (max 15 s on 43991897672, latency only). Exec median 79 s, p90 108 s; excluding outlier 44337804857 (exec 139 s, Deploy Pages 69 s, GitHub-managed) median 78.5 s, p90 96 s; 15 percent gate 11.8 s and 60 s gate unmet. Concurrency: cancel-in-progress false kept; 0 in-flight builds superseded; 43991897672 queued 15 s behind in-flight 43991770179 and was not cancelled; cancel-in-progress true saves 0 s median. Avoidable rebuilds: 0 of 17 push heads (5 new heads build-consumed). Schedule 05:23Z kept for synthetic-date refresh (exec 72 s and 62 s). Next: dependency installation and caching.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -960,8 +961,8 @@
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-18T15:36:00Z",
-  "window": "strict latest 20 completed docs.yml runs 44336140223 (push dec68af, created 2026-11-18T15:29:01Z) .. 43991571724 (push b601783, created 2026-11-17T00:55:44Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed",
+  "evaluated_at": "2026-11-18T15:53:24Z",
+  "window": "strict latest 20 completed docs.yml runs 44337804857 (push b350331, created 2026-11-18T15:37:34Z) .. 43991770179 (push be0c06f, created 2026-11-17T00:57:19Z); cancelled 43991812013 excluded (cancelled while pending at 00:58:21Z, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
   "columns": [
    "run",
    "event",
@@ -979,8 +980,25 @@
    "deploy_job_s",
    "exec_s"
   ],
-  "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end (= build_job + handoff + deploy_job); queue = run created to build start. Medians (19 successes, 2026-11-18T15:36Z): exec 78 s (p90 87), queue 3 s, checkout 24 s, setup-node 3 s, install 9 s, build docs 11 s, demo 5 s, upload 2 s, deploy job 10 s. Fresh Jobs API reads this run: 44336140223, 44324821276, 44323919922 (rows 44336140223 added; 43987917606 dropped from window).",
+  "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end (= build_job + handoff + deploy_job); queue = run created to build start. Medians (19 successes, 2026-11-18T15:53:24Z): exec 79 s (p90 108; excluding outlier 44337804857 median 78.5 s p90 96), queue 3 s, checkout 24 s, setup-node 3 s, install 10 s, build docs 14 s, demo 4 s, upload 2 s, deploy job 10 s. Fresh Jobs API read this run: 44337804857 (added; 43991571724 dropped from window).",
   "rows": [
+   [
+    "44337804857",
+    "push",
+    "success",
+    "b350331",
+    3,
+    60,
+    24,
+    2,
+    12,
+    0,
+    14,
+    2,
+    2,
+    73,
+    139
+   ],
    [
     "44336140223",
     "push",
@@ -1286,29 +1304,12 @@
     2,
     11,
     70
-   ],
-   [
-    "43991571724",
-    "push",
-    "success",
-    "b601783",
-    3,
-    55,
-    23,
-    2,
-    8,
-    0,
-    11,
-    5,
-    2,
-    10,
-    70
    ]
   ]
  },
  "transfer_model": {
-  "verified_at": "2026-11-18T15:36:00Z",
-  "window": "44336140223 (push dec68af, created 2026-11-18T15:29:01Z) .. 43991571724 (push b601783, created 2026-11-17T00:55:44Z); cancelled 43991812013 excluded; 19 successes",
+  "verified_at": "2026-11-18T15:53:24Z",
+  "window": "strict latest 20 completed docs.yml runs 44337804857 (push b350331, created 2026-11-18T15:37:34Z) .. 43991770179 (push be0c06f, created 2026-11-17T00:57:19Z); cancelled 43991812013 excluded (cancelled while pending at 00:58:21Z, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
   "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
   "columns": [
    "run",
@@ -1323,6 +1324,18 @@
    "exec_s"
   ],
   "rows": [
+   [
+    "44337804857",
+    "push",
+    6,
+    0,
+    2,
+    1,
+    69,
+    73,
+    9,
+    139
+   ],
    [
     "44336140223",
     "push",
@@ -1538,28 +1551,16 @@
     11,
     9,
     70
-   ],
-   [
-    "43991571724",
-    "push",
-    5,
-    0,
-    2,
-    1,
-    6,
-    10,
-    8,
-    70
    ]
   ],
   "summary": {
    "removable_median_s": 9,
    "removable_p90_s": 11,
    "removable_max_s": 13,
-   "exec_median_s": 78,
-   "exec_p90_s": 87,
-   "removable_pct_of_exec_median": 11.5,
-   "gate_15pct_s": 11.7,
+   "exec_median_s": 79,
+   "exec_p90_s": 108,
+   "removable_pct_of_exec_median": 11.4,
+   "gate_15pct_s": 11.8,
    "gate_60s_absolute": "not met",
    "decision": "not actionable"
   },
@@ -1568,7 +1569,7 @@
    "run": "43877103800",
    "result": "Live Jobs API matched stored rows for 43877103800, 43840581457 and 43814432358 (handoff 5/6/5, configure 0/0/0, upload 2/3/3, deploy setup 1/1/1, deploy pages 7/6/7, exec 73/132/120)"
   },
-  "evaluated_note": "2026-11-18T15:36Z worker 44336050465: window rolled after push dec68af (44336140223) and 43987917606 dropped; fresh Jobs API reads for 44336140223, 44324821276, 44323919922; removable median 9 s, p90 11 s, max 13 s (44336140223) vs 15 percent gate 11.7 s and 60 s gate: not met; Deploy Pages 14 s in 44336140223 vs median 6 s on 7,456,414 B artifact (44324821276 7,455,859 B, Deploy Pages 8 s): single outlier, not a regression signal; decision unchanged (not actionable).",
+  "evaluated_note": "2026-11-18T15:53:24Z worker 44339915073: window rolled after push b350331 (44337804857); 43991571724 dropped; fresh Jobs API read for 44337804857 only. Removable median 9 s, p90 11 s, max 13 s (unchanged). Deploy Pages 69 s in 44337804857 (exec 139 s) is a single GitHub-managed outlier (median Deploy Pages about 6 s); not removable by workflow change. Decision unchanged (not actionable).",
   "reverified_note": "Re-verified 2026-11-17T06:54:51Z by worker 44034238011: window rolled to 44023953879; decision unchanged (ceiling 9 s vs 11.85 s and 60 s gates; merge-deploy-into-build about 6 s, rejected).",
   "artifact_bytes": {
    "44336140223": 7456414,
@@ -1674,27 +1675,31 @@
   "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
  },
  "scheduling_verified": {
-  "verified_at": "2026-11-18T13:51:16Z",
-  "worker_run_id": "44317514117",
-  "window": "strict latest 20 completed docs.yml runs 44311127214 (push 346b7e1, created 2026-11-18T13:11:07Z) .. 43854851689 (push fade88d, created 2026-11-16T11:06:56Z); cancelled 43991812013 excluded; 19 successes (17 push, 2 schedule); source 346b7e1 = main HEAD = source_sha",
+  "verified_at": "2026-11-18T15:53:24Z",
+  "worker_run_id": "44339915073",
+  "window": "strict latest 20 completed docs.yml runs 44337804857 (push b350331, created 2026-11-18T15:37:34Z) .. 43991770179 (push be0c06f, created 2026-11-17T00:57:19Z); cancelled 43991812013 excluded (cancelled while pending at 00:58:21Z, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
   "queue_s": {
    "median": 3,
    "p90_nearest_rank": 5,
    "max": 15,
-   "note": "latency only; 64 s event on 43832040488 is outside this window"
+   "note": "latency only; 43991897672 waited 15 s behind in-flight 43991770179"
   },
   "exec_build_start_to_deploy_end_s": {
-   "median": 76,
-   "p90_nearest_rank": 82,
-   "push_only_median": 78,
+   "median": 79,
+   "p90_nearest_rank": 108,
+   "push_only_median": 79,
+   "excluding_outlier_44337804857": {
+    "median": 78.5,
+    "p90_nearest_rank": 96
+   },
    "schedule_exec": [
     72,
     62
    ]
   },
-  "concurrency": "cancel-in-progress false kept; 0 in-flight builds superseded in window; cancel-in-progress true saves 0 s median exec",
-  "avoidable_rebuilds": "0 of 17 successful push heads avoidable; 346b7e1 build-consumed via dashboard/site/src/dashboard-chunks.js; 2 schedule runs required for synthetic-date refresh",
-  "decision": "not actionable (median saving 0 s; queue median 3 s; gates 11.4 s and 60 s unmet)"
+  "concurrency": "cancel-in-progress false kept; 0 in-flight builds superseded in window; 1 pending run cancelled with 0 jobs (43991812013); no build overlap for any other consecutive pair; cancel-in-progress true saves 0 s median exec",
+  "avoidable_rebuilds": "0 of 17 successful push heads avoidable; 5 new heads (b350331, dec68af, c32c4d9, ea7a94f, 241f8db) build-consumed via dashboard/site/src copy or docs/**; 2 schedule runs required for synthetic-date refresh",
+  "decision": "not actionable (median saving 0 s; queue median 3 s; 15 percent gate 11.8 s and 60 s gate unmet)"
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-18T14:22:10Z",
@@ -1783,7 +1788,7 @@
   "decision": "rejected: one superseding event in 18 runs (about 61 s compute and 64 s latency once; median saving 0 s); repeated evidence absent; build-only split still needs deploy-safety review"
  },
  "path_filter_verified": {
-  "verified_at": "2026-11-18T07:20:17Z",
+  "verified_at": "2026-11-18T15:53:24Z",
   "method": "gh api commits/<sha> file lists; commits immutable, fetched once; trigger paths from docs.yml on.push.paths",
   "window_head_classification": {
    "4121d56": "build-consumed (schedule head; earlier verified)",
@@ -1808,7 +1813,12 @@
    "5d00b89": "build-consumed (docs/glossary.md, docs/**)",
    "17af484": "build-consumed (docs/architecture-at-a-glance.md, docs/dashboard-data-ingestion.md, docs/dashboard.md)",
    "542db96": "build-consumed (docs/glossary.md and package.json trigger; Go and server files are not trigger paths)",
-   "346b7e1": "build-consumed (dashboard/site/src/dashboard-chunks.js; dashboard/site/** trigger)"
+   "346b7e1": "build-consumed (dashboard/site/src/dashboard-chunks.js; dashboard/site/** trigger)",
+   "b350331": "build-consumed (dashboard/site/dashboard-fragments/*.json, dashboard/site/src components/presenter/styles, docs/dashboard-language-specification.md)",
+   "dec68af": "build-consumed (dashboard/site/src/data/demo/sample.mjs; scripts/simulate-dashboard-pages.mjs trigger)",
+   "c32c4d9": "build-consumed (dashboard/site/src, docs/**, scripts/simulate-dashboard-pages.mjs)",
+   "ea7a94f": "build-consumed (dashboard/site/src, dashboard/site/dashboard-fragments, dashboard.json, generated agent JSON)",
+   "241f8db": "build-consumed (dashboard/site/src/components/dashboard-header.js, src styles)"
   },
   "avoidable_pushes_in_window": 0
  },
