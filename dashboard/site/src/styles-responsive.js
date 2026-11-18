@@ -116,7 +116,7 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
      row, see .sidebar-header), which stays well under this cap, so animating max-height here can
      never clip real content; it only exists to give the collapse-on-scroll transition below a
      finite value to animate toward, since CSS cannot transition to/from "none". */
-  .dashboard-full-view .org-sidebar { --full-view-sidebar-max-height: 480px; /* generous headroom over the ~70px .sidebar-header row this cap actually bounds */ max-height: var(--full-view-sidebar-max-height); overflow: hidden; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 0s; }
+  .dashboard-full-view .org-sidebar { margin-bottom: 0; --full-view-sidebar-max-height: 480px; /* generous headroom over the ~70px .sidebar-header row this cap actually bounds */ max-height: var(--full-view-sidebar-max-height); overflow: hidden; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 0s; }
   .dashboard-root.dashboard-full-view-scrolled .org-sidebar { max-height: 0; overflow: hidden; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border-color: transparent; opacity: 0; visibility: hidden; pointer-events: none; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 200ms; }
   /* Let the viewport-height navigation drawer escape the full-view header's clipping.
      The collapse-on-scroll state keeps its clip because the menu collapses with the header. */
