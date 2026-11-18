@@ -228,12 +228,23 @@ same views. It has no real-data input option, SQLite download, agent summary, or
 live services. Its declarative **Synthetic enterprise demo** Overview callout identifies
 the evidence. Synthesis, ingestion, persistence, and queries run in a
 dedicated Web Worker, in bounded batches rather than downloading a pregenerated
-enterprise snapshot. The sample contains 10,000 repositories, exactly 20,000
-runs, three campaigns, and 200 installed agentic workflows across selected
-repositories. Raw activity is normalized in batches of at most 100 runs.
+enterprise snapshot. The sample contains 1,000 repositories, exactly 5,000
+runs, three campaigns, and 4,000 installed agentic workflows across all
+repositories. A log-normal activity distribution allocates the run budget with
+at least one run per repository. Fleet inventory is ingested first, followed by
+seeded, activity-weighted sampling without replacement. Randomly positioned
+coverage reservations put every repository into the first 3,000 runs, while
+busier repositories can recur naturally in partial results.
+Raw activity is normalized in batches of at most 100 runs.
+Four-word repository names come from a predefined 256-word safe vocabulary through
+a collision-free 32-bit permutation. Workflow display names vary across 64 safe
+labels while keeping inventory, run, and Value identities aligned. A small
+three-day-old coverage cohort guarantees 128 distinct blocked `.invalid` domains
+in retained firewall evidence; remaining blocked activity is probabilistic.
 Completed samples are reused within the same UTC day. A new day or incompatible
 generator/schema resets only the scoped demo database before regeneration, so
-regenerated runs cannot inherit stale outcomes or aggregate receipts.
+regenerated runs cannot inherit stale outcomes or aggregate receipts. Interrupted
+samples resume committed inventory, installation, and activity batches.
 The demo source namespace remains under `demo-data/`, not the former
 root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
 service-worker caches use `demo`. Changing data URLs as well as storage keys

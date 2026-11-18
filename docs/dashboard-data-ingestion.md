@@ -217,8 +217,14 @@ run-page views, and drops unused inventory and generic proxy events.
 The activity shard manifest describes operational artifact input. The Pages
 demo instead generates synthetic raw input on demand in the browser data worker,
 using the production normalizer and bounded canonical ingestion.
-Its default population is 10,000 repositories, three campaigns, and 200
-installed agentic workflows across selected repositories. The build publishes
+Its default population is 1,000 repositories, exactly 5,000 runs, three campaigns, and 4,000
+installed agentic workflows across all repositories. Log-normal repository rates
+allocate the run budget with at least one run per repository. Fleet inventory
+precedes seeded, activity-weighted ingestion without replacement. Randomly positioned
+coverage reservations put every repository into the first 3,000 runs, while
+busier repositories can recur naturally in partial results.
+Interrupted samples resume committed inventory, installation, and activity batches.
+The build publishes
 no pregenerated enterprise inventory or run/detail snapshot; compatible completed
 browser-local samples are reused. It never downloads an operational manifest.
 The canonical ingestion expression

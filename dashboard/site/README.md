@@ -29,7 +29,7 @@ The built-in dashboard keeps its shared query foundations and its controls, repo
 
 1. The activity action collects bounded raw inventory and run evidence for operational artifacts. The collectors under `dashboard/report/` retain evidence acquisition and normalization, not dashboard query projections.
 2. Operational artifacts contain `inventory-sources.json`, normalized run and record JSONL shards and their `payload-hashes.json` manifest, not database files. Production and local development use the same Go/PostgreSQL boundary.
-3. Pages instead runs its synthesizer on demand in the browser data Web Worker. It generates 10,000 repositories, exactly 20,000 runs, three campaigns, and 200 installed agentic workflows across selected repositories, passing raw samples through production normalization and incremental canonical IndexedDB ingestion in batches of at most 100 runs. The build pregenerates no sample snapshots. It has no operational input, SQLite download, agent summary, or live services.
+3. Pages instead runs its synthesizer on demand in the browser data Web Worker. It generates 1,000 repositories, exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories, passing raw samples through production normalization and incremental canonical IndexedDB ingestion in batches of at most 100 runs. Log-normal repository rates allocate the budget with at least one run per repository; workflow/day counts retain bursty, seasonal cadence. Fleet inventory precedes seeded, activity-weighted sampling without replacement. Randomly positioned coverage reservations ensure every repository appears within the first 3,000 runs, while busier repositories can recur naturally in partial results. Committed inventory, installation, and activity batches are resumed after interruption. The build pregenerates no sample snapshots. It has no operational input, SQLite download, agent summary, or live services.
 4. Dashboard Language queries in `src/data/queries/database.json` and the composed dashboard document perform selection, joins, aggregation, and projection at the production data-layer boundary. Supplied report rows cannot override canonical producers; undeclared sources are unavailable.
 5. The renderer loads the active page declaration and subscribes to its query payload with an abort-scoped lifetime. Database updates refresh the active view; only requested sources cross the worker boundary.
 
@@ -40,6 +40,16 @@ pipeline without a site-wide notification.
 Completed compatible samples are reused within the same UTC day. A new day or
 incompatible generator/schema resets only the scoped demo database and regenerates
 the sample; interrupted compatible generation resumes committed batches.
+Repository names use four hyphen-separated words from a fixed 256-word safe
+vocabulary, with a collision-free 32-bit naming space (not security entropy).
+Workflow display names vary across 64 safe labels. A deterministic coverage
+cohort guarantees 128 distinct blocked `.invalid` domains in the retained firewall
+window; the remaining firewall activity is sampled probabilistically.
+Network traffic follows tool activity with bounded background requests, and
+Value throughput follows allocated workflow runs rather than an independent
+fleet multiplier, keeping the complete run population within browser storage limits.
+The run ledger spans 21 UTC days; normal seven-day detail retention bounds recent
+session storage without removing historical runs.
 Run sessions use generated, bounded multi-turn timelines modeled on metadata-only
 inspection of this repository's live usage artifacts: prompt-heavy initial
 requests, growing cached context, separate agent/detection usage, native Bash

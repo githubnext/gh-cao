@@ -12,24 +12,32 @@ vi.mock('../../src/data/demo/sample.mjs', async (importOriginal) => {
   const actual = /** @type {typeof import('../../src/data/demo/sample.mjs')} */ (await importOriginal());
   return {
     ...actual,
-    enterpriseDemo: { ...actual.enterpriseDemo, repositories: 2_101, installedRepositories: 1 },
+    enterpriseDemo: { ...actual.enterpriseDemo, repositories: 2_101, installedRepositories: 3 },
     enterpriseRepositorySources: vi.fn(actual.enterpriseRepositorySources),
-    enterpriseActivityBatches: function* (/** @type {number} */ now, /** @type {Parameters<typeof actual.enterpriseSample>[1]} */ options) {
-      const sample = actual.enterpriseSample(now, { ...options, runs: 1_200 });
+    enterpriseActivityBatches: function* (/** @type {number} */ now) {
+      const sample = actual.enterpriseSample(now, { repositories: 3, count: 3, runs: 1_200 });
       // Exercise full production sessions and their children without replaying
       // three weeks of history on every batching/resume/reset assertion.
       const runs = sample.records.filter(record => record.kind === 'run');
+      const recent = runs.filter(record => Date.parse(record.run.started_at) >= now - 7 * 86_400_000);
+      const repositories = [...new Set(runs.map(record => record.run.repository))];
+      const firstPass = new Set(repositories.map(repository =>
+        recent.find(record => record.run.repository === repository)?.run.run_id));
       const selected = new Set([
-        runs.find(record => record.run.safe_outputs.length > 0),
-        runs.find(record => record.run.conclusion === 'failure'),
-        runs.find(record => record.run.status !== 'completed')
-      ].filter(record => record !== undefined).map(record => record.run.run_id));
-      yield {
-        runs: selected.size,
-        records: sample.records.filter(record => record.kind === 'run'
-          ? selected.has(record.run.run_id)
-          : record.kind === 'safe_output_item' ? selected.has(record.safe_output.run_id) : true)
-      };
+        ...firstPass,
+        recent.find(record => record.run.safe_outputs.length > 0)?.run.run_id,
+        recent.find(record => record.run.conclusion === 'failure')?.run.run_id,
+        recent.find(record => record.run.status !== 'completed')?.run.run_id
+      ].filter(id => id !== undefined));
+      for (const ids of [firstPass, new Set([...selected].filter(id => !firstPass.has(id)))]) {
+        yield {
+          runs: ids.size,
+          records: sample.records.filter(record => record.kind === 'run'
+            ? ids.has(record.run.run_id)
+            : record.kind === 'safe_output_item' && ids.has(record.safe_output.run_id))
+        };
+      }
+      yield { runs: 0, records: sample.records.filter(record => record.kind !== 'run' && record.kind !== 'safe_output_item') };
     },
   };
 });
@@ -46,19 +54,19 @@ describe('worker-owned synthetic enterprise population', () => {
       now, signal: controller.signal,
       onProgress: (completed) => {
         progress.push(completed);
-        if (completed === 1_001) controller.abort();
+        if (completed === 1_000) controller.abort();
       },
     })).rejects.toThrow(/abort/i);
-    expect(progress[0]).toBe(1);
-    expect((await readCollection(indexedDB, 'repositories')).length).toBe(1_001);
+    expect(progress[0]).toBe(1_000);
+    expect((await readCollection(indexedDB, 'repositories')).length).toBe(1_000);
     expect((await readTransactions(indexedDB)).find(row => row.kind === 'synthetic-demo-progress')?.complete).toBe(false);
-    expect(finalize).toHaveBeenCalledTimes(1);
+    expect(finalize).not.toHaveBeenCalled();
 
     vi.mocked(enterpriseRepositorySources).mockClear();
     await expect(synthesizeEnterpriseDemo(indexedDB, { now })).resolves.toMatchObject({ changed: true });
-    expect(enterpriseRepositorySources).toHaveBeenNthCalledWith(1, 1_001, 1_000, now);
+    expect(enterpriseRepositorySources).toHaveBeenNthCalledWith(1, 1_000, 1_000, now);
     expect((await readCollection(indexedDB, 'repositories')).length).toBe(2_101);
-    expect((await readCollection(indexedDB, 'workflows')).length).toBe(4);
+    expect((await readCollection(indexedDB, 'workflows')).length).toBe(12);
     expect((await readTransactions(indexedDB)).find(row => row.kind === 'synthetic-demo-complete')?.complete).toBe(true);
 
     vi.mocked(enterpriseRepositorySources).mockClear();
@@ -70,7 +78,7 @@ describe('worker-owned synthetic enterprise population', () => {
     const tomorrow = now + 86_400_000;
     await expect(synthesizeEnterpriseDemo(indexedDB, { now: tomorrow })).resolves.toMatchObject({ changed: true });
     expect(finalize).toHaveBeenCalledTimes(1);
-    expect(enterpriseRepositorySources).toHaveBeenNthCalledWith(1, 1, 1_000, tomorrow);
+    expect(enterpriseRepositorySources).toHaveBeenNthCalledWith(1, 0, 1_000, tomorrow);
     expect((await readCollection(indexedDB, 'repositories')).length).toBe(2_101);
     const clean = new IDBFactory();
     await synthesizeEnterpriseDemo(clean, { now: tomorrow });
@@ -85,5 +93,38 @@ describe('worker-owned synthetic enterprise population', () => {
     expect(new TextEncoder().encode(content).byteLength).toBe(file.size);
     expect(content).toContain('Synthetic dependency upgrade accepted');
     finalize.mockRestore();
+  }, 60_000);
+
+  it('commits fleet-wide early runs and resumes after the last committed activity batch', async () => {
+    const indexedDB = new IDBFactory();
+    const now = Date.parse('2040-06-15T12:00:00Z');
+    const controller = new AbortController();
+    const ingest = coordinator.ingestCachedGhAwJsonl;
+    const batches = vi.spyOn(coordinator, 'ingestCachedGhAwJsonl').mockImplementationOnce(async (...args) => {
+      const result = await ingest(...args);
+      controller.abort();
+      return result;
+    });
+    try {
+      await expect(synthesizeEnterpriseDemo(indexedDB, { now, signal: controller.signal })).rejects.toThrow(/abort/i);
+      const runs = await readCollection(indexedDB, 'runs');
+      expect(runs).toHaveLength(3);
+      expect(new Set(runs.map(run => run.repository)).size).toBe(3);
+      expect((await readCollection(indexedDB, 'repositories')).length).toBe(2_101);
+      expect((await readCollection(indexedDB, 'workflows')).length).toBe(12);
+      expect((await readTransactions(indexedDB)).find(row => row.id === 'synthetic-demo:population'))
+        .toMatchObject({ complete: false, activityBatches: 1, installedRepositories: 3 });
+      batches.mockClear();
+      await synthesizeEnterpriseDemo(indexedDB, { now });
+      expect(batches).toHaveBeenCalledTimes(2);
+      expect(batches.mock.calls[0][2]?.payloadScope).toBe('synthetic-demo:population/activity/1');
+      const clean = new IDBFactory();
+      await synthesizeEnterpriseDemo(clean, { now });
+      for (const collection of /** @type {const} */ (['runs', 'audits', 'tools', 'issues', 'operationalValues'])) {
+        expect(await readCollection(indexedDB, collection)).toEqual(await readCollection(clean, collection));
+      }
+    } finally {
+      batches.mockRestore();
+    }
   }, 60_000);
 });

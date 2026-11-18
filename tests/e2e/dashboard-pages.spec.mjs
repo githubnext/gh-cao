@@ -1,7 +1,7 @@
 import { expect, test as base } from "@playwright/test";
 import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
+import { startDashboardPagesPreview, waitForSyntheticPopulation } from "../helpers/dashboard-pages-preview.mjs";
 import { scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
 
 let preview;
@@ -57,6 +57,7 @@ test("enterprise sample populates analytical pages and supports real drill-downs
     "skills", "friction", "engines-models", "value",
     "cost", "marketplace", "maintenance", "maintenance-campaigns"]) {
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-${id}`);
+    await waitForSyntheticPopulation(page);
     await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
     const active = page.locator(`[data-page-id="${id}"]`);
     await expect(active).toBeVisible();
@@ -150,6 +151,7 @@ for (const width of [1440, 390]) {
     }, preview.url);
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-overview`, { waitUntil: "domcontentloaded" });
     const synthesisStarted = Date.now();
+    await waitForSyntheticPopulation(page);
     await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
     await expect(page.locator(".first-load-overlay")).toHaveCount(0, { timeout: 90_000 });
     await expect(page.locator("#page-title")).toHaveText("Overview");
@@ -176,10 +178,10 @@ for (const width of [1440, 390]) {
       } finally { database.close(); }
     });
     console.log("Default browser synthesis", JSON.stringify({ width, elapsedMs: Date.now() - synthesisStarted, ...canonicalCounts }));
-    expect(canonicalCounts.repositories).toBe(10_000);
-    expect(canonicalCounts.workflows).toBe(200);
+    expect(canonicalCounts.repositories).toBe(1_000);
+    expect(canonicalCounts.workflows).toBe(4_000);
     expect(canonicalCounts.campaigns).toBe(3);
-    expect(canonicalCounts.runs).toBeGreaterThan(300);
+    expect(canonicalCounts.runs).toBe(5_000);
     const demoRunIds = await page.evaluate(async () => {
       const descriptor = (await indexedDB.databases()).find(({ name }) => name?.includes("synthetic-demo"));
       const db = await new Promise((resolve, reject) => {

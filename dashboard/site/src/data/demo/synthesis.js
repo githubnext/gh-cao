@@ -4,6 +4,7 @@ import { canonicalDatabaseName, DATABASE_VERSION, deleteCanonicalDatabase, readT
 
 const receiptId = 'synthetic-demo:population';
 const batchSize = 1_000;
+const installedBatchSize = 50;
 const memoryTime = Date.now();
 
 /**
@@ -35,6 +36,9 @@ async function populateEnterpriseDemo(indexedDB, options) {
     || receipt.sampleVersion !== enterpriseDemo.version || receipt.schemaVersion !== DATABASE_VERSION
     || !Number.isSafeInteger(receipt.repositories) || Number(receipt.repositories) < 0
     || Number(receipt.repositories) > enterpriseDemo.repositories
+    || !Number.isSafeInteger(receipt.installedRepositories) || Number(receipt.installedRepositories) < 0
+    || Number(receipt.installedRepositories) > enterpriseDemo.installedRepositories
+    || !Number.isSafeInteger(receipt.activityBatches) || Number(receipt.activityBatches) < 0
     || receipt.complete === true && receipt.repositories !== enterpriseDemo.repositories);
   const legacy = !receipt && (await readTransactions(indexedDB))
     .some(entry => String(entry.kind).startsWith('synthetic-demo-') || entry.kind === 'dashboard-snapshot');
@@ -47,59 +51,22 @@ async function populateEnterpriseDemo(indexedDB, options) {
   /** @type {Record<string, any>} */
   const sources = {};
   const complete = receipt?.complete === true;
-  const refreshSample = !complete;
-  if (!receipt) await recordTransaction(indexedDB, {
-    id: receiptId, kind: 'synthetic-demo-progress', createdAt: new Date().toISOString(),
-    sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
-    repositories: 0, complete: false,
-  });
-  for (let index = 0; index < enterpriseDemo.installedRepositories; index++) {
-    options.signal?.throwIfAborted();
-    const sample = enterpriseSample(now, { start: index, count: 1, includeHistory: false });
-    for (const [name, source] of Object.entries(sample.sources)) {
-      sources[name] ??= { ...source, rows: [] };
-      if (index && ['campaigns', 'marketplace-packages', 'marketplace-registries', 'configuration-policy'].includes(name)) continue;
-      sources[name].rows.push(...source.rows);
-    }
-    if (refreshSample) {
-      await ingestDashboardSources(indexedDB, sample.sources, {
-        ...options, now, deferMaintenance: true,
-        payloadScope: `${receiptId}/inventory/${index}`,
-      });
-      let batchIndex = 0;
-      for (const batch of enterpriseActivityBatches(now, { start: index, count: 1 })) {
-        options.signal?.throwIfAborted();
-        await ingestCachedGhAwJsonl(indexedDB, batch.records.map(record => JSON.stringify(record)).join('\n'), {
-          signal: options.signal, storage: options.storage, now, deferMaintenance: true,
-          payloadScope: `${receiptId}/activity/${index}/${batchIndex++}`,
-        });
-        await new Promise(resolve => setTimeout(resolve, 0));
-      }
-    }
-    options.onProgress?.(index + 1, complete ? enterpriseDemo.installedRepositories : enterpriseDemo.repositories);
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
-  if (refreshSample) await finalizeNormalizedJsonlIngestion(indexedDB, {
-    now, storage: options.storage, signal: options.signal,
-  });
-  if (complete) {
-    return { sources, changed: false };
-  }
-  let completed = Math.max(enterpriseDemo.installedRepositories, Number(receipt?.repositories ?? 0));
-  options.onProgress?.(completed, enterpriseDemo.repositories);
+  let completed = Number(receipt?.repositories ?? 0);
+  let installed = Number(receipt?.installedRepositories ?? 0);
+  let activityBatches = Number(receipt?.activityBatches ?? 0);
   const save = () => recordTransaction(indexedDB, {
     id: receiptId, kind: 'synthetic-demo-progress', createdAt: new Date().toISOString(),
     sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
-    repositories: completed, complete: false,
+    repositories: completed, installedRepositories: installed, activityBatches, complete: false,
   });
-  await save();
+  if (!receipt) await save();
   async function* repositories() {
     for (let offset = completed; offset < enterpriseDemo.repositories; offset += batchSize) {
       options.signal?.throwIfAborted();
       yield enterpriseRepositorySources(offset, Math.min(batchSize, enterpriseDemo.repositories - offset), now);
     }
   }
-  await ingestDashboardSourceBatches(indexedDB, repositories(), {
+  if (!complete) await ingestDashboardSourceBatches(indexedDB, repositories(), {
     ...options,
     onBatchCommitted: async (count) => {
       completed += count;
@@ -107,11 +74,49 @@ async function populateEnterpriseDemo(indexedDB, options) {
       options.onProgress?.(completed, enterpriseDemo.repositories);
     },
   });
+  for (let index = 0; index < enterpriseDemo.installedRepositories; index += installedBatchSize) {
+    options.signal?.throwIfAborted();
+    const count = Math.min(installedBatchSize, enterpriseDemo.installedRepositories - index);
+    const sample = enterpriseSample(now, { start: index, count, includeHistory: false });
+    for (const [name, source] of Object.entries(sample.sources)) {
+      sources[name] ??= { ...source, rows: [] };
+      if (index && ['campaigns', 'marketplace-packages', 'marketplace-registries', 'configuration-policy'].includes(name)) continue;
+      sources[name].rows.push(...source.rows);
+    }
+    if (!complete && index + count > installed) {
+      await ingestDashboardSources(indexedDB, sample.sources, {
+        ...options, now, deferMaintenance: true,
+        payloadScope: `${receiptId}/inventory/${index}`,
+      });
+      installed = index + count;
+      await save();
+    }
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  if (complete) {
+    return { sources, changed: false };
+  }
+  let batchIndex = 0;
+  for (const batch of enterpriseActivityBatches(now)) {
+    options.signal?.throwIfAborted();
+    if (batchIndex++ < activityBatches) continue;
+    await ingestCachedGhAwJsonl(indexedDB, batch.records.map(record => JSON.stringify(record)).join('\n'), {
+      signal: options.signal, storage: options.storage, now, deferMaintenance: true,
+      payloadScope: `${receiptId}/activity/${batchIndex - 1}`,
+    });
+    activityBatches = batchIndex;
+    await save();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  if (batchIndex !== activityBatches) throw new Error('Synthetic activity checkpoint exceeds the generated sample.');
+  await finalizeNormalizedJsonlIngestion(indexedDB, {
+    now, storage: options.storage, signal: options.signal,
+  });
   options.signal?.throwIfAborted();
   await recordTransaction(indexedDB, {
     id: receiptId, kind: 'synthetic-demo-complete', createdAt: new Date().toISOString(),
     sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
-    repositories: completed, complete: true,
+    repositories: completed, installedRepositories: installed, activityBatches, complete: true,
   });
   return { sources, changed: true };
 }

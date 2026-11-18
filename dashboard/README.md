@@ -107,10 +107,15 @@ npm run dashboard:pages -- --base-path /gh-cao/
 ```
 
 Preparation builds the dashboard and browser synthesizer without pregenerating
-data files. On demand, the browser data worker generates 10,000 repositories,
-three campaigns, and 200 installed agentic workflows across selected repositories,
+data files. On demand, the browser data worker generates 1,000 repositories,
+exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories,
 using production normalization and canonical IndexedDB ingestion in bounded batches.
-Compatible completed samples are reused on subsequent visits.
+Log-normal activity rates distribute runs across the fleet with at least one run
+per repository. Fleet inventory loads first; seeded, activity-weighted ingestion
+allows busier repositories to recur naturally while randomly positioned coverage
+reservations put every repository into the first 3,000 runs.
+Compatible completed samples are reused on subsequent visits; interrupted samples
+resume committed inventory, installation, and activity batches.
 There is no real-data input option. Published output contains no inventory or
 run/detail snapshot, SQLite snapshot, or agent summary.
 It does not contact GitHub or simulate Actions permissions,

@@ -7,6 +7,26 @@ import { operationalValueEvidenceId } from "../model/operational-value-evidence.
 import { VALUE_COLLECTION_REASONS, workflowValueCollectionId } from "../model/workflow-value-collection.js";
 
 const owner = "sample-enterprise";
+export const enterpriseRepositoryVocabulary = Object.freeze(`
+acorn alder almond amber anchor apple apricot arch aspen aster atlas autumn bamboo banana barley basin
+basket bay beacon bean beech bell berry birch biscuit blossom bluebonnet blueberry board book bottle boulder
+bowl branch breeze brick bridge brook brush bubble bucket buckle bud butter button cabin cactus calendar
+camellia candle canopy canyon canvas caramel card carpet carrot carton cascade cedar celery chalk cherry chestnut
+chime cinnamon circle citrine clay clover cloud cobalt cocoa coconut comet compass coral cork corn cosmos
+cotton cove crane crescent crocus crystal cup current daffodil dahlia daisy dawn dew diamond dimple dish
+dock dome dune elm emerald evening fern field fig finch fir flannel flax fleece flint flora
+flower flute forest fountain frame freesia frost garden garnet gate gazebo gem ginger glacier glass glen
+globe glow gold granite grape grass grove guava harbor harvest hazel hearth heather hill holly honey
+horizon hyacinth iceberg iris island ink ivy jade jasmine jasper jelly jewel juniper kale kettle key
+lagoon lake lantern larch laurel lavender leaf lemon lentil lilac lily lime linen lotus magnolia maple
+marble meadow melon mesa mint mist moon moss mug mulberry mushroom nectar nutmeg oak oat ocean
+olive onyx opal orange orchard orchid oregano paper paprika parsley pastel path peach pear pebble pecan
+petal pine pistachio plum pond poplar poppy porcelain prism pumpkin quartz quilt radish rain rainbow reed
+reef ribbon rice ridge river robin rock rose rosemary ruby rye saffron sage sail sand sapling
+satin sea seed shell shore silk sky slate snow spruce star stone summit sunflower thyme willow
+`.trim().split(/\s+/));
+export const enterpriseBlockedDomains = Object.freeze(enterpriseRepositoryVocabulary.slice(0, 128)
+  .map(word => `unapproved-${word}.example.invalid`));
 const catalog = `${owner}/automation-catalog`;
 const dayMs = 86_400_000;
 const runHistoryDays = 21;
@@ -18,6 +38,40 @@ const workflows = [
   { id: "security-review", name: "Security review", campaign: "secure-delivery", role: "orchestrator", goal: "Reduce verified security findings", metric: "Security repairs" },
   { id: "documentation", name: "Documentation maintenance", campaign: "knowledge-care", role: "orchestrator", goal: "Keep service runbooks current", metric: "Runbook updates" },
 ];
+const workflowNames = [
+  [
+    "Dependency review", "Dependency health check", "Package version review", "Package support check",
+    "Library update review", "Dependency catalog check", "Package freshness review", "Library compatibility check",
+    "Dependency inventory review", "Package manifest check", "Dependency planning review", "Library support review",
+    "Package alignment check", "Dependency baseline review", "Package maintenance review", "Library version check",
+  ],
+  [
+    "Repository assistant", "Repository upkeep", "Build health review", "Test maintenance",
+    "Workspace cleanup", "Configuration review", "Code organization", "Service maintenance",
+    "Repository hygiene", "Build configuration check", "Test reliability review", "Maintenance planning",
+    "Workspace health check", "Service readiness review", "Repository baseline check", "Project upkeep",
+  ],
+  [
+    "Security review", "Access policy review", "Permission baseline check", "Dependency safety review",
+    "Configuration safety check", "Network policy review", "Artifact integrity check", "Release safety review",
+    "Supply chain review", "Policy alignment check", "Repository safeguards", "Trust boundary review",
+    "Secret handling review", "Build safety check", "Service protection review", "Security baseline check",
+  ],
+  [
+    "Documentation maintenance", "Runbook refresh", "Guide consistency check", "Reference update review",
+    "Project notes review", "Service handbook refresh", "Documentation link check", "Readme maintenance",
+    "Knowledge base review", "Setup guide refresh", "Example catalog review", "Documentation coverage check",
+    "Operations guide review", "Reference consistency check", "Handbook maintenance", "Getting started review",
+  ],
+];
+export const enterpriseWorkflowNames = Object.freeze(workflowNames.flat());
+
+function workflowsFor(repository) {
+  return workflows.map((workflow, index) => ({
+    ...workflow,
+    name: workflowNames[index][Number.parseInt(sha(`${repository}:${workflow.id}:name`).slice(0, 2), 16) % workflowNames[index].length],
+  }));
+}
 const campaigns = [
   { id: "dependency-health", name: "Dependency health", description: "Synthetic coordinated dependency upgrades across the enterprise.", icon: "package" },
   { id: "secure-delivery", name: "Secure delivery", description: "Synthetic security reviews and verified operational runbooks.", icon: "shield-check" },
@@ -60,7 +114,7 @@ function repositoryProfile(repository, department, service) {
   const sample = distributionFor(repository);
   return {
     activity: ({ commerce: 1.5, platform: 1.2, analytics: 0.8, workplace: 0.55 })[department]
-      * ({ api: 1.4, web: 1, infrastructure: 0.65 })[service] * sample.lognormal(1, 0.35),
+      * ({ api: 1.4, web: 1, infrastructure: 0.65 })[service] * Math.min(20, sample.lognormal(1, 1)),
     complexity: sample.lognormal(service === "infrastructure" ? 1.5 : 1, 0.3),
     failureRate: 0.035 + sample.random() * 0.09,
     acceptanceRate: 0.45 + sample.random() * 0.4,
@@ -127,7 +181,7 @@ function inventoryFor(repository, index, generatedAt) {
     repository, generatedAt,
     discoveredRepositories: [{ full_name: repository, visibility: index % 2 ? "private" : "internal" }],
     inventory: {
-      workflows: workflows.map(workflow => ({
+      workflows: workflowsFor(repository).map(workflow => ({
         ...workflow, role: standaloneDocumentation && workflow.id === "documentation" ? "standalone" : workflow.role,
         sourcePath: `.github/workflows/${workflow.id}.md`, compiled: true,
         ghAwVersion: index % 3 ? "1.2.2" : "1.2.1", maxAiCredits: 50,
@@ -150,7 +204,7 @@ function inventoryFor(repository, index, generatedAt) {
   });
 }
 
-function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now, profile) {
+function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now, profile, coverageDomain) {
   const sample = distributionFor(`${repository}:${workflow.id}:${day}:${ordinal}`);
   const candidate = sample.random() < 0.5;
   const complexity = Math.min(12, Math.max(0.15, sample.lognormal(profile.complexity, 0.8)));
@@ -208,8 +262,9 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     };
   });
   const mode = sample.random() < 0.7 ? "live" : "review";
-  const apiCalls = Math.max(2, sample.poisson(12 * complexity));
-  const blocked = sample.random() < (incident ? 0.18 : 0.06);
+  let apiCalls = Math.max(2, sample.poisson(3 * complexity));
+  const blocked = sample.random() < (incident ? 0.18 : 0.06) || Boolean(coverageDomain);
+  const blockedDomain = coverageDomain ?? enterpriseBlockedDomains[runId % enterpriseBlockedDomains.length];
   const frictionEvents = sample.poisson(1 + complexity * (failed ? 3 : 1));
   const frictionRatio = frictionEvents ? Math.min(0.7, sample.lognormal(failed ? 0.22 : 0.045, 0.65)) : 0;
   const quality = Number(Math.min(0.99, Math.max(0.2, sample.lognormal(failed ? 0.58 : 0.9, 0.09))).toFixed(3));
@@ -232,6 +287,7 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
       output_size: Math.round(sample.lognormal(1000 * complexity, 0.7)),
     };
   });
+  apiCalls = Math.max(apiCalls, toolCalls.filter(call => call.server_name === "github").length);
   const skillActivations = [workflow.id, "test-validation"].filter(() => sample.random() < profile.skillRate)
     .map(name => ({
       name, source: "repository", timestamp: startedAt, invocation_count: Math.min(5, 1 + sample.poisson(complexity)),
@@ -263,7 +319,7 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     firewall_analysis: { requests_by_domain: {
       "api.github.com": { allowed: apiCalls, blocked: 0 },
       "registry.npmjs.org": { allowed: sample.poisson(workflowIndex === 0 ? 12 : 2), blocked: 0 },
-      ...(blocked ? { "unapproved.example.invalid": { allowed: 0, blocked: 1 + sample.poisson(1) } } : {}),
+      ...(blocked ? { [blockedDomain]: { allowed: 0, blocked: 1 + sample.poisson(1) } } : {}),
     } },
     safe_outputs: safeOutputs,
     audit: {
@@ -400,16 +456,20 @@ function valueSample(repository, workflow, now, profile) {
 }
 
 export const enterpriseDemo = Object.freeze({
-  version: 4, repositories: 10_000, runs: 20_000, campaigns: 3, installedWorkflows: 200,
-  activeRepositories: 12, installedRepositories: 50,
+  version: 11, repositories: 1_000, runs: 5_000, campaigns: 3, installedWorkflows: 4_000,
+  activeRepositories: 1_000, installedRepositories: 1_000,
 });
 
 export function enterpriseRepository(index) {
-  const departments = ["commerce", "platform", "analytics", "workplace"];
-  const services = ["api", "web", "infrastructure"];
-  return index < 12
-    ? `${owner}/${departments[Math.floor(index / 3)]}-${services[index % 3]}`
-    : `${owner}/service-${String(index + 1).padStart(7, "0")}`;
+  if (!Number.isSafeInteger(index) || index < 0 || index > 0xffff_ffff) {
+    throw new RangeError("Synthetic repository index must be an unsigned 32-bit integer.");
+  }
+  // This bijective 32-bit mix fills all four word positions without naming collisions.
+  let value = index ^ 0xa511e9b3;
+  value = Math.imul(value ^ value >>> 16, 0x7feb352d);
+  value = Math.imul(value ^ value >>> 15, 0x846ca68b);
+  value = (value ^ value >>> 16) >>> 0;
+  return `${owner}/${[24, 16, 8, 0].map(shift => enterpriseRepositoryVocabulary[value >>> shift & 255]).join("-")}`;
 }
 
 export function enterpriseRepositorySources(start, count, now) {
@@ -431,23 +491,39 @@ export function enterpriseMemory(now) {
   const generatedAt = new Date(now).toISOString();
   return campaigns.map(campaign => {
     const content = [
-      { repository: `${owner}/commerce-api`, observation: "Synthetic dependency upgrade accepted", nextReview: generatedAt, status: "verified" },
-      { repository: `${owner}/platform-web`, observation: "Synthetic review retained for approval", nextReview: generatedAt, status: "review" },
+      { repository: enterpriseRepository(0), observation: "Synthetic dependency upgrade accepted", nextReview: generatedAt, status: "verified" },
+      { repository: enterpriseRepository(4), observation: "Synthetic review retained for approval", nextReview: generatedAt, status: "review" },
     ].map(record => JSON.stringify(record)).join("\n") + "\n";
     return { campaign: campaign.id, path: "observations.jsonl", content, sha256: sha(content), oid: sha(content).slice(0, 40) };
   });
 }
 
-function activitySchedule(now, totalRuns) {
+function allocateRuns(slots, totalRuns) {
+  const weight = slots.reduce((sum, slot) => sum + slot.weight, 0);
+  if (!weight) throw new Error("Synthetic activity schedule has no eligible run slots.");
+  for (const slot of slots) slot.count = Math.floor(totalRuns * slot.weight / weight);
+  const remainder = totalRuns - slots.reduce((sum, slot) => sum + slot.count, 0);
+  const ranked = slots.toSorted((left, right) =>
+    totalRuns * right.weight % weight - totalRuns * left.weight % weight);
+  for (let index = 0; index < remainder; index++) ranked[index].count++;
+}
+
+function activitySchedule(now, totalRuns, repositories) {
   if (!Number.isSafeInteger(totalRuns) || totalRuns < 0) throw new TypeError("Synthetic run count must be a non-negative safe integer.");
-  const slots = [];
-  for (let coordinate = 0; coordinate < enterpriseDemo.activeRepositories; coordinate++) {
+  if (!Number.isSafeInteger(repositories) || repositories < 1 || repositories > enterpriseDemo.repositories) {
+    throw new TypeError("Synthetic repository count must be within the demo fleet.");
+  }
+  const fleet = [];
+  for (let coordinate = 0; coordinate < repositories; coordinate++) {
     const repository = enterpriseRepository(coordinate);
     const department = ["commerce", "platform", "analytics", "workplace"][Math.floor(coordinate / 3) % 4];
     const service = ["api", "web", "infrastructure"][coordinate % 3];
     const profile = repositoryProfile(repository, department, service);
+    const installedWorkflows = workflowsFor(repository);
+    const behaviors = workflows.map(workflow => workflowProfile(repository, workflow, profile));
+    const slots = [];
     for (const [index, workflow] of workflows.entries()) {
-      const behavior = workflowProfile(repository, workflow, profile);
+      const behavior = behaviors[index];
       for (let day = 0; day < runHistoryDays; day++) {
         const sample = distributionFor(`${repository}:${workflow.id}:${day}:cadence`);
         const date = Math.floor(now / dayMs) * dayMs - day * dayMs;
@@ -455,60 +531,113 @@ function activitySchedule(now, totalRuns) {
         const weekdayWeight = weekday === 0 || weekday === 6 ? 0.3 : 1.2;
         const partialDay = day === 0 ? (now - date) / dayMs : 1;
         const rate = behavior.activity * Math.min(3, sample.lognormal(1, 0.5)) * weekdayWeight
-          * (0.85 + (runHistoryDays - 1 - day) / 40) * partialDay;
-        slots.push({ coordinate, index, day, weight: sample.poisson(rate), count: 0, firstRunId: 0 });
+          * (0.85 + 0.5 * (runHistoryDays - 1 - day) / (runHistoryDays - 1)) * partialDay;
+        slots.push({ index, day, weight: sample.poisson(rate) + rate * 0.1, count: 0, firstRunId: 0 });
       }
     }
+    fleet.push({ coordinate, repository, workflows: installedWorkflows, behaviors, slots, weight: profile.activity, count: 0 });
   }
-  const weight = slots.reduce((sum, slot) => sum + slot.weight, 0);
-  if (!weight) throw new Error("Synthetic activity schedule has no eligible run slots.");
-  for (const slot of slots) slot.count = Math.floor(totalRuns * slot.weight / weight);
-  const remainder = totalRuns - slots.reduce((sum, slot) => sum + slot.count, 0);
-  // Largest remainders preserve uneven cadence while meeting the exact enterprise budget.
-  const ranked = slots.toSorted((left, right) =>
-    totalRuns * right.weight % weight - totalRuns * left.weight % weight);
-  for (let index = 0; index < remainder; index++) ranked[index].count++;
+  // Reserve fleet coverage when the budget permits, then preserve log-normal activity shares.
+  const minimum = totalRuns >= repositories ? 1 : 0;
+  allocateRuns(fleet, totalRuns - minimum * repositories);
   let firstRunId = 1;
-  for (const slot of slots) {
-    slot.firstRunId = firstRunId;
-    firstRunId += slot.count;
+  for (const member of fleet) {
+    const coverage = minimum && member.coordinate < enterpriseBlockedDomains.length
+      ? member.slots.find(slot => slot.day === 3 && slot.index === member.coordinate % workflows.length) : null;
+    allocateRuns(member.slots, member.count + minimum - Number(Boolean(coverage)));
+    if (coverage) {
+      coverage.count++;
+      coverage.blockedDomain = enterpriseBlockedDomains[member.coordinate];
+    }
+    for (const slot of member.slots) {
+      slot.firstRunId = firstRunId;
+      firstRunId += slot.count;
+    }
+    shuffle(member.slots, `${member.repository}:ingestion-order`);
   }
-  return slots;
+  return shuffle(fleet, "fleet-ingestion-order");
 }
 
-export function* enterpriseActivityBatches(now, { start = 0, count = 12, runs = enterpriseDemo.runs } = {}) {
-  const schedule = activitySchedule(now, runs);
+function shuffle(values, key) {
+  const sample = distributionFor(key);
+  for (let index = values.length - 1; index > 0; index--) {
+    const selected = Math.floor(sample.random() * (index + 1));
+    [values[index], values[selected]] = [values[selected], values[index]];
+  }
+  return values;
+}
+
+export function* enterpriseActivityBatches(now, {
+  start = 0, repositories = enterpriseDemo.activeRepositories, count = repositories - start, runs = enterpriseDemo.runs,
+} = {}) {
+  const fleet = activitySchedule(now, runs, repositories)
+    .filter(member => member.coordinate >= start && member.coordinate < start + count)
+    .map(member => ({
+      ...member, slot: 0, ordinal: 0,
+      remaining: member.slots.reduce((sum, slot) => sum + slot.count, 0),
+    }));
+  const total = fleet.reduce((sum, member) => sum + member.remaining, 0);
+  const coverage = fleet.filter(member => member.remaining > 0);
+  const coverageWindow = Math.min(total, coverage.length * 3);
+  const reserved = new Set(shuffle(Array.from({ length: coverageWindow }, (_, index) => index),
+    "fleet-ingestion-coverage").slice(0, coverage.length));
+  for (const member of coverage) member.remaining--;
+  let available = total - coverage.length;
+  let covered = 0;
+  const sample = distributionFor("fleet-ingestion-sampling");
   let records = [];
   let runCount = 0;
-  for (let coordinate = start; coordinate < Math.min(start + count, enterpriseDemo.activeRepositories); coordinate++) {
-    const department = ["commerce", "platform", "analytics", "workplace"][Math.floor(coordinate / 3) % 4];
-    const service = ["api", "web", "infrastructure"][coordinate % 3];
-    const repository = enterpriseRepository(coordinate);
-    const profile = repositoryProfile(repository, department, service);
-    for (const [index, workflow] of workflows.entries()) {
-      const behavior = workflowProfile(repository, workflow, profile);
-      for (let day = 0; day < runHistoryDays; day++) {
-        const slot = schedule[(coordinate * workflows.length + index) * runHistoryDays + day];
-        for (let ordinal = 0; ordinal < slot.count; ordinal++) {
-          if (runCount === 100) {
-            yield { records, runs: runCount };
-            records = [];
-            runCount = 0;
-          }
-          const run = runSample(repository, workflow, index, slot.firstRunId + ordinal, day, ordinal, now, behavior);
-          runCount++;
-          records.push({ schema_version: 2, kind: "run", run },
-            ...run.safe_outputs.map(output => ({ schema_version: 2, kind: "safe_output_item",
-              safe_output: { ...output, run_id: run.run_id } })));
-        }
-      }
-      records.push(...valueSample(repository, workflow, now, behavior));
+  for (let emitted = 0; emitted < total; emitted++) {
+    let member;
+    if (reserved.has(emitted)) {
+      member = coverage[covered++];
+    } else {
+      let draw = sample.random() * available;
+      member = fleet.find(candidate => (draw -= candidate.remaining) < 0);
+      if (!member) throw new Error("Synthetic activity sampler exhausted its run allocation.");
+      member.remaining--;
+      available--;
+    }
+    while (member.slot < member.slots.length && member.ordinal >= member.slots[member.slot].count) {
+      member.slot++;
+      member.ordinal = 0;
+    }
+    const slot = member.slots[member.slot];
+    const ordinal = member.ordinal++;
+    const run = runSample(member.repository, member.workflows[slot.index], slot.index,
+      slot.firstRunId + ordinal, slot.day, ordinal, now, member.behaviors[slot.index],
+      ordinal === 0 ? slot.blockedDomain : undefined);
+    records.push({ schema_version: 2, kind: "run", run },
+      ...run.safe_outputs.map(output => ({ schema_version: 2, kind: "safe_output_item",
+        safe_output: { ...output, run_id: run.run_id } })));
+    if (++runCount === 100) {
+      yield { records, runs: runCount };
+      records = [];
+      runCount = 0;
     }
   }
   if (records.length) yield { records, runs: runCount };
+  records = [];
+  for (const member of fleet) {
+    for (const [index, workflow] of member.workflows.entries()) {
+      const workflowRuns = member.slots.reduce((sum, slot) => sum + (slot.index === index ? slot.count : 0), 0);
+      const value = valueSample(member.repository, workflow, now, {
+        ...member.behaviors[index], activity: workflowRuns / runHistoryDays,
+      });
+      if (records.length + value.length > 100) {
+        yield { records, runs: 0 };
+        records = [];
+      }
+      records.push(...value);
+    }
+  }
+  if (records.length) yield { records, runs: 0 };
 }
 
-export function enterpriseSample(now, { start = 0, count = 12, includeHistory = true, runs = enterpriseDemo.runs } = {}) {
+export function enterpriseSample(now, {
+  start = 0, repositories = enterpriseDemo.activeRepositories, count = repositories - start,
+  includeHistory = true, runs = enterpriseDemo.runs,
+} = {}) {
   const generatedAt = new Date(now).toISOString();
   const sources = {};
   const records = [];
@@ -529,7 +658,7 @@ export function enterpriseSample(now, { start = 0, count = 12, includeHistory = 
     }
   }
   if (includeHistory) {
-    for (const batch of enterpriseActivityBatches(now, { start, count, runs })) {
+    for (const batch of enterpriseActivityBatches(now, { start, count, runs, repositories })) {
       records.push(...batch.records);
       runCount += batch.runs;
     }

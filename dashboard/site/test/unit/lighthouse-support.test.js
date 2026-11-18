@@ -31,7 +31,7 @@ it('prepares the browser-generated enterprise demo and a private empty fixture w
     const bootstrap = await readFile(join(siteRoot, 'index.html'), 'utf8');
     expect(bootstrap).toContain('name="dashboard-deployment" content="synthetic-demo"');
     expect(dataset.expected.runs).toBeGreaterThan(0);
-    expect(dataset.expected.repositories).toBe(10_000);
+    expect(dataset.expected.repositories).toBe(1_000);
     expect(dataset.sampleVersion).toBeGreaterThan(0);
     for (const path of ['payload-hashes.json', 'demo-data/payload-hashes.json', 'inventory-sources.json', 'agent-summary.json']) {
       await expect(readFile(join(siteRoot, path))).rejects.toThrow(/ENOENT/);

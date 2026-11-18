@@ -440,15 +440,43 @@ Pages SHALL contain only a synthetic enterprise sample. Its browser data worker 
 generate raw sample evidence on demand and pass it through the production normalization,
 canonical ingestion, Dashboard Language queries, and shared declarative views.
 Generation and writes SHALL be bounded rather than retaining the enterprise
-population in memory. The default sample SHALL contain 10,000 repositories,
-exactly 20,000 runs, three campaigns, and 200 installed agentic workflows across selected repositories.
-Run generation SHALL preserve heterogeneous, seasonal cadence while allocating
-the exact run budget, with stable identities across repository partitions.
-Raw activity SHALL enter normalization in batches of at most 100 runs.
+population in memory. The default sample SHALL contain 1,000 repositories,
+exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories.
+Repository names SHALL consist of four hyphen-separated words from a predefined
+256-word safe vocabulary. A deterministic bijection over unsigned 32-bit indices
+SHALL select the four word positions without collisions: a 32-bit naming space,
+not a secret or security token. Installed workflows SHALL select their display
+names from 64 predefined safe names across four behavior archetypes, consistently
+across inventory, Runs, and Value evidence.
+Run generation SHALL reserve at least one run per repository when the budget permits,
+then allocate the remaining budget proportionally to deterministic log-normal repository
+activity rates. Workflow/day allocation SHALL preserve heterogeneous, Poisson-bursty,
+weekday/weekend and partial-current-day cadence. These are illustrative synthetic
+distributions, not an empirical estimate of enterprise activity.
+Run identities SHALL remain stable across partitions.
+The worker SHALL publish fleet inventory before activity, then sample
+repositories without replacement in proportion to their remaining allocated runs,
+using a deterministic keyed random stream. One run per active repository SHALL be
+reserved at randomly selected positions within the first three runs per active
+repository (at most the total budget). This bounded coverage window SHALL prevent
+repository starvation without imposing a uniform round-robin order: busy repositories
+MAY appear repeatedly in early partial results. Raw activity SHALL enter normalization in
+batches of at most 100 runs; Value-only batches SHALL contain at most 100 raw records.
 Synthetic run evidence SHALL include bounded, multi-turn version-1 unified sessions
 through the production session parser, with correlated tool calls, per-request
 usage and cache growth, phase-scoped accounting, and outcome-appropriate lifecycle
-and safe-output evidence. Pending and approval-gated runs SHALL NOT acquire invented
+and safe-output evidence. The default sample SHALL include at least 100 distinct
+blocked domains under the reserved `.invalid` namespace within retained firewall
+evidence. A deterministic coverage cohort SHALL reserve one run three days before
+the sample day for each of 128 domains, distributed across repositories and workflow
+archetypes; other blocked activity SHALL remain probabilistic.
+Network request volume SHALL scale with generated tool activity and bounded
+background traffic. Value throughput SHALL use the allocated workflow run rate,
+not an independent per-repository activity multiplier, so detail volume remains
+within the browser storage budget without evicting the configured run population.
+The run ledger SHALL span 21 UTC days, with ordinary seven-day detail retention,
+so complete recent sessions coexist with the full 5,000-run historical population.
+Pending and approval-gated runs SHALL NOT acquire invented
 completion, evaluation, or output events. Live repository evidence MAY inform
 illustrative shapes and distributions during development; the demo SHALL NOT
 copy transcripts, prompts, tool payloads, private identifiers, or runtime data
@@ -458,7 +486,8 @@ shards. Reopening the demo SHALL reuse completed, compatible browser-local data
 within the same UTC day. A new sample day or incompatible generator/schema SHALL
 reset only the scoped demo database before regeneration, including old activity
 and derived count receipts. Interrupted compatible samples SHALL resume from
-committed batches rather than be treated as complete.
+committed inventory, installation, and interleaved activity batches rather than be
+treated as complete. Resuming SHALL NOT re-ingest completed activity batches.
 It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
 a separate demo query implementation. A declarative **Synthetic enterprise demo**
 callout SHALL identify the sample; live services SHALL be unavailable.

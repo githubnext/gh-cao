@@ -99,9 +99,14 @@ the `synthetic-demo` suffix and service-worker caches use `demo`.
 New data URLs prevent old same-origin service-worker caches from returning
 previous real-data payloads.
 
-The enterprise sample includes 10,000 repositories, three campaigns, and 200
-installed agentic workflows across selected repositories, with a reproducible
-probabilistic run population spanning three weeks.
+The enterprise sample includes 1,000 repositories, three campaigns, and 4,000
+installed agentic workflows across all repositories, with a reproducible
+probabilistic allocation of exactly 5,000 runs spanning three weeks. Log-normal
+repository activity rates produce a busy minority while reserving at least one run
+per repository. Fleet inventory is ingested first, then seeded, activity-weighted
+sampling interleaves runs without replacement. Randomly positioned coverage
+reservations put every repository into the first 3,000 runs, while busier
+repositories can recur naturally in partial results.
 Repository-specific activity rates, weekday/weekend seasonality and
 bursty Poisson run arrivals produce quiet periods and busy services. Each
 repository/workflow pair has persistent activity, failure, output, acceptance,

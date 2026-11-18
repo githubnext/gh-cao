@@ -10,7 +10,8 @@ import {
 } from "../../scripts/simulate-dashboard-pages.mjs";
 import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSources, ingestDashboardSourceBatches } from "../../dashboard/site/src/data/ingest/coordinator.js";
 import {
-  enterpriseActivityBatches, enterpriseDemo, enterpriseRepositorySources, enterpriseSample as generateEnterpriseSample,
+  enterpriseActivityBatches, enterpriseBlockedDomains, enterpriseDemo, enterpriseRepository,
+  enterpriseRepositorySources, enterpriseRepositoryVocabulary, enterpriseSample as generateEnterpriseSample, enterpriseWorkflowNames,
 } from "../../scripts/dashboard-demo-data.mjs";
 import { demoSha256 } from "../../dashboard/site/src/data/demo/hash.mjs";
 import { loadDashboardSourceSync } from "../../dashboard/report/bundle-dashboards.mjs";
@@ -21,25 +22,110 @@ import { readCollection } from "../../dashboard/site/src/data/storage/indexeddb.
 import { isExpiredCanonicalRecord } from "../../dashboard/site/src/data/storage/retention.js";
 
 const root = path.resolve(".");
-const enterpriseSample = (now, options = {}) => generateEnterpriseSample(now, { runs: 1_200, ...options });
+const enterpriseSample = (now, options = {}) => generateEnterpriseSample(now, { runs: 1_200, repositories: 12, count: 12, ...options });
 
-test("the default enterprise sample streams exactly 20,000 distinct runs in bounded batches", () => {
+test("the browser enterprise sample streams exactly 5,000 distinct runs in bounded batches", () => {
   const now = Date.parse("2040-06-15T12:00:00Z");
   const ids = new Set();
+  const repositories = new Map();
+  const earlyCoverage = new Set();
+  const blockedDomains = new Set();
+  let firstBatchRepositories;
   let runs = 0;
   for (const batch of enterpriseActivityBatches(now)) {
     assert.ok(batch.runs <= 100, "normalization batches stay within the existing query budgets");
     const records = batch.records.filter(record => record.kind === "run");
     assert.equal(records.length, batch.runs);
-    for (const { run } of records) ids.add(run.run_id);
+    if (runs === 0) firstBatchRepositories = new Set(records.map(({ run }) => run.repository)).size;
+    for (const { run } of records) {
+      ids.add(run.run_id);
+      repositories.set(run.repository, (repositories.get(run.repository) ?? 0) + 1);
+      if (ids.size <= enterpriseDemo.repositories * 3) earlyCoverage.add(run.repository);
+      if (Date.parse(run.started_at) >= now - 7 * 86_400_000) {
+        for (const [domain, requests] of Object.entries(run.firewall_analysis.requests_by_domain)) {
+          if (requests.blocked > 0) blockedDomains.add(domain);
+        }
+      }
+    }
     runs += batch.runs;
   }
-  assert.equal(runs, 20_000);
-  assert.equal(ids.size, 20_000);
+  assert.equal(runs, 5_000);
+  assert.equal(ids.size, 5_000);
+  assert.equal(earlyCoverage.size, 1_000, "cover the fleet within the first 3,000 randomly interleaved runs");
+  assert.ok(firstBatchRepositories >= 50 && firstBatchRepositories < 100,
+    "early batches are diverse but allow realistic repeated activity, unlike strict round-robin");
+  assert.equal(repositories.size, 1_000);
+  assert.equal(blockedDomains.size, 128, "the retained firewall window includes all blocked-domain samples");
+  assert.deepEqual(blockedDomains, new Set(enterpriseBlockedDomains));
+  assert.ok([...blockedDomains].every(domain => domain.endsWith(".invalid")));
+  const counts = [...repositories.values()].toSorted((left, right) => right - left);
+  const topDecile = counts.slice(0, 100).reduce((sum, count) => sum + count, 0) / runs;
+  assert.ok(topDecile > 0.3 && topDecile < 0.75, "a busy minority, not a uniform fleet or a single-repository monopoly");
+  assert.ok(counts[0] > counts[500] * 10, "log-normal repository activity has a substantial right tail");
   const combined = enterpriseSample(now, { count: 2 }).records.filter(record => record.kind === "run");
   const partitioned = [0, 1].flatMap(start => enterpriseSample(now, { start, count: 1 }).records)
     .filter(record => record.kind === "run");
-  assert.deepEqual(combined, partitioned, "worker repository partitions preserve run and session identities");
+  const byId = (left, right) => left.run.run_id - right.run.run_id;
+  assert.deepEqual(combined.toSorted(byId), partitioned.toSorted(byId), "worker repository partitions preserve run and session identities");
+});
+
+test("repository names use four safe words with a collision-free 32-bit naming space", () => {
+  assert.equal(enterpriseRepositoryVocabulary.length, 256);
+  const vocabulary = new Set(enterpriseRepositoryVocabulary);
+  assert.equal(vocabulary.size, 256);
+  assert.ok([...vocabulary].every(word => /^[a-z]+$/.test(word)));
+  const names = new Set();
+  const positions = Array.from({ length: 4 }, () => new Set());
+  for (let index = 0; index < 65_536; index++) {
+    const repository = enterpriseRepository(index);
+    names.add(repository);
+    const words = repository.split("/")[1].split("-");
+    assert.equal(words.length, 4);
+    for (const [position, word] of words.entries()) {
+      assert.ok(vocabulary.has(word));
+      positions[position].add(word);
+    }
+    if (index < enterpriseDemo.repositories) assert.equal(enterpriseRepository(index), repository);
+  }
+  assert.equal(names.size, 65_536);
+  for (const words of positions) assert.equal(words.size, 256, "all eight bits are used at each word position");
+  assert.notEqual(enterpriseRepository(0), enterpriseRepository(0xffff_ffff));
+  for (const index of [-1, 0x1_0000_0000, 0.5, NaN]) assert.throws(() => enterpriseRepository(index), RangeError);
+});
+
+test("Value throughput follows the allocated run population rather than an independent fleet multiplier", () => {
+  const sample = enterpriseSample(Date.parse("2040-06-15T12:00:00Z"), { runs: 0 });
+  const evidence = sample.records.filter(record => record.kind === "operational_value_evidence");
+  assert.equal(evidence.length, 48);
+  for (const { operational_value_evidence: packet } of evidence) {
+    assert.ok(packet.facts.some(fact => fact["fact-kind"] === "contract"));
+    assert.equal(packet.facts.some(fact => ["output", "implementation"].includes(fact["fact-kind"])), false);
+    assert.equal(new Set(packet.facts.filter(fact => fact["fact-kind"] === "snapshot").map(fact => fact.value)).size, 1);
+  }
+});
+
+test("workflow names vary safely across repositories and agree with run and Value evidence", () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const names = new Set(enterpriseWorkflowNames);
+  assert.equal(names.size, 64);
+  assert.ok([...names].every(name => /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)));
+  const inventory = generateEnterpriseSample(now, { count: enterpriseDemo.installedRepositories, includeHistory: false });
+  const installed = inventory.sources.workflows.rows;
+  assert.deepEqual(new Set(installed.map(workflow => workflow["workflow-name"])), names);
+  const sample = enterpriseSample(now);
+  for (const { run } of sample.records.filter(record => record.kind === "run")) {
+    assert.ok(names.has(run.workflow_name));
+    const source = installed.find(workflow => `${workflow.organization}/${workflow.repository}` === run.repository
+      && workflow.workflow === run.workflow_path);
+    assert.equal(source?.["workflow-name"], run.workflow_name);
+  }
+  for (const record of sample.records.filter(record => record.kind === "operational_value_evidence")) {
+    const packet = record.operational_value_evidence;
+    const contract = packet.facts.find(fact => fact["fact-kind"] === "contract");
+    const source = installed.find(workflow => `${workflow.organization}/${workflow.repository}` === packet.repository
+      && workflow.workflow === packet.sourcePath);
+    assert.equal(contract["workflow-name"], source?.["workflow-name"]);
+  }
 });
 
 test("browser sample SHA-256 matches standard UTF-8 hashing across block boundaries", () => {
@@ -68,7 +154,7 @@ test("bounded raw repository inventory uses production normalization and preserv
   assert.equal((await readCollection(indexedDB, "repositories")).length, 300);
   await ingestDashboardSourceBatches(indexedDB, batches());
   assert.equal((await readCollection(indexedDB, "repositories")).length, 300, "replay upserts rather than duplicating");
-  assert.deepEqual([enterpriseDemo.repositories, enterpriseDemo.campaigns, enterpriseDemo.installedWorkflows], [10_000, 3, 200]);
+  assert.deepEqual([enterpriseDemo.repositories, enterpriseDemo.campaigns, enterpriseDemo.installedWorkflows], [1_000, 3, 4_000]);
 });
 
 test("enterprise distributions are reproducible, seasonal and uneven rather than one run per workflow per day", () => {
@@ -142,12 +228,12 @@ test("workflow output rates, batch sizes, issue/PR mix and tool activity are het
     assert.ok(Math.max(...outputRates) - Math.min(...outputRates) > 0.6, "output probability is not shared by all workflows");
     assert.ok(runs.some(run => run.safe_outputs.length >= 4), "orchestrators can create batches");
     assert.ok(runs.some(run => run.conclusion === "success" && run.safe_outputs.length === 0), "successful no-ops are normal");
-    const mix = name => {
-      const outputs = runs.filter(run => run.workflow_name === name).flatMap(run => run.safe_outputs);
+    const mix = slug => {
+      const outputs = runs.filter(run => run.workflow_path === `.github/workflows/${slug}.md`).flatMap(run => run.safe_outputs);
       return outputs.filter(output => output.type === "create_pull_request").length / outputs.length;
     };
-    assert.ok(mix("Dependency review") < 0.25 && mix("Security review") < 0.25, "review workflows favor findings");
-    assert.ok(mix("Repository assistant") > 0.75 && mix("Documentation maintenance") > 0.75, "repair workflows favor PRs");
+    assert.ok(mix("dependency-review") < 0.25 && mix("security-review") < 0.25, "review workflows favor findings");
+    assert.ok(mix("repository-assistant") > 0.75 && mix("documentation") > 0.75, "repair workflows favor PRs");
     assert.ok(new Set(runs.map(run => run.mcp_tool_usage.tool_calls.length)).size > 10, "tool call counts vary");
     assert.deepEqual(new Set(runs.map(run => run.skill_activations.length)), new Set([0, 1, 2]));
     const urls = runs.flatMap(run => run.safe_outputs).map(output => output.url);
@@ -219,6 +305,8 @@ test("synthetic unified sessions conserve usage across turns and phases without 
       assert.equal(run.token_usage_summary.total_aic, 0);
     } else {
       assert.ok(events.some(event => event.type === "session.start"));
+      assert.ok(run.github_api_calls >= run.mcp_tool_usage.tool_calls.filter(call => call.server_name === "github").length,
+        "network activity covers generated GitHub tool calls without an unrelated request multiplier");
       assert.ok(requests.length >= 2 && requests.length <= 20);
       turns.add(requests.length);
       assert.ok(requests[0].fields.inputTokens > requests[1].fields.inputTokens, "initial prompt dominates uncached input");
@@ -361,25 +449,28 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   assert.match(html, /dashboard-deployment" content="synthetic-demo"/);
   assert.match(html, /connect-src 'self'/);
   assert.ok(!names.includes("demo-data"), "build must not pregenerate demo data or manifests");
-  const sample = enterpriseSample(now, { count: enterpriseDemo.installedRepositories });
+  const sample = enterpriseSample(now, { count: 50, runs: 600 });
   const inventory = sample.sources;
   assert.equal(inventory.workflows.metadata["source-kind"], "synthetic");
   assert.equal(inventory.workflows.metadata["as-of"], new Date(now).toISOString());
   const indexedDB = new IDBFactory();
   await ingestDashboardSources(indexedDB, inventory, { now, deferMaintenance: true });
-  const repositories = Object.groupBy(sample.records, record => record.run?.repository ?? record.safe_output?.repo
-    ?? record.operational_value?.repository ?? record.operational_value_evidence?.repository
-    ?? record.workflow_value_collection?.repository);
-  for (const [repository, records] of Object.entries(repositories)) {
-    assert.notEqual(repository, "undefined", "every raw sample has an owning repository");
-    await ingestCachedGhAwJsonl(indexedDB, records.map(record => JSON.stringify(record)).join("\n"), {
-      now, deferMaintenance: true, payloadScope: `synthetic-demo-test/${repository}`,
+  let batchIndex = 0;
+  for (const batch of enterpriseActivityBatches(now, { repositories: 12, runs: 600 })) {
+    await ingestCachedGhAwJsonl(indexedDB, batch.records.map(record => JSON.stringify(record)).join("\n"), {
+      now, deferMaintenance: true, payloadScope: `synthetic-demo-test/activity/${batchIndex}`,
     });
+    if (batchIndex++ === 0) {
+      const partial = await readCollection(indexedDB, "runs");
+      assert.equal(partial.length, 100);
+      assert.equal(new Set(partial.map(run => run.repository)).size, 12,
+        "early canonical results include the entire fixture fleet, not one completed repository");
+    }
   }
   await finalizeNormalizedJsonlIngestion(indexedDB, { now });
   const runs = await readCollection(indexedDB, "runs");
   assert.equal(runs.length, sample.runs);
-  assert.equal(marker.repositories, 10_000);
+  assert.equal(marker.repositories, 1_000);
   const dashboardDocument = loadDashboardSourceSync(path.join(root, "dashboard/site/dashboard.json")).document.dashboard;
   const overview = dashboardDocument.pages.find(page => page.id === "overview");
   const rhythmQuery = compileDashboardViewPayloadQueries(overview, "overview", {
@@ -402,7 +493,7 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   assert.equal((await readCollection(indexedDB, "campaigns")).length, 3);
   const expectedOutputs = new Map();
   const lifecycleByUrl = new Map();
-  for (const { run } of enterpriseSample(now).records.filter(record => record.kind === "run")) {
+  for (const { run } of sample.records.filter(record => record.kind === "run")) {
     const key = `${run.repository}:${run.workflow_path}`;
     const retainedOutputs = run.safe_outputs.filter(output => !isExpiredCanonicalRecord("issues",
       { timestamp: output.timestamp }, { now }));
@@ -436,5 +527,10 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   const tools = await readCollection(indexedDB, "tools");
   assert.ok(tools.length > 0);
   assert.ok(tools.some(record => !isExpiredCanonicalRecord("tools", record, { now: now + 60_000 })));
+  const blockedDomains = new Set((await readCollection(indexedDB, "domains"))
+    .filter(record => record.decision === "denied").map(record => record.domain));
+  for (const domain of enterpriseBlockedDomains.slice(0, 12)) {
+    assert.ok(blockedDomains.has(domain), "guaranteed blocked domains survive production normalization");
+  }
   assert.match(await readFile(path.join(output, "llms.txt"), "utf8"), /not operational evidence/);
 });

@@ -42,6 +42,7 @@ import { isGitHubQuerySource, githubSnapshotSource } from './data/github-query-s
 import { queryCalloutVisibility } from './data/queries/callouts.js';
 import { DEMO_MODE } from './deployment-profile.js';
 import { synthesizeEnterpriseDemo, syntheticMemoryManifest, syntheticMemoryContent } from './data/demo/synthesis.js';
+import { enterpriseDemo } from './data/demo/sample.mjs';
 
 const debugIngestion = createDebug('data:ingestion');
 const debugPerformance = createDebug('data:performance');
@@ -1038,7 +1039,7 @@ export function processDataRequest(request, signal) {
         if (DEMO_MODE) {
           if (!sourceUrl.pathname.endsWith('/demo-data/')) throw new TypeError('Synthetic demo requires its isolated data namespace.');
           hasCompleteDashboardSnapshot = false;
-          progress.log('Synthesizing 10,000 repositories, 3 campaigns and 200 installed agentic workflows locally.');
+          progress.log(`Synthesizing ${enterpriseDemo.repositories.toLocaleString('en-US')} repositories, ${enterpriseDemo.runs.toLocaleString('en-US')} runs, ${enterpriseDemo.campaigns} campaigns and ${enterpriseDemo.installedWorkflows} installed agentic workflows locally.`);
           const demo = await synthesizeEnterpriseDemo(indexedDB, {
             signal, storage: globalThis.navigator?.storage,
             onProgress: (completed, total) => progress.reportImportProgress(completed, total, 'inventory'),
