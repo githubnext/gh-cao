@@ -397,3 +397,28 @@ func TestNativePolicyValidatesTokenBroker(t *testing.T) {
 		t.Fatal("duplicate broker workflow accepted")
 	}
 }
+
+func TestNativePolicyBoundsMultiTargetWorkerOptIn(t *testing.T) {
+	policy := func(limit any) map[string]any {
+		worker := map[string]any{"workflow": "demo-worker"}
+		if limit != nil {
+			worker["max-targets-per-run"] = limit
+		}
+		value, err := nativeDecodeJSON([]byte(`{"version":1,"gh-aw-version":"v1.2.3","control-plane":{"campaigns":{"demo":{"workers":{}}}}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		value.(map[string]any)["control-plane"].(map[string]any)["campaigns"].(map[string]any)["demo"].(map[string]any)["workers"] = map[string]any{"worker": worker}
+		return value.(map[string]any)
+	}
+	for _, valid := range []any{nil, 2, 20} {
+		if err := nativeValidatePolicy(policy(valid)); err != nil {
+			t.Fatalf("max-targets-per-run %v rejected: %v", valid, err)
+		}
+	}
+	for _, invalid := range []any{0, 1, 21, 2.5, "3", true} {
+		if nativeValidatePolicy(policy(invalid)) == nil {
+			t.Fatalf("max-targets-per-run %v accepted", invalid)
+		}
+	}
+}
