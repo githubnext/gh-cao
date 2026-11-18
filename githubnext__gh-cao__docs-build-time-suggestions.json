@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T07:54:22Z",
-   "worker_run_id": "44261902290",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded and disclosed; 19 successes (17 push, 2 schedule), 0 failed; gh run list at evaluation: no docs run newer than 44254629254, none queued or in progress. main 5d00b89 = source_sha, no new commits since prior evaluation. Recomputed from stored immutable run_timings rows (no job refetch, no log reads): docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 11 s, nearest-rank p90 15 (n=19); push-only like-for-like median 13 s, p90 15 (n=17); exec median 76 s (push 78 s); 15 percent gate 11.4 s (push 11.7 s) and 60 s gate unmet. Whole-step removal is the only path that reaches the gate and is invalid: scripts/validate-agent-docs.mjs and tests/integration/agent-docs-discovery.test.mjs both read dist/ from astro build, so the three commands are strictly serial and reordering cannot save time. Sub-step split unmeasurable without logs (prior job-log reads HTTP 403 DIFC, not bypassed). No suggestion; noop; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T08:24:31Z",
    "worker_run_id": "44266183070",
@@ -842,6 +814,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. gh run list 17:52Z: no docs run newer than 44357668509, none queued or in progress; HEAD 7145c59 = source_sha. Recomputed from stored immutable run_timings rows (no job or log refetch; nearest-rank p90, n=20): setup-node median 3 s (p90 5), install median 10 s (p90 12), post median 0 s (p90 0); setup+install+post median 13 s (p90 17) = 16.5 percent of exec median 79 s (p90 108). 15 percent gate 11.85 s and 60 s gate unmet; install-only ceiling 10 s = 12.7 percent. Whole phase not removable (npm ci required by build; Node 24 pin). Cache (caches API metadata): exact key node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57:12Z, 263412733 B, last accessed 17:44Z, no save since); package-lock.json and dashboard/site/package-lock.json last changed 7c8faf4 (2026-11-13), so all window runs restored the exact key (post 0-1 s). node_modules cache net 3-6 s unmeasured and below gate. Checkout (median 24 s, outside this category) still covered by OPEN #20815 (0 comments, updated 2026-11-13), not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T18:20:00Z",
+   "worker_run_id": "44367939918",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58Z); cancelled 43991812013 outside the window and disclosed; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 18:19Z: no docs run newer than 44357668509, none queued or in progress; HEAD 7145c59 = source_sha. Recomputed from stored immutable run_timings rows (no refetch, no log reads): build docs step (docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery) median 13 s, nearest-rank p90 15, min 8, max 16; push-only median 14, p90 15 (n 18); exec median 79 s, p90 108. 15 percent gate 11.85 s and 60 s gate unmet. Only whole-step removal clears the gate, and it is invalid: scripts/validate-agent-docs.mjs and tests/integration/agent-docs-discovery.test.mjs read dist/ from astro build, so the chain is serial and deploy gating depends on it. Any valid saving is bounded by the Astro build share, which is below 13 s before cache restore overhead; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasurable (job logs HTTP 403 DIFC, not bypassed). Open #20815 is checkout (another category) and was not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1743,32 +1744,32 @@
   "verdict": "not actionable: install-only ceiling below 15 percent and 60 s gates; setup+install+post not removable (npm ci required by build, Node 24 pin); node_modules cache net 3-6 s unmeasured and below gate"
  },
  "astro_step_verified": {
-  "verified_at": "2026-11-18T16:34:50Z",
-  "worker_run_id": "44347845262",
-  "window": "strict latest 20 completed docs.yml runs 44343962371 (push 53a040c, created 2026-11-18T16:09:45Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed",
-  "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=19); no refetch; docs:build composition checked in package.json:47",
+  "verified_at": "2026-11-18T18:20:00Z",
+  "worker_run_id": "44367939918",
+  "window": "latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed",
+  "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); no refetch; docs:build composition checked in package.json (docs:build = astro build && node scripts/validate-agent-docs.mjs && node --test tests/integration/agent-docs-discovery.test.mjs); both validators read dist/",
   "build_docs_s": {
-   "median": 14,
+   "median": 13,
    "p90": 15,
    "min": 8,
    "max": 16,
-   "n": 19
+   "n": 20
   },
   "push_only_build_docs_s": {
    "median": 14,
    "p90": 15,
-   "n": 17
+   "n": 18
   },
   "exec_s": {
    "median": 79,
    "p90": 108
   },
-  "build_docs_share_exec_median_pct": 17.7,
+  "build_docs_share_exec_median_pct": 16.5,
   "gate_15pct_s": 11.85,
-  "ceiling_saving_s": 14,
+  "ceiling_saving_s": 13,
   "sub_step_split": "not measurable (job logs HTTP 403 DIFC, not bypassed)",
-  "decision": "not actionable: whole step produces dist/ required by deploy; validation and discovery removal weakens deploy gating and is unmeasured; Astro cache unmeasured with added cache-step overhead; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT",
-  "history_note": "Prior 11 s median (window ending 44060953578, 2026-11-17) superseded by current window median 14 s; 16:21Z dependency_phase note already reported build docs median 14 s."
+  "decision": "not actionable: whole step produces dist/ required by deploy (whole-step removal is invalid); validation and discovery removal weakens deploy gating and is unmeasured; Astro cache unmeasured with added cache-step overhead and bounded below the gate; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance",
+  "history_note": "Supersedes the 16:34Z window (median 14 s, n 19). Adding 7145c59 moves the all-success median to 13 s; no change to the decision."
  },
  "burst_analysis": {
   "verified_at": "2026-11-18T03:53:32Z",
