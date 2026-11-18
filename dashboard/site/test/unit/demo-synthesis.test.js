@@ -48,6 +48,7 @@ describe('worker-owned synthetic enterprise population', () => {
     const now = Date.parse('2040-06-15T12:00:00Z');
     const controller = new AbortController();
     const finalize = vi.spyOn(coordinator, 'finalizeNormalizedJsonlIngestion');
+    const onCommitted = vi.fn();
     /** @type {number[]} */
     const progress = [];
     await expect(synthesizeEnterpriseDemo(indexedDB, {
@@ -63,7 +64,9 @@ describe('worker-owned synthetic enterprise population', () => {
     expect(finalize).not.toHaveBeenCalled();
 
     vi.mocked(enterpriseRepositorySources).mockClear();
-    await expect(synthesizeEnterpriseDemo(indexedDB, { now })).resolves.toMatchObject({ changed: true });
+    await expect(synthesizeEnterpriseDemo(indexedDB, { now, onCommitted })).resolves.toMatchObject({ changed: true });
+    expect(onCommitted).toHaveBeenCalledTimes(6);
+    onCommitted.mockClear();
     expect(enterpriseRepositorySources).toHaveBeenNthCalledWith(1, 1_000, 1_000, now);
     expect((await readCollection(indexedDB, 'repositories')).length).toBe(2_101);
     expect((await readCollection(indexedDB, 'workflows')).length).toBe(12);
@@ -71,7 +74,8 @@ describe('worker-owned synthetic enterprise population', () => {
 
     vi.mocked(enterpriseRepositorySources).mockClear();
     finalize.mockClear();
-    await expect(synthesizeEnterpriseDemo(indexedDB, { now: now + 60_000 })).resolves.toMatchObject({ changed: false });
+    await expect(synthesizeEnterpriseDemo(indexedDB, { now: now + 60_000, onCommitted })).resolves.toMatchObject({ changed: false });
+    expect(onCommitted).not.toHaveBeenCalled();
     expect(finalize).not.toHaveBeenCalled();
     expect(enterpriseRepositorySources).not.toHaveBeenCalled();
 

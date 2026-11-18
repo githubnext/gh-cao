@@ -2,6 +2,7 @@ import { summarizeTableColumns } from './table-summary-data.js';
 import { clusterScatterPoints } from './scatter-clustering.js';
 import { resolveDashboardQuerySources } from './data/queries/declarative.js';
 import { batch } from './reactive.js';
+import { coalesce } from './debounce.js';
 import { publishNotification, resolveNotification } from './notification-service.js';
 import { browserFirstLoad, recordPreparationEvent } from './browser-first-load.js';
 import { createDebug, diagnosticErrorName, withDebugParameter } from './debug.js';
@@ -826,8 +827,9 @@ function registerRemoteGitHubSubscription(processor, subscription) {
       if (queued) { queued = false; void refresh(); }
     }
   };
-  const stopRevision = subscribeRemoteRevision(() => { void refresh(); });
-  subscription.remoteStop = () => { controller.abort(); stopRevision(); stopStatistical(); };
+  const refreshRevision = coalesce(() => { void refresh(); }, 5_000);
+  const stopRevision = subscribeRemoteRevision(refreshRevision);
+  subscription.remoteStop = () => { controller.abort(); refreshRevision.cancel(); stopRevision(); stopStatistical(); };
   void refresh().finally(startStatistical);
 }
 
@@ -876,6 +878,7 @@ function registerRemoteSubscription(subscription) {
         refreshInterval = interval;
         if (statisticalTimerStarted) startStatistical();
       }
+      const healthChanged = subscription.remoteHealthRevision !== result.healthRevision;
       subscription.remoteRevision = result.revision;
       subscription.remoteHealthRevision = result.healthRevision;
       debugDataProcessor({
@@ -884,7 +887,7 @@ function registerRemoteSubscription(subscription) {
         revision: result.revision,
         healthRevision: result.healthRevision
       });
-      enqueueSubscriptionUpdate(subscription, result.sources, refreshDecayingLoad ? null : result.revision);
+      enqueueSubscriptionUpdate(subscription, result.sources, refreshDecayingLoad || healthChanged ? null : result.revision);
     } catch (error) {
       if (!active) return;
       debugDataProcessor({
@@ -900,20 +903,28 @@ function registerRemoteSubscription(subscription) {
       }
     } finally {
       subscription.remoteQueryRunning = false;
-      if (queuedUpdate && (
+      if (active && queuedUpdate && (
         queuedUpdate.revision !== subscription.remoteRevision
         || queuedUpdate.healthRevision !== subscription.remoteHealthRevision
       )) {
-        queuedUpdate = null;
-        void query();
+        refreshRevision();
       }
     }
   };
+  const refreshRevision = coalesce(() => {
+    if (!queuedUpdate || (
+      queuedUpdate.revision === subscription.remoteRevision
+      && queuedUpdate.healthRevision === subscription.remoteHealthRevision
+    )) return;
+    if (subscription.remoteQueryRunning) return;
+    queuedUpdate = null;
+    void query();
+  }, 5_000);
   const stopEvents = subscribeRemoteRevision((revision, healthRevision) => {
     if (revision === subscription.remoteRevision
         && healthRevision === subscription.remoteHealthRevision) return;
     queuedUpdate = { revision, healthRevision };
-    void query();
+    refreshRevision();
   }, (error) => {
     if (!active) return;
     for (const listener of [...subscription.listeners]) {
@@ -928,6 +939,8 @@ function registerRemoteSubscription(subscription) {
   const loadTimer = refreshesRuntime ? setInterval(() => { void query(true); }, 30_000) : null;
   subscription.remoteStop = () => {
     active = false;
+    queuedUpdate = null;
+    refreshRevision.cancel();
     if (loadTimer !== null) clearInterval(loadTimer);
     stopStatistical();
     stopEvents();

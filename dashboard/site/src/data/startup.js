@@ -385,7 +385,7 @@ export async function startDashboardData(options) {
   let upgradeStarted = false;
   let overlayMounted = false;
   const showFirstLoadOverlay = () => {
-    if (overlayMounted || cleanup.signal.aborted) return;
+    if (DEMO_MODE || overlayMounted || cleanup.signal.aborted) return;
     overlayMounted = true;
     mountFirstLoadOverlay({ document, signal: cleanup.signal, retry: () => refreshSources() });
   };

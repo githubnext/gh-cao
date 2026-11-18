@@ -45,10 +45,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   });
 
   test(`local server queries PostgreSQL without opening browser IndexedDB at ${viewport.width}px`, async ({ page }, testInfo) => {
+    let sourceDirectory = '';
     const preview = await startDashboardServer({
       workingDirectory: fileURLToPath(new URL("../../../../", import.meta.url)),
       repository: "acme/control",
       prepareSnapshot: async (/** @type {string} */ destination) => {
+        sourceDirectory = destination;
         await mkdir(destination, { recursive: true });
         await writeServerArtifact(destination, { sources: {
           repositories: {
@@ -103,6 +105,23 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       });
       expect(repositories.sources.repositories.rows).toHaveLength(1);
       expect(repositories.sources.repositories.rows[0].repository).toBe("control");
+      await page.goto(`${preview.url}/#page-repositories`);
+      await expect(page.locator('a[href^="#page-repository-"]').first()).toBeVisible();
+      await writeServerArtifact(sourceDirectory, { sources: {
+        repositories: {
+          metadata: {
+            "as-of": new Date().toISOString(), availability: "available",
+            completeness: "complete", freshness: "fresh",
+          },
+          rows: [
+            { organization: "acme", repository: "control" },
+            { organization: "acme", repository: "pushed-repository" },
+          ],
+        },
+      } });
+      await preview.ingestSnapshot();
+      await expect(page.locator('a[href^="#page-repository-"]').filter({ hasText: "pushed-repository" }).first())
+        .toBeVisible({ timeout: 20_000 });
       await page.screenshot({ path: testInfo.outputPath(`server-postgres-${viewport.width}.png`), fullPage: true });
       await testInfo.attach(`server-postgres-${viewport.width}`, {
         path: testInfo.outputPath(`server-postgres-${viewport.width}.png`), contentType: "image/png",
