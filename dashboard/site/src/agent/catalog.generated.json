@@ -2368,6 +2368,44 @@
       }
     },
     {
+      "id": "maintenance-campaign-update-options",
+      "subject": "List observed update-availability values for the campaign maintenance Update filter.",
+      "objective": "Choose campaigns with or without a newer upstream revision without scanning presented cards.",
+      "acceptance": "Return distinct observed values in ascending order; unknown update evidence is grouped with no update available and never presented as available.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-campaign-packages"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-campaign-activity-options",
+      "subject": "List observed registration states for the campaign maintenance Status filter.",
+      "objective": "Choose active or inactive campaigns from retained registration evidence.",
+      "acceptance": "Return distinct observed Active and Inactive values in ascending order; registration is not inferred from run activity.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-campaign-packages"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "campaigns"
+        ]
+      }
+    },
+    {
       "id": "maintenance-workflow-operation-flags",
       "subject": "Retained workflow repository identities.",
       "objective": "Exclude the upstream gh-aw repository from operational workflow targets.",

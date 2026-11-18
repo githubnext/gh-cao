@@ -2656,6 +2656,24 @@
           "mark": "list",
           "lazy-list": true,
           "list": { "style": "entity-cards", "card": "maintenance-campaign", "icon": "workflow" },
+          "filter-bar": {
+            "filters": [
+              {
+                "id": "update",
+                "label": "Update",
+                "groups": [
+                  { "label": "Update availability", "field": "campaign-update-filter", "source": "maintenance-campaign-update-options", "value-field": "campaign-update-filter" }
+                ]
+              },
+              {
+                "id": "status",
+                "label": "Status",
+                "groups": [
+                  { "label": "Registration", "field": "campaign-activity", "source": "maintenance-campaign-activity-options", "value-field": "campaign-activity" }
+                ]
+              }
+            ]
+          },
           "empty-message": "No campaign packages were observed.",
           "encoding": {
             "columns": [
