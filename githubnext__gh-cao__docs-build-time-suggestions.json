@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T09:21:15Z",
-   "worker_run_id": "44274499906",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606",
-    "43877103800",
-    "43862265708",
-    "43854851689",
-    "43840581457"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. gh run list at 09:19Z: no newer, queued, or in-progress docs run (stale queued 37642403569 is outside window); HEAD 5d00b89 = source_sha. Spot-check of 44254629254 jobs API matched stored row (checkout 24 s, setup-node 3 s, install 11 s, build docs 15 s, deploy job 10 s). Cache node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57Z, no save since, last accessed 09:17Z); post-step 0-1 s in 19/19 runs = exact-key hit inferred (job logs HTTP 403, not bypassed). Recomputed from stored immutable run_timings (no refetch): setup-node median 3 s (p90 5), install median 10 s (p90 11), post median 0 s (p90 1); setup+install+post median 12 s (p90 14) = 15.8 percent of exec median 76 s (p90 82). Install-only removal ceiling 10 s = 13.2 percent; 15 percent gate 11.4 s and 60 s gate unmet. Whole phase not removable: npm ci and Node 24 pin required; dropping setup-node plus install would still need unsafe pin/caching changes; node_modules cache net 3-6 s (unmeasured) stays below gate and adds stale-dependency risk. Open #20815 (blobless checkout, other category, OPEN, 0 comments, unchanged since 2026-11-13) not repeated. Window identical to evaluations since 2026-11-18T06:56Z; repeat dispatches add no new evidence. No suggestion; noop; next_category advanced to Astro documentation generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T09:33:57Z",
    "worker_run_id": "44276562215",
@@ -845,6 +817,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 20:31Z: no docs run newer than 44357668509; none in progress; only queued 37642403569 (stale, outside window). HEAD 7145c59 = source_sha; docs.yml concurrency documentation-pages cancel-in-progress false and cron 23 5 * * * unchanged. Stored immutable run_timings recomputed (no job or log refetch): queue median 4 s, p90 5 nearest-rank, max 15 (43991897672 behind in-flight 43991770179, outside window), total queued 84 s; exec median 79 s, p90 108. Superseded in-flight builds 0 and pending cancellations 0 in window, so cancel-in-progress true saves 0 s median. Avoidable rebuilds: 0 of 18 push heads avoidable (path_filter_verified); 2 schedule runs required for synthetic-date refresh (simulate-dashboard-pages.mjs now=Date.now()); removing them weakens freshness. Best case 15 s on one queued run, median 0 s; 15 percent gate 11.85 s and 60 s gate unmet. Checkout (median 24 s, outside cycle) covered by open #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z), not repeated. No suggestion; noop; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T20:52:03Z",
+   "worker_run_id": "44394888141",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. Live gh run list at 2026-11-18T20:52:03Z: no newer, queued, or in-progress docs run; local HEAD 7145c59 = source_sha. Live caches API: node-cache-Linux-x64-npm-7808ecf8 still live (created 2026-11-13T20:57:12Z, 263412733 B, last accessed 20:43:46Z, no save since), so every window run is an exact-key restore hit. Recomputed from stored immutable run_timings (no job or log refetch; nearest-rank p90, n=20): setup-node median 3 s (p90 5), install median 10 s (p90 12), post median 0 s (p90 0); setup+install+post median 13 s (p90 17) = 16.5 percent of exec median 79 s (p90 108). Install-only ceiling 10 s = 12.7 percent; 15 percent gate 11.85 s and 60 s gate unmet. Whole phase not removable (npm ci required by docs build and dashboard Pages build; Node 24 pin). node_modules cache net 3-6 s (unmeasured) stays below gate and adds stale-dependency risk. Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1869,8 +1870,8 @@
   "decision": "not actionable"
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-18T17:52:45Z",
-  "worker_run_id": "44362905605",
-  "verdict": "not actionable (window 44357668509..43991897672; see dependency_phase)"
+  "evaluated_at": "2026-11-18T20:52:03Z",
+  "worker_run_id": "44394888141",
+  "verdict": "not actionable (window 44357668509..43991897672; recomputed from stored run_timings)"
  }
 }
