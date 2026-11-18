@@ -3,6 +3,17 @@
   "additional_target_evaluations": [
     {
       "target_repo": "githubnext/gh-cao",
+      "target_commit": "346b7e1d49fd412a659a9cfbf9f5c8e4ba14945e",
+      "txn_id": "refiner-44315332061-1",
+      "readiness_for_target": "needs-work",
+      "true_positive_count": 17,
+      "false_positive_count": 6,
+      "false_negative_count": 3,
+      "missing_suppression_count": 1,
+      "reason": "Re-evaluated at HEAD 346b7e1 with a scratch detector outside target/: 23 flagged sites, 17 true positives and 6 confirmed false positives (cli-actions await in an early-returning branch; table-summary lifetime), 3 false negatives (command-terminal 102/122, environment-defaults 104), 1 missing suppression (data-view 1671 active-flag guard). Readiness stays needs-work. Supersedes the dc2b53f counts because that commit is absent from the shallow clone."
+    },
+    {
+      "target_repo": "githubnext/gh-cao",
       "target_commit": "dc2b53ffb32ea57ff4242841b0479032ef76e32a",
       "txn_id": "refiner-44048273022-1",
       "readiness_for_target": "needs-work",
@@ -375,9 +386,9 @@
   ],
   "existing_plugin_coverage": "No published ESLint rule covers this: it depends on recognizing this repo's specific `reactive.js` state/effect/createFactoryScope convention and its abort-signal idiom, not a generic async/await or React-hooks pattern that an existing plugin (eslint-plugin-react-hooks, eslint-plugin-promise, etc.) targets.",
   "language": "javascript",
-  "last_seen_at": "2026-11-17T09:00:34Z",
-  "last_updated": "2026-11-17T09:00:34Z",
-  "last_updated_by_run": "https://github.com/githubnext/gh-cao/actions/runs/44048273022",
+  "last_seen_at": "2026-11-18T13:50:00Z",
+  "last_updated": "2026-11-18T13:50:00Z",
+  "last_updated_by_run": "https://github.com/githubnext/gh-cao/actions/runs/44315332061",
   "last_updated_target_repo": "githubnext/gh-cao",
   "likely_false_positives": "An async handler that calls `.set()` after `await` but whose component is never removed from the DOM during that async work (e.g. a top-level page-scoped singleton that outlives all navigation) does not need the guard; the rule should only fire when the enclosing scope is created via `createFactoryScope()`/bound to a removable node, i.e. an abort signal is already available in scope but unused after an await preceding a `.set()` call.",
   "mechanical_correction": "After every `await` inside an async handler that subsequently calls `state.set(...)`, check `if (scope.signal.aborted) return;` (or the component's equivalent abort signal) before performing the write, mirroring the guard already present in #15419, #15463, and #15483.",
