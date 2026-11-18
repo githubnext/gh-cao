@@ -71,7 +71,7 @@ jobs:
           logs="$(aspire logs database --tail 100 --apphost server/kubernetes/aspire/apphost.cs)"
           printf '%s\n' "$logs"
           grep -Fq 'CAO database provisioning and explicit grants complete' <<< "$logs"
-      - name: Test local Kubernetes maintenance and hosted HTTPS
+      - name: Test local Kubernetes maintenance, snapshot ingestion, hosted HTTPS and OTel
         env:
           CAO_KUBERNETES_INTEGRATION: "1"
           CAO_LOCAL_KIND_CLUSTER: cao-local
@@ -79,10 +79,27 @@ jobs:
           set -euo pipefail
           kind export kubeconfig --name cao-local
           node --test tests/integration/kubernetes-kind.test.mjs
+          resources="$(aspire describe --format Json --non-interactive --nologo --apphost server/kubernetes/aspire/apphost.cs)"
+          error_spans="$(aspire otel spans --has-error --format Json --non-interactive --nologo --apphost server/kubernetes/aspire/apphost.cs)"
+          error_logs="$(aspire otel logs --severity Error --format Json --non-interactive --nologo --apphost server/kubernetes/aspire/apphost.cs)"
+          RESOURCES="$resources" ERROR_SPANS="$error_spans" ERROR_LOGS="$error_logs" node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { assessAspireTelemetry } from "./tests/integration/kubernetes-kind.test.mjs";
+            const parsedResources = JSON.parse(process.env.RESOURCES);
+            const resources = Array.isArray(parsedResources) ? parsedResources : (parsedResources.resources ?? []);
+            const result = assessAspireTelemetry({
+              resources,
+              errorSpans: JSON.parse(process.env.ERROR_SPANS),
+              errorLogs: JSON.parse(process.env.ERROR_LOGS),
+            });
+            assert.deepEqual(result.failures, []);
+          '
       - name: Show Aspire diagnostics
         if: failure()
         run: |
           aspire describe --apphost server/kubernetes/aspire/apphost.cs || true
+          aspire otel spans --has-error --apphost server/kubernetes/aspire/apphost.cs || true
+          aspire otel logs --severity Error --apphost server/kubernetes/aspire/apphost.cs || true
           for resource in prepare build database; do
             aspire logs "$resource" --tail 100 --apphost server/kubernetes/aspire/apphost.cs || true
           done

@@ -139,14 +139,25 @@ hosted application with nonfunctional test-only OAuth settings, verifies HTTPS
 against the generated CA, the GitHub OAuth redirect and unauthenticated-session
 denial, and checks that healthy operational storage does **not** make missing
 canonical data ready. The expected rollout timeout and HTTP 503 are assertions,
-not ignored failures. It removes its maintenance Job and web Deployment/Service
-and stops its port-forward; local private state, test-only Secrets and the
-database remain until explicitly removed. CI removes its disposable cluster.
-Do not run this against an operator installation.
+not ignored failures. It then ingests a deterministic, hash-verified snapshot
+fixture through the ephemeral `local.sh ingest` Job, re-runs `serve`, and
+verifies `/api/readiness`, `/api/health`, `/api/v1/health`, `/llms.txt`,
+`cao-dashboard doctor --deep` and canonical `cao-dashboard read` queries
+against the populated PostgreSQL database. During the run, an automated
+OpenTelemetry OTLP collector and cluster gate verifies exported traces,
+`X-Trace-Id` correlation, database/HTTP/runtime metrics, structured logs and
+Kubernetes Jobs/Pods, failing if any unexpected error span, exception event,
+database error metric, error log or background Job failure occurs. It removes
+its maintenance and ingestion Jobs and web Deployment/Service, restores
+`database.env` and stops its port-forward; local private state, test-only
+Secrets and the database remain until explicitly removed. CI also checks Aspire
+resource and OTel status and removes its disposable cluster. Do not run this
+against an operator installation.
 
-This credential-free test does not ingest fabricated evidence, contact GitHub
-for authentication, or validate real login, native App collection, populated
-dashboard queries, Docker Desktop, HA or production deployment acceptance.
+This credential-free test uses a deterministic test fixture rather than live
+operational data, does not contact GitHub for authentication, and does not
+validate real login, native App collection, Docker Desktop, HA or production
+deployment acceptance.
 
 ## Real evidence and native login
 

@@ -8,12 +8,26 @@ import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { nativeInputs, readImages, renderManifest, verifyAppScope } from "../../server/kubernetes/deployment.mjs";
 import { reviewedBareInventory } from "../../server/kubernetes/review-inventory.mjs";
+import {
+  assessAspireTelemetry,
+  assessKubernetesTelemetry,
+  decodeOtlpLogs,
+  decodeOtlpMetrics,
+  decodeOtlpTraces,
+} from "../integration/kubernetes-kind.test.mjs";
 
 const script = fileURLToPath(new URL("../../server/kubernetes/local.sh", import.meta.url));
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const assets = join(root, "server/kubernetes");
 const hash = (content) => createHash("sha256").update(content).digest("hex");
 const key = generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({ type: "pkcs8", format: "pem" });
+const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+
+// Shebang parsing differs across Linux, macOS and Git Bash, so quoted paths stay in sh.
+function nodeScript(path, source, interpreter = process.execPath) {
+  writeFileSync(`${path}.cjs`, source);
+  writeFileSync(path, `#!/bin/sh\nexec ${shellQuote(interpreter)} ${shellQuote(`${path}.cjs`)} "$@"\n`, { mode: 0o700 });
+}
 
 function reviewedInput() {
   const policy = JSON.parse(readFileSync(join(assets, "policy.json"), "utf8"));
@@ -59,6 +73,10 @@ test("prepare creates a CA and valid server certificates", (t) => {
   const prepared = spawnSync("bash", [localScript, "prepare"], { encoding: "utf8" });
   assert.equal(prepared.status, 0, prepared.stderr);
   const state = join(directory, ".tmp/cao-kubernetes-local");
+  const ca = spawnSync("openssl", ["x509", "-in", join(state, "ca.crt"), "-noout", "-text"], { encoding: "utf8" });
+  assert.equal(ca.status, 0, ca.stderr);
+  assert.equal((ca.stdout.match(/X509v3 Basic Constraints:/g) ?? []).length, 1);
+  assert.match(ca.stdout, /X509v3 Basic Constraints: critical\s+CA:TRUE/);
   const verified = spawnSync("openssl", ["verify", "-CAfile", join(state, "ca.crt"),
     join(state, "postgres.crt"), join(state, "web.crt")], { encoding: "utf8" });
   assert.equal(verified.status, 0, verified.stderr);
@@ -75,7 +93,7 @@ function fixture(t, options = {}) {
   const state = join(directory, ".tmp/cao-kubernetes-local");
   const bin = join(directory, "bin");
   for (const path of [localAssets, state, bin]) mkdirSync(path, { recursive: true });
-  for (const file of ["local.sh", "deployment.mjs", "web.yaml", "collector.yaml", "inventory.yaml", "postgres.yaml", "bootstrap.yaml", "maintenance.yaml"]) {
+  for (const file of ["local.sh", "deployment.mjs", "web.yaml", "collector.yaml", "inventory.yaml", "ingest.yaml", "postgres.yaml", "bootstrap.yaml", "maintenance.yaml"]) {
     copyFileSync(join(assets, file), join(localAssets, file));
   }
   symlinkSync(join(assets, "review-inventory.mjs"), join(localAssets, "review-inventory.mjs"));
@@ -93,12 +111,14 @@ function fixture(t, options = {}) {
   writeFileSync(join(directory, "inventory.json"), input.source);
   writeFileSync(join(directory, "collector.env"), input.configuration);
   writeFileSync(join(directory, "app.pem"), key, { mode: 0o600 });
+  const snapshot = join(directory, "snapshot");
+  mkdirSync(snapshot, { recursive: true });
+  writeFileSync(join(snapshot, "payload-hashes.json"), '{"gh-aw-logs-runs/subset.jsonl":"' + "c".repeat(64) + '"}');
   const log = join(directory, "calls");
   writeFileSync(log, "");
   const cluster = join(directory, "cluster.json");
   writeFileSync(cluster, "{}");
-  writeFileSync(join(bin, "kubectl"), `#!${process.execPath}
-const fs = require("node:fs");
+  nodeScript(join(bin, "kubectl"), `const fs = require("node:fs");
 const args = process.argv.slice(2);
 const entry = { args };
 const state = JSON.parse(fs.readFileSync(process.env.CLUSTER, "utf8"));
@@ -128,18 +148,18 @@ if (get && args.includes("namespace")) {
   else if (query.includes("CAO_COLLECT_NATIVE")) process.stdout.write(document?.spec.template.spec.containers[0].env.find(e => e.name === "CAO_COLLECT_NATIVE")?.value ?? "");
   else if (query.includes("spec.replicas")) process.stdout.write(String(document?.spec.replicas ?? 0));
   else process.stdout.write("deployment/" + name);
-} else if (get && args.includes("jobs")) process.stdout.write(process.env.SNAPSHOT_JOB ?? "");
+} else if (get && args.includes("pods")) process.stdout.write(process.env.INGEST_POD ?? "cao-ingest-pod");
+else if (get && args.includes("jobs")) process.stdout.write(process.env.SNAPSHOT_JOB ?? "");
 else if (get && args.includes("configmap")) process.stdout.write(process.env.INVENTORY_DIGEST);
 else if (get && args.some(a => a.startsWith("job.batch/"))) process.stdout.write(process.env.FAIL_PIN ? "Failed" : "Complete");
+else if (args.includes("logs") && args.some(a => a.startsWith("job.batch/"))) process.stdout.write('{"revision":1}\\n');
 else if (args.includes("--dry-run=client")) process.stdout.write('{"apiVersion":"v1","kind":"ConfigMap"}');
 else if (args.includes("create") && args.includes("-f")) process.stdout.write("job.batch/cao-test");
-`, { mode: 0o700 });
-  writeFileSync(join(bin, "docker"), `#!${process.execPath}
-const image = process.argv[4];
+`);
+  nodeScript(join(bin, "docker"), `const image = process.argv[4];
 process.stdout.write("sha256:" + image.split(":sha256-")[1] + " " + process.env.POLICY_DIGEST);
-`, { mode: 0o700 });
-  writeFileSync(join(bin, "node"), `#!${process.execPath}
-const { spawnSync } = require("node:child_process");
+`);
+  nodeScript(join(bin, "node"), `const { spawnSync } = require("node:child_process");
 if (process.argv[3] === "verify-native") {
   if (process.env.FAIL_SCOPE) process.exit(1);
   console.log("cao-native-" + "e".repeat(24));
@@ -147,7 +167,7 @@ if (process.argv[3] === "verify-native") {
   const result = spawnSync(process.execPath, process.argv.slice(2), { stdio: "inherit" });
   process.exit(result.status ?? 1);
 }
-`, { mode: 0o700 });
+`);
   const oauth = join(directory, "oauth.env");
   writeFileSync(oauth, [
     "CAO_GITHUB_CLIENT_ID=test-only-id",
@@ -158,6 +178,7 @@ if (process.argv[3] === "verify-native") {
   ].join("\n"), { mode: 0o600 });
   return {
     oauth,
+    snapshot,
     log,
     state,
     images,
@@ -165,8 +186,10 @@ if (process.argv[3] === "verify-native") {
     directory,
     calls: () => readFileSync(log, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line))
       .flatMap((call) => call.document?.kind === "List" ? call.document.items.map((document) => ({ ...call, document })) : [call]),
-    run: (command = "serve", env = {}) => spawnSync("bash", [join(localAssets, "local.sh"), command,
-      ...(command === "native" ? [join(directory, "inventory.json"), join(directory, "collector.env"), join(directory, "app.pem")] : [oauth])], {
+    run: (command = "serve", env = {}, args) => spawnSync("bash", [join(localAssets, "local.sh"), command,
+      ...(args ?? (command === "native"
+        ? [join(directory, "inventory.json"), join(directory, "collector.env"), join(directory, "app.pem")]
+        : command === "ingest" ? [snapshot] : [oauth]))], {
       encoding: "utf8",
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, CALL_LOG: log, CLUSTER: cluster,
         CAO_LOCAL_POLICY: policy, POLICY_DIGEST: images.POLICY_SHA256, INVENTORY_DIGEST: hash(input.source),
@@ -318,7 +341,9 @@ test("rendering preserves Kubernetes octal secret modes and does not tie Postgre
 });
 
 test("collector restart clears a previous backfill marker and does not start collection after failed backfill", (t) => {
-  const directory = mkdtempSync(join(root, ".tmp/kubernetes-marker-"));
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  // Spaces and an apostrophe prove spliced paths are quoted as single shell words.
+  const directory = mkdtempSync(join(root, ".tmp/kubernetes marker it's-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const marker = join(directory, "ready");
   const log = join(directory, "calls");
@@ -327,12 +352,224 @@ test("collector restart clears a previous backfill marker and does not start col
   writeFileSync(marker, "");
   const manifest = parse(readFileSync(join(assets, "collector.yaml"), "utf8"));
   const command = manifest.spec.template.spec.containers[0].args[0]
-    .replaceAll("/tmp/backfill-ready", marker).replaceAll("/app/cao-dashboard", executable);
-  const result = spawnSync("/bin/sh", ["-ec", command], { env: { ...process.env, TEST_LOG: log } });
+    .replaceAll("/tmp/backfill-ready", () => shellQuote(marker))
+    .replaceAll("/app/cao-dashboard", () => shellQuote(executable));
+  const result = spawnSync("sh", ["-ec", command], { env: { ...process.env, TEST_LOG: log } });
   assert.notEqual(result.status, 0);
-  const probe = manifest.spec.template.spec.containers[0].readinessProbe.exec.command[2].replaceAll("/tmp/backfill-ready", marker);
-  assert.notEqual(spawnSync("/bin/sh", ["-ec", probe]).status, 0);
+  const probe = manifest.spec.template.spec.containers[0].readinessProbe.exec.command[2]
+    .replaceAll("/tmp/backfill-ready", () => shellQuote(marker));
+  assert.notEqual(spawnSync("sh", ["-ec", probe]).status, 0);
   assert.equal(readFileSync(log, "utf8"), "backfill\n");
+});
+
+test("fixture command wrappers pass interpreter and script paths with spaces and apostrophes intact", (t) => {
+  mkdirSync(join(root, ".tmp"), { recursive: true });
+  const directory = mkdtempSync(join(root, ".tmp/kubernetes wrapper it's-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const interpreter = join(directory, "interpreter");
+  writeFileSync(interpreter, '#!/bin/sh\nprintf "%s|%s\\n" "$1" "$2"\n', { mode: 0o700 });
+  const executable = join(directory, "fixture");
+  nodeScript(executable, "", interpreter);
+  const result = spawnSync("sh", ["-c", 'exec "$0" reached', executable], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `${executable}.cjs|reached\n`);
+});
+
+test("snapshot ingestion validates manifest, blocks when native is active, and uploads to the ephemeral Job pod", (t) => {
+  const f = fixture(t, { foreign: "" });
+  const missingManifest = f.run("ingest", {}, [f.directory]);
+  assert.notEqual(missingManifest.status, 0);
+  assert.match(missingManifest.stderr, /payload-hashes\.json is required/);
+  assert.equal(f.calls().length, 0);
+
+  const marker = join(f.snapshot, ".ready");
+  writeFileSync(marker, "");
+  const withMarker = f.run("ingest");
+  rmSync(marker);
+  assert.notEqual(withMarker.status, 0);
+  assert.match(withMarker.stderr, /upload completion marker/);
+  assert.equal(f.calls().length, 0);
+
+  const ingested = f.run("ingest");
+  assert.equal(ingested.status, 0, ingested.stderr);
+  assert.match(ingested.stdout, /"revision":1/);
+  const calls = f.calls();
+  const jobCreate = calls.find(({ document }) => document?.kind === "Job" && document.metadata?.generateName === "cao-ingest-");
+  assert.ok(jobCreate);
+  assert.equal(jobCreate.document.spec.template.spec.containers[0].image, f.images.RUNTIME_IMAGE);
+  const waitCall = calls.find(({ args }) => args.includes("wait"));
+  assert.deepEqual(waitCall.args, ["--context", "docker-desktop", "-n", "cao-local", "wait", "--for=condition=Ready", "pod/cao-ingest-pod", "--timeout=180s"]);
+  const cpCall = calls.find(({ args }) => args.includes("cp"));
+  assert.ok(cpCall);
+  assert.deepEqual(cpCall.args.slice(-4), [".", "cao-ingest-pod:/data", "-c", "ingest"]);
+  const execCall = calls.find(({ args }) => args.includes("exec"));
+  assert.deepEqual(execCall.args, ["--context", "docker-desktop", "-n", "cao-local", "exec", "cao-ingest-pod", "-c", "ingest", "--", "touch", "/data/.ready"]);
+
+  assert.equal(f.run("native").status, 0);
+  const blockedByNative = f.run("ingest");
+  assert.notEqual(blockedByNative.status, 0);
+  assert.match(blockedByNative.stderr, /Native collection and snapshot ingestion are exclusive/);
+});
+
+test("OTLP decoders and Kubernetes telemetry gate detect error spans, DB errors, error logs and failed Jobs", () => {
+  const varint = (n) => {
+    let v = BigInt.asUintN(64, BigInt(n));
+    const out = [];
+    while (v >= 0x80n) {
+      out.push(Number((v & 0x7fn) | 0x80n));
+      v >>= 7n;
+    }
+    out.push(Number(v));
+    return Buffer.from(out);
+  };
+  const tag = (field, wire) => varint((field << 3) | wire);
+  const bytesField = (field, buf) => {
+    const b = Buffer.isBuffer(buf) ? buf : Buffer.from(String(buf), "utf8");
+    return Buffer.concat([tag(field, 2), varint(b.length), b]);
+  };
+  const varintField = (field, n) => Buffer.concat([tag(field, 0), varint(n)]);
+  const fixed64Int = (field, n) => {
+    const b = Buffer.alloc(8);
+    b.writeBigInt64LE(BigInt(n));
+    return Buffer.concat([tag(field, 1), b]);
+  };
+  const encodeKv = (k, v) => {
+    const anyVal = typeof v === "number" ? varintField(3, v) : bytesField(1, v);
+    return Buffer.concat([bytesField(1, k), bytesField(2, anyVal)]);
+  };
+  const resource = bytesField(1, bytesField(1, encodeKv("service.name", "cao-dashboard")));
+  const traceIdPre = "1".repeat(32);
+  const traceIdReady = "2".repeat(32);
+  const encodeSpan = ({ traceHex = traceIdReady, name, kind = 2, statusCode = 1, attrs = {}, events = [] }) =>
+    bytesField(2, Buffer.concat([
+      bytesField(1, Buffer.from(traceHex, "hex")),
+      bytesField(2, Buffer.from("a".repeat(16), "hex")),
+      bytesField(5, name),
+      varintField(6, kind),
+      ...Object.entries(attrs).map(([k, v]) => bytesField(9, encodeKv(k, v))),
+      ...events.map((eventName) => bytesField(11, bytesField(2, eventName))),
+      bytesField(15, varintField(3, statusCode)),
+    ]));
+  const tracePayload = bytesField(1, Buffer.concat([
+    resource,
+    bytesField(2, Buffer.concat([
+      bytesField(1, bytesField(1, "github.com/githubnext/gh-cao/server")),
+      encodeSpan({ name: "cao_dashboard.ingest.run", kind: 1, statusCode: 1, attrs: { "cao_dashboard.ingest.revision": 1, "cao_dashboard.ingest.source_count": 11 } }),
+      encodeSpan({ name: "cao_dashboard.postgres.query", kind: 3, statusCode: 1 }),
+      encodeSpan({ traceHex: traceIdPre, name: "GET /api/readiness", kind: 2, statusCode: 2, attrs: { "http.response.status_code": 503 } }),
+      encodeSpan({ traceHex: traceIdReady, name: "GET /api/readiness", kind: 2, statusCode: 0, attrs: { "http.response.status_code": 200 } }),
+      encodeSpan({ name: "GET /api/health", kind: 2, statusCode: 0, attrs: { "http.response.status_code": 200 } }),
+      encodeSpan({ name: "GET /api/v1/health", kind: 2, statusCode: 0, attrs: { "http.response.status_code": 200 } }),
+      encodeSpan({ name: "GET /auth/login", kind: 2, statusCode: 0, attrs: { "http.response.status_code": 302 } }),
+      encodeSpan({ name: "GET /api/auth/session", kind: 2, statusCode: 0, attrs: { "http.response.status_code": 401 } }),
+      encodeSpan({ name: "GET /api/repositories", kind: 2, statusCode: 0, attrs: { "http.response.status_code": 401 } }),
+      encodeSpan({ name: "GET /llms.txt", kind: 2, statusCode: 0, attrs: { "http.response.status_code": 200 } }),
+    ])),
+  ]));
+  const spans = decodeOtlpTraces(tracePayload);
+  assert.equal(spans.length, 10);
+
+  const encodeHistogramMetric = (name, attrs = {}) => bytesField(2, Buffer.concat([
+    bytesField(1, name),
+    bytesField(9, bytesField(1, Buffer.concat([
+      ...Object.entries(attrs).map(([k, v]) => bytesField(9, encodeKv(k, v))),
+      fixed64Int(4, 1),
+    ]))),
+  ]));
+  const encodeSumMetric = (name) => bytesField(2, Buffer.concat([
+    bytesField(1, name),
+    bytesField(7, bytesField(1, fixed64Int(6, 42))),
+  ]));
+  const metricPayload = bytesField(1, Buffer.concat([
+    resource,
+    bytesField(2, Buffer.concat([
+      encodeHistogramMetric("http.server.request.duration", { "http.route": "/api/readiness" }),
+      encodeHistogramMetric("db.client.operation.duration", { "db.operation.name": "SELECT" }),
+      encodeSumMetric("go.memory.allocated"),
+      encodeSumMetric("go.goroutine.count"),
+    ])),
+  ]));
+  const metrics = decodeOtlpMetrics(metricPayload);
+  assert.equal(metrics.length, 4);
+
+  const encodeScopeLog = (scope, severityNumber, body) => bytesField(2, Buffer.concat([
+    bytesField(1, bytesField(1, scope)),
+    bytesField(2, Buffer.concat([
+      varintField(2, severityNumber),
+      bytesField(5, bytesField(1, body)),
+    ])),
+  ]));
+  const logPayload = bytesField(1, Buffer.concat([
+    resource,
+    encodeScopeLog("cao:ingest", 5, "published native revision=1 collections=11"),
+    encodeScopeLog("cao:server", 5, "health status=200 operational=true data=true"),
+  ]));
+  const logs = decodeOtlpLogs(logPayload);
+  assert.equal(logs.length, 2);
+
+  const jobs = [
+    { metadata: { namespace: "cao-local-system", name: "cao-maintenance-test" }, status: { conditions: [{ type: "Complete", status: "True" }] } },
+    { metadata: { namespace: "cao-local", name: "cao-ingest-1", labels: { "cao-profile": "snapshot" } }, status: { conditions: [{ type: "Complete", status: "True" }] } },
+  ];
+  const pods = [
+    { metadata: { namespace: "cao-local-system", name: "cao-postgres-0" }, status: { phase: "Running", containerStatuses: [{ name: "postgres", restartCount: 0 }] } },
+    { metadata: { namespace: "cao-local", name: "cao-web-1" }, status: { phase: "Running", containerStatuses: [{ name: "web", restartCount: 0 }] } },
+  ];
+
+  const healthy = assessKubernetesTelemetry({
+    spans, metrics, logs, expectedTraceIds: [traceIdPre, traceIdReady], readyTraceIds: [traceIdReady], jobs, pods,
+  });
+  assert.deepEqual(healthy.failures, []);
+  assert.equal(healthy.passed, true);
+
+  assert.match(assessKubernetesTelemetry({
+    spans: [...spans, { name: "cao_dashboard.postgres.query", traceId: "3".repeat(32), kind: 3, status: { code: 2, message: "db error" }, attributes: {}, events: [] }],
+    metrics, logs, expectedTraceIds: [traceIdPre, traceIdReady], readyTraceIds: [traceIdReady], jobs, pods,
+  }).failures.join("\n"), /unexpected error span cao_dashboard\.postgres\.query/);
+
+  assert.match(assessKubernetesTelemetry({
+    spans: [...spans, { name: "GET /api/health", traceId: "4".repeat(32), kind: 2, status: { code: 0, message: "" }, attributes: {}, events: [{ name: "exception", attributes: {} }] }],
+    metrics, logs, expectedTraceIds: [traceIdPre, traceIdReady], readyTraceIds: [traceIdReady], jobs, pods,
+  }).failures.join("\n"), /unexpected exception event/);
+
+  assert.match(assessKubernetesTelemetry({
+    spans,
+    metrics: [...metrics, { name: "db.client.operation.duration", dataPoints: [{ attributes: { "error.type": "timeout" }, count: 1 }] }],
+    logs, expectedTraceIds: [traceIdPre, traceIdReady], readyTraceIds: [traceIdReady], jobs, pods,
+  }).failures.join("\n"), /database operation metric recorded error\.type=timeout/);
+
+  assert.match(assessKubernetesTelemetry({
+    spans, metrics,
+    logs: [...logs, { scope: "cao:server", severityNumber: 17, body: "unhandled failure", attributes: {} }],
+    expectedTraceIds: [traceIdPre, traceIdReady], readyTraceIds: [traceIdReady], jobs, pods,
+  }).failures.join("\n"), /unexpected error log in cao:server/);
+
+  assert.match(assessKubernetesTelemetry({
+    spans, metrics, logs, expectedTraceIds: [traceIdPre, traceIdReady], readyTraceIds: [traceIdReady],
+    jobs: [...jobs, { metadata: { namespace: "cao-local", name: "cao-ingest-bad" }, status: { failed: 1, conditions: [{ type: "Failed", status: "True" }] } }],
+    pods: [...pods, { metadata: { namespace: "cao-local", name: "cao-web-crash" }, status: { phase: "Running", containerStatuses: [{ name: "web", restartCount: 2 }] } }],
+  }).failures.join("\n"), /background Job failed: cao-local\/cao-ingest-bad[\s\S]*restarted 2 time/);
+
+  assert.equal(assessAspireTelemetry({
+    resources: [
+      { name: "cao-local", displayName: "cao-local", state: "Running" },
+      { name: "prepare-abc", displayName: "prepare", state: "Finished", exitCode: 0 },
+      { name: "build-def", displayName: "build", state: "Finished", exitCode: 0 },
+      { name: "database-ghi", displayName: "database", state: "Finished", exitCode: 0 },
+    ],
+    errorSpans: [],
+    errorLogs: [],
+  }).passed, true);
+
+  assert.match(assessAspireTelemetry({
+    resources: [
+      { name: "cao-local", displayName: "cao-local", state: "Running" },
+      { name: "build-def", displayName: "build", state: "Finished", exitCode: 1 },
+      { name: "database-ghi", displayName: "database", state: "Failed", exitCode: 1 },
+    ],
+    errorSpans: [{ spanId: "1" }],
+    errorLogs: { returnedCount: 2 },
+  }).failures.join("\n"), /Aspire step build[\s\S]*Aspire OTel reported 1 error span[\s\S]*2 error log/);
 });
 
 test("native preflight rejects source/policy and repository-limit mismatches", () => {
