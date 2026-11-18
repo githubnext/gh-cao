@@ -600,8 +600,11 @@ describe('Configuration dashboard view', () => {
         'repository',
         'gh-aw-version',
         'gh-aw-current-version',
-        'upgrade-state'
+        'upgrade-state',
+        'workflow-state'
       ]);
+    expect(views[2]['filter-bar'].filters.map((/** @type {{ id: string, groups: Array<{ field: string }> }} */ filter) => [filter.id, filter.groups[0].field]))
+      .toEqual([['update', 'upgrade-state'], ['state', 'workflow-state'], ['version', 'gh-aw-version']]);
     expect(views.map((/** @type {{ title?: string }} */ view) => view.title))
       .toEqual(['Campaign packages', 'Individual workflows', 'Repository compiler status']);
     expect(views.some((/** @type {{ disclosure?: string }} */ view) => view.disclosure !== undefined)).toBe(false);

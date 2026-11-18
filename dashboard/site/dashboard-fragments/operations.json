@@ -2595,6 +2595,31 @@
           "mark": "list",
           "lazy-list": true,
           "list": { "style": "entity-cards", "card": "maintenance-repository", "icon": "repo" },
+          "filter-bar": {
+            "filters": [
+              {
+                "id": "update",
+                "label": "Update",
+                "groups": [
+                  { "label": "Compiler update", "field": "upgrade-state", "source": "maintenance-repository-upgrade-options", "value-field": "upgrade-state" }
+                ]
+              },
+              {
+                "id": "state",
+                "label": "State",
+                "groups": [
+                  { "label": "Agentic Workflows", "field": "workflow-state", "source": "maintenance-repository-workflow-state-options", "value-field": "workflow-state" }
+                ]
+              },
+              {
+                "id": "version",
+                "label": "Version",
+                "groups": [
+                  { "label": "Installed gh-aw", "field": "gh-aw-version", "source": "maintenance-repository-version-options", "value-field": "gh-aw-version" }
+                ]
+              }
+            ]
+          },
           "empty-message": "No Agentic Workflow compiler versions were observed.",
           "encoding": {
             "columns": [
@@ -2617,6 +2642,12 @@
                 "field": "upgrade-state",
                 "type": "nominal",
                 "title": "Upgrade",
+                "display": "status"
+              },
+              {
+                "field": "workflow-state",
+                "type": "nominal",
+                "title": "Agentic Workflows",
                 "display": "status"
               }
             ]
