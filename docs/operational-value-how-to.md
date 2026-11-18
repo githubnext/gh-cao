@@ -214,17 +214,8 @@ stages the exact opt-in registration. Keep explicit disables and Activity
 scope unchanged. Arbitrary intent text is not executable scoring logic and
 does not by itself establish a measurable outcome.
 
-Any verified contract's original envelope can use the shared native importer;
-File Diet's recomputation example calls this same implementation:
-
-```sh
-node .github/skills/add-operational-value/scripts/prepare-native-value.mjs \
-  --input REPORT-evidence.jsonl --sha256 VERIFIED_SHA256 \
-  --output .tmp/workflow-native-value
-```
-
 Ordinary batch evaluators do not need `collectEvents` or an artificial accepted
-change ledger. Run the same verified module with `evaluate.mjs --native`; its
+change ledger. Run `evaluate.mjs --native` against the verified contract; its
 `WORKFLOW-measurements.jsonl` is normal canonical `operational_value` data.
 `--native` omits standalone HTML and Actions-run acquisition. The existing
 `--report` option also emits native measurements for contracts with explicit

@@ -92,8 +92,8 @@ boundaries:
 | Boundary | Source of truth | Enforcement |
 | --- | --- | --- |
 | Documentation routes | Astro content collection | The build requires every HTML-advertised JSON route and index entry to agree in both directions. |
-| CLI bindings | `activity/commands/index.mjs` | The validator rejects unknown subcommands and malformed positional/option shapes. |
-| CLI MCP bindings | `activity/mcp-server.mjs` | The validator checks capability names and arguments against each registered tool's input schema. |
+| CLI bindings | `scripts/validate-agent-docs.mjs` (`cliCommands`) | The validator rejects unknown subcommands and malformed positional/option shapes. |
+| CLI MCP bindings | `dashboard/site/src/agent/mcp-contract.json` (served by `internal/cli/native_mcp.go`) | The validator checks capability names and arguments against each registered tool's input schema. |
 | WebMCP bindings | Dashboard Language pages through `webmcp/manifest.js` | The validator requires the generated capability and page identifier to match the current dashboard manifest. |
 
 `npm run docs:build` runs these checks on every documentation build, and
