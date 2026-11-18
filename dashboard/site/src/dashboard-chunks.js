@@ -286,6 +286,7 @@ function stubDashboardPage(page, chunkPath, index) {
     ...(index.backendSourceIndex ? { 'backend-source-index': index.backendSourceIndex } : {}),
   };
   for (const field of ['description', 'intent', 'subject', 'objective', 'acceptance']) delete base[field];
+  if (!index.independentSourceBindings) delete base['independent-source-bindings'];
   if (page.kind === 'built-in') {
     delete base.definition;
   } else {

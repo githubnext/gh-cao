@@ -96,7 +96,7 @@ func testBootstrapInstallerCompatibility(t *testing.T, ctx context.Context, cata
 	for _, channel := range []string{"stable", "prerelease"} {
 		required := "v1.2.3"
 		if channel == "prerelease" {
-			required += "-rc.1"
+			required = "v1.2.4-rc.1"
 		}
 		for _, scenario := range []string{"missing", "current", "outdated", "newer"} {
 			t.Run("installer compatibility/"+channel+"/"+scenario, func(t *testing.T) {
@@ -181,7 +181,7 @@ func testBootstrapInstallerCompatibility(t *testing.T, ctx context.Context, cata
 			})
 		}
 	}
-	if got := string(setupRead(t, filepath.Join(data, "gh-aw-install-requests"))); got != "v1.2.3\nv1.2.3-rc.1\n" {
+	if got := string(setupRead(t, filepath.Join(data, "gh-aw-install-requests"))); got != "v1.2.3\nv1.2.4-rc.1\n" {
 		t.Fatalf("fresh installs did not forward exact stable/prerelease versions: %q", got)
 	}
 	if err := os.Remove(manifest); err != nil {

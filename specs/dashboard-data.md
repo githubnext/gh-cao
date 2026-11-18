@@ -436,9 +436,58 @@ through one Go/PostgreSQL origin. Local development SHALL use the same Go
 serving/query boundary and PostgreSQL storage, ingesting explicitly acquired
 operational artifacts. Neither profile SHALL fall back to Pages or browser ingestion.
 
-Pages SHALL contain only a synthetic enterprise sample. Its build SHALL
-generate raw sample evidence and pass it through the production normalization,
+Pages SHALL contain only a synthetic enterprise sample. Its browser data worker SHALL
+generate raw sample evidence on demand and pass it through the production normalization,
 canonical ingestion, Dashboard Language queries, and shared declarative views.
+Generation and writes SHALL be bounded rather than retaining the enterprise
+population in memory. The default sample SHALL contain 1,000 repositories,
+exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories.
+Repository names SHALL consist of four hyphen-separated words from a predefined
+256-word safe vocabulary. A deterministic bijection over unsigned 32-bit indices
+SHALL select the four word positions without collisions: a 32-bit naming space,
+not a secret or security token. Installed workflows SHALL select their display
+names from 64 predefined safe names across four behavior archetypes, consistently
+across inventory, Runs, and Value evidence.
+Run generation SHALL reserve at least one run per repository when the budget permits,
+then allocate the remaining budget proportionally to deterministic log-normal repository
+activity rates. Workflow/day allocation SHALL preserve heterogeneous, Poisson-bursty,
+weekday/weekend and partial-current-day cadence. These are illustrative synthetic
+distributions, not an empirical estimate of enterprise activity.
+Run identities SHALL remain stable across partitions.
+The worker SHALL publish fleet inventory before activity, then sample
+repositories without replacement in proportion to their remaining allocated runs,
+using a deterministic keyed random stream. One run per active repository SHALL be
+reserved at randomly selected positions within the first three runs per active
+repository (at most the total budget). This bounded coverage window SHALL prevent
+repository starvation without imposing a uniform round-robin order: busy repositories
+MAY appear repeatedly in early partial results. Raw activity SHALL enter normalization in
+batches of at most 100 runs; Value-only batches SHALL contain at most 100 raw records.
+Synthetic run evidence SHALL include bounded, multi-turn version-1 unified sessions
+through the production session parser, with correlated tool calls, per-request
+usage and cache growth, phase-scoped accounting, and outcome-appropriate lifecycle
+and safe-output evidence. The default sample SHALL include at least 100 distinct
+blocked domains under the reserved `.invalid` namespace within retained firewall
+evidence. A deterministic coverage cohort SHALL reserve one run three days before
+the sample day for each of 128 domains, distributed across repositories and workflow
+archetypes; other blocked activity SHALL remain probabilistic.
+Network request volume SHALL scale with generated tool activity and bounded
+background traffic. Value throughput SHALL use the allocated workflow run rate,
+not an independent per-repository activity multiplier, so detail volume remains
+within the browser storage budget without evicting the configured run population.
+The run ledger SHALL span 21 UTC days, with ordinary seven-day detail retention,
+so complete recent sessions coexist with the full 5,000-run historical population.
+Pending and approval-gated runs SHALL NOT acquire invented
+completion, evaluation, or output events. Live repository evidence MAY inform
+illustrative shapes and distributions during development; the demo SHALL NOT
+copy transcripts, prompts, tool payloads, private identifiers, or runtime data
+acquisition into its published sample.
+The build SHALL publish the synthesizer, not pregenerated inventory or run/detail
+shards. Reopening the demo SHALL reuse completed, compatible browser-local data
+within the same UTC day. A new sample day or incompatible generator/schema SHALL
+reset only the scoped demo database before regeneration, including old activity
+and derived count receipts. Interrupted compatible samples SHALL resume from
+committed inventory, installation, and interleaved activity batches rather than be
+treated as complete. Resuming SHALL NOT re-ingest completed activity batches.
 It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
 a separate demo query implementation. A declarative **Synthetic enterprise demo**
 callout SHALL identify the sample; live services SHALL be unavailable.
@@ -458,7 +507,7 @@ No Actions workflow publishes an operational snapshot artifact; native
 Operational downloaders SHALL reject synthetic manifests and manifests without
 canonical shard checksums. No canvas acquisition or serving path is supported.
 
-The demo SHALL put data files under `demo-data/`, not root
+The demo SHALL keep its source namespace under `demo-data/`, not root
 `payload-hashes.json`, suffix browser storage keys with `synthetic-demo`,
 and use the `demo` service-worker cache namespace. Changed data URLs SHALL
 prevent reuse of real-data responses from old same-origin service-worker caches.
@@ -1381,14 +1430,14 @@ Maintenance SHALL provide separate Repository, Workflow, and Campaign pages
 under the Updates navigation section, preserving the existing Repository
 maintenance route. Each page SHALL have its own navigation entry and
 evidence-backed update indicator, without shared maintenance tabs.
-Each page SHALL provide a full-sweep action using existing gh-aw CLI commands
-with explicit approval and pull-request publication: repository upgrades for
-every listed repository, source updates for every source-managed Markdown
-workflow with retained provenance, and package updates for every campaign with
-a retained source coordinate. Sweep queries SHALL return complete ordered
-target sets without limits or pagination; unknown latest revisions SHALL NOT
-exclude a known source. Local or unknown-source entities remain visible in
-the inventory but SHALL NOT become source-update targets.
+Each page SHALL use a full-view, card-only lazy list with bounded canonical
+query pages and SHALL NOT render a table. Scrolling SHALL load further pages,
+with an accessible manual load control. Updates pages SHALL NOT provide update-all or
+upgrade-all controls or eagerly load complete inventories to build browser-side
+command batches; fleet-wide maintenance belongs in CLI commands. Per-row
+maintenance SHALL retain explicit approval and pull-request publication.
+Local or unknown-source entities remain visible in the inventory but SHALL NOT
+become source-update targets.
 Workflow maintenance
 SHALL include campaign-owned and standalone Markdown workflows. Individual
 source updates SHALL use the exact workflow identity in its canonical Repository,
@@ -1445,10 +1494,12 @@ concurrent GitHub API pressure and reuse shared analysis state. The consolidated
 The `gh-aw-logs-shards/` directory SHALL retain the authoritative collection
 transport within the operational cache. Artifact publication SHALL provide
 compacted normalized run-information and record JSONL plus
-`payload-hashes.json`, as specified in §5. Pages SHALL generate equivalent
-transport solely from synthetic raw samples. Browsers SHALL use manifest
-identities to skip unchanged demo downloads and imports, and SHALL NOT fall
-back to raw source shards or operational artifacts.
+`payload-hashes.json`, as specified in §5. Pages SHALL instead generate raw
+synthetic samples locally in the browser worker and use the production
+normalization and canonical ingestion contracts without downloading a sample
+snapshot. The worker SHALL distinguish incomplete generation from a completed
+compatible sample, honor cancellation, and SHALL NOT fall back to operational
+artifacts.
 
 ### 5.4.1 Canonical join contract
 

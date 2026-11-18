@@ -40,7 +40,7 @@ function includes(source) {
 }
 
 export function parsePackageManifest(source, coordinates) {
-  if (Buffer.byteLength(source) > MAX_MANIFEST_BYTES) throw new Error("package manifest exceeds size limit");
+  if (new TextEncoder().encode(source).byteLength > MAX_MANIFEST_BYTES) throw new Error("package manifest exceeds size limit");
   const workflow = coordinates.format === "workflows";
   let body = "";
   if (workflow) {

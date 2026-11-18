@@ -75,7 +75,7 @@ describe('command-terminal debug logging', () => {
     document.body.append(root);
     await vi.waitFor(() => expect(output.debug).toHaveBeenCalledWith('[cao:command-terminal]',
       { event: 'attach', outcome: 'error', error: 'TypeError' }));
-    expect(root.querySelector('.cli-action-cancel')).toBeNull();
+    expect(root.querySelector('.command-terminal-actions .cli-action-cancel')).toBeNull();
     expect(queue.cancel).not.toHaveBeenCalled();
     expect(JSON.stringify(output.debug.mock.calls)).not.toContain('SECRET');
   });

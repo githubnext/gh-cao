@@ -9,6 +9,8 @@ for (const width of [1200, 390, 320]) {
       <div id="root"></div>
       <script type="module">
         import { renderDashboard } from ${JSON.stringify(buildPresenterModuleUrl())};
+        import { renderDashboardCurrentStatus } from 'http://dashboard.test/src/components/refresh-error.js';
+        import { bindStatusToHorizon } from 'http://dashboard.test/src/components/dashboard-horizon.js';
         import { prepareDashboardViewSources } from 'http://dashboard.test/test/e2e/helpers/dashboard-view-sources.js';
         localStorage.clear();
         const dashboardDocument = {
@@ -35,7 +37,7 @@ for (const width of [1200, 390, 320]) {
           { run: 'quarter', 'observed-at': '2026-07-01T12:00:00Z', 'rollout-mode': 'review' },
           { run: 'older', 'observed-at': '2025-09-01T12:00:00Z', 'rollout-mode': 'review' }
         ] } };
-        document.querySelector('#root').append(renderDashboard({
+        const dashboard = renderDashboard({
           document: dashboardDocument,
           sources,
           loadPageSources: async (pageId, options) => {
@@ -45,14 +47,43 @@ for (const width of [1200, 390, 320]) {
               ...options, evaluatedAt: metadata['as-of']
             });
           }
-        }));
+        });
+        const horizonRoot = dashboard.querySelector('.dashboard-horizon');
+        const currentStatus = renderDashboardCurrentStatus(
+          { createdAt: metadata['as-of'] }, { refreshing: true, mobileHeader: dashboard }
+        );
+        horizonRoot.after(currentStatus);
+        bindStatusToHorizon(currentStatus, horizonRoot);
+        document.querySelector('#root').append(dashboard);
       </script>
     `);
     await expect(page.locator('body')).toHaveAttribute('data-loaded-page', 'runs');
     if (width < 700) await page.locator('.mobile-nav-menu > summary').click();
+    const dataControls = page.getByRole('group', { name: 'Time window and data status', exact: true });
+    await expect(dataControls.locator('.dashboard-horizon')).toBeAttached();
+    const status = dataControls.locator('.dashboard-current-status .tooltip-trigger');
+    await expect(status).toBeVisible();
+    const statusBounds = await status.boundingBox();
+    assert(statusBounds);
+    expect(statusBounds.height).toBe(width < 700 ? 44 : 28);
+    await expect(dataControls).toHaveCSS('border-top-style', 'none');
+    await expect(dataControls.locator('.horizon-toggle')).toHaveCount(0);
+    if (width < 700) await status.click();
+    else await status.focus();
+    const statusPopup = page.locator('#dashboard-current-status-tooltip');
+    await expect(statusPopup).toBeVisible();
+    await expect(statusPopup).toContainText('while dashboard data refreshes');
+    if (width < 700) {
+      await page.keyboard.press('Escape');
+      await page.locator('.mobile-nav-menu > summary').click();
+      await expect(dataControls.locator('.dashboard-current-status')).toBeVisible();
+    }
     const horizon = page.locator('.dashboard-horizon');
-    const toggle = horizon.locator('.horizon-toggle');
-    await toggle.click();
+    const desktop = width > 700;
+    if (desktop) {
+      await status.click();
+      await expect(status).toHaveAttribute('aria-expanded', 'true');
+    }
     const picker = horizon.getByRole('combobox', { name: 'Time window' });
     await expect(picker).toBeVisible();
     await expect(picker).toHaveValue('1w');
@@ -85,7 +116,7 @@ for (const width of [1200, 390, 320]) {
     };
     await assertNoOverflow();
     if (width > 700) {
-      const triggerBounds = await toggle.boundingBox();
+      const triggerBounds = await status.boundingBox();
       assert(triggerBounds);
       expect(bounds.y).toBeGreaterThanOrEqual(triggerBounds.y + triggerBounds.height);
       expect(bounds.x + bounds.width - triggerBounds.x).toBeLessThan(45);
@@ -119,7 +150,7 @@ for (const width of [1200, 390, 320]) {
       (body) => JSON.parse(body.dataset.queryContext ?? '{}').filters?.mode
     )).toEqual(['review']);
     if (width < 700) await page.locator('.mobile-nav-menu > summary').click();
-    if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
+    if (desktop && await status.getAttribute('aria-expanded') !== 'true') await status.click();
     await picker.selectOption('custom');
     await expect(horizon.getByLabel('Window start time')).toBeVisible();
     await horizon.getByLabel('Window start time').fill('2026-08-01T00:00');
@@ -135,7 +166,10 @@ for (const width of [1200, 390, 320]) {
       return (Date.parse(window.end) - Date.parse(window.start)) / 86_400_000;
     })).toBe(2);
     await expect(page.locator('.dashboard-page:not([hidden]) .custom-table tbody')).toHaveText('month');
-    await picker.press('Escape');
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    if (desktop) {
+      await picker.press('Escape');
+      await expect(status).toHaveAttribute('aria-expanded', 'false');
+      await expect(status).toBeFocused();
+    }
   });
 }

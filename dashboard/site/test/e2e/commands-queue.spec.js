@@ -83,12 +83,26 @@ for (const width of [1440, 390]) {
         new URL(response.url()).pathname === '/__cli_commands' && response.request().method() === 'POST');
       await dialog.getByRole('button', { name: 'Update', exact: true }).click();
       const admitted = await (await queued).json();
+      await expect(dialog).toBeHidden();
+      expect(new URL(page.url()).hash).toBe('#page-maintenance');
+      const notice = page.locator('.dashboard-notification-success').filter({ hasText: 'Update: command queued.' });
+      await expect(notice).toBeVisible();
+      await expect(notice).toBeHidden({ timeout: 10_000 });
+      await page.goto(`${preview.url}/#page-command?command=${admitted.id}`);
       const terminal = page.getByRole('region', { name: 'Read-only command terminal' });
       await expect(terminal).toBeVisible();
       await expect.poll(() => calls.length).toBe(1);
       expect(calls[0]).toEqual(['upgrade', '--repo', 'octo/managed', '--create-pull-request']);
       expect(accessChecks).toBeGreaterThanOrEqual(2);
       await expect(page.locator('.command-terminal [role="status"]')).toHaveText(`${admitted.id} · running`);
+      const expectCommandChrome = async () => {
+        await expect(page.locator('#page-title')).toHaveText('Command');
+        await expect(page.locator('nav.breadcrumb-context > :not([hidden])')).toHaveCount(0);
+        await expect(page.locator('.command-terminal-command-text'))
+          .toHaveText('gh aw upgrade --repo octo/managed --create-pull-request');
+        await expect(page.getByRole('link', { name: 'Back to origin' })).toHaveAttribute('href', '#page-maintenance');
+      };
+      await expectCommandChrome();
       writeOutput?.();
       await expect(terminal.locator('.xterm-accessibility-tree')).toContainText('Native maintenance output');
       await page.goto(`${preview.url}/#page-overview`);
@@ -98,6 +112,11 @@ for (const width of [1440, 390]) {
       await expect(page.locator('[data-view-id="commands-history"]')).toContainText('completed');
       await page.goto(`${preview.url}/#page-command?command=${admitted.id}`);
       await page.reload();
+      await expect(terminal.locator('.xterm-accessibility-tree')).toContainText('Native maintenance output');
+      await expectCommandChrome();
+      await page.getByRole('link', { name: 'Back to origin' }).click();
+      await expect(page).toHaveURL(/#page-maintenance$/);
+      await page.goto(`${preview.url}/#page-command?command=${admitted.id}`);
       await expect(terminal.locator('.xterm-accessibility-tree')).toContainText('Native maintenance output');
       expect(calls).toHaveLength(1);
       const screenshot = testInfo.outputPath(`native-command-${width}.png`);

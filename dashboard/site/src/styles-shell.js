@@ -38,6 +38,7 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .mobile-table-card-toolbar > .card-filter-bar { flex: 1; min-width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .mobile-table-card-toolbar > .semantic-prompt-action { position: static; flex: none; margin: 0 0 0 auto; }
 .dashboard-full-view .custom-view[data-view-layout="full-view"] > .mobile-table-card-list { min-height: 0; flex: 1; overflow: hidden; }
+.custom-view[data-view-layout="full-view"] > .mobile-table-card-list.table-card-list { border: 0; border-radius: 0; }
 .dashboard-full-view .dashboard-page[data-view-mode="card"] > .custom-view-grid > .custom-view[data-view-layout="full-view"]:has(> .mobile-table-card-list) { padding: 16px 0 0; }
 .dashboard-full-view .mobile-table-card-list-items { min-height: 0; flex: 1; overflow-y: auto; }
 .mobile-table-card-list-items { display: block; min-height: 0; overflow-y: auto; border: 0; background: transparent; }
@@ -208,6 +209,7 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .cli-commands-navigation[hidden] { display: none; }
 .cli-actions-toggle:hover, .cli-actions-menu[open] .cli-actions-toggle { background: var(--neutral-muted); }
 .cli-actions-toggle .octicon { width: 14px; height: 14px; }
+.cli-actions-add-menu > .cli-actions-toggle { min-height: 32px; }
 .cli-actions-list { width: min(320px, calc(100vw - 28px)); display: grid; gap: 4px; position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--canvas); box-shadow: 0 8px 24px color-mix(in srgb, var(--canvas-inset) 45%, transparent); }
 .cli-action-trigger { width: 100%; min-width: 0; display: flex; align-items: flex-start; gap: 9px; padding: 9px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
 .cli-action-trigger:hover { background: var(--neutral-muted); }
@@ -275,6 +277,11 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .cli-action-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--canvas-subtle); }
 .cli-action-dialog-header h2 { margin: 0; font-size: 1rem; }
 .command-terminal { position: relative; min-height: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.command-terminal-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--canvas-subtle); }
+.command-terminal-command { min-width: 0; flex: 1 1 320px; margin: 0; }
+.command-terminal-command[hidden], .command-terminal-origin[hidden] { display: none; }
+.command-terminal-command-text { display: block; overflow-wrap: anywhere; white-space: pre-wrap; font: .8125rem/1.5 var(--font-mono); color: var(--fg); }
+.command-terminal-origin { min-height: 44px; flex: 0 0 auto; text-decoration: none; }
 .command-terminal > .cli-action-dialog-body { min-height: 0; flex: 1; padding: 0; overflow: hidden; }
 .command-terminal .cli-action-terminal-output { min-height: 0; height: 100%; }
 .command-terminal .cli-action-terminal { min-height: 0; height: 100%; border: 0; border-radius: 0; }
@@ -314,20 +321,17 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .command-terminal-actions > .cli-action-cancel:hover { background: var(--accent); filter: brightness(1.08); }
 .cli-action-confirm:hover { filter: brightness(1.08); }
 .cli-action-cancel:disabled, .cli-action-confirm:disabled { cursor: default; opacity: .6; }
-.dashboard-horizon { position: relative; max-width: none; flex: none; display: flex; align-items: center; margin-bottom: 0; padding-right: 6px; border-right: 1px solid var(--border); color: var(--muted); font-size: .75rem; font-weight: 600; }
+.dashboard-data-controls { display: inline-flex; flex: none; align-items: center; gap: 2px; position: relative; }
+.dashboard-data-controls > .dashboard-horizon { position: static; }
+.dashboard-data-controls .dashboard-current-status .tooltip-trigger { width: 28px; height: 28px; border-radius: 6px; }
+.dashboard-data-controls .dashboard-current-status .tooltip-trigger[aria-expanded="true"] { background: var(--neutral-muted); }
+.dashboard-data-controls:has(.filter-bar-expanded) .dashboard-current-status:not(.tooltip-mobile-popup) .tooltip-content { visibility: hidden; opacity: 0; }
+.dashboard-horizon { position: relative; max-width: none; flex: none; display: flex; align-items: center; margin-bottom: 0; color: var(--muted); font-size: .75rem; font-weight: 600; }
 .dashboard-horizon.filter-bar-expanded > .filter-tuning-controls { z-index: 30; display: grid; grid-template-columns: minmax(0, 1fr); left: auto; right: 0; top: calc(100% + 8px); width: min(280px, calc(100vw - 28px)); max-height: calc(100dvh - 100px); overflow-y: auto; padding: 12px; border: 1px solid var(--border); border-radius: 6px; }
 .dashboard-horizon.filter-bar-expanded .horizon-details { display: block; font-weight: 400; }
 .dashboard-horizon .horizon-details > summary { color: var(--muted); font-size: .6875rem; cursor: pointer; }
 .dashboard-horizon .horizon-details[open] > span { display: flex; margin-top: 6px; }
 .dashboard-horizon .horizon-details-values { flex-wrap: wrap; justify-content: flex-start; gap: 4px 12px; }
-.horizon-summary { display: flex; align-items: center; position: relative; }
-.horizon-toggle { width: 28px; height: 28px; display: grid; flex: 0 0 28px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-.horizon-toggle:hover, .horizon-toggle[aria-expanded="true"] { background: var(--neutral-muted); color: var(--fg); }
-.horizon-toggle .octicon { width: 14px; height: 14px; }
-.horizon-summary .horizon-tooltip { width: auto; min-width: 190px; display: grid; gap: 3px; position: absolute; z-index: 40; top: calc(100% + 8px); right: 0; padding: 9px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas); box-shadow: 0 8px 24px color-mix(in srgb, var(--canvas-inset) 45%, transparent); color: var(--fg); font-size: .75rem; font-weight: 600; line-height: 1.35; white-space: nowrap; visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 80ms linear, visibility 80ms linear; }
-.horizon-tooltip > span { color: var(--muted); font-size: .6875rem; font-weight: 400; }
-.horizon-summary:hover .horizon-tooltip, .horizon-summary:focus-within .horizon-tooltip { visibility: visible; opacity: 1; }
-.filter-bar-expanded :is(.horizon-summary:hover, .horizon-summary:focus-within) .horizon-tooltip { visibility: hidden; opacity: 0; }
 .horizon-details { display: none; }
 .filter-bar-expanded .horizon-details { width: 100%; display: block; padding-top: 8px; border-top: 1px solid var(--border); }
 .horizon-details-description { color: var(--muted); font-size: .75rem; }
@@ -451,6 +455,7 @@ main.dashboard-prototype { width: 100%; min-height: 0; flex: 1; overflow-y: auto
 .overview-header .lede { min-height: 1.25rem; margin: 3px 0 0; overflow: hidden; font-size: .875rem; line-height: 1.25rem; text-overflow: ellipsis; white-space: nowrap; }
 .overview-header .lede[hidden] { display: block !important; visibility: hidden; }
 .title-area { display: flex; align-items: center; gap: 8px; }
+[data-page-help]:not([hidden]) { display: inline-flex; flex: none; }
 .title-link { width: 28px; height: 28px; display: grid; flex: 0 0 28px; place-items: center; border-radius: 6px; color: var(--muted); text-decoration: none; transition: background-color 120ms ease, color 120ms ease; }
 .title-link:hover { background: var(--neutral-muted); color: var(--fg); }
 .title-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -458,6 +463,7 @@ main.dashboard-prototype { width: 100%; min-height: 0; flex: 1; overflow-y: auto
 .title-link[hidden] { display: none; }
 .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 .report-actions > .filter-bar { position: relative; margin-bottom: 0; }
+.dashboard-data-controls > .filter-bar { margin-bottom: 0; }
 .filter-tuning-controls { display: none; }
 .page-chrome { min-height: 44px; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 .page-chrome > .filter-bar { min-width: 0; flex: 1; justify-content: flex-end; margin-bottom: 0; }

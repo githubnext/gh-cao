@@ -381,6 +381,7 @@ func (a *App) hostedCLIList(response http.ResponseWriter, request *http.Request)
 		summary := hostedCLICommandJSON(command)
 		delete(summary, "arguments")
 		delete(summary, "values")
+		delete(summary, "origin")
 		summary["campaign"] = command.Values["campaign"]
 		if summary["repository"] == "" {
 			summary["repository"] = command.Values["repository"]
@@ -473,6 +474,7 @@ func (a *App) hostedCLIRetry(response http.ResponseWriter, request *http.Request
 	if err == nil {
 		invocation, err = a.admit(request.Context(), session, hostedcli.Request{
 			ID: original.ActionID, Arguments: original.Arguments, Values: original.Values, Input: original.Input,
+			Origin: original.Origin,
 		})
 	}
 	if err == nil && invocation.Command != original.Command {
@@ -596,7 +598,7 @@ func hostedCLICommandJSON(command operational.CLICommand) map[string]any {
 	return map[string]any{
 		"id": command.ID, "actionId": command.ActionID, "command": command.Command,
 		"arguments": command.Arguments, "values": command.Values,
-		"actor": command.Actor, "repository": command.Repository,
+		"actor": command.Actor, "repository": command.Repository, "origin": command.Origin,
 		"status": command.Status, "createdAt": command.CreatedAt.UTC().Format(time.RFC3339Nano),
 		"startedAt": timestamp(command.StartedAt), "completedAt": timestamp(command.CompletedAt),
 		"deadline": timestamp(command.Deadline), "completionWeek": command.CompletionWeek,

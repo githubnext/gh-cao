@@ -30,10 +30,13 @@ func TestResolveDeclaredUpgradeProducesHostedPlan(t *testing.T) {
 	catalog := loadTestCatalog(t)
 	invocation, err := catalog.Resolve(Request{
 		ID: "upgrade-target-repository", Values: map[string]string{"repository": "octo/app"},
-		Arguments: map[string]bool{"auto-merge": true},
+		Arguments: map[string]bool{"auto-merge": true}, Origin: "#page-maintenance",
 	}, testContext(t))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if invocation.Origin != "#page-maintenance" {
+		t.Fatalf("origin was not retained: %q", invocation.Origin)
 	}
 	if !strings.Contains(invocation.Command, "https://github.com/octo/cao") ||
 		!strings.Contains(invocation.Command, "https://cao.example.com/dashboard/#page-maintenance") {
@@ -69,6 +72,7 @@ func TestResolveRejectsInvalidRequests(t *testing.T) {
 		{"extra value", Request{ID: "upgrade-target-repository", Values: map[string]string{"repository": "o/r", "x": "y"}}, 400},
 		{"injection", Request{ID: "upgrade-target-repository", Values: map[string]string{"repository": "o/r; rm -rf /"}}, 400},
 		{"bad id", Request{ID: "../x"}, 400},
+		{"external origin", Request{ID: "upgrade-target-repository", Values: map[string]string{"repository": "o/r"}, Origin: "javascript:alert(1)"}, 400},
 	}
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {

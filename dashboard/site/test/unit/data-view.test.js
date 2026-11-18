@@ -597,7 +597,7 @@ describe('data view renderer', () => {
     setDeclaredCliActions([
       {
         id: 'enable-campaign',
-        label: 'Activate campaign',
+        label: 'Activate',
         icon: 'play',
         command: 'gh cao campaigns enable {{campaign}}',
         placement: 'row'
@@ -666,7 +666,7 @@ describe('data view renderer', () => {
     /** @param {Element | undefined} card */
     const actionLabels = (card) => Array.from(card?.querySelectorAll('.entity-card-list-actions .table-cli-action-control > button') ?? [], (button) => button.textContent?.trim());
     expect(actionLabels(cards[0])).toEqual(['Deactivate']);
-    expect(actionLabels(cards[1])).toEqual(['Activate campaign']);
+    expect(actionLabels(cards[1])).toEqual(['Activate']);
     expect(actionLabels(cards[2])).toEqual(['Deactivate', 'Update']);
     expect(rendered?.textContent).toContain('gh cao campaigns enable current');
     expect(rendered?.textContent).toContain('gh cao campaigns disable outdated');

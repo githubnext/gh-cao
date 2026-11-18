@@ -322,7 +322,6 @@ describe('repository activity query optimization', () => {
     expect(query).toBeDefined();
     expect(view).toMatchObject({
       mark: 'chart', chart: runInventoryContract.chart,
-      actions: runInventoryContract.actions,
       data: { source: runInventoryContract.source, limit: runInventoryContract.limit },
       encoding: {
         x: { field: 'repository', type: 'nominal' },
@@ -330,6 +329,9 @@ describe('repository activity query optimization', () => {
         href: { field: 'repository-link', type: 'nominal' }
       }
     });
+    expect(view.actions).toBeUndefined();
+    expect(dashboard['cli-actions'].find((/** @type {{ id: string }} */ action) => action.id === runInventoryContract['toolbar-action']))
+      .toMatchObject({ verb: 'add', placement: 'toolbar' });
     for (const definition of [query, view]) {
       expect(definition?.subject).toBeTruthy();
       expect(definition?.objective).toBeTruthy();

@@ -47,6 +47,10 @@ test("producer artifact binds its production inventory to an immutable revision"
     "memory_schema_contract.cjs", "LICENSE", "source.json",
   ]) assert.ok(metadata.files[`dashboard/report/vendor/gh-aw/${file}`]);
   assert.ok(metadata.files["dashboard/site/src/environment-defaults.js"]);
+  for (const file of ["sample.mjs", "session.mjs", "hash.mjs", "synthesis.js"]) {
+    assert.ok(metadata.files[`dashboard/site/src/data/demo/${file}`], `browser demo producer is runtime-owned: ${file}`);
+  }
+  assert.doesNotMatch(readFileSync(path.join(root, "dashboard/site/src/data/demo/sample.mjs"), "utf8"), /scripts\//);
   for (const file of [
     "dashboard/canvas-server.mjs", "dashboard/server-process.mjs", "dashboard/cli-actions.mjs",
     "dashboard/cli-terminal-process.mjs", "dashboard/cli-terminal-child.mjs",

@@ -29,7 +29,7 @@ The built-in dashboard keeps its shared query foundations and its controls, repo
 
 1. The activity action collects bounded raw inventory and run evidence for operational artifacts. The collectors under `dashboard/report/` retain evidence acquisition and normalization, not dashboard query projections.
 2. Operational artifacts contain `inventory-sources.json`, normalized run and record JSONL shards and their `payload-hashes.json` manifest, not database files. Production and local development use the same Go/PostgreSQL boundary.
-3. Pages instead generates synthetic enterprise raw samples through production normalization, then the data Web Worker incrementally ingests them into canonical IndexedDB. It has no operational input, SQLite download, agent summary, or live services.
+3. Pages instead runs its synthesizer on demand in the browser data Web Worker. It generates 1,000 repositories, exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories, passing raw samples through production normalization and incremental canonical IndexedDB ingestion in batches of at most 100 runs. Log-normal repository rates allocate the budget with at least one run per repository; workflow/day counts retain bursty, seasonal cadence. Fleet inventory precedes seeded, activity-weighted sampling without replacement. Randomly positioned coverage reservations ensure every repository appears within the first 3,000 runs, while busier repositories can recur naturally in partial results. Committed inventory, installation, and activity batches are resumed after interruption. The build pregenerates no sample snapshots. It has no operational input, SQLite download, agent summary, or live services.
 4. Dashboard Language queries in `src/data/queries/database.json` and the composed dashboard document perform selection, joins, aggregation, and projection at the production data-layer boundary. Supplied report rows cannot override canonical producers; undeclared sources are unavailable.
 5. The renderer loads the active page declaration and subscribes to its query payload with an abort-scoped lifetime. Database updates refresh the active view; only requested sources cross the worker boundary.
 
@@ -37,7 +37,33 @@ All profiles execute the same canonical Dashboard Language definitions and
 shared views. The Pages demo is not presenter fixtures: its declarative
 **Synthetic enterprise demo** callout on Overview accompanies a full canonical
 pipeline without a site-wide notification.
-Demo data files live under `demo-data/`, not root `payload-hashes.json`;
+Completed compatible samples are reused within the same UTC day. A new day or
+incompatible generator/schema resets only the scoped demo database and regenerates
+the sample; interrupted compatible generation resumes committed batches.
+Repository names use four hyphen-separated words from a fixed 256-word safe
+vocabulary, with a collision-free 32-bit naming space (not security entropy).
+Workflow display names vary across 64 safe labels. A deterministic coverage
+cohort guarantees 128 distinct blocked `.invalid` domains in the retained firewall
+window; the remaining firewall activity is sampled probabilistically.
+Network traffic follows tool activity with bounded background requests, and
+Value throughput follows allocated workflow runs rather than an independent
+fleet multiplier, keeping the complete run population within browser storage limits.
+The run ledger spans 21 UTC days; normal seven-day detail retention bounds recent
+session storage without removing historical runs.
+Run sessions use generated, bounded multi-turn timelines modeled on metadata-only
+inspection of this repository's live usage artifacts: prompt-heavy initial
+requests, growing cached context, separate agent/detection usage, native Bash
+and MCP calls, skills, evaluations, and safe-output results. Every session passes
+through the production unified-session parser. Pending, interrupted, and
+approval-gated runs preserve incomplete evidence instead of inventing completion.
+These are illustrative distributions, not replayed sessions or billing estimates;
+the browser and build never fetch live evidence or publish real transcripts.
+Calibration used three hand-selected usage artifacts inspected on 2026-11-18:
+[dashboard review](https://github.com/githubnext/gh-cao/actions/runs/44254492173),
+[documentation review](https://github.com/githubnext/gh-cao/actions/runs/44254400261),
+and [failed code improvement](https://github.com/githubnext/gh-cao/actions/runs/44254439770).
+They inform event shapes, not fleet-wide outcome rates or performance claims.
+The demo source namespace remains under `demo-data/`, not root `payload-hashes.json`;
 browser storage keys use `synthetic-demo` and service-worker caches use
 `demo`. The changed URLs prevent old same-origin cached real data from being
 selected. Operational downloaders require an explicit direct manifest URL or
@@ -52,15 +78,15 @@ The Ingestion page identifies browser-local IndexedDB or server PostgreSQL stora
 
 Work-item queries rank runs by canonical `startedAt`, falling back to `createdAt`, then break ties by run identity and attempt. Inventory observation times are not Run timestamps.
 
-Add `?online=1` to the dashboard URL to require fresh network responses for the page, its assets, and dashboard data instead of falling back to the service worker's offline cache. The worker bypasses the browser HTTP cache for these requests and redownloads unchanged activity shards during automatic data updates; if the network is unavailable, requests fail rather than showing cached files. Removing the parameter restores offline fallback.
+Add `?online=1` to the dashboard URL to require fresh network responses for the page and its assets instead of falling back to the service worker's offline cache. If the network is unavailable, requests fail rather than showing cached files. Removing the parameter restores offline fallback. Demo evidence is generated locally, not downloaded as activity shards.
 
 The service worker caches dashboard JavaScript only while the dashboard is open as a pinned/installed app (standalone or minimal-ui display mode, including iOS Home Screen apps). Regular browser tabs fetch JavaScript from the network and never fall back to the app's cached scripts, even when an installed app is open alongside them. App-mode detection runs inline before the dashboard module loads so offline startup also works after the worker restarts; this browser lifecycle behavior is outside Dashboard Language.
 
 Once the installed app has cached its assets successfully, the synthetic demo
-shell, JavaScript, and page chunks are available offline. Previously downloaded
-demo data remains in local storage; data never downloaded is unavailable offline.
-On data-saving or slow connections, eligible cached files are preferred and
-automatic downloads are deferred. `?clear-app=1` or **Clear app** in Settings
+shell, JavaScript, and page chunks are available offline. Compatible completed
+demo data remains in IndexedDB; synthesis needs no enterprise-data download.
+On data-saving or slow connections, eligible cached files are preferred.
+`?clear-app=1` or **Clear app** in Settings
 clears the app's scoped storage before reopening (network access is then required).
 
 Redeploying the demo replaces current Pages artifacts, not historical
@@ -127,5 +153,9 @@ npm run test:performance
 ```
 
 The performance suite audits CFO, CTO, and CSO dashboard journeys with Lighthouse. It writes machine-readable reports, browser traces, and a summary under `test-results/lighthouse/`; CI retains that directory as the `dashboard-lighthouse-performance` artifact.
+The populated scenario uses the production browser synthesizer and verifies its
+completion receipt and exact canonical run/repository counts before auditing.
+The private empty-state fixture uses metadata-only normalized inputs through
+the production ingestion worker; it is not published with the Pages demo.
 
 The production build bundles and minifies the application with esbuild and publishes external source maps alongside the JavaScript bundles.

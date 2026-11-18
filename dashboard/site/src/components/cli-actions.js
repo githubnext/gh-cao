@@ -7,6 +7,7 @@ import { createFactoryScope } from './factory-elements.js';
 import { effect, state } from '../reactive.js';
 import { assertActionLevel, normalizeAction, actionPresentation } from '../action-model.js';
 import { createDialogSelector } from './dialog-selector.js';
+import { currentCommandOrigin } from '../command-origin.js';
 import { enqueueCliCommand, attachCliCommand, cliQueueAvailable, subscribeCanonicalDashboardView } from '../data-processor.js';
 import { publishNotification } from '../notification-service.js';
 
@@ -72,6 +73,8 @@ async function executeAction(id, argumentsValue, templateValues, onOutput, input
   const payload = { id, arguments: argumentsValue, idempotencyKey: crypto.randomUUID() };
   if (Object.keys(templateValues).length > 0) payload.values = templateValues;
   if (input !== undefined) payload.input = input;
+  const origin = currentCommandOrigin();
+  if (origin) payload.origin = origin;
   const command = await enqueueCliCommand(payload, signal);
   const complete = await attachCliCommand(command.id, (event) => {
     if (event.type === 'status') return;
@@ -298,11 +301,13 @@ function renderCliActionControl(action, options = {}) {
     if (busy.get() || commandError) return;
     busy.set(true);
     try {
+      const origin = currentCommandOrigin();
       const results = await Promise.allSettled(templateTargets.map((values) => enqueueCliCommand({
         id: action.id,
         arguments: { ...argumentValues },
         values,
-        idempotencyKey: crypto.randomUUID()
+        idempotencyKey: crypto.randomUUID(),
+        ...(origin ? { origin } : {})
       }, scope.signal)));
       if (scope.signal.aborted) return;
       const admitted = results.filter((result) => result.status === 'fulfilled').length;
@@ -318,7 +323,6 @@ function renderCliActionControl(action, options = {}) {
       if (admitted) {
         enqueued.set(true);
         close();
-        window.location.hash = 'page-commands';
       }
     } finally {
       busy.set(false);
@@ -342,17 +346,24 @@ function renderCliActionControl(action, options = {}) {
         statusText.set('Queuing command…');
         debugCliActions({ event: 'execute-started', actionId: action.id });
         try {
+          const origin = currentCommandOrigin();
           const command = await enqueueCliCommand({
             id: action.id,
             arguments: { ...argumentValues },
             ...(Object.keys(templateValues).length ? { values: { ...templateValues } } : {}),
-            idempotencyKey: crypto.randomUUID()
+            idempotencyKey: crypto.randomUUID(),
+            ...(origin ? { origin } : {})
           }, scope.signal);
           if (scope.signal.aborted) return;
           enqueued.set(true);
           debugCliActions({ event: 'execute-queued', actionId: action.id });
           close();
-          window.location.hash = `page-command?command=${encodeURIComponent(command.id)}`;
+          const commandHash = `page-command?command=${encodeURIComponent(command.id)}`;
+          publishNotification({
+            message: `${action.label}: command queued.`,
+            tone: 'success',
+            action: { label: 'View', run: () => { window.location.hash = commandHash; } }
+          });
         } catch (error) {
           if (scope.signal.aborted) return;
           const message = error instanceof Error ? error.message : 'Could not queue command.';
@@ -565,7 +576,7 @@ export function renderDeclaredCliAction(actionId, templateValues = {}, binding) 
  * Render dashboard-declared CLI actions. Every invocation requires a fresh,
  * explicit confirmation; approval is never persisted or inferred.
  * @param {Array<{ id: string, label: string, description?: string, icon: string, command: string, 'preview-command'?: string, 'copy-only'?: boolean, selector?: import('../dialog-selector.js').DialogSelector, arguments?: Array<{ id: string, label: string, description?: string, type: 'boolean', flag: string, default?: boolean }> }> | undefined} actions
- * @param {{ presentation?: 'menu'|'settings', templateValues?: Record<string, string>, context?: Record<string, string>, canExecute?: boolean }} [options]
+ * @param {{ presentation?: 'menu'|'add-menu'|'settings', templateValues?: Record<string, string>, context?: Record<string, string>, canExecute?: boolean }} [options]
  * @returns {HTMLElement | null}
  */
 export function renderCliActions(actions, options = {}) {
@@ -574,6 +585,7 @@ export function renderCliActions(actions, options = {}) {
   if (!visibleActions.length) return null;
 
   const settingsPresentation = options.presentation === 'settings';
+  const addMenu = options.presentation === 'add-menu';
   const settingsList = settingsPresentation
     ? h('div', { className: 'configuration-cli-action-list' })
     : null;
@@ -598,12 +610,12 @@ export function renderCliActions(actions, options = {}) {
     )
     : h(
       'details',
-      { className: 'cli-actions-menu' },
+      { className: `cli-actions-menu${addMenu ? ' cli-actions-add-menu' : ''}` },
       h(
         'summary',
-        { className: 'cli-actions-toggle', title: 'Dashboard actions' },
-        octicon('play'),
-        h('span', { className: 'action-label' }, 'Actions')
+        { className: 'cli-actions-toggle', title: addMenu ? 'Add' : 'Dashboard actions', 'aria-label': addMenu ? 'Add' : 'Dashboard actions' },
+        octicon(addMenu ? 'plus' : 'play'),
+        addMenu ? octicon('chevron-down') : h('span', { className: 'action-label' }, 'Actions')
       )
     );
   const list = settingsPresentation
@@ -614,9 +626,27 @@ export function renderCliActions(actions, options = {}) {
 
   for (const declared of visibleActions) {
     const action = { ...normalizeAction(declared, { id: declared.id, type: 'cli' }), ...declared };
-    const { trigger, dialog } = renderCliActionControl(action, options);
+    const { trigger, dialog } = renderCliActionControl(action, {
+      ...options, presentation: settingsPresentation ? 'settings' : 'menu'
+    });
     list.append(trigger);
     root.append(dialog);
+    if (addMenu) dialog.addEventListener('close', () => {
+      root.removeAttribute('open');
+      root.querySelector('summary')?.focus();
+    });
+  }
+  if (addMenu) {
+    const scope = createFactoryScope();
+    scope.bind(root);
+    root.ownerDocument.addEventListener('click', (event) => {
+      if (event.target instanceof Node && !root.contains(event.target)) root.removeAttribute('open');
+    }, { signal: scope.signal });
+    root.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || event.target instanceof Element && event.target.closest('dialog')) return;
+      root.removeAttribute('open');
+      root.querySelector('summary')?.focus();
+    }, { signal: scope.signal });
   }
   return root;
 }
@@ -646,10 +676,36 @@ export function attachCliActions(dashboard, actions, options = {}) {
   if (typeof options.repository === 'string') templateValues.repository = options.repository;
   setDeclaredCliActions(actions, { canExecute, templateValues, context: options.context });
   const toolbarActions = renderCliActions(
-    actions.filter((action) => (action.placement ?? 'toolbar') === 'toolbar'),
+    actions.filter((action) => (action.placement ?? 'toolbar') === 'toolbar' && action.verb !== 'add'),
     { templateValues, canExecute }
   );
   if (toolbarActions) dashboard.querySelector('.report-actions')?.prepend(toolbarActions);
+  const addActions = renderCliActions(
+    actions.filter((action) => action.placement === 'toolbar' && action.verb === 'add'),
+    { presentation: 'add-menu', templateValues, canExecute }
+  );
+  const desktopActions = dashboard.querySelector('.report-actions');
+  if (addActions && desktopActions) {
+    desktopActions.prepend(addActions);
+    const mobileHeader = dashboard.querySelector('.sidebar-header');
+    const media = dashboard.ownerDocument.defaultView?.matchMedia?.('(max-width: 700px)');
+    if (mobileHeader && media) {
+      const scope = createFactoryScope();
+      scope.bind(addActions);
+      const place = () => {
+        const destination = media.matches ? mobileHeader : desktopActions;
+        if (addActions.parentElement !== destination) {
+          addActions.removeAttribute('open');
+          if (media.matches) {
+            destination.insertBefore(addActions,
+              destination.querySelector('.mobile-ingestion-indicator') ?? destination.querySelector('.mobile-nav-menu'));
+          } else destination.prepend(addActions);
+        }
+      };
+      place();
+      media.addEventListener('change', place, { signal: scope.signal });
+    }
+  }
   if (canExecute && cliQueueAvailable() && !dashboard.querySelector('.cli-commands-navigation')) {
     const scope = createFactoryScope();
     const navigation = h('a', {

@@ -93,7 +93,7 @@ export const viewStyles = `.dashboard-pages { display: flex; flex-direction: col
 .dashboard-full-view .overview-header .lede,
 .dashboard-full-view .report-footer,
 .dashboard-full-view .custom-view[data-view-layout="full-view"] > :is(h2, h3, h4) { display: none; }
-.dashboard-full-view main.dashboard-prototype { overflow: hidden; padding: 0 var(--dashboard-page-padding-inline); scrollbar-gutter: auto; }
+.dashboard-full-view main.dashboard-prototype { overflow: hidden; padding: 0; scrollbar-gutter: auto; }
 .dashboard-full-view main.dashboard-prototype:has(.command-terminal) { padding: 0; }
 .dashboard-full-view .custom-view-grid > .custom-view.command-terminal { padding: 0; }
 .dashboard-root:has(.command-terminal) .overview-header .lede { display: block; visibility: visible; }
@@ -110,6 +110,7 @@ export const viewStyles = `.dashboard-pages { display: flex; flex-direction: col
 .dashboard-full-view .custom-view-grid > .custom-view[data-view-layout="full-view"] {
   min-height: 0;
   flex: 1;
+  padding-inline: 0;
 }
 .dashboard-full-view .dashboard-page[data-view-mode="chart"] > .custom-view-grid:has(> .custom-view[data-view-layout="full-view"]) {
   gap: 16px;

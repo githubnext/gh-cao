@@ -1,7 +1,6 @@
 import { h } from '../dom.js';
 import { effect, state } from '../reactive.js';
-import { octicon } from '../octicons.js';
-import { renderActionLabel, renderLabeledSpan, renderTooltip } from './ui-primitives.js';
+import { renderLabeledSpan } from './ui-primitives.js';
 import { createDebug } from '../debug.js';
 import { renderFilterBar } from './filter-bar.js';
 
@@ -39,30 +38,9 @@ export function renderDashboardHorizon(options) {
   const horizon = options.dashboard.horizon;
   const label = horizon?.label || 'Horizon';
   const skeleton = h('span', { 'aria-hidden': 'true' });
-  const durationLabel = h('strong');
-  const accessibleLabel = renderActionLabel('');
-  const toggle = h(
-    'button',
-    {
-      type: 'button',
-      className: 'horizon-toggle',
-      'aria-expanded': 'false',
-      'aria-describedby': 'dashboard-horizon-tooltip'
-    },
-    octicon('clock'),
-    accessibleLabel
-  );
   const startTime = /** @type {HTMLTimeElement} */ (h('time'));
   const endTime = /** @type {HTMLTimeElement} */ (h('time'));
   const durationValue = h('span');
-  const content = renderTooltip({
-    id: 'dashboard-horizon-tooltip',
-    label: 'Horizon unavailable',
-    trigger: toggle,
-    content: [durationLabel, h('span', null, label)],
-    className: 'horizon-summary',
-    contentClassName: 'horizon-tooltip'
-  });
   const details = h(
     'details',
     { className: 'horizon-details', role: 'group', 'aria-label': 'Horizon details' },
@@ -90,34 +68,29 @@ export function renderDashboardHorizon(options) {
     maxDays: 30
   });
   root.classList.add('dashboard-horizon');
-  root.prepend(skeleton, content);
+  root.prepend(skeleton);
   root.querySelector('.filter-tuning-controls')?.append(details);
   let wasAvailable = false;
-  toggle.addEventListener('click', () => {
-    debugDashboardHorizon({ event: 'toggled', expanded: toggle.getAttribute('aria-expanded') !== 'true' });
+  root.addEventListener('dashboard-horizon-expanded', (event) => {
+    debugDashboardHorizon({ event: 'toggled', expanded: event instanceof CustomEvent && event.detail === true });
   }, { signal: lifetime.signal });
 
   effect(() => {
     const current = value.get();
     root.classList.toggle('dashboard-horizon-skeleton', !current.available);
     skeleton.hidden = current.available;
-    content.hidden = !current.available;
     if (!current.available) {
       root.setAttribute('aria-label', 'Horizon unavailable');
       root.removeAttribute('data-dashboard-evaluated-at');
       return;
     }
 
-    root.removeAttribute('aria-label');
+    root.setAttribute('aria-label', `${label} ${current.duration}`);
     root.dataset.dashboardEvaluatedAt = current.evaluatedAt;
     if (!wasAvailable) {
       wasAvailable = true;
       debugDashboardHorizon({ event: 'resolved', duration: current.duration });
     }
-    const fullLabel = `${label} ${current.duration}`;
-    toggle.setAttribute('aria-label', `${fullLabel}. Show time and mode filters`);
-    accessibleLabel.textContent = fullLabel;
-    durationLabel.textContent = current.duration;
     durationValue.textContent = current.duration;
     startTime.dateTime = current.start;
     startTime.textContent = `${options.formatDate(current.start)} UTC`;
@@ -152,4 +125,27 @@ export function renderDashboardHorizon(options) {
       debugDashboardHorizon({ event: 'disposed' });
     }
   };
+}
+
+/**
+ * Lets the data-status trigger open the horizon's time and mode panel; the
+ * header has no separate horizon control. Mobile popups keep their own status
+ * dialog because the mobile menu shows the time controls inline.
+ * @param {HTMLElement} status
+ * @param {HTMLElement} horizon
+ */
+export function bindStatusToHorizon(status, horizon) {
+  const trigger = status.querySelector(':scope > .tooltip-trigger');
+  if (!(trigger instanceof HTMLElement)) return;
+  trigger.dataset.horizonTrigger = '';
+  trigger.setAttribute('aria-expanded', 'false');
+  trigger.addEventListener('click', () => {
+    if (status.classList.contains('tooltip-mobile-popup')) return;
+    horizon.dispatchEvent(new Event('dashboard-horizon-toggle'));
+  });
+  horizon.addEventListener('dashboard-horizon-expanded', (event) => {
+    const expanded = event instanceof CustomEvent && event.detail === true;
+    trigger.setAttribute('aria-expanded', String(expanded));
+    if (!expanded && horizon.contains(document.activeElement)) trigger.focus();
+  });
 }

@@ -60,11 +60,11 @@ This specification does not cover:
 - causal inference.
 
 The authorized local command surface also registers `command-terminal` with
-`data.sources: []`. It is an interaction-only terminal, not an evidence view:
-execution details, output attachment, cancellation and retry cross the data
-worker's queue transport. Queue history, status filtering, ordering and counts
-remain declarative queries over the registered operational sources. Published
-dashboards neither enable this transport nor request queue data.
+`data.sources: []`: an interaction-only terminal, not an evidence view, whose
+execution, output, cancellation and retry cross the data worker's queue
+transport. Queue history, status filtering, ordering and counts remain
+declarative queries over registered sources. Published dashboards neither
+enable this transport nor request queue data.
 
 `modernization-controls` binds `config.actions`; its rows grant no authority.
 
@@ -323,8 +323,8 @@ Language keys and enumerated values use canonical kebab-case. Human-readable tit
 | Query `temporal-series.measures[]` | `field`, `key`, `kind` |
 | Query `temporal-series.maps[]` | `field`, `definitions`, `group`, `kind` |
 | Query `select` entry | `field`, `as` |
-| Built-in page | `id`, `kind`, `page`, `title`, `navigation-label`, `navigation-indicator`, `description`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `definition` |
-| Custom page | `id`, `kind`, `title`, `navigation-label`, `navigation-indicator`, `description`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `route`, `views`, `sections` |
+| Built-in page | `id`, `kind`, `page`, `title`, `navigation-label`, `navigation-indicator`, `description`, `tooltip`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `definition` |
+| Custom page | `id`, `kind`, `title`, `navigation-label`, `navigation-indicator`, `description`, `tooltip`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `route`, `views`, `sections` |
 | Page `requires` | `capability`, `source`, `message` |
 | Page `form` | `title`, `description`, `update`, `fields` |
 | Form `update` | `strategy`, `delay-ms` |
@@ -1444,9 +1444,9 @@ A custom page may declare a constrained route binding, a navigation parent, or b
 
 The route selects the page through `#page-<page-id>?<parameter>=<value>`, with the page ID and query components percent-encoded as defined by URI syntax. For `#page-repository-detail?repository=github%2Fgh-aw`, the decoded, trimmed route value is `github/gh-aw`. A non-empty route value allocates that custom-page instance: the presenter uses it as the page title and final breadcrumb label and supplies it as an opaque route binding to route-aware named elements. A missing or empty value leaves the declared page title in place and supplies an empty binding.
 
-This binding is constrained templating, not general string interpolation. A presenter treats the value as text, never as markup or executable content, and does not substitute it into arbitrary document fields. A named element may apply stricter domain validation before using the value for filtering or links. A route-aware named element may replace the provisional route-value title and description with human-readable text from its selected declared-source row; the presenter must apply the same text-only treatment to that allocation.
+This binding is constrained templating: a presenter treats the value as text, never markup or executable content, and never substitutes it into arbitrary fields. A named element may apply stricter domain validation before using the value for filtering or links. A route-aware named element may replace the provisional route-value title and description with human-readable text from its selected declared-source row; the presenter must apply the same text-only treatment to that allocation.
 
-An element view may declare a compact `title-link` beside an allocated page title. Its `href-field` names one relation-specific link field and its `identifier-field` names one scalar field declared by the same selected source. When both values are present, the presenter renders the identifier as `#<identifier>` and uses the link object's HTTPS `href` as the target. Missing or invalid runtime values leave the title unlinked. This supports issue and pull request numbers as well as workflow run IDs without parsing identifiers from URLs.
+An element view may declare a compact `title-link` beside an allocated page title. Its `href-field` names one relation-specific link field and its `identifier-field` names one scalar field declared by the same selected source. When both values are present, the presenter renders the identifier as `#<identifier>` and uses the link object's HTTPS `href` as the target. Missing or invalid values leave the title unlinked. This supports issue, pull request, and workflow run IDs without parsing URLs.
 
 `navigation-page` identifies a different declared page whose navigation item remains current while the custom page is active. The presenter uses that page as the custom page's parent breadcrumb. This supports detail and diagnostic subpages without requiring presentation components to contain navigation policy.
 
@@ -1462,6 +1462,7 @@ values stop the chain rather than creating a misleading or unbound link.
 Parent links accumulate only the declared parameters of preceding and current
 entries, percent-encoded through URL query serialization. The active entry is
 text with `aria-current="page"`. Labels remain text, not templates or markup.
+A self-only chain renders none, keeping the declared title without a parent.
 The navigation parent remains independent of this presentation hierarchy.
 
 For example, a report drill-down can retain the title **Value report**
@@ -1531,9 +1532,9 @@ A smell row identifies one detected condition with a stable `smell-id` and uniqu
 
 The optional table-column field `display` is `text`, `status`, `grader-status`, `mode`, `active-state`, `label`, `ref`, `digest`, `outcome-link`, `run-link`, `repository-link`, `workflow-link`, or `evidence-link` and defaults to `text`. It selects presentation independently from the field name. The optional table-column field `filter` is boolean and defaults to `true`; `false` excludes the column from interactive facet filters without changing its display or sorting. Named UI element values are `campaign-route`, `workflow-route-page`, `outcome-detail`, `outcome-detail-section`, `problem-detail`, `entity-route`, `configuration-policy`, `measure-history`, `factory-header`, `factory-floor`, `link-button-list`, and `markdown`; renderers dispatch these values without inferring behavior from page IDs, view IDs, or source contents.
 
-A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
-The dashboard may declare at most 32 CLI actions. This authoring bound does not
-grant execution authority or change command-service allowlists.
+A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. Toolbar `verb: add` actions share the chrome **+** menu, keeping approval and capability checks. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
+A dashboard declares at most 32 CLI actions; this bound grants no execution
+authority or allowlist entry.
 
 CLI command text supports literal `{{field}}` substitutions, not expressions or
 shell evaluation. Row fields remain bounded, validated command tokens.
@@ -1583,22 +1584,19 @@ restrictions, action authority, or per-run confirmation requirements. Hosted com
 maintenance starts after dashboard confirmation and scoped server authorization.
 Local repository maintenance provides separate Repository, Workflow, and
 Campaign pages under the **Updates** navigation section, each with its own
-navigation entry and evidence-backed update indicator rather than shared tabs.
-Each page provides a full sweep through existing gh-aw CLI commands and the
-shared batch approval: `gh aw upgrade --repo` for every listed repository,
-`gh aw update WORKFLOW --repo` for every sourced Markdown workflow, and
-`gh aw update PACKAGE-URL --repo` for every sourced campaign package.
-Sweeps include known sources with unknown latest revisions, exclude entities
-without source provenance, and publish pull requests without changing rollout.
+navigation entry and evidence-backed update indicator.
+Each page is a full-view lazy card list over bounded query pages (10,000+
+repositories); scrolling or **Load more** fetches more. Per-row maintenance keeps
+exact targets and approval; fleet-wide updates belong in the CLI.
 A break operation uses the existing disable command, not a new
 CLI verb: gh-aw disable cancels in-progress runs before disabling future runs,
 whereas campaign policy disable leaves active runs running. Exact repository
 and workflow targets require fresh approval independently of update evidence.
 Updates/upgrades still require pull-request publication in the native adapter;
 the disable exception does not expand the hosted execution allowlist.
-The approval dialog executes at most once and
-opens the command's full-page, read-only console, with no separate
-terminal-window option. Its first output line shows the executed command.
+The approval dialog queues at most once, then
+closes without navigating; a notification links to the read-only console
+(no terminal window). Its first output line shows the executed command.
 Terminal emulation cannot be expressed by data marks and does not query or
 derive dashboard evidence.
 Displayed `gh aw` and `gh cao` commands use a pseudo-terminal with ANSI color
@@ -1636,8 +1634,10 @@ repeat that same explanation in a separate heading tooltip.
 View descriptions do not automatically create help icon buttons. Section
 descriptions remain available as accessible descriptions; explicitly declared
 tooltips retain their configured controls.
+A page may declare `tooltip: { label, description, icon? }` for a title help button
+(hover/focus; dismissible popup on touch).
 
-A view-placed `operate` CLI action may declare a reusable `selector` dialog.
+An `operate` CLI action placed in a view or toolbar may declare a reusable `selector` dialog.
 Its configuration, example, wildcard rules, and interaction requirements are
 specified in [CLI action selectors](./dashboard-language-selectors.md).
 Selectors do not grant command or lookup authority. No canvas search server is
@@ -1855,7 +1855,7 @@ encoding:
 
 The grouped example stacks daily AI Credit totals by workflow. Area charts accept the standard chart `data`, `layout`, `title`, `description`, `empty-message`, `x`, `y`, `color`, `href`, formatting, unit, and aggregation declarations. They reject nominal or quantitative `x`, non-quantitative `y`, multiple `y` fields, and `reference`, consistently with the equivalent chart validation rules.
 
-A view may set the structural `layout` hint to `full`, `full-view`, `half`, `third`, or `horizontal`. `full-view` requests the full available row and viewport height; `horizontal` requests adjacent title and visualization regions; the other values describe the preferred share of an available row, not fixed dimensions. Presenters **MAY** collapse every hint to `full` when space, accessibility, or output media requires it; source order remains the reading and focus order.
+A view may set the structural `layout` hint to `full`, `full-view`, `half`, `third`, or `horizontal`. `full-view` requests the full available row and viewport height, without outer gutters for pinned tables and card lists. `horizontal` requests adjacent title and visualization regions; the other values describe the preferred share of an available row, not fixed dimensions. Presenters **MAY** collapse every hint to `full` when space, accessibility, or output media requires it; source order remains the reading and focus order.
 
 The dashboard web presenter places explicit `full` pie-chart titles above their visualization without an additional padded card, keeping their heading insets consistent with other full-width charts. `horizontal` retains the adjacent title and visualization card.
 
@@ -1922,7 +1922,7 @@ Disclosure changes presentation only. It does not change data processing, data s
 - **DLS-VIEW-025:** A presenter **MUST** apply a field's referenced unit consistently to metric values, table cells, chart value labels, and accessible chart labels.
 - **DLS-VIEW-026:** A custom page `route`, when present, **MUST** be a mapping containing at least one of `hash-query-parameter`, `navigation-page`, or `tabs`; it **MAY** also contain `tab`. Each present scalar value **MUST** be a canonical identifier. `navigation-page` **MUST** reference a different declared dashboard page. `tabs`, when present, **MUST** be a non-empty sequence of at most eight mappings, each declaring a unique canonical `id`, a non-empty `label`, a canonical icon `icon`, and a `page` naming a declared custom page; the page **MUST** also declare a `tab` matching one declared tab `id`. `tab` **MUST NOT** appear without `tabs`. Built-in pages **MUST NOT** declare `route`.
 - **DLS-VIEW-045:** A presenter rendering a page whose `route` declares `tabs` **MUST** render one tab set from those declarations, in declared order, marking the declared `tab` as current, and **MUST NOT** derive tabs from page IDs, view IDs, or source contents. When `hash-query-parameter` is declared, each tab link **MUST** target `#page-<tab-page>?<hash-query-parameter>=<route value>` with its components percent-encoded, and the tab set **MUST** render no tabs until a non-empty route value is resolved. Without `hash-query-parameter`, each tab link **MUST** target `#page-<tab-page>` with its page ID percent-encoded; no route value is required.
-- **DLS-VIEW-027:** A presenter **MUST** resolve a custom page route from `#page-<page-id>?<parameter>=<value>` and supply its decoded, trimmed route value as an opaque binding to route-aware named elements. Without `breadcrumbs`, a non-empty value **MUST** become the provisional page title and final breadcrumb label; a missing value **MUST** preserve the declared title. A route-aware named element **MAY** replace a provisional title and description with text from its declared source. With `breadcrumbs`, the presenter **MUST** preserve the declared page title and render the explicit, text-only chain specified in §11.1.1; missing parameters **MUST** stop the chain. `navigation-page` **MUST** remain the current navigation item; it is the inferred parent breadcrumb only when no explicit chain is declared. Route and allocated values **MUST NOT** be interpreted as markup, code, a URI, or a general-purpose content template.
+- **DLS-VIEW-027:** A presenter **MUST** resolve a custom page route from `#page-<page-id>?<parameter>=<value>` and supply its decoded, trimmed route value as an opaque binding to route-aware named elements. Without `breadcrumbs`, a non-empty value **MUST** become the provisional page title and final breadcrumb label; a missing value **MUST** preserve the declared title. A route-aware named element **MAY** replace a provisional title and description with text from its declared source. With `breadcrumbs`, the presenter **MUST** preserve the declared page title and render the explicit, text-only chain specified in §11.1.1; missing parameters **MUST** stop the chain, and a self-only chain **MUST** render none. `navigation-page` **MUST** remain the current navigation item; it is the inferred parent breadcrumb only when no explicit chain is declared. Route and allocated values **MUST NOT** be interpreted as markup, code, a URI, or a general-purpose content template.
 - **DLS-VIEW-028:** Table `controls`, when present, **MUST** be `interactive`, `filter-only`, or `static`; an omitted value **MUST** default to `interactive`. A static table **MUST** expose every effective row without filter, sort, summary, pagination, or nested-scroll controls. A filter-only table **MUST** retain its declared filter bar and source continuation while disabling local search, sorting and column summaries. `column-summaries`, when present, **MUST** be Boolean and controls whether an interactive table renders its column-summary row; an omitted value **MUST** default to `true`. A temporal column summary **MUST** expose the earliest valid timestamp as Start, the latest valid timestamp as Stop, and their elapsed Duration instead of treating timestamps as categorical values. `empty-message`, when present, **MUST** be non-empty text and **MUST** appear only inside a zero-row table body.
 - **DLS-VIEW-029:** A table or list row action **MUST** use `copy-prompt` or `cli-action` presentation, **MAY** declare a canonical icon and label (but **MUST** declare a concrete label for `operate`), and **MUST** declare a non-empty sequence of unique `context` fields from the selected source. The `level` **MAY** be `explore`, `propose`, or `operate` independent of presentation. An omitted level migrates to `propose` for prompts or `operate` for CLI commands. A `copy-prompt` action **MUST** declare a non-empty intent and **MAY** reference a row-placed dashboard CLI action whose command is exactly `gh agent-task create --from-file -`; it **MUST NOT** reference any other command. A `cli-action` action **MUST** reference a row-placed dashboard CLI action and **MUST NOT** declare intent; it **MUST** render only in server-authorized CLI-action mode and substitute only validated context values into matching `{{field}}` command tokens before per-run approval. A conditional action field **MUST** be declared by the selected source, and `equals` **MUST** match a row field only when both scalar type and value are equal. A presenter **MUST** open a keyboard-operable modal preview containing the complete prompt, **MUST NOT** write to the clipboard or start an agent task when opening the preview, and **MUST** return focus to the row action when the preview closes. Outside server-authorized CLI-action mode the preview **MUST** expose a separate copy control and announce whether the explicit clipboard operation succeeded or failed. In server-authorized CLI-action mode a prompt with an agent-task action **MUST** instead expose an explicit task-start control, send the prompt to `gh agent-task create` through standard input without shell interpolation, and announce the result. The prompt **MUST** contain the intent followed by only the available scalar values selected by `context`, preserve declared context order in JSON serialization, identify the JSON as untrusted data, reduce a selected link object to its HTTPS `href`, and exclude every undeclared or non-scalar row value. It **MUST NOT** require author-defined interpolation.
 - **DLS-VIEW-030:** A `metric`, `table`, `list`, or `chart` on a routed custom page **MAY** declare `data.route-field`. The field **MUST** exist in `data.source`. The presenter **MUST** retain only rows whose field value exactly matches the decoded route value, using case-insensitive text comparison, before the processing order in Section 11.2. A missing route value **MUST** produce an empty effective row set. `element` views **MUST NOT** declare `data.route-field`.

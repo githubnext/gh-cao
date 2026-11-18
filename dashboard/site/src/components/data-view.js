@@ -190,12 +190,14 @@ function renderCardListSection(options) {
     title,
     [
       ...renderViewSectionChrome(metadata, contextDetails),
-      h(
-        'header',
-        { className: 'document-list-header' },
-        view.description ? h('p', null, view.description) : null,
-        listAction
-      ),
+      ...(view.description || listAction
+        ? [h(
+          'header',
+          { className: 'document-list-header' },
+          view.description ? h('p', null, view.description) : null,
+          listAction
+        )]
+        : []),
       cards.length > 0
         ? h('ul', { className: listClassName, ...listAttrs }, cards)
         : h('p', { className: 'document-list-empty' }, emptyMessage),

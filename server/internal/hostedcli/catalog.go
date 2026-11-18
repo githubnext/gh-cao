@@ -113,6 +113,8 @@ type Request struct {
 	Values         map[string]string `json:"values,omitempty"`
 	Input          *string           `json:"input,omitempty"`
 	IdempotencyKey string            `json:"idempotencyKey,omitempty"`
+	// Origin is the dashboard hash route that triggered the request.
+	Origin string `json:"origin,omitempty"`
 }
 
 // TemplateContext is host-owned CAO identity rendered into declared commands.
@@ -162,7 +164,8 @@ func normalizeURL(value string) (string, error) {
 // resolveQueuedCliAction in dashboard/cli-action-api.mjs.
 func (c *Catalog) Resolve(request Request, context TemplateContext) (operational.CLICommandInvocation, error) {
 	if !actionID.MatchString(request.ID) ||
-		(request.Input != nil && (*request.Input == "" || utf8.RuneCountInString(*request.Input) > MaxInputCharacters)) {
+		(request.Input != nil && (*request.Input == "" || utf8.RuneCountInString(*request.Input) > MaxInputCharacters)) ||
+		!operational.ValidCLICommandOrigin(request.Origin) {
 		return operational.CLICommandInvocation{}, requestError(400, "Invalid CLI action request.")
 	}
 	action, ok := c.actions[request.ID]
@@ -220,6 +223,7 @@ func (c *Catalog) Resolve(request Request, context TemplateContext) (operational
 	}
 	return operational.CLICommandInvocation{
 		ActionID: action.ID, Command: command, Arguments: request.Arguments, Values: request.Values, Input: request.Input,
+		Origin: request.Origin,
 	}, nil
 }
 
