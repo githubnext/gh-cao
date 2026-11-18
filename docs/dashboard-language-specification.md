@@ -1699,9 +1699,14 @@ non-empty sequence of unique action IDs from the referenced card template's
 `actions`, in toolbar order. Context and `when` conditions are reused unchanged;
 selection must not invent a command mapping or widen row eligibility.
 
-The shared **Select items** toggle enters checkbox mode. Each rendered card has
-an independently operable checkbox, and **Select all loaded items** selects only
-the cards already rendered, not unseen buffered rows or later pages. When all
+Like GitHub issue lists, each rendered card always has an independently operable
+checkbox; no separate selection toggle is required. Shift-click selects or
+deselects the inclusive range between the last clicked checkbox and the current
+one, including cards appended since the previous click. The header checkbox,
+**Select all loaded items**, selects only
+the cards already rendered, not unseen buffered rows or later pages. Its mixed
+state indicates a partial selection of loaded cards; unchecking the checked
+header clears the entire selection, including offscreen query results. When all
 loaded items are checked, a compact **Select all N** control selects the entire
 remaining filtered query (or **Select all results** if no total is available).
 It follows the existing view-bound canonical continuation, retaining route,
@@ -1711,7 +1716,7 @@ selected card. Loading more cards does not implicitly select them unless they
 were already included in full-query selection. Individual deselection and
 **Clear selection** remain available.
 
-Commands appear only in checkbox mode and reuse the exact-target batch approval
+Commands appear only while at least one item is selected and reuse the exact-target batch approval
 dialog, including boolean arguments, capability checks, and independent queue
 admission. A command is disabled if any selected row fails its row-action
 condition or lacks valid context. Unknown/unavailable evidence, invalid or
@@ -1719,8 +1724,8 @@ duplicate keys, failed/stale continuation, and mismatched totals fail closed;
 partial evidence warns that only the explicitly listed targets are included.
 Full-query selection is applied atomically after every page succeeds. A failure
 preserves the prior explicit selection and exposes a retryable error; it never
-approves the loaded page as if it were the full query. Leaving checkbox mode
-clears selection. Source refresh or a changed query context creates a new
+approves the loaded page as if it were the full query. Clearing selection hides
+bulk commands but keeps checkboxes visible. Source refresh or a changed query context creates a new
 selection lifetime, discarding stale selected rows and approvals. Detaching the
 view ignores late selection results.
 

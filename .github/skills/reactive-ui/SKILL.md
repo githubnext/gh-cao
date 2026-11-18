@@ -36,7 +36,10 @@ Example: the Repository maintenance (`#page-maintenance`) view filters `upgrade-
   `key` (unique source-backed identity fields, composite when necessary) and
   `commands` (a required non-empty ordered list of card-template row action IDs).
   Reuse each row action's context and condition; do not duplicate command text.
-- The shared renderer owns checkbox mode, individual selection, loaded-card
+- Follow GitHub issue-list interaction: always-visible row and header checkboxes,
+  Shift-click range selection, and bulk commands only when selection is nonempty.
+  Do not add a separate selection-mode toggle.
+- The shared renderer owns individual selection, loaded-card
   selection, and **Select all N** across the existing filtered canonical query
   continuation. Do not select only the first page, issue an unscoped query, or
   materialize off-screen cards to select the full query.

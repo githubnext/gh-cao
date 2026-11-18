@@ -15,15 +15,15 @@ import { renderDeclaredCliAction } from './cli-actions.js';
  */
 export function createCardListSelection(options) {
   const scope = createFactoryScope();
-  const enabled = state(false);
   const busy = state(false);
   const error = state('');
   const invalid = state('');
   const revision = state(0);
   /** @type {Map<string, Record<string, unknown>>} */
   let selected = new Map();
-  /** @type {Array<{ id: string, row: Record<string, unknown>, input: HTMLInputElement, label: HTMLElement }>} */
+  /** @type {Array<{ id: string, row: Record<string, unknown>, input: HTMLInputElement, card: HTMLElement }>} */
   const loaded = [];
+  let anchor = -1;
   /** @type {{ collectAll: () => Promise<Array<Record<string, unknown>>> } | undefined} */
   let pagination;
   const available = options.metadata.availability === 'available'
@@ -38,22 +38,16 @@ export function createCardListSelection(options) {
     return value;
   }));
   const changed = () => revision.set((value) => value + 1);
-  const mode = /** @type {HTMLButtonElement} */ (h('button', {
-    type: 'button', className: 'entity-card-selection-toggle', 'aria-pressed': 'false',
-    onClick: () => {
-      enabled.set(!enabled.get());
-      selected = new Map();
-      error.set('');
-      changed();
-    }
-  }, 'Select items'));
   const allLoaded = /** @type {HTMLInputElement} */ (h('input', {
     type: 'checkbox',
     onChange: () => {
-      for (const item of loaded) {
-        if (allLoaded.checked) selected.set(item.id, item.row);
-        else selected.delete(item.id);
+      if (allLoaded.checked) {
+        for (const item of loaded) selected.set(item.id, item.row);
+      } else {
+        selected = new Map();
       }
+      anchor = -1;
+      error.set('');
       changed();
     }
   }));
@@ -84,14 +78,15 @@ export function createCardListSelection(options) {
   }));
   const clear = h('button', {
     type: 'button', className: 'entity-card-selection-link',
-    onClick: () => { selected = new Map(); error.set(''); changed(); }
+    onClick: () => { selected = new Map(); anchor = -1; error.set(''); changed(); }
   }, 'Clear selection');
   const commands = h('span', { className: 'document-list-actions' });
   const message = h('span', { role: 'alert' });
-  const controls = h('div', { className: 'entity-card-selection-controls', hidden: true },
-    h('label', { className: 'entity-card-selection-loaded' }, allLoaded, 'Select all loaded items'),
+  const controls = h('div', { className: 'entity-card-selection-controls' },
+    h('label', { className: 'entity-card-selection-loaded', title: 'Select all loaded items' },
+      allLoaded, h('span', { className: 'sr-only' }, 'Select all loaded items')),
     count, selectQuery, clear, commands);
-  const toolbar = h('div', { className: 'entity-card-selection' }, mode, controls, message);
+  const toolbar = h('div', { className: 'entity-card-selection' }, controls, message);
 
   return {
     /** @param {HTMLElement[]} cards @param {Array<Record<string, unknown>>} rows */
@@ -107,17 +102,25 @@ export function createCardListSelection(options) {
           invalid.set(failure instanceof Error ? failure.message : 'Invalid selection key.');
           continue;
         }
+        const position = loaded.length;
         const input = /** @type {HTMLInputElement} */ (h('input', {
           type: 'checkbox', 'aria-label': `Select ${card.querySelector('.entity-card-list-title')?.textContent ?? options.key.map((field) => row[field]).join(' / ')}`,
-          onChange: () => {
-            if (input.checked) selected.set(id, row);
-            else selected.delete(id);
+          onClick: (/** @type {MouseEvent} */ event) => {
+            const first = event.shiftKey && anchor >= 0 ? Math.min(anchor, position) : position;
+            const last = event.shiftKey && anchor >= 0 ? Math.max(anchor, position) : position;
+            for (const item of loaded.slice(first, last + 1)) {
+              if (input.checked) selected.set(item.id, item.row);
+              else selected.delete(item.id);
+            }
+            anchor = position;
+            error.set('');
             changed();
           }
         }));
-        const label = h('label', { className: 'entity-card-selection-item', hidden: !enabled.get(), onClick: (/** @type {Event} */ event) => event.stopPropagation() }, input);
+        const label = h('label', { className: 'entity-card-selection-item', onClick: (/** @type {Event} */ event) => event.stopPropagation() }, input);
+        card.classList.add('entity-card-selectable');
         card.prepend(label);
-        loaded.push({ id, row, input, label });
+        loaded.push({ id, row, input, card });
       }
       changed();
     },
@@ -129,38 +132,36 @@ export function createCardListSelection(options) {
       scope.bind(section);
       effect(() => {
         revision.get();
-        const active = enabled.get();
         const loading = busy.get();
         const failure = invalid.get() || error.get();
-        mode.textContent = active ? 'Cancel selection' : 'Select items';
-        mode.setAttribute('aria-pressed', String(active));
         const selectable = available && !invalid.get() && loaded.length > 0;
-        mode.disabled = loading || !active && !selectable;
-        controls.hidden = !active;
         allLoaded.checked = loaded.length > 0 && loaded.every((item) => selected.has(item.id));
         allLoaded.indeterminate = !allLoaded.checked && loaded.some((item) => selected.has(item.id));
         allLoaded.disabled = loading || !selectable;
         for (const item of loaded) {
-          item.label.hidden = !active;
           item.input.checked = selected.has(item.id);
           item.input.disabled = loading || !selectable;
+          item.card.classList.toggle('entity-card-selected', selected.has(item.id));
         }
-        count.textContent = loading ? 'Selecting all query results...' : `${selected.size} selected`;
+        count.textContent = loading ? 'Selecting all query results...'
+          : selected.size ? `${selected.size} selected`
+            : `${options.total ?? loaded.length} items`;
         selectQuery.textContent = options.total === undefined ? 'Select all results' : `Select all ${options.total}`;
         selectQuery.hidden = !allLoaded.checked || !options.canSelectAll
           || options.total !== undefined && selected.size === options.total;
         selectQuery.disabled = loading || !selectable;
         clear.hidden = selected.size === 0;
         clear.toggleAttribute('disabled', loading);
+        commands.hidden = selected.size === 0;
         message.textContent = failure;
         message.hidden = !failure;
         const rows = [...selected.values()];
-        commands.replaceChildren(...options.commands.flatMap((id) => {
+        commands.replaceChildren(...(selected.size ? options.commands : []).flatMap((id) => {
           const action = options.actions.find((candidate) => candidate.action === id);
           if (!action) return [];
           const control = renderDeclaredCliAction(id, {}, {
             rows, fields: action.context, when: action.when,
-            available: available && active && !loading && !failure,
+            available: available && !loading && !failure,
             warning: options.metadata.completeness === 'partial'
               ? 'Inventory evidence is partial. Only the explicitly listed selected targets are included.' : undefined
           });

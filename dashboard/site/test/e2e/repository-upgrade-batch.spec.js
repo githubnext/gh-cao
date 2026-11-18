@@ -34,15 +34,21 @@ for (const width of [1440, 390]) {
       await stateFilter.getByRole('button', { name: 'Apply filters', exact: true }).click();
       const cards = view.locator('.entity-card-list-card');
       await expect(cards).toHaveCount(25);
-      await view.getByRole('button', { name: 'Select items', exact: true }).click();
+      await expect(view.getByRole('button', { name: 'Select items', exact: true })).toHaveCount(0);
+      const controls = view.locator('.entity-card-selection-controls');
+      await expect(controls.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(0);
       const first = cards.first().getByRole('checkbox');
       await first.focus();
       await page.keyboard.press('Space');
       await expect(first).toBeChecked();
       await expect(first).toBeFocused();
       await expect(page).toHaveURL(/#page-maintenance$/);
+      await cards.nth(3).getByRole('checkbox').click({ modifiers: ['Shift'] });
+      await expect(controls.getByRole('status')).toHaveText('4 selected');
+      await expect(cards.nth(2).getByRole('checkbox')).toBeChecked();
+      await first.click({ modifiers: ['Shift'] });
+      await expect(cards.nth(2).getByRole('checkbox')).not.toBeChecked();
       await view.getByRole('checkbox', { name: 'Select all loaded items', exact: true }).check();
-      const controls = view.locator('.entity-card-selection-controls');
       await expect(controls.getByRole('status')).toHaveText('25 selected');
       await controls.getByRole('button', { name: 'Select all 61', exact: true }).click();
       await expect(controls.getByRole('status')).toHaveText('61 selected');
@@ -66,8 +72,10 @@ for (const width of [1440, 390]) {
       expect((await command.textContent())?.split('\n')).toHaveLength(60);
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect(controls.getByRole('button', { name: 'Disable', exact: true })).toBeFocused();
-      await view.getByRole('button', { name: 'Cancel selection', exact: true }).click();
-      await expect(first).not.toBeVisible();
+      await controls.getByRole('button', { name: 'Clear selection', exact: true }).click();
+      await expect(first).toBeVisible();
+      await expect(first).not.toBeChecked();
+      await expect(controls.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(0);
     } finally {
       await page.goto('about:blank').catch(() => {});
       await preview.close();

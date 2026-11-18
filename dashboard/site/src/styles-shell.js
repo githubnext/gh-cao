@@ -1,13 +1,15 @@
 export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: grid; grid-template-columns: 200px minmax(0, 1fr); overflow: hidden; transition: grid-template-columns 120ms ease; }
 .document-list-actions { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 8px; }
-.entity-card-selection { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; }
+.entity-card-selection { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 16px 0 8px; border-bottom: 1px solid var(--border); background: var(--canvas-subtle); }
 .entity-card-selection-controls:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-width: 0; }
-.entity-card-selection-toggle { min-height: 44px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--canvas-subtle); color: var(--fg); font: inherit; cursor: pointer; }
 .entity-card-selection-link { min-height: 44px; padding: 4px; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: .8125rem; cursor: pointer; }
-.entity-card-selection-loaded, .entity-card-selection-item:not([hidden]) { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
-.entity-card-selection-item { flex: none; min-width: 32px; justify-content: center; }
+.entity-card-selection-loaded, .entity-card-selection-item { display: inline-flex; align-items: center; justify-content: center; width: 32px; min-height: 44px; cursor: pointer; }
+.entity-card-list-card.entity-card-selectable { position: relative; padding-inline-start: 52px; }
+.entity-card-selection-item { position: absolute; inset-inline-start: 8px; top: 0; user-select: none; }
+.entity-card-list-card.entity-card-selected { background: var(--accent-muted); }
+.entity-card-selection .document-list-actions[hidden] { display: none; }
 .entity-card-selection input, .entity-card-selection-item input { accent-color: var(--accent); }
-.entity-card-selection-toggle:focus-visible, .entity-card-selection-link:focus-visible, .entity-card-selection-item input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.entity-card-selection input:focus-visible, .entity-card-selection-link:focus-visible, .entity-card-selection-item input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .entity-card-selection-controls [role="status"] { color: var(--muted); font-size: .8125rem; }
 .entity-card-selection > [role="alert"] { flex-basis: 100%; color: var(--danger); }
 .dialog-selector { display: grid; grid-template-rows: auto auto minmax(0, 1fr); flex-shrink: 0; min-height: 0; gap: 10px; }
