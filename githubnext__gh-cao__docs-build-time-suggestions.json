@@ -1,34 +1,7 @@
 {
   "source_sha": "c32c4d9c26e8c76e0e0c141f8bff7c37eb63b98b",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-18T04:53:26Z",
-      "worker_run_id": "44239996780",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded and disclosed); 18 successes (17 push, 1 schedule 44023953879), 0 failed. Live gh run list 04:52Z: no docs run newer than 44060953578; local HEAD 215fd92 = source_sha; open #20815 (checkout) OPEN, unchanged since 2026-11-13T17:41Z, not repeated. Recomputed from stored immutable run_timings rows (no refetch): demo step (dashboard:pages:build + cp) median 5 s, p90 6 s, min 3, max 8; 6.5 percent of exec median 77.5 s; whole-step ceiling 5 s vs 11.62 s 15 percent gate and 60 s absolute: unmet; dashboard is built only by the demo step and dist/cao is deployed, so reuse is invalid without a date-refresh change. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-18T05:19:57Z",
       "worker_run_id": "44243102232",
@@ -835,6 +808,34 @@
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44324821276 (push c32c4d9, created 2026-11-18T14:29:34Z) .. 43987917606 (push 139ce75, created 2026-11-17T00:28:35Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed; no docs run queued or in progress at evaluation. Source c32c4d9 = main HEAD; neither c32c4d9 nor ea7a94f touches docs.yml. Window change: added 44324821276 and 44323919922 (Jobs API read), dropped 43877103800 and 43862265708; other rows reused from immutable run_timings. docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 11 s, nearest-rank p90 15, min 8, max 16; push-only median 11 s; exec median 78 s, p90 87; 15 percent gate 11.70 s and 60 s gate unmet; whole-step removal ceiling 11 s = 14.1 percent of exec median, so no Astro-only change qualifies. Validation chain is serial over dist/, so no reordering saves time; output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT). Build job log read returned DIFC HTTP 403 again (not bypassed); sub-step split unmeasurable. Disclosed outlier: 44323919922 checkout 53 s (kept). Dashboard note for next category: c32c4d9 (#21139, on-demand browser demo synthesis) made the demo step 1 s in 44324821276; recompute with post-change samples. #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-18T15:20:11Z",
+      "worker_run_id": "44333632888",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672",
+        "43991770179",
+        "43991571724",
+        "43987917606"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44324821276 (push c32c4d9, created 2026-11-18T14:29:34Z) .. 43987917606 (push 139ce75, created 2026-11-17T00:28:35Z); cancelled 43991812013 excluded and disclosed; 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed. gh run list at 15:19Z: no docs run newer than 44324821276, none queued or in progress. Source c32c4d9 = source_sha = local HEAD; window identical to the 14:35 evaluation, so no Jobs API reads were needed. Recomputed from stored immutable run_timings rows (19): dashboard generation = Build synthetic enterprise demo step (inside build job; no dashboard job) median 5 s, p90 6 s, min 1, max 7 (1 s on 44324821276 is Jobs API 1 s granularity, disclosed); exec median 78 s p90 87; demo share 6.4 percent; 15 percent gate 11.7 s and 60 s gate unmet; 100 percent removal ceiling 5 s. scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now() and runs buildDashboardSite each run; dist/cao is deployed each run, so reuse is invalid without a date-refresh change, and cache restore/save would reduce the net saving further. Cache state reused from the 14:22 caches API read (no new call). Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1625,27 +1626,26 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-18T13:19:00Z",
-    "worker_run_id": "44311791707",
-    "window": "strict latest 20 completed docs.yml runs 44311127214 (push 346b7e1, created 2026-11-18T13:11:07Z) .. 43854851689 (push fade88d, created 2026-11-16T11:06:56Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed",
-    "method": "recomputed from immutable run_timings rows plus fresh Jobs API for 44311127214; nearest-rank p90",
+    "verified_at": "2026-11-18T15:20:11Z",
+    "worker_run_id": "44333632888",
+    "window": "strict latest 20 completed docs.yml runs 44324821276 (push c32c4d9, created 2026-11-18T14:29:34Z) .. 43987917606 (push 139ce75, created 2026-11-17T00:28:35Z); cancelled 43991812013 excluded; 19 successes (17 push, 2 schedule); 0 failed",
+    "method": "recomputed from immutable run_timings rows (no refetch); nearest-rank p90; window identical to 14:35 evaluation",
     "demo_step_s": {
       "median": 5,
       "p90": 6,
-      "min": 3,
-      "max": 8,
+      "min": 1,
+      "max": 7,
       "n": 19
     },
-    "push_only_demo_median_s": 5,
     "exec_s": {
-      "median": 76,
-      "p90": 82
+      "median": 78,
+      "p90": 87
     },
-    "demo_share_of_exec_median_pct": 6.6,
-    "gate_15pct_s": 11.4,
+    "demo_share_of_exec_median_pct": 6.4,
+    "gate_15pct_s": 11.7,
     "ceiling_saving_s": 5,
-    "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); dist/cao deployed every run; cache overhead would reduce net saving",
-    "decision": "not actionable (complete evaluation, worker 44311791707)"
+    "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now() and buildDashboardSite runs each run; dist/cao deployed each run; cache overhead would reduce net saving",
+    "decision": "not actionable (complete evaluation, worker 44333632888)"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
