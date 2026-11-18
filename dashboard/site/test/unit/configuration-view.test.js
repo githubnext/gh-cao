@@ -170,14 +170,20 @@ describe('Configuration dashboard view', () => {
     }
   });
 
-  it('leaves bulk maintenance to the CLI rather than rendering update-all controls', () => {
+  it('declares selection commands mapped to the same row actions without unscoped update-all controls', () => {
     const dashboard = authoritativeDashboard.dashboard;
-    for (const id of maintenanceNavigationContract.navigation.pages) {
+    for (const [index, id] of maintenanceNavigationContract.navigation.pages.entries()) {
       const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === id);
       expect(page.views).toHaveLength(1);
       expect(page.views[0].list.action).toBeUndefined();
       expect(page.views[0].actions ?? []).not.toEqual(expect.arrayContaining(['upgrade-repository']));
       expect(page.views[0].data.source).not.toMatch(/sweep/);
+      const view = page.views[0];
+      expect(view.list.selection.commands).toEqual(maintenanceNavigationContract['selection-commands'][index]);
+      const card = dashboard['card-templates'].find((/** @type {{ id: string }} */ candidate) => candidate.id === view.list.card);
+      for (const command of view.list.selection.commands) {
+        expect(card.actions).toEqual(expect.arrayContaining([expect.objectContaining({ action: command })]));
+      }
     }
   });
 
@@ -251,7 +257,7 @@ describe('Configuration dashboard view', () => {
           const cards = [...(rendered?.querySelectorAll('.entity-card-list-card') ?? [])];
           expect(cards).toHaveLength(maintenanceNavigationContract['repository-homes'].length);
           expect(cards.map((card) => card.querySelectorAll('.cli-action-trigger').length))
-            .toEqual([2, 2, 2, 2, 3]);
+            .toEqual([3, 3, 3, 3, 4]);
         } finally {
           setDeclaredCliActions([]);
           vi.unstubAllGlobals();
@@ -313,7 +319,7 @@ describe('Configuration dashboard view', () => {
       /** @type {Record<string, number[]>} */
       const expectedActions = {
         'maintenance-campaigns': [1, 2],
-        'maintenance-standalone-workflows': [1, 1, 2]
+        'maintenance-standalone-workflows': [2, 2, 3]
       };
       for (const owner of [page, workflowPage]) for (const view of owner.views) {
         const payload = compileDashboardViewPayloadQueries(owner, owner.id, {
@@ -607,7 +613,7 @@ describe('Configuration dashboard view', () => {
       .toEqual(['maintenance-campaign-packages', 'maintenance-workflows', 'maintenance-repositories']);
     expect(views.map((/** @type {{ mark: string }} */ view) => view.mark)).toEqual(['list', 'list', 'list']);
     expect(views.map((/** @type {{ list: { style: string, card: string } }} */ view) => view.list))
-      .toEqual([
+      .toMatchObject([
         { style: 'entity-cards', card: 'maintenance-campaign', icon: 'workflow' },
         { style: 'entity-cards', card: 'maintenance-standalone-workflow', icon: 'workflow' },
         { style: 'entity-cards', card: 'maintenance-repository', icon: 'repo' }
@@ -694,6 +700,7 @@ describe('Configuration dashboard view', () => {
     ]);
     expect(templates.get('maintenance-repository').actions).toEqual([
       { action: 'update-repository-sources', context: ['repository'] },
+      { action: 'enable-repository-workflows', context: ['repository'] },
       { action: 'disable-repository-workflows', context: ['repository'] },
       maintenanceNavigationContract['repository-upgrade-action']
     ]);
@@ -701,7 +708,8 @@ describe('Configuration dashboard view', () => {
       action: 'update-workflow-source',
       context: ['workflow', 'repository-coordinate'],
       when: { field: 'workflow-update-action-visible', equals: true }
-    }, { action: 'disable-workflow', context: ['workflow', 'repository-coordinate'] }]);
+    }, { action: 'enable-workflow', context: ['workflow', 'repository-coordinate'] },
+    { action: 'disable-workflow', context: ['workflow', 'repository-coordinate'] }]);
     const compilerVersions = dashboard.pages.find((/** @type {{ id: string }} */ candidate) =>
       candidate.id === 'repository-settings').views[0];
     expect(compilerVersions.encoding.actions[0].when)

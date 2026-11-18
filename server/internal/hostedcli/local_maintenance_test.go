@@ -17,6 +17,9 @@ func TestLocalMaintenanceExactTargetsAndHostedSeparation(t *testing.T) {
 		"gh aw disable review.v2.md --repo octo/service",
 		"gh aw disable .github/workflows/review.md --repo octo/service",
 		"gh aw disable --repo octo/service",
+		"gh aw enable review.md --repo octo/service",
+		"gh aw enable .github/workflows/review.md --repo octo/service",
+		"gh aw enable --repo octo/service",
 	} {
 		plan, err := PlanLocalMaintenance(command)
 		if err != nil || (!strings.Contains(command, "*") && plan.Repository != "octo/service") {
@@ -46,6 +49,11 @@ func TestLocalMaintenanceExactTargetsAndHostedSeparation(t *testing.T) {
 		"gh aw disable review.md --repo octo/service --repo octo/other",
 		"gh aw disable ../review.md --repo octo/service",
 		"gh aw disable review..v2.md --repo octo/service",
+		"gh aw enable", "gh aw enable review* --repo octo/service",
+		"gh aw enable ../review.md --repo octo/service",
+		"gh aw enable review.md other.md --repo octo/service",
+		"gh aw enable review.md --repo octo/service --create-pull-request",
+		"gh aw enable --repo octo/service --repo octo/other",
 		"gh aw update review.md --repo octo/service",
 		"gh aw upgrade review.md --repo octo/service --create-pull-request",
 		"gh aw update https://evil.example/package --repo octo/service --create-pull-request",

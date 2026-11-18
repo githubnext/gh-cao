@@ -34,6 +34,34 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+for (const width of [1440, 390]) {
+  test(`demo population stays interactive without an import dialog at ${width}px`, async ({ page }, testInfo) => {
+    test.setTimeout(600_000);
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(() => {
+      window.__demoImportDialogs = 0;
+      new MutationObserver((changes) => {
+        for (const change of changes) for (const node of change.addedNodes) {
+          if (node instanceof Element && (node.matches('.first-load-overlay') || node.querySelector('.first-load-overlay'))) {
+            window.__demoImportDialogs += 1;
+          }
+        }
+      }).observe(document, { childList: true, subtree: true });
+    });
+    await page.goto(`${preview.url}/?debug=1#page-repositories`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator("#page-title")).toHaveText("Repositories");
+    await expect(page.locator('a[href^="#page-repository-"]').first()).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByRole("dialog", { name: "Preparing your dashboard" })).toHaveCount(0);
+    await waitForSyntheticPopulation(page);
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
+    expect(await page.evaluate(() => window.__demoImportDialogs)).toBe(0);
+    await expect(page.locator('a[href^="#page-repository-"]').first()).toBeVisible();
+    const screenshot = testInfo.outputPath(`incremental-demo-${width}.png`);
+    await page.screenshot({ path: screenshot, fullPage: true });
+    await testInfo.attach(`Incremental demo ${width}px`, { path: screenshot, contentType: "image/png" });
+  });
+}
+
 test("enterprise sample populates analytical pages and supports real drill-downs", async ({ page }) => {
   test.setTimeout(600_000);
   const errors = [];
@@ -198,7 +226,7 @@ for (const width of [1440, 390]) {
       } finally { db.close(); }
     });
     expect(demoRunIds).toHaveLength(canonicalCounts.runs);
-    expect(demoRunIds.every(id => String(id).includes("sample-enterprise/"))).toBe(true);
+    expect(demoRunIds.every(id => String(id).includes("contoso/"))).toBe(true);
     const demoNotice = page.getByRole("status").filter({ hasText: "Synthetic enterprise demo" });
     await expect(demoNotice).toBeVisible();
     await expect(page.locator('meta[name="dashboard-deployment"]')).toHaveAttribute("content", "synthetic-demo");

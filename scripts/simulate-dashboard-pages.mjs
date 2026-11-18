@@ -9,7 +9,7 @@ import { enterpriseDemo } from "./dashboard-demo-data.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const marker = ".cao-pages-demo.json";
-const organization = "sample-enterprise";
+const organization = "contoso";
 const usage = `Usage: node scripts/simulate-dashboard-pages.mjs [--output DIR]
 
 Build the synthetic enterprise Pages demo, without network access or real inputs.

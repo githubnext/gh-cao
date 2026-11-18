@@ -11,7 +11,7 @@ const memoryTime = Date.now();
  * Generate raw samples only inside the data worker; all records pass through
  * the same adapters and canonical normalizer as collected evidence.
  * @param {IDBFactory} indexedDB
- * @param {{ signal?: AbortSignal, storage?: StorageManager, now?: number, onProgress?: (completed: number, total: number) => void }} [options]
+ * @param {{ signal?: AbortSignal, storage?: StorageManager, now?: number, onProgress?: (completed: number, total: number) => void, onCommitted?: (sources: Record<string, import('../../presenter.js').LogicalSourceInput>) => void }} [options]
  */
 export async function synthesizeEnterpriseDemo(indexedDB, options = {}) {
   options.signal?.throwIfAborted();
@@ -72,6 +72,7 @@ async function populateEnterpriseDemo(indexedDB, options) {
       completed += count;
       await save();
       options.onProgress?.(completed, enterpriseDemo.repositories);
+      options.onCommitted?.(sources);
     },
   });
   for (let index = 0; index < enterpriseDemo.installedRepositories; index += installedBatchSize) {
@@ -90,6 +91,7 @@ async function populateEnterpriseDemo(indexedDB, options) {
       });
       installed = index + count;
       await save();
+      options.onCommitted?.(sources);
     }
     await new Promise(resolve => setTimeout(resolve, 0));
   }
@@ -106,6 +108,7 @@ async function populateEnterpriseDemo(indexedDB, options) {
     });
     activityBatches = batchIndex;
     await save();
+    options.onCommitted?.(sources);
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   if (batchIndex !== activityBatches) throw new Error('Synthetic activity checkpoint exceeds the generated sample.');

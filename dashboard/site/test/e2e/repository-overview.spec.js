@@ -1,4 +1,4 @@
-import { authoritativeDashboard, expect, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
+import { authoritativeDashboard, expect, registerSmokeRoutes, selectViewMode, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
 
@@ -57,7 +57,7 @@ test('repository overview shares one worker subscription and refreshes metrics a
   }, model);
   await expect(root.locator('[data-metric-value="runs"]')).toHaveText('2');
   await expect(root.locator('[data-metric-value="aic"]')).toHaveText('$0.06');
-  await root.locator('[data-view-mode-value="table"]').click();
+  await selectViewMode(page, 'table');
   await expect(root.locator('[data-view-id="repository-health-summary"]')).toContainText('Needs attention');
   await expect(root.locator('[data-view-id="repository-health-summary"]')).toContainText('50%');
   await page.setViewportSize({ width: 390, height: 844 });

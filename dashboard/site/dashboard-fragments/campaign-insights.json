@@ -155,9 +155,9 @@
             "source": "campaign-performance-baseline",
             "route-field": "campaign"
           },
-          "mark": "table",
-          "layout": "full",
-          "controls": "static",
+          "mark": "table", "lazy-list": true,
+          "layout": "full-view",
+          "controls": "interactive",
           "empty-message": "No campaign run attempts were observed during the selected horizon.",
           "encoding": {
             "columns": [

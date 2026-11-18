@@ -43,6 +43,12 @@ export function declaredCliActionCommand(id, values, args = {}) {
   return commandPreview(action, args, values, declaredCliActionContext);
 }
 
+/** @param {string} id */
+export function declaredCliActionPresentation(id) {
+  const action = declaredCliActions.find((candidate) => candidate.id === id);
+  return action ? actionPresentation(normalizeAction(action, { id, type: 'cli' })) : null;
+}
+
 /**
  * @param {string} id
  * @param {Record<string, string>} values
@@ -401,10 +407,6 @@ function renderCliActionControl(action, options = {}) {
       title: action.label,
       'aria-label': action.label,
       onClick: async () => {
-        if (options.batch && canExecute && inputs.length === 0) {
-          await enqueueBatch();
-          return;
-        }
         copyControl?.reset();
         if (canExecute) {
           statusText.set('');
@@ -424,7 +426,7 @@ function renderCliActionControl(action, options = {}) {
       !rowPresentation && action.description ? h('small', null, action.description) : null
     )
   ));
-  if (options.batch && canExecute) {
+  if (options.batch) {
     effect(() => {
       trigger.disabled = busy.get() || Boolean(options.batch?.error);
       if (busy.get()) trigger.setAttribute('aria-busy', 'true');
@@ -527,7 +529,7 @@ export function renderRowCliAction(actionId, templateValues, options = {}) {
  * Render one declared CLI action with its authored label and description.
  * @param {string} actionId
  * @param {Record<string, string>} [templateValues]
- * @param {{ rows: Array<Record<string, unknown>>, fields: string[], available: boolean, warning?: string }} [binding]
+ * @param {{ rows: Array<Record<string, unknown>>, fields: string[], available: boolean, warning?: string, when?: { field: string, equals: unknown } }} [binding]
  */
 export function renderDeclaredCliAction(actionId, templateValues = {}, binding) {
   const action = declaredCliActions.find((candidate) => candidate.id === actionId);
@@ -544,6 +546,9 @@ export function renderDeclaredCliAction(actionId, templateValues = {}, binding) 
         throw new Error('The complete target list is unavailable. No commands can be approved.');
       }
       for (const row of binding.rows) {
+        if (binding.when && (!Object.hasOwn(row, binding.when.field) || row[binding.when.field] !== binding.when.equals)) {
+          throw new Error('This command is not available for every selected item. Adjust the selection.');
+        }
         const values = Object.fromEntries(binding.fields.map((field) => {
           const value = row[field];
           if (typeof value !== 'string') throw new Error(`CLI action context "${field}" is missing or invalid.`);

@@ -15,6 +15,78 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it('coalesces pushed database and health revisions into five-second refresh windows', async () => {
+  vi.useFakeTimers();
+  const response = (/** @type {number} */ revision, healthRevision = revision) => ({
+    revision, healthRevision, sources: { runs: { source: 'runs', rows: [{ revision, healthRevision }] } }
+  });
+  vi.mocked(queryRemoteDashboard).mockResolvedValue(response(1));
+  const listener = vi.fn();
+  const owner = new AbortController();
+  const stop = subscribeCanonicalDashboardView('pushed-runs', ['runs'], { pages: [] }, listener, undefined, { signal: owner.signal });
+  await vi.advanceTimersByTimeAsync(20);
+  const onRevision = vi.mocked(subscribeRemoteRevision).mock.calls.at(-1)?.[0];
+  onRevision?.(2, 2);
+  await vi.advanceTimersByTimeAsync(2_000);
+  onRevision?.(3, 3);
+  await vi.advanceTimersByTimeAsync(2_999);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  vi.mocked(queryRemoteDashboard).mockResolvedValue(response(3));
+  await vi.advanceTimersByTimeAsync(21);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+  expect(listener.mock.calls.at(-1)?.[0].runs.rows).toEqual([{ revision: 3, healthRevision: 3 }]);
+  // Health-only changes also refresh; duplicates do not create more queries.
+  onRevision?.(3, 3);
+  await vi.advanceTimersByTimeAsync(5_000);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+  vi.mocked(queryRemoteDashboard).mockResolvedValue(response(3, 4));
+  onRevision?.(3, 4);
+  await vi.advanceTimersByTimeAsync(5_020);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(3);
+  expect(listener.mock.calls.at(-1)?.[0].runs.rows).toEqual([{ revision: 3, healthRevision: 4 }]);
+  onRevision?.(4, 4);
+  owner.abort();
+  stop();
+  await vi.advanceTimersByTimeAsync(5_020);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(3);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('retains a pushed revision arriving during an in-flight query without overlapping requests', async () => {
+  vi.useFakeTimers();
+  /** @type {(value: Awaited<ReturnType<typeof queryRemoteDashboard>>) => void} */
+  let complete = () => {};
+  vi.mocked(queryRemoteDashboard).mockReturnValueOnce(new Promise((resolve) => { complete = resolve; }));
+  const stop = subscribeCanonicalDashboardView('slow-pushed-runs', ['runs'], { pages: [] }, vi.fn());
+  const onRevision = vi.mocked(subscribeRemoteRevision).mock.calls.at(-1)?.[0];
+  onRevision?.(2, 2);
+  await vi.advanceTimersByTimeAsync(6_000);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  complete({ revision: 1, healthRevision: 1, sources: { runs: { source: 'runs', rows: [] } } });
+  await vi.advanceTimersByTimeAsync(4_999);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  vi.mocked(queryRemoteDashboard).mockResolvedValue({ revision: 2, healthRevision: 2, sources: { runs: { source: 'runs', rows: [] } } });
+  await vi.advanceTimersByTimeAsync(21);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(2);
+  stop();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('does not reschedule pending revisions after aborting an in-flight query', async () => {
+  vi.useFakeTimers();
+  vi.mocked(queryRemoteDashboard).mockImplementationOnce((_names, _context, _pagination, options) => new Promise((_resolve, reject) => {
+    options?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+  }));
+  const owner = new AbortController();
+  const stop = subscribeCanonicalDashboardView('aborted-pushed-runs', ['runs'], { pages: [] }, vi.fn(), undefined, { signal: owner.signal });
+  vi.mocked(subscribeRemoteRevision).mock.calls.at(-1)?.[0](2, 2);
+  owner.abort();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(vi.getTimerCount()).toBe(0);
+  expect(queryRemoteDashboard).toHaveBeenCalledTimes(1);
+  stop();
+});
+
 it('refreshes statistical subscribers at the configured interval without a new server revision', async () => {
   vi.useFakeTimers();
   vi.stubGlobal('__CAO_DASHBOARD_CONFIG__', { statisticalRefreshIntervalMs: 1_000 });

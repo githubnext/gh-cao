@@ -1698,7 +1698,7 @@
               }
             ]
           },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No marketplace packages were resolved."
         }
       ]
@@ -1734,7 +1734,7 @@
               }
             ]
           },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": {
             "style": "entity-cards",
             "appearance": "marketplace",
@@ -1755,7 +1755,7 @@
               }
             ]
           },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "Package unavailable."
         },
         {
@@ -1909,9 +1909,9 @@
           "acceptance": "Display retained shard paths, kind, status, import times, record counts and hashes. Unknown fields remain unknown and successful imports do not establish upstream freshness.",
           "description": "Retained shard receipts show the source path, import time, committed records and payload hash. Importing an old shard does not make its workflow evidence current.",
           "data": { "source": "indexing-shards", "query-context": false },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": { "style": "entity-cards", "card": "ingested-shard", "icon": "database" },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No shard import receipts are available. Shard coverage and freshness are unknown.",
           "encoding": {
             "columns": [
@@ -1934,9 +1934,9 @@
           "acceptance": "Display process-local counts and last-observed timestamps; missing or unauthorized evidence is unavailable, not zero. Acknowledged pings do not prove current GitHub registration and acknowledgements do not mean collection has completed.",
           "description": "Live counters for this server process, refreshed every 30 seconds while this view is open. Reset on restart; not aggregated across replicas. Verified means valid HMAC, acknowledged means HTTP acceptance, and duplicate and ping counts overlap acknowledgements. A ping does not prove current GitHub-side registration.",
           "data": { "source": "ingestion-webhook-status", "query-context": false, "limit": 1 },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": { "style": "entity-cards", "card": "webhook-status", "icon": "broadcast" },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "Live webhook counters are unavailable. No traffic or registration state can be inferred.",
           "encoding": {
             "columns": [
@@ -1988,8 +1988,8 @@
           "data": {
             "source": "ingestion-health"
           },
-          "mark": "table",
-          "layout": "full",
+          "mark": "table", "lazy-list": true,
+          "layout": "full-view",
           "empty-message": "Live collection health is available when connected to a server-side collection profile.",
           "encoding": {
             "columns": [
@@ -2096,13 +2096,13 @@
               }
             ]
           },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": {
             "style": "entity-cards",
             "card": "ingestion-transaction",
             "icon": "database"
           },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No ingestion transactions have been retained.",
           "encoding": {
             "columns": [
@@ -2594,7 +2594,10 @@
           },
           "mark": "list",
           "lazy-list": true,
-          "list": { "style": "entity-cards", "card": "maintenance-repository", "icon": "repo" },
+          "list": {
+            "style": "entity-cards", "card": "maintenance-repository", "icon": "repo",
+            "selection": { "key": ["repository"], "commands": ["update-repository-sources", "enable-repository-workflows", "disable-repository-workflows"] }
+          },
           "filter-bar": {
             "filters": [
               {
@@ -2686,7 +2689,10 @@
           },
           "mark": "list",
           "lazy-list": true,
-          "list": { "style": "entity-cards", "card": "maintenance-campaign", "icon": "workflow" },
+          "list": {
+            "style": "entity-cards", "card": "maintenance-campaign", "icon": "workflow",
+            "selection": { "key": ["campaign"], "commands": ["update-campaign", "enable-campaign", "disable-campaign"] }
+          },
           "filter-bar": {
             "filters": [
               {
@@ -2771,7 +2777,10 @@
           },
           "mark": "list",
           "lazy-list": true,
-          "list": { "style": "entity-cards", "card": "maintenance-standalone-workflow", "icon": "workflow" },
+          "list": {
+            "style": "entity-cards", "card": "maintenance-standalone-workflow", "icon": "workflow",
+            "selection": { "key": ["repository-coordinate", "workflow"], "commands": ["update-workflow-source", "enable-workflow", "disable-workflow"] }
+          },
           "filter-bar": {
             "filters": [
               {

@@ -418,6 +418,11 @@ export function validateDashboard(dashboard, dashboardNode, errors) {
     getValueNodeByKey(dashboardNode, 'card-templates'),
     errors
   );
+  state.declaredCardDefinitions = new Map(
+    (Array.isArray(dashboard['card-templates']) ? dashboard['card-templates'] : [])
+      .filter((template) => isPlainObject(template) && typeof template.id === 'string')
+      .map((template) => [template.id, template])
+  );
   state.declaredViews = validateReusableViews(
     dashboard.views,
     getValueNodeByKey(dashboardNode, 'views'),

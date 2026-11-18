@@ -1960,7 +1960,7 @@ describe('presenter built-in and custom pages', () => {
     expect(page?.textContent).toContain('claude-sonnet-5');
     expect(page?.querySelector('[data-view-id="engines-models-token-insights"]')?.getAttribute('aria-description')).toContain('Telemetry is partial');
     expect(page?.textContent).not.toContain('Requested model');
-    expect(page?.querySelector('.view-mode-control')).not.toBeNull();
+    expect(page?.querySelector('.view-mode-control')).toBeNull();
     expect(page?.textContent).not.toContain('Agent event');
     expect(page?.textContent).not.toContain('Summary');
     expect(page?.querySelectorAll('tbody tr')).toHaveLength(2);
@@ -2141,7 +2141,8 @@ describe('presenter built-in and custom pages', () => {
       const page = rendered.querySelector('[data-page-id="indexing"]');
       expect(page?.querySelectorAll('[data-view-id]')).toHaveLength(10);
       expect(page?.querySelector('[data-view-id="indexing-daily-run-counts"] [data-view-availability="unavailable"]')).not.toBeNull();
-      expect(page?.querySelector('[data-view-id="ingestion-webhook-status"] [data-view-availability="unavailable"]')).not.toBeNull();
+      expect(page?.querySelector('[data-view-id="ingestion-webhook-status"] .document-list-empty')?.textContent)
+        .toBe('Data is unavailable for this view.');
       expect(page?.querySelectorAll('[data-chart-widget="bar"]')).toHaveLength(0);
       expect(page?.querySelector('[data-view-id="ingestion-storage"]')?.textContent).toContain('Storage engine unknown');
       expect(page?.querySelector('[data-view-id="indexing-size"]')).toBeNull();
@@ -2877,7 +2878,7 @@ describe('presenter built-in and custom pages', () => {
     }
   });
 
-  it('renders ordered view modes in page chrome and emits worker query context', async () => {
+  it('declares ordered view modes for the chrome icon and emits worker query context', async () => {
     const document = {
       languageVersion: '0.1.0',
       dashboard: {
@@ -2941,7 +2942,6 @@ describe('presenter built-in and custom pages', () => {
 
     const page = await activatePage(rendered, 'runs');
     const chrome = page?.querySelector(':scope > .page-chrome');
-    const modeButtons = [...chrome?.querySelectorAll('[data-view-mode-value]') ?? []];
     /** @type {unknown[]} */
     const contexts = [];
     rendered.addEventListener('dashboard-query-context-change', (event) => {
@@ -2949,13 +2949,14 @@ describe('presenter built-in and custom pages', () => {
     });
 
     expect(page?.querySelector(':scope > .filter-bar')).toBeNull();
-    expect(chrome?.querySelector('.filter-bar')).toBeNull();
-    expect(modeButtons.map((button) => button.textContent)).toEqual(['Chart', 'Cards', 'Table']);
-    expect(modeButtons[0]?.getAttribute('aria-pressed')).toBe('true');
+    expect(chrome).toBeNull();
+    expect(page?.querySelector('.view-mode-control')).toBeNull();
+    expect(page?.getAttribute('data-view-modes')).toBe('chart card table');
+    expect(page?.getAttribute('data-view-mode')).toBe('chart');
     expect(page?.querySelector('[data-view-id="runs-chart"]')?.getAttribute('data-view-mode-content')).toBe('chart');
     expect(page?.querySelector('[data-view-id="runs-table"]')?.getAttribute('data-view-mode-content')).toBe('table');
     expect(rendered.querySelector('.mobile-view-mode-toggle')).not.toBeNull();
-    /** @type {HTMLButtonElement} */ (modeButtons[1]).click();
+    /** @type {HTMLButtonElement} */ (rendered.querySelector('.mobile-view-mode-toggle')).click();
     expect(contexts.at(-1)).toMatchObject({ pageId: 'runs', queryContext: { viewMode: 'card' } });
   });
 
@@ -2967,11 +2968,24 @@ describe('presenter built-in and custom pages', () => {
 
     for (const pageId of ['repositories', 'mcps', 'firewall', 'runs']) {
       const page = await activatePage(rendered, pageId);
-      const buttons = [...page?.querySelectorAll(':scope > .page-chrome [data-view-mode-value]') ?? []];
-      expect(buttons.map((button) => button.textContent), pageId).toEqual(['Chart', 'Cards', 'Table']);
-      expect(buttons.map((button) => button.getAttribute('aria-pressed')), pageId).toEqual(['true', 'false', 'false']);
+      expect(page?.querySelector('.view-mode-control'), pageId).toBeNull();
+      expect(page?.getAttribute('data-view-modes'), pageId).toBe('chart card table');
+      expect(page?.getAttribute('data-view-mode'), pageId).toBe('chart');
     }
 
+  });
+
+  it('declares every primary production card and table as a full-view lazy list', () => {
+    for (const page of authoritativeDashboardDocument.dashboard.pages) {
+      for (const view of page.views ?? page.definition?.views ?? []) {
+        if (!['table', 'list'].includes(view.mark) || view.disclosure === 'supplemental') continue;
+        expect(view, `${page.id}/${view.id}`).toMatchObject({
+          layout: 'full-view',
+          'lazy-list': true
+        });
+        expect(view.controls, `${page.id}/${view.id}`).not.toBe('static');
+      }
+    }
   });
 
   it('defaults workflow Value to Chart and preserves its result cards and table', async () => {
@@ -3029,9 +3043,8 @@ describe('presenter built-in and custom pages', () => {
       await vi.waitFor(() => expect(rendered.querySelector('[data-page-id="workflow-value"]'))
         .not.toBeNull());
       const page = rendered.querySelector('[data-page-id="workflow-value"]');
-      const buttons = [...page?.querySelectorAll(':scope > .page-chrome [data-view-mode-value]') ?? []];
-      expect(buttons.map(button => button.textContent)).toEqual(['Chart', 'Cards', 'Table']);
-      expect(buttons.map(button => button.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
+      expect(page?.querySelector('.view-mode-control')).toBeNull();
+      expect(page?.getAttribute('data-view-modes')).toBe('chart card table');
       expect(page?.getAttribute('data-view-mode')).toBe('chart');
       expect(page?.querySelector('[data-view-id="workflow-value-movement"]')
         ?.getAttribute('data-view-mode-content')).toBe('chart');
@@ -3063,7 +3076,7 @@ describe('presenter built-in and custom pages', () => {
       rendered.addEventListener('dashboard-query-context-change', event => {
         if (event instanceof CustomEvent) contexts.push(event.detail);
       });
-      /** @type {HTMLButtonElement} */ (buttons[1]).click();
+      /** @type {HTMLButtonElement} */ (rendered.querySelector('.mobile-view-mode-toggle')).click();
       expect(contexts.at(-1)).toMatchObject({
         pageId: 'workflow-value',
         queryContext: { viewMode: 'card' }
@@ -3339,11 +3352,9 @@ describe('presenter built-in and custom pages', () => {
         }
       }
     });
-    const modeButtons = [...rendered.querySelectorAll('[data-view-mode-value]')];
-
     expect(rendered.querySelector('[data-page-id="repositories"]')?.getAttribute('data-view-mode')).toBe('table');
-    expect(modeButtons.map((button) => button.textContent)).toEqual(['Cards', 'Table']);
-    expect(modeButtons[1]?.getAttribute('aria-pressed')).toBe('true');
+    expect(rendered.querySelector('[data-page-id="repositories"]')?.getAttribute('data-view-modes')).toBe('card table');
+    expect(rendered.querySelector('.view-mode-control')).toBeNull();
     expect(rendered.querySelector('[data-mobile-card-list] .entity-card-list-card')?.textContent).toContain('githubnext/gh-cao');
   });
 

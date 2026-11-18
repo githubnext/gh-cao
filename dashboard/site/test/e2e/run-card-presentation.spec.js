@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { authoritativeDashboard, buildPresenterModuleUrl, expect, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
 import { getPrimerStyles } from '../../src/styles.js';
 
@@ -54,7 +55,7 @@ for (const theme of ['light', 'dark']) {
     const view = page.locator('[data-view-id="runs-runs-source"]');
     const prompt = view.getByRole('button', { name: 'Propose fix: Runs', exact: true });
     await expect(prompt).toBeVisible();
-    await page.getByRole('button', { name: 'Cards', exact: true }).click();
+    await selectViewMode(page, 'card');
     const cardPrompt = view.locator('.mobile-table-card-toolbar').getByRole('button', { name: 'Propose fix: Runs', exact: true });
     await expect(cardPrompt).toBeVisible();
 
@@ -76,7 +77,7 @@ for (const theme of ['light', 'dark']) {
     await expect(view.getByRole('button', { name: 'Propose fix: Runs', exact: true })).toHaveCount(1);
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.getByRole('button', { name: 'Table', exact: true }).click();
+    await selectViewMode(page, 'table');
     await expect(prompt).toBeVisible();
     await expect(view.locator('tbody tr').first()).toBeVisible();
   });

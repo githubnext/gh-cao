@@ -375,7 +375,10 @@ runtime path; managed secret storage MUST NOT be represented as managed signing.
    potential replacement of sibling sources/local edits in the proposed pull request,
    repository-wide shared reference, container-pin, and generated-file maintenance;
    an exact operand does not imply exclusive source selection or single-file mutation.
-   Foreign repository workflow updates and disable commands remain local-only.
+   Foreign repository workflow updates and enable/disable commands remain local-only.
+   Local enablement requires the same exact repository scope, isolated target
+   checkout, fresh approval, and native command admission as disabling. It does
+   not expand managed publishing scope or change CAO rollout policy.
    The executor MUST
    NOT discover, substitute, or widen that source coordinate. The container
    image reference MUST be recorded in the audit

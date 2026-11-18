@@ -102,10 +102,12 @@ prepare() {
   admin=$(openssl rand -hex 32)
   owner=$(openssl rand -hex 32)
   runtime=$(openssl rand -hex 32)
+  printf '[req]\ndistinguished_name=dn\n[dn]\n[v3_ca]\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always\nbasicConstraints=critical,CA:TRUE\n' \
+    > "$state/ca.cnf"
   MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/CN=" \
     openssl req -x509 -newkey rsa:3072 -nodes -days 30 \
     -subj /CN=CAO-local-development-CA \
-    -addext basicConstraints=critical,CA:TRUE \
+    -config "$state/ca.cnf" -extensions v3_ca \
     -keyout "$state/ca.key" -out "$state/ca.crt" 2>"$state/openssl.log"
   certificate postgres "$db_host"
   certificate web localhost
@@ -307,9 +309,10 @@ native() {
 }
 
 ingest() {
-  local source=${1:?Supply the absolute path to a verified operational artifact} job pod collector_replicas
+  local source=${1:?Supply the absolute path to a verified operational artifact} job pod collector_replicas attempt
   test -f "$source/payload-hashes.json" || fail "Explicit operational payload-hashes.json is required."
   test ! -e "$source/.ready" || fail "Source must not contain the upload completion marker."
+  required_files "$state/database.env" "$state/ca.crt"
   read_images
   check_namespaces
   active_profile
@@ -318,11 +321,19 @@ ingest() {
     fail "Native collection and snapshot ingestion are exclusive; stop and explicitly retire the native profile before ingesting snapshots."
   fi
   render ingest
+  namespace cao-local
+  shared_config cao-local
   job=$(k create -f "$state/rendered/snapshot/ingest.json" -o name)
-  k -n cao-local wait --for=condition=Ready pod -l "job-name=${job#job.batch/}" --timeout=180s
-  pod=$(k -n cao-local get pods -l "job-name=${job#job.batch/}" -o jsonpath='{.items[0].metadata.name}')
-  k -n cao-local cp "$source/." "$pod:/data" -c ingest
-  k -n cao-local exec "$pod" -c ingest -- touch /data/.ready
+  for ((attempt=0; attempt<60; attempt++)); do
+    pod=$(k -n cao-local get pods -l "job-name=${job#job.batch/}" -o jsonpath='{.items[0].metadata.name}')
+    if test -n "$pod"; then break; fi
+    sleep 1
+  done
+  test -n "$pod" || fail "$job did not create an ingestion Pod."
+  k -n cao-local wait --for=condition=Ready "pod/$pod" --timeout=180s
+  (cd "$source" && k -n cao-local cp . "$pod:/data" -c ingest)
+  MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}/data" \
+    k -n cao-local exec "$pod" -c ingest -- touch /data/.ready
   wait_job cao-local "$job"
 }
 

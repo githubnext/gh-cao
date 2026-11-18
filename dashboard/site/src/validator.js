@@ -100,6 +100,7 @@ export function validateDashboardDocument(source) {
     state.declaredQueries = new Map();
     state.declaredQueryFieldTypes = new Map();
     state.declaredCardTemplates = new Set();
+    state.declaredCardDefinitions = new Map();
     state.declaredQueryTables = new Map();
     state.declaredQueryParameters = new Map();
     state.declaredCliActions = new Map();

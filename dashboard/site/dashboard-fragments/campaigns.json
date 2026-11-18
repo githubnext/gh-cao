@@ -1050,7 +1050,7 @@
               }
             ]
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "encoding": {
             "columns": [
               {
@@ -1135,7 +1135,7 @@
               }
             ]
           },
-          "layout": "full"
+          "layout": "full-view"
         }
       ]
     },
@@ -1212,7 +1212,7 @@
             "source": "campaign-workflows",
             "route-field": "campaign"
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "controls": "interactive",
           "empty-message": "No orchestrator or worker workflows are configured for this campaign.",
           "encoding": {
@@ -1275,7 +1275,7 @@
               }
             ]
           },
-          "layout": "full"
+          "layout": "full-view"
         }
       ]
     },
@@ -1388,7 +1388,7 @@
               }
             ]
           },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": {
             "style": "entity-cards",
             "card": "issue",
@@ -1445,7 +1445,7 @@
               }
             ]
           },
-          "layout": "full"
+          "layout": "full-view"
         }
       ]
     },
@@ -1565,7 +1565,7 @@
               }
             ]
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "controls": "interactive",
           "empty-message": "No repositories are associated with this campaign.",
           "encoding": {
@@ -1599,7 +1599,7 @@
               }
             ]
           },
-          "layout": "full"
+          "layout": "full-view"
         }
       ]
     },
@@ -1704,7 +1704,7 @@
             "source": "campaign-reports",
             "route-field": "campaign"
           },
-          "mark": "table",
+          "mark": "table", "lazy-list": true,
           "controls": "interactive",
           "empty-message": "No reports have been attributed to this campaign.",
           "encoding": {
@@ -1740,7 +1740,7 @@
               }
             ]
           },
-          "layout": "full"
+          "layout": "full-view"
         }
       ]
     },

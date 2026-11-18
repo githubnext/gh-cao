@@ -14,6 +14,7 @@ import { externalAnchorAttrs, findFirstLink, findLink, renderExternalLink, rende
 import { createEntityAwareCellRenderer } from './linked-text.js';
 import { renderTableRegion } from './table-region.js';
 import { enableCardListPagination } from './card-list-pagination.js';
+import { createCardListSelection } from './card-list-selection.js';
 import { CONTINUATION_PAGE_SIZE } from '../data/continuation.js';
 import { renderPageSection, renderViewSectionChrome } from './view-chrome.js';
 import { renderCloseButton, isPlainObject, isSafeHttpsUrl, createCopyControl, createModalDialog, observeLoadMoreBoundary, renderIconSpan, renderDlRow } from './ui-primitives.js';
@@ -107,7 +108,7 @@ function resolveGithubEntityLink(row, field, fallbackLabel) {
  *   prepareChartPoints: (points: ChartPoint[], x: Record<string, any> | null, y: Record<string, any> | null, color: Record<string, any> | null, data: unknown, section?: Record<string, any> | null) => ChartPoint[],
  *   toText: (value: unknown) => string,
  *   cardTemplates?: Record<string, { icon: string, 'icon-field'?: string, status?: { field: string, 'fallback-field'?: string, title?: string }, title: TableField, subtitle?: TableField, labels: TableField[], details: TableField[], 'detail-labels'?: string, metrics?: TableField[], timing?: Array<TableField & { icon: string }>, actions?: Array<{ action: string, context: string[], when?: { field: string, equals: unknown } }>, drill?: Record<string, unknown> }>,
- *   continuation?: { token: string, totalRows?: number, load: (token: string) => Promise<{ rows: Array<Record<string, unknown>>, continuationToken?: string }> }
+ *   continuation?: { token: string, totalRows?: number, load: (token: string) => Promise<{ rows: Array<Record<string, unknown>>, continuationToken?: string, metadata?: import('../presenter.js').SourceMetadata }> }
  * }} DataViewContext
  */
 
@@ -330,6 +331,7 @@ function renderListView(context) {
         toText,
         definition,
         listAction,
+        sourceTruncated: context.sourceTruncated,
         continuation: context.continuation
       });
     }
@@ -389,8 +391,9 @@ function renderListView(context) {
  *   headingTag: 'h2'|'h3'|'h4',
  *   renderValue: (column: string | { field: string, display?: unknown, format?: unknown, type?: unknown }, value: unknown, row: Record<string, unknown>) => string | HTMLElement,
  *   toText: (value: unknown) => string,
- *   definition: { icon: string, status?: { field: string, 'fallback-field'?: string, title?: string }, title: TableField, subtitle?: TableField, labels: TableField[], details: TableField[], 'detail-labels'?: string, metrics?: TableField[], timing?: Array<TableField & { icon: string }>, drill?: Record<string, unknown> },
+ *   definition: NonNullable<DataViewContext['cardTemplates']>[string],
  *   listAction: HTMLElement | null,
+ *   sourceTruncated?: boolean,
  *   continuation?: DataViewContext['continuation']
  * }} options
  */
@@ -401,6 +404,15 @@ function renderEntityCardListView(options) {
     : isPlainObject(definition.drill) ? definition.drill : null;
   const grouped = isPlainObject(view.list) && view.list.appearance === 'grouped';
   const marketplace = isPlainObject(view.list) && view.list.appearance === 'marketplace';
+  const selection = view['lazy-list'] === true && isPlainObject(view.list?.selection)
+    ? createCardListSelection({
+      key: view.list.selection.key,
+      commands: view.list.selection.commands,
+      actions: definition.actions ?? [],
+      metadata,
+      total: options.continuation?.totalRows ?? (options.sourceTruncated ? undefined : rows.length),
+      canSelectAll: !options.sourceTruncated || Boolean(options.continuation)
+    }) : undefined;
   const cardOptions = {
     pageId,
     title,
@@ -410,7 +422,13 @@ function renderEntityCardListView(options) {
     drill,
     chevron: grouped || marketplace
   };
-  const cards = renderEntityCardItems(view['lazy-list'] === true ? rows.slice(0, CONTINUATION_PAGE_SIZE) : rows, cardOptions);
+  /** @param {Array<Record<string, unknown>>} items @param {number} offset */
+  const renderItems = (items, offset) => {
+    const cards = renderEntityCardItems(items, { ...cardOptions, keyOffset: offset });
+    selection?.decorate(cards, items);
+    return cards;
+  };
+  const cards = renderItems(view['lazy-list'] === true ? rows.slice(0, CONTINUATION_PAGE_SIZE) : rows, 0);
   const viewAll = isPlainObject(view.list) && isPlainObject(view.list['view-all']) ? view.list['view-all'] : null;
   const viewAllPage = typeof viewAll?.page === 'string' ? viewAll.page : '';
   const section = renderCardListSection({
@@ -441,11 +459,12 @@ function renderEntityCardListView(options) {
       : []
   });
   if (view['lazy-list'] === true) {
-    enableCardListPagination(section, {
+    const pagination = enableCardListPagination(section, {
       rows,
       continuation: options.continuation,
-      renderItems: (nextRows, keyOffset) => renderEntityCardItems(nextRows, { ...cardOptions, keyOffset })
+      renderItems
     });
+    selection?.bind(section, pagination);
   }
   return section;
 }

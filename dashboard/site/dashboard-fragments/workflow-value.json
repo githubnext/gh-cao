@@ -923,12 +923,12 @@
       "views": [{
         "id": "native-measurement", "title": "Measured outcome",
         "data": { "source": "value-measurement-facts", "arguments": [{ "name": "measurement", "field": "id" }], "time": { "range": "all" }, "query-context": false },
-        "mark": "list", "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph" },
-        "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] }, "layout": "full"
+        "mark": "list", "lazy-list": true, "list": { "style": "entity-cards", "card": "workflow-measurement", "icon": "graph" },
+        "encoding": { "columns": [{ "field": "measurement-label", "type": "nominal", "title": "Value" }] }, "layout": "full-view"
       }, {
         "id": "native-measurement-evidence", "title": "Period and evidence identity",
         "data": { "source": "value-measurement-facts", "arguments": [{ "name": "measurement", "field": "id" }], "time": { "range": "all" }, "query-context": false },
-        "mark": "table", "layout": "full",
+        "mark": "table", "lazy-list": true, "layout": "full-view",
         "encoding": { "columns": [
           { "field": "metric-name", "type": "nominal", "title": "Measure" },
           { "field": "measurement-label", "type": "nominal", "title": "Value" },
@@ -1093,7 +1093,7 @@
       }, {
         "id": "value-type-entries", "title": "Matching Value entries",
         "data": { "source": "value-overview", "arguments": [{ "name": "kind", "field": "value-kind" }], "query-context": false, "time": { "range": "all" } },
-        "mark": "list", "lazy-list": true, "layout": "full",
+        "mark": "list", "lazy-list": true, "layout": "full-view",
         "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy" },
         "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
         "empty-message": "No Value entries match this type."
@@ -1112,7 +1112,7 @@
         "data": { "source": "value-overview", "arguments": [
           { "name": "kind", "field": "value-kind" }, { "name": "status", "field": "value-plot-status" }
         ], "query-context": false, "time": { "range": "all" } },
-        "mark": "list", "lazy-list": true, "layout": "full",
+        "mark": "list", "lazy-list": true, "layout": "full-view",
         "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy" },
         "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
         "empty-message": "No Value entries match this type and status."
@@ -1121,7 +1121,7 @@
         "data": { "source": "value-overview", "arguments": [
           { "name": "kind", "field": "value-kind" }, { "name": "status", "field": "value-plot-status" }
         ], "query-context": false, "time": { "range": "all" } },
-        "mark": "table", "lazy-list": true, "layout": "full",
+        "mark": "table", "lazy-list": true, "layout": "full-view",
         "encoding": { "columns": [
           { "field": "value-title", "type": "nominal", "title": "Value entry" },
           { "field": "value-kind", "type": "nominal", "title": "Type" },
@@ -1209,7 +1209,7 @@
           "objective": "Compare entry coverage and evidence without combining native outcomes.",
           "acceptance": "Each row is one top-level campaign rollup or standalone workflow; no worker is counted twice.",
           "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
-          "mark": "table", "lazy-list": true, "layout": "full",
+          "mark": "table", "lazy-list": true, "layout": "full-view",
           "encoding": {
             "columns": [
               { "field": "value-title", "type": "nominal", "title": "Value entry" },
@@ -1233,10 +1233,10 @@
           "objective": "Inspect each entry's evidence and open its campaign or workflow.",
           "acceptance": "Each card is one top-level campaign rollup or standalone workflow. Workers do not appear as separate entries.",
           "data": { "source": "value-overview", "query-context": false, "time": { "range": "all" } },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": { "style": "entity-cards", "card": "value-overview", "icon": "trophy" },
           "encoding": { "columns": [{ "field": "value-title", "type": "nominal", "title": "Value entry" }] },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No canonical campaign workers or standalone workflows are available for Value."
         }
       ]
@@ -1263,10 +1263,10 @@
           "objective": "Review Improving, Worsening, Unchanged, Mixed and Insufficient counts before opening exact worker evidence.",
           "acceptance": "Each repository counts once. Counts do not combine native values, imply causation or replace worker collection diagnostics.",
           "data": { "source": "value-campaign-overview", "arguments": [{ "name": "campaign", "field": "campaign" }], "query-context": false, "time": { "range": "all" } },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": { "style": "entity-cards", "card": "campaign-value-overview", "icon": "goal" },
           "encoding": { "columns": [{ "field": "campaign-name", "type": "nominal", "title": "Campaign" }] },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "The selected campaign has no retained native Value measurement context."
         },
         {
@@ -1281,7 +1281,7 @@
           "list": { "style": "entity-cards", "card": "workflow-value-overview", "icon": "trophy",
             "drill": { "type": "external", "field": "overview-href" } },
           "encoding": { "columns": [{ "field": "overview-title", "type": "nominal", "title": "Workflow" }] },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No exact workflow deployment is classified under the selected campaign."
         }
       ]

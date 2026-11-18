@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -118,7 +119,7 @@ for (const mobile of [false, true]) {
     if (mobile) {
       await page.getByRole('button', { name: 'Switch to Cards view' }).click();
     } else {
-      await page.getByRole('button', { name: 'Cards', exact: true }).click();
+      await selectViewMode(page, 'card');
     }
     await expect(view.locator('.mobile-table-card-list')).toBeVisible();
     const cardList = view.locator('.mobile-table-card-list');
@@ -147,9 +148,9 @@ for (const mobile of [false, true]) {
     await expect(summary).toBeFocused();
     await expect(summary).toHaveAttribute('aria-label', 'Status, 1 selected');
     if (!mobile) {
-      await page.getByRole('button', { name: 'Table', exact: true }).click();
+      await selectViewMode(page, 'table');
       await expect(view.locator('tbody > tr[data-custom-row-key]')).toHaveCount(1);
-      await page.getByRole('button', { name: 'Cards', exact: true }).click();
+      await selectViewMode(page, 'card');
       await expect(view.locator('.mobile-table-card-list-items > li[data-custom-row-key]')).toHaveCount(1);
       await expect(summary).toHaveAttribute('aria-label', 'Status, 1 selected');
     }

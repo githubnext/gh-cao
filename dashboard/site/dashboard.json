@@ -1001,6 +1001,7 @@
               "equals": true
             }
           },
+          { "action": "enable-workflow", "context": ["workflow", "repository-coordinate"] },
           { "action": "disable-workflow", "context": ["workflow", "repository-coordinate"] }
         ],
         "labels": [
@@ -1040,6 +1041,7 @@
         ],
         "actions": [
           { "action": "update-repository-sources", "context": ["repository"] },
+          { "action": "enable-repository-workflows", "context": ["repository"] },
           { "action": "disable-repository-workflows", "context": ["repository"] },
           {
             "action": "upgrade-target-repository",
@@ -1220,6 +1222,24 @@
         "description": "Upgrade Agentic Workflows tooling, action versions, codemods, and compiled workflows in this exact repository and publish a pull request. Available for every CAO-managed repository, without requiring retained compiler or source-version evidence.",
         "icon": "sync",
         "command": "gh aw upgrade --repo {{repository}} --create-pull-request",
+        "placement": "row"
+      },
+      {
+        "id": "enable-repository-workflows",
+        "level": "operate",
+        "label": "Enable",
+        "description": "Enable Agentic Workflows in this exact repository. This does not change CAO rollout policy or authorize live execution.",
+        "icon": "play",
+        "command": "gh aw enable --repo {{repository}}",
+        "placement": "row"
+      },
+      {
+        "id": "enable-workflow",
+        "level": "operate",
+        "label": "Enable",
+        "description": "Enable this exact workflow in its repository. CAO policy and admission remain independent requirements.",
+        "icon": "play",
+        "command": "gh aw enable {{workflow}} --repo {{repository-coordinate}}",
         "placement": "row"
       },
       {

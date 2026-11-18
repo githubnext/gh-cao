@@ -34,6 +34,12 @@ func dashboardActionCommand() *cobra.Command {
 	}}
 	disable.Flags().String("repo", "", "Exact target repository")
 	cmd.AddCommand(disable)
+	enable := &cobra.Command{Use: "enable [workflow]", Args: cobra.MaximumNArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		repository, _ := cmd.Flags().GetString("repo")
+		return ghaw.EnableWorkflowsByNames(cmd.Context(), args, repository)
+	}}
+	enable.Flags().String("repo", "", "Exact target repository")
+	cmd.AddCommand(enable)
 	return cmd
 }
 
@@ -74,7 +80,7 @@ func dashboardActionArgs(args, repositories []string) error {
 		}
 		return nil
 	}
-	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable"}, args[0]) {
+	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable", "enable"}, args[0]) {
 		return errors.New("only CAO setup, repository enrollment, and gh-aw maintenance commands are supported")
 	}
 	options := args[1:]
@@ -102,8 +108,8 @@ func dashboardActionArgs(args, repositories []string) error {
 			index++
 			repository = strings.ToLower(options[index])
 		case "--create-pull-request":
-			if args[0] == "disable" {
-				return errors.New("disable does not publish a pull request")
+			if args[0] == "disable" || args[0] == "enable" {
+				return errors.New("enable/disable does not publish a pull request")
 			}
 			publish = true
 		case "--pre-releases":
@@ -117,7 +123,7 @@ func dashboardActionArgs(args, repositories []string) error {
 	if !nativeRepositoryOperationsAllowed(repository) {
 		return errors.New("github/gh-aw is excluded from CAO operations")
 	}
-	if (args[0] != "disable" && !publish) || !slices.Contains(repositories, repository) || repository == "" {
+	if (args[0] != "disable" && args[0] != "enable" && !publish) || !slices.Contains(repositories, repository) || repository == "" {
 		return errors.New("maintenance requires pull-request publication within the selected repository scope")
 	}
 	return nil
@@ -347,10 +353,10 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 			childArgs = slices.Clone(args)
 		}
 		child := exec.CommandContext(executionCtx, executable, childArgs...)
-		if args[0] == "disable" {
+		if args[0] == "disable" || args[0] == "enable" {
 			directory, prepareErr := prepareDashboardDisableCheckout(executionCtx, cache, args)
 			if prepareErr != nil {
-				_ = send(dashboardActionEvent{Stream: "stderr", Data: "Exact target checkout could not be prepared; no workflows were disabled.\n"})
+				_ = send(dashboardActionEvent{Stream: "stderr", Data: "Exact target checkout could not be prepared; no workflows were enabled or disabled.\n"})
 				_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
 				return
 			}
@@ -365,7 +371,7 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 				child.Stdin = strings.NewReader(*input)
 			}
 		}
-		if args[0] == "disable" {
+		if args[0] == "disable" || args[0] == "enable" {
 			child.Env = dashboardDisableEnvironment(os.Environ())
 		}
 		child.WaitDelay = 5 * time.Second

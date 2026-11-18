@@ -590,7 +590,9 @@ describe('dashboard view query contracts', () => {
         'route-field': 'campaign'
       },
       mark: 'table',
-      controls: 'static',
+      controls: 'interactive',
+      layout: 'full-view',
+      'lazy-list': true,
       encoding: {
         columns: [
           { field: 'concluded-runs', title: 'Concluded attempts' },
