@@ -26,7 +26,7 @@ if (process.argv.includes("--check")) {
   if (!Buffer.from(outputFiles[0].contents).equals(gunzipSync(await readFile(artifact)))) {
     throw new Error("Embedded log normalizer is stale; run npm run generate:dashboard-ingest.");
   }
-  if (await readFile(schemaArtifact, "utf8") !== schema) {
+  if ((await readFile(schemaArtifact, "utf8")).replace(/\r\n/g, "\n") !== schema) {
     throw new Error("Embedded canonical schema version is stale; run npm run generate:dashboard-ingest.");
   }
 } else {
