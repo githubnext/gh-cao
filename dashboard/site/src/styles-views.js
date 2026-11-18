@@ -139,7 +139,7 @@ export const viewStyles = `.dashboard-pages { display: flex; flex-direction: col
 .dashboard-full-view .custom-view[data-view-layout="full-view"] .table-scroll { max-height: none; }
 /* Keep the search inside the table scroll surface without giving it a second horizontal scrollbar. */
 .dashboard-full-view .custom-view[data-view-layout="full-view"] .table-filter { width: 100%; max-width: 100%; box-sizing: border-box; position: sticky; left: 0; z-index: 2; flex: none; min-width: 0; overflow-x: visible; }
-.dashboard-root.dashboard-full-view-scrolled .app-main > .top-nav { display: none; }
+.dashboard-root.dashboard-full-view-scrolled .app-main > .top-nav:not(:has(.mobile-view-mode-toggle:not([hidden]))) { display: none; }
 .dashboard-full-view .custom-view[data-view-layout="full-view"] .table-scroll thead > tr:first-child > th,
 .dashboard-full-view .custom-view[data-view-layout="full-view"] .table-summary-row > th { transition: opacity 160ms ease; }
 .dashboard-root.dashboard-full-view-scrolled .custom-view[data-view-layout="full-view"] .table-scroll thead > tr:first-child > th { opacity: .8; }

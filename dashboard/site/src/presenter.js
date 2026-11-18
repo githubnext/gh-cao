@@ -710,6 +710,8 @@ function enableResponsiveReportActions(root, signal) {
   const overviewHeader = root.querySelector('.overview-header');
   const mobileHeaderSlot = root.querySelector('.mobile-page-header');
   const headerDesktopSlot = overviewHeader?.parentElement;
+  const viewModeToggle = root.querySelector('.mobile-view-mode-toggle');
+  const mobileToggleSlot = viewModeToggle?.parentElement;
   const view = root.ownerDocument.defaultView;
   const media = view?.matchMedia?.('(max-width: 700px)');
   if (!(actions instanceof HTMLElement) || !(mobileSlot instanceof HTMLElement) || !desktopSlot || !media) return;
@@ -717,6 +719,13 @@ function enableResponsiveReportActions(root, signal) {
   const placeActions = () => {
     const destination = media.matches ? mobileSlot : desktopSlot;
     if (actions.parentElement !== destination) destination.append(actions);
+    if (viewModeToggle instanceof HTMLElement && mobileToggleSlot) {
+      const toggleDestination = media.matches ? mobileToggleSlot : actions;
+      if (viewModeToggle.parentElement !== toggleDestination) {
+        if (media.matches) toggleDestination.insertBefore(viewModeToggle, toggleDestination.querySelector('.mobile-nav-menu'));
+        else toggleDestination.prepend(viewModeToggle);
+      }
+    }
     if (overviewHeader instanceof HTMLElement && mobileHeaderSlot instanceof HTMLElement && headerDesktopSlot) {
       if (media.matches) {
         if (overviewHeader.parentElement !== mobileHeaderSlot) mobileHeaderSlot.prepend(overviewHeader);

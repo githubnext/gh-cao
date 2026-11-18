@@ -503,6 +503,7 @@ test('production chart and table pages expose consistent desktop and mobile view
 
   const sharedToggle = page.locator('.mobile-view-mode-toggle');
   await expect(sharedToggle).toBeVisible();
+  await expect(page.locator('.top-nav .report-actions > .mobile-view-mode-toggle')).toBeVisible();
   await expect(sharedToggle).toHaveCSS('width', '44px');
   await expect(sharedToggle).toHaveCSS('height', '44px');
   await expect(sharedToggle).toHaveCSS('border-radius', '50%');
@@ -532,6 +533,7 @@ test('production chart and table pages expose consistent desktop and mobile view
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.sidebar-header > .mobile-view-mode-toggle')).toBeVisible();
   expect(await toggleElement.evaluate(element => element === document.querySelector('.mobile-view-mode-toggle'))).toBe(true);
   await expect(sharedToggle).toHaveCSS('width', '44px');
   await expect(sharedToggle).toHaveCSS('height', '44px');
