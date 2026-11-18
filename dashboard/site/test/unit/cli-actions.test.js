@@ -603,6 +603,12 @@ describe('CLI actions', () => {
     confirm.click();
     await vi.waitFor(() => expect(root.querySelector('.cli-action-dialog')?.hasAttribute('open')).toBe(false));
     expect(window.location.hash).toBe('#page-maintenance');
+    const notice = /** @type {HTMLElement} */ ([...document.querySelectorAll('.dashboard-notification-success')]
+      .find((element) => element.textContent?.includes('Compile workflows: command queued.')));
+    expect(notice).toBeTruthy();
+    /** @type {HTMLButtonElement} */ (notice.querySelector('.dashboard-notification-action')).click();
+    expect(window.location.hash).toBe('#page-command?command=command-1');
+    window.location.hash = 'page-maintenance';
     expect(confirm.disabled).toBe(true);
     confirm.click();
     expect(queue.enqueue).toHaveBeenCalledTimes(1);
@@ -619,6 +625,28 @@ describe('CLI actions', () => {
     confirm.click();
     await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledTimes(2));
     root.remove();
+  });
+
+  it('shows an ephemeral success notification once a command is queued', async () => {
+    document.querySelector('.dashboard-notifications')?.remove();
+    const root = renderCliActions([{
+      id: 'compile-workflows', label: 'Compile workflows', icon: 'play', command: 'gh aw compile'
+    }]);
+    if (!root) throw new Error('Expected a CLI action control.');
+    document.body.append(root);
+    const notice = () => document.querySelector('.dashboard-notification-success');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-trigger')).click();
+      /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-confirm')).click();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(notice()?.textContent).toContain('Compile workflows: command queued.');
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(notice()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+      root.remove();
+    }
   });
 
   it('preserves approval and reports admission errors without navigating', async () => {

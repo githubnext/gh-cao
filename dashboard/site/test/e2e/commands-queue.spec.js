@@ -83,6 +83,12 @@ for (const width of [1440, 390]) {
         new URL(response.url()).pathname === '/__cli_commands' && response.request().method() === 'POST');
       await dialog.getByRole('button', { name: 'Update', exact: true }).click();
       const admitted = await (await queued).json();
+      await expect(dialog).toBeHidden();
+      expect(new URL(page.url()).hash).toBe('#page-maintenance');
+      const notice = page.locator('.dashboard-notification-success').filter({ hasText: 'Update: command queued.' });
+      await expect(notice).toBeVisible();
+      await expect(notice).toBeHidden({ timeout: 10_000 });
+      await page.goto(`${preview.url}/#page-command?command=${admitted.id}`);
       const terminal = page.getByRole('region', { name: 'Read-only command terminal' });
       await expect(terminal).toBeVisible();
       await expect.poll(() => calls.length).toBe(1);

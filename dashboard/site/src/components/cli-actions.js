@@ -351,10 +351,11 @@ function renderCliActionControl(action, options = {}) {
           enqueued.set(true);
           debugCliActions({ event: 'execute-queued', actionId: action.id });
           close();
+          const commandHash = `page-command?command=${encodeURIComponent(command.id)}`;
           publishNotification({
             message: `${action.label}: command queued.`,
-            href: `#page-command?command=${encodeURIComponent(command.id)}`,
-            tone: 'success'
+            tone: 'success',
+            action: { label: 'View', run: () => { window.location.hash = commandHash; } }
           });
         } catch (error) {
           if (scope.signal.aborted) return;
