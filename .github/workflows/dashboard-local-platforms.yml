@@ -20,6 +20,7 @@ on:
       - scripts/build-release.sh
       - tests/unit/dashboard-local-platforms.test.mjs
       - tests/unit/dashboard-site-build.test.mjs
+      - tests/helpers/dashboard-ingestion-browser.mjs
   push:
     branches: [main]
     paths: *paths
@@ -52,6 +53,19 @@ jobs:
       OTEL_SDK_DISABLED: "true"
     services:
       postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cao_bootstrap
+          POSTGRES_DB: cao_dashboard
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U cao_bootstrap -d cao_dashboard"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
+      postgres-stress:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: cao_bootstrap
@@ -99,6 +113,22 @@ jobs:
           CAO_DASHBOARD_TEST_SITE: ${{ github.workspace }}/dashboard/site/dist
           CAO_DASHBOARD_TEST_POSTGRES_URL: postgres://cao_bootstrap@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/cao_dashboard?sslmode=disable
         run: go test ./internal/cli -run '^TestDashboardColdStartIntegration$' -count=1 -timeout=10m -v
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Stress streaming ingestion with an open dashboard
+        env:
+          CAO_DASHBOARD_BROWSER_STRESS: "1"
+          CAO_DASHBOARD_TEST_SERVER: ${{ github.workspace }}/.tmp/cao-dashboard
+          CAO_DASHBOARD_TEST_SITE: ${{ github.workspace }}/dashboard/site/dist
+          POSTGRES_URL: postgres://cao_bootstrap@127.0.0.1:${{ job.services.postgres-stress.ports['5432'] }}/cao_dashboard?sslmode=disable
+        run: go test ./internal/cli -run '^TestDashboardIngestionBrowserStress$' -count=1 -timeout=6m -v
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: local-ingestion-browser-stress
+          path: test-results/dashboard-local-ingestion-stress/
+          retention-days: 14
+          if-no-files-found: error
 
   serving:
     name: ${{ matrix.os }} / ${{ matrix.backend }}

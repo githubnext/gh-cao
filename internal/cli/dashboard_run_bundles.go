@@ -15,7 +15,7 @@ func dashboardRunBundles(batch map[string][]map[string]any, observedAt time.Time
 		Run         map[string]any        `json:"run"`
 		Collections map[string]collection `json:"collections,omitempty"`
 	}
-	if len(batch["runs"]) == 0 || len(batch["runs"]) > 16 {
+	if len(batch["runs"]) == 0 || len(batch["runs"]) > dashboardLogBatchRuns {
 		return nil, errors.New("streamed Run-bundle publication requires 1-16 normalized Runs")
 	}
 	publication := struct {

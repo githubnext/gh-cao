@@ -459,8 +459,15 @@ func TestDailyRunPartitionsAndRetention(t *testing.T) {
 		t.Fatalf("runs did not route to three daily partitions: %d %v", partitions, err)
 	}
 	var future bool
-	if err := store.db.QueryRowContext(t.Context(), "SELECT to_regclass($1) IS NOT NULL", "runs_d"+now.AddDate(0, 0, futureRunDays).Format("20060102")).Scan(&future); err != nil || !future {
+	if err := store.db.QueryRowContext(t.Context(), "SELECT to_regclass($1) IS NOT NULL", "runs_d"+now.AddDate(0, 0, 14).Format("20060102")).Scan(&future); err != nil || !future {
 		t.Fatalf("future daily partition was not pre-created: %v %v", future, err)
+	}
+	for _, table := range []string{"runs", "tools"} {
+		var beyondWindow bool
+		name := table + "_d" + now.AddDate(0, 0, 15).Format("20060102")
+		if err := store.db.QueryRowContext(t.Context(), "SELECT to_regclass($1) IS NOT NULL", name).Scan(&beyondWindow); err != nil || beyondWindow {
+			t.Fatalf("%s provisioned beyond the 14-day future window: %v %v", table, beyondWindow, err)
+		}
 	}
 	result, _, err := store.ExecuteSQLPlan(t.Context(), []query.Definition{{Name: "runs", From: "$runs", Select: []query.SelectedField{{Field: "id"}}}}, []string{"runs"})
 	if err != nil || len(result["runs"].Rows) != 3 {

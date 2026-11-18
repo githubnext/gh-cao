@@ -64,6 +64,22 @@ test("local serving runs on native Linux, macOS, and Windows with real PostgreSQ
   }
 });
 
+test("streaming ingestion is stressed with Chromium open and retains local diagnostics", () => {
+  const steps = workflow.jobs["cold-start"].steps;
+  const browser = steps.findIndex((step) => step.name === "Install Chromium");
+  const stress = steps.findIndex((step) => step.name === "Stress streaming ingestion with an open dashboard");
+  assert.ok(browser >= 0 && stress > browser);
+  assert.match(steps[browser].run, /playwright install --with-deps chromium/);
+  assert.equal(steps[stress].env.CAO_DASHBOARD_BROWSER_STRESS, "1");
+  assert.match(steps[stress].env.POSTGRES_URL, /127\.0\.0\.1:\$\{\{ job\.services\.postgres-stress\.ports/);
+  assert.equal(workflow.jobs["cold-start"].services["postgres-stress"].image, "postgres:16-alpine");
+  assert.match(steps[stress].run, /\^TestDashboardIngestionBrowserStress\$/);
+  const artifact = steps.find((step) => step.with?.name === "local-ingestion-browser-stress");
+  assert.equal(artifact.if, "always()");
+  assert.equal(artifact.with.path, "test-results/dashboard-local-ingestion-stress/");
+  assert.equal(artifact.with["if-no-files-found"], "error");
+});
+
 test("POSIX local serving exercises the checksum-verified DuckDB v2.0.0 session archive", () => {
   const steps = workflow.jobs.serving.steps;
   const duckdb = steps.findIndex((step) => step.name === "Install checksum-verified DuckDB v2.0.0");
@@ -97,6 +113,7 @@ test("pull requests cover source, generated dashboard assets, and build inputs",
       "scripts/generate-dashboard-ingest.mjs", "scripts/prepare-dashboard-embed.mjs",
       "scripts/build-release.sh", "package.json", "package-lock.json", ".npmrc",
       "tests/unit/dashboard-local-platforms.test.mjs",
+      "tests/helpers/dashboard-ingestion-browser.mjs",
     ]) {
       assert.ok(patterns.some((pattern) => posix.matchesGlob(file, pattern)), `${event}: ${file}`);
     }

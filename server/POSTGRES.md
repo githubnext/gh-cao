@@ -256,7 +256,7 @@ establish SOC 2 compliance.
 
 Run canonical maintenance **at least daily** under the owner job, not a runtime
 service. It provisions the configured retained historical window plus the
-current and **28 upcoming UTC days**, then detaches/drops expired whole days.
+current and **14 upcoming UTC days**, then detaches/drops expired whole days.
 Partitions are named `<table>_dYYYYMMDD` and cover midnight to midnight UTC.
 Only days ending at or before the applicable retention cutoff are removed;
 the partial cutoff day remains. Maintenance lag can extend physical retention.
@@ -277,7 +277,7 @@ audit, queue, and revocation state.
 Runtime startup verifies the complete expected partition window without DDL.
 Missing schema, statistics capability/grant, or partitions fail startup with an
 operator action. Long-running processes do not repair partitions: alert on any
-missed/failed daily maintenance job and repair before the 28-day runway is
+missed/failed daily maintenance job and repair before the 14-day runway is
 exhausted. Missing ingestion days remain a hard error, not silent data loss.
 After extended downtime, run maintenance before restarting. Parent-table
 runtime grants cover future partitions; do not grant privileges on each child.
