@@ -26,25 +26,31 @@ function item(index) {
   return element;
 }
 
-/** @param {Partial<import('../../src/components/data-view.js').DataViewContext>} [options] */
-function renderList(options = {}) {
+/** @param {Partial<import('../../src/components/data-view.js').DataViewContext>} [options] @param {string[]} [commands] */
+function renderList(options = {}, commands = ['update']) {
   setDeclaredCliActions([{
     id: 'update', label: 'Update', icon: 'sync', placement: 'row',
     command: 'gh aw update {{workflow}} --repo {{repository}}'
+  }, {
+    id: 'enable', label: 'Enable', icon: 'play', placement: 'row',
+    command: 'gh aw enable {{workflow}} --repo {{repository}}'
   }], { canExecute: false });
   const root = renderDataView('list', {
     pageId: 'selection', title: 'Selection', sourceName: 'fixture',
     view: {
       mark: 'list', 'lazy-list': true, layout: 'full-view',
       list: { style: 'entity-cards', icon: 'repo', card: 'target',
-        selection: { key: ['repository', 'workflow'], commands: ['update'] } },
+        selection: { key: ['repository', 'workflow'], commands } },
       encoding: { columns: [{ field: 'repository' }, { field: 'workflow' }] }
     },
     cardTemplates: {
       target: {
         icon: 'repo', title: { field: 'repository' }, labels: [], details: [],
         drill: { type: 'external', field: 'repository-url' },
-        actions: [{ action: 'update', context: ['repository', 'workflow'], when: { field: 'eligible', equals: true } }]
+        actions: [
+          { action: 'update', context: ['repository', 'workflow'], when: { field: 'eligible', equals: true } },
+          { action: 'enable', context: ['repository', 'workflow'], when: { field: 'eligible', equals: true } }
+        ]
       }
     },
     rows, metadata, contextDetails: [], headingTag: 'h3',
@@ -91,7 +97,7 @@ describe('lazy card checkbox selection', () => {
     expect(item(25).checked).toBe(false);
     expect(all.indeterminate).toBe(true);
     expect(root.querySelector('[role="status"]')?.textContent).toBe('25 selected');
-    button('.entity-card-selection-controls button:nth-of-type(2)').click();
+    button('.entity-card-selection-clear').click();
     expect(item(0).checked).toBe(false);
     expect(root.querySelector('[role="status"]')?.textContent).toBe('61 items');
     expect(root.querySelector('.entity-card-selection-controls .cli-action-trigger')).toBeNull();
@@ -116,7 +122,7 @@ describe('lazy card checkbox selection', () => {
     await vi.waitFor(() => expect(root.querySelectorAll('.entity-card-list-card')).toHaveLength(50));
     expect(item(25).checked).toBe(true);
     expect(load).toHaveBeenCalledTimes(2);
-    button('.entity-card-selection-controls button:nth-of-type(2)').click();
+    button('.entity-card-selection-clear').click();
     expect(root.querySelector('[role="status"]')?.textContent).toBe('61 items');
   });
 
@@ -132,13 +138,16 @@ describe('lazy card checkbox selection', () => {
     expect(control.querySelector('.cli-action-confirm')?.hasAttribute('disabled')).toBe(false);
   });
 
-  it('groups commands in a dismissible dropdown and returns focus there after approval cancellation', () => {
-    const root = renderList({ rows: rows.slice(0, 2) });
-    const menu = /** @type {HTMLDetailsElement} */ (root.querySelector('.entity-card-selection-commands'));
+  it('defaults to the first command and changes the split-button selection without approving it', () => {
+    const root = renderList({ rows: rows.slice(0, 2) }, ['update', 'enable']);
+    const commands = root.querySelector('.entity-card-selection-commands');
+    const menu = /** @type {HTMLDetailsElement} */ (root.querySelector('.entity-card-selection-command-menu'));
     const toggle = menu.querySelector('summary');
-    expect(menu.hidden).toBe(true);
+    expect(commands?.hasAttribute('hidden')).toBe(true);
     selectLoaded();
-    expect(menu.hidden).toBe(false);
+    expect(commands?.hasAttribute('hidden')).toBe(false);
+    expect(button('.entity-card-selection-primary .cli-action-trigger').getAttribute('aria-label')).toBe('Update');
+    expect(button('.entity-card-command-option', menu).getAttribute('aria-pressed')).toBe('true');
     toggle?.click();
     expect(menu.open).toBe(true);
     menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -148,14 +157,23 @@ describe('lazy card checkbox selection', () => {
     document.body.click();
     expect(menu.open).toBe(false);
     toggle?.click();
-    button('.cli-action-trigger', menu).click();
-    const dialog = menu.querySelector('dialog');
+    button('.entity-card-command-option:nth-child(2)', menu).click();
+    expect(menu.open).toBe(false);
+    const primary = button('.entity-card-selection-primary .cli-action-trigger');
+    expect(primary.getAttribute('aria-label')).toBe('Enable');
+    expect(document.activeElement).toBe(primary);
+    const dialog = root.querySelector('.entity-card-selection-primary dialog');
+    expect(dialog?.hasAttribute('open')).toBe(false);
+    primary.click();
     expect(dialog?.hasAttribute('open')).toBe(true);
-    button('.cli-action-cancel', menu).click();
+    expect(dialog?.querySelector('.cli-action-command')?.textContent).toContain('gh aw enable review.md --repo octo/repo-0');
+    button('.entity-card-selection-primary .cli-action-cancel').click();
     expect(dialog?.hasAttribute('open')).toBe(false);
     dialog?.dispatchEvent(new Event('close'));
     expect(menu.open).toBe(false);
-    expect(document.activeElement).toBe(toggle);
+    expect(document.activeElement).toBe(primary);
+    item(0).click();
+    expect(button('.entity-card-selection-primary .cli-action-trigger').getAttribute('aria-label')).toBe('Enable');
   });
 
   it('clears the entire query selection when the checked header checkbox is unchecked', async () => {
@@ -207,7 +225,7 @@ describe('lazy card checkbox selection', () => {
     await vi.waitFor(() => expect(root.querySelector('[role="alert"]')?.textContent).toContain('not unique'));
     expect(item(0).disabled).toBe(true);
     expect(root.querySelector('.entity-card-selection-loaded input')?.hasAttribute('disabled')).toBe(true);
-    button('.entity-card-selection-controls button:nth-of-type(2)').click();
+    button('.entity-card-selection-clear').click();
     expect(item(0).checked).toBe(false);
     expect(root.querySelector('.entity-card-selection-controls .cli-action-trigger')).toBeNull();
   });
@@ -272,7 +290,7 @@ describe('lazy card checkbox selection', () => {
     await vi.waitFor(() => expect(root.querySelectorAll('.entity-card-list-card')).toHaveLength(50));
     item(26).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
     expect(root.querySelector('[role="status"]')?.textContent).toBe('4 selected');
-    button('.entity-card-selection-controls button:nth-of-type(2)').click();
+    button('.entity-card-selection-clear').click();
     item(29).dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
     expect(root.querySelector('[role="status"]')?.textContent).toBe('1 selected');
     expect(item(26).checked).toBe(false);

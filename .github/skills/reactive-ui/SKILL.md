@@ -39,8 +39,10 @@ Example: the Repository maintenance (`#page-maintenance`) view filters `upgrade-
 - Follow GitHub issue-list interaction: always-visible row and header checkboxes,
   Shift-click range selection, and bulk commands only when selection is nonempty.
   Do not add a separate selection-mode toggle.
-- Keep view filters and select-all in one header row. Group the declared bulk
-  actions under the shared **Commands** dropdown instead of separate buttons.
+- Keep view filters, select-all, and bulk actions in one non-wrapping header row,
+  horizontally scrollable on narrow screens. Use the shared command split button:
+  the first declared command is selected by default, the dropdown only changes
+  that choice, and the primary button opens approval.
 - The shared renderer owns individual selection, loaded-card
   selection, and **Select all N** across the existing filtered canonical query
   continuation. Do not select only the first page, issue an unscoped query, or

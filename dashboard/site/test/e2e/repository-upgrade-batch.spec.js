@@ -48,6 +48,12 @@ for (const width of [1440, 390]) {
       await expect(first).toBeChecked();
       await expect(first).toBeFocused();
       await expect(page).toHaveURL(/#page-maintenance$/);
+      const primary = controls.locator('.entity-card-selection-primary');
+      await expect(primary.getByRole('button', { name: 'Update', exact: true })).toBeVisible();
+      await primary.getByRole('button', { name: 'Update', exact: true }).click();
+      const defaultDialog = page.getByRole('dialog', { name: 'Approve Update', exact: true });
+      await expect(defaultDialog).toBeVisible();
+      await defaultDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await cards.nth(3).getByRole('checkbox').click({ modifiers: ['Shift'] });
       await expect(controls.getByRole('status')).toHaveText('4 selected');
       await expect(cards.nth(2).getByRole('checkbox')).toBeChecked();
@@ -63,13 +69,22 @@ for (const width of [1440, 390]) {
       await expect(cards.last().getByRole('checkbox')).toBeChecked();
       await first.uncheck();
       await expect(controls.getByRole('status')).toHaveText('60 selected');
+      const rowCenters = await header.locator('.entity-card-selection-loaded, [role="status"], .entity-card-selection-primary .cli-action-trigger, .entity-card-selection-clear, .card-filter-menu > summary')
+        .evaluateAll((elements) => elements.map((element) => {
+          const bounds = element.getBoundingClientRect();
+          return bounds.y + bounds.height / 2;
+        }));
+      expect(Math.max(...rowCenters) - Math.min(...rowCenters)).toBeLessThan(2);
+      expect(await header.evaluate((element) => element.getBoundingClientRect().height)).toBeLessThan(60);
       await expect(controls.getByRole('button', { name: 'Disable', exact: true })).not.toBeVisible();
-      await controls.getByText('Commands', { exact: true }).click();
+      await controls.getByLabel('Choose bulk command', { exact: true }).click();
       const screenshot = testInfo.outputPath(`updates-selection-${width}.png`);
       await page.screenshot({ path: screenshot, fullPage: true });
       await testInfo.attach(`updates-selection-${width}`, { path: screenshot, contentType: 'image/png' });
-      await controls.getByRole('button', { name: 'Disable', exact: true }).click();
+      await controls.locator('.entity-card-selection-command-menu').getByRole('button', { name: 'Disable', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Approve Disable', exact: true });
+      await expect(dialog).toHaveCount(0);
+      await primary.getByRole('button', { name: 'Disable', exact: true }).click();
       await expect(dialog).toBeVisible();
       const command = dialog.locator('.cli-action-command');
       await expect(command).toContainText('gh aw disable --repo octo/repo-060');
@@ -78,8 +93,8 @@ for (const width of [1440, 390]) {
       await expect(command).not.toContainText('octo/repo-062');
       expect((await command.textContent())?.split('\n')).toHaveLength(60);
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-      await expect(controls.getByText('Commands', { exact: true })).toBeFocused();
-      await expect(controls.getByRole('button', { name: 'Disable', exact: true })).not.toBeVisible();
+      await expect(primary.getByRole('button', { name: 'Disable', exact: true })).toBeFocused();
+      await expect(controls.locator('.entity-card-selection-command-menu')).not.toHaveAttribute('open');
       await controls.getByRole('button', { name: 'Clear selection', exact: true }).click();
       await expect(first).toBeVisible();
       await expect(first).not.toBeChecked();

@@ -43,6 +43,12 @@ export function declaredCliActionCommand(id, values, args = {}) {
   return commandPreview(action, args, values, declaredCliActionContext);
 }
 
+/** @param {string} id */
+export function declaredCliActionPresentation(id) {
+  const action = declaredCliActions.find((candidate) => candidate.id === id);
+  return action ? actionPresentation(normalizeAction(action, { id, type: 'cli' })) : null;
+}
+
 /**
  * @param {string} id
  * @param {Record<string, string>} values

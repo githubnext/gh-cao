@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { octicon } from '../octicons.js';
 import { effect, state } from '../reactive.js';
 import { createFactoryScope } from './factory-elements.js';
-import { renderDeclaredCliAction } from './cli-actions.js';
+import { declaredCliActionPresentation, renderDeclaredCliAction } from './cli-actions.js';
 
 /**
  * Selection is interaction state only. The query cursor, not the DOM or a new
@@ -20,6 +20,7 @@ export function createCardListSelection(options) {
   const error = state('');
   const invalid = state('');
   const revision = state(0);
+  const selectedCommand = state(options.commands[0]);
   /** @type {Map<string, Record<string, unknown>>} */
   let selected = new Map();
   /** @type {Array<{ id: string, row: Record<string, unknown>, input: HTMLInputElement, card: HTMLElement }>} */
@@ -78,30 +79,50 @@ export function createCardListSelection(options) {
     }
   }));
   const clear = h('button', {
-    type: 'button', className: 'entity-card-selection-link',
+    type: 'button', className: 'entity-card-selection-link entity-card-selection-clear',
+    'aria-label': 'Clear selection',
     onClick: () => { selected = new Map(); anchor = -1; error.set(''); changed(); }
   }, 'Clear selection');
+  const primary = h('span', { className: 'entity-card-selection-primary' });
   const commandList = h('div', { className: 'cli-actions-list' });
-  const commandToggle = h('summary', { className: 'cli-actions-toggle' }, 'Commands', octicon('chevron-down'));
-  const commands = /** @type {HTMLDetailsElement} */ (h('details', {
-    className: 'cli-actions-menu entity-card-selection-commands',
+  const commandToggle = h('summary', {
+    className: 'cli-actions-toggle', 'aria-label': 'Choose bulk command', title: 'Choose bulk command'
+  }, octicon('chevron-down'));
+  const commandMenu = /** @type {HTMLDetailsElement} */ (h('details', {
+    className: 'cli-actions-menu entity-card-selection-command-menu',
     onKeyDown: (/** @type {KeyboardEvent} */ event) => {
-      if (event.key !== 'Escape' || event.target instanceof Element && event.target.closest('dialog')) return;
-      commands.open = false;
+      if (event.key !== 'Escape') return;
+      commandMenu.open = false;
       commandToggle.focus();
     }
   }, commandToggle, commandList));
+  const commandOptions = options.commands.flatMap((id) => {
+    const presentation = declaredCliActionPresentation(id);
+    if (!presentation) return [];
+    const button = h('button', {
+      type: 'button', className: 'entity-card-command-option',
+      onClick: () => {
+        selectedCommand.set(id);
+        commandMenu.open = false;
+        primary.querySelector('button')?.focus();
+      }
+    }, octicon(presentation.icon), presentation.label);
+    return [{ id, button }];
+  });
+  commandList.append(...commandOptions.map(({ button }) => button));
+  const commands = h('div', { className: 'entity-card-selection-commands', hidden: true }, primary, commandMenu);
+  primary.addEventListener('click', (event) => {
+    if (event.target instanceof Element && event.target.closest('.cli-action-trigger')) commandMenu.open = false;
+  }, { signal: scope.signal });
   commands.ownerDocument.addEventListener('click', (event) => {
-    if (event.target instanceof Node && !commands.contains(event.target)) commands.open = false;
+    if (event.target instanceof Node && !commands.contains(event.target)) commandMenu.open = false;
   }, { signal: scope.signal });
   const message = h('span', { role: 'alert' });
   const header = h('div', { className: 'entity-card-selection-header' },
     h('label', { className: 'entity-card-selection-loaded', title: 'Select all loaded items' },
       allLoaded, h('span', { className: 'sr-only' }, 'Select all loaded items')),
-    count);
-  const actions = h('div', { className: 'entity-card-selection-actions', hidden: true },
-    selectQuery, clear, commands);
-  const controls = h('div', { className: 'entity-card-selection-controls' }, header, actions);
+    count, commands, selectQuery, clear);
+  const controls = h('div', { className: 'entity-card-selection-controls' }, header);
   const toolbar = h('div', { className: 'entity-card-selection' }, controls, message);
 
   return {
@@ -168,13 +189,14 @@ export function createCardListSelection(options) {
         selectQuery.disabled = loading || !selectable;
         clear.hidden = selected.size === 0;
         clear.toggleAttribute('disabled', loading);
-        actions.hidden = selected.size === 0;
         commands.hidden = selected.size === 0;
-        if (commands.hidden) commands.open = false;
+        if (commands.hidden) commandMenu.open = false;
         message.textContent = failure;
         message.hidden = !failure;
         const rows = [...selected.values()];
-        commandList.replaceChildren(...(selected.size ? options.commands : []).flatMap((id) => {
+        const commandId = selectedCommand.get();
+        for (const { id, button } of commandOptions) button.setAttribute('aria-pressed', String(id === commandId));
+        primary.replaceChildren(...(selected.size ? [commandId] : []).flatMap((id) => {
           const action = options.actions.find((candidate) => candidate.action === id);
           if (!action) return [];
           const control = renderDeclaredCliAction(id, {}, {
@@ -183,10 +205,6 @@ export function createCardListSelection(options) {
             warning: options.metadata.completeness === 'partial'
               ? 'Inventory evidence is partial. Only the explicitly listed selected targets are included.' : undefined
           });
-          control?.querySelector('dialog')?.addEventListener('close', () => {
-            commands.open = false;
-            commandToggle.focus();
-          }, { signal: scope.signal });
           return control ? [control] : [];
         }));
       }, { signal: scope.signal });

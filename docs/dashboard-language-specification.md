@@ -1707,7 +1707,9 @@ one, including cards appended since the previous click. The header checkbox,
 the cards already rendered, not unseen buffered rows or later pages. Its mixed
 state indicates a partial selection of loaded cards; unchecking the checked
 header clears the entire selection, including offscreen query results. View
-filters share the header row with the select-all checkbox. When all
+filters, selection controls, and commands share a single non-wrapping header row.
+Narrow viewports scroll that row horizontally rather than stacking controls;
+dropdown panels remain visible outside the scrolling row. When all
 loaded items are checked, a compact **Select all N** control selects the entire
 remaining filtered query (or **Select all results** if no total is available).
 It follows the existing view-bound canonical continuation, retaining route,
@@ -1717,8 +1719,9 @@ selected card. Loading more cards does not implicitly select them unless they
 were already included in full-query selection. Individual deselection and
 **Clear selection** remain available.
 
-The **Commands** dropdown appears only while at least one item is selected.
-Its ordered entries reuse the exact-target batch approval
+The command split button appears only while at least one item is selected and
+defaults to the first declared command. Its dropdown changes the selected command
+without running it; the primary button opens that command's exact-target batch approval
 dialog, including boolean arguments, capability checks, and independent queue
 admission. A command is disabled if any selected row fails its row-action
 condition or lacks valid context. Unknown/unavailable evidence, invalid or
