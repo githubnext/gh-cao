@@ -130,5 +130,9 @@ npm run test:performance
 ```
 
 The performance suite audits CFO, CTO, and CSO dashboard journeys with Lighthouse. It writes machine-readable reports, browser traces, and a summary under `test-results/lighthouse/`; CI retains that directory as the `dashboard-lighthouse-performance` artifact.
+The populated scenario uses the production browser synthesizer and verifies its
+completion receipt and exact canonical run/repository counts before auditing.
+The private empty-state fixture uses metadata-only normalized inputs through
+the production ingestion worker; it is not published with the Pages demo.
 
 The production build bundles and minifies the application with esbuild and publishes external source maps alongside the JavaScript bundles.
