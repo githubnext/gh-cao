@@ -1,34 +1,7 @@
 {
  "source_sha": "215fd929e0e867be6019ab0113b1c8561077bf12",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T18:53:21Z",
-   "worker_run_id": "44151921436",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "43831754585",
-    "43831980991",
-    "43832040488",
-    "43840581457",
-    "43854851689",
-    "43862265708",
-    "43877103800",
-    "43987917606",
-    "43991571724",
-    "43991770179",
-    "43991897672",
-    "43992363367",
-    "43993695761",
-    "44004300647",
-    "44023953879",
-    "44041835448",
-    "44043184727",
-    "44060953578"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed; gh run list at 18:52Z: no docs run newer than 44060953578, none queued or in progress (stale 37642403569 only). Source 453e35b = source_sha; no docs trigger path. Recomputed from stored transfer_model rows (no refetch): removable phase (handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.6 s and 60 s gate not met; even 100 percent removal saves 9 s. Deploy-into-build merge (about 6 s) remains rejected for environment and id-token boundary reasons. Open #20815 (checkout) is another category, not repeated. No suggestion; noop. Next: scheduling, concurrency, and avoidable rebuilds.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T19:17:00Z",
    "worker_run_id": "44156302431",
@@ -809,6 +782,33 @@
     "43831754585"
    ],
    "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded and disclosed); 18 successes (17 push, 1 schedule 44023953879), 0 failed. Live gh run list 04:52Z: no docs run newer than 44060953578; local HEAD 215fd92 = source_sha; open #20815 (checkout) OPEN, unchanged since 2026-11-13T17:41Z, not repeated. Recomputed from stored immutable run_timings rows (no refetch): demo step (dashboard:pages:build + cp) median 5 s, p90 6 s, min 3, max 8; 6.5 percent of exec median 77.5 s; whole-step ceiling 5 s vs 11.62 s 15 percent gate and 60 s absolute: unmet; dashboard is built only by the demo step and dist/cao is deployed, so reuse is invalid without a date-refresh change. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T05:19:57Z",
+   "worker_run_id": "44243102232",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "43831754585",
+    "43831980991",
+    "43832040488",
+    "43840581457",
+    "43854851689",
+    "43862265708",
+    "43877103800",
+    "43987917606",
+    "43991571724",
+    "43991770179",
+    "43991897672",
+    "43992363367",
+    "43993695761",
+    "44004300647",
+    "44023953879",
+    "44041835448",
+    "44043184727",
+    "44060953578"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at 2026-11-18T05:19Z: no docs run newer than 44060953578, none queued or in progress. Source HEAD 215fd929 = source_sha; no docs trigger path changed. Recomputed from stored immutable transfer_model rows (no refetch): removable transfer (handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 10 s = 11.6 percent of exec median 77.5 s (p90 90 s); 15 percent gate 11.6 s and 60 s gate not met; even 100 percent removal saves 9 s. Deploy Pages (GitHub-managed, median 6.5 s) excluded. Merging deploy into build (about 6 s) remains rejected (github-pages environment and id-token boundary). Open #20815 (checkout, other category) not repeated; #21153 is an incomplete-run report, not a speed item. No suggestion; noop. Next: scheduling, concurrency, and avoidable rebuilds.",
    "suggestion_fingerprint": null
   }
  ],
