@@ -99,6 +99,7 @@ func CaptureEvidence(ctx context.Context, config Config, repository, logs, shard
 		return err
 	}
 	candidates := map[string]candidate{}
+	shardCount := 0
 	for _, entry := range entries {
 		if !strings.HasPrefix(entry.Name(), filepath.Base(shardPrefix)) || !strings.HasSuffix(entry.Name(), ".jsonl") {
 			continue
@@ -112,7 +113,9 @@ func CaptureEvidence(ctx context.Context, config Config, repository, logs, shard
 		if err != nil {
 			return err
 		}
+		shardCount++
 	}
+	cacheLog.Printf("collected trace candidates: shards=%d candidates=%d", shardCount, len(candidates))
 	root, err := os.OpenRoot(logs)
 	if err != nil {
 		return err
@@ -225,36 +228,19 @@ func readCandidates(ctx context.Context, reader io.Reader, repository, logs stri
 		if err != nil {
 			return errors.New("trace frame requires a recorded completed-run timestamp")
 		}
-		directory := "run-" + id
-		if location, present := r["logs_path"]; present {
-			value, ok := location.(string)
-			if !ok || strings.TrimSpace(value) == "" {
-				return errors.New("invalid trace source directory")
-			}
-			directory = value
-			if filepath.IsAbs(directory) {
-				directory, err = filepath.Rel(logs, directory)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		directory = filepath.Clean(directory)
-		if directory == ".." || strings.HasPrefix(directory, ".."+string(filepath.Separator)) {
-			directory = ""
+		directory, err := candidateDirectory(logs, r, id)
+		if err != nil {
+			return err
 		}
 		key := id + ":" + strconv.FormatInt(attempt, 10)
 		value := candidate{id, directory, closed.UTC().Format(time.DateOnly), attempt}
-		if old, ok := out[key]; ok && old != value {
-			if old.directory != "" && value.directory == "" {
-				continue
-			}
-			if old.directory == value.directory && old.day == value.day {
-				continue
-			}
-			if old.directory != "" && value.directory != "" {
-				return errors.New("ambiguous run attempt in trace frame")
-			}
+		old, present := out[key]
+		keep, err := mergeCandidate(old, present, value)
+		if err != nil {
+			return err
+		}
+		if !keep {
+			continue
 		}
 		out[key] = value
 		if len(out) > limit {
@@ -262,6 +248,51 @@ func readCandidates(ctx context.Context, reader io.Reader, repository, logs stri
 		}
 	}
 	return scanner.Err()
+}
+
+// candidateDirectory resolves the artifact directory for a run frame, relative
+// to logs. A directory that escapes logs yields "" so it becomes a source gap.
+func candidateDirectory(logs string, run map[string]any, id string) (string, error) {
+	directory := "run-" + id
+	if location, present := run["logs_path"]; present {
+		value, ok := location.(string)
+		if !ok || strings.TrimSpace(value) == "" {
+			return "", errors.New("invalid trace source directory")
+		}
+		directory = value
+		if filepath.IsAbs(directory) {
+			var err error
+			directory, err = filepath.Rel(logs, directory)
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	directory = filepath.Clean(directory)
+	if directory == ".." || strings.HasPrefix(directory, ".."+string(filepath.Separator)) {
+		directory = ""
+	}
+	return directory, nil
+}
+
+// mergeCandidate reconciles a repeated frame for one run attempt with the
+// candidate already recorded (present reports whether there is one). It returns
+// whether value replaces the recorded candidate; two distinct directories for
+// the same attempt are ambiguous.
+func mergeCandidate(old candidate, present bool, value candidate) (bool, error) {
+	if !present || old == value {
+		return true, nil
+	}
+	if old.directory != "" && value.directory == "" {
+		return false, nil
+	}
+	if old.directory == value.directory && old.day == value.day {
+		return false, nil
+	}
+	if old.directory != "" && value.directory != "" {
+		return false, errors.New("ambiguous run attempt in trace frame")
+	}
+	return true, nil
 }
 
 func artifactPath(root *os.Root, directory string) (string, map[string]any, string, error) {
