@@ -1,34 +1,7 @@
 {
  "source_sha": "453e35b00989b6ee37e16fae81c97e8f1077ab85",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-17T14:52:47Z",
-   "worker_run_id": "44107168995",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "43831754585",
-    "43831980991",
-    "43832040488",
-    "43840581457",
-    "43854851689",
-    "43862265708",
-    "43877103800",
-    "43987917606",
-    "43991571724",
-    "43991770179",
-    "43991897672",
-    "43992363367",
-    "43993695761",
-    "44004300647",
-    "44023953879",
-    "44041835448",
-    "44043184727",
-    "44060953578"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded (0 jobs); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at evaluation: no newer docs run, none queued or in progress; HEAD 453e35b = source_sha (unchanged). Demo step (dashboard:pages:build plus cp) recomputed from immutable run_timings rows, no refetch: median 5 s, p90 6 s, max 8 s = 6.5 percent of exec median 77.5 s; full elimination ceiling 5 s vs 11.62 s gate and 60 s absolute, both unmet. Jobs API spot-check of 44060953578 matched (demo 5 s, exec 79 s). Code check: demo step runs buildDashboardSite in-process; docs:build contains no dashboard generation. Reuse still blocked (simulate-dashboard-pages.mjs:78 now=Date.now() default; dist/cao is deployed; daily 05:23Z schedule refreshes synthetic dates). Open issues: only 20815 (checkout, other category, unchanged since 2026-11-13); no dashboard-generation issue. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-17T15:20:02Z",
    "worker_run_id": "44112429016",
@@ -809,6 +782,33 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at evaluation: no newer, queued, or in-progress docs run; main 453e35b = source_sha (unchanged, no docs trigger path). Recomputed from stored immutable run_timings rows (no job or log refetch): Build documentation step (npm run docs:build) median 11 s, p90 15 nearest-rank, min 9, max 15; exec median 77.5 s, p90 90; share 14.2 percent. Gates: 15 percent = 11.63 s and 60 s absolute; whole-step removal ceiling 11 s, so no implementation inside this step can meet either gate. Sub-step split unmeasurable (job logs HTTP 403). Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Open #20815 (checkout, other category, OPEN, 0 comments, unchanged) not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-18T01:34:04Z",
+   "worker_run_id": "44216289267",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672",
+    "43991770179",
+    "43991571724",
+    "43987917606",
+    "43877103800",
+    "43862265708",
+    "43854851689",
+    "43840581457",
+    "43832040488",
+    "43831980991",
+    "43831754585"
+   ],
+   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded and disclosed); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list 01:33Z: no newer, queued, or in-progress docs run (stale 37642403569 only); main 453e35b = source_sha (unchanged, no docs trigger path). Recomputed from stored immutable run_timings rows (no refetch): Build synthetic enterprise demo median 5 s, p90 6, min 3, max 8 = 6.5 percent of exec median 77.5 s; full-elimination ceiling 5 s vs 11.6 s 15 percent gate and 60 s absolute, both unmet. Jobs API spot-check of 44060953578 matched (demo 5 s, build job 79 s). Reuse still blocked (scripts/simulate-dashboard-pages.mjs:78 now=Date.now(); dist/cao deployed each run). No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1566,7 +1566,7 @@
   "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
  },
  "dashboard_generation_verified": {
-  "verified_at": "2026-11-17T20:18:39Z",
+  "verified_at": "2026-11-18T01:34:04Z",
   "window": "latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded); 18 successes; recomputed from immutable run_timings rows",
   "demo_step_s": {
    "median": 5,
@@ -1585,16 +1585,8 @@
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); daily 05:23Z schedule refreshes synthetic dates; dist/cao is deployed so skipping is invalid",
   "note": "Re-verified 18:37Z by worker 43929821091: no newer docs run than 43877103800; demo rows recomputed (median 5 s, p90 6 s, max 8 s); Jobs API spot-check of 43877103800 matches; decision unchanged: not actionable (ceiling 5 s vs gate 11.4 s). Dashboard site is built only by the demo step; docs:build does not build the dashboard; no dashboard job exists. Re-verified 23:35Z by worker 43979722480: no newer docs run; strict 19-success demo rows recomputed (median 5 s, p90 6 s, max 8 s); decision unchanged (ceiling 5 s vs gate 11.4 s).",
   "decision": "not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)",
-  "reverified_note": "Re-verified 2026-11-17T03:22:28Z by worker 44009269283: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18); Jobs API spot-check of 44004300647 matched (6 s); HEAD dc5ce58 adds only server/ files (no docs trigger); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute). Re-verified 2026-11-17T21:53:14Z by worker 44183804620: window unchanged (no docs run newer than 44060953578; none queued or in progress; main 453e35b = source_sha); stored demo rows recomputed (median 5 s, p90 6 s); decision unchanged (not actionable).",
-  "reverified_note_2": "Re-verified 2026-11-17T04:53Z by worker 44019713409: no newer docs run than 44004300647; stored demo rows recomputed (median 5 s, p90 6 s, max 8 s, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
-  "reverified_note_3": "Re-verified 2026-11-17T06:41Z by worker 44032733255: no newer docs run than 44023953879; no queued or in-progress docs run; stored demo rows recomputed (median 5 s, p90 6 s, min 3, max 8, n 18; exec median 79 s, 6.3%); decision unchanged: not actionable (ceiling 5 s vs gate 11.85 s and 60 s absolute).",
-  "reverified_note_4": "Re-verified 2026-11-17T08:23Z by worker 44045751647: newest run 44043184727 (push f939bbb) demo step 4 s added; stored rows recomputed (median 5.0, p90 6, n 18); decision unchanged: not actionable (ceiling 5.0 s vs gate 11.6 s and 60 s absolute).",
-  "reverified_note_5": "Re-verified 2026-11-17T09:52Z by worker 44059106675: no docs run newer than 44043184727 (read-only gh run list); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute).",
-  "reverified_note_6": "Re-verified 2026-11-17T11:31Z by worker 44074416041: no docs run newer than 44060953578 (gh run list); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); Jobs API spot-check of 44060953578 matched (5 s); decision unchanged: not actionable (ceiling 5 s vs gate 11.62 s and 60 s absolute).",
-  "reverified_note_7": "Re-verified 2026-11-17T13:19:38Z by worker 44090988431: no docs run newer than 44060953578 (gh run list 13:18Z); stored demo rows recomputed (median 5, p90 6, min 3, max 8, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.63 s and 60 s absolute).",
-  "last_reverified_at": "2026-11-17T20:18:39Z",
-  "last_reverified_note": "Re-verified by worker 44167264807: no docs run newer than 44060953578; stored rows recomputed (demo median 5 s, p90 6 s, n 18; exec median 77.5 s, 6.5%); decision unchanged (not actionable).",
-  "reverified_note_8": "Re-verified 2026-11-17T18:36:00Z by worker 44149071437: no docs run newer than 44060953578 (gh run list); stored demo rows recomputed (median 5, p90 6, n 18; exec median 77.5, 6.5%); decision unchanged: not actionable (ceiling 5 s vs gate 11.6 s and 60 s absolute)."
+  "last_reverified_at": "2026-11-18T01:34:04Z",
+  "last_reverified_note": "Re-verified by worker 44216289267: no docs run newer than 44060953578; stored rows recomputed (demo median 5 s, p90 6 s, n 18; exec median 77.5 s, 6.5%); Jobs API spot-check of 44060953578 matched; decision unchanged (not actionable)."
  },
  "astro_output_reuse": {
   "verified_at": "2026-11-16T06:36:53Z",
