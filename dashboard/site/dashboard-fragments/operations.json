@@ -2594,7 +2594,10 @@
           },
           "mark": "list",
           "lazy-list": true,
-          "list": { "style": "entity-cards", "card": "maintenance-repository", "icon": "repo" },
+          "list": {
+            "style": "entity-cards", "card": "maintenance-repository", "icon": "repo",
+            "selection": { "key": ["repository"], "commands": ["update-repository-sources", "enable-repository-workflows", "disable-repository-workflows"] }
+          },
           "filter-bar": {
             "filters": [
               {
@@ -2686,7 +2689,10 @@
           },
           "mark": "list",
           "lazy-list": true,
-          "list": { "style": "entity-cards", "card": "maintenance-campaign", "icon": "workflow" },
+          "list": {
+            "style": "entity-cards", "card": "maintenance-campaign", "icon": "workflow",
+            "selection": { "key": ["campaign"], "commands": ["update-campaign", "enable-campaign", "disable-campaign"] }
+          },
           "filter-bar": {
             "filters": [
               {
@@ -2771,7 +2777,10 @@
           },
           "mark": "list",
           "lazy-list": true,
-          "list": { "style": "entity-cards", "card": "maintenance-standalone-workflow", "icon": "workflow" },
+          "list": {
+            "style": "entity-cards", "card": "maintenance-standalone-workflow", "icon": "workflow",
+            "selection": { "key": ["repository-coordinate", "workflow"], "commands": ["update-workflow-source", "enable-workflow", "disable-workflow"] }
+          },
           "filter-bar": {
             "filters": [
               {

@@ -27,7 +27,7 @@ export const CLI_ACTION_KEYS = ['id', 'level', 'verb', 'label', 'description', '
 export const CLI_ACTION_PLACEMENT_VALUES = ['toolbar', 'settings', 'view', 'row'];
 export const CLI_ACTION_ARGUMENT_KEYS = ['id', 'label', 'description', 'type', 'flag', 'default'];
 export const CLI_ACTION_ARGUMENT_TYPE_VALUES = ['boolean'];
-export const MAX_CLI_ACTIONS = 24;
+export const MAX_CLI_ACTIONS = 26;
 export const MAX_CLI_ACTION_ARGUMENTS = 10;
 export const MAX_CLI_ACTION_COMMAND_LENGTH = 1000;
 
@@ -133,7 +133,7 @@ export const VIEW_METRIC_KEYS = ['style', 'icon', 'tone', 'navigation-page', 'an
 export const VIEW_METRIC_STYLE_VALUES = ['card'];
 export const VIEW_METRIC_TONE_VALUES = ['attention', 'danger', 'neutral', 'review'];
 export const VIEW_METRIC_ANIMATION_VALUES = ['number'];
-export const VIEW_LIST_KEYS = ['style', 'layout', 'appearance', 'icon', 'action', 'action-context', 'actions', 'card', 'drill', 'view-all'];
+export const VIEW_LIST_KEYS = ['style', 'layout', 'appearance', 'icon', 'action', 'action-context', 'actions', 'card', 'drill', 'view-all', 'selection'];
 export const VIEW_LIST_STYLE_VALUES = ['cards', 'issues', 'entity-cards'];
 export const VIEW_LIST_LAYOUT_VALUES = ['rows', 'grid'];
 export const VIEW_LIST_APPEARANCE_VALUES = ['grouped', 'marketplace'];

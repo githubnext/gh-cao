@@ -1531,7 +1531,7 @@ A smell row identifies one detected condition with a stable `smell-id` and uniqu
 The optional table-column field `display` is `text`, `status`, `grader-status`, `mode`, `active-state`, `label`, `ref`, `digest`, `outcome-link`, `run-link`, `repository-link`, `workflow-link`, or `evidence-link` and defaults to `text`. It selects presentation independently from the field name. The optional table-column field `filter` is boolean and defaults to `true`; `false` excludes the column from interactive facet filters without changing its display or sorting. Named UI element values are `campaign-route`, `workflow-route-page`, `outcome-detail`, `outcome-detail-section`, `problem-detail`, `entity-route`, `configuration-policy`, `measure-history`, `factory-header`, `factory-floor`, `link-button-list`, and `markdown`; renderers dispatch these values without inferring behavior from page IDs, view IDs, or source contents.
 
 A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. Toolbar `verb: add` actions share the chrome **+** menu, keeping approval and capability checks. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
-The dashboard may declare at most 24 CLI actions. This authoring bound does not
+The dashboard may declare at most 26 CLI actions. This authoring bound does not
 grant execution authority or change command-service allowlists.
 
 CLI command text supports literal `{{field}}` substitutions, not expressions or
@@ -1580,18 +1580,8 @@ There is no Copilot canvas or standalone Node admin preview.
 These capabilities do not change the document vocabulary, copy-only
 restrictions, action authority, or per-run confirmation requirements. Hosted commands start after web confirmation and server authorization; local
 maintenance starts after dashboard confirmation and scoped server authorization.
-Local repository maintenance provides separate Repository, Workflow, and
-Campaign pages under the **Updates** navigation section, each with its own
-navigation entry and evidence-backed update indicator.
-Each page is a full-view lazy card list over bounded query pages (10,000+
-repositories); scrolling or **Load more** fetches more. Per-row maintenance keeps
-exact targets and approval; fleet-wide updates belong in the CLI.
-A break operation uses the existing disable command, not a new
-CLI verb: gh-aw disable cancels in-progress runs before disabling future runs,
-whereas campaign policy disable leaves active runs running. Exact repository
-and workflow targets require fresh approval independently of update evidence.
-Updates/upgrades still require pull-request publication in the native adapter;
-the disable exception does not expand the hosted execution allowlist.
+Local repository maintenance follows the
+[Updates contract](./dashboard-language-list-selection.md#updates-maintenance).
 The approval dialog queues at most once, then
 closes without navigating; a notification links to the read-only console
 (no terminal window). Its first output line shows the executed command.
@@ -1679,6 +1669,9 @@ The Issues view declares separate Labels and Status dropdowns in the declarative
 In full-view card mode, the shared filter row stays above the independently scrolling cards. Desktop uses compact Primer dropdown buttons; mobile uses touch-sized rounded controls and grouped options with explicit apply and clear actions.
 
 An entity-card list may set `lazy-list: true` to request bounded canonical query pages and append cards as the load boundary approaches the viewport. An accessible **Load more** button remains available without an intersection observer; failed requests expose a manual retry. Existing cards retain focus and identity, and detaching the owning view disconnects its observer and ignores late responses. This changes presentation and transport only, not query ordering, filtering, or evidence completeness.
+
+A lazy entity-card list may declare `list.selection` according to the
+[list selection contract](./dashboard-language-list-selection.md).
 
 A table with `lazy-list: true` may declare `encoding.card` as a reusable dashboard card-template identifier to present its rows as cards at every viewport width, rather than only in responsive card mode. Other marks, non-lazy tables, and unknown template references fail validation. The declared columns still define the view payload and available card fields; lazy-list pagination and explicit card drill behavior remain unchanged. The Commands table uses this presentation, with its durable command route opening the interaction-only `command-terminal` element as a modal console log. Closing or escaping the console returns to Commands and detaches output without cancelling execution; cancellation and retry remain separate explicit controls.
 

@@ -1058,7 +1058,10 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
         const cardToolbar = selectedViewMode === 'card'
           ? rendered.querySelector('.mobile-table-card-toolbar')
           : rendered.querySelector('.table-card-list > .mobile-table-card-toolbar');
-        if (cardToolbar) {
+        const selectionHeader = rendered.querySelector('.entity-card-selection-header');
+        if (selectionHeader) {
+          selectionHeader.append(filterBar);
+        } else if (cardToolbar) {
           cardToolbar.querySelector('.mobile-table-card-toolbar-title')?.remove();
           cardToolbar.append(filterBar);
         } else rendered.prepend(filterBar);
@@ -2673,7 +2676,8 @@ function renderCustomViewContent(pageId, view, index, sources, units, cardTempla
         const next = await sourcePage.load(token);
         return {
           rows: next?.rows ?? [],
-          continuationToken: next?.continuationToken
+          continuationToken: next?.continuationToken,
+          metadata: next?.metadata
         };
       }
     } : undefined

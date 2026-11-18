@@ -765,6 +765,42 @@ export function validateView(view, viewNode, path, viewIds, errors) {
       }
       validateListDrill(view.list.drill, getValueNodeByKey(getValueNodeByKey(viewNode, 'list'), 'drill'), listPath, view.list.style, errors);
       validateListViewAll(view.list['view-all'], getValueNodeByKey(getValueNodeByKey(viewNode, 'list'), 'view-all'), listPath, view.list.style, errors);
+      if (view.list.selection !== undefined) {
+        const selection = view.list.selection;
+        const selectionPath = `${listPath}.selection`;
+        const selectionNode = getValueNodeByKey(getValueNodeByKey(viewNode, 'list'), 'selection');
+        if (view.mark !== 'list' || view.list.style !== 'entity-cards' || view['lazy-list'] !== true || !isPlainObject(selection)) {
+          errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField,
+            'list.selection requires a lazy entity-cards list and a mapping with key and commands.', selectionPath));
+        } else {
+          validateObjectKeys(selectionNode, ['key', 'commands'], selectionPath, errors);
+          const sourceName = isPlainObject(view.data) && typeof view.data.source === 'string' ? view.data.source : '';
+          const fields = sourceFieldNames(sourceName) ?? [];
+          const templateActions = state.declaredCardDefinitions.get(String(view.list.card))?.actions;
+          for (const property of ['key', 'commands']) {
+            const values = selection[property];
+            if (!Array.isArray(values) || values.length === 0 || new Set(values).size !== values.length
+              || values.some((value) => typeof value !== 'string' || !IDENTIFIER_PATTERN.test(value))) {
+              errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField,
+                `selection.${property} must be a non-empty sequence of unique field or action identifiers.`, `${selectionPath}.${property}`));
+              continue;
+            }
+            for (const value of values) {
+              const action = Array.isArray(templateActions)
+                ? templateActions.find((candidate) => isPlainObject(candidate) && candidate.action === value) : undefined;
+              if (property === 'key' ? !fields.includes(value)
+                : !isPlainObject(action) || !Array.isArray(action.context)
+                  || action.context.some((field) => !fields.includes(field))
+                  || isPlainObject(action.when) && !fields.includes(String(action.when.field))
+                  || state.declaredCliActions.get(value)?.selector
+                  || state.declaredCliActions.get(value)?.command === 'gh agent-task create --from-file -') {
+                errors.push(createError(ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference,
+                  'Selection keys must exist on the source; commands must map to card row actions with source-backed context and conditions.', `${selectionPath}.${property}`));
+              }
+            }
+          }
+        }
+      }
     }
     if (view.mark !== 'list') {
       errors.push(createError(ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference, 'list is allowed only when mark is "list".', listPath));

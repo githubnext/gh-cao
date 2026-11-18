@@ -14,6 +14,8 @@ export const state = {
   /** @type {Set<string>} */
   declaredCardTemplates: new Set(),
   /** @type {Map<string, Record<string, unknown>>} */
+  declaredCardDefinitions: new Map(),
+  /** @type {Map<string, Record<string, unknown>>} */
   declaredViews: new Map(),
   /** @type {Map<string, Set<string>>} */
   declaredQueryTables: new Map(),
