@@ -2465,6 +2465,25 @@
       }
     },
     {
+      "id": "maintenance-workflow-state-options",
+      "subject": "List observed workflow enablement states for the workflow maintenance State filter.",
+      "objective": "Narrow Markdown workflows to enabled, disabled, or unknown registry state.",
+      "acceptance": "Return distinct workflow-state values in ascending order; Unknown remains distinct from Enabled and Disabled.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "maintenance-observed-repository-versions",
       "subject": "Group installed and current gh-aw compiler versions and upgrade evidence by repository.",
       "objective": "Identify repositories with declared Markdown workflows whose retained compiler-version evidence warrants upgrade review.",

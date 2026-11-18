@@ -763,6 +763,33 @@ describe('declarative dashboard queries', () => {
     ]);
   });
 
+  it('derives workflow maintenance enablement state and filter options from registry evidence', () => {
+    const rows = [
+      ['enabled.md', 'true'],
+      ['disabled.md', 'false'],
+      ['unknown.md', 'unknown'],
+      ['missing.md', undefined]
+    ].map(([workflow, active]) => ({ organization: 'acme', repository: 'service', workflow, 'workflow-name': workflow, 'workflow-active': active }));
+
+    const result = executeDashboardQueries(
+      dashboardQueries,
+      { workflows: { source: 'workflows', metadata: metadata('workflows'), rows } },
+      ['maintenance-workflows', 'maintenance-workflow-state-options']
+    );
+
+    expect(result['maintenance-workflows'].rows.map((row) => [row.workflow, row['workflow-state']])).toEqual([
+      ['disabled.md', 'Disabled'],
+      ['enabled.md', 'Enabled'],
+      ['missing.md', 'Unknown'],
+      ['unknown.md', 'Unknown']
+    ]);
+    expect(result['maintenance-workflow-state-options'].rows).toEqual([
+      { 'workflow-state': 'Disabled', workflows: 1 },
+      { 'workflow-state': 'Enabled', workflows: 1 },
+      { 'workflow-state': 'Unknown', workflows: 2 }
+    ]);
+  });
+
   it('continues query results without exposing cursors in query definitions', () => {
     const sources = {
       runs: {

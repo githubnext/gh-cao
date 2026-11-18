@@ -1344,6 +1344,7 @@
         { "field": "workflow-source-version" },
         { "field": "workflow-source-current-version" },
         { "field": "workflow-source-update-state" },
+        { "field": "workflow-active" },
         { "field": "workflow-update-state" },
         { "field": "workflow-update-status-reason" },
         { "field": "workflow-update-action-visible" }
@@ -1374,11 +1375,16 @@
         { "as": "installed-action-visible", "function": "if", "args": [{ "field": "installed-unavailable" }, { "value": false }, { "field": "revision-action-visible" }] },
         { "as": "source-action-visible", "function": "if", "args": [{ "field": "source-unavailable" }, { "value": false }, { "field": "installed-action-visible" }] },
         { "as": "maintenance-update-action-visible", "function": "if", "args": [{ "field": "source-managed" }, { "field": "source-action-visible" }, { "value": false }] },
-        { "as": "maintenance-update-status-reason", "function": "if", "args": [{ "field": "maintenance-update-action-visible" }, { "value": "Retained source and revisions support a workflow-targeted command; gh-aw may reconcile package siblings/assets and shared repository files." }, { "value": "Source update unavailable; compiler upgrades apply to the whole repository." }] }
+        { "as": "maintenance-update-status-reason", "function": "if", "args": [{ "field": "maintenance-update-action-visible" }, { "value": "Retained source and revisions support a workflow-targeted command; gh-aw may reconcile package siblings/assets and shared repository files." }, { "value": "Source update unavailable; compiler upgrades apply to the whole repository." }] },
+        { "as": "workflow-enabled", "function": "equals-any", "args": [{ "field": "workflow-active" }, { "value": "true" }] },
+        { "as": "workflow-disabled", "function": "equals-any", "args": [{ "field": "workflow-active" }, { "value": "false" }] },
+        { "as": "workflow-state-disabled-or-unknown", "function": "if", "args": [{ "field": "workflow-disabled" }, { "value": "Disabled" }, { "value": "Unknown" }] },
+        { "as": "workflow-state", "function": "if", "args": [{ "field": "workflow-enabled" }, { "value": "Enabled" }, { "field": "workflow-state-disabled-or-unknown" }] }
       ],
       "select": [
         { "field": "workflow-is-markdown" },
         { "field": "repository-coordinate" }, { "field": "workflow" }, { "field": "workflow-name" },
+        { "field": "workflow-state" },
         { "field": "maintenance-source-kind", "as": "workflow-source-kind" }, { "field": "workflow-source" }, { "field": "workflow-source-version" }, { "field": "workflow-source-current-version" },
         { "field": "source-unavailable", "as": "workflow-source-unavailable" },
         { "field": "maintenance-update-action-visible", "as": "workflow-update-action-visible" }, { "field": "maintenance-update-status-reason", "as": "workflow-update-status-reason" }
@@ -1393,6 +1399,18 @@
       "from": "maintenance-workflow-identities",
       "filter": { "predicates": [{ "field": "workflow-is-markdown", "equals": true }] },
       "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-workflow-state-options",
+      "subject": "List observed workflow enablement states for the workflow maintenance State filter.",
+      "objective": "Narrow Markdown workflows to enabled, disabled, or unknown registry state.",
+      "acceptance": "Return distinct workflow-state values in ascending order; Unknown remains distinct from Enabled and Disabled.",
+      "from": "maintenance-workflows",
+      "aggregate": {
+        "by": ["workflow-state"],
+        "values": [{ "field": "workflow", "as": "workflows", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "workflow-state", "direction": "asc" }]
     },
     {
       "name": "maintenance-observed-repository-versions",

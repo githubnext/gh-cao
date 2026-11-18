@@ -2723,6 +2723,17 @@
           "mark": "list",
           "lazy-list": true,
           "list": { "style": "entity-cards", "card": "maintenance-standalone-workflow", "icon": "workflow" },
+          "filter-bar": {
+            "filters": [
+              {
+                "id": "state",
+                "label": "State",
+                "groups": [
+                  { "label": "Workflow state", "field": "workflow-state", "source": "maintenance-workflow-state-options", "value-field": "workflow-state" }
+                ]
+              }
+            ]
+          },
           "empty-message": "No Markdown workflows were observed.",
           "encoding": {
             "columns": [
@@ -2746,7 +2757,8 @@
                 "type": "nominal",
                 "title": "Latest"
               },
-              { "field": "repository-coordinate", "type": "nominal", "title": "Repository" }
+              { "field": "repository-coordinate", "type": "nominal", "title": "Repository" },
+              { "field": "workflow-state", "type": "nominal", "title": "State", "display": "status" }
             ]
           },
           "layout": "full-view"

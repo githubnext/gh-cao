@@ -593,8 +593,15 @@ describe('Configuration dashboard view', () => {
         'workflow-source',
         'workflow-source-version',
         'workflow-source-current-version',
-        'repository-coordinate'
+        'repository-coordinate',
+        'workflow-state'
       ]);
+    expect(views[1]['filter-bar'].filters).toEqual([
+      expect.objectContaining({
+        id: 'state',
+        groups: [expect.objectContaining({ field: 'workflow-state', source: 'maintenance-workflow-state-options', 'value-field': 'workflow-state' })]
+      })
+    ]);
     expect(views[2].encoding.columns.map((/** @type {{ field: string }} */ column) => column.field))
       .toEqual([
         'repository',
