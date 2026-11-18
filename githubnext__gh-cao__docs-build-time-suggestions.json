@@ -1,34 +1,7 @@
 {
-  "source_sha": "542db96771d29f88ce6fd69e79821ccdf3557039",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "5d00b8911fbd0143b782e1247f87ef1dce01db07",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-17T20:32:47Z",
-      "worker_run_id": "44169773761",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585"
-      ],
-      "outcome": "complete, not actionable. Window unchanged: strict latest 20 completed docs.yml runs 43831754585..44060953578 (cancelled 43991812013 and 43832015521 excluded); 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at 20:32Z shows no docs run newer than 44060953578 and none queued or in progress; main 453e35b = source_sha. Jobs API spot-check of 44060953578 matched stored transfer rows (handoff 5 s, Configure Pages 1 s, upload 2 s, deploy setup 1 s, exec 79 s). Recomputed from stored rows: removable transfer (handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 10 s, max 10 s = 11.6 percent of exec median 77.5 s (p90 90 s); 15 percent gate 11.63 s and 60 s gate not met; ceiling saving 9 s. Deploy Pages (GitHub-managed, median 6.5 s) excluded. Merge-deploy-into-build (about 6 s) remains rejected: moves id-token and github-pages environment into the job running root npm ci lifecycle scripts. Pages artifact 9.35 MB (2 s upload); shrinking saves about 1 s. Open #20815 (blobless checkout) OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; checkout is another category and not repeated. No issue opened or reused. Next: scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-17T20:53:12Z",
       "worker_run_id": "44173327786",
@@ -810,6 +783,33 @@
       ],
       "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44252368502 (push 542db96, created 2026-11-18T06:34:43Z) .. 43832040488 (push 70f59d2, created 2026-11-16T08:32:24Z); cancelled 43991812013 and 43832015521 excluded; 18 successes (16 push, 2 schedule), 0 failed; no docs run queued or in progress. Source 542db96 = main HEAD (new since 215fd92; docs/glossary.md and package.json, build-consumed). Recomputed from stored immutable run_timings plus one jobs-API read of 44252368502 (build job 52 s, demo 4 s, deploy job 8 s, exec 65 s). Exec median 74 s p90 82; queue median 4 s p90 15; build job median 60 s p90 66; deploy job median 9 s p90 11. Dashboard generation = Build synthetic enterprise demo step (no dashboard job exists; step inside build): median 5 s, p90 6 s, min 3, max 8 = 6.8 percent of exec median; 15 percent gate 11.1 s and 60 s gate unmet; 100 percent removal ceiling 5 s. Reuse still blocked: scripts/simulate-dashboard-pages.mjs:78 now defaults to Date.now() and dist/cao is deployed each run; unmeasured cache restore/save overhead would reduce the net saving further. Cache node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57Z, last accessed 06:41Z). Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-18T06:56:38Z",
+      "worker_run_id": "44254400261",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672",
+        "43991770179",
+        "43991571724",
+        "43987917606",
+        "43877103800",
+        "43862265708",
+        "43854851689",
+        "43840581457"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1); cancelled 43991812013 excluded and disclosed; 19 successes (17 push, 2 schedule), 0 failed; no other docs run queued or in progress at 06:54Z. Source 5d00b89 = main HEAD; docs.yml last changed 063cbe9 (2026-11-12), outside window. Jobs API read only for 44254629254, 44253520996, 44244171280; others from stored immutable rows. Removable transfer (handoff 5 s + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 10 s, max 10 s = 11.8 percent of exec median 76 s (p90 82 s); 15 percent gate 11.4 s and 60 s gate unmet. Deploy Pages (median 6 s) is GitHub-managed; merge-deploy-into-build rejected (about 6 s saving, moves pages/id-token write into the build job). No suggestion."
     }
   ],
   "docs_cache_model": {
@@ -926,8 +926,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-18T06:42:50Z",
-    "window": "strict latest 20 completed docs.yml runs 44252368502 (push, 542db96, created 2026-11-18T06:34:43Z) .. 43832040488 (push 70f59d2, created 2026-11-16T08:32:24Z); cancelled 43991812013 and 43832015521 excluded (0 jobs); 18 successes (16 push, 2 schedule)",
+    "evaluated_at": "2026-11-18T06:56:38Z",
+    "window": "strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879)",
     "columns": [
       "run",
       "event",
@@ -945,8 +945,42 @@
       "deploy_job_s",
       "exec_s"
     ],
-    "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end; queue = run created to build start. Medians: exec 74 s (p90 82), queue 4 s, checkout 24 s, install 8.5 s, build docs 11 s, demo 5 s, deploy job 9 s. Transfer components for 44252368502 (not in transfer_model): handoff 5 s, configure 0 s, upload 3 s, deploy setup 1 s, deploy job 8 s, removable 9 s, exec 65 s.",
+    "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end; queue = run created to build start. Medians (19 successes): exec 76 s (p90 82), queue 4 s, checkout 24 s, setup-node 3 s, install 10 s, build docs 11 s, demo 5 s, upload 2 s, deploy job 9 s. Components for 44254629254 (not in transfer_model rows until recorded): handoff 5 s, configure 0 s, upload 3 s, deploy setup 1 s, deploy job 10 s, removable 9 s, exec 82 s.",
     "rows": [
+      [
+        "44254629254",
+        "push",
+        "success",
+        "5d00b89",
+        4,
+        67,
+        24,
+        3,
+        11,
+        0,
+        15,
+        6,
+        3,
+        10,
+        82
+      ],
+      [
+        "44253520996",
+        "push",
+        "success",
+        "17af484",
+        3,
+        64,
+        23,
+        2,
+        11,
+        0,
+        15,
+        6,
+        2,
+        9,
+        78
+      ],
       [
         "44252368502",
         "push",
@@ -1235,29 +1269,12 @@
         3,
         8,
         132
-      ],
-      [
-        "43832040488",
-        "push",
-        "success",
-        "70f59d2",
-        64,
-        52,
-        22,
-        3,
-        6,
-        0,
-        11,
-        3,
-        2,
-        11,
-        69
       ]
     ]
   },
   "transfer_model": {
     "verified_at": "2026-11-17T10:20:11Z",
-    "window": "43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z)",
+    "window": "44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); 19 successes",
     "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
     "columns": [
       "run",
@@ -1273,139 +1290,79 @@
     ],
     "rows": [
       [
-        "43831754585",
-        "push",
-        5,
-        1,
-        3,
-        1,
-        7,
-        11,
-        10,
-        90
-      ],
-      [
-        "43831980991",
+        "44254629254",
         "push",
         5,
         0,
         3,
         1,
-        7,
-        12,
+        6,
+        10,
         9,
-        83
+        82
       ],
       [
-        "43832040488",
+        "44253520996",
         "push",
-        6,
+        5,
         1,
         2,
         1,
-        7,
-        11,
-        10,
-        69
+        6,
+        9,
+        9,
+        78
       ],
       [
-        "43840581457",
+        "44252368502",
         "push",
-        6,
+        5,
         0,
         3,
         1,
-        6,
+        null,
         8,
-        10,
-        132
+        9,
+        65
       ],
       [
-        "43854851689",
-        "push",
+        "44244171280",
+        "schedule",
         5,
-        0,
+        1,
         2,
         1,
         6,
         9,
-        8,
-        76
-      ],
-      [
-        "43862265708",
-        "push",
-        5,
-        0,
-        2,
-        1,
-        6,
         9,
-        8,
-        80
-      ],
-      [
-        "43877103800",
-        "push",
-        5,
-        0,
-        2,
-        1,
-        7,
-        9,
-        8,
-        73
-      ],
-      [
-        "43987917606",
-        "push",
-        5,
-        1,
-        3,
-        1,
-        6,
-        9,
-        10,
-        79
-      ],
-      [
-        "43991571724",
-        "push",
-        5,
-        0,
-        2,
-        1,
-        6,
-        10,
-        8,
-        70
-      ],
-      [
-        "43991770179",
-        "push",
-        5,
-        1,
-        2,
-        1,
-        7,
-        11,
-        9,
-        70
-      ],
-      [
-        "43991897672",
-        "push",
-        5,
-        1,
-        3,
-        1,
-        6,
-        9,
-        10,
         72
       ],
       [
-        "43992363367",
+        "44060953578",
+        "push",
+        5,
+        1,
+        2,
+        1,
+        6,
+        10,
+        9,
+        79
+      ],
+      [
+        "44043184727",
+        "push",
+        5,
+        1,
+        2,
+        1,
+        6,
+        9,
+        9,
+        75
+      ],
+      [
+        "44041835448",
         "push",
         6,
         0,
@@ -1414,6 +1371,30 @@
         7,
         10,
         10,
+        82
+      ],
+      [
+        "44023953879",
+        "schedule",
+        5,
+        0,
+        2,
+        1,
+        7,
+        9,
+        8,
+        62
+      ],
+      [
+        "44004300647",
+        "push",
+        6,
+        0,
+        2,
+        1,
+        7,
+        11,
+        9,
         79
       ],
       [
@@ -1429,31 +1410,7 @@
         64
       ],
       [
-        "44004300647",
-        "push",
-        6,
-        0,
-        2,
-        1,
-        7,
-        11,
-        9,
-        79
-      ],
-      [
-        "44023953879",
-        "schedule",
-        5,
-        0,
-        2,
-        1,
-        7,
-        9,
-        8,
-        62
-      ],
-      [
-        "44041835448",
+        "43992363367",
         "push",
         6,
         0,
@@ -1462,41 +1419,113 @@
         7,
         10,
         10,
-        82
+        79
       ],
       [
-        "44043184727",
+        "43991897672",
+        "push",
+        5,
+        1,
+        3,
+        1,
+        6,
+        9,
+        10,
+        72
+      ],
+      [
+        "43991770179",
         "push",
         5,
         1,
         2,
         1,
-        6,
+        7,
+        11,
         9,
-        9,
-        75
+        70
       ],
       [
-        "44060953578",
+        "43991571724",
         "push",
         5,
-        1,
+        0,
         2,
         1,
         6,
         10,
+        8,
+        70
+      ],
+      [
+        "43987917606",
+        "push",
+        5,
+        1,
+        3,
+        1,
+        6,
         9,
+        10,
         79
+      ],
+      [
+        "43877103800",
+        "push",
+        5,
+        0,
+        2,
+        1,
+        7,
+        9,
+        8,
+        73
+      ],
+      [
+        "43862265708",
+        "push",
+        5,
+        0,
+        2,
+        1,
+        6,
+        9,
+        8,
+        80
+      ],
+      [
+        "43854851689",
+        "push",
+        5,
+        0,
+        2,
+        1,
+        6,
+        9,
+        8,
+        76
+      ],
+      [
+        "43840581457",
+        "push",
+        6,
+        0,
+        3,
+        1,
+        6,
+        8,
+        10,
+        132
       ]
     ],
     "summary": {
       "removable_median_s": 9,
       "removable_p90_s": 10,
       "removable_max_s": 10,
-      "exec_median_s": 77.5,
-      "exec_p90_s": 90,
-      "removable_pct_of_exec_median": 11.6,
-      "gate_15pct_s": 11.63,
+      "exec_median_s": 76,
+      "exec_p90_s": 82,
+      "removable_pct_of_exec_median": 11.8,
+      "gate_15pct_s": 11.4,
       "gate_60s_absolute": "not met",
       "decision": "not actionable"
     },
@@ -1505,7 +1534,7 @@
       "run": "43877103800",
       "result": "Live Jobs API matched stored rows for 43877103800, 43840581457 and 43814432358 (handoff 5/6/5, configure 0/0/0, upload 2/3/3, deploy setup 1/1/1, deploy pages 7/6/7, exec 73/132/120)"
     },
-    "evaluated_note": "2026-11-17T13:34:04Z worker 44093232163: window unchanged (no docs run newer than 44060953578); removable median 9 s, p90 10 s vs 15 percent gate 11.63 s and 60 s gate: not met; decision unchanged (not actionable). Stored rows recomputed, no refetch. 2026-11-17T20:32:47Z worker 44169773761: window unchanged (no docs run newer than 44060953578); Jobs API spot-check of 44060953578 matched stored rows; stored rows recomputed (removable median 9 s, p90 10 s); decision unchanged (not actionable). 2026-11-17T23:52:43Z worker 44202644996: window unchanged (no docs run newer than 44060953578); stored rows recomputed (removable median 9 s, p90 10 s); decision unchanged (not actionable). 2026-11-18T03:35:35Z worker 44231022197: window unchanged (live gh run list: no docs run newer than 44060953578); Jobs API spot-check of 44060953578 matched stored rows; removable median 9 s, p90 10 s vs 15 percent gate 11.63 s and 60 s gate: not met; decision unchanged (not actionable).",
+    "evaluated_note": "2026-11-17T13:34:04Z worker 44093232163: window unchanged (no docs run newer than 44060953578); removable median 9 s, p90 10 s vs 15 percent gate 11.63 s and 60 s gate: not met; decision unchanged (not actionable). Stored rows recomputed, no refetch. 2026-11-17T20:32:47Z worker 44169773761: window unchanged (no docs run newer than 44060953578); Jobs API spot-check of 44060953578 matched stored rows; stored rows recomputed (removable median 9 s, p90 10 s); decision unchanged (not actionable). 2026-11-17T23:52:43Z worker 44202644996: window unchanged (no docs run newer than 44060953578); stored rows recomputed (removable median 9 s, p90 10 s); decision unchanged (not actionable). 2026-11-18T03:35:35Z worker 44231022197: window unchanged (live gh run list: no docs run newer than 44060953578); Jobs API spot-check of 44060953578 matched stored rows; removable median 9 s, p90 10 s vs 15 percent gate 11.63 s and 60 s gate: not met; decision unchanged (not actionable). 2026-11-18T06:56:38Z worker 44254400261: window 44254629254..43840581457 (cancelled 43991812013 excluded); Jobs API read of 44254629254, 44253520996, 44244171280 (others stored rows); removable median 9 s, p90 10 s vs 11.4 s gate and 60 s gate: not met; decision unchanged (not actionable).",
     "reverified_note": "Re-verified 2026-11-17T06:54:51Z by worker 44034238011: window rolled to 44023953879; decision unchanged (ceiling 9 s vs 11.85 s and 60 s gates; merge-deploy-into-build about 6 s, rejected).",
     "artifact_bytes": {
       "44060953578": 9354549,
