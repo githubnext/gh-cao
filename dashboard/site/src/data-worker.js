@@ -773,6 +773,8 @@ async function flushDashboardSubscriptions(allowDuringIngestion = false) {
             subscription.viewId,
             queryDashboard
           );
+          // Demo queries may finish after another commit; publish their progress
+          // while the re-dirtied subscription queues the latest revision next.
           if (dashboardSubscriptions.get(id) === subscription && (DEMO_MODE || liveDashboard === dashboard)
               && (!statistical || authorityEpoch === githubAuthenticationEpoch)) {
             subscription.emitted = true;

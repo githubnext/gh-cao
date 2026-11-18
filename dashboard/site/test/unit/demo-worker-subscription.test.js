@@ -3,8 +3,14 @@ import 'fake-indexeddb/auto';
 import { expect, it, vi } from 'vitest';
 import { ingestDashboardSources } from '../../src/data/ingest/coordinator.js';
 import { synthesizeEnterpriseDemo } from '../../src/data/demo/synthesis.js';
+import { loadDatabaseQuerySources } from '../../src/data/queries/database.js';
 
 vi.mock('../../src/deployment-profile.js', () => ({ DEMO_MODE: true }));
+vi.mock('../../src/data/queries/database.js', async (importOriginal) => {
+  /** @type {typeof import('../../src/data/queries/database.js')} */
+  const original = await importOriginal();
+  return { ...original, loadDatabaseQuerySources: vi.fn(original.loadDatabaseQuerySources) };
+});
 vi.mock('../../src/data/demo/synthesis.js', async (importOriginal) => ({
   ...await importOriginal(),
   synthesizeEnterpriseDemo: vi.fn(),
@@ -60,6 +66,7 @@ it('requeries committed demo batches during population in bounded five-second wi
     }, { deferMaintenance: true, payloadScope: `demo-test:${repository}` });
     committed?.({});
   };
+  let releaseQuery = () => {};
   try {
     await commit('first');
     await vi.advanceTimersByTimeAsync(2_000);
@@ -79,18 +86,51 @@ it('requeries committed demo batches during population in bounded five-second wi
       } },
     });
     expect(posted.mock.calls.filter(([value]) => value.subscriptionId === 'demo-second-view')).toHaveLength(2);
+    const originalQuery = vi.mocked(loadDatabaseQuerySources).getMockImplementation();
+    if (!originalQuery) throw new Error('Expected the production database query implementation');
+    let queryReady = false;
+    vi.mocked(loadDatabaseQuerySources).mockImplementationOnce(async (...args) => {
+      const result = await originalQuery(...args);
+      await new Promise((resolve) => {
+        releaseQuery = () => resolve(undefined);
+        queryReady = true;
+      });
+      return result;
+    });
+    await commit('third');
+    await vi.advanceTimersByTimeAsync(5_000);
+    await vi.waitFor(() => expect(queryReady).toBe(true));
+    await commit('fourth');
+    releaseQuery();
+    await vi.waitFor(() => expect(updates()).toHaveLength(3));
+    const superseded = updates().at(-1);
+    expect(superseded.data.repositories.rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ repository: 'third' }),
+    ]));
+    expect(superseded.data.repositories.rows).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ repository: 'fourth' }),
+    ]));
+    await vi.advanceTimersByTimeAsync(4_999);
+    expect(updates()).toHaveLength(3);
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(updates()).toHaveLength(4));
+    expect(updates().at(-1).revision).toBeGreaterThan(superseded.revision);
+    expect(updates().at(-1).data.repositories.rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ repository: 'fourth' }),
+    ]));
     finish();
     await population;
     await vi.advanceTimersByTimeAsync(5_000);
-    await vi.waitFor(() => expect(updates()).toHaveLength(3));
+    await vi.waitFor(() => expect(updates()).toHaveLength(5));
     expect(updates().at(-1).partial).toBeUndefined();
     expect(updates().at(-1).data.repositories.metadata.completeness).not.toBe('partial');
     await commit('cancelled');
     message({ data: { operation: 'unsubscribe-canonical-dashboard', subscriptionId: 'demo-repositories' } });
     message({ data: { operation: 'unsubscribe-canonical-dashboard', subscriptionId: 'demo-second-view' } });
     await vi.advanceTimersByTimeAsync(5_000);
-    expect(updates()).toHaveLength(3);
+    expect(updates()).toHaveLength(5);
   } finally {
+    releaseQuery();
     finish();
     await population;
     message({ data: { operation: 'unsubscribe-canonical-dashboard', subscriptionId: 'demo-repositories' } });
