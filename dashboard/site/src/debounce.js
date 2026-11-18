@@ -3,6 +3,35 @@ import { createDebug } from './debug.js';
 const debugDebounce = createDebug('debounce');
 
 /**
+ * Coalesces updates into fixed windows without starving continuous producers.
+ * @template {unknown[]} Args
+ * @param {(...args: Args) => void} callback
+ * @param {number} delay
+ */
+export function coalesce(callback, delay) {
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let timer;
+  /** @type {Args | undefined} */
+  let latest;
+  const scheduled = /** @type {((...args: Args) => void) & { cancel: () => void }} */ ((...args) => {
+    latest = args;
+    if (timer !== undefined) return;
+    timer = setTimeout(() => {
+      timer = undefined;
+      const current = latest;
+      latest = undefined;
+      if (current) callback(...current);
+    }, delay);
+  });
+  scheduled.cancel = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    latest = undefined;
+  };
+  return scheduled;
+}
+
+/**
  * @template {unknown[]} Args
  * @param {(...args: Args) => void} callback
  * @param {number} delay

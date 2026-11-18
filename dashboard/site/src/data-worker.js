@@ -624,6 +624,11 @@ async function executeLiveDashboardQuery(
       ...selected,
       ...pageScopedSources(querySources, new Set(viewPayload.aliases))
     };
+    if (DEMO_MODE && !hasCompleteDashboardSnapshot) {
+      for (const [name, source] of Object.entries(responseSources)) {
+        responseSources[name] = { ...source, metadata: { ...source.metadata, completeness: 'partial' } };
+      }
+    }
     if (partial) {
       for (const alias of viewPayload.aliases) {
         const source = responseSources[alias];
@@ -677,9 +682,11 @@ function scheduleDashboardSubscriptions(ids = dashboardSubscriptions.keys()) {
   const hasUnrenderedSubscription = hasUnrenderedDashboardSubscription();
   if (subscriptionFlushRunning
       || dirtyDashboardSubscriptions.size === 0
-      || (dashboardIngestionCount > 0 && !hasUnrenderedSubscription)) return;
+      || (!DEMO_MODE && dashboardIngestionCount > 0 && !hasUnrenderedSubscription)) return;
+  if (DEMO_MODE && subscriptionFlushTimer !== null && !hasUnrenderedSubscription) return;
   if (subscriptionFlushTimer !== null) clearTimeout(subscriptionFlushTimer);
-  const delay = hasUnrenderedSubscription && dashboardIngestionCount === 0 ? 0 : SUBSCRIPTION_FLUSH_DELAY_MS;
+  const delay = hasUnrenderedSubscription && (DEMO_MODE || dashboardIngestionCount === 0)
+    ? 0 : DEMO_MODE ? 5_000 : SUBSCRIPTION_FLUSH_DELAY_MS;
   subscriptionFlushTimer = setTimeout(() => {
     subscriptionFlushTimer = null;
     void flushDashboardSubscriptions();
@@ -688,7 +695,7 @@ function scheduleDashboardSubscriptions(ids = dashboardSubscriptions.keys()) {
 
 async function flushDashboardSubscriptions(allowDuringIngestion = false) {
   if (subscriptionFlushRunning
-      || (!allowDuringIngestion && dashboardIngestionCount > 0 && !hasUnrenderedDashboardSubscription())) return;
+      || (!DEMO_MODE && !allowDuringIngestion && dashboardIngestionCount > 0 && !hasUnrenderedDashboardSubscription())) return;
   subscriptionFlushRunning = true;
   try {
     while (dirtyDashboardSubscriptions.size > 0) {
@@ -766,13 +773,14 @@ async function flushDashboardSubscriptions(allowDuringIngestion = false) {
             subscription.viewId,
             queryDashboard
           );
-          if (dashboardSubscriptions.get(id) === subscription && liveDashboard === dashboard
+          if (dashboardSubscriptions.get(id) === subscription && (DEMO_MODE || liveDashboard === dashboard)
               && (!statistical || authorityEpoch === githubAuthenticationEpoch)) {
             subscription.emitted = true;
             subscription.revision = dashboard.revision;
             subscription.pagination = pagination;
             workerScope?.postMessage({
               subscriptionId: id, revision: dashboard.revision, data,
+              ...(DEMO_MODE && !hasCompleteDashboardSnapshot ? { partial: true } : {}),
               ...(subscription.githubSources || statistical ? { githubEpoch: authorityEpoch } : {})
             });
           }
@@ -794,8 +802,8 @@ async function flushDashboardSubscriptions(allowDuringIngestion = false) {
             }, subscription.statisticalController.signal);
           }
         }
-
       }
+      if (DEMO_MODE) break;
     }
 
     /** @param {Record<string, { limit: number, continuationToken?: string }>} pagination */
@@ -1043,6 +1051,11 @@ export function processDataRequest(request, signal) {
           const demo = await synthesizeEnterpriseDemo(indexedDB, {
             signal, storage: globalThis.navigator?.storage,
             onProgress: (completed, total) => progress.reportImportProgress(completed, total, 'inventory'),
+            onCommitted: (logicalSources) => {
+              liveDashboard = { logicalSources, revision: (liveDashboard?.revision ?? 0) + 1 };
+              publicationPhase = 'complete';
+              scheduleDashboardSubscriptions();
+            },
           });
           sources = demo.sources;
           changed = demo.changed;

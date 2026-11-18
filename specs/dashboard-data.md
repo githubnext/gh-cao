@@ -481,16 +481,17 @@ completion, evaluation, or output events. Live repository evidence MAY inform
 illustrative shapes and distributions during development; the demo SHALL NOT
 copy transcripts, prompts, tool payloads, private identifiers, or runtime data
 acquisition into its published sample.
-The build SHALL publish the synthesizer, not pregenerated inventory or run/detail
-shards. Reopening the demo SHALL reuse completed, compatible browser-local data
-within the same UTC day. A new sample day or incompatible generator/schema SHALL
-reset only the scoped demo database before regeneration, including old activity
-and derived count receipts. Interrupted compatible samples SHALL resume from
-committed inventory, installation, and interleaved activity batches rather than be
-treated as complete. Resuming SHALL NOT re-ingest completed activity batches.
-It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
-a separate demo query implementation. A declarative **Synthetic enterprise demo**
-callout SHALL identify the sample; live services SHALL be unavailable.
+Builds SHALL publish only the synthesizer. Reuse compatible same-UTC-day
+data; resume committed inventory, installation and interleaved activity batches
+without re-ingesting them or claiming completion. New days or incompatible
+generators/schemas SHALL reset only demo storage, including activity/count receipts.
+Population/upgrades SHALL NOT open loading dialogs. Commits SHALL refresh active
+worker queries in bounded five-second windows, initially immediate and partial
+until success. PostgreSQL revision pushes SHALL share this window; progress-only
+events SHALL NOT query. View abort SHALL cancel pending/in-flight work.
+No presenter fixtures, JavaScript-derived rows or separate demo queries.
+The declarative **Synthetic enterprise demo** callout SHALL identify
+the sample; live services SHALL be unavailable.
 
 `npm run dashboard:pages:build` SHALL accept no real-data input option.
 Its published output SHALL contain neither SQLite nor an operational agent

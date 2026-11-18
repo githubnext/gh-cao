@@ -321,6 +321,23 @@ describe("dashboard data startup", () => {
     expect(browserFirstLoad.get().status).toBe("inactive");
   });
 
+  it("keeps demo population and database upgrades non-blocking", async () => {
+    deployment.DEMO_MODE = true;
+    dataProcessor.loadDashboardSnapshotMetadata.mockResolvedValue(null);
+    dataProcessor.loadCanonicalDashboardPage.mockImplementationOnce(async () => {
+      dataProcessor.subscribeDatabaseUpgrade.mock.calls[0][0]({ oldVersion: 1, newVersion: 2 });
+      expect(document.querySelector("dialog")).toBeNull();
+      return {};
+    });
+    const stop = await startDashboardData(options());
+    expect(calls).toContain("render:loading");
+    expect(calls).toContain("refresh");
+    expect(browserFirstLoad.get().status).toBe("loading");
+    expect(document.querySelector("dialog")).toBeNull();
+    stop();
+    expect(browserFirstLoad.get().status).toBe("inactive");
+  });
+
   it("opens the import dialog immediately on a database upgrade, before the upgrade or UI settles", async () => {
     dataProcessor.loadDashboardSnapshotMetadata.mockResolvedValue(null);
     let finishUpgrade = () => {};
