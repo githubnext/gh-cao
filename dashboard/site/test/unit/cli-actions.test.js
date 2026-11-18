@@ -43,6 +43,36 @@ afterEach(() => {
 });
 
 describe('CLI actions', () => {
+  it('groups declared add actions in the chrome menu without executing before approval', () => {
+    const dashboard = document.createElement('div');
+    const chrome = document.createElement('div');
+    chrome.className = 'report-actions';
+    dashboard.append(chrome);
+    document.body.append(dashboard);
+    attachCliActions(dashboard, [{
+      id: 'add-example', verb: 'add', label: 'Add example', icon: 'plus',
+      command: 'gh cao repos add octo/example', placement: 'toolbar'
+    }]);
+    const menu = /** @type {HTMLDetailsElement} */ (chrome.querySelector('.cli-actions-add-menu'));
+    const toggle = /** @type {HTMLElement} */ (menu.querySelector('summary'));
+    expect(toggle.getAttribute('aria-label')).toBe('Add');
+    expect(toggle.querySelector('.octicon-plus')).not.toBeNull();
+    expect(menu.open).toBe(false);
+    toggle.click();
+    expect(menu.open).toBe(true);
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu.open).toBe(false);
+    expect(document.activeElement).toBe(toggle);
+    toggle.click();
+    document.body.click();
+    expect(menu.open).toBe(false);
+    toggle.click();
+    menu.querySelector('.cli-action-trigger')?.dispatchEvent(new MouseEvent('click'));
+    expect(menu.querySelector('.cli-action-command')?.textContent).toBe('gh cao repos add octo/example');
+    expect(queue.enqueue).not.toHaveBeenCalled();
+    dashboard.remove();
+  });
+
   it('previews exact workflow update scope and requires explicit approval without unsupported pinned options', async () => {
     const action = dashboardDocument.dashboard['cli-actions'].find((candidate) => candidate.id === 'update-workflow-source');
     if (!action) throw new Error('Missing workflow update action');

@@ -991,10 +991,6 @@
           {
             "field": "workflow-source-current-version",
             "title": "Latest"
-          },
-          {
-            "field": "workflow-update-status-reason",
-            "title": "Evidence"
           }
         ],
         "actions": [
@@ -1039,10 +1035,6 @@
           {
             "field": "gh-aw-current-version",
             "title": "Latest"
-          },
-          {
-            "field": "upgrade-status-reason",
-            "title": "Evidence"
           }
         ],
         "actions": [
@@ -1282,7 +1274,7 @@
       {
         "id": "enable-campaign",
         "level": "operate",
-        "label": "Activate campaign",
+        "label": "Activate",
         "description": "Activate this campaign's orchestrator and worker workflows.",
         "icon": "play",
         "command": "gh cao campaigns enable {{campaign}}",
@@ -1345,11 +1337,12 @@
       {
         "id": "add-repository",
         "level": "operate",
+        "verb": "add",
         "label": "Add repository",
         "description": "Stage individual repositories or wildcard matches in local CAO policy in review mode. Wildcards resolve to exact accessible repositories now, not future matches. Review and commit the policy change before activation; credential access is configured separately.",
         "icon": "plus",
         "command": "gh cao repos add {{repository-pattern}}",
-        "placement": "view",
+        "placement": "toolbar",
         "selector": {
           "label": "Repository",
           "placeholder": "Search owner/repository or enter owner/*",

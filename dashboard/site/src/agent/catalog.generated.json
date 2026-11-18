@@ -1145,8 +1145,7 @@
       "experimental": false,
       "parameters": [],
       "queries": [
-        "maintenance-campaign-packages",
-        "maintenance-campaign-sweep"
+        "maintenance-campaign-packages"
       ]
     },
     {
@@ -1160,7 +1159,6 @@
       "experimental": false,
       "parameters": [],
       "queries": [
-        "maintenance-workflow-sweep",
         "maintenance-workflows"
       ]
     },
@@ -2370,27 +2368,6 @@
       }
     },
     {
-      "id": "maintenance-campaign-sweep",
-      "subject": "All installed campaign packages with exact retained upstream coordinates.",
-      "objective": "Let gh-aw refresh every sourced package without requiring cached update or revision evidence.",
-      "acceptance": "Exclude absent or unknown source coordinates, preserve package identities, and return the complete ordered target set without pagination or limits.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "maintenance-campaign-packages"
-      ],
-      "used-by-pages": [
-        "maintenance-campaigns"
-      ],
-      "execution": {
-        "local": true,
-        "backend": "postgres",
-        "requirements": [
-          "campaigns"
-        ]
-      }
-    },
-    {
       "id": "maintenance-workflow-operation-flags",
       "subject": "Retained workflow repository identities.",
       "objective": "Exclude the upstream gh-aw repository from operational workflow targets.",
@@ -2475,27 +2452,6 @@
       "parameters": [],
       "sources": [
         "maintenance-workflow-identities"
-      ],
-      "used-by-pages": [
-        "maintenance-workflows"
-      ],
-      "execution": {
-        "local": true,
-        "backend": "postgres",
-        "requirements": [
-          "workflows"
-        ]
-      }
-    },
-    {
-      "id": "maintenance-workflow-sweep",
-      "subject": "All source-managed Markdown workflows with retained upstream coordinates.",
-      "objective": "Let gh-aw refresh exact workflow targets without requiring cached update or revision evidence.",
-      "acceptance": "Exclude local, registry and unknown-source workflows, preserve exact canonical repository and workflow identities, and return every target without pagination or limits.",
-      "description": "",
-      "parameters": [],
-      "sources": [
-        "maintenance-workflows"
       ],
       "used-by-pages": [
         "maintenance-workflows"

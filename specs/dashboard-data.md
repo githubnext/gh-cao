@@ -1381,14 +1381,14 @@ Maintenance SHALL provide separate Repository, Workflow, and Campaign pages
 under the Updates navigation section, preserving the existing Repository
 maintenance route. Each page SHALL have its own navigation entry and
 evidence-backed update indicator, without shared maintenance tabs.
-Each page SHALL provide a full-sweep action using existing gh-aw CLI commands
-with explicit approval and pull-request publication: repository upgrades for
-every listed repository, source updates for every source-managed Markdown
-workflow with retained provenance, and package updates for every campaign with
-a retained source coordinate. Sweep queries SHALL return complete ordered
-target sets without limits or pagination; unknown latest revisions SHALL NOT
-exclude a known source. Local or unknown-source entities remain visible in
-the inventory but SHALL NOT become source-update targets.
+Each page SHALL use a full-view, card-only lazy list with bounded canonical
+query pages and SHALL NOT render a table. Scrolling SHALL load further pages,
+with an accessible manual load control. Updates pages SHALL NOT provide update-all or
+upgrade-all controls or eagerly load complete inventories to build browser-side
+command batches; fleet-wide maintenance belongs in CLI commands. Per-row
+maintenance SHALL retain explicit approval and pull-request publication.
+Local or unknown-source entities remain visible in the inventory but SHALL NOT
+become source-update targets.
 Workflow maintenance
 SHALL include campaign-owned and standalone Markdown workflows. Individual
 source updates SHALL use the exact workflow identity in its canonical Repository,

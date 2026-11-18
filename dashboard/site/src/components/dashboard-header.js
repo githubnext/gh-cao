@@ -1,10 +1,27 @@
 import { createDebug } from '../debug.js';
 import { h } from '../dom.js';
 import { octicon } from '../octicons.js';
-import { renderActionLabel } from './ui-primitives.js';
+import { renderActionLabel, renderTooltip } from './ui-primitives.js';
 import { titleCase } from './count-formatters.js';
 
 const debugDashboardHeader = createDebug('dashboard-header');
+
+/** @typedef {{ label: string, description: string, icon?: string }} PageTooltip */
+
+/**
+ * @param {HTMLElement} root
+ * @param {PageTooltip | null} tooltip
+ */
+export function renderDashboardPageHelp(root, tooltip) {
+  const key = JSON.stringify(tooltip);
+  if (root.dataset.tooltip === key) return;
+  root.dataset.tooltip = key;
+  root.hidden = !tooltip;
+  root.replaceChildren(...(tooltip ? [renderTooltip({
+    id: 'page-help-tooltip', label: tooltip.label, description: tooltip.description,
+    icon: octicon(tooltip.icon ?? 'question'), viewportAnchored: true, mobilePopup: true
+  })] : []));
+}
 
 /**
  * @typedef {{ page: string, parameters?: string[] }} RouteBreadcrumb
@@ -72,6 +89,7 @@ export function renderDashboardHeader(options) {
           'div',
           { className: 'title-area' },
           h('h1', { id: 'page-title', tabIndex: -1, 'data-breadcrumb-page': '' }, options.title),
+          h('span', { 'data-page-help': '', hidden: true }),
           h(
             'span',
             {

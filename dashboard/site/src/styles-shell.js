@@ -208,6 +208,7 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .cli-commands-navigation[hidden] { display: none; }
 .cli-actions-toggle:hover, .cli-actions-menu[open] .cli-actions-toggle { background: var(--neutral-muted); }
 .cli-actions-toggle .octicon { width: 14px; height: 14px; }
+.cli-actions-add-menu > .cli-actions-toggle { min-height: 32px; }
 .cli-actions-list { width: min(320px, calc(100vw - 28px)); display: grid; gap: 4px; position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--canvas); box-shadow: 0 8px 24px color-mix(in srgb, var(--canvas-inset) 45%, transparent); }
 .cli-action-trigger { width: 100%; min-width: 0; display: flex; align-items: flex-start; gap: 9px; padding: 9px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
 .cli-action-trigger:hover { background: var(--neutral-muted); }
@@ -451,6 +452,7 @@ main.dashboard-prototype { width: 100%; min-height: 0; flex: 1; overflow-y: auto
 .overview-header .lede { min-height: 1.25rem; margin: 3px 0 0; overflow: hidden; font-size: .875rem; line-height: 1.25rem; text-overflow: ellipsis; white-space: nowrap; }
 .overview-header .lede[hidden] { display: block !important; visibility: hidden; }
 .title-area { display: flex; align-items: center; gap: 8px; }
+[data-page-help]:not([hidden]) { display: inline-flex; flex: none; }
 .title-link { width: 28px; height: 28px; display: grid; flex: 0 0 28px; place-items: center; border-radius: 6px; color: var(--muted); text-decoration: none; transition: background-color 120ms ease, color 120ms ease; }
 .title-link:hover { background: var(--neutral-muted); color: var(--fg); }
 .title-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

@@ -321,8 +321,8 @@ Language keys and enumerated values use canonical kebab-case. Human-readable tit
 | Query `temporal-series.measures[]` | `field`, `key`, `kind` |
 | Query `temporal-series.maps[]` | `field`, `definitions`, `group`, `kind` |
 | Query `select` entry | `field`, `as` |
-| Built-in page | `id`, `kind`, `page`, `title`, `navigation-label`, `navigation-indicator`, `description`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `definition` |
-| Custom page | `id`, `kind`, `title`, `navigation-label`, `navigation-indicator`, `description`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `route`, `views`, `sections` |
+| Built-in page | `id`, `kind`, `page`, `title`, `navigation-label`, `navigation-indicator`, `description`, `tooltip`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `definition` |
+| Custom page | `id`, `kind`, `title`, `navigation-label`, `navigation-indicator`, `description`, `tooltip`, `intent`, `subject`, `objective`, `acceptance`, `icon`, `class-name`, `experimental`, `filter-bar`, `view-mode-control`, `pull-refresh`, `mode-indicator`, `query-binding`, `requires`, `form`, `route`, `views`, `sections` |
 | Page `requires` | `capability`, `source`, `message` |
 | Page `form` | `title`, `description`, `update`, `fields` |
 | Form `update` | `strategy`, `delay-ms` |
@@ -1529,7 +1529,7 @@ A smell row identifies one detected condition with a stable `smell-id` and uniqu
 
 The optional table-column field `display` is `text`, `status`, `grader-status`, `mode`, `active-state`, `label`, `ref`, `digest`, `outcome-link`, `run-link`, `repository-link`, `workflow-link`, or `evidence-link` and defaults to `text`. It selects presentation independently from the field name. The optional table-column field `filter` is boolean and defaults to `true`; `false` excludes the column from interactive facet filters without changing its display or sorting. Named UI element values are `campaign-route`, `workflow-route-page`, `outcome-detail`, `outcome-detail-section`, `problem-detail`, `entity-route`, `configuration-policy`, `measure-history`, `factory-header`, `factory-floor`, `link-button-list`, and `markdown`; renderers dispatch these values without inferring behavior from page IDs, view IDs, or source contents.
 
-A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
+A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. Toolbar actions with `verb: add` appear in the shared **+** dropdown in the dashboard chrome, including the compact mobile header, rather than as standalone view buttons. Selecting an action retains its existing approval and capability checks. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
 The dashboard may declare at most 24 CLI actions. This authoring bound does not
 grant execution authority or change command-service allowlists.
 
@@ -1582,12 +1582,12 @@ maintenance starts after dashboard confirmation and scoped server authorization.
 Local repository maintenance provides separate Repository, Workflow, and
 Campaign pages under the **Updates** navigation section, each with its own
 navigation entry and evidence-backed update indicator rather than shared tabs.
-Each page provides a full sweep through existing gh-aw CLI commands and the
-shared batch approval: `gh aw upgrade --repo` for every listed repository,
-`gh aw update WORKFLOW --repo` for every sourced Markdown workflow, and
-`gh aw update PACKAGE-URL --repo` for every sourced campaign package.
-Sweeps include known sources with unknown latest revisions, exclude entities
-without source provenance, and publish pull requests without changing rollout.
+Each page uses a full-view, card-only lazy list with bounded canonical query
+pages, including for fleets of 10,000 repositories. Scrolling loads additional
+pages; an accessible Load more control remains available. No table is rendered.
+Per-row maintenance retains exact target coordinates and approval.
+These pages do not provide update-all or upgrade-all controls; fleet-wide
+maintenance belongs in CLI commands rather than browser-built command batches.
 A break operation uses the existing disable command, not a new
 CLI verb: gh-aw disable cancels in-progress runs before disabling future runs,
 whereas campaign policy disable leaves active runs running. Exact repository
@@ -1634,8 +1634,12 @@ repeat that same explanation in a separate heading tooltip.
 View descriptions do not automatically create help icon buttons. Section
 descriptions remain available as accessible descriptions; explicitly declared
 tooltips retain their configured controls.
+A page may declare `tooltip: { label, description, icon? }` to place a help
+button beside its title. The shared tooltip supports hover and keyboard focus
+on desktop and a dismissible touch popup on mobile. Updates pages put their
+explanations here instead of rendering a description row above the cards.
 
-A view-placed `operate` CLI action may declare a reusable `selector` dialog.
+An `operate` CLI action placed in a view or toolbar may declare a reusable `selector` dialog.
 Its configuration, example, wildcard rules, and interaction requirements are
 specified in [CLI action selectors](./dashboard-language-selectors.md).
 Selectors do not grant command or lookup authority. No canvas search server is
@@ -1853,7 +1857,7 @@ encoding:
 
 The grouped example stacks daily AI Credit totals by workflow. Area charts accept the standard chart `data`, `layout`, `title`, `description`, `empty-message`, `x`, `y`, `color`, `href`, formatting, unit, and aggregation declarations. They reject nominal or quantitative `x`, non-quantitative `y`, multiple `y` fields, and `reference`, consistently with the equivalent chart validation rules.
 
-A view may set the structural `layout` hint to `full`, `full-view`, `half`, `third`, or `horizontal`. `full-view` requests the full available row and viewport height; `horizontal` requests adjacent title and visualization regions; the other values describe the preferred share of an available row, not fixed dimensions. Presenters **MAY** collapse every hint to `full` when space, accessibility, or output media requires it; source order remains the reading and focus order.
+A view may set the structural `layout` hint to `full`, `full-view`, `half`, `third`, or `horizontal`. `full-view` requests the full available row and viewport height; pinned full-view tables and card lists use the available content width without outer page or view gutters, retaining internal cell and card padding. `horizontal` requests adjacent title and visualization regions; the other values describe the preferred share of an available row, not fixed dimensions. Presenters **MAY** collapse every hint to `full` when space, accessibility, or output media requires it; source order remains the reading and focus order.
 
 The dashboard web presenter places explicit `full` pie-chart titles above their visualization without an additional padded card, keeping their heading insets consistent with other full-width charts. `horizontal` retains the adjacent title and visualization card.
 

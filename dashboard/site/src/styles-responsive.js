@@ -120,9 +120,10 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .dashboard-root.dashboard-full-view-scrolled .org-sidebar { max-height: 0; overflow: hidden; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border-color: transparent; opacity: 0; visibility: hidden; pointer-events: none; transition: max-height 200ms ease, padding 200ms ease, opacity 160ms ease, border-color 200ms ease, visibility 0s linear 200ms; }
   /* Let the viewport-height navigation drawer escape the full-view header's clipping.
      The collapse-on-scroll state keeps its clip because the menu collapses with the header. */
-  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled) .org-sidebar:has(.mobile-nav-menu[open]) { overflow: visible; }
-  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(.mobile-nav-menu[open]), .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(.mobile-nav-menu[open]) .app-shell { overflow: visible; }
+  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled) .org-sidebar:has(:is(.mobile-nav-menu, .cli-actions-add-menu)[open]) { overflow: visible; }
+  .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(:is(.mobile-nav-menu, .cli-actions-add-menu)[open]), .dashboard-root.dashboard-full-view:not(.dashboard-full-view-scrolled):has(:is(.mobile-nav-menu, .cli-actions-add-menu)[open]) .app-shell { overflow: visible; }
   .sidebar-header { position: relative; margin: 0 0 8px; }
+  .sidebar-header > .cli-actions-add-menu > .cli-actions-toggle { min-height: 44px; padding: 8px; }
   .mobile-history-back:not([hidden]) { width: 44px; height: 44px; display: grid; flex: 0 0 44px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--fg); cursor: pointer; }
   .mobile-history-back:hover { background: var(--neutral-muted); }
   .mobile-history-back-icon { width: 28px; height: 28px; flex-basis: 28px; }
@@ -137,6 +138,7 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-page-header .overview-header .lede { height: 0; min-height: 0; margin: 0; overflow: hidden; line-height: 0; visibility: hidden; }
   .dashboard-root:has(.command-terminal) .mobile-page-header .overview-header .lede { height: auto; min-height: 1.25rem; margin-top: 3px; line-height: 1.25rem; visibility: visible; }
   .mobile-page-header .overview-header .title-area { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  [data-page-help] .tooltip-trigger { width: 44px; height: 44px; }
   .mobile-page-header .overview-header h1 { margin: 0; overflow: hidden; color: var(--fg); font-size: 1rem; font-weight: 600; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-view-mode-toggle:not([hidden]) { width: 44px; height: 44px; display: grid; flex: 0 0 44px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--canvas-subtle); color: var(--fg); cursor: pointer; }
   .mobile-view-mode-toggle:hover { background: var(--neutral-muted); }
@@ -228,13 +230,14 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .app-main:has(.dashboard-overview-page:not([hidden])) { min-height: 100vh; min-height: 100dvh; }
   .dashboard-full-view .app-main { height: 100%; min-height: 0; overflow: hidden; }
   main.dashboard-prototype { overflow: visible; overflow-x: clip; padding: var(--dashboard-mobile-page-padding-top) var(--dashboard-page-padding-inline) var(--dashboard-mobile-page-padding-bottom); }
-  .dashboard-full-view main.dashboard-prototype { padding: 0 var(--dashboard-page-padding-inline); }
+  .dashboard-full-view main.dashboard-prototype { padding: 0; }
   main.dashboard-prototype:has(.dashboard-overview-page:not([hidden])) { padding: 0; }
   .dashboard-full-view .custom-view-grid > .custom-view { padding-inline: var(--dashboard-page-padding-inline); }
   .dashboard-full-view .custom-view-grid > .chart-view-swimlane { padding-bottom: 12px; }
-  .dashboard-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid { margin-inline: calc(-1 * var(--dashboard-page-padding-inline)); }
+  .dashboard-root:not(.dashboard-full-view) .dashboard-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid { margin-inline: calc(-1 * var(--dashboard-page-padding-inline)); }
   .dashboard-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid > .custom-view { padding-inline: 0; }
   .campaign-insights-page:is([data-view-mode="table"], [data-view-mode="card"]) > .custom-view-grid > .custom-view { padding-inline: var(--dashboard-page-padding-inline); }
+  .dashboard-full-view .custom-view-grid > .custom-view[data-view-layout="full-view"] { padding-inline: 0; }
   .data-state-summary, .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .layout-section[data-section-layout="wide"], .layout-section[data-section-layout="narrow"] { grid-column: span 12; }
   .custom-view[data-view-layout="half"], .custom-view[data-view-layout="third"] { grid-column: span 12; }

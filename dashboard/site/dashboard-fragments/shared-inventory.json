@@ -1192,16 +1192,6 @@
       ]
     },
     {
-      "name": "maintenance-campaign-sweep",
-      "subject": "All installed campaign packages with exact retained upstream coordinates.",
-      "objective": "Let gh-aw refresh every sourced package without requiring cached update or revision evidence.",
-      "acceptance": "Exclude absent or unknown source coordinates, preserve package identities, and return the complete ordered target set without pagination or limits.",
-      "from": "maintenance-campaign-packages",
-      "filter": { "predicates": [{ "field": "campaign-source-unavailable", "equals": false }] },
-      "select": [{ "field": "campaign-source" }, { "field": "campaign-name" }],
-      "order-by": [{ "field": "campaign-name", "direction": "asc" }, { "field": "campaign-source", "direction": "asc" }]
-    },
-    {
       "name": "maintenance-workflow-operation-flags",
       "subject": "Retained workflow repository identities.",
       "objective": "Exclude the upstream gh-aw repository from operational workflow targets.",
@@ -1402,16 +1392,6 @@
       "acceptance": "Return only exact .md suffix identities from canonical workflow evidence.",
       "from": "maintenance-workflow-identities",
       "filter": { "predicates": [{ "field": "workflow-is-markdown", "equals": true }] },
-      "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
-    },
-    {
-      "name": "maintenance-workflow-sweep",
-      "subject": "All source-managed Markdown workflows with retained upstream coordinates.",
-      "objective": "Let gh-aw refresh exact workflow targets without requiring cached update or revision evidence.",
-      "acceptance": "Exclude local, registry and unknown-source workflows, preserve exact canonical repository and workflow identities, and return every target without pagination or limits.",
-      "from": "maintenance-workflows",
-      "filter": { "predicates": [{ "field": "workflow-source-kind", "equals": "source-managed" }, { "field": "workflow-source-unavailable", "equals": false }] },
-      "select": [{ "field": "workflow" }, { "field": "repository-coordinate" }],
       "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
     },
     {
@@ -1641,6 +1621,7 @@
             { "field": "repository-coordinate" }
           ]
         },
+        { "as": "repository-link", "function": "link", "args": [{ "field": "repository-url" }, { "field": "repository-coordinate" }] },
         {
           "as": "should-upgrade",
           "function": "equals-any",
@@ -1845,6 +1826,7 @@
         {
           "field": "repository-url"
         },
+        { "field": "repository-link" },
         {
           "field": "gh-aw-version-label",
           "as": "gh-aw-version"

@@ -317,6 +317,17 @@ describe('declarative external dialog selector', () => {
     expect(validateDashboardDocument(JSON.stringify(invalid)).ok).toBe(false);
   });
 
+  it('permits executable toolbar selectors but rejects row, settings, and copy-only selectors', () => {
+    for (const placement of ['toolbar', 'view', 'row', 'settings']) {
+      const document = structuredClone(authoritativeDashboard);
+      const declaration = document.dashboard['cli-actions'].find((/** @type {{ id: string }} */ candidate) => candidate.id === action.id);
+      declaration.placement = placement;
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(['toolbar', 'view'].includes(placement));
+      declaration['copy-only'] = true;
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    }
+  });
+
   it('rejects missing, duplicate, and non-view action references', () => {
     validationState.declaredCliActions = new Map(authoritativeDashboard.dashboard['cli-actions'].map(
       (/** @type {{ id: string }} */ action) => [action.id, action]));

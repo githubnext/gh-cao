@@ -4552,7 +4552,11 @@ describe('presenter built-in and custom pages', () => {
                 encoding: { value: { field: 'run', aggregate: 'count' } }
               }]
             },
-            { id: 'second', kind: /** @type {'custom'} */ ('custom'), title: 'Second', description: 'Second page description', experimental: true, views: [] }
+            {
+              id: 'second', kind: /** @type {'custom'} */ ('custom'), title: 'Second',
+              description: 'Second page description', experimental: true, views: [],
+              tooltip: { label: 'About the second page', description: 'Explanatory help for the second page.' }
+            }
           ]
         }
       },
@@ -4594,6 +4598,7 @@ describe('presenter built-in and custom pages', () => {
     expect(rendered.querySelector('#page-title')?.textContent).toBe('First');
     expect(rendered.querySelector('[data-breadcrumb-page]')?.textContent).toBe('First');
     expect(rendered.querySelector('[data-page-description]')?.textContent).toBe('First page description');
+    expect(/** @type {HTMLElement} */ (rendered.querySelector('[data-page-help]')).hidden).toBe(true);
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(true);
     expect(rendered.ownerDocument.title).toBe('First · Page Navigation');
     first.dispatchEvent(new CustomEvent('dashboard-route-allocation', {
@@ -4635,6 +4640,10 @@ describe('presenter built-in and custom pages', () => {
     expect(rendered.querySelector('#page-title')?.textContent).toBe('Canonical second');
     expect(rendered.querySelector('[data-breadcrumb-page]')?.textContent).toBe('Canonical second');
     expect(rendered.querySelector('[data-page-description]')?.textContent).toBe('Canonical second description');
+    const help = rendered.querySelector('[data-page-help] .tooltip-trigger');
+    expect(help?.getAttribute('aria-label')).toBe('About the second page');
+    expect(help?.getAttribute('aria-describedby')).toBe('page-help-tooltip');
+    expect(rendered.querySelector('#page-help-tooltip')?.textContent).toBe('Explanatory help for the second page.');
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(false);
     const experimentalBadge = rendered.querySelector('.title-area [data-page-experimental]');
     expect(experimentalBadge?.getAttribute('aria-label')).toBe('Experimental');
@@ -4651,12 +4660,15 @@ describe('presenter built-in and custom pages', () => {
     expect(renderedSecond.hasAttribute('data-page-pending')).toBe(false);
     expect(renderedSecond.hasAttribute('aria-busy')).toBe(false);
     expect(renderedSecond.dataset.pageExperimental).toBe('true');
+    expect(rendered.querySelector('[data-page-help] .tooltip-trigger')).toBe(help);
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(false);
     expect(rendered.querySelector('#page-title')?.textContent).toBe('Canonical second');
     expect(rendered.querySelector('[data-page-description]')?.textContent).toBe('Canonical second description');
 
     pageScroller.scrollTop = 80;
     firstLink.click();
+    expect(/** @type {HTMLElement} */ (rendered.querySelector('[data-page-help]')).hidden).toBe(true);
+    expect(rendered.querySelector('#page-help-tooltip')).toBeNull();
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(true);
 
     expect(renderedSecond.hasAttribute('data-page-pending')).toBe(true);

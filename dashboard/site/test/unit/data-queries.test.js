@@ -730,6 +730,7 @@ describe('declarative dashboard queries', () => {
       {
         repository: 'acme/current',
         'repository-url': 'https://github.com/acme/current',
+        'repository-link': { href: 'https://github.com/acme/current', label: 'acme/current' },
         'gh-aw-version': 'v0.89.0',
         'gh-aw-current-version': 'v0.89.0',
         'upgrade-required': 0,
@@ -740,6 +741,7 @@ describe('declarative dashboard queries', () => {
       {
         repository: 'acme/service',
         'repository-url': 'https://github.com/acme/service',
+        'repository-link': { href: 'https://github.com/acme/service', label: 'acme/service' },
         'gh-aw-version': 'v0.88.0, v0.89.0',
         'gh-aw-current-version': 'v0.89.0',
         'upgrade-required': 1,
@@ -750,6 +752,7 @@ describe('declarative dashboard queries', () => {
       {
         repository: 'acme/unknown',
         'repository-url': 'https://github.com/acme/unknown',
+        'repository-link': { href: 'https://github.com/acme/unknown', label: 'acme/unknown' },
         'gh-aw-version': 'unknown',
         'gh-aw-current-version': 'unknown',
         'upgrade-required': 0,
