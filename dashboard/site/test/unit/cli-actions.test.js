@@ -738,12 +738,14 @@ describe('CLI actions', () => {
     expect(root.querySelector('.cli-action-command')?.textContent)
       .toBe('gh aw compile --strict --pre-releases');
 
+    window.location.hash = 'page-maintenance?repository=octo%2Fapp';
     confirm.click();
     await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledTimes(1));
     expect(queue.enqueue.mock.calls[0][0]).toEqual({
       id: 'compile-workflows',
       arguments: { 'pre-releases': true },
-      idempotencyKey: expect.any(String)
+      idempotencyKey: expect.any(String),
+      origin: '#page-maintenance?repository=octo%2Fapp'
     });
     await vi.waitFor(() => expect(root.querySelector('.cli-action-dialog')?.hasAttribute('open')).toBe(false));
     expect(window.location.hash).not.toContain('page-command');

@@ -23,9 +23,10 @@ describe('worker command queue', () => {
     });
   });
 
-  it('declares full-view command output with Commands as its Back navigation parent', () => {
+  it('declares full-view command output with Commands as its Back navigation parent but no breadcrumb', () => {
+    expect(commands.pages[1].title).toBe('Command');
     expect(commands.pages[1].route).toEqual({
-      'hash-query-parameter': 'command', 'navigation-page': 'commands'
+      'hash-query-parameter': 'command', 'navigation-page': 'commands', breadcrumbs: [{ page: 'command' }]
     });
     expect(commands.pages[1].views[0]).toMatchObject({
       id: 'command-terminal', element: 'command-terminal', layout: 'full-view'

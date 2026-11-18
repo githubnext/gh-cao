@@ -277,6 +277,11 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .cli-action-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--border); background: var(--canvas-subtle); }
 .cli-action-dialog-header h2 { margin: 0; font-size: 1rem; }
 .command-terminal { position: relative; min-height: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.command-terminal-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--canvas-subtle); }
+.command-terminal-command { min-width: 0; flex: 1 1 320px; margin: 0; }
+.command-terminal-command[hidden], .command-terminal-origin[hidden] { display: none; }
+.command-terminal-command-text { display: block; overflow-wrap: anywhere; white-space: pre-wrap; font: .8125rem/1.5 var(--font-mono); color: var(--fg); }
+.command-terminal-origin { min-height: 44px; flex: 0 0 auto; text-decoration: none; }
 .command-terminal > .cli-action-dialog-body { min-height: 0; flex: 1; padding: 0; overflow: hidden; }
 .command-terminal .cli-action-terminal-output { min-height: 0; height: 100%; }
 .command-terminal .cli-action-terminal { min-height: 0; height: 100%; border: 0; border-radius: 0; }

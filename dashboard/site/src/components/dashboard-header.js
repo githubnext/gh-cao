@@ -55,7 +55,8 @@ export function renderRouteBreadcrumbs(options) {
         href: `#page-${encodeURIComponent(breadcrumb.page)}${query ? `?${query}` : ''}`
       }, formattedLabel));
   }
-  return nodes;
+  // An active-only chain would just repeat the page heading.
+  return nodes.some(node => node instanceof HTMLAnchorElement) ? nodes : [];
 }
 
 /**

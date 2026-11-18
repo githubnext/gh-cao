@@ -52,6 +52,12 @@ describe('declared route breadcrumbs', () => {
     expect(nodes[2].textContent).toBe('one/a?b#c');
   });
 
+  it('omits a chain that resolves to the active page alone', () => {
+    expect(renderRouteBreadcrumbs({
+      breadcrumbs: [{ page: 'repository' }], pages, activePage: 'repository', parameters: new URLSearchParams()
+    })).toEqual([]);
+  });
+
   it('stops at the first missing route binding and fails explicitly for an unknown page', () => {
     expect(renderRouteBreadcrumbs({
       breadcrumbs, pages, activePage: 'repository',

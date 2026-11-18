@@ -7,6 +7,7 @@ import { createFactoryScope } from './factory-elements.js';
 import { effect, state } from '../reactive.js';
 import { assertActionLevel, normalizeAction, actionPresentation } from '../action-model.js';
 import { createDialogSelector } from './dialog-selector.js';
+import { currentCommandOrigin } from '../command-origin.js';
 import { enqueueCliCommand, attachCliCommand, cliQueueAvailable, subscribeCanonicalDashboardView } from '../data-processor.js';
 import { publishNotification } from '../notification-service.js';
 
@@ -72,6 +73,8 @@ async function executeAction(id, argumentsValue, templateValues, onOutput, input
   const payload = { id, arguments: argumentsValue, idempotencyKey: crypto.randomUUID() };
   if (Object.keys(templateValues).length > 0) payload.values = templateValues;
   if (input !== undefined) payload.input = input;
+  const origin = currentCommandOrigin();
+  if (origin) payload.origin = origin;
   const command = await enqueueCliCommand(payload, signal);
   const complete = await attachCliCommand(command.id, (event) => {
     if (event.type === 'status') return;
@@ -298,11 +301,13 @@ function renderCliActionControl(action, options = {}) {
     if (busy.get() || commandError) return;
     busy.set(true);
     try {
+      const origin = currentCommandOrigin();
       const results = await Promise.allSettled(templateTargets.map((values) => enqueueCliCommand({
         id: action.id,
         arguments: { ...argumentValues },
         values,
-        idempotencyKey: crypto.randomUUID()
+        idempotencyKey: crypto.randomUUID(),
+        ...(origin ? { origin } : {})
       }, scope.signal)));
       if (scope.signal.aborted) return;
       const admitted = results.filter((result) => result.status === 'fulfilled').length;
@@ -341,11 +346,13 @@ function renderCliActionControl(action, options = {}) {
         statusText.set('Queuing command…');
         debugCliActions({ event: 'execute-started', actionId: action.id });
         try {
+          const origin = currentCommandOrigin();
           const command = await enqueueCliCommand({
             id: action.id,
             arguments: { ...argumentValues },
             ...(Object.keys(templateValues).length ? { values: { ...templateValues } } : {}),
-            idempotencyKey: crypto.randomUUID()
+            idempotencyKey: crypto.randomUUID(),
+            ...(origin ? { origin } : {})
           }, scope.signal);
           if (scope.signal.aborted) return;
           enqueued.set(true);

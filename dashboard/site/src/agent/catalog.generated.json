@@ -32,7 +32,7 @@
     },
     {
       "id": "command",
-      "title": "Command output",
+      "title": "Command",
       "description": "Decide whether the selected command needs an explicit retry.",
       "intent": "Inspect the selected command's execution and retained output before deciding whether to retry.",
       "subject": "One command selected by the command route parameter.",

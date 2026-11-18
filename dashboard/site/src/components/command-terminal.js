@@ -7,6 +7,7 @@ import { createCliTerminal } from './cli-terminal.js';
 import { copyTextToClipboard } from './ui-primitives.js';
 import { publishNotification } from '../notification-service.js';
 import { createDebug, diagnosticErrorName } from '../debug.js';
+import { commandOriginRoute } from '../command-origin.js';
 
 const debugCommandTerminal = createDebug('command-terminal');
 
@@ -15,7 +16,8 @@ export function renderCommandTerminal(context) {
   const scope = createFactoryScope();
   const id = context.routeParameters?.command;
   const message = state('Loading command…');
-  const title = state(context.title);
+  const commandText = state('');
+  const origin = state('');
   const status = state('');
   const busy = state(false);
   const pullRequestUrl = state('');
@@ -47,7 +49,8 @@ export function renderCommandTerminal(context) {
       if (controller.signal.aborted) return;
       status.set(command.status);
       pullRequestUrl.set(command.result?.pullRequestUrl || '');
-      title.set(command.command || context.title);
+      commandText.set(typeof command.command === 'string' ? command.command : '');
+      origin.set(commandOriginRoute(command.origin));
       message.set(`${command.id} · ${command.status}`);
       terminalPromise ??= createCliTerminal(scope.signal).catch((error) => {
         terminalPromise = undefined;
@@ -123,11 +126,18 @@ export function renderCommandTerminal(context) {
     }
   }, 'Retry command');
   const pullRequest = h('a', {
-    className: 'cli-action-confirm', target: '_blank', rel: 'noopener noreferrer'
+    className: 'cli-action-confirm command-terminal-pull-request', target: '_blank', rel: 'noopener noreferrer'
   }, 'Open pull request');
   const actions = h('div', { className: 'command-terminal-actions' }, pullRequest, copy, retry);
+  const commandCode = h('code', { className: 'command-terminal-command-text' });
+  const commandLine = h('p', { className: 'command-terminal-command', hidden: true },
+    h('span', { className: 'sr-only' }, 'Command: '), commandCode);
+  const originLink = h('a', { className: 'cli-action-cancel command-terminal-origin', hidden: true },
+    octicon('arrow-left'), 'Back to origin');
+  const header = h('div', { className: 'command-terminal-header' }, commandLine, originLink);
   const root = h('section', { className: 'command-terminal', 'aria-label': 'Command console log' },
     statusNode,
+    header,
     h('div', { className: 'cli-action-dialog-body' }, output),
     actions
   );
@@ -135,8 +145,20 @@ export function renderCommandTerminal(context) {
     statusNode.textContent = message.get();
     root.dispatchEvent(new CustomEvent('dashboard-route-allocation', {
       bubbles: true,
-      detail: { title: title.get(), description: message.get() }
+      detail: { description: message.get() }
     }));
+    const text = commandText.get();
+    commandCode.textContent = text;
+    commandLine.hidden = !text;
+    const route = origin.get();
+    originLink.hidden = !route;
+    if (route) {
+      originLink.setAttribute('href', route);
+      originLink.setAttribute('title', `Return to ${route}`);
+    } else {
+      originLink.removeAttribute('href');
+      originLink.removeAttribute('title');
+    }
     retry.hidden = !['failed', 'timed-out'].includes(status.get());
     const url = pullRequestUrl.get();
     pullRequest.hidden = !url;
