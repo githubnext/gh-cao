@@ -30,6 +30,9 @@ test("the browser enterprise sample streams exactly 5,000 distinct runs in bound
   const repositories = new Map();
   const earlyCoverage = new Set();
   const blockedDomains = new Set();
+  const approvedDomains = new Set();
+  const mcpTools = new Set();
+  const mcpServers = new Set();
   let firstBatchRepositories;
   let runs = 0;
   for (const batch of enterpriseActivityBatches(now)) {
@@ -44,6 +47,12 @@ test("the browser enterprise sample streams exactly 5,000 distinct runs in bound
       if (Date.parse(run.started_at) >= now - 7 * 86_400_000) {
         for (const [domain, requests] of Object.entries(run.firewall_analysis.requests_by_domain)) {
           if (requests.blocked > 0) blockedDomains.add(domain);
+          if (requests.allowed > 0) approvedDomains.add(domain);
+        }
+        for (const call of run.mcp_tool_usage.tool_calls) {
+          if (call.server_name === "bash") continue;
+          mcpTools.add(call.tool_name);
+          mcpServers.add(call.server_name);
         }
       }
     }
@@ -58,6 +67,12 @@ test("the browser enterprise sample streams exactly 5,000 distinct runs in bound
   assert.equal(blockedDomains.size, 128, "the retained firewall window includes all blocked-domain samples");
   assert.deepEqual(blockedDomains, new Set(enterpriseBlockedDomains));
   assert.ok([...blockedDomains].every(domain => domain.endsWith(".invalid")));
+  assert.ok(approvedDomains.size >= 8, "retained sessions cover varied public approved domains");
+  assert.ok(approvedDomains.has("packagefeedproxy.microsoft.io"));
+  assert.ok(approvedDomains.has("proxy.golang.org"));
+  assert.ok(mcpTools.size >= 15, "retained sessions cover varied MCP tool names");
+  assert.ok(mcpTools.has("issue_read") && mcpTools.has("actions_list") && mcpTools.has("pull_request_read"));
+  assert.deepEqual(mcpServers, new Set(["github", "agenticworkflows"]));
   const counts = [...repositories.values()].toSorted((left, right) => right - left);
   const topDecile = counts.slice(0, 100).reduce((sum, count) => sum + count, 0) / runs;
   assert.ok(topDecile > 0.3 && topDecile < 0.75, "a busy minority, not a uniform fleet or a single-repository monopoly");
@@ -78,6 +93,7 @@ test("repository names use four safe words with a collision-free 32-bit naming s
   const positions = Array.from({ length: 4 }, () => new Set());
   for (let index = 0; index < 65_536; index++) {
     const repository = enterpriseRepository(index);
+    assert.ok(repository.startsWith("contoso/"));
     names.add(repository);
     const words = repository.split("/")[1].split("-");
     assert.equal(words.length, 4);
@@ -373,6 +389,13 @@ test("unified demo telemetry survives canonical ingestion with exact run account
   }
   const domains = await readCollection(indexedDB, "domains");
   assert.ok(domains.some(row => row.type === "firewall.http_access" && row.responseBytes > 0 && row.latencyMs > 0));
+  assert.deepEqual(new Set(domains.filter(row => row.decision === "allowed").map(row => row.domain)),
+    new Set(records.flatMap(({ run }) => Object.entries(run.firewall_analysis.requests_by_domain)
+      .filter(([, counts]) => counts.allowed > 0).map(([domain]) => domain))));
+  const tools = await readCollection(indexedDB, "tools");
+  assert.deepEqual(new Set(tools.filter(row => row.mcpServer).map(row => `${row.mcpServer}/${row.mcpTool}`)),
+    new Set(records.flatMap(({ run }) => run.mcp_tool_usage.tool_calls
+      .filter(call => call.server_name !== "bash").map(call => `${call.server_name}/${call.tool_name}`))));
 });
 
 test("rebuilding the enterprise sample does not duplicate daily Value observations", async () => {
@@ -523,7 +546,7 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   }
   assert.equal(sample.memory.length, 3);
   assert.ok(runs.some(run => run.conclusion === "failure"));
-  assert.ok(runs.every(run => run.id.includes("sample-enterprise/")));
+  assert.ok(runs.every(run => run.id.includes("contoso/")));
   const tools = await readCollection(indexedDB, "tools");
   assert.ok(tools.length > 0);
   assert.ok(tools.some(record => !isExpiredCanonicalRecord("tools", record, { now: now + 60_000 })));

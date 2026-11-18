@@ -442,6 +442,7 @@ canonical ingestion, Dashboard Language queries, and shared declarative views.
 Generation and writes SHALL be bounded rather than retaining the enterprise
 population in memory. The default sample SHALL contain 1,000 repositories,
 exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories.
+The synthetic organization SHALL be `contoso` across repository, catalog, and run identities.
 Repository names SHALL consist of four hyphen-separated words from a predefined
 256-word safe vocabulary. A deterministic bijection over unsigned 32-bit indices
 SHALL select the four word positions without collisions: a 32-bit naming space,
@@ -470,6 +471,9 @@ blocked domains under the reserved `.invalid` namespace within retained firewall
 evidence. A deterministic coverage cohort SHALL reserve one run three days before
 the sample day for each of 128 domains, distributed across repositories and workflow
 archetypes; other blocked activity SHALL remain probabilistic.
+Retained sessions SHALL also include at least eight distinct public approved domains
+and 15 distinct MCP tool names across GitHub and workflow-observability servers,
+using public identifiers informed by bounded live evidence and illustrative request volumes.
 Network request volume SHALL scale with generated tool activity and bounded
 background traffic. Value throughput SHALL use the allocated workflow run rate,
 not an independent per-repository activity multiplier, so detail volume remains
