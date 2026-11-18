@@ -2590,6 +2590,66 @@
       }
     },
     {
+      "id": "maintenance-repository-upgrade-options",
+      "subject": "List observed upgrade states for the repository maintenance Update filter.",
+      "objective": "Narrow repositories to those with an available compiler update, current compilers, or unavailable evidence.",
+      "acceptance": "Return distinct upgrade-state values in ascending order; unavailable evidence remains distinct from Current.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-workflow-state-options",
+      "subject": "List observed Agentic Workflow enablement states for the repository maintenance State filter.",
+      "objective": "Narrow repositories to those with enabled, disabled, or unknown Agentic Workflow registration.",
+      "acceptance": "Return distinct workflow-state values in ascending order; Unknown remains distinct from Enabled and Disabled.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories",
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "maintenance-repository-version-options",
+      "subject": "List observed installed gh-aw compiler version labels for the repository maintenance Version filter.",
+      "objective": "Narrow repositories to an exact installed compiler version label.",
+      "acceptance": "Return distinct installed gh-aw-version labels in descending order; mixed version lists and unknown remain distinct labels.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "maintenance-repositories"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "repositories",
+          "workflows"
+        ]
+      }
+    },
+    {
       "id": "maintenance-campaign-updates",
       "subject": "Expose at most one CAO package update row for the Updates navigation indicator.",
       "objective": "Determine whether retained campaign metadata contains an update-available signal for the Updates indicator.",

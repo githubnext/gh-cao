@@ -18,6 +18,18 @@ Build dashboard experiences declaratively first. Use JavaScript only for interac
 5. Add a named UI element only when the experience requires reusable interaction or presentation that the declarative vocabulary cannot represent. Record a concise `intent` and declare every source it consumes.
 6. Do not infer specialized behavior from page IDs, view IDs, source names, or source contents.
 
+## Filters on full-view lazy lists
+
+Full-view lazy card lists (`mark: list` with `list.style: entity-cards`, or `mark: table` with `encoding.card`, plus `lazy-list: true` and `layout: full-view`) get dropdown filters from the view-level `filter-bar` object (spec §11, DLS-VIEW-031–034). It is JSON-only: the presenter, worker, and Go query engine already compile selections into exact `in` predicates (OR within a field, AND across fields) before pagination. Do not add presenter callbacks or JavaScript row filtering. The page-level Boolean `filter-bar` is the unrelated global horizon/rollout bar.
+
+1. **Expose each filter field on the view source.** In `dashboard.queries`, compute every filterable value as a stable, human-readable label and `select` it, such as `Enabled`/`Disabled`/`Unknown`. Keep missing evidence as a distinct `Unknown`-style value; never coerce it into a known state. Derive per-entity flags from child rows with aggregate-local filters, for example `{ "field": "workflow", "as": "enabled-workflow-count", "reducer": "count", "filter": { "predicates": [{ "field": "workflow-active", "equals": "true" }] } }`. Then `coalesce` the counts after left joins and use `if` to compute the label.
+2. **Declare one option query per filter.** It reads `from` the view source, aggregates `by` the filter field with a `count` value, and declares `order-by`. Options must come from the same rows and labels as the view, so every option matches at least one row exactly. Joined `distinct-list` values, such as `v1, v2`, are separate options.
+3. **Declare the view `filter-bar`.** Add `filters` in display order. Give each filter a unique `id`, a `label`, and `groups` containing `{ label, field, source, value-field }`. Add `label-field` only when display text differs from the value. Each `field` may appear once per view.
+4. **Show the field on the card.** Add it to `encoding.columns`, and add it to the card template's `labels` or `details` in `dashboard.json`, so users can see why a card matched.
+5. **Test and regenerate.** Extend the query test in `dashboard/site/test/unit/data-queries.test.js` with view rows and the option-source values. Assert the `filter-bar` field mapping in the page's view test. Run `npm run generate:agent-catalog` from the repository root, then run `npm run lint`, `npm run typecheck`, and `npm run validate:corpus` from `dashboard/site/`.
+
+Example: the Repository maintenance (`#page-maintenance`) view filters `upgrade-state`, `workflow-state`, and `gh-aw-version` through the `maintenance-repository-*-options` queries.
+
 ## Named UI elements
 
 - Register elements in `dashboard/site/src/components/ui-elements.js` and render only from the supplied `ElementRenderContext`.

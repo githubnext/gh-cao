@@ -671,6 +671,7 @@ describe('declarative dashboard queries', () => {
           organization: 'acme',
           repository: 'service',
           workflow: 'a.md',
+          'workflow-active': 'true',
           'gh-aw-version': 'v0.88.0',
           'gh-aw-current-version': 'v0.89.0',
           'gh-aw-update-state': 'update-available'
@@ -679,6 +680,7 @@ describe('declarative dashboard queries', () => {
           organization: 'acme',
           repository: 'service',
           workflow: 'b.md',
+          'workflow-active': 'false',
           'gh-aw-version': 'v0.89.0',
           'gh-aw-current-version': 'v0.89.0',
           'gh-aw-update-state': 'current'
@@ -687,6 +689,7 @@ describe('declarative dashboard queries', () => {
           organization: 'acme',
           repository: 'current',
           workflow: 'c.md',
+          'workflow-active': 'false',
           'gh-aw-version': 'v0.89.0',
           'gh-aw-current-version': 'v0.89.0',
           'gh-aw-update-state': 'current'
@@ -695,6 +698,7 @@ describe('declarative dashboard queries', () => {
           organization: 'acme',
           repository: 'current',
           workflow: 'ci.yml',
+          'workflow-active': 'true',
           'gh-aw-version': null,
           'gh-aw-current-version': null,
           'gh-aw-update-state': 'unknown'
@@ -723,7 +727,12 @@ describe('declarative dashboard queries', () => {
         },
         workflows: compilerWorkflows
       },
-      ['maintenance-repositories']
+      [
+        'maintenance-repositories',
+        'maintenance-repository-upgrade-options',
+        'maintenance-repository-workflow-state-options',
+        'maintenance-repository-version-options'
+      ]
     );
 
     expect(result['maintenance-repositories'].rows).toEqual([
@@ -736,7 +745,8 @@ describe('declarative dashboard queries', () => {
         'upgrade-required': 0,
         'upgrade-action-visible': false,
         'upgrade-state': 'Current',
-        'upgrade-status-reason': 'All retained workflow compiler versions match the latest stable gh-aw release.'
+        'upgrade-status-reason': 'All retained workflow compiler versions match the latest stable gh-aw release.',
+        'workflow-state': 'Disabled'
       },
       {
         repository: 'acme/service',
@@ -747,7 +757,8 @@ describe('declarative dashboard queries', () => {
         'upgrade-required': 1,
         'upgrade-action-visible': true,
         'upgrade-state': 'Upgrade recommended',
-        'upgrade-status-reason': 'Mixed installed gh-aw compiler versions were retained; at least one upgrade is recommended.'
+        'upgrade-status-reason': 'Mixed installed gh-aw compiler versions were retained; at least one upgrade is recommended.',
+        'workflow-state': 'Enabled'
       },
       {
         repository: 'acme/unknown',
@@ -758,9 +769,16 @@ describe('declarative dashboard queries', () => {
         'upgrade-required': 0,
         'upgrade-action-visible': false,
         'upgrade-state': 'Upgrade status unavailable',
-        'upgrade-status-reason': 'Installed compiler version and latest stable gh-aw release are unavailable.'
+        'upgrade-status-reason': 'Installed compiler version and latest stable gh-aw release are unavailable.',
+        'workflow-state': 'Unknown'
       }
     ]);
+    expect(result['maintenance-repository-upgrade-options'].rows.map((row) => row['upgrade-state']))
+      .toEqual(['Current', 'Upgrade recommended', 'Upgrade status unavailable']);
+    expect(result['maintenance-repository-workflow-state-options'].rows.map((row) => row['workflow-state']))
+      .toEqual(['Disabled', 'Enabled', 'Unknown']);
+    expect(result['maintenance-repository-version-options'].rows.map((row) => row['gh-aw-version']))
+      .toEqual(['v0.89.0', 'v0.88.0, v0.89.0', 'unknown']);
   });
 
   it('derives workflow maintenance enablement state and filter options from registry evidence', () => {

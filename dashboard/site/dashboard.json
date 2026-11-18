@@ -1057,6 +1057,11 @@
             "field": "upgrade-state",
             "title": "Upgrade",
             "display": "status"
+          },
+          {
+            "field": "workflow-state",
+            "title": "Agentic Workflows",
+            "display": "status"
           }
         ]
       }
