@@ -6,7 +6,7 @@ import { parseUnifiedSessionDocument } from "../adapters/unified-session.js";
 import { operationalValueEvidenceId } from "../model/operational-value-evidence.js";
 import { VALUE_COLLECTION_REASONS, workflowValueCollectionId } from "../model/workflow-value-collection.js";
 
-const owner = "sample-enterprise";
+const owner = "contoso";
 export const enterpriseRepositoryVocabulary = Object.freeze(`
 acorn alder almond amber anchor apple apricot arch aspen aster atlas autumn bamboo banana barley basin
 basket bay beacon bean beech bell berry birch biscuit blossom bluebonnet blueberry board book bottle boulder
@@ -27,6 +27,29 @@ satin sea seed shell shore silk sky slate snow spruce star stone summit sunflowe
 `.trim().split(/\s+/));
 export const enterpriseBlockedDomains = Object.freeze(enterpriseRepositoryVocabulary.slice(0, 128)
   .map(word => `unapproved-${word}.example.invalid`));
+// Public identifiers observed in bounded live usage; volumes remain illustrative.
+const approvedDomains = [
+  ["api.githubcopilot.com", 2],
+  ["github.com", 0.6],
+  ["packagefeedproxy.microsoft.io", 1.5],
+  ["proxy.golang.org", 1],
+  ["sum.golang.org", 0.5],
+  ["storage.googleapis.com", 0.2],
+];
+const observedMcpTools = [
+  ["github", "issue_read"],
+  ["github", "pull_request_read"],
+  ["github", "search_repositories"],
+  ["github", "actions_list"],
+  ["github", "actions_get"],
+  ["github", "get_commit"],
+  ["github", "list_commits"],
+  ["github", "list_pull_requests"],
+  ["github", "get_job_logs"],
+  ["github", "get_global_security_advisory"],
+  ["agenticworkflows", "health"],
+  ["agenticworkflows", "audit"],
+];
 const catalog = `${owner}/automation-catalog`;
 const dayMs = 86_400_000;
 const runHistoryDays = 21;
@@ -80,7 +103,9 @@ const campaigns = [
 
 // Keyed streams keep repository traits and run samples reproducible across rebuilds.
 function distributionFor(key) {
-  const digest = sha(`enterprise-distributions-v1:${key}`);
+  // Keep the established workload distributions independent of the display rename.
+  const seed = key.replaceAll(`${owner}/`, "sample-enterprise/");
+  const digest = sha(`enterprise-distributions-v1:${seed}`);
   let state = Number.parseInt(digest.slice(0, 8).match(/../g).reverse().join(""), 16);
   const random = () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -273,14 +298,18 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     ["tool_error", 0.5], ["rate_limit", incident ? 0.4 : 0.15], ["validation_error", 0.25],
   ]);
   const toolCount = Math.min(24, sample.poisson(4 * complexity * profile.toolIntensity));
+  const toolChoices = [
+    [["github", "get_file_contents"], 3],
+    [["github", "list_issues"], workflow.role === "orchestrator" ? 4 : 1],
+    [["github", "search_code"], workflow.id === "security-review" ? 5 : 2],
+    [["github", "pull_request_read"], workflow.role === "worker" ? 3 : 1],
+    [["bash", "bash"], workflow.role === "worker" ? 4 : 1],
+    ...observedMcpTools.map(tool => [tool, 0.5]),
+  ];
   const toolCalls = Array.from({ length: toolCount }, (_, index) => {
-    const toolName = sample.weighted([
-      ["get_file_contents", 3], ["list_issues", workflow.role === "orchestrator" ? 4 : 1],
-      ["search_code", workflow.id === "security-review" ? 5 : 2],
-      ["get_pull_request", workflow.role === "worker" ? 3 : 1], ["bash", workflow.role === "worker" ? 4 : 1],
-    ]);
+    const [serverName, toolName] = sample.weighted(toolChoices);
     return {
-      tool_call_id: `sample-tool-${runId}-${index}`, server_name: toolName === "bash" ? "bash" : "github",
+      tool_call_id: `sample-tool-${runId}-${index}`, server_name: serverName,
       tool_name: toolName, timestamp: new Date(start + durationSeconds * 1000 * (index + 1) / (toolCount + 1)).toISOString(),
       status: failed && index === 0 ? "failure" : "success",
       input_size: Math.round(sample.lognormal(100 * complexity, 0.4)),
@@ -288,6 +317,9 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     };
   });
   apiCalls = Math.max(apiCalls, toolCalls.filter(call => call.server_name === "github").length);
+  const approvedRequests = Object.fromEntries(approvedDomains
+    .map(([domain, rate]) => [domain, { allowed: sample.poisson(rate * Math.min(3, complexity)), blocked: 0 }])
+    .filter(([, counts]) => counts.allowed > 0));
   const skillActivations = [workflow.id, "test-validation"].filter(() => sample.random() < profile.skillRate)
     .map(name => ({
       name, source: "repository", timestamp: startedAt, invocation_count: Math.min(5, 1 + sample.poisson(complexity)),
@@ -319,6 +351,7 @@ function runSample(repository, workflow, workflowIndex, runId, day, ordinal, now
     firewall_analysis: { requests_by_domain: {
       "api.github.com": { allowed: apiCalls, blocked: 0 },
       "registry.npmjs.org": { allowed: sample.poisson(workflowIndex === 0 ? 12 : 2), blocked: 0 },
+      ...approvedRequests,
       ...(blocked ? { [blockedDomain]: { allowed: 0, blocked: 1 + sample.poisson(1) } } : {}),
     } },
     safe_outputs: safeOutputs,
@@ -456,7 +489,7 @@ function valueSample(repository, workflow, now, profile) {
 }
 
 export const enterpriseDemo = Object.freeze({
-  version: 11, repositories: 1_000, runs: 5_000, campaigns: 3, installedWorkflows: 4_000,
+  version: 12, repositories: 1_000, runs: 5_000, campaigns: 3, installedWorkflows: 4_000,
   activeRepositories: 1_000, installedRepositories: 1_000,
 });
 

@@ -198,7 +198,7 @@ for (const width of [1440, 390]) {
       } finally { db.close(); }
     });
     expect(demoRunIds).toHaveLength(canonicalCounts.runs);
-    expect(demoRunIds.every(id => String(id).includes("sample-enterprise/"))).toBe(true);
+    expect(demoRunIds.every(id => String(id).includes("contoso/"))).toBe(true);
     const demoNotice = page.getByRole("status").filter({ hasText: "Synthetic enterprise demo" });
     await expect(demoNotice).toBeVisible();
     await expect(page.locator('meta[name="dashboard-deployment"]')).toHaveAttribute("content", "synthetic-demo");
