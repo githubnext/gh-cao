@@ -12,8 +12,8 @@ test("SVG visual audit covers every tracked SVG in both color schemes", () => {
   assert.match(source, /local checkout and manifest as the complete audit scope/);
   assert.match(source, /set-color-scheme light/);
   assert.match(source, /set-color-scheme dark/);
-  assert.match(source, /\bid: pi\b/);
-  assert.match(source, /model-routing:\n\s+goal: cost\n\s+mode: auto/);
+  assert.match(source, /^engine:\n +id: pi$/m);
+  assert.match(source, /^model: router$/m);
   assert.match(source, /cli-proxy: true/);
   assert.match(source, /playwright:/);
   assert.match(source, /version: "0\.1\.\d+"/);
@@ -158,7 +158,8 @@ test("SelfCare accessibility checker audits the served docs site with axe-core e
   assert.match(source, /read_pull_requests: read/);
   assert.match(source, /pull-requests: read/);
   assert.doesNotMatch(source, /^\s+(contents|issues|pull-requests): write$/m);
-  assert.match(source, /engine:\n\s+id: pi\n\s+model-routing:\n\s+goal: cost\n\s+mode: auto/);
+  assert.match(source, /^engine:\n +id: pi$/m);
+  assert.match(source, /^model: router$/m);
   assert.match(source, /cli-proxy: true/);
   assert.match(source, /playwright:\n\s+version: "0\.1\.18"/);
   assert.match(source, /npm pack axe-core@4\.13\.0/);

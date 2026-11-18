@@ -12,9 +12,7 @@ max-ai-credits: 400
 max-daily-ai-credits: -1
 engine:
   id: pi
-  model-routing:
-    goal: cost
-    mode: auto
+model: router
 timeout-minutes: 30
 run-name: "SVG visual audit · ${{ github.event.pull_request.number || github.run_number }}"
 concurrency:
