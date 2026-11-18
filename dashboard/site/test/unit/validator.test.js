@@ -33,26 +33,47 @@ dashboard:
 `;
 
 describe('dashboard document validation', () => {
-  it('validates lazy selection identities and commands against the referenced card row contract', () => {
+  it('accepts lazy selection identities and commands from the referenced card row contract', () => {
+    const document = JSON.parse(authoritativeDashboardSource);
+    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
+  });
+
+  it.each([
+    'empty keys',
+    'unknown key',
+    'empty commands',
+    'unmapped command',
+    'duplicate keys',
+    'duplicate commands',
+    'unknown property'
+  ])('rejects lazy selection with %s', (invalid) => {
     const document = JSON.parse(authoritativeDashboardSource);
     const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
     const valid = structuredClone(view.list.selection);
-    for (const selection of [
-      { key: [], commands: valid.commands },
-      { key: ['missing'], commands: valid.commands },
-      { key: valid.key, commands: [] },
-      { key: valid.key, commands: ['enable-workflow'] },
-      { key: ['repository', 'repository'], commands: valid.commands },
-      { key: valid.key, commands: ['disable-repository-workflows', 'disable-repository-workflows'] },
-      { ...valid, unknown: true }
-    ]) {
-      view.list.selection = selection;
-      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
-    }
-    view.list.selection = valid;
+    const selections = {
+      'empty keys': { key: [], commands: valid.commands },
+      'unknown key': { key: ['missing'], commands: valid.commands },
+      'empty commands': { key: valid.key, commands: [] },
+      'unmapped command': { key: valid.key, commands: ['enable-workflow'] },
+      'duplicate keys': { key: ['repository', 'repository'], commands: valid.commands },
+      'duplicate commands': { key: valid.key, commands: ['disable-repository-workflows', 'disable-repository-workflows'] },
+      'unknown property': { ...valid, unknown: true }
+    };
+    view.list.selection = selections[/** @type {keyof typeof selections} */ (invalid)];
+    expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
+      ok: false,
+      errors: expect.arrayContaining([expect.objectContaining({ path: expect.stringContaining('.list.selection') })])
+    });
+  });
+
+  it('rejects selection on a non-lazy list', () => {
+    const document = JSON.parse(authoritativeDashboardSource);
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
     view['lazy-list'] = false;
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
+      ok: false,
+      errors: expect.arrayContaining([expect.objectContaining({ path: expect.stringContaining('.list.selection') })])
+    });
   });
   describe.each(['built-in', 'custom'])('%s page analysis contracts', (kind) => {
     it('validates explicit page help using the shared tooltip contract', () => {
