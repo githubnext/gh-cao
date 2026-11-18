@@ -97,32 +97,105 @@ func (s *Store) RenewLock(ctx context.Context, name, token string, ttl time.Dura
 	return value == int64(1), err
 }
 
+// ErrInvalid identifies collection metadata input the shared operational
+// contract rejects; memory and PostgreSQL reject the same input.
+var ErrInvalid = errors.New("invalid redis operational input")
+
+const maxMetadataNameBytes = 1024
+
+func invalid(message string) error { return fmt.Errorf("%s: %w", message, ErrInvalid) }
+
+func metadataNames(values ...string) error {
+	for _, v := range values {
+		if strings.TrimSpace(v) == "" || len(v) > maxMetadataNameBytes || strings.ContainsRune(v, 0) {
+			return invalid("empty, oversized, or NUL-containing name")
+		}
+	}
+	return nil
+}
+
+func metadataOpaque(value string) error {
+	if len(value) > maxMetadataNameBytes || strings.ContainsRune(value, 0) {
+		return invalid("invalid opaque namespace")
+	}
+	return nil
+}
+
 func (s *Store) AddMembers(ctx context.Context, name string, members ...string) (int64, error) {
+	if err := metadataNames(append([]string{name}, members...)...); err != nil {
+		return 0, err
+	}
 	return s.SetAdd(ctx, name, members...)
 }
 func (s *Store) RemoveMembers(ctx context.Context, name string, members ...string) error {
+	if err := metadataNames(append([]string{name}, members...)...); err != nil {
+		return err
+	}
 	return s.SetRemove(ctx, name, members...)
 }
 func (s *Store) HasMember(ctx context.Context, name, member string) (bool, error) {
+	if err := metadataNames(name, member); err != nil {
+		return false, err
+	}
 	return s.SetContains(ctx, name, member)
 }
 func (s *Store) MemberCount(ctx context.Context, name string) (int64, error) {
+	if err := metadataNames(name); err != nil {
+		return 0, err
+	}
 	return s.SetCount(ctx, name)
 }
 func (s *Store) ScanMembers(ctx context.Context, name, cursor string, count int) ([]string, string, error) {
+	if err := metadataNames(name); err != nil {
+		return nil, "", err
+	}
+	if count <= 0 {
+		return nil, "", invalid("scan count must be positive")
+	}
 	return s.SetScan(ctx, name, cursor, count)
 }
 func (s *Store) ReadAttribute(ctx context.Context, name, field string) (string, error) {
+	if err := metadataNames(name, field); err != nil {
+		return "", err
+	}
 	return s.HashGet(ctx, name, field)
 }
 func (s *Store) WriteAttribute(ctx context.Context, name, field, value string) error {
+	if err := metadataNames(name, field); err != nil {
+		return err
+	}
 	return s.HashSet(ctx, name, field, value)
 }
 func (s *Store) DeleteAttribute(ctx context.Context, name, field string) error {
+	if err := metadataNames(name, field); err != nil {
+		return err
+	}
 	return s.HashDelete(ctx, name, field)
 }
 
 func (s *Store) TransferOwners(ctx context.Context, owners, installationPrefix, installationSuffix string, installation int64, repositories []string) (int, error) {
+	if err := metadataNames(append([]string{owners}, repositories...)...); err != nil {
+		return 0, err
+	}
+	if err := metadataOpaque(installationPrefix); err != nil {
+		return 0, err
+	}
+	if err := metadataOpaque(installationSuffix); err != nil {
+		return 0, err
+	}
+	if installation <= 0 {
+		return 0, invalid("installation must be positive")
+	}
+	// A repeated repository is one logical transfer, as in the other adapters.
+	unique := make([]string, 0, len(repositories))
+	seen := make(map[string]struct{}, len(repositories))
+	for _, repository := range repositories {
+		if _, duplicate := seen[repository]; !duplicate {
+			seen[repository] = struct{}{}
+			unique = append(unique, repository)
+		}
+	}
+	repositories = unique
 	reads := make([][]string, 0, len(repositories))
 	for _, repository := range repositories {
 		reads = append(reads, []string{"HGET", s.Key(owners), repository})
@@ -144,7 +217,11 @@ func (s *Store) TransferOwners(ctx context.Context, owners, installationPrefix, 
 			}
 			old, parseErr := strconv.ParseInt(owner, 10, 64)
 			if parseErr == nil && old > 0 && old != installation {
-				writes = append(writes, []string{"SREM", s.Key(installationPrefix + owner + installationSuffix), repository})
+				oldSet := installationPrefix + owner + installationSuffix
+				if err := metadataNames(oldSet); err != nil {
+					return 0, err
+				}
+				writes = append(writes, []string{"SREM", s.Key(oldSet), repository})
 				transferred++
 			}
 		}

@@ -373,6 +373,60 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("health: %+v, %v", health, err)
 		}
 	})
+	t.Run("collection-metadata-rejects-invalid-input", func(t *testing.T) {
+		collection := services.Collection
+		if _, err := collection.AddMembers(ctx, " ", "member"); err == nil {
+			t.Fatal("blank set name accepted")
+		}
+		if _, err := collection.AddMembers(ctx, "invalid-input", "ok", "bad\x00member"); err == nil {
+			t.Fatal("NUL member accepted")
+		}
+		if count, err := collection.MemberCount(ctx, "invalid-input"); err != nil || count != 0 {
+			t.Fatalf("invalid batch partly applied: %d, %v", count, err)
+		}
+		if err := collection.WriteAttribute(ctx, "invalid-input", "", "value"); err == nil {
+			t.Fatal("empty attribute field accepted")
+		}
+		if _, _, err := collection.ScanMembers(ctx, "invalid-input", "", 0); err == nil {
+			t.Fatal("non-positive scan count accepted")
+		}
+		if _, _, err := collection.ScanMembers(ctx, "invalid-input", "not-a-cursor", 1); err == nil {
+			t.Fatal("invalid scan cursor accepted")
+		}
+		if _, err := collection.TransferOwners(ctx, "invalid-owners", "install:", ":repos", 0, []string{"octo/repo"}); err == nil {
+			t.Fatal("non-positive installation accepted")
+		}
+		if owner, err := collection.ReadAttribute(ctx, "invalid-owners", "octo/repo"); err != nil || owner != "" {
+			t.Fatalf("rejected transfer changed ownership: %q, %v", owner, err)
+		}
+		if _, err := collection.TransferOwners(ctx, "invalid-owners", "install:", ":repos", 2, []string{"octo/repo", " "}); err == nil {
+			t.Fatal("blank repository accepted")
+		}
+		if owner, err := collection.ReadAttribute(ctx, "invalid-owners", "octo/repo"); err != nil || owner != "" {
+			t.Fatalf("rejected transfer batch partly applied: %q, %v", owner, err)
+		}
+	})
+	t.Run("collection-owner-transfer-counts-repositories-once", func(t *testing.T) {
+		collection := services.Collection
+		if _, err := collection.AddMembers(ctx, "install:1:repos", "octo/repo"); err != nil {
+			t.Fatal(err)
+		}
+		if err := collection.WriteAttribute(ctx, "transfer-owners", "octo/repo", "1"); err != nil {
+			t.Fatal(err)
+		}
+		transferred, err := collection.TransferOwners(ctx, "transfer-owners", "install:", ":repos", 2, []string{"octo/repo", "octo/repo", "octo/new"})
+		if err != nil || transferred != 1 {
+			t.Fatalf("transferred = %d, %v", transferred, err)
+		}
+		if present, err := collection.HasMember(ctx, "install:1:repos", "octo/repo"); err != nil || present {
+			t.Fatalf("old installation kept membership: %t, %v", present, err)
+		}
+		for _, repository := range []string{"octo/repo", "octo/new"} {
+			if owner, err := collection.ReadAttribute(ctx, "transfer-owners", repository); err != nil || owner != "2" {
+				t.Fatalf("%s owner = %q, %v", repository, owner, err)
+			}
+		}
+	})
 	t.Run("legacy-budget-rejects-noncanonical-values", func(t *testing.T) {
 		const unknown = 3
 		for field, value := range map[string]string{
