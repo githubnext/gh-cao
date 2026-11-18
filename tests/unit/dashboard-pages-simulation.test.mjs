@@ -472,7 +472,15 @@ test("data-free build leaves browser samples to production canonical ingestion, 
   assert.match(html, /dashboard-deployment" content="synthetic-demo"/);
   assert.match(html, /connect-src 'self'/);
   assert.ok(!names.includes("demo-data"), "build must not pregenerate demo data or manifests");
-  const sample = enterpriseSample(now, { count: 50 });
+  // The scale contract above covers 5,000 runs; keep this ingestion fixture
+  // bounded while retaining the full history, fleet and outcome coverage.
+  const sample = enterpriseSample(now, { count: 50, runs: 240 });
+  const sampleRuns = sample.records.filter(record => record.kind === "run").map(record => record.run);
+  assert.equal(new Set(sampleRuns.map(run => run.started_at.slice(0, 10))).size, 21);
+  assert.equal(new Set(sampleRuns.map(run => run.repository)).size, 12);
+  assert.equal(new Set(sampleRuns.map(run => run.workflow_path)).size, 4);
+  assert.deepEqual(new Set(sampleRuns.map(run => run.conclusion)),
+    new Set(["success", "failure", "timed_out", "cancelled", "action_required", null]));
   const inventory = sample.sources;
   assert.equal(inventory.workflows.metadata["source-kind"], "synthetic");
   assert.equal(inventory.workflows.metadata["as-of"], new Date(now).toISOString());
