@@ -419,6 +419,78 @@ esac
   assert.equal(precompute.effective_max_repos, 1);
 });
 
+function batchedOrchestrator({ dispatchMaximum, maxRepositories, workers }) {
+  const names = Object.keys(workers);
+  const repositories = ["one", "two", "three", "four"];
+  return runPrecompute(
+    { ROLE: "orchestrator", TARGET_REPO: "", DISPATCH_MAX: String(dispatchMaximum), CAO_DISPATCH_MAX: String(dispatchMaximum) },
+    `
+case "$*" in
+  *contents/.github/workflows/dependabot.md*)
+    printf '%s\\n' '---
+safe-outputs:
+  dispatch-workflow:
+    workflows: [${names.join(", ")}]
+---' | base64 | tr -d '\\n'
+    ;;
+  *actions/workflows*)
+    printf '%s\\n' ${names.map((name, index) => `'{"id":${index + 1},"name":"${name}","path":".github/workflows/${name}.lock.yml","state":"active"}'`).join(" ")}
+    ;;
+${repositories.map((name, index) => `  *repos/acme/${name}*)
+    printf '{"id":${index + 1},"full_name":"acme/${name}","archived":false,"disabled":false,"private":true,"pushed_at":"2026-09-03T00:00:00Z","default_branch":"main"}\\n'
+    ;;`).join("\n")}
+  *) printf 'true\\n' ;;
+esac
+`,
+    JSON.stringify({
+      version: 1,
+      "gh-aw-version": "v0.89.20",
+      "control-plane": {
+        scope: { "allowed-owners": ["acme"], "allowed-repositories": repositories.map(name => `acme/${name}`) },
+        campaigns: {
+          dependabot: {
+            mode: "review", "max-repositories": maxRepositories, "rollout-percent": 100,
+            workers: Object.fromEntries(names.map(name => [name, { workflow: name, ...workers[name] }])),
+          },
+        },
+      },
+    }),
+  );
+}
+
+test("orchestrator counts every repository a multi-target dispatch covers against the dispatch budget", () => {
+  const result = batchedOrchestrator({
+    dispatchMaximum: 3, maxRepositories: 4, workers: { planner: { "max-targets-per-run": 2 }, triage: {} },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /"eligible_workers":2,"workers_per_target":2/);
+  assert.match(result.stdout, /"dispatch_cap":2,"effective_cap":2,"multi_target_workers":1/);
+  const precompute = JSON.parse(readFileSync("/tmp/gh-aw/agent/control-precompute.json", "utf8"));
+  assert.equal(precompute.effective_max_repos, 2);
+  assert.deepEqual(precompute.worker_workflows.map(({ configured, eligible, max_targets_per_run }) =>
+    [configured, eligible, max_targets_per_run ?? null]), [["planner", true, 2], ["triage", true, null]]);
+});
+
+test("orchestrator batching never lifts the campaign repository limit", () => {
+  const result = batchedOrchestrator({
+    dispatchMaximum: 5, maxRepositories: 3, workers: { planner: { "max-targets-per-run": 4 } },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /"policy_cap":3,"rollout_cap":4,"dispatch_cap":20,"effective_cap":3/);
+  const precompute = JSON.parse(readFileSync("/tmp/gh-aw/agent/control-precompute.json", "utf8"));
+  assert.equal(precompute.effective_max_repos, 3);
+  assert.equal(precompute.candidate_repositories.length, 4);
+});
+
+test("orchestrator without multi-target workers keeps the per-target dispatch formula", () => {
+  const result = batchedOrchestrator({ dispatchMaximum: 3, maxRepositories: 4, workers: { planner: {}, triage: {} } });
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /multi_target_workers/);
+  const precompute = JSON.parse(readFileSync("/tmp/gh-aw/agent/control-precompute.json", "utf8"));
+  assert.equal(precompute.effective_max_repos, 1);
+  assert.equal(precompute.worker_workflows.some(worker => "max_targets_per_run" in worker), false);
+});
+
 test("orchestrator inventory blocks renamed enrollment rather than following aliases", () => {
   const result = runPrecompute(
     {

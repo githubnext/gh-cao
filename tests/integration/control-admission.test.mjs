@@ -279,6 +279,152 @@ test("live direct execution cannot turn a target list into an implicit safe-outp
   assert.match(precomputeResult.stderr, /one target_repo/);
 });
 
+const multiTargetEnv = {
+  CAO_CAMPAIGN: "dependabot", CAO_WORKFLOW: "__none__", CAO_ROLE: "multi-target-worker", CAO_WORKER: "update-planner",
+  CAO_SAFE_OUTPUT_REPOSITORY: "acme/control", CAO_TARGET_REPOSITORY: "",
+  GITHUB_WORKFLOW_REF: "acme/control/.github/workflows/dependabot-update-planner.lock.yml@refs/heads/main",
+  GITHUB_SERVER_URL: "https://github.com",
+  CAO_ENVELOPE_VERSION: "1",
+  CAO_TARGET_REPOSITORIES: '["acme/one","acme/two"]',
+  CAO_REQUESTED_MODE: "review",
+  CAO_CORRELATION_ID: "123-1",
+  CAO_CENTRAL_REPOSITORY: "acme/control",
+  CAO_CONTROL_PLANE_RUN_URL: "https://github.com/acme/control/actions/runs/123",
+};
+function multiTargetPolicy(workerPolicy = {}, campaignPolicy = {}) {
+  return controlPolicy({
+    scope: { "allowed-repositories": ["acme/one", "acme/two", "acme/three", "acme/four", "acme/review"] },
+    campaignPolicy: { "max-repositories": 3, ...campaignPolicy },
+    workerPolicy: { "max-targets-per-run": 2, ...workerPolicy },
+  });
+}
+
+test("multi-target worker admits one explicit review set and prepares attributable targets at the exact revision", () => {
+  const { output, admission, precomputeResult, precompute } = runAdmission({
+    policy: multiTargetPolicy(), env: multiTargetEnv, repositories: standaloneRepositories, runPrecompute: true,
+  });
+  assert.equal(output.authorized, "true");
+  assert.equal(admission.role, "multi-target-worker");
+  assert.equal(admission.worker, "update-planner");
+  assert.equal(admission.target_repository, "");
+  assert.deepEqual(admission.target_repositories, ["acme/one", "acme/two"]);
+  assert.equal(admission.failed_check, null);
+  assert.equal(precomputeResult.status, 0, precomputeResult.stderr);
+  assert.equal(precompute.control_role, "multi-target-worker");
+  assert.equal(precompute.campaign, "dependabot");
+  assert.equal(precompute.bundle, "dependabot");
+  assert.equal(precompute.worker, "update-planner");
+  assert.equal(precompute.envelope_version, 1);
+  assert.deepEqual(precompute.target_repos, ["acme/one", "acme/two"]);
+  assert.equal(precompute.safe_output_mode, "review");
+  assert.equal(precompute.safe_output_repo, "acme/control");
+  assert.equal(precompute.effective_max_repos, 2);
+  assert.equal(precompute.correlation_id, "123-1");
+  assert.equal(precompute.activation_ready, true);
+  assert.deepEqual(precompute.worker_workflows, []);
+  assert.deepEqual(precompute.candidate_repositories.map(({ full_name, safe_output_mode, safe_output_repo }) =>
+    [full_name, safe_output_mode, safe_output_repo]), [
+    ["acme/one", "review", "acme/control"], ["acme/two", "review", "acme/control"],
+  ]);
+  assert.equal(precompute.authority_envelope.operation, "dependabot/update-planner");
+  assert.deepEqual(precompute.authority_envelope.binding, {
+    repository: "acme/control", policySha: "1".repeat(40),
+    workflowRef: multiTargetEnv.GITHUB_WORKFLOW_REF, runId: "456", runAttempt: "1",
+  });
+  assert.deepEqual(precompute.policy_source, { repository: "acme/control", path: ".github/workflows/cao.json", sha: "1".repeat(40) });
+});
+
+test("multi-target opt-in leaves the single-target worker contract unchanged", () => {
+  const { output, admission, precomputeResult, precompute } = runAdmission({
+    policy: multiTargetPolicy(), runPrecompute: true,
+    env: {
+      ...multiTargetEnv, CAO_ROLE: "worker", CAO_ENVELOPE_VERSION: "", CAO_TARGET_REPOSITORIES: "",
+      CAO_TARGET_REPOSITORY: "acme/one",
+    },
+  });
+  assert.equal(output.authorized, "true");
+  assert.equal("target_repositories" in admission, false);
+  assert.equal(admission.target_repository, "acme/one");
+  assert.equal(precomputeResult.status, 0, precomputeResult.stderr);
+  assert.equal(precompute.control_role, "worker");
+  assert.equal(precompute.target_repo, "acme/one");
+  assert.equal("authority_envelope" in precompute, false);
+  assert.equal("target_repos" in precompute, false);
+});
+
+for (const [name, changes, policy, reason, check] of [
+  ["an undeclared opt-in", {}, multiTargetPolicy({ "max-targets-per-run": undefined }), /^worker-multi-target-undeclared$/, "Worker"],
+  ["a disabled worker", {}, multiTargetPolicy({ enabled: false }), /^worker-disabled$/, "Worker"],
+  ["a disabled campaign", {}, multiTargetPolicy({}, { enabled: false }), /^campaign-disabled$/, "Campaign"],
+  ["a missing worker identity", { CAO_WORKER: "" }, multiTargetPolicy(), /campaign and worker identities/, "Workflow identity"],
+  ["a spoofed workflow identity", { GITHUB_WORKFLOW_REF: "acme/control/.github/workflows/other.lock.yml@refs/heads/main" }, multiTargetPolicy(), /GITHUB_WORKFLOW_REF/, "Worker"],
+  ["a missing envelope version", { CAO_ENVELOPE_VERSION: "" }, multiTargetPolicy(), /envelope_version 1/, "Target input"],
+  ["a combined target_repo", { CAO_TARGET_REPOSITORY: "acme/one" }, multiTargetPolicy(), /must not be combined/, "Target input"],
+  ["a tampered target set", { CAO_TARGET_REPOSITORIES: "acme/one,acme/two" }, multiTargetPolicy(), /non-empty JSON array/, "Target input"],
+  ["an oversized target set", { CAO_TARGET_REPOSITORIES: `[${'"acme/one",'.repeat(6000)}"acme/two"]` }, multiTargetPolicy(), /exceeds 64 KiB/, "Target input"],
+  ["an unauthorized target", { CAO_TARGET_REPOSITORIES: '["acme/one","acme/private"]' }, multiTargetPolicy(), /^target_repos\[1\] is not allowed$/, "Target input"],
+  ["mixed owners", { CAO_TARGET_REPOSITORIES: '["acme/one","other/one"]' }, multiTargetPolicy(), /share one owner/, "Target input"],
+  ["a forged orchestrator correlation", { CAO_CONTROL_PLANE_RUN_URL: "https://github.com/acme/control/actions/runs/999" }, multiTargetPolicy(), /control_plane_run_url/, "Target input"],
+  ["live mode", { CAO_REQUESTED_MODE: "live" }, multiTargetPolicy({ "max-mode": "live" }, { mode: "live" }), /must be review for multi-target/, "Mode input"],
+  ["a destination outside scope", { CAO_REQUESTED_SAFE_OUTPUT_REPOSITORY: "outside/review" }, multiTargetPolicy(), /safe_output_repo owner/, "Mode input"],
+  ["more targets than the worker bound", { CAO_TARGET_REPOSITORIES: '["acme/one","acme/two","acme/three"]' }, multiTargetPolicy(), /target_repos count exceeds/, "Run limits"],
+  ["more targets than max-repositories", {}, multiTargetPolicy({ "max-targets-per-run": 5 }, { "max-repositories": 1 }), /target_repos count exceeds/, "Run limits"],
+  ["a widened max_repos", { CAO_REQUESTED_MAX_REPOSITORIES: "3" }, multiTargetPolicy(), /max_repositories exceeds/, "Run limits"],
+  ["rollout narrowing", { CAO_REQUESTED_ROLLOUT_PERCENT: "50" }, multiTargetPolicy(), /rollout_percent/, "Run limits"],
+]) {
+  test(`multi-target worker admission denies ${name} before activation`, () => {
+    const { output, admission, precomputeResult } = runAdmission({
+      policy, env: { ...multiTargetEnv, ...changes }, repositories: standaloneRepositories, runPrecompute: true,
+    });
+    assert.equal(output.authorized, "false");
+    assert.match(output.reason, reason);
+    assert.equal(admission.failed_check, check);
+    assert.deepEqual(admission.target_repositories, []);
+    assert.equal(precomputeResult, null);
+  });
+}
+
+for (const [name, options, error, activationBlocked = false] of [
+  ["a changed target set", { precomputeEnv: { CAO_TARGET_REPOSITORIES: '["acme/one","acme/three"]' } }, /handoff widens a scoped grant/],
+  ["a changed policy revision", { precomputeEnv: { GITHUB_WORKFLOW_SHA: "2".repeat(40) } }, /envelope binding mismatch: policySha/],
+  ["a changed run attempt", { precomputeEnv: { GITHUB_RUN_ATTEMPT: "2" } }, /envelope binding mismatch: runAttempt/],
+  ["a widened envelope grant", { mutateEffective: value => { value.authority_envelope.grants[1].mode = "live"; } }, /handoff widens a scoped grant/],
+  ["a missing envelope", { mutateEffective: value => { delete value.authority_envelope; } }, /envelope must/],
+  ["an unroutable output destination", { precomputeEnv: { CAO_SAFE_OUTPUT_REPOSITORY: "acme/three" } }, /must equal the admitted review destination/],
+  ["an archived target", { repositories: [standaloneRepositories[0], { ...standaloneRepositories[1], archived: true }] }, /archived/],
+  ["an inaccessible target", { repositories: [standaloneRepositories[0]] }, /gh exited with status/],
+  ["a redirected target", { repositories: [standaloneRepositories[0], { ...standaloneRepositories[1], requested_name: "acme/two", full_name: "acme/renamed" }] }, /does not match the enrolled repository identity/, true],
+  ["a public review destination", {
+    env: { ...multiTargetEnv, CAO_REQUESTED_SAFE_OUTPUT_REPOSITORY: "acme/review", CAO_SAFE_OUTPUT_REPOSITORY: "acme/review" },
+    repositories: [...standaloneRepositories, { full_name: "acme/review", private: false }],
+  }, /must be private/],
+  ["a target as review destination", {
+    env: { ...multiTargetEnv, CAO_REQUESTED_SAFE_OUTPUT_REPOSITORY: "acme/one", CAO_SAFE_OUTPUT_REPOSITORY: "acme/one" },
+  }, /must differ/],
+]) {
+  test(`multi-target worker precompute blocks ${name} without partial execution`, () => {
+    const { admission, output, precomputeResult } = runAdmission({
+      policy: multiTargetPolicy(), env: multiTargetEnv, repositories: standaloneRepositories,
+      runPrecompute: true, ...options,
+    });
+    assert.equal(admission.authorized, true);
+    assert.equal(output.authorized, activationBlocked ? "false" : "true");
+    assert.notEqual(precomputeResult.status, 0);
+    assert.match(precomputeResult.stderr, error);
+  });
+}
+
+test("multi-target worker review routing accepts one private non-central destination for every target", () => {
+  const { precomputeResult, precompute } = runAdmission({
+    policy: multiTargetPolicy(), runPrecompute: true,
+    env: { ...multiTargetEnv, CAO_REQUESTED_SAFE_OUTPUT_REPOSITORY: "acme/review", CAO_SAFE_OUTPUT_REPOSITORY: "acme/review" },
+    repositories: [...standaloneRepositories, { full_name: "acme/review", private: true }],
+  });
+  assert.equal(precomputeResult.status, 0, precomputeResult.stderr);
+  assert.equal(precompute.safe_output_repo, "acme/review");
+  assert.deepEqual(precompute.authority_envelope.grants.map(grant => grant.destination), ["acme/review", "acme/review"]);
+});
+
 test("standalone admission and precompute process a bounded fleet without campaign or dispatch APIs", () => {
   const { result, output, admission, precomputeResult, precompute } = runAdmission({
     policy: standalonePolicy({ targets: { "acme/one": { mode: "live" } } }),
