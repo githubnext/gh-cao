@@ -2246,7 +2246,7 @@ describe('presenter built-in and custom pages', () => {
     expect(globalThis.document.title).toBe('Workflows · Workflow Topology');
     expect(page?.getAttribute('data-page-description')).toBe('Select a declared workflow for CAO operational review.');
     expect(page?.querySelector('.view-metadata-summary')).toBeNull();
-    expect(rendered.querySelector('.horizon-summary [aria-label="Data status"]')).toBeNull();
+    expect(rendered.querySelector('.horizon-toggle')).toBeNull();
     expect(rendered.querySelector('.filter-tuning-controls .horizon-details [aria-label="Data status"]')).toBeNull();
     expect(page?.querySelector('[data-chart-widget="horizontal-bar"]')).not.toBeNull();
     expect([...(page?.querySelectorAll('[data-view-id="workflows-by-aic-per-run"] .horizontal-bar-chart-label') ?? [])].map((value) => value.textContent))
@@ -3528,7 +3528,7 @@ describe('presenter built-in and custom pages', () => {
     expect(table?.textContent).toContain('timeless');
     expect(table?.textContent).not.toContain('expired');
     expect(rendered.querySelector('.dashboard-horizon')?.getAttribute('data-dashboard-evaluated-at')).toBe('2026-09-01T12:00:00.000Z');
-    expect(rendered.querySelector('.horizon-toggle')?.getAttribute('aria-label')).toContain('2 days');
+    expect(rendered.querySelector('.dashboard-horizon')?.getAttribute('aria-label')).toContain('2 days');
     expect(rendered.querySelector('.dashboard-horizon .horizon-details')?.textContent).toBe(
       'Coverage detailsData is included from the start up to the exclusive end.StartAug 30, 2026, 12:30 PM UTCEndSep 1, 2026, 12:00 PM UTCDuration2 days'
     );
@@ -3568,7 +3568,7 @@ describe('presenter built-in and custom pages', () => {
       expect(loadPageSources).toHaveBeenCalledTimes(2);
       const window = loadPageSources.mock.calls.at(-1)?.[1].queryContext?.timeWindow;
       expect(Date.parse(window.end) - Date.parse(window.start)).toBe(30 * 86_400_000);
-      expect(rendered.querySelector('.horizon-toggle')?.getAttribute('aria-label')).toContain('30 days');
+      expect(rendered.querySelector('.dashboard-horizon')?.getAttribute('aria-label')).toContain('30 days');
       expect([...rendered.querySelectorAll('.dashboard-horizon time')].map((time) => time.getAttribute('datetime')))
         .toEqual([window.start, window.end]);
     } finally {
@@ -3627,13 +3627,13 @@ describe('presenter built-in and custom pages', () => {
     });
 
     expect(rendered.querySelector('.dashboard-horizon-skeleton')).toBeNull();
-    expect(rendered.querySelector('.horizon-toggle')?.getAttribute('aria-label')).toContain('1 week');
+    expect(rendered.querySelector('.dashboard-horizon')?.getAttribute('aria-label')).toContain('1 week');
     await vi.waitFor(() => expect(loadPageSources).toHaveBeenCalled());
     publishUpdate();
 
     const horizon = rendered.querySelector('.dashboard-horizon');
     expect(horizon?.classList.contains('dashboard-horizon-skeleton')).toBe(false);
-    expect(horizon?.querySelector('.horizon-toggle')?.getAttribute('aria-label')).toContain('1 day');
+    expect(horizon?.getAttribute('aria-label')).toContain('1 day');
     expect(horizon?.getAttribute('data-dashboard-evaluated-at')).toBe('2026-09-01T12:00:00.000Z');
     expect(rendered.querySelector('.dashboard-horizon .horizon-details')).not.toBeNull();
 
@@ -4552,7 +4552,11 @@ describe('presenter built-in and custom pages', () => {
                 encoding: { value: { field: 'run', aggregate: 'count' } }
               }]
             },
-            { id: 'second', kind: /** @type {'custom'} */ ('custom'), title: 'Second', description: 'Second page description', experimental: true, views: [] }
+            {
+              id: 'second', kind: /** @type {'custom'} */ ('custom'), title: 'Second',
+              description: 'Second page description', experimental: true, views: [],
+              tooltip: { label: 'About the second page', description: 'Explanatory help for the second page.' }
+            }
           ]
         }
       },
@@ -4594,6 +4598,7 @@ describe('presenter built-in and custom pages', () => {
     expect(rendered.querySelector('#page-title')?.textContent).toBe('First');
     expect(rendered.querySelector('[data-breadcrumb-page]')?.textContent).toBe('First');
     expect(rendered.querySelector('[data-page-description]')?.textContent).toBe('First page description');
+    expect(/** @type {HTMLElement} */ (rendered.querySelector('[data-page-help]')).hidden).toBe(true);
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(true);
     expect(rendered.ownerDocument.title).toBe('First · Page Navigation');
     first.dispatchEvent(new CustomEvent('dashboard-route-allocation', {
@@ -4635,6 +4640,10 @@ describe('presenter built-in and custom pages', () => {
     expect(rendered.querySelector('#page-title')?.textContent).toBe('Canonical second');
     expect(rendered.querySelector('[data-breadcrumb-page]')?.textContent).toBe('Canonical second');
     expect(rendered.querySelector('[data-page-description]')?.textContent).toBe('Canonical second description');
+    const help = rendered.querySelector('[data-page-help] .tooltip-trigger');
+    expect(help?.getAttribute('aria-label')).toBe('About the second page');
+    expect(help?.getAttribute('aria-describedby')).toBe('page-help-tooltip');
+    expect(rendered.querySelector('#page-help-tooltip')?.textContent).toBe('Explanatory help for the second page.');
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(false);
     const experimentalBadge = rendered.querySelector('.title-area [data-page-experimental]');
     expect(experimentalBadge?.getAttribute('aria-label')).toBe('Experimental');
@@ -4651,12 +4660,15 @@ describe('presenter built-in and custom pages', () => {
     expect(renderedSecond.hasAttribute('data-page-pending')).toBe(false);
     expect(renderedSecond.hasAttribute('aria-busy')).toBe(false);
     expect(renderedSecond.dataset.pageExperimental).toBe('true');
+    expect(rendered.querySelector('[data-page-help] .tooltip-trigger')).toBe(help);
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(false);
     expect(rendered.querySelector('#page-title')?.textContent).toBe('Canonical second');
     expect(rendered.querySelector('[data-page-description]')?.textContent).toBe('Canonical second description');
 
     pageScroller.scrollTop = 80;
     firstLink.click();
+    expect(/** @type {HTMLElement} */ (rendered.querySelector('[data-page-help]')).hidden).toBe(true);
+    expect(rendered.querySelector('#page-help-tooltip')).toBeNull();
     expect(/** @type {HTMLElement} */ (rendered.querySelector('.title-area [data-page-experimental]')).hidden).toBe(true);
 
     expect(renderedSecond.hasAttribute('data-page-pending')).toBe(true);

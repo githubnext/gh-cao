@@ -32,8 +32,9 @@ export function publishWorkerLoadingProgress(state, target = self) {
  * Reports long-running ingestion status through the main-thread notification manager.
  * @param {{ postMessage: (message: unknown) => void }} [target]
  * @param {number} [requestId]
+ * @param {{ detailsSubtitle?: string }} [options]
  */
-export function startIngestionProgress(target = self, requestId) {
+export function startIngestionProgress(target = self, requestId, options = {}) {
   const id = `ingestion-progress-${++nextIngestionProgressId}`;
   const clock = createElapsedStepTracker('Preparing data...', {
     historyLimit: INGESTION_PROGRESS_HISTORY_LIMIT
@@ -84,7 +85,7 @@ export function startIngestionProgress(target = self, requestId) {
         kind: 'ingestion',
         message: status,
         icon: 'download',
-        detailsSubtitle: 'Downloading and processing a local copy in this browser can take several minutes. Cached shards are reused.',
+        detailsSubtitle: options.detailsSubtitle ?? 'Downloading and processing a local copy in this browser can take several minutes. Cached shards are reused.',
         details: snapshot.history,
         actions: [
           { label: 'Cancel', operation: 'cancel-data-ingestion', placement: 'details', requestId }

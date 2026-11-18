@@ -19,7 +19,7 @@ import (
 
 const defaultRunRetentionDays = 30
 const defaultLinkedRetentionDays = 7
-const futureRunDays = 28
+const futureRunDays = 14
 const partitionMaintenanceInterval = 24 * time.Hour
 
 var partitionsLog = logger.New("cao:postgresx:partitions")

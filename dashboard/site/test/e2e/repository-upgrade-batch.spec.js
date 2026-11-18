@@ -6,7 +6,89 @@ import { expect, test } from '@playwright/test';
 const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
-  test(`Upgrade copy dialog contains clicks inside the repository card at ${width}px`, async ({ page }, testInfo) => {
+  test(`Updates lazily render full-view cards for a 10,000-repository fleet at ${width}px`, async ({ page }, testInfo) => {
+    test.setTimeout(120_000);
+    const preview = await startDashboardServer({
+      repository: 'acme/control',
+      prepareSnapshot: async (/** @type {string} */ destination) => {
+        const metadata = { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' };
+        const names = Array.from({ length: 10_000 }, (_, i) => String(i).padStart(5, '0'));
+        await writeServerArtifact(destination, { sources: {
+          repositories: { metadata, rows: names.map((i) => ({ organization: 'octo', repository: `repo-${i}` })) },
+          workflows: { metadata, rows: names.map((i) => ({
+            organization: 'octo', repository: `repo-${i}`, workflow: `workflow-${i}.md`,
+            'workflow-name': `Workflow ${i}`, 'workflow-source-kind': 'local'
+          })) },
+          campaigns: { metadata, rows: names.map((i) => ({
+            campaign: `campaign-${i}`, 'campaign-name': `Campaign ${i}`, 'campaign-registration': 'true'
+          })) }
+        } });
+      }
+    });
+    try {
+      await page.setExtraHTTPHeaders(preview.headers);
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${preview.url}/#page-maintenance`);
+      for (const [pageId, viewId, label, helpLabel] of [
+        ['maintenance', 'maintenance-repositories', 'octo/repo-', 'About repository maintenance'],
+        ['maintenance-workflows', 'maintenance-standalone-workflows', 'Workflow ', 'About workflow maintenance'],
+        ['maintenance-campaigns', 'maintenance-campaigns', 'Campaign ', 'About campaign maintenance']
+      ]) {
+        if (pageId !== 'maintenance') {
+          if (width < 768) await page.getByRole('button', { name: /^Select view/ }).click();
+          await page.locator(width < 768 ? `[data-mobile-nav-page-id="${pageId}"]` : `[data-nav-section="Updates"] [data-nav-page-id="${pageId}"]`).click();
+        }
+        const view = page.locator(`[data-view-id="${viewId}"]`);
+        await expect(view).toHaveAttribute('data-view-layout', 'full-view');
+        await expect(page.locator('.dashboard-root')).toHaveClass(/dashboard-full-view/);
+        await expect(view.locator('table')).toHaveCount(0);
+        await expect(page.getByRole('button', { name: /Switch to .* view/ })).toHaveCount(0);
+        await expect(view.locator('.entity-card-list')).toBeVisible();
+        await expect(view.locator('.view-description')).toHaveCount(0);
+        const help = page.locator('.title-area').getByRole('button', { name: helpLabel, exact: true });
+        await expect(help).toBeVisible();
+        if (width <= 700) {
+          await help.click();
+          await expect(page.getByRole('dialog', { name: helpLabel, exact: true })).toBeVisible();
+          await page.keyboard.press('Escape');
+        } else {
+          await help.focus();
+          await expect(page.locator('#page-help-tooltip')).toBeVisible();
+          await help.blur();
+        }
+        const bounds = await view.boundingBox();
+        if (!bounds) throw new Error('Missing full-view card list bounds');
+        const mainBounds = await page.locator('.app-main').boundingBox();
+        if (!mainBounds) throw new Error('Missing main content bounds');
+        expect(bounds.x).toBe(mainBounds.x);
+        expect(bounds.width).toBe(mainBounds.width);
+        expect(bounds.y + bounds.height).toBeGreaterThanOrEqual(880);
+        expect(bounds.y + bounds.height).toBeLessThanOrEqual(900);
+        const rows = view.locator('.entity-card-list-card');
+        await expect(rows).toHaveCount(25);
+        await expect(rows.last()).toContainText(`${label}00024`);
+        await expect(view.getByRole('button', { name: /^(Update|Upgrade) all/ })).toHaveCount(0);
+        const more = view.getByRole('button', { name: 'Load more', exact: true });
+        await more.click();
+        await expect(rows.last()).toContainText(`${label}00049`);
+        await expect(rows).toHaveCount(50);
+        await view.locator('.entity-card-list').evaluate((element) => { element.scrollTop = element.scrollHeight; });
+        await expect(rows.last()).toContainText(`${label}00074`);
+        await expect(rows).toHaveCount(75);
+        await expect(view.getByText(`${label}09999`, { exact: true })).toHaveCount(0);
+        await view.locator('.entity-card-list').evaluate((element) => { element.scrollTop = 0; });
+        await expect(page.locator('.dashboard-root')).not.toHaveClass(/dashboard-full-view-scrolled/);
+        const screenshot = testInfo.outputPath(`updates-${pageId}-${width}.png`);
+        await page.screenshot({ path: screenshot, fullPage: true });
+        await testInfo.attach(`updates-${pageId}-${width}`, { path: screenshot, contentType: 'image/png' });
+      }
+    } finally {
+      await page.goto('about:blank').catch(() => {});
+      await preview.close();
+    }
+  });
+
+  test(`Upgrade copy dialog preserves repository cards at ${width}px`, async ({ page }, testInfo) => {
     const preview = await startDashboardServer({
       workingDirectory: fileURLToPath(new URL('../../../../', import.meta.url)),
       repository: 'acme/control', caoUrl: 'https://ops.example.com/central/',
@@ -26,7 +108,7 @@ for (const width of [1440, 390]) {
       await page.setExtraHTTPHeaders(preview.headers);
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${preview.url}/#page-maintenance`);
-      const repositoryLink = page.locator('[data-view-id="maintenance-repositories"] [data-card-drill="external"]');
+      const repositoryLink = page.locator('[data-view-id="maintenance-repositories"] .entity-card-list-card a[href="https://github.com/octo/example"]').first();
       await expect(repositoryLink).toHaveCount(1);
       await repositoryLink.evaluate((link) => {
         link.addEventListener('click', () => link.setAttribute('data-test-activated', 'true'));
@@ -153,16 +235,10 @@ for (const width of [1440, 390]) {
       });
       const compilerPage = page.locator('#page-maintenance');
       await expect(compilerPage.locator('[data-route-tabs]')).toHaveCount(0);
-      await compilerPage.getByRole('button', { name: 'Upgrade all repositories', exact: true }).click();
-      const sweepDialog = page.getByRole('dialog', { name: 'Approve Upgrade all repositories', exact: true });
-      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo acme/control');
-      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/current');
-      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/outdated');
-      await expect(sweepDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/unknown');
-      await sweepDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(compilerPage.getByRole('button', { name: 'Upgrade all repositories', exact: true })).toHaveCount(0);
       await expect(compilerPage.getByRole('button', { name: 'Upgrade', exact: true })).toHaveCount(1);
       await expect(compilerPage.getByRole('button', { name: 'Upgrade selected repositories', exact: true })).toHaveCount(0);
-      await expect(compilerPage.getByText('Installed gh-aw compiler version unavailable for one or more workflows.', { exact: true })).toBeVisible();
+      await expect(compilerPage.getByText('Evidence', { exact: true })).toHaveCount(0);
       await compilerPage.getByRole('button', { name: 'Upgrade', exact: true }).click();
       const upgradeDialog = page.getByRole('dialog', { name: 'Approve Upgrade', exact: true });
       await expect(upgradeDialog.locator('.cli-action-command')).toContainText('gh aw upgrade --repo octo/outdated');
@@ -177,7 +253,7 @@ for (const width of [1440, 390]) {
       await disableRepositoryDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await unknownRepository.getByRole('button', { name: 'Update', exact: true }).click();
       const repositoryUpdateDialog = page.getByRole('dialog', { name: 'Approve Update', exact: true });
-      await expect(repositoryUpdateDialog.locator('.cli-action-command')).toHaveText('gh aw update --repo octo/unknown --create-pull-request');
+      await expect(repositoryUpdateDialog.locator('.cli-action-command')).toHaveText('gh aw upgrade --repo octo/unknown --create-pull-request');
       await repositoryUpdateDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       const repositoryScreenshot = testInfo.outputPath(`maintenance-repositories-${width}.png`);
       await page.screenshot({ path: repositoryScreenshot, fullPage: true });
@@ -192,12 +268,7 @@ for (const width of [1440, 390]) {
       await expect(campaignNavigation).toHaveAttribute('aria-current', 'page');
       await expect(updatesPage.locator('[data-route-tabs]')).toHaveCount(0);
       await expect(updatesPage.getByRole('button', { name: 'Update selected sources', exact: true })).toHaveCount(0);
-      await updatesPage.getByRole('button', { name: 'Update all campaigns', exact: true }).click();
-      const campaignSweepDialog = page.getByRole('dialog', { name: 'Approve Update all campaigns', exact: true });
-      await expect(campaignSweepDialog.locator('.cli-action-command')).toContainText('gh aw update https://github.com/acme/catalog/activity --repo acme/control');
-      await expect(campaignSweepDialog.locator('.cli-action-command')).not.toContainText('Local package');
-      await expect(campaignSweepDialog.locator('.cli-action-command')).toContainText('--create-pull-request');
-      await campaignSweepDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(updatesPage.getByRole('button', { name: 'Update all campaigns', exact: true })).toHaveCount(0);
 
       const campaignCard = updatesPage.locator('.entity-card-list-card').filter({ hasText: 'Activity' });
       await campaignCard.getByRole('button', { name: 'Update', exact: true }).click();
@@ -223,10 +294,7 @@ for (const width of [1440, 390]) {
       const workflowsPage = page.locator('#page-maintenance-workflows');
       await expect(workflowNavigation).toHaveAttribute('aria-current', 'page');
       await expect(workflowsPage.locator('[data-route-tabs]')).toHaveCount(0);
-      await workflowsPage.getByRole('button', { name: 'Update all workflows', exact: true }).click();
-      const workflowSweepDialog = page.getByRole('dialog', { name: 'Approve Update all workflows', exact: true });
-      await expect(workflowSweepDialog.locator('.cli-action-command')).toHaveText('gh aw update review.md --repo octo/outdated --create-pull-request');
-      await workflowSweepDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(workflowsPage.getByRole('button', { name: 'Update all workflows', exact: true })).toHaveCount(0);
 
       const workflowCard = workflowsPage.locator('.entity-card-list-card').filter({ has: page.getByText('Review', { exact: true }) });
       await workflowCard.getByRole('button', { name: 'Update', exact: true }).click();
@@ -250,7 +318,7 @@ for (const width of [1440, 390]) {
       await expect(localCards).toHaveCount(1);
       await expect(localCards.getByRole('button', { name: 'Update', exact: true })).toHaveCount(0);
       await expect(localCards.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(1);
-      await expect(workflowsPage.getByText('Source update unavailable; compiler upgrades apply to the whole repository.', { exact: true }).first()).toBeVisible();
+      await expect(workflowsPage.getByText('Evidence', { exact: true })).toHaveCount(0);
 
       const screenshot = testInfo.outputPath(`maintenance-exact-coordinates-${width}.png`);
       await page.screenshot({ path: screenshot, fullPage: true });

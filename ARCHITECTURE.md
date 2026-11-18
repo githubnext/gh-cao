@@ -222,12 +222,30 @@ discovers a legacy dashboard bundle or bootstraps empty operational evidence.
 
 Production uses the same-origin Go/PostgreSQL host. Local development uses the
 same Go handler, PostgreSQL adapters and declarative views. Pages is only a
-synthetic enterprise demo: generated raw samples pass
+synthetic enterprise demo: raw samples generated on demand in the browser pass
 through production normalization, canonical ingestion, worker queries, and the
 same views. It has no real-data input option, SQLite download, agent summary, or
 live services. Its declarative **Synthetic enterprise demo** Overview callout identifies
-the evidence. Browser download, ingestion, persistence, and queries run in a
-dedicated Web Worker. Demo data URLs are under `demo-data/`, not the former
+the evidence. Synthesis, ingestion, persistence, and queries run in a
+dedicated Web Worker, in bounded batches rather than downloading a pregenerated
+enterprise snapshot. The sample contains 1,000 repositories, exactly 5,000
+runs, three campaigns, and 4,000 installed agentic workflows across all
+repositories. A log-normal activity distribution allocates the run budget with
+at least one run per repository. Fleet inventory is ingested first, followed by
+seeded, activity-weighted sampling without replacement. Randomly positioned
+coverage reservations put every repository into the first 3,000 runs, while
+busier repositories can recur naturally in partial results.
+Raw activity is normalized in batches of at most 100 runs.
+Four-word repository names come from a predefined 256-word safe vocabulary through
+a collision-free 32-bit permutation. Workflow display names vary across 64 safe
+labels while keeping inventory, run, and Value identities aligned. A small
+three-day-old coverage cohort guarantees 128 distinct blocked `.invalid` domains
+in retained firewall evidence; remaining blocked activity is probabilistic.
+Completed samples are reused within the same UTC day. A new day or incompatible
+generator/schema resets only the scoped demo database before regeneration, so
+regenerated runs cannot inherit stale outcomes or aggregate receipts. Interrupted
+samples resume committed inventory, installation, and activity batches.
+The demo source namespace remains under `demo-data/`, not the former
 root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
 service-worker caches use `demo`. Changing data URLs as well as storage keys
 prevents old same-origin service-worker responses from supplying real evidence.
@@ -294,9 +312,10 @@ against explicitly configured PostgreSQL storage; `serve-hosted` retains the rev
 PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared synthetic Pages
 artifact unchanged, including repository base paths, so the browser exercises
 IndexedDB rather than the hosted HTTP backend. The local Pages preparation
-command, `npm run dashboard:pages:build`, generates synthetic enterprise raw
-samples and runs production normalization and Dashboard building. It accepts no
-operational snapshot input and publishes neither SQLite nor agent summaries.
+command, `npm run dashboard:pages:build`, builds the Dashboard and its browser
+synthesizer without pregenerating sample evidence. Browser synthesis uses
+production normalization and canonical ingestion. The builder accepts no
+operational snapshot input and publishes neither data shards, SQLite nor agent summaries.
 `npm run dashboard:pages` remains a demo-only preview. Daily `docs.yml` builds
 refresh the demo independently of operational collection or artifact freshness.
 
@@ -631,7 +650,7 @@ and representative capacity evidence.
 
 Owner-run bootstrap initializes this schema and its UTC daily partitions; runtime
 opens and validates provisioned state without DDL. Daily owner-run maintenance
-keeps historical, current, and 28 upcoming days provisioned, expiring only
+keeps historical, current, and 14 upcoming days provisioned, expiring only
 complete days at each configured retention cutoff. Weekly layouts require a
 fresh canonical schema rebuilt from authoritative inputs without removing
 operational audit/queue state. A fixed schema-qualified

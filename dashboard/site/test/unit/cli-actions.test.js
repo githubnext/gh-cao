@@ -43,6 +43,36 @@ afterEach(() => {
 });
 
 describe('CLI actions', () => {
+  it('groups declared add actions in the chrome menu without executing before approval', () => {
+    const dashboard = document.createElement('div');
+    const chrome = document.createElement('div');
+    chrome.className = 'report-actions';
+    dashboard.append(chrome);
+    document.body.append(dashboard);
+    attachCliActions(dashboard, [{
+      id: 'add-example', verb: 'add', label: 'Add example', icon: 'plus',
+      command: 'gh cao repos add octo/example', placement: 'toolbar'
+    }]);
+    const menu = /** @type {HTMLDetailsElement} */ (chrome.querySelector('.cli-actions-add-menu'));
+    const toggle = /** @type {HTMLElement} */ (menu.querySelector('summary'));
+    expect(toggle.getAttribute('aria-label')).toBe('Add');
+    expect(toggle.querySelector('.octicon-plus')).not.toBeNull();
+    expect(menu.open).toBe(false);
+    toggle.click();
+    expect(menu.open).toBe(true);
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu.open).toBe(false);
+    expect(document.activeElement).toBe(toggle);
+    toggle.click();
+    document.body.click();
+    expect(menu.open).toBe(false);
+    toggle.click();
+    menu.querySelector('.cli-action-trigger')?.dispatchEvent(new MouseEvent('click'));
+    expect(menu.querySelector('.cli-action-command')?.textContent).toBe('gh cao repos add octo/example');
+    expect(queue.enqueue).not.toHaveBeenCalled();
+    dashboard.remove();
+  });
+
   it('previews exact workflow update scope and requires explicit approval without unsupported pinned options', async () => {
     const action = dashboardDocument.dashboard['cli-actions'].find((candidate) => candidate.id === 'update-workflow-source');
     if (!action) throw new Error('Missing workflow update action');
@@ -553,7 +583,8 @@ describe('CLI actions', () => {
     ));
   });
 
-  it('opens the durable command view after approval without attaching or cancelling in the dialog', async () => {
+  it('queues after approval and closes the dialog without navigating, attaching, or cancelling', async () => {
+    window.location.hash = 'page-maintenance';
     const root = renderCliActions([{
       id: 'compile-workflows', label: 'Compile workflows', icon: 'play', command: 'gh aw compile'
     }]);
@@ -570,7 +601,14 @@ describe('CLI actions', () => {
     trigger.click();
     expect(queue.enqueue).not.toHaveBeenCalled();
     confirm.click();
-    await vi.waitFor(() => expect(window.location.hash).toBe('#page-command?command=command-1'));
+    await vi.waitFor(() => expect(root.querySelector('.cli-action-dialog')?.hasAttribute('open')).toBe(false));
+    expect(window.location.hash).toBe('#page-maintenance');
+    const notice = /** @type {HTMLElement} */ ([...document.querySelectorAll('.dashboard-notification-success')]
+      .find((element) => element.textContent?.includes('Compile workflows: command queued.')));
+    expect(notice).toBeTruthy();
+    /** @type {HTMLButtonElement} */ (notice.querySelector('.dashboard-notification-action')).click();
+    expect(window.location.hash).toBe('#page-command?command=command-1');
+    window.location.hash = 'page-maintenance';
     expect(confirm.disabled).toBe(true);
     confirm.click();
     expect(queue.enqueue).toHaveBeenCalledTimes(1);
@@ -587,6 +625,28 @@ describe('CLI actions', () => {
     confirm.click();
     await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledTimes(2));
     root.remove();
+  });
+
+  it('shows an ephemeral success notification once a command is queued', async () => {
+    document.querySelector('.dashboard-notifications')?.remove();
+    const root = renderCliActions([{
+      id: 'compile-workflows', label: 'Compile workflows', icon: 'play', command: 'gh aw compile'
+    }]);
+    if (!root) throw new Error('Expected a CLI action control.');
+    document.body.append(root);
+    const notice = () => document.querySelector('.dashboard-notification-success');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-trigger')).click();
+      /** @type {HTMLButtonElement} */ (root.querySelector('.cli-action-confirm')).click();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(notice()?.textContent).toContain('Compile workflows: command queued.');
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(notice()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+      root.remove();
+    }
   });
 
   it('preserves approval and reports admission errors without navigating', async () => {
@@ -607,8 +667,8 @@ describe('CLI actions', () => {
     expect(approval.open).toBe(true);
     expect(approval.querySelector('header button')?.getAttribute('aria-label')).toBe('Close action approval');
     finish({ id: 'command-1', status: 'queued' });
-    await vi.waitFor(() => expect(window.location.hash).toBe('#page-command?command=command-1'));
-    expect(approval.open).toBe(false);
+    await vi.waitFor(() => expect(approval.open).toBe(false));
+    expect(window.location.hash).toBe('#page-maintenance');
     expect(document.activeElement).toBe(trigger);
     expect(queue.cancel).not.toHaveBeenCalled();
     root.remove();
@@ -678,14 +738,17 @@ describe('CLI actions', () => {
     expect(root.querySelector('.cli-action-command')?.textContent)
       .toBe('gh aw compile --strict --pre-releases');
 
+    window.location.hash = 'page-maintenance?repository=octo%2Fapp';
     confirm.click();
     await vi.waitFor(() => expect(queue.enqueue).toHaveBeenCalledTimes(1));
     expect(queue.enqueue.mock.calls[0][0]).toEqual({
       id: 'compile-workflows',
       arguments: { 'pre-releases': true },
-      idempotencyKey: expect.any(String)
+      idempotencyKey: expect.any(String),
+      origin: '#page-maintenance?repository=octo%2Fapp'
     });
-    await vi.waitFor(() => expect(window.location.hash).toBe('#page-command?command=command-1'));
+    await vi.waitFor(() => expect(root.querySelector('.cli-action-dialog')?.hasAttribute('open')).toBe(false));
+    expect(window.location.hash).not.toContain('page-command');
     expect(root.querySelector('.cli-action-terminal')).toBeNull();
     expect(confirm.disabled).toBe(true);
     confirm.click();

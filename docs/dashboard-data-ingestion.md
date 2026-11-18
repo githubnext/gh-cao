@@ -11,9 +11,11 @@ For where the dashboard is served, see [Deployment options](deployment.md).
 
 ## Data flow
 
-Agentic workflows produce Actions logs. The Activity workflow collects a bounded
-snapshot into read-only operational artifacts. Consumers apply the shared model rules to build
-separate projections: local and hosted Go deployments ingest into PostgreSQL;
+Agentic workflows produce Actions logs. Native collection, either `gh cao
+dashboard` locally or the authenticated Go server when hosted, reads a bounded
+slice of that evidence into canonical records. Consumers apply the shared model
+rules to build separate projections: local and hosted Go deployments ingest
+into PostgreSQL;
 native command-line tools use its canonical read boundary. Pages uses only
 generated synthetic enterprise samples, passed through the same normalization,
 canonical ingestion, queries, and views with browser IndexedDB. These are
@@ -112,7 +114,7 @@ receipt, or object existence.
 
 ## Completeness and duplicates
 
-The scheduled Activity workflow is a rolling operational snapshot, not a full historical archive. Data can be incomplete at these boundaries:
+Native collection produces a rolling operational snapshot, not a full historical archive. Data can be incomplete at these boundaries:
 
 | Boundary | What can be missing |
 | --- | --- |
@@ -213,8 +215,19 @@ with shared Dashboard Language accounting, retains request evidence needed by
 run-page views, and drops unused inventory and generic proxy events.
 
 The activity shard manifest describes operational artifact input. The Pages
-demo generates equivalent synthetic input through the production normalizer;
-it never downloads that operational manifest. The canonical ingestion expression
+demo instead generates synthetic raw input on demand in the browser data worker,
+using the production normalizer and bounded canonical ingestion.
+Its default population is 1,000 repositories, exactly 5,000 runs, three campaigns, and 4,000
+installed agentic workflows across all repositories. Log-normal repository rates
+allocate the run budget with at least one run per repository. Fleet inventory
+precedes seeded, activity-weighted ingestion without replacement. Randomly positioned
+coverage reservations put every repository into the first 3,000 runs, while
+busier repositories can recur naturally in partial results.
+Interrupted samples resume committed inventory, installation, and activity batches.
+The build publishes
+no pregenerated enterprise inventory or run/detail snapshot; compatible completed
+browser-local samples are reused. It never downloads an operational manifest.
+The canonical ingestion expression
 maps raw `workflow_runs` rows to Repository, Workflow, and Run observations.
 Enriched `run` envelopes update the same Run identities and create deterministic
 Domain, Tool, Audit, and Issue records owned by those Runs.
@@ -227,7 +240,7 @@ The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnex
 The canonical model is version 37. The browser database is
 logically `gh-aw-cao-dashboard-data`, IndexedDB version 50. Pages storage keys
 carry the `synthetic-demo` suffix and deployment scope; service-worker caches
-use `demo`. Demo payloads live under `demo-data/`, not the old root
+use `demo`. The demo source namespace remains under `demo-data/`, not the old root
 manifest URL, preventing old same-origin cached real data from being reused.
 Its canonical stores are
 `campaigns`, `repositories`, `workflows`, `runs`, `domains`, `tools`, `skills`,

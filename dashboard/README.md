@@ -106,10 +106,19 @@ npm run dashboard:pages:build
 npm run dashboard:pages -- --base-path /gh-cao/
 ```
 
-Preparation generates synthetic enterprise raw samples through production
-Activity normalization, canonical ingestion, hashes, and Dashboard build steps.
-There is no real-data input option. Published output contains no SQLite snapshot
-or agent summary. It does not contact GitHub or simulate Actions permissions,
+Preparation builds the dashboard and browser synthesizer without pregenerating
+data files. On demand, the browser data worker generates 1,000 repositories,
+exactly 5,000 runs, three campaigns, and 4,000 installed agentic workflows across all repositories,
+using production normalization and canonical IndexedDB ingestion in bounded batches.
+Log-normal activity rates distribute runs across the fleet with at least one run
+per repository. Fleet inventory loads first; seeded, activity-weighted ingestion
+allows busier repositories to recur naturally while randomly positioned coverage
+reservations put every repository into the first 3,000 runs.
+Compatible completed samples are reused on subsequent visits; interrupted samples
+resume committed inventory, installation, and activity batches.
+There is no real-data input option. Published output contains no inventory or
+run/detail snapshot, SQLite snapshot, or agent summary.
+It does not contact GitHub or simulate Actions permissions,
 caches/artifact transport, or Pages infrastructure.
 The existing Actions runtime simulator supports compiled dry-run agentic locks,
 not the ordinary Activity/Dashboard workflows' cache and artifact transport.
@@ -121,7 +130,7 @@ API, or fallback. Use `--site ../.tmp/OTHER` to select other prepared output.
 
 The declarative **Synthetic enterprise demo** callout on Overview identifies the
 sample without a site-wide notification.
-Data URLs live under `demo-data/`; browser storage keys use
+The demo source namespace remains under `demo-data/`; browser storage keys use
 `synthetic-demo` and service-worker caches use `demo`. Old same-origin
 real-data responses cannot be selected through the changed data URLs.
 IndexedDB, Web Worker, service-worker caching, and cross-adapter conformance

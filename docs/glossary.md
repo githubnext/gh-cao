@@ -112,7 +112,7 @@ A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) t
 
 ## Daily partition
 
-A UTC-day partition of a high-volume canonical PostgreSQL table, such as runs. Owner-run bootstrap initializes the partitions and owner-run maintenance keeps historical, current, and 28 upcoming days provisioned, expiring only complete days at each retention cutoff; runtime opens provisioned state without DDL. See [Architecture](architecture.md).
+A UTC-day partition of a high-volume canonical PostgreSQL table, such as runs. Owner-run bootstrap initializes the partitions and owner-run maintenance keeps historical, current, and 14 upcoming days provisioned, expiring only complete days at each retention cutoff; runtime opens provisioned state without DDL. See [Architecture](architecture.md).
 
 ## Dashboard Language
 
@@ -161,6 +161,10 @@ The single campaign selected for historical operational-value reconstruction in 
 ## Hosted CLI actions
 
 An experimental hosted-server mode, enabled with `serve-hosted --experimental --hosted-cli-actions`, in which step-up administrators queue declared `cao` actions. A separate `execute-cli` process runs each queued action with a single-use, repository-scoped GitHub App installation token that is revoked when the command finishes. Executor replicas coordinate through a durable, fenced PostgreSQL queue lease. See the [hosted CLI actions specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-hosted-cli.md).
+
+## Item source
+
+A closed, reviewed `archive-*` source in a session-query that flattens one collection of the last agent-phase trajectory event of each complete active trace, such as `archive-objectives`, `archive-actions`, or `archive-tool-calls`. Item sources are approved evidence projections, not raw payload access: they never expose `PayloadJSON`, forbid `first` and real-valued `sum`, and must be accepted against real Kusto before a backend advertises them. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
 
 ## Keyset page
 
@@ -238,6 +242,10 @@ File-database repair and conversion commands are removed. PostgreSQL partition a
 
 The canonical gh-aw capability that persists files with unlimited retention in a dedicated `memory/<campaign-slug>` Git branch, distinct from the 7-day `cache-memory`. CAO campaigns configure it with `repo-memory.branch-name` so a coordinator can read and update bounded, advisory cross-run state through `$GH_AW_MEMORY_DIR` before dispatch selection; workers share the branch only when their work benefits from that shared history. Repo memory is never policy, target authority, credential storage, or a substitute for current repository evidence. See the canonical gh-aw definition of [Repo Memory](https://github.github.com/gh-aw/reference/glossary/#repo-memory).
 
+## Reviewed grader definition
+
+A checked-in, declarative `session-query` under `server/internal/sessionarchive/testdata/graders/` that recomputes one upstream `github/gh-aw` built-in grader over the private session archive. It is accepted only after replay on local DuckDB and real Kusto, must fit the maximum GitHub repository shape, and its results are compared within any declared tolerance rather than inferred. Graders that depend on unavailable or unexpressible state remain unsupported, and recomputed results do not replace the original grader observations. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md) and the [grader query feasibility tracker](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive-grader-queries.md).
+
 ## Run
 
 One execution of a coordinator, worker, or standalone workflow. A coordinator run may produce many dispatches; each dispatch starts a separate worker run. A run records activity and evidence, but successful completion alone does not prove operational value. Use **run** rather than **session**: a run is the canonical execution entity, and canonical Domain, Tool, Audit, and Issue records link directly to it.
@@ -261,6 +269,10 @@ A declared, bounded way for a workflow to produce an external effect, such as cr
 ## Session archive
 
 An independently default-off, private analytics store of approved complete unified-session traces, kept as immutable Parquet files (local DuckDB queries) or Blob objects (hosted ADX queries). It adds analytics without changing PostgreSQL schemas, canonical queries, ingestion, retention, or operational state, and cannot authorize collection or widen policy. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
+
+## Session query
+
+The explicitly named `session-query` analytical operation over the private session archive, accepting only `language-version: "0.2.0"` and one closed Dashboard Language `query` over `archive-events` or an approved item source. It is not the generic `query`, accepts no SQL, scripts, cross-trace joins, or `PayloadJSON`, and must fail rather than clamp or emulate an unsupported operator. Local DuckDB and hosted ADX run it under the same bounded budgets. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
 
 ## Standalone workflow
 

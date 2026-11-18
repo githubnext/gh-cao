@@ -263,6 +263,48 @@ runbook and retain independent tenant-specific deployment evidence. See the
 
 ## Configurable company ingestion stress
 
+### Open-browser local ingestion regression
+
+Run `POSTGRES_URL=... npm run test:stress:dashboard-local-ingestion` from the
+repository root after installing Chromium with `npx playwright install chromium`.
+The URL must select a **disposable numeric-loopback cluster**, administrator
+`cao_bootstrap`, an empty database `cao_dashboard`; the test provisions its runtime role
+and canonical storage. Never point it at a dashboard you want to keep.
+
+The test reuses the token-free, strict loopback GitHub cold-start simulator:
+1,600 upstream runs, 280 executed attempts, split/paginated history and streamed
+synthetic ZIP artifacts. The production native collector, embedded normalizer,
+persistent ingestion process, PostgreSQL, Go query API and real server-profile
+dashboard run together with Chromium open throughout acquisition. GitHub and
+gh-aw acquisition adapters are simulated; no installed gh-aw process, agent,
+real credentials, live GitHub access or hosted-service acceptance is claimed.
+Unsupported upstream requests and browser requests outside the local origin fail.
+
+Two Runs report the same GitHub Issue, forcing the delta ownership fence.
+The ingestor must reconcile the verified full recovery snapshot without
+relaxing that fence, aborting history discovery or waiting for the normal
+five-minute failure retry. Final JSONL summaries remain bounded to 16 Runs per
+publication. Snapshot headers carry the embedded normalizer's generated schema
+version so current lifecycle rows are not also synthesized as legacy evidence.
+Existing unversioned schema-37 native shard indexes are rewritten once before
+untouched groups can be reused. Final canonical queries must retain all tool
+evidence, the shared Issue and both delivery lifecycles.
+History must finish within 150 seconds; the unchanged active page must observe
+fresh revisions and all 280 Runs through one WebSocket, with no browser/API
+errors and no query/refresh response exceeding 15 seconds.
+
+`test-results/dashboard-local-ingestion-stress/` retains JSON request timings,
+redacted native debug logs, browser diagnostics, and desktop/mobile screenshots.
+The local-platforms PR job runs this gate on a separate fresh PostgreSQL service
+from the cold-start test and uploads those artifacts.
+To diagnose real ingestion, start the native dashboard with
+`DEBUG=cao:dashboard:ingest-stream,cao:ingest`. Logs identify publication mode,
+elapsed milliseconds, revision, ownership-conflict collection, snapshot failure
+stage and PostgreSQL SQLSTATE/table/constraint, never raw rows, error details,
+connection URLs or access capabilities.
+
+### Generated company workloads
+
 Run `npm run test:stress:company -- --preset large` with disposable local
 PostgreSQL to measure ingestion and queries from generated AW evidence, without
 running agents. See [Company stress testing](COMPANY-STRESS.md) for configurable
@@ -3250,7 +3292,7 @@ without any of these use ingestion time. Linked records inherit their run's
 partition timestamp. PostgreSQL routes parent-table inserts; missing days
 fail closed rather than creating partitions during ingestion. The separately
 scheduled owner-run `database maintain --store canonical` checks existing
-partitions, creates any missing current and 28 future days first, and removes complete
+partitions, creates any missing current and 14 future days first, and removes complete
 run days ending at or before the cutoff set by
 `CAO_POSTGRES_RUN_RETENTION_DAYS` (default 30, allowed 7–3650).
 Run-linked tables (audits, domains, eval observations, experiment assignments,
@@ -3263,7 +3305,7 @@ expired run shards, updating affected source counts and revisions. Repeated main
 is a no-op when partitions are already present and none have expired. Run it
 at least daily and before restarting after downtime; runtime startup checks the
 full provisioned window but never repairs it. Alert on missed maintenance before
-the 28-day runway expires. Choose a window
+the 14-day runway expires. Choose a window
 that covers all authoritative run timestamps before ingestion; historical linked
 records outside the linked window are skipped while their retained runs are
 still ingested. For a seven-day window for both runs and detail, explicitly set

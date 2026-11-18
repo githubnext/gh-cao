@@ -102,7 +102,7 @@ Bootstrap runs the shared provisioning script as a separate Job, creating
 non-login group roles, distinct service logins, existing-state schemas and
 explicit grants. The web has no owner/admin secret or bootstrap init-container.
 Only the separate owner CronJob maintains canonical partitions, daily at 02:00
-UTC (retained history, today and 28 future UTC days). Run it manually after a
+UTC (retained history, today and 14 future UTC days). Run it manually after a
 long cluster shutdown, before resuming the web:
 
 ```sh

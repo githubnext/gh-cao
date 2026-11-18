@@ -904,7 +904,7 @@ count.
 The repository's `simulate-api` and `simulate-webhooks` commands are a local
 validation tool for the collector profile. They MUST exercise the same GitHub
 webhook endpoint, signature verification, delivery deduplication, durable queue
-admission, worker coordination, collection runner, and projection code used in
+admission, worker coordination, native collection, and projection code used in
 production. The simulator MUST NOT add a bypass path to production handlers or
 substitute an in-memory queue for the selected durable operational backend.
 
@@ -986,9 +986,11 @@ GitHub-shaped status codes and rate-limit headers for configured fault windows.
 It is not a general GitHub API emulator, and passing a simulator scenario MUST
 NOT be treated as proof of correctness against every GitHub API response.
 
-The API URL MUST be routed through the normal collection runner into collection
-subprocesses. A simulator run MUST use synthetic repositories, isolated test
-credentials, and a test Redis instance; operators MUST NOT point it at live
+The API URL MUST be supplied through `CAO_COLLECT_GITHUB_API_URL` (and, when
+needed, `CAO_COLLECT_GITHUB_UPLOAD_URL`) so the native Go collector, not a
+collection subprocess, sends its requests to the simulator. A simulator run
+MUST use synthetic repositories, isolated test credentials, and an isolated
+test PostgreSQL operational namespace; operators MUST NOT point it at live
 repositories or expose the fake API listener to an untrusted network. The
 simulator MUST NOT log webhook secrets, App credentials, or payload contents.
 

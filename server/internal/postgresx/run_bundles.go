@@ -19,6 +19,16 @@ import (
 
 const MaxRunBundles = 16
 
+// RunBundleReconciliationError rejects an ownership change that only a verified
+// authoritative snapshot may reconcile. Collection contains no record identity.
+type RunBundleReconciliationError struct {
+	Collection string
+}
+
+func (e *RunBundleReconciliationError) Error() string {
+	return "run bundle changes a shared parent or evidence owner; authoritative reconciliation is required"
+}
+
 // RunBundlePublication is a verified local source observation, not an authority
 // envelope. Namespace, credentials and source directory remain session-owned.
 type RunBundlePublication struct {

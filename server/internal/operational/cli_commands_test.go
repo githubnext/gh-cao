@@ -80,6 +80,10 @@ func TestCLICommandInvocationValidateReportsRejectionStage(t *testing.T) {
 		{"secret command", CLICommandInvocation{ActionID: "a", Command: "echo ghp_abcdef123456"}, cliRejectText},
 		{"secret value", CLICommandInvocation{ActionID: "a", Command: "c", Values: map[string]string{"k": "Bearer abc"}}, cliRejectText},
 		{"secret input", CLICommandInvocation{ActionID: "a", Command: "c", Input: &secretInput}, cliRejectText},
+		{"dashboard origin", CLICommandInvocation{ActionID: "a", Command: "c", Origin: "#page-maintenance?repository=octo%2Fapp"}, ""},
+		{"external origin", CLICommandInvocation{ActionID: "a", Command: "c", Origin: "https://example.com/#page-x"}, cliRejectShape},
+		{"script origin", CLICommandInvocation{ActionID: "a", Command: "c", Origin: "#page-x?<script>"}, cliRejectShape},
+		{"secret origin", CLICommandInvocation{ActionID: "a", Command: "c", Origin: "#page-x?token=abc123"}, cliRejectText},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

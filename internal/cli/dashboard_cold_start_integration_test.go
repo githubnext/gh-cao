@@ -274,6 +274,7 @@ type dashboardColdStartGitHub struct {
 	runs             []map[string]any
 	expected         map[string][2]string
 	beforeSecondPass func(context.Context) error
+	artifactHandler  func(http.ResponseWriter, *http.Request) bool
 	mutex            sync.Mutex
 	passes           []time.Time
 	historyPages     int
@@ -334,6 +335,9 @@ func (g *dashboardColdStartGitHub) serveHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	if g.artifactHandler != nil && g.artifactHandler(w, r) {
+		return
+	}
 	var result any
 	switch r.URL.Path {
 	case "/rate_limit":
