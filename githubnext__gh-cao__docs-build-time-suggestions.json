@@ -1,34 +1,7 @@
 {
   "source_sha": "5d00b8911fbd0143b782e1247f87ef1dce01db07",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-17T23:32:32Z",
-      "worker_run_id": "44199628727",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457",
-        "43832040488",
-        "43831980991",
-        "43831754585"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 43831754585 (push fa5faeb, created 2026-11-16T08:30Z) .. 44060953578 (push fcd7e18, created 2026-11-17T10:01Z); cancelled 43991812013 and 43832015521 excluded and disclosed; 18 successes (17 push, 1 schedule 44023953879), 0 failed. gh run list at evaluation: no docs run queued or in progress (stale queued 37642403569, created 2026-10-07, outside window); no docs run newer than 44060953578. main = local HEAD = 453e35b = source_sha; compare identical (0 files). Recomputed from stored run_timings rows (no refetch): demo step median 5 s, p90 6 s, max 8 s = 6.5 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s gate unmet; ceiling 5 s. Parallelizing demo with docs:build would save at most min(5, 11) = 5 s, not proposed. Reuse still blocked (scripts/simulate-dashboard-pages.mjs:78 Date.now default; dist/cao deployed each run). Open issues: only #20815 (checkout, outside cycle, OPEN, 0 comments, unchanged since 2026-11-13); not repeated. Window identical to every evaluation since 2026-11-17T10:01Z; repeated dispatches add no new evidence. Noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-17T23:52:43Z",
       "worker_run_id": "44202644996",
@@ -819,6 +792,34 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44254629254..43840581457 (cancelled 43991812013 excluded, 0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879). gh run list 09:33Z: no docs run newer than 44254629254; HEAD 5d00b89 = source_sha. Recomputed from stored run_timings (no refetch): build docs step (docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery) median 11 s, p90 15 nearest-rank, min 9, max 15; push-only median 13 s, p90 15. Exec median 76 s (push 78 s). Whole-step removal ceiling 11 s (push 13 s) vs 15 percent gate 11.4 s (push 11.7 s) and 60 s gate: unmet. docs:build is strictly serial, so split or parallelization saves nothing; an Astro cache restore would save only a fraction of the astro build while adding an actions/cache step. Output reuse still blocked (PUBLIC_PAGES_BUILD_COMMIT provenance). Repeat of window evaluated at 07:54Z; no suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-18T09:52:04Z",
+      "worker_run_id": "44279436103",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672",
+        "43991770179",
+        "43991571724",
+        "43987917606",
+        "43877103800",
+        "43862265708",
+        "43854851689",
+        "43840581457"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879), 0 failed. gh run list 09:52Z: no docs run newer than 44254629254, none queued or in progress (stale queued 37642403569 only); main = local HEAD = 5d00b89 = source_sha. Recomputed from stored immutable run_timings rows (no refetch): Build synthetic enterprise demo median 5 s, p90 6, min 3, max 8 (push-only median 5); exec median 76 s, p90 82; share 6.6 percent; 15 percent gate 11.4 s and 60 s gate unmet; full-elimination ceiling 5 s. Reuse still blocked: scripts/simulate-dashboard-pages.mjs:78 defaults now to Date.now() and dist/cao is deployed every run. Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1605,7 +1606,8 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-18T08:24:31Z",
+    "verified_at": "2026-11-18T09:52:04Z",
+    "worker_run_id": "44279436103",
     "window": "strict latest 20 completed docs.yml runs 44254629254..43840581457 (cancelled 43991812013 excluded); 19 successes; recomputed from immutable run_timings rows",
     "demo_step_s": {
       "median": 5,
@@ -1614,6 +1616,7 @@
       "max": 8,
       "n": 19
     },
+    "push_only_demo_median_s": 5,
     "exec_s": {
       "median": 76,
       "p90": 82
@@ -1622,7 +1625,7 @@
     "gate_15pct_s": 11.4,
     "ceiling_saving_s": 5,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:78 defaults now = Date.now(); dist/cao deployed every run; cache overhead would reduce net saving",
-    "decision": "not actionable (complete evaluation, worker 44266183070)"
+    "decision": "not actionable (complete evaluation, worker 44279436103)"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
