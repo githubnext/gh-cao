@@ -11,9 +11,11 @@ For where the dashboard is served, see [Deployment options](deployment.md).
 
 ## Data flow
 
-Agentic workflows produce Actions logs. The Activity workflow collects a bounded
-snapshot into read-only operational artifacts. Consumers apply the shared model rules to build
-separate projections: local and hosted Go deployments ingest into PostgreSQL;
+Agentic workflows produce Actions logs. Native collection, either `gh cao
+dashboard` locally or the authenticated Go server when hosted, reads a bounded
+slice of that evidence into canonical records. Consumers apply the shared model
+rules to build separate projections: local and hosted Go deployments ingest
+into PostgreSQL;
 native command-line tools use its canonical read boundary. Pages uses only
 generated synthetic enterprise samples, passed through the same normalization,
 canonical ingestion, queries, and views with browser IndexedDB. These are
@@ -112,7 +114,7 @@ receipt, or object existence.
 
 ## Completeness and duplicates
 
-The scheduled Activity workflow is a rolling operational snapshot, not a full historical archive. Data can be incomplete at these boundaries:
+Native collection produces a rolling operational snapshot, not a full historical archive. Data can be incomplete at these boundaries:
 
 | Boundary | What can be missing |
 | --- | --- |
