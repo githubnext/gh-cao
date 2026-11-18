@@ -1,4 +1,5 @@
 import { h } from '../dom.js';
+import { octicon } from '../octicons.js';
 import { effect, state } from '../reactive.js';
 import { createFactoryScope } from './factory-elements.js';
 import { renderDeclaredCliAction } from './cli-actions.js';
@@ -80,12 +81,27 @@ export function createCardListSelection(options) {
     type: 'button', className: 'entity-card-selection-link',
     onClick: () => { selected = new Map(); anchor = -1; error.set(''); changed(); }
   }, 'Clear selection');
-  const commands = h('span', { className: 'document-list-actions' });
+  const commandList = h('div', { className: 'cli-actions-list' });
+  const commandToggle = h('summary', { className: 'cli-actions-toggle' }, 'Commands', octicon('chevron-down'));
+  const commands = /** @type {HTMLDetailsElement} */ (h('details', {
+    className: 'cli-actions-menu entity-card-selection-commands',
+    onKeyDown: (/** @type {KeyboardEvent} */ event) => {
+      if (event.key !== 'Escape' || event.target instanceof Element && event.target.closest('dialog')) return;
+      commands.open = false;
+      commandToggle.focus();
+    }
+  }, commandToggle, commandList));
+  commands.ownerDocument.addEventListener('click', (event) => {
+    if (event.target instanceof Node && !commands.contains(event.target)) commands.open = false;
+  }, { signal: scope.signal });
   const message = h('span', { role: 'alert' });
-  const controls = h('div', { className: 'entity-card-selection-controls' },
+  const header = h('div', { className: 'entity-card-selection-header' },
     h('label', { className: 'entity-card-selection-loaded', title: 'Select all loaded items' },
       allLoaded, h('span', { className: 'sr-only' }, 'Select all loaded items')),
-    count, selectQuery, clear, commands);
+    count);
+  const actions = h('div', { className: 'entity-card-selection-actions', hidden: true },
+    selectQuery, clear, commands);
+  const controls = h('div', { className: 'entity-card-selection-controls' }, header, actions);
   const toolbar = h('div', { className: 'entity-card-selection' }, controls, message);
 
   return {
@@ -152,11 +168,13 @@ export function createCardListSelection(options) {
         selectQuery.disabled = loading || !selectable;
         clear.hidden = selected.size === 0;
         clear.toggleAttribute('disabled', loading);
+        actions.hidden = selected.size === 0;
         commands.hidden = selected.size === 0;
+        if (commands.hidden) commands.open = false;
         message.textContent = failure;
         message.hidden = !failure;
         const rows = [...selected.values()];
-        commands.replaceChildren(...(selected.size ? options.commands : []).flatMap((id) => {
+        commandList.replaceChildren(...(selected.size ? options.commands : []).flatMap((id) => {
           const action = options.actions.find((candidate) => candidate.action === id);
           if (!action) return [];
           const control = renderDeclaredCliAction(id, {}, {
@@ -165,6 +183,10 @@ export function createCardListSelection(options) {
             warning: options.metadata.completeness === 'partial'
               ? 'Inventory evidence is partial. Only the explicitly listed selected targets are included.' : undefined
           });
+          control?.querySelector('dialog')?.addEventListener('close', () => {
+            commands.open = false;
+            commandToggle.focus();
+          }, { signal: scope.signal });
           return control ? [control] : [];
         }));
       }, { signal: scope.signal });

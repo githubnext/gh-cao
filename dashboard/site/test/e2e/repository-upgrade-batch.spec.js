@@ -34,6 +34,11 @@ for (const width of [1440, 390]) {
       await stateFilter.getByRole('button', { name: 'Apply filters', exact: true }).click();
       const cards = view.locator('.entity-card-list-card');
       await expect(cards).toHaveCount(25);
+      const header = view.locator('.entity-card-selection-header');
+      const checkboxBounds = await header.getByRole('checkbox', { name: 'Select all loaded items', exact: true }).boundingBox();
+      const filterBounds = await header.locator('.card-filter-menu summary').first().boundingBox();
+      if (!checkboxBounds || !filterBounds) throw new Error('Missing selection or filter control bounds');
+      expect(Math.abs(checkboxBounds.y + checkboxBounds.height / 2 - filterBounds.y - filterBounds.height / 2)).toBeLessThan(2);
       await expect(view.getByRole('button', { name: 'Select items', exact: true })).toHaveCount(0);
       const controls = view.locator('.entity-card-selection-controls');
       await expect(controls.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(0);
@@ -58,6 +63,8 @@ for (const width of [1440, 390]) {
       await expect(cards.last().getByRole('checkbox')).toBeChecked();
       await first.uncheck();
       await expect(controls.getByRole('status')).toHaveText('60 selected');
+      await expect(controls.getByRole('button', { name: 'Disable', exact: true })).not.toBeVisible();
+      await controls.getByText('Commands', { exact: true }).click();
       const screenshot = testInfo.outputPath(`updates-selection-${width}.png`);
       await page.screenshot({ path: screenshot, fullPage: true });
       await testInfo.attach(`updates-selection-${width}`, { path: screenshot, contentType: 'image/png' });
@@ -71,7 +78,8 @@ for (const width of [1440, 390]) {
       await expect(command).not.toContainText('octo/repo-062');
       expect((await command.textContent())?.split('\n')).toHaveLength(60);
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-      await expect(controls.getByRole('button', { name: 'Disable', exact: true })).toBeFocused();
+      await expect(controls.getByText('Commands', { exact: true })).toBeFocused();
+      await expect(controls.getByRole('button', { name: 'Disable', exact: true })).not.toBeVisible();
       await controls.getByRole('button', { name: 'Clear selection', exact: true }).click();
       await expect(first).toBeVisible();
       await expect(first).not.toBeChecked();

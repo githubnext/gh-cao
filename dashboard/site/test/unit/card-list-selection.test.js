@@ -132,6 +132,32 @@ describe('lazy card checkbox selection', () => {
     expect(control.querySelector('.cli-action-confirm')?.hasAttribute('disabled')).toBe(false);
   });
 
+  it('groups commands in a dismissible dropdown and returns focus there after approval cancellation', () => {
+    const root = renderList({ rows: rows.slice(0, 2) });
+    const menu = /** @type {HTMLDetailsElement} */ (root.querySelector('.entity-card-selection-commands'));
+    const toggle = menu.querySelector('summary');
+    expect(menu.hidden).toBe(true);
+    selectLoaded();
+    expect(menu.hidden).toBe(false);
+    toggle?.click();
+    expect(menu.open).toBe(true);
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu.open).toBe(false);
+    expect(document.activeElement).toBe(toggle);
+    toggle?.click();
+    document.body.click();
+    expect(menu.open).toBe(false);
+    toggle?.click();
+    button('.cli-action-trigger', menu).click();
+    const dialog = menu.querySelector('dialog');
+    expect(dialog?.hasAttribute('open')).toBe(true);
+    button('.cli-action-cancel', menu).click();
+    expect(dialog?.hasAttribute('open')).toBe(false);
+    dialog?.dispatchEvent(new Event('close'));
+    expect(menu.open).toBe(false);
+    expect(document.activeElement).toBe(toggle);
+  });
+
   it('clears the entire query selection when the checked header checkbox is unchecked', async () => {
     const root = renderList();
     const all = selectLoaded();
