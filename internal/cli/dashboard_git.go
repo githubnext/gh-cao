@@ -31,16 +31,16 @@ func dashboardGitEnvironment(ctx context.Context, environment []string) ([]strin
 	if configuration, _ := ctx.Value(dashboardConfigurationKey{}).(*dashboardConfiguration); configuration != nil {
 		snapshot, err := readDashboardConfiguration(configuration.path)
 		if err != nil {
-			return nil, errors.New("Git readiness: fix the local CAO configuration before publishing a pull request")
+			return nil, errors.New("git readiness: fix the local CAO configuration before publishing a pull request")
 		}
 		identity = snapshot.git
 	}
 	environment = append(environment, "GH_HOST=github.com", "GH_PROMPT_DISABLED=1", "GIT_TERMINAL_PROMPT=0")
 	if _, err := run(environment, "git", "--version"); err != nil {
-		return nil, errors.New("Git readiness: install git and ensure it is on PATH")
+		return nil, errors.New("git readiness: install git and ensure it is on PATH")
 	}
 	if _, err := run(environment, "gh", "auth", "status", "--active", "--hostname", "github.com"); err != nil {
-		return nil, errors.New("Git readiness: GitHub authentication is unavailable; run gh auth login --hostname github.com or configure GH_TOKEN")
+		return nil, errors.New("git readiness: GitHub authentication is unavailable; run gh auth login --hostname github.com or configure GH_TOKEN")
 	}
 	configured := map[string]string{}
 	if identity.Name == "" {
@@ -49,7 +49,7 @@ func dashboardGitEnvironment(ctx context.Context, environment []string) ([]strin
 			if err != nil {
 				var exit *exec.ExitError
 				if !errors.As(err, &exit) || exit.ExitCode() != 1 {
-					return nil, errors.New("Git readiness: unable to read Git identity configuration")
+					return nil, errors.New("git readiness: unable to read Git identity configuration")
 				}
 			}
 			configured[field] = strings.TrimSpace(string(content))
@@ -91,7 +91,7 @@ func dashboardGitEnvironment(ctx context.Context, environment []string) ([]strin
 			Email string `json:"email"`
 		}
 		if err != nil || json.Unmarshal(content, &user) != nil || user.ID <= 0 || !nativeLogin.MatchString(user.Login) {
-			return nil, errors.New("Git readiness: no commit identity is configured and the signed-in GitHub user could not be resolved; set git.name and git.email in cao.json")
+			return nil, errors.New("git readiness: no commit identity is configured and the signed-in GitHub user could not be resolved; set git.name and git.email in cao.json")
 		}
 		if user.Name == "" {
 			user.Name = user.Login
@@ -111,7 +111,7 @@ func dashboardGitEnvironment(ctx context.Context, environment []string) ([]strin
 	for _, role := range []string{"AUTHOR", "COMMITTER"} {
 		name, email := resolved["GIT_"+role+"_NAME"], resolved["GIT_"+role+"_EMAIL"]
 		if !nativeGitName.MatchString(name) || !nativeGitEmail.MatchString(email) {
-			return nil, errors.New("Git readiness: invalid commit identity; set git.name and git.email in cao.json")
+			return nil, errors.New("git readiness: invalid commit identity; set git.name and git.email in cao.json")
 		}
 		environment = append(environment, "GIT_"+role+"_NAME="+name, "GIT_"+role+"_EMAIL="+email)
 	}
@@ -120,7 +120,7 @@ func dashboardGitEnvironment(ctx context.Context, environment []string) ([]strin
 		var err error
 		count, err = strconv.Atoi(text)
 		if err != nil || count < 0 || count > 1024 {
-			return nil, errors.New("Git readiness: invalid GIT_CONFIG_COUNT")
+			return nil, errors.New("git readiness: invalid GIT_CONFIG_COUNT")
 		}
 	}
 	settings := [][2]string{
@@ -137,7 +137,7 @@ func dashboardGitEnvironment(ctx context.Context, environment []string) ([]strin
 	environment = append(environment, fmt.Sprintf("GIT_CONFIG_COUNT=%d", count+len(settings)))
 	for _, role := range []string{"AUTHOR", "COMMITTER"} {
 		if _, err := run(environment, "git", "var", "GIT_"+role+"_IDENT"); err != nil {
-			return nil, errors.New("Git readiness: Git rejected the commit identity or configuration; fix Git configuration or set git.name and git.email in cao.json")
+			return nil, errors.New("git readiness: Git rejected the commit identity or configuration; fix Git configuration or set git.name and git.email in cao.json")
 		}
 	}
 	return environment, nil
