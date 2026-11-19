@@ -1,36 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-19T04:21:30Z",
-   "worker_run_id": "44457269082",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. Build documentation median 13 s, p90 15 s (nearest rank, n=20); 15% gate 11.85 s needs about 91% of the step removed; whole-step removal invalid (dist/ feeds deploy); output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; validation/discovery removal weakens deploy gating; sub-step split unmeasurable (job logs HTTP 403 DIFC). Live Jobs spot-check 44357668509: Build documentation 12 s.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-19T04:33:33Z",
    "worker_run_id": "44458815791",
@@ -870,6 +841,35 @@
     "43992363367"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); 20 successes (17 push, 3 schedule), 0 failed; cancelled 43991812013 outside window and excluded. Live 15:35Z: no newer or queued docs run; main 7145c59 = source_sha; no package-lock.json change since 7c8faf4 (2026-11-13T20:56:33Z). Caches API: node-cache-Linux-x64-npm-7808ecf8 unchanged (created 2026-11-13T20:57:12Z, no save since). Stored run_timings recomputed (n=20, nearest-rank p90): setup-node median 3 s (p90 5), install median 10 s (p90 12, min 5), post 0 s; setup+install+post median 13 s = 16.5 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. Install-only removal ceiling 10 s (12.7 percent); node_modules cache best case 3-6 s unvalidated; npm ci required by build. Jobs API spot-check 44465043275 matched stored row (setup 2 s, install 8 s, post 0 s). Open #20815 (checkout, this worker's family) OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not repeated. Next category: Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T15:55:07Z",
+   "worker_run_id": "44558995401",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); cancelled 43991812013 is the 21st completed run and excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 15:52Z: no docs run newer than 44465043275, none queued or in progress; main HEAD 7145c59 = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 (push median 14, schedule median 11) = 17.1 percent of exec median 79 s; 15 percent gate 11.85 s requires removing about 88 percent of the step; 60 s gate unmet. Live Jobs API of 44465043275 matched stored row (Build documentation 13 s, Install 8 s, Checkout 23 s); job-logs API re-probed 15:54Z: HTTP 403 (not bypassed), so astro/validator split unmeasured. Split-independent: validate-agent-docs.mjs and agent-docs-discovery test are deploy gates in the same step and cannot be removed, so the saving cannot reach 11.85 s from Astro caching; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (SiteFooter.astro:9; validate-agent-docs.mjs:571). Local sandbox npm ci failed on sandbox TLS chain (DEPTH_ZERO_SELF_SIGNED_CERT) and was not bypassed; no local timing taken. Open #20815 (checkout, other category) not repeated; #20877 (Astro family) still open with no Astro upgrade in window. No suggestion; noop; next_category advanced to reusable dashboard generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1833,8 +1833,9 @@
   "ceiling_saving_s": 13,
   "sub_step_split": "not measurable (job logs HTTP 403 DIFC, not bypassed)",
   "decision": "not actionable (unchanged): whole step produces dist/ required by deploy; validation and discovery removal weakens deploy gating and is unmeasured; Astro cache unmeasured with added cache-step overhead; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance",
-  "reverified_at": "2026-11-19T10:33:35Z",
-  "reverified_note": "Re-verified 2026-11-19T10:33:35Z worker 44506161044: window unchanged (44465043275..43992363367, HEAD 7145c59); stored rows recomputed (build docs median 13.5, p90 15, n=20; exec median 79); #20877 OPEN and #20815 OPEN, 0 comments; decision unchanged."
+  "reverified_at": "2026-11-19T15:55:07Z",
+  "reverified_note": "Re-verified 2026-11-19T15:55:07Z worker 44558995401: window unchanged (44465043275..43992363367, HEAD 7145c59, 20 successes); stored rows recomputed (build docs median 13.5, p90 15, n=20; exec median 79); live Jobs API of 44465043275 matched (build docs 13 s); job-logs API 403 re-probed (not bypassed); local npm ci blocked by sandbox TLS chain (not bypassed, no local timing). Decision unchanged: not actionable; any Astro-side saving is capped below 11.85 s because validators in the same step are deploy gates and whole-step removal is invalid.",
+  "reverified_worker_run_id": "44558995401"
  },
  "burst_analysis": {
   "verified_at": "2026-11-18T03:53:32Z",
