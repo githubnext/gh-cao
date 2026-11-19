@@ -1,36 +1,7 @@
 {
  "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-19T07:35:00Z",
-   "worker_run_id": "44480238580",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 07:34Z: no docs run newer than 44465043275; main HEAD 7145c59 = source_sha. Live Jobs API spot-check of 44465043275: Build synthetic enterprise demo 1 s (matches stored row). Stored demo_s recomputed (n=20, nearest-rank): median 4 s, p90 6 s, min 1, max 7; 5.1 percent of exec median 79 s. Ceiling saving 4 s (100 percent removal) is below the 60 s and 15 percent (11.85 s) gates. Reuse still blocked: simulate-dashboard-pages.mjs defaults now = Date.now() and the output embeds generated dates. Open issues: #20815 (checkout, other category, OPEN, 0 comments) only; not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-19T07:54:06Z",
    "worker_run_id": "44482529936",
@@ -870,6 +841,35 @@
     "44004300647"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 rolled out; cancelled 43991812013 is the 21st completed run and excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 17:33Z: no docs run newer than 44576080583, none queued. Build documentation (npm run docs:build = astro build, validate-agent-docs, discovery test): median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. An Astro-only cache would need the Astro build to be at least 11.85 s of the 13.5 s step, leaving under 1.65 s for validators, discovery test and cache restore/save; not evidenced; sub-step split unmeasurable (job logs HTTP 403, not bypassed). Input check: 4eb6bb3 touched no docs/, astro.config.mjs, aw.yml, package.json or lock; astro 7.4.2 unchanged; #20877 OPEN (updatedAt 2026-11-18T04:41:20Z); #20815 OPEN, 0 comments, unchanged. Disclosed outlier: 44576080583 exec 160 s, driven by GitHub-managed Deploy Pages 92 s (build docs 15 s); kept in sample; exec median 79 s either way. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T17:52:22Z",
+   "worker_run_id": "44581124721",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 is the next older completed run and excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 17:51Z: no docs run newer than 44576080583; HEAD 4eb6bb3 = source_sha. Live Jobs API spot-check of 44576080583: demo step 1 s (matches stored row). Stored demo_s recomputed (n=20, nearest-rank): median 4 s, p90 6 s, min 1, max 7; 5.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet; ceiling 4 s. Reuse still blocked: scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now() and embeds generatedAt (lines 76, 87). Open #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1728,10 +1728,10 @@
   "ceiling_saving_s": 4,
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
   "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates; unchanged)",
-  "reverified_at": "2026-11-19T16:21:00Z",
+  "reverified_at": "2026-11-19T17:52:22Z",
   "note": "Re-verified 2026-11-19T10:52Z: window unchanged (no docs.yml run after 44465043275; source 7145c59 = main HEAD); stored rows recomputed (demo median 4 s, p90 6 s, n=20); verdict unchanged (not actionable).",
-  "reverified_worker_run_id": "44564384251",
-  "reverify_note": "Re-verified 2026-11-19T12:42:22Z: window 44465043275..43992363367 (20 non-cancelled, 0 failed); demo median 4 s p90 6 s; exec median 79 s; verdict unchanged (not actionable)."
+  "reverified_worker_run_id": "44581124721",
+  "reverify_note": "Re-verified 2026-11-19T17:52:22Z: window 44576080583..44004300647 (20 completed, 0 failed); demo median 4 s, p90 6 s; exec median 79 s; live Jobs API spot-check of 44576080583 (demo 1 s); reuse blocker at scripts/simulate-dashboard-pages.mjs:67; verdict unchanged (not actionable)."
  },
  "astro_output_reuse": {
   "verified_at": "2026-11-16T06:36:53Z",
@@ -1833,7 +1833,7 @@
    "n": 20
   },
   "exec_s": {
-   "median": 79.0,
+   "median": 79,
    "p90": 113
   },
   "build_docs_share_exec_median_pct": 17.1,
