@@ -1,36 +1,7 @@
 {
   "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T01:01:37Z",
-      "worker_run_id": "44433032056",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 01:00Z: no docs run newer than 44357668509, none queued or in progress; source 7145c59 = main HEAD = source_sha, so window unchanged. Recomputed from stored run_timings rows (no job or log refetch): docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 13 s, p90 15, min 8, max 16; push-only median 14 s; exec median 79 s (p90 108); 15 percent gate 11.85 s and 60 s gate unmet. Whole-step ceiling 13 s (16.5 percent) is invalid because validators and deploy consume dist/; gate needs about 91 percent of the step removed. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasurable (earlier job-log read returned DIFC 403; not retried). Pending #20877 check: only package.json commit in window is 542db96 (test script only); astro 7.4.2 at HEAD, so no Astro upgrade in window. #20815 (checkout, other category) OPEN, not repeated; no open Astro issue. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T01:20:13Z",
       "worker_run_id": "44435636236",
@@ -869,6 +840,35 @@
         "43992363367"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live 11:51Z: no docs run after 44465043275; main 7145c59 = source_sha. Jobs API spot-check of 44465043275 matched stored rows (setup-node 2 s, install 8 s, post setup-node 0 s). Cache node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57:12Z, no new save). Recomputed stored rows (n=20, nearest-rank p90): install median 10 s (p90 12, min 5, max 12) = 12.7 percent of exec median 79 s; setup+install+post median 13 s (p90 17) = 16.5 percent; 15 percent gate 11.85 s and 60 s gate unmet; setup+install+post not removable (npm ci required, Node 24 pin, root and dashboard installs feed the docs and demo builds); node_modules cache best case 3-6 s, below gate. Open issues: #20815 (checkout, other category) only; not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T12:24:00Z",
+      "worker_run_id": "44522847022",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list and main HEAD 7145c59 (= source_sha) at 12:22Z: no docs run newer than 44465043275; window unchanged. Live Jobs API of 44465043275 matched stored rows (Build documentation 05:25:54..05:26:07Z = 13 s). Recomputed from stored run_timings (nearest-rank p90, n=20): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 108). 15 percent gate 11.85 s needs about 88 percent of the step removed; 60 s gate unmet. docs:build = astro build && validate-agent-docs && agent-docs-discovery test; the validators and discovery test only read dist/ and git ls-files (no second build), and deploy consumes dist/, so removal is invalid. Astro output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (SiteFooter.astro:9, resource.ts:233, validate-agent-docs.mjs:571). Sub-step split unmeasurable (job-log access 403, not retried). #20877 (dependabot root astro family) OPEN, 0 comments, unchanged since 2026-11-18T04:41Z: watch item only. #20815 (checkout, other category) OPEN, not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1807,8 +1807,8 @@
     "live_check": "2026-11-19T06:26:19Z: gh run list shows one new scheduled run 44465043275 (success, head 7145c59); caches API: node-cache-Linux-x64-npm-7808ecf8 live, unchanged; verdict unchanged"
   },
   "astro_step_verified": {
-    "verified_at": "2026-11-19T06:26:19Z",
-    "worker_run_id": "44471680339",
+    "verified_at": "2026-11-19T12:24:00Z",
+    "worker_run_id": "44522847022",
     "window": "latest 20 completed docs.yml runs: 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed",
     "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); live Jobs API read of 44465043275 (Build documentation 13 s)",
     "build_docs_s": {
