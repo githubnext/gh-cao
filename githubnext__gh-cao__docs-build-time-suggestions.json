@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T13:19:42Z",
-      "worker_run_id": "44531781318",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push 2026-11-17T01:01:51Z); cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 13:19Z: no docs run newer than 44465043275; main 7145c59 = source_sha. Open issues with label self-care:docs-build-time-investigator: #20815 only (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z). Recomputed stored run_timings (n=20, nearest-rank p90, no refetch): job queue median 3.5 s, p90 4, max 5 (none over 5 s); run-level queue 0 s (createdAt equals startedAt for listed runs); exec median 79 s, p90 108. No queued-behind-running overlap in window; cancel-in-progress true saves 0 s median. Avoidable pushes 0 (path_filter_verified). Scheduled run 44465043275 required for synthetic-date freshness (demo generatedAt Date.now()), not removable. Checkout 24 s covered by open #20815, not repeated. No suggestion; noop; next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T13:33:36Z",
       "worker_run_id": "44534025281",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list at 23:32Z: no docs run newer than 44576080583; HEAD 4eb6bb3 = source_sha. Recomputed stored transfer_model rows (n=20, nearest-rank p90): removable (handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet; ceiling 9 s. Live Jobs API spot-check of 44576080583, 44465043275, 44337804857 matched stored rows. Deploy Pages (GitHub-managed) median 7 s, p90 69 s (n=19): tails 69 s (44337804857, artifact expired) and 92 s (44576080583); github-pages artifact 7476250 B in the 92 s run vs 7476202 B (7 s, 44567910334) and 7474457 B (7 s, 44465043275), so size is not the driver and the tail is not workflow-controllable. Merge-deploy-into-build stays rejected (github-pages environment and id-token boundary). Exec p90 113 s in this window (was 108 in prior window). No open artifact-transfer issue (open #20815 is checkout, other category, not repeated). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T23:53:15Z",
+      "worker_run_id": "44640859748",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live 23:52Z: no docs run after 17:20Z, none queued or in progress; main HEAD 4eb6bb3 = source_sha. Stored run_timings recomputed (no refetch): queue median 3.5 s (p90 4), exec median 79 s (p90 113). Live jobs API (new): build-to-deploy handoff 5 s (44576080583) and 6 s (44567910334); no environment wait. Overlapping runs 0, so cancel-in-progress true saves 0 s median. Avoidable pushes 0 of 17 (build-consumed). Schedule run 44465043275 kept for synthetic-date freshness. Gates 11.85 s and 60 s unmet. Open #20815 (checkout) OPEN, 0 comments; not repeated. No suggestion; noop; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1943,5 +1943,14 @@
     "comments": 0,
     "updatedAt": "2026-11-13T17:41:19Z",
     "note": "Blobless checkout suggestion still represented by open issue 20815 (title prefix self-care:docs-build-time-investigator); re-checked 2026-11-19T20:53:43Z, still OPEN with 0 comments; not re-proposed; no update tool available to this worker."
+  },
+  "scheduling_deploy_handoff": {
+    "verified_at": "2026-11-19T23:53:15Z",
+    "worker_run_id": "44640859748",
+    "handoff_s": {
+      "44576080583": 5,
+      "44567910334": 6
+    },
+    "note": "build completed to deploy job created; deploy job queue; no environment approval wait; merge-deploy rejected earlier (github-pages environment and id-token boundary)"
   }
 }
