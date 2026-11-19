@@ -946,8 +946,10 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-18T14:35:48Z",
-    "status": "Build job log read for 44324821276 (job 134873183598) returned DIFC HTTP 403 again; not bypassed. Earlier 2026-11-17T16:20:38Z: run 44115019849 reported incomplete (issue 21153) on a rate-limited first Actions read."
+    "observed_at": "2026-11-19T05:32:58Z",
+    "worker_run_id": "44465646277",
+    "control_plane_run_id": "44465002021",
+    "status": "Incomplete: first Actions read (gh run list --workflow docs.yml) returned HTTP 403 API rate limit exceeded. No retry or wait per worker policy; evaluation not completed; next_category not advanced; no evaluation entry appended. Earlier: 2026-11-18T14:35:48Z job log read returned DIFC HTTP 403 (not bypassed); 2026-11-17T16:20:38Z run 44115019849 reported incomplete (issue 21153) on a rate-limited first Actions read."
   },
   "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
   "observations_pending": [
