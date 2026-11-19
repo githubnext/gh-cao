@@ -1,36 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T20:52:03Z",
-   "worker_run_id": "44394888141",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T21:17:03Z",
    "worker_run_id": "44399242900",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 08:22Z: no new docs.yml run; main still 7145c59. Run-level queue (createdAt to startedAt) 0 s for all 20; no run queued while another ran, so 0 concurrency waits; cancel-in-progress true would save 0 s. Avoidable push rebuilds 0 of 17 (all build-consumed). Schedule rebuild of 7145c59 is the intentional synthetic-date refresh (simulate-dashboard-pages Date.now), not avoidable. Run wall median 84 s (p90 113).",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T08:36:09Z",
+   "worker_run_id": "44488421204",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live 08:34Z: no docs run after 44465043275; main 7145c59 = source_sha; node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57:12Z, no save since); package-lock.json last changed 7c8faf4 (2026-11-13). Install median 10 s (p90 12, min 5) = 12.7% of exec median 79 s; setup-node median 3 s; post 0-1 s (exact-key hit). Setup+install+post median 13 s is not removable (Node 24 pin and npm ci required by build); node_modules cache best case 3-6 s, below 11.85 s gate. Open #20815 is checkout, not this category; no open dependency-cache issue.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -883,7 +883,7 @@
   "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
   "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
   "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-  "live_entry_last_accessed": "2026-11-19T06:26:19Z (caches API at worker 44471680339; key node-cache-Linux-x64-npm-7808ecf8 still live, created 2026-11-13T20:57:12Z, no save since creation)",
+  "live_entry_last_accessed": "2026-11-19T08:36:09Z (caches API at worker 44488421204; key node-cache-Linux-x64-npm-7808ecf8 still live, created 2026-11-13T20:57:12Z, no save since creation)",
   "window_2026_11_15T1930Z": {
    "n_success": 8,
    "setup_node_median_s": 4,
@@ -1906,9 +1906,9 @@
   "decision": "not actionable"
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-19T06:26:19Z",
-  "worker_run_id": "44471680339",
-  "verdict": "not actionable (window rolled to 44465043275..43992363367; stored run_timings recomputed; cache entry live and unchanged; main 7145c59 = source_sha)"
+  "evaluated_at": "2026-11-19T08:36:09Z",
+  "worker_run_id": "44488421204",
+  "verdict": "not actionable (window 44465043275..43992363367 unchanged since 06:26Z; stored run_timings recomputed; live Jobs API of 44465043275 matched stored row; cache entry live and unchanged; main 7145c59 = source_sha)"
  },
  "job_topology_note": {
   "verified_at": "2026-11-18T22:20:34Z",
