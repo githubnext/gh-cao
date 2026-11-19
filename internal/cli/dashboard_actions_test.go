@@ -15,6 +15,7 @@ import (
 
 func dashboardTestActionExecutable(t *testing.T) string {
 	t.Helper()
+	dashboardTestGit(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("native dashboard commands are unavailable on Windows")
 	}
