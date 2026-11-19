@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T16:34:50Z",
-   "worker_run_id": "44347845262",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44343962371 (push 53a040c, created 2026-11-18T16:09:45Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 excluded (0 jobs); 19 successes [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T16:52:23Z",
    "worker_run_id": "44351544940",
@@ -865,6 +837,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 is the 21st completed run and outside the window; 20 successes (18 push, 2 schedule), 0 failed. Live 03:52Z: gh run list shows no docs run after 17:20:59Z; main HEAD 7145c59 = source_sha. Recomputed from stored run_timings (nearest-rank p90, n=20, no job refetch): setup-node median 3 s p90 5; install median 10 s p90 12; setup+install+post median 13 s p90 17 = 16.5 percent of exec median 79 s; install-only ceiling 10 s = 12.7 percent, below the 11.85 s (15 percent) gate and the 60 s gate; removing install entirely still fails. Live caches API 03:52Z: node-cache-Linux-x64-npm-7808ecf8 present, created 2026-11-13T20:57:12Z, unchanged, no new save. Open #20815 (checkout, other category) still OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not repeated. Outlier 44337804857 (exec 139 s, deploy 73 s) retained and disclosed. Job logs not read (HTTP 403 DIFC; not bypassed). Next category: Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T04:21:30Z",
+   "worker_run_id": "44457269082",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. Build documentation median 13 s, p90 15 s (nearest rank, n=20); 15% gate 11.85 s needs about 91% of the step removed; whole-step removal invalid (dist/ feeds deploy); output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; validation/discovery removal weakens deploy gating; sub-step split unmeasurable (job logs HTTP 403 DIFC). Live Jobs spot-check 44357668509: Build documentation 12 s.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1820,7 +1821,7 @@
   "sub_step_split": "not measurable (job logs HTTP 403 DIFC, not bypassed)",
   "decision": "not actionable: whole step produces dist/ required by deploy (whole-step removal is invalid); validation and discovery removal weakens deploy gating and is unmeasured; Astro cache unmeasured with added cache-step overhead and bounded below the gate; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance",
   "history_note": "Supersedes the 16:34Z window (median 14 s, n 19). Adding 7145c59 moves the all-success median to 13 s; no change to the decision.",
-  "reverified_note": "Re-verified 2026-11-19T02:37:58Z worker 44445183966: window unchanged (no docs.yml run after 17:20:59Z); stored rows recomputed (build_docs median 13 s, p90 15 s, n=20); Jobs API spot-check of 44357668509 matched (Build documentation 12 s); astro 7.4.2 unchanged (542db96 test-script-only); verdict unchanged."
+  "reverified_note": "Re-verified 2026-11-19T04:21:30Z worker 44457269082: window unchanged (no docs.yml run after 17:20:59Z; live gh run list 04:20Z); stored rows recomputed (build_docs median 13 s, p90 15 s, n=20); live Jobs API spot-check of 44357668509 matched (Build documentation 12 s); docs:build composition unchanged in package.json; verdict unchanged."
  },
  "burst_analysis": {
   "verified_at": "2026-11-18T03:53:32Z",
@@ -1914,11 +1915,11 @@
   "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
  },
  "pending_open_issue": {
-  "verified_at": "2026-11-19T03:53:12Z",
+  "verified_at": "2026-11-19T04:21:30Z",
   "issue": 20815,
   "state": "OPEN",
   "comments": 0,
   "updatedAt": "2026-11-13T17:41:19Z",
-  "note": "blobless checkout suggestion still represented by open issue (title prefix [self-care:docs-build-time-investigator]); not re-proposed (checkout median 24 s unchanged)"
+  "note": "blobless checkout suggestion still represented by open issue 20815 (title prefix [self-care:docs-build-time-investigator]), 0 comments, updatedAt unchanged; not re-proposed (checkout median 24 s unchanged)"
  }
 }
