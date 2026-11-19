@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T16:52:23Z",
-   "worker_run_id": "44351544940",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44343962371 (push 53a040c, created 2026-11-18T16:09:45Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 442441712 [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T17:18:43Z",
    "worker_run_id": "44356462524",
@@ -866,6 +838,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. Build documentation median 13 s, p90 15 s (nearest rank, n=20); 15% gate 11.85 s needs about 91% of the step removed; whole-step removal invalid (dist/ feeds deploy); output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; validation/discovery removal weakens deploy gating; sub-step split unmeasurable (job logs HTTP 403 DIFC). Live Jobs spot-check 44357668509: Build documentation 12 s.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T04:33:33Z",
+   "worker_run_id": "44458815791",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 is the 21st completed run and outside the window; 20 successes (18 push, 2 schedule), 0 failed. Live 04:33Z: gh run list shows no docs run after 17:20:59Z; main 7145c59 = source_sha; Jobs API spot-check of 44357668509 matched (Build synthetic enterprise demo 3 s). Demo step median 4 s, p90 6 s (n=20, stored run_timings, no refetch); exec median 79 s; demo share 5.1 percent; 4 s ceiling is below the 11.85 s (15 percent) and 60 s gates. Reuse blocked by scripts/simulate-dashboard-pages.mjs Date.now() synthetic dates, so dist/cao is regenerated per run by design. Open issue #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1714,9 +1715,8 @@
   "ceiling_saving_s": 4,
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
   "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates)",
-  "reverified_note": "Re-verified 2026-11-19T01:20:13Z worker 44435636236: window unchanged (no docs.yml run after 17:20:59Z; live gh run list 01:19Z); stored rows recomputed (demo median 4 s, p90 6 s, n=20); live Jobs API spot-check of 44357668509 matched; source unchanged at 7145c59; verdict unchanged (ceiling 4 s vs 11.85 s and 60 s gates).",
-  "reverified_at": "2026-11-19T02:51:12Z",
-  "note": "Re-verified 2026-11-19T02:51:12Z worker 44446917170: window unchanged (no docs.yml run after 17:20:59Z; live gh run list 02:50Z); stored rows recomputed (demo median 4 s, p90 6 s, n=20); live Jobs API spot-check of 44357668509 matched (demo 3 s); source unchanged at 7145c59; verdict unchanged (ceiling 4 s vs 11.85 s and 60 s gates)."
+  "reverified_at": "2026-11-19T04:33:33Z",
+  "note": "Re-verified 2026-11-19T04:33:33Z worker 44458815791: window unchanged (no docs.yml run after 17:20:59Z; live gh run list 04:33Z); stored rows recomputed (demo median 4 s, p90 6 s, n=20); live Jobs API spot-check of 44357668509 matched (demo 3 s); source unchanged at 7145c59; verdict unchanged."
  },
  "astro_output_reuse": {
   "verified_at": "2026-11-16T06:36:53Z",
@@ -1915,7 +1915,7 @@
   "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
  },
  "pending_open_issue": {
-  "verified_at": "2026-11-19T04:21:30Z",
+  "verified_at": "2026-11-19T04:33:33Z",
   "issue": 20815,
   "state": "OPEN",
   "comments": 0,
