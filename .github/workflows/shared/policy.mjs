@@ -5,7 +5,7 @@ import { normalizeValueAcquisition } from "./value-acquisition.mjs";
 export { AuthorityError as PolicyError } from "./authority.mjs";
 
 const SCHEMA_URI = "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json";
-const ROOT_KEYS = ["$schema", "version", "gh-aw-version", "control-plane", "target-authority"];
+const ROOT_KEYS = ["$schema", "version", "gh-aw-version", "git", "control-plane", "target-authority"];
 const CONTROL_KEYS = ["scope", "activity", "inventory", "web", "defaults", "campaigns", "workflows", "operations", "publishing", "marketplace", "webhook-gateway", "token-broker"];
 const TOKEN_BROKER_WORKFLOW_KEYS = ["repository-id", "owner-id", "workflow-ref", "workflow-sha"];
 const TOKEN_BROKER_ID_PATTERN = /^[1-9][0-9]{0,19}(?![\s\S])/;
@@ -261,6 +261,15 @@ function validateDocument(document) {
   }
   if ("gh-aw-version" in document) {
     assertString(document["gh-aw-version"], "gh-aw-version", GH_AW_VERSION_PATTERN);
+  }
+  if ("git" in document) {
+    assertMapping(document.git, "git");
+    assertKeys(document.git, ["name", "email"], "git");
+    if (/[\x00-\x1f\x7f]/.test(document.git.name) || /[\x00-\x1f\x7f]/.test(document.git.email)) {
+      throw new PolicyError("git identity must not contain control characters");
+    }
+    assertString(document.git.name, "git.name", /^[^\x00-\x20\x7f<>](?:[^\x00-\x1f\x7f<>]*[^\x00-\x20\x7f<>])?$/);
+    assertString(document.git.email, "git.email", /^[^\x00-\x20\x7f<>@]+@[^\x00-\x20\x7f<>@]+$/);
   }
 
   if ("control-plane" in document) validateControlPlane(document["control-plane"]);
