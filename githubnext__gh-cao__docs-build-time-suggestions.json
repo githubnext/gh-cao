@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T10:52:42Z",
-      "worker_run_id": "44509284067",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 10:52Z: no docs run after 05:25:17Z; main = source_sha 7145c59. Dashboard generation = only the 'Build synthetic enterprise demo' step (scripts/simulate-dashboard-pages.mjs, no child processes; docs.yml builds no dashboard site). Recomputed from stored run_timings (n=20, nearest-rank p90, no refetch): demo median 4 s, p90 6, max 7; 5.1 percent of exec median 79 s; ceiling 4 s vs 11.85 s (15 percent) and 60 s gates unmet. Reuse blocked: simulate script sets generatedAt from Date.now() (line 67), so cached output would not refresh synthetic dates. #20815 OPEN, 0 comments, unchanged, not repeated; #21249 is an automated gh-aw incomplete-result report, not a suggestion. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T11:18:59Z",
       "worker_run_id": "44513135881",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 is the 21st completed run and excluded; cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live at evaluation: no docs run newer than 17:20Z; main = source_sha 4eb6bb3; Jobs API spot-check of 44576080583 matched stored rows (Build documentation 15 s). Recomputed stored run_timings (n=20, nearest-rank p90, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. docs:build = astro build && validate-agent-docs && discovery test; the two post-build scripts spawn only git and read dist/ (no second Astro build; avoidable rebuild 0). Any gate-meeting change must remove about 88 percent of the step; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (SiteFooter.astro:9, starlight-agent resource.ts:233, validate-agent-docs.mjs:571). Sub-step split unmeasurable (job logs HTTP 403 DIFC, not bypassed). #20877 OPEN 0 comments updatedAt 2026-11-18T04:41:20Z, no Astro upgrade in window; #20815 OPEN 0 comments, not re-proposed. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T21:33:32Z",
+      "worker_run_id": "44619198077",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed; live gh run list at 21:32Z: no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha. Recomputed stored run_timings (immutable, n=20, nearest-rank p90): demo step median 4 s, p90 6, min 1, max 7 = 5.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet; ceiling 4 s. Live Jobs API of 44576080583 matched stored demo row (1 s). Only dashboard generation in docs.yml is the demo step; docs:build (package.json:47) is astro + validators + discovery test, no dashboard build. Reuse blocked: scripts/simulate-dashboard-pages.mjs:67 now = Date.now() embeds generatedAt. Open worker issues: #20815 only (checkout, other category), not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1728,9 +1728,9 @@
     "ceiling_saving_s": 4,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
     "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates; unchanged)",
-    "reverified_at": "2026-11-19T19:32:46Z",
+    "reverified_at": "2026-11-19T21:33:32Z",
     "note": "Re-verified 2026-11-19T10:52Z: window unchanged (no docs.yml run after 44465043275; source 7145c59 = main HEAD); stored rows recomputed (demo median 4 s, p90 6 s, n=20); verdict unchanged (not actionable).",
-    "reverified_worker_run_id": "44598772467",
+    "reverified_worker_run_id": "44619198077",
     "reverify_note": "Re-verified 2026-11-19T19:32:46Z: window 44576080583..44004300647 (20 completed, 0 failed); demo median 4 s, p90 6 s; exec median 79 s; live Jobs API spot-checks of 44576080583, 44465043275, 44323919922 matched stored rows; reuse blocker at scripts/simulate-dashboard-pages.mjs:67; verdict unchanged (not actionable)."
   },
   "astro_output_reuse": {
