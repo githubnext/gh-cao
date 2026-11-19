@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T11:52:00Z",
-      "worker_run_id": "44518135246",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live 11:51Z: no docs run after 44465043275; main 7145c59 = source_sha. Jobs API spot-check of 44465043275 matched stored rows (setup-node 2 s, install 8 s, post setup-node 0 s). Cache node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57:12Z, no new save). Recomputed stored rows (n=20, nearest-rank p90): install median 10 s (p90 12, min 5, max 12) = 12.7 percent of exec median 79 s; setup+install+post median 13 s (p90 17) = 16.5 percent; 15 percent gate 11.85 s and 60 s gate unmet; setup+install+post not removable (npm ci required, Node 24 pin, root and dashboard installs feed the docs and demo builds); node_modules cache best case 3-6 s, below gate. Open issues: #20815 (checkout, other category) only; not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T12:24:00Z",
       "worker_run_id": "44522847022",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed; 43993695761 outside window; cancelled 43991812013 excluded. Live 22:19Z: no docs run newer than 44576080583; main 4eb6bb3 = source_sha. Live run-level queue 0 s for all 20; zero overlapping run intervals; stored job queue median 3.5 s, p90 4, max 5 (below 11.85 s gate); exec median 79 s, p90 113. cancel-in-progress true saves 0 s median. Scheduled runs (68/72/62 s) required for synthetic-date freshness, not removable. Avoidable pushes 0 of 17 (3421dc7 and 4eb6bb3 build-consumed via docs/**). Watch: shared-only push absent. Open issues: #20815 only (checkout, other category, not repeated). No issue created; noop. next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T22:33:15Z",
+      "worker_run_id": "44629105450",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); cancelled 43991812013 is the 21st completed run and excluded; 20 successes (17 push, 3 schedule), 0 failed. Live 22:32Z: no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha. Stored run_timings recomputed (no refetch; nearest-rank p90, n=20): setup-node median 3 s (p90 5); install median 10 s (p90 12, min 5, max 12); post step 0 s in all runs (exact-key hit); setup+install+post median 13 s, p90 17 = 16.5 percent of exec median 79 s (p90 113). 15 percent gate 11.85 s and 60 s gate unmet. Install-only ceiling 10 s = 12.7 percent. Live caches API: node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57:12Z, no save since). package-lock.json and dashboard/site/package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z). Removing install invalid (build requires npm ci); node_modules cache best case 3-6 s, unvalidated, below gate. Job logs not read (HTTP 403 DIFC). Open #20815 (checkout, other category) not repeated. No suggestion; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1926,9 +1926,9 @@
     "reverified_note_final": "2026-11-19T20:20:22Z worker 44606850625: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); live Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable)."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-19T20:53:43Z",
-    "worker_run_id": "44612617378",
-    "verdict": "not actionable: install median 10 s (12.7 percent of exec median 79 s), setup+install+post 16.5 percent not removable; gate 11.85 s unmet; root lock hash 7808ecf8 live exact-key entry (last accessed 2026-11-19T20:44Z)"
+    "evaluated_at": "2026-11-19T22:33:15Z",
+    "worker_run_id": "44629105450",
+    "verdict": "not actionable: install median 10 s (12.7 percent of exec median 79 s), setup+install+post 16.5 percent not removable; gate 11.85 s unmet; root lock hash 7808ecf8 live exact-key entry; lock files unchanged since 7c8faf4"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
