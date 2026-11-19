@@ -1,35 +1,7 @@
 {
   "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-18T12:52:14Z",
-      "worker_run_id": "44307433355",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689",
-        "43840581457"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44254629254 (push 5d00b89, created 2026-11-18T06:53:01Z) .. 43840581457 (push f0e71a1, created 2026-11-16T09:31:54Z); cancelled 43991812013 excluded; 19 successes (17 push, 2 schedule), 0 failed. gh run list 12:51Z: no docs run newer than 44254629254, none queued or in progress; main = source_sha 5d00b89 (window unchanged). Stored run_timings recomputed, no refetch: docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 11 s, nearest-rank p90 15, min 9, max 15; push-only median 13 s, p90 15; exec median 76 s, p90 82; share 14.5 percent; 15 percent gate 11.4 s and 60 s gate unmet; whole-step removal ceiling 11 s (all) so no Astro-only change can qualify. Push-only gate 11.7 s would need about 90 percent of the step removed, not achievable without weakening validate-agent-docs and discovery tests, which read dist/ from the Astro build. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT provenance). Sub-step split unmeasurable (job logs HTTP 403 DIFC, not bypassed). Open issues: only #20815 (checkout, other category), not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-18T13:19:00Z",
       "worker_run_id": "44311791707",
@@ -857,6 +829,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 00:35Z: no docs run newer than 44357668509, none queued or in progress; source 7145c59 = main HEAD = source_sha, so window unchanged since 23:52Z. Recomputed from stored run_timings rows (n=20, no job refetch): setup-node median 3 s p90 5; install median 10 s p90 12 (max 12); post median 0 s; setup+install+post median 13 s p90 17 = 16.5 percent of exec median 79 s. Install-only ceiling 10 s = 12.7 percent, below the 11.85 s 15 percent gate and the 60 s gate; eliminating install entirely still fails. setup+install+post not removable (Node 24 pin; docs:build and the demo build need materialised root node_modules). node_modules caching saves at most install time minus restore time, below gate. Cache: node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57:12Z, 263412733 B, last accessed 2026-11-18T23:58:53Z), no save since creation, exact-key hit each window run. Dashboard-site install split unmeasured (job log reads HTTP 403 DIFC, not bypassed); cannot change verdict. Open #20815 (checkout, other category) still OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T01:01:37Z",
+      "worker_run_id": "44433032056",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 01:00Z: no docs run newer than 44357668509, none queued or in progress; source 7145c59 = main HEAD = source_sha, so window unchanged. Recomputed from stored run_timings rows (no job or log refetch): docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 13 s, p90 15, min 8, max 16; push-only median 14 s; exec median 79 s (p90 108); 15 percent gate 11.85 s and 60 s gate unmet. Whole-step ceiling 13 s (16.5 percent) is invalid because validators and deploy consume dist/; gate needs about 91 percent of the step removed. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasurable (earlier job-log read returned DIFC 403; not retried). Pending #20877 check: only package.json commit in window is 542db96 (test script only); astro 7.4.2 at HEAD, so no Astro upgrade in window. #20815 (checkout, other category) OPEN, not repeated; no open Astro issue. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -974,6 +975,10 @@
     {
       "observed_at": "2026-11-18T21:17:03Z",
       "note": "Open dependabot task #20877 (root npm astro family, updated 2026-11-18T04:41Z) may change Astro build time when merged; re-verify the Astro bound on the next window that includes an Astro upgrade. Stale queued run 37642403569 not re-checked this cycle."
+    },
+    {
+      "observed_at": "2026-11-19T01:01:37Z",
+      "note": "Pending #20877 (Astro family) re-verified: no Astro upgrade in window 44357668509..43991897672; only package.json commit is 542db96 (test script only); astro 7.4.2 at 7145c59. Astro verdict unchanged."
     }
   ],
   "run_timings": {
