@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T15:53:24Z",
-   "worker_run_id": "44339915073",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44337804857 (push b350331, created 2026-11-18T15:37:34Z) .. 43991770179 (push be0c06f, created 2026-11-17T00:57:19Z); cancelled 43991812013 excluded (cancelled while [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T16:21:39Z",
    "worker_run_id": "44345287020",
@@ -863,6 +835,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. Removable handoff+configure+upload+deploy-setup median 9 s, p90 11 s, max 13 s = 11.4 percent of exec median 79 s; 15-percent gate 11.85 s and 60 s gate not met. Live Jobs API spot-check of 44357668509 matched stored row (handoff 7, configure 1, upload 3, Deploy Pages 7). docs.yml last changed 063cbe9; source 7145c59 is HEAD and build-consumed only via dashboard/site/src. Next category: scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T03:36:34Z",
+   "worker_run_id": "44452155343",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 is the 21st completed run, outside the window; 20 successes (18 push, 2 schedule), 0 failed. Live gh run list at evaluation: no docs run after 17:20:59Z; main HEAD 7145c59 = source_sha. Queued-status check: only stale 37642403569 (created 2026-10-07, not in window, not blocking; newer runs queue median 4 s). Queue median 4 s p90 5; exec median 79 s p90 108 (recomputed from stored run_timings). 0 adjacent build overlaps, 0 superseded in-flight builds; cancel-in-progress true saves 0 s median and would risk cancelling deploys; 2 schedule runs are the intentional synthetic-date refresh; 0 of 18 push heads avoidable. Gates 11.85 s and 60 s not met.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1736,8 +1737,8 @@
   "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
  },
  "scheduling_verified": {
-  "verified_at": "2026-11-19T01:54:03Z",
-  "worker_run_id": "44439712433",
+  "verified_at": "2026-11-19T03:36:34Z",
+  "worker_run_id": "44452155343",
   "window": "latest 20 completed docs.yml runs 43991897672..44357668509 (all successes); cancelled 43991812013 outside window; no docs run since 17:20:59Z",
   "queue_s": {
    "median": 4,
@@ -1755,7 +1756,8 @@
   },
   "concurrency": "documentation-pages cancel-in-progress false kept; 0 adjacent build-window overlaps; 0 superseded in-flight builds; cancel true saves 0 s median",
   "avoidable_rebuilds": "0 of 18 push heads; 1509aeb had no trigger paths (no run expected); no commits on main after 7145c59",
-  "decision": "not actionable (median saving 0 s; queue median 4 s; 15 percent gate 11.85 s and 60 s gate unmet)"
+  "decision": "not actionable (unchanged)",
+  "window_note": "window unchanged since 2026-11-18T17:20:59Z; live run list 03:35Z; no queued/in-progress docs run except stale 37642403569 (created 2026-10-07, not blocking)"
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-19T02:23:18Z",
