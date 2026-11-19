@@ -26,6 +26,12 @@ The fail-closed policy/authority kernel for the control-plane subset of
   With `CAO_POSTGRES_URL` set, operational connectivity is probed live; canonical data does not
   exist yet, so both endpoints still report 503/unavailable. Without it both report everything unavailable.
   Other routes return 404.
+- `canonical` package: verified-snapshot ingestion into PostgreSQL (`specs/dashboard-data.md` §36, `server-ingestion.md` §7).
+  `SnapshotManifest`/`ShardReader` verify a `payload-hashes.json` directory of compacted `gh-aw-logs-runs/` and
+  `gh-aw-logs-records/` shards (SHA-256, bounded lines, metadata count, strict JSON) and `PostgresCanonicalStore` replaces
+  the active dataset atomically (campaigns, repositories, workflows, runs; relationship and duplicate checks, revision
+  compare-and-swap, rollback on any failure). Other canonical collections are rejected explicitly. Readiness `data`
+  now reflects the published revision. Canonical tables are separate from operational state and are not the Go server's typed schema.
 - `Dockerfile`: non-root, provider-neutral; no data or credentials baked in.
 
 Provision (schema owner only, once) then run (after `verify`):
@@ -35,6 +41,18 @@ CP="experiments/java-backend/target/cao-java-backend-0.1.0-SNAPSHOT.jar:experime
 CAO_POSTGRES_URL=postgres://owner@127.0.0.1:5432/cao java -cp "$CP" org.cao.backend.operational.BootstrapMain
 CAO_POSTGRES_URL=postgres://runtime@127.0.0.1:5432/cao CAO_PORT=8080 java -cp "$CP" org.cao.backend.http.Main
 ```
+
+Ingest a verified snapshot directory (needs a login with the canonical write grants below), then readiness turns `200`:
+
+```sh
+CAO_POSTGRES_URL=postgres://ingest@127.0.0.1:5432/cao java -cp "$CP" org.cao.backend.canonical.IngestMain /path/to/snapshot
+```
+
+The snapshot directory holds `payload-hashes.json` (`{"<relative path>": "<sha256 hex>"}`) plus `gh-aw-logs-runs/*.jsonl` and
+optional `gh-aw-logs-records/*.jsonl`; synthetic example: `src/test/resources/org/cao/backend/canonical/snapshot/`.
+`BootstrapMain` (owner only) provisions both the operational and canonical namespace (`CAO_DATABASE_NAMESPACE`). The serving login
+needs `SELECT` (and, for ingestion, `UPDATE`) on `cao_canonical_state` and `SELECT` (ingestion: also `INSERT`, `DELETE`) on
+`cao_canonical_{campaigns,repositories,workflows,runs}`; it needs no DDL rights.
 
 Runtime needs only SELECT on `cao_operational_namespaces`, `UPDATE(protected_bytes, protected_entries)` and
 SELECT/INSERT on `cao_operational_audit_events` for audit (see `server/postgres/operational-grants.sql`).

@@ -1,11 +1,14 @@
 # Implementation status
 
-Source SHA: `7cb5134de200cd5d27125613422c3ecc7abdf846` (previous slices authored at `93614994…` / `2fbe39c5…` / `a19872d3…`)
+Source SHA: `4eb6bb3eae5eab640cd73cc4eb71913231309984` (this slice; earlier slices authored at `7cb5134d…` / `93614994…` / `2fbe39c5…` / `a19872d3…`)
 Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
-`specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the storage slice.
+`specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the audit slice;
+`specs/dashboard-data.md` §§6-9, 15-19, 32, 34, 36 (canonical model, identity, ingestion integrity, INV-007/009/010/012)
+and `specs/server-ingestion.md` §7 (atomic replacement, fail-closed relationship/duplicate errors) for the canonical slice.
+`server/internal/ingest`, `server/internal/postgresx` and `server/testdata/deployed-subset` are comparison evidence only.
 `.github/workflows/shared/*`, `server/internal/operational/**` and `server/postgres/operational-grants.sql` are comparison evidence only.
 
-## Implemented and verified (`mvn verify`: 73 tests, 0 failures, 0 skipped; baseline was 41)
+## Implemented and verified (`mvn verify`: 96 tests, 0 failures, 0 skipped; baseline at this SHA was 73)
 
 | Spec reference | Behavior |
 | --- | --- |
@@ -26,6 +29,11 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 | Same — runtime/owner separation | `open` runs no DDL and fails closed when the namespace is unprovisioned, at another schema version, or its stored capacity config differs; `OperationalBootstrap` (owner only, `BootstrapMain`) creates the audit subset of the Go schema (append-only trigger, owner-only namespace delete guard, `cao_operational_retain_audit` SECURITY DEFINER with pinned search path, PUBLIC revoked). Tests prove a SELECT/INSERT-only runtime role cannot run DDL, UPDATE/DELETE audit rows, delete namespaces or call retention; retention deletes a contiguous oldest prefix (≤ 512, ≥ 400 days kept, newest row always kept) |
 | Same — transport | `PostgresEndpoint`: `postgres://` only, one TCP host, non-loopback requires `sslmode=verify-full` (`require`/`verify-ca`/`prefer` rejected), unknown URL parameters and Unix sockets rejected, password absent from `toString()` and errors |
 | `/api/health`, `/api/readiness` with the real store | `PostgresServiceState` probes the store on each request: connected when the namespace is provisioned and reachable; stopping the database flips `operational.connected`/`recoveryReady` to false. Data stays unavailable (503) because canonical storage is not implemented. `Main` opens `CAO_POSTGRES_URL` (namespace `CAO_OPERATIONAL_NAMESPACE`, else `CAO_DATABASE_NAMESPACE`, else `hosted-dashboard`) and exits non-zero for an insecure, invalid or unprovisioned store |
+| `specs/dashboard-data.md` §36.1-36.2, INV-009; `server-ingestion.md` §2/§7 — manifest + shard verification | `SnapshotManifest`: strict `payload-hashes.json` (duplicate keys, non-object, empty, unsafe/absolute/backslash/`..` paths, non-SHA-256 digests rejected; raw `gh-aw-logs-shards/` rejected; at least one compacted run shard required); every shard's SHA-256 is verified before any database work, symlinks and non-regular files refused, and the digest is recomputed again while the shard is parsed (a file changed between verify and read fails). `ShardReader`: bounded-line streaming (16 MiB default), mandatory `metadata` header with non-negative `records` count equal to the actual count, phase must match the shard, strict duplicate-key JSON, unknown envelopes/collections/wrong-phase collections rejected, errors name shard:line and never echo record content, NUL rejected (a depth>64 guard exists but is untested), per-line cancellation polling |
+| `dashboard-data.md` §7-9, 16, 36.3-36.4, INV-007 — canonical storage (campaigns, repositories, workflows, runs only) | `PostgresCanonicalStore` over real PostgreSQL (disposable loopback instance, never skipped), separate `cao_canonical_*` tables, namespace-scoped. Required identity per record, Workflow→Repository, Workflow→Campaign, Run→Workflow and Run→Repository FKs (deferred, checked at `SET CONSTRAINTS IMMEDIATE`), run repository must equal its workflow's repository (Go publication check), duplicate identity rejected. Whole dataset replaced in one transaction holding the namespace state row `FOR UPDATE`; any failure (hash mismatch, orphan, duplicate, mismatch, unsupported collection, cancellation) rolls back and the prior revision keeps serving (tests assert state and counts unchanged). Identical manifest content is a no-op (`replaced=false`) unless `force`; optional compare-and-swap on the active revision (`StaleRevisionException`); 4 racing writers with the same expected revision yield exactly one winner. `evaluatedAt` = newest timestamp among `observedAt/timestamp/createdAt/startedAt/completedAt/updatedAt` (absent, never invented, when none) |
+| Same — runtime/owner separation | `CanonicalBootstrap` (owner) creates tables; `open` runs no DDL and fails on unprovisioned namespaces; tests prove a role with only SELECT/UPDATE(state) and SELECT/INSERT/DELETE(data) cannot DROP/TRUNCATE/CREATE, and CHECK constraints reject bad revision/data_revision pairs and non-object JSON |
+| `/api/health`, `/api/readiness` `DataState` | `PostgresServiceState` reads canonical state on each request: `available`, `rebuildRequired = !available` (as the Go server), `evaluatedAt` only when available; an unreachable canonical store reports unavailable without claiming a rebuild. End-to-end tests and a packaged-jar smoke show 503 → ingest → 200/`healthy` → tampered re-ingest rejected with the dataset still serving |
+| Operator commands | `BootstrapMain` now provisions operational and canonical namespaces; `IngestMain <dir>` ingests one verified snapshot (exit non-zero on rejection) |
 | Packaging (`Dockerfile`) | Non-root uid 10001, env-configured port, shutdown hook. Image NOT built (no Docker); not deployed |
 
 ## Partial
@@ -35,6 +43,8 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 - Schema owner DDL is an audit-only subset of `server/internal/operational/postgres/schema.sql`; the Go store's full contract (records, cache, queues, webhook tables) is not reproduced, so a database provisioned by Go and one by Java are not interchangeable beyond the audit tables.
 - Real TLS to a remote PostgreSQL was not exercised (only URL validation); the packaged-jar smoke (BootstrapMain → Main → Java HTTP client on 127.0.0.1) used trust auth on numeric loopback and observed 503 with `operational.connected=true`; an unprovisioned namespace exited 1. A curl smoke was denied by the sandbox, so a Java client was used.
 
+- Canonical storage: only `campaigns`, `repositories`, `workflows`, `runs`; all other registered collections (audits, domains, tools, issues, graders, evals, experiments, operational values, ...) are rejected with an explicit error. Rows are JSONB with only relationship keys typed — **not** the Go server's TypeSpec-generated typed schema, so Go- and Java-provisioned databases are not interchangeable. Not implemented: `inventory-sources.json` and repository-memory inputs, the Go-compatible `dataRevision` digest (this slice hashes manifest entries only), run retention/daily partitions/ordinal capping, quality/completeness metadata, `schemaVersion`-specific legacy handling (the value is only checked to be an integer), checkpoint-resume of partially ingested chunks, and cross-checking `repositoryId` against owner/name coordinates or the `run:<repo>:<id>` identity (RUN-001/002 convergence across attempts is not implemented: ids are taken as given and duplicates are rejected). Ingestion reads the verified directory through the process filesystem; the hash is rechecked while streaming but a malicious writer racing between open calls is not defended against beyond that. Single-transaction replacement holds rows in the transaction rather than bounded-memory batches of independent commits (memory is bounded, the transaction is not); no load test beyond the synthetic fixture.
+- No revision-event channel yet: readiness reflects the new revision on the next request.
 - Health/readiness: no per-client rate limiting (429), no authorized `revision`/`counts` details. curl smoke of the packaged jar was denied by the sandbox; only startup (`listening on 127.0.0.1:18080`) was observed. HTTP behavior is verified by in-process tests over real loopback sockets.
 
 - Debug mode: admission logic takes caller-supplied `ManualDebugEvidence`; nothing yet reads the authoritative GitHub event or checks permission live (T-RES-008 recheck at precompute is the caller's duty), and gh-aw staging (T-GHA-004) is out of scope. Ordinary `PolicyResolver` still rejects `debug`; persistent debug policy stays invalid.
@@ -44,16 +54,20 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 
 Orchestrator/standalone effective records, standalone workflows and operations,
 `inventory`, `web.host`, host extensions, `target-authority`, authority envelopes,
-exact-SHA policy fetch, canonical ingestion/storage (PostgreSQL), Dashboard Language
-execution, all other HTTP routes, authentication, operational state beyond `AuditLog` (sessions, revocations, leases, queues, quota, rate limiting, CLI commands), canonical PostgreSQL adapter, container image build verification.
+exact-SHA policy fetch, canonical collections beyond the four above, Dashboard Language
+execution, all other HTTP routes (including `/api/repositories`, `/api/workflows/{id}/runs`), authentication, operational state beyond `AuditLog` (sessions, revocations, leases, queues, quota, rate limiting, CLI commands), container image build verification.
 
 ## Blocked
 
 None. Environment note: the sandbox JDK truststore was empty and `~/.m2` unwritable, so Maven ran with a truststore built from the system CA bundle (`MAVEN_OPTS=-Djavax.net.ssl.trustStore=…`) and `-Dmaven.repo.local` under /tmp (local only). PostgreSQL server binaries (`/usr/lib/postgresql/<n>/bin` or `CAO_TEST_POSTGRES_BIN`) are required for `verify`; their absence fails the build rather than skipping.
 
+## Environment notes for this run
+
+`~/.m2` was unwritable and the JDK truststore empty: Maven ran with `-Dmaven.repo.local=/tmp/gh-aw/agent/m2` and a PKCS12 truststore built from `/etc/ssl/certs/ca-certificates.crt` via `MAVEN_OPTS` (local only). Go could not download its pinned toolchain, so no Go cross-check was executed in this slice; the Go sources were read as comparison evidence only. `curl` was not used; the Java HTTP client smoke ran on `127.0.0.1`.
+
 ## Next bounded slice
 
-Canonical PostgreSQL storage: read `server/spec/storage.tsp` and `specs/dashboard-data.md` §§ on ingestion,
-bring up a separate canonical namespace/adapter, ingest a synthetic canonical JSONL fixture through a Java ingestion
-contract, and drive `data.available`/`evaluatedAt` from the published revision. Alternatively, orchestrator/standalone
-effective records (control-architecture §6.3).
+Expose the stored canonical entities over HTTP: `GET /api/repositories`, `/api/repositories/{id}`, `/api/repositories/{id}/runs`
+and `/api/workflows/{id}/runs` (`server/spec/canonical.tsp`) with the OpenAPI 401/404/503 shapes — which requires choosing and
+implementing the authentication contract (`server/spec/auth.tsp`) first, since the listener must not serve data unauthenticated.
+Alternatively: the first run-owned collections (`domains`, `tools`, `audits`) with run-parent integrity, or a Go-compatible `dataRevision`.

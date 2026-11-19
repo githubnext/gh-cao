@@ -134,11 +134,11 @@ public final class PostgresEndpoint {
         return URLDecoder.decode(raw.replace("+", "%2B"), StandardCharsets.UTF_8);
     }
 
-    String jdbcUrl() {
+    public String jdbcUrl() {
         return jdbcUrl;
     }
 
-    Properties connectionProperties() {
+    public Properties connectionProperties() {
         Properties copy = new Properties();
         copy.putAll(properties);
         return copy;

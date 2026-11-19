@@ -1,6 +1,7 @@
 package org.cao.backend.operational;
 
 import java.util.Map;
+import org.cao.backend.canonical.CanonicalBootstrap;
 
 /**
  * Owner-run provisioning entry point. Reads the owner connection from {@code CAO_POSTGRES_URL} and
@@ -15,7 +16,9 @@ public final class BootstrapMain {
         String url = env.get("CAO_POSTGRES_URL");
         String canonical = env.getOrDefault("CAO_DATABASE_NAMESPACE", "hosted-dashboard");
         String namespace = env.getOrDefault("CAO_OPERATIONAL_NAMESPACE", canonical);
-        OperationalBootstrap.provision(PostgresEndpoint.parse(url), namespace);
-        System.out.println("operational namespace provisioned");
+        PostgresEndpoint endpoint = PostgresEndpoint.parse(url);
+        OperationalBootstrap.provision(endpoint, namespace);
+        CanonicalBootstrap.provision(endpoint, canonical);
+        System.out.println("operational and canonical namespaces provisioned");
     }
 }

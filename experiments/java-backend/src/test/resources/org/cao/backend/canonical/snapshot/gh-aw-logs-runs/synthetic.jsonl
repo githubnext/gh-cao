@@ -1,0 +1,7 @@
+{"kind":"metadata","schemaVersion":13,"phase":"runs","records":6}
+{"kind":"record","collection":"campaigns","record":{"id":"campaign:demo","slug":"demo","name":"Synthetic demo","mode":"review","observedAt":"2026-01-01T10:00:00Z"}}
+{"kind":"record","collection":"repositories","record":{"id":"repository:example/api","owner":"example","name":"api","visibility":"public","observedAt":"2026-01-01T10:00:00Z"}}
+{"kind":"record","collection":"repositories","record":{"id":"repository:example/web","owner":"example","name":"web","visibility":"private","observedAt":"2026-01-01T10:00:00Z"}}
+{"kind":"record","collection":"workflows","record":{"id":"workflow:example/api:build","repositoryId":"repository:example/api","campaignId":"campaign:demo","path":".github/workflows/build.md","name":"Build","state":"active","observedAt":"2026-01-01T10:00:00Z"}}
+{"kind":"record","collection":"runs","record":{"id":"run:1001","repositoryId":"repository:example/api","workflowId":"workflow:example/api:build","githubRunId":"1001","attempt":1,"status":"completed","conclusion":"success","createdAt":"2026-01-02T09:00:00Z","startedAt":"2026-01-02T09:00:05Z","completedAt":"2026-01-02T09:05:00Z","observedAt":"2026-01-02T09:05:30Z","aicTotal":1.5}}
+{"kind":"record","collection":"runs","record":{"id":"run:1002","repositoryId":"repository:example/api","workflowId":"workflow:example/api:build","githubRunId":"1002","attempt":2,"status":"in_progress","createdAt":"2026-01-03T09:00:00+01:00"}}

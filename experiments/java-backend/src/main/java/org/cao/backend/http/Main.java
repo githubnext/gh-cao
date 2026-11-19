@@ -1,6 +1,8 @@
 package org.cao.backend.http;
 
 import java.util.Map;
+import org.cao.backend.canonical.CanonicalStore;
+import org.cao.backend.canonical.PostgresCanonicalStore;
 import org.cao.backend.operational.PostgresEndpoint;
 import org.cao.backend.operational.PostgresOperationalStore;
 
@@ -17,7 +19,9 @@ public final class Main {
         Map<String, String> env = System.getenv();
         ServerConfig config = ServerConfig.fromEnvironment(env);
         PostgresOperationalStore store = openStore(env);
-        ServiceState state = store == null ? ServiceState.unconfigured() : new PostgresServiceState(store);
+        CanonicalStore canonical = store == null ? null : openCanonical(env);
+        ServiceState state = store == null ? ServiceState.unconfigured()
+            : new PostgresServiceState(store, canonical);
         ApiServer server = new ApiServer(config, state);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             server.stop(config.shutdownGraceSeconds());
@@ -41,5 +45,15 @@ public final class Main {
         String canonical = env.getOrDefault(DATABASE_NAMESPACE, DEFAULT_NAMESPACE);
         String namespace = env.getOrDefault(OPERATIONAL_NAMESPACE, canonical);
         return PostgresOperationalStore.open(PostgresEndpoint.parse(url), namespace);
+    }
+
+    /** Opens the pre-provisioned canonical namespace; it fails startup like the operational store. */
+    static CanonicalStore openCanonical(Map<String, String> env) {
+        String url = env.get(POSTGRES_URL);
+        if (url == null || url.isBlank()) {
+            return null;
+        }
+        return PostgresCanonicalStore.open(PostgresEndpoint.parse(url),
+            env.getOrDefault(DATABASE_NAMESPACE, DEFAULT_NAMESPACE));
     }
 }

@@ -11,7 +11,16 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.Map;
+import org.cao.backend.canonical.CanonicalBootstrap;
+import org.cao.backend.canonical.IngestOptions;
+import org.cao.backend.canonical.PostgresCanonicalStore;
 import org.cao.backend.operational.OperationalBootstrap;
 import org.cao.backend.operational.OperationalStoreException;
 import org.cao.backend.operational.PostgresEndpoint;
@@ -55,6 +64,56 @@ class PostgresServiceStateTest {
             } finally {
                 server.stop(1);
                 store.close();
+            }
+        }
+    }
+
+    @Test
+    void readinessTurnsAvailableOnlyAfterVerifiedSnapshotIsPublished() throws Exception {
+        try (TestPostgres pg = TestPostgres.start()) {
+            PostgresEndpoint endpoint = pg.endpoint();
+            OperationalBootstrap.provision(endpoint, "hosted-dashboard");
+            CanonicalBootstrap.provision(endpoint, "hosted-dashboard");
+            PostgresOperationalStore operational = PostgresOperationalStore.open(endpoint, "hosted-dashboard");
+            PostgresCanonicalStore canonical = PostgresCanonicalStore.open(endpoint, "hosted-dashboard");
+            ApiServer server = new ApiServer(new ServerConfig("127.0.0.1", 0, 1),
+                new PostgresServiceState(operational, canonical));
+            server.start();
+            try {
+                JsonNode before = get(server, "/api/readiness", 503);
+                assertFalse(before.get("data").get("available").asBoolean());
+                assertTrue(before.get("data").get("rebuildRequired").asBoolean());
+                assertFalse(before.get("data").has("evaluatedAt"));
+
+                Path directory = Files.createTempDirectory("cao-http-snapshot");
+                try (InputStream in = PostgresServiceStateTest.class.getResourceAsStream(
+                    "/org/cao/backend/canonical/snapshot/gh-aw-logs-runs/synthetic.jsonl")) {
+                    String shard = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                    Files.createDirectories(directory.resolve("gh-aw-logs-runs"));
+                    Files.writeString(directory.resolve("gh-aw-logs-runs/synthetic.jsonl"), shard);
+                    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                    Files.writeString(directory.resolve("payload-hashes.json"),
+                        "{\"gh-aw-logs-runs/synthetic.jsonl\":\""
+                            + HexFormat.of().formatHex(digest.digest(shard.getBytes(StandardCharsets.UTF_8)))
+                            + "\"}");
+                }
+                canonical.ingest(directory, IngestOptions.defaults());
+
+                JsonNode ready = get(server, "/api/readiness", 200);
+                assertTrue(ready.get("ready").asBoolean());
+                assertTrue(ready.get("data").get("available").asBoolean());
+                assertFalse(ready.get("data").get("rebuildRequired").asBoolean());
+                assertEquals("2026-01-03T08:00:00Z", ready.get("data").get("evaluatedAt").asText());
+                assertEquals("healthy", get(server, "/api/health", 200).get("status").asText());
+
+                pg.stop();
+                JsonNode down = get(server, "/api/readiness", 503);
+                assertFalse(down.get("data").get("available").asBoolean());
+                assertFalse(down.get("data").get("rebuildRequired").asBoolean());
+                assertFalse(down.get("operational").get("connected").asBoolean());
+            } finally {
+                server.stop(1);
+                operational.close();
             }
         }
     }
