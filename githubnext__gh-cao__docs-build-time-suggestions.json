@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T11:18:59Z",
-      "worker_run_id": "44513135881",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 11:18Z: no docs run newer than 44465043275; main 7145c59 = source_sha, window unchanged. Recomputed stored transfer_model rows (no refetch, nearest-rank p90): removable = handoff+configure+upload+deploy setup median 9 s, p90 11 s, max 13 s = 11.4 percent of exec median 79 s; 15-percent gate 11.85 s and 60 s gate unmet. Deploy Pages (GitHub-managed) excluded. Merge-into-build ceiling about 8-9 s and would collapse the separate github-pages deploy job; rejected.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T11:35:00Z",
       "worker_run_id": "44515448235",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed; live gh run list at 21:32Z: no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha. Recomputed stored run_timings (immutable, n=20, nearest-rank p90): demo step median 4 s, p90 6, min 1, max 7 = 5.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet; ceiling 4 s. Live Jobs API of 44576080583 matched stored demo row (1 s). Only dashboard generation in docs.yml is the demo step; docs:build (package.json:47) is astro + validators + discovery test, no dashboard build. Reuse blocked: scripts/simulate-dashboard-pages.mjs:67 now = Date.now() embeds generatedAt. Open worker issues: #20815 only (checkout, other category), not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T21:52:05Z",
+      "worker_run_id": "44622473446",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 rolled out; cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 21:52Z: no docs run newer than 44576080583; main 4eb6bb3 = source_sha. Stored transfer_model rows recomputed (no refetch, nearest-rank p90, n=20): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11 s, max 13 s = 11.4 percent of exec median 79 s; 15-percent gate 11.85 s and 60 s gate unmet. Outlier 44576080583 (exec 160 s; GitHub-managed Deploy Pages 92 s) kept in sample; medians unaffected. Deploy Pages excluded (GitHub-managed). Merge-deploy-into-build (about 6-9 s) rejected: deploy-pages needs id-token write and the github-pages environment, which would move to the build job and collapse the separate deploy job. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
     }
   ],
