@@ -1,35 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T14:35:48Z",
-   "worker_run_id": "44325125047",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672",
-    "43991770179",
-    "43991571724",
-    "43987917606"
-   ],
-   "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44324821276 (push c32c4d9, created 2026-11-18T14:29:34Z) .. 43987917606 (push 139ce75, created 2026-11-17T00:28:35Z); cancelled 43991812013 excluded (0 jobs); 19 suc [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T15:20:11Z",
    "worker_run_id": "44333632888",
@@ -861,6 +833,35 @@
     "43991897672"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Window unchanged: gh run list shows no docs.yml run after 17:20:59Z; main HEAD 7145c59 (= source_sha). Dependency phase recomputed from stored run_timings (nearest-rank p90, n=20): setup-node median 3 s (p90 5), install median 10 s (p90 12), post-setup-node median 0 s; setup+install+post median 13 s (p90 17) = 16.5% of exec median 79 s. Gate 11.85 s (15%) and 60 s not met; even deleting install entirely would save 12.7% (10 s). Live Jobs API spot-check of 44357668509 matched stored rows (checkout 54, setup 6, install 11, post 0). Cache: exact key node-cache-Linux-x64-npm-7808ecf8 still live (263412733 B, created 2026-11-13T20:57:12Z, last accessed 2026-11-19T02:20:48Z); root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z), unchanged. No suggestion; dashboard-lock cache-path watch item still has no effect."
+  },
+  {
+   "evaluated_at": "2026-11-19T02:37:58Z",
+   "worker_run_id": "44445183966",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367",
+    "43991897672"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window; 20 successes (18 push, 2 schedule), 0 failed. Live gh run list and Jobs API at evaluation: no docs run after 17:20:59Z; main 7145c59 = source_sha. Build documentation (docs:build = astro build + validate-agent-docs + agent-docs-discovery test): median 13 s, p90 15 s, min 8, max 16 (n=20; 16.5% of exec median 79 s; 15% gate 11.85 s; 60 s gate unmet). Whole step produces dist/ required by deploy (removal invalid); validator/discovery removal weakens deploy gating; Astro output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; persistent Astro cache ceiling bounded below gate. Astro 7.4.2 unchanged (542db96 package.json patch is test-script only); #20877 OPEN, updatedAt 2026-11-18T04:41:20Z. Next category: reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1809,7 +1810,8 @@
   "ceiling_saving_s": 13,
   "sub_step_split": "not measurable (job logs HTTP 403 DIFC, not bypassed)",
   "decision": "not actionable: whole step produces dist/ required by deploy (whole-step removal is invalid); validation and discovery removal weakens deploy gating and is unmeasured; Astro cache unmeasured with added cache-step overhead and bounded below the gate; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance",
-  "history_note": "Supersedes the 16:34Z window (median 14 s, n 19). Adding 7145c59 moves the all-success median to 13 s; no change to the decision."
+  "history_note": "Supersedes the 16:34Z window (median 14 s, n 19). Adding 7145c59 moves the all-success median to 13 s; no change to the decision.",
+  "reverified_note": "Re-verified 2026-11-19T02:37:58Z worker 44445183966: window unchanged (no docs.yml run after 17:20:59Z); stored rows recomputed (build_docs median 13 s, p90 15 s, n=20); Jobs API spot-check of 44357668509 matched (Build documentation 12 s); astro 7.4.2 unchanged (542db96 test-script-only); verdict unchanged."
  },
  "burst_analysis": {
   "verified_at": "2026-11-18T03:53:32Z",
@@ -1903,11 +1905,11 @@
   "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
  },
  "pending_open_issue": {
-  "verified_at": "2026-11-18T22:20:34Z",
+  "verified_at": "2026-11-19T02:37:58Z",
   "issue": 20815,
   "state": "OPEN",
   "comments": 0,
   "updatedAt": "2026-11-13T17:41:19Z",
-  "note": "blobless checkout suggestion still represented; not re-proposed (checkout median 24 s unchanged)"
+  "note": "blobless checkout suggestion still represented by open issue (title prefix [self-care:docs-build-time-investigator]); not re-proposed (checkout median 24 s unchanged)"
  }
 }
