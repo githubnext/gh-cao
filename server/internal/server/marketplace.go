@@ -2,6 +2,10 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -76,13 +80,60 @@ func marketplaceSource(ctx context.Context, store operational.Cache, generation 
 		return marketplaceUnavailableSource()
 	}
 	result := marketplace.Resolve(ctx, config, generation, storeMarketplaceCache{store: store}, marketplace.Options{})
+	return marketplaceResultSource(ctx, result)
+}
+
+func (a *App) localMarketplaceSource(ctx context.Context) model.Source {
+	connection := a.operatorConnection()
+	if !validOperatorAdapterURL(connection.AdapterURL) {
+		marketplaceLog.PrintfContext(ctx, "local marketplace adapter unavailable")
+		return marketplaceUnavailableSource()
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, connection.AdapterURL+"/marketplace", nil)
+	if err != nil {
+		marketplaceLog.PrintfContext(ctx, "local marketplace request unavailable")
+		return marketplaceUnavailableSource()
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		marketplaceLog.PrintfContext(ctx, "local marketplace resolution failed")
+		return marketplaceUnavailableSource()
+	}
+	defer func() { _ = response.Body.Close() }()
+	var result marketplace.Result
+	decoder := json.NewDecoder(io.LimitReader(response.Body, (32<<20)+1))
+	if response.StatusCode != http.StatusOK || decoder.Decode(&result) != nil {
+		marketplaceLog.PrintfContext(ctx, "local marketplace resolution failed")
+		return marketplaceUnavailableSource()
+	}
+	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+		marketplaceLog.PrintfContext(ctx, "local marketplace response invalid")
+		return marketplaceUnavailableSource()
+	}
+	return marketplaceResultSource(ctx, &result)
+}
+
+func marketplaceResultSource(ctx context.Context, result *marketplace.Result) model.Source {
 	rows := make([]model.Row, 0, len(result.Packages))
 	for _, pkg := range result.Packages {
 		rows = append(rows, pkg.Row())
 	}
 	diagnostics := make([]model.Row, 0, len(result.Diagnostics))
+	available := len(result.Diagnostics) == 0
+	completeness := "complete"
 	for _, diagnostic := range result.Diagnostics {
 		diagnostics = append(diagnostics, diagnostic.Row())
+		if diagnostic.Status == "available" {
+			available = true
+		} else {
+			completeness = "partial"
+		}
+	}
+	availability, freshness := marketplaceAvailability(rows), "fresh"
+	if !available {
+		availability, completeness, freshness = "unavailable", "unknown", "unknown"
 	}
 	marketplaceLog.PrintfContext(ctx, "resolved marketplace catalog packages=%d registries=%d", len(rows), len(result.Diagnostics))
 	return model.Source{
@@ -90,7 +141,9 @@ func marketplaceSource(ctx context.Context, store operational.Cache, generation 
 		Rows:   rows,
 		Metadata: model.Metadata{
 			"source-id":            marketplace.SourceName,
-			"availability":         marketplaceAvailability(rows),
+			"availability":         availability,
+			"completeness":         completeness,
+			"freshness":            freshness,
 			"registry-diagnostics": diagnostics,
 		},
 	}

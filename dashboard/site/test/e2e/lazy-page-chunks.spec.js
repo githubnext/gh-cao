@@ -602,11 +602,8 @@ test('marketplace cards stay within their grid at mobile, tablet, and desktop wi
         });
     })), { message: `Card content should fit at ${width}px` }).toBe(true);
 
+    await expect(page.locator('[data-page-id="marketplace"] .document-list-header > p')).toHaveCount(0);
     if (width <= 700) {
-      await expect.poll(() => page.locator('[data-page-id="marketplace"] .document-list-header > p').evaluate((paragraph) => {
-        const bounds = paragraph.getBoundingClientRect();
-        return bounds.width > 0 && bounds.left >= 16 && bounds.right <= innerWidth - 16;
-      }), { message: `Introductory text should have mobile gutters at ${width}px` }).toBe(true);
       await expect.poll(() => cards.evaluateAll((items) => {
         if (items.length !== 3) return false;
         const [first, second] = items.map((card) => card.getBoundingClientRect());
@@ -627,7 +624,7 @@ test('marketplace cards stay within their grid at mobile, tablet, and desktop wi
     card.scrollWidth <= card.clientWidth + 1)).toBe(true);
 });
 
-for (const width of [390, 1440]) {
+for (const width of [320, 390, 518, 1440]) {
   test(`marketplace progressively loads canonical package pages at ${width}px`, async ({ context, page }) => {
     const packageRows = Array.from({ length: 65 }, (_, index) => ({
       ...inventory['marketplace-packages'].rows[0],
@@ -655,9 +652,19 @@ for (const width of [390, 1440]) {
     await page.goto(`${origin}/#page-marketplace`);
     await expect(page.locator('html')).toHaveAttribute('data-test-refresh-state', 'completed');
     const marketplace = page.locator('[data-page-id="marketplace"]');
+    await expect(page.locator('.dashboard-root')).toHaveClass(/dashboard-full-view/);
+    await expect(marketplace.locator('[data-view-id="marketplace-packages"]')).toHaveAttribute('data-view-layout', 'full-view');
+    await expect(marketplace.locator('.document-list-header > p')).toHaveCount(0);
     const cards = marketplace.locator('.entity-card-list-card');
     await expect(cards).toHaveCount(25);
     await expect(cards.locator('.issue-list-card-title')).toHaveText(packageRows.slice(0, 25).map(row => row.name));
+    await expect.poll(() => cards.evaluateAll(items => items.every(card => {
+      const bounds = card.getBoundingClientRect();
+      return card.scrollHeight <= card.clientHeight + 1 && [...card.children].every(child => {
+        const content = child.getBoundingClientRect();
+        return content.height === 0 || (content.top >= bounds.top && content.bottom <= bounds.bottom + 1);
+      });
+    })), { message: 'Card rows must contain their content instead of shrinking into overlapping rows' }).toBe(true);
     const first = cards.first().getByRole('link', { name: packageRows[0].name });
     const firstCard = await cards.first().elementHandle();
     const more = marketplace.getByRole('button', { name: 'Load more', exact: true });

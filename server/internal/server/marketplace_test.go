@@ -13,12 +13,96 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/githubnext/gh-cao/server/internal/marketplace"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/operational/postgres"
 	"github.com/githubnext/gh-cao/server/internal/query"
 	"github.com/githubnext/gh-cao/server/internal/redisx"
 	"github.com/githubnext/gh-cao/server/internal/testutil"
 )
+
+func TestLocalMarketplaceUsesNativeResolverWithoutServerCredentials(t *testing.T) {
+	t.Setenv("GH_TOKEN", "")
+	prefix := "/" + strings.Repeat("a", 48)
+	for _, status := range []int{http.StatusOK, http.StatusServiceUnavailable} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet || r.URL.Path != prefix+"/marketplace" ||
+					r.Header.Get("Authorization") != "" {
+					t.Errorf("unexpected marketplace request: %s %s", r.Method, r.URL.Path)
+				}
+				w.WriteHeader(status)
+				if status == http.StatusOK {
+					_ = json.NewEncoder(w).Encode(marketplace.Result{
+						Packages:    []marketplace.Package{{ID: "example/catalog/demo", Name: "Demo"}},
+						Diagnostics: []marketplace.RegistryDiagnostic{{RegistryID: "official", Status: "available", Packages: 1}},
+					})
+				}
+			}))
+			defer adapter.Close()
+			app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
+				AdapterURL: adapter.URL + prefix, Marketplace: true,
+			}}}
+			source := app.localMarketplaceSource(t.Context())
+			if status == http.StatusOK {
+				if len(source.Rows) != 1 || source.Rows[0]["package-name"] != "Demo" ||
+					source.Metadata["availability"] != "available" || source.Metadata["completeness"] != "complete" {
+					t.Fatalf("native catalog unavailable: %+v", source)
+				}
+			} else if len(source.Rows) != 0 || source.Metadata["availability"] != "unavailable" {
+				t.Fatalf("failed resolver did not fail closed: %+v", source)
+			}
+		})
+	}
+}
+
+func TestMarketplaceResultSourceReportsRegistryCompleteness(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		packages     []marketplace.Package
+		diagnostics  []marketplace.RegistryDiagnostic
+		availability string
+		completeness string
+		freshness    string
+	}{
+		{
+			name: "complete", packages: []marketplace.Package{{ID: "demo"}},
+			diagnostics:  []marketplace.RegistryDiagnostic{{RegistryID: "official", Status: "available"}},
+			availability: "available", completeness: "complete", freshness: "fresh",
+		},
+		{
+			name: "partial", packages: []marketplace.Package{{ID: "demo"}},
+			diagnostics: []marketplace.RegistryDiagnostic{
+				{RegistryID: "official", Status: "available"}, {RegistryID: "private", Status: "unavailable"},
+			},
+			availability: "available", completeness: "partial", freshness: "fresh",
+		},
+		{
+			name:         "unavailable",
+			diagnostics:  []marketplace.RegistryDiagnostic{{RegistryID: "private", Status: "unavailable"}},
+			availability: "unavailable", completeness: "unknown", freshness: "unknown",
+		},
+		{
+			name:         "empty",
+			diagnostics:  []marketplace.RegistryDiagnostic{{RegistryID: "official", Status: "available"}},
+			availability: "empty", completeness: "complete", freshness: "fresh",
+		},
+		{
+			name: "no registries", availability: "empty", completeness: "complete", freshness: "fresh",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			source := marketplaceResultSource(t.Context(), &marketplace.Result{
+				Packages: test.packages, Diagnostics: test.diagnostics,
+			})
+			if source.Metadata["availability"] != test.availability ||
+				source.Metadata["completeness"] != test.completeness ||
+				source.Metadata["freshness"] != test.freshness {
+				t.Fatalf("incorrect registry evidence state: %+v", source.Metadata)
+			}
+		})
+	}
+}
 
 // newFakeMarketplaceGitHubServer serves the minimal GitHub REST surface
 // ResolveRegistry needs (commit/tree/blob lookups) over HTTPS with a
@@ -180,6 +264,44 @@ func TestQueryTransparentlyInjectsMarketplacePackagesWithoutSnapshotOrSecretLeak
 	app.Handler().ServeHTTP(readiness, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "https://localhost/api/readiness", nil))
 	if readiness.Code != http.StatusServiceUnavailable {
 		t.Fatalf("marketplace access changed canonical readiness: %d", readiness.Code)
+	}
+	t.Setenv(marketplacePolicyPathEnv, filepath.Join(t.TempDir(), "missing-policy.json"))
+	prefix := "/" + strings.Repeat("b", 48)
+	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != prefix+"/marketplace" {
+			t.Errorf("unexpected adapter path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(marketplace.Result{
+			Packages: []marketplace.Package{
+				{ID: "local/catalog/demo", Name: "Local catalog"},
+				{ID: "local/catalog/second", Name: "Second catalog"},
+			},
+			Diagnostics: []marketplace.RegistryDiagnostic{{RegistryID: "local", Status: "available", Packages: 2}},
+		})
+	}))
+	defer adapter.Close()
+	app.config.OperatorActions = &LocalOperatorConfig{AdapterURL: adapter.URL + prefix, Marketplace: true}
+	localQuery := queryRequest{
+		SourceNames: []string{"catalog"},
+		Queries: []query.Definition{{
+			Name: "catalog", From: "marketplace-packages",
+			OrderBy: []query.OrderField{{Field: "package-name", Direction: "asc"}},
+		}},
+		Pagination: map[string]paginationRequest{"catalog": {Limit: 1}},
+	}
+	page, status, err = app.executeQuery(t.Context(), localQuery, false)
+	if err != nil || status != http.StatusOK || len(page.Sources["catalog"].Rows) != 1 ||
+		page.Sources["catalog"].Rows[0]["package-name"] != "Local catalog" ||
+		page.Sources["catalog"].Metadata["completeness"] != "complete" ||
+		page.Sources["catalog"].ContinuationToken == "" {
+		t.Fatalf("local catalog did not cross the production query boundary: status=%d err=%v sources=%+v", status, err, page.Sources)
+	}
+	localQuery.Pagination["catalog"] = paginationRequest{Limit: 1, ContinuationToken: page.Sources["catalog"].ContinuationToken}
+	page, status, err = app.executeQuery(t.Context(), localQuery, false)
+	if err != nil || status != http.StatusOK || len(page.Sources["catalog"].Rows) != 1 ||
+		page.Sources["catalog"].Rows[0]["package-name"] != "Second catalog" ||
+		page.Sources["catalog"].Metadata["completeness"] != "complete" {
+		t.Fatalf("local catalog continuation lost complete evidence: status=%d err=%v sources=%+v", status, err, page.Sources)
 	}
 }
 

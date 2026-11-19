@@ -1367,7 +1367,11 @@ references secret names, never secret values. Activity resolves registries
 during static precomputation and publishes safe normalized package metadata into
 the canonical IndexedDB path. The hosted Go server resolves the same contract
 on demand and caches safe results in Redis. Registry credentials remain in the
-trusted resolver in both profiles. Marketplace views consume only the existing
+trusted resolver in both profiles. The on-demand local dashboard delegates
+resolution through its private native operator adapter to a short-lived resolver
+subprocess; its web server receives only safe catalog metadata, never registry
+credentials. The adapter invalidates its TTL-bound catalog cache when local
+policy changes or becomes unavailable. Marketplace views consume only the existing
 data-worker query boundary and render declarative package cards and copy-only
 CAO add commands; browsers never fetch registries or install packages.
 The browser materializes bounded runtime and failure-scope results by

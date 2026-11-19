@@ -4,6 +4,7 @@
   "source": "marketplace-directory",
   "card": "marketplace-package-summary",
   "lazy-list": true,
+  "layout": "full-view",
   "summary-fields": ["package-name", "package-description", "registry-name", "publisher"],
   "order-by": [
     { "field": "package-name", "direction": "asc" },

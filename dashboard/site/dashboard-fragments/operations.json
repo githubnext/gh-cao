@@ -1653,7 +1653,6 @@
         {
           "id": "marketplace-packages",
           "title": "Campaign packages for agentic operations",
-          "description": "Explore packages from your configured registries. Select one to review it and copy an immutable gh cao add command. Adding a package does not use AI; workflows use AI when they run.",
           "data": {
             "source": "marketplace-directory",
             "query-context": false

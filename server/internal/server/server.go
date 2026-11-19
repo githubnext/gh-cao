@@ -1956,7 +1956,12 @@ func (loader *databaseLoader) runtimeSource(ctx context.Context, name string, de
 		return loader.app.valueCollectionCostsSource(ctx, loader.allowCollectionHealth)
 	}
 	if name == "$marketplacePackages" {
-		source := marketplaceSource(ctx, loader.operational, loader.dataRevision)
+		var source model.Source
+		if loader.app != nil && loader.app.operatorConnection() != nil && loader.app.operatorConnection().Marketplace {
+			source = loader.app.localMarketplaceSource(ctx)
+		} else {
+			source = marketplaceSource(ctx, loader.operational, loader.dataRevision)
+		}
 		for index, input := range source.Rows {
 			row := model.Row{}
 			for _, definition := range definitions {
