@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T12:24:00Z",
-      "worker_run_id": "44522847022",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); cancelled 43991812013 outside window; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list and main HEAD 7145c59 (= source_sha) at 12:22Z: no docs run newer than 44465043275; window unchanged. Live Jobs API of 44465043275 matched stored rows (Build documentation 05:25:54..05:26:07Z = 13 s). Recomputed from stored run_timings (nearest-rank p90, n=20): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 108). 15 percent gate 11.85 s needs about 88 percent of the step removed; 60 s gate unmet. docs:build = astro build && validate-agent-docs && agent-docs-discovery test; the validators and discovery test only read dist/ and git ls-files (no second build), and deploy consumes dist/, so removal is invalid. Astro output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (SiteFooter.astro:9, resource.ts:233, validate-agent-docs.mjs:571). Sub-step split unmeasurable (job-log access 403, not retried). #20877 (dependabot root astro family) OPEN, 0 comments, unchanged since 2026-11-18T04:41Z: watch item only. #20815 (checkout, other category) OPEN, not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T12:42:22Z",
       "worker_run_id": "44525493875",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); cancelled 43991812013 is the 21st completed run and excluded; 20 successes (17 push, 3 schedule), 0 failed. Live 22:32Z: no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha. Stored run_timings recomputed (no refetch; nearest-rank p90, n=20): setup-node median 3 s (p90 5); install median 10 s (p90 12, min 5, max 12); post step 0 s in all runs (exact-key hit); setup+install+post median 13 s, p90 17 = 16.5 percent of exec median 79 s (p90 113). 15 percent gate 11.85 s and 60 s gate unmet. Install-only ceiling 10 s = 12.7 percent. Live caches API: node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57:12Z, no save since). package-lock.json and dashboard/site/package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z). Removing install invalid (build requires npm ci); node_modules cache best case 3-6 s, unvalidated, below gate. Job logs not read (HTTP 403 DIFC). Open #20815 (checkout, other category) not repeated. No suggestion; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T22:52:04Z",
+      "worker_run_id": "44632012728",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 is the 21st completed run (outside window); 20 successes (17 push, 3 schedule), 0 failed, 0 cancelled. Live gh run list at 2026-11-19T22:52:04Z: no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha; #20815 OPEN, 0 comments, unchanged since 2026-11-13T17:41:19Z. Recomputed from stored run_timings (no refetch; nearest-rank p90, n=20): build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s; 15 percent gate 11.85 s needs about 88 percent of the step removed; 60 s gate unmet. HEAD check: validate-agent-docs.mjs and agent-docs-discovery.test.mjs spawn only git (no second Astro build); docs:build = astro build && validate && discovery test; docs.yml has no Astro cache step; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT (SiteFooter.astro:9, resource.ts:233, validate-agent-docs.mjs:571). Sub-step split unmeasurable (job-log access 403, not retried). No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1838,7 +1838,7 @@
     "sub_step_split": "not measurable (job logs HTTP 403 DIFC, not bypassed; not re-probed this run)",
     "input_check": "4eb6bb3 (#21273) touched no docs/, astro.config.mjs, aw.yml, */aw.yml, package.json or lock files; astro 7.4.2 unchanged; 4eb6bb3 is build-consumed only through dashboard/site/**",
     "decision": "not actionable (unchanged): whole step produces dist/ required by deploy and runs deploy-gating validators and the discovery test; the 15 percent gate (11.85 s) needs the Astro build to be at least 11.85 s of a 13.5 s step, leaving under 1.65 s for validators, discovery test and any cache restore/save; not evidenced; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance",
-    "reverified_note": "Re-verified 2026-11-19T21:19:13Z worker 44616913182: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s); docs:build post-build steps spawn only git (no Astro rebuild); PUBLIC_PAGES_BUILD_COMMIT provenance lines confirmed at HEAD; decision unchanged (not actionable)."
+    "reverified_note": "Re-verified 2026-11-19T22:52:04Z worker 44632012728: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s); validators and discovery test spawn only git at HEAD; decision unchanged (not actionable)."
   },
   "burst_analysis": {
     "verified_at": "2026-11-18T03:53:32Z",
