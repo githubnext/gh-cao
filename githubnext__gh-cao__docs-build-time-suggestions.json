@@ -1,36 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T21:53:00Z",
-   "worker_run_id": "44405449299",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 outside window (0 jobs); 20 succ [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T22:20:34Z",
    "worker_run_id": "44409794837",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push, 2026-11-17T01:01:51Z); cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list 09:20Z: no docs run newer than 44465043275; HEAD 7145c59 = source_sha, window unchanged. Jobs API refetched for all 20 runs: Build synthetic enterprise demo step (npm run dashboard:pages:build plus cp into dist/cao) median 4 s, p90 6 s, min 1, max 7 = 5.1 percent of exec median 79 s; build job median 63 s (p90 70). Ceiling at 100 percent removal 4 s, below the 60 s and 15 percent (11.85 s) gates. Reuse blocked: scripts/simulate-dashboard-pages.mjs defaults now to Date.now() and embeds generated dates. Dashboard-site install share is unmeasured inside the install median 10 s; combined ceiling (demo 4 s plus all of install 10 s = 14 s) needs both removed, not achievable since the demo build consumes dashboard/site dependencies. Cache node-cache-Linux-x64-npm-7808ecf8 live and unchanged (created 2026-11-13T20:57:12Z). Open issues: #20815 (checkout, other category, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z) only; not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T09:35:30Z",
+   "worker_run_id": "44497304261",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367"
+   ],
+   "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 44465043275 (schedule) .. 43992363367 (push); cancelled 43991812013 excluded; 20 successes, 0 failed. Live Jobs API of 44357668509 matched stored rows (handoff 7 s, configure 1, upload 3, deploy setup 1; removable 12 s; exec 113). Recomputed removable median 9 s, p90 11 s = 11.4% of exec median 79 s (p90 108); below 15% (11.85 s) and 60 s gates. Deploy Pages is GitHub-managed; merging deploy into build (about 6 s) rejected for deployment-gate safety.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1637,7 +1637,8 @@
    "handoff_median_s": 5
   },
   "reverified_note_2026_11_19": "Re-verified 2026-11-19T03:20:58Z worker 44450365058: window unchanged (newest 44357668509; live gh run list 03:20Z shows no docs run after 17:20:59Z); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); Jobs API spot-check of 44357668509 matched; decision unchanged (not actionable).",
-  "reverified_note_2026_11_19_worker_44482529936": "Re-verified 2026-11-19T07:54:06Z: window unchanged; live Jobs API of 44465043275 matched stored row; removable median 9 s, p90 11, 11.4 percent of exec median; decision unchanged (not actionable)."
+  "reverified_note_2026_11_19_worker_44482529936": "Re-verified 2026-11-19T07:54:06Z: window unchanged; live Jobs API of 44465043275 matched stored row; removable median 9 s, p90 11, 11.4 percent of exec median; decision unchanged (not actionable).",
+  "reverified_note_2026_11_19_worker_44497304261": "Re-verified 2026-11-19T09:35:30Z worker 44497304261: window unchanged; live Jobs API of 44357668509 matched stored row; removable median 9 s, p90 11 s, 11.4% of exec median 79 s; decision unchanged (not actionable)."
  },
  "commit_paths": {
   "verified_at": "2026-11-16T02:26:27Z",
@@ -1915,11 +1916,11 @@
   "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
  },
  "pending_open_issue": {
-  "verified_at": "2026-11-19T08:23:37Z",
+  "verified_at": "2026-11-19T09:35:30Z",
   "issue": 20815,
   "state": "OPEN",
   "comments": 0,
   "updatedAt": "2026-11-13T17:41:19Z",
-  "note": "blobless checkout suggestion still represented by open issue 20815 (OPEN, 0 comments at 2026-11-19T08:23:37Z); not re-proposed (checkout median 24 s, p90 31 s; no material change). Only the self-care-docs-build-time-investigator label query is used."
+  "note": "blobless checkout suggestion still represented by open issue 20815 (OPEN, 0 comments at 2026-11-19T09:35:30Z); not re-proposed (checkout median 24 s, p90 31 s; no material change). Only the self-care-docs-build-time-investigator label query is used."
  }
 }
