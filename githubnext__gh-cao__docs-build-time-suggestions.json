@@ -1,36 +1,7 @@
 {
  "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-18T22:20:34Z",
-   "worker_run_id": "44409794837",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647",
-    "43993695761",
-    "43992363367",
-    "43991897672"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded (outside window); 20 successes (18 push, 2 schedule 4 [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-18T22:33:13Z",
    "worker_run_id": "44412051874",
@@ -868,6 +839,35 @@
     "43992363367"
    ],
    "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 44465043275 (schedule) .. 43992363367 (push); cancelled 43991812013 excluded; 20 successes, 0 failed. Live Jobs API of 44357668509 matched stored rows (handoff 7 s, configure 1, upload 3, deploy setup 1; removable 12 s; exec 113). Recomputed removable median 9 s, p90 11 s = 11.4% of exec median 79 s (p90 108); below 15% (11.85 s) and 60 s gates. Deploy Pages is GitHub-managed; merging deploy into build (about 6 s) rejected for deployment-gate safety.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-19T09:54:12Z",
+   "worker_run_id": "44500103104",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647",
+    "43993695761",
+    "43992363367"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44465043275 (schedule, 2026-11-19T05:25:17Z) .. 43992363367 (push 2026-11-17T01:01:51Z); cancelled 43991812013 and 43832015521 outside window; 20 successes (17 push, 3 schedule), 0 failed. Queue median 0 s (run-level createdAt to startedAt), no overlapping or superseded runs, no concurrency waits; cancel-in-progress true would save 0 s median. 17 push heads all build-consumed (0 avoidable pushes; main still 7145c59 = source_sha). Scheduled rebuilds of 7145c59 are intentional for synthetic-date freshness. No repeated evidence; no suggestion.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1765,7 +1765,10 @@
    "p90": 113,
    "max": 143
   },
-  "concurrency_waits": "none (no run queued while another ran)"
+  "concurrency_waits": "none (no run queued while another ran)",
+  "reverified_at": "2026-11-19T09:54:12Z",
+  "reverified_worker_run_id": "44500103104",
+  "note": "Re-verified: window unchanged (44465043275..43992363367, main 7145c59 = source_sha); queue median 0 s; no overlapping runs in window; decision unchanged (not actionable)."
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-19T06:26:19Z",
