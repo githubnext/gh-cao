@@ -1,35 +1,7 @@
 {
   "source_sha": "7145c5915e35b1cdfcf27a78be07fa14e5ac6e1b",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-18T13:19:00Z",
-      "worker_run_id": "44311791707",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367",
-        "43991897672",
-        "43991770179",
-        "43991571724",
-        "43987917606",
-        "43877103800",
-        "43862265708",
-        "43854851689"
-      ],
-      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44311127214 (push 346b7e1, created 2026-11-18T13:11:07Z) .. 43854851689 (push fade88d, created 2026-11-16T11:06:56Z); cancelled 43991812013 excluded (0 jobs); 19 successes (17 push, 2 schedule 44244171280 and 44023953879); 0 failed. Live check 13:18Z: no docs run queued or in progress (only stale 37642403569 from 2026-10-07, outside window). Source 346b7e1 = main HEAD = source_sha; the commit touched dashboard-chunks.js, generate-dashboard-ingest.mjs and tests, and the demo command is unchanged (scripts/simulate-dashboard-pages.mjs:78 still defaults now=Date.now()). Fresh Jobs API for 44311127214: demo step 6 s (13:12:08-13:12:14), exec 87 s, consistent with stored rows. Recomputed from stored run_timings plus that row (no other refetch): demo median 5 s, p90 6, min 3, max 8, n 19; exec median 76 s (p90 82); demo share 6.6 percent; 15 percent gate 11.4 s and 60 s gate unmet; ceiling saving 5 s. Reuse still blocked: output non-deterministic from Date.now default, dist/cao copied and deployed each run, and cache restore overhead would offset most of a 5 s saving. Open issues: #20815 (checkout, other category, not repeated) and #21153 (incomplete report, not repeated). No suggestion; noop. Next: artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-18T13:35:00Z",
       "worker_run_id": "44314260869",
@@ -857,6 +829,35 @@
         "43991897672"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5); cancelled 43991812013 excluded; 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 01:00Z: no docs run newer than 44357668509, none queued or in progress; source 7145c59 = main HEAD = source_sha, so window unchanged. Recomputed from stored run_timings rows (no job or log refetch): docs:build step (astro build && validate-agent-docs && agent-docs-discovery test) median 13 s, p90 15, min 8, max 16; push-only median 14 s; exec median 79 s (p90 108); 15 percent gate 11.85 s and 60 s gate unmet. Whole-step ceiling 13 s (16.5 percent) is invalid because validators and deploy consume dist/; gate needs about 91 percent of the step removed. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasurable (earlier job-log read returned DIFC 403; not retried). Pending #20877 check: only package.json commit in window is 542db96 (test script only); astro 7.4.2 at HEAD, so no Astro upgrade in window. #20815 (checkout, other category) OPEN, not repeated; no open Astro issue. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T01:20:13Z",
+      "worker_run_id": "44435636236",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647",
+        "43993695761",
+        "43992363367",
+        "43991897672"
+      ],
+      "outcome": "complete, not actionable. Window: strict latest 20 completed docs.yml runs 44357668509 (push 7145c59, created 2026-11-18T17:20:59Z) .. 43991897672 (push 51facb5, created 2026-11-17T00:58:20Z); cancelled 43991812013 excluded (outside window); 20 successes (18 push, 2 schedule 44244171280 and 44023953879), 0 failed. Live gh run list 01:19Z: no docs run newer than 44357668509, none queued or in progress; HEAD 7145c59 = source_sha, so window unchanged since 23:17Z. Live Jobs API spot-check of 44357668509 matched stored rows (build 96 s, checkout 54 s, demo 3 s, deploy job 10 s). Recomputed from stored immutable run_timings rows (no refetch): demo step median 4 s, p90 6 s (nearest rank), min 1, max 7, n 20; push-only median 4 s; exec median 79 s (p90 108); demo share 5.1 percent; 15 percent gate 11.85 s and 60 s gate unmet; 100 percent removal ceiling 4 s. scripts/simulate-dashboard-pages.mjs:67 still defaults now = Date.now() and package.json dashboard:pages:build still runs it on every build, so reuse is invalid without a date-refresh change. Open issues: only #20815 (checkout, other category, OPEN, 0 comments), not repeated. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1704,7 +1705,7 @@
     "ceiling_saving_s": 4,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
     "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates)",
-    "reverified_note": "Re-verified 2026-11-18T23:17:00Z worker 44418962259: window unchanged (no docs.yml run after 17:20:59Z); stored rows recomputed (demo median 4 s, p90 6 s, n=20); source unchanged since 7145c59; verdict unchanged (ceiling 4 s vs 11.85 s and 60 s gates)."
+    "reverified_note": "Re-verified 2026-11-19T01:20:13Z worker 44435636236: window unchanged (no docs.yml run after 17:20:59Z; live gh run list 01:19Z); stored rows recomputed (demo median 4 s, p90 6 s, n=20); live Jobs API spot-check of 44357668509 matched; source unchanged at 7145c59; verdict unchanged (ceiling 4 s vs 11.85 s and 60 s gates)."
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
