@@ -178,17 +178,17 @@ func (w *dashboardActionWriter) flush() error {
 	return w.send(dashboardActionEvent{Stream: w.stream, Data: data + "\n"})
 }
 
-func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string, ingest chan<- struct{}) (string, func(), error) {
+func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string, ingest chan<- struct{}, server ...string) (string, func(), error) {
 	executable, err := os.Executable()
 	if err != nil {
 		return "", nil, err
 	}
-	return startDashboardActionAdapterWithExecutable(ctx, repositories, cache, executable, ingest)
+	return startDashboardActionAdapterWithExecutable(ctx, repositories, cache, executable, ingest, server...)
 }
 
 // ingest, when non-nil, receives coalesced operator requests to start an
 // ingestion pass now. It must be buffered; requests never block the adapter.
-func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories []string, cache, executable string, ingest chan<- struct{}) (string, func(), error) {
+func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories []string, cache, executable string, ingest chan<- struct{}, catalogServer ...string) (string, func(), error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, err
@@ -208,6 +208,9 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	active := map[string]context.CancelFunc{}
 	canceled := map[string]bool{}
 	mux := http.NewServeMux()
+	if len(catalogServer) > 0 {
+		mux.HandleFunc("GET "+adapterPrefix+"/marketplace", dashboardMarketplaceHandler(catalogServer[0], policyPath))
+	}
 	mux.HandleFunc("POST "+adapterPrefix+"/repositories/search", dashboardRepositorySearch)
 	mux.HandleFunc("GET "+adapterPrefix+"/repositories/{owner}/{repo}/update-access", func(w http.ResponseWriter, r *http.Request) {
 		repository := strings.ToLower(r.PathValue("owner") + "/" + r.PathValue("repo"))
@@ -385,7 +388,8 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	config, err := os.CreateTemp(cache, ".operator-actions-*.json")
 	if err == nil {
 		settings := map[string]any{
-			"adapterUrl": "http://" + listener.Addr().String() + adapterPrefix,
+			"adapterUrl":  "http://" + listener.Addr().String() + adapterPrefix,
+			"marketplace": len(catalogServer) > 0,
 		}
 		if runtime.GOOS != "windows" {
 			settings["operatorActions"] = map[string]any{

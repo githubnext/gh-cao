@@ -36,11 +36,9 @@ function resolve() {
 }
 
 describe('marketplace discovery', () => {
-  it('explains that add commands do not use AI in list and detail contracts', () => {
+  it('omits the directory introduction and retains the no-AI add contract in package details', () => {
     const detail = dashboard.pages.find((/** @type {{id: string}} */ candidate) => candidate.id === 'marketplace-package');
-    expect(page.views[0].description).toContain('gh cao add');
-    expect(page.views[0].description).not.toContain('gh aw add');
-    expect(page.views[0].description).toContain('does not use AI');
+    expect(page.views[0].description).toBeUndefined();
     expect(page.acceptance).toContain('use no AI');
     expect(detail.acceptance).toContain('use no AI');
   });
@@ -63,6 +61,7 @@ describe('marketplace discovery', () => {
       id: contract.view,
       mark: 'list', data: { source: contract.source, 'query-context': false },
       'lazy-list': contract['lazy-list'],
+      layout: contract.layout,
       list: { style: 'entity-cards', card: contract.card }
     });
     expect(dashboard.queries.find((/** @type {{name: string}} */ query) => query.name === 'marketplace-directory')).toMatchObject({

@@ -28,6 +28,7 @@ type LocalOperatorConfig struct {
 	AdapterURL      string                      `json:"adapterUrl"`
 	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
 	ManagedUpdates  bool                        `json:"managedUpdates,omitempty"`
+	Marketplace     bool                        `json:"marketplace,omitempty"`
 }
 
 func (c *LocalOperatorActionsConfig) allows(repository string) bool {

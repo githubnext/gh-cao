@@ -77,7 +77,7 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .mobile-table-card-list-boundary { min-height: 1px; list-style: none; }
 .mobile-table-card-list-items .entity-card-list-card { border: 0; border-top: 1px solid var(--border); border-radius: 0; background: var(--canvas); box-shadow: none; }
 .mobile-table-card-list-items .entity-card-list-card:first-child { border-top: 0; }
-.entity-card-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 14px; border: 0; background: transparent; }
+.entity-card-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); grid-auto-rows: min-content; align-content: start; gap: 14px; border: 0; background: transparent; }
 .entity-card-list-grid .entity-card-list-card { grid-template-columns: 20px minmax(0, 1fr); align-content: start; border: 1px solid var(--border); background: var(--canvas-subtle); }
 .entity-card-list-grid .issue-list-labels, .entity-card-list-grid .entity-card-list-timing { grid-column: 2; justify-content: flex-start; }
 .issue-list-labels .entity-card-list-metric { display: inline-flex; align-items: baseline; gap: 4px; border-color: var(--border); background: var(--canvas-subtle); color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -109,7 +109,6 @@ export const shellStyles = `.app-shell { height: 100vh; min-height: 0; display: 
 .marketplace-page > .page-chrome { margin-bottom: 8px; padding: 40px 32px; border: 1px solid var(--border); border-radius: 12px; background: radial-gradient(circle at top right, var(--accent-muted), transparent 44%), var(--canvas-subtle); }
 .marketplace-page > .page-chrome h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); }
 .marketplace-page > .page-chrome p { max-width: 640px; font-size: 1rem; }
-.marketplace-page .custom-view-grid { max-width: 1012px; margin-inline: auto; }
 .marketplace-page .custom-view { border: 0; background: transparent; box-shadow: none; }
 .marketplace-page .custom-view > header { padding-inline: 0; }
 .marketplace-page .document-list-header { padding: 0 0 16px; }

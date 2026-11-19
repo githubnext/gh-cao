@@ -169,7 +169,7 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
 	defer cancel()
 	ingestRequests := make(chan struct{}, 1)
-	actionsConfig, stopActions, err := startDashboardActionAdapter(ctx, repositories, cache, ingestRequests)
+	actionsConfig, stopActions, err := startDashboardActionAdapter(ctx, repositories, cache, ingestRequests, server)
 	if err != nil {
 		return err
 	}
