@@ -1142,6 +1142,17 @@ Execution does not require an interactive terminal. Cancellation remains scoped
 to the owned process tree; unsupported platforms fail closed. Ordinary local
 serving and hosted administration are unchanged.
 
+Before local update/upgrade publication, the native adapter checks Git and the
+active GitHub CLI authentication, resolves author/committer identity from an
+explicit non-secret root `git.name`/`git.email` pair in `cao.json`, existing Git
+settings, or the authenticated user's public profile and GitHub noreply address,
+in that order, and validates it through Git. Identity and the host-scoped
+`gh auth git-credential` helper and GitHub SSH-to-HTTPS URL rewrites are passed
+only to the maintenance command tree;
+no Git configuration or credential is persisted. Failure blocks maintenance
+with actionable diagnostics. This is local execution metadata, not rollout
+authority, and does not change the hosted App bot identity contract.
+
 The native owner watches local `cao.json` configuration, validates complete
 documents, and republishes exact configured repository identities through the
 existing inventory snapshot and canonical ingestion boundary. The checkout and

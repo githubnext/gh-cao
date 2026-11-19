@@ -26,6 +26,16 @@
       "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
     },
     "control-plane": { "$ref": "#/$defs/controlPlane" },
+    "git": {
+      "description": "Non-secret commit identity override for local dashboard maintenance only. Does not configure authentication or workflow authority.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "email"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[^\\u0000-\\u0020\\u007f<>](?:[^\\u0000-\\u001f\\u007f<>]*[^\\u0000-\\u0020\\u007f<>])?$", "not": { "pattern": "[\\u0000-\\u001f\\u007f]" } },
+        "email": { "type": "string", "pattern": "^[^\\u0000-\\u0020\\u007f<>@]+@[^\\u0000-\\u0020\\u007f<>@]+$", "not": { "pattern": "[\\u0000-\\u001f\\u007f]" } }
+      }
+    },
     "target-authority": { "$ref": "#/$defs/targetAuthority" }
   },
   "$defs": {

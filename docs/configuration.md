@@ -50,6 +50,43 @@ Control repositories must declare `gh-aw-version` at the document root. Campaign
 
 `cao.json` is the canonical gh-aw version pin for a control repository. Do not duplicate the pin in `.github/workflows/aw.json`; that file configures repository-wide compiler behavior such as strict mode, maintenance, and automatic upgrades. `npm run check:gh-aw-versions` verifies that campaign `min-version` fields, generated workflow compiler versions, and documentation examples match the control policy.
 
+### Local dashboard Git readiness
+
+Before a local dashboard update or compiler upgrade can publish a pull request,
+the native server adapter checks Git and the active `github.com` authentication
+with `gh auth status`. Missing authentication fails the command before maintenance
+starts; run `gh auth login --hostname github.com` or provide `GH_TOKEN`.
+GitHub passwords are not used.
+
+Existing Git author/committer environment settings and `user.name` / `user.email`
+are preserved. Missing identity fields are filled from `gh api user`: the public
+display name (or login) and public email, or GitHub's
+`ID+LOGIN@users.noreply.github.com` address when the email is private. No private
+email scope is requested. To explicitly override both author and committer, add
+this non-secret root field to the local `.github/workflows/cao.json`:
+
+```json
+{
+  "git": {
+    "name": "CAO Automation",
+    "email": "automation@example.com"
+  }
+}
+```
+
+Both fields are required when `git` is present. This is a fragment to merge into
+an otherwise valid policy, not a standalone document. Identity is re-read and
+validated for each publishing command. The adapter verifies the resulting Git
+identity and supplies `gh auth git-credential` for HTTPS access to `github.com`
+only within that command's environment. GitHub SSH clone/push URLs are rewritten
+to HTTPS for that command, so an SSH preference does not require separate keys.
+It does not write local/global Git
+configuration, persist credentials, grant repository access, change rollout
+policy, or override the hosted executor's App bot identity. Actual push and PR
+permissions are still enforced by GitHub.
+
+### Policy defaults
+
 The schema defaults are:
 
 | JSON path | Default | Range or values |

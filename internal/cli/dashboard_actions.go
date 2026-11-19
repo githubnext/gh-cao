@@ -330,6 +330,15 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 		}
 		configureDashboardProcess(child)
 		child.Env = append(os.Environ(), "GH_HOST=github.com")
+		if args[0] == "update" || args[0] == "upgrade" {
+			environment, readinessErr := dashboardGitEnvironment(executionCtx, child.Env)
+			if readinessErr != nil {
+				_ = send(dashboardActionEvent{Stream: "stderr", Data: readinessErr.Error() + "; no maintenance command was started.\n"})
+				_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
+				return
+			}
+			child.Env = environment
+		}
 		if args[0] == "disable" || args[0] == "enable" {
 			child.Env = dashboardDisableEnvironment(os.Environ())
 		}

@@ -351,6 +351,24 @@ func TestCampaignWorkflowFailureIsNotSuccess(t *testing.T) {
 	}
 }
 
+func TestNativePolicyValidatesGitIdentity(t *testing.T) {
+	for _, identity := range []map[string]any{
+		{"name": "CAO Automation", "email": "automation@example.test"},
+		{}, {"name": "Name"}, {"name": "Name", "email": "bad"},
+		{"name": "Name\n", "email": "a@example.test"},
+		{"name": "Name", "email": "a@example.test\n"},
+		{"name": " Name", "email": "a@example.test"},
+		{"name": "Name", "email": "a@example.test", "password": "not-allowed"},
+	} {
+		policy := initialPolicy("octo/control", "v1.2.3")
+		policy["git"] = identity
+		err := nativeValidatePolicy(policy)
+		if (err == nil) != (identity["name"] == "CAO Automation") {
+			t.Fatalf("unexpected Git identity validation: %v: %v", identity, err)
+		}
+	}
+}
+
 func TestNativePolicyValidatesTokenBroker(t *testing.T) {
 	content, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", "cao.json"))
 	if err != nil {
