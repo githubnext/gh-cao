@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T09:35:30Z",
-      "worker_run_id": "44497304261",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761",
-        "43992363367"
-      ],
-      "outcome": "complete, not actionable. Window unchanged: latest 20 completed docs.yml runs 44465043275 (schedule) .. 43992363367 (push); cancelled 43991812013 excluded; 20 successes, 0 failed. Live Jobs API of 44357668509 matched stored rows (handoff 7 s, configure 1, upload 3, deploy setup 1; removable 12 s; exec 113). Recomputed removable median 9 s, p90 11 s = 11.4% of exec median 79 s (p90 108); below 15% (11.85 s) and 60 s gates. Deploy Pages is GitHub-managed; merging deploy into build (about 6 s) rejected for deployment-gate safety.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T09:54:12Z",
       "worker_run_id": "44500103104",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 17 push, 3 schedule, 0 failed; cancelled 43991812013 outside window. Live gh run list at evaluation: no docs run after 17:20Z; main 4eb6bb3 = source_sha; window unchanged since 17:52 evaluation. Stored run_timings recomputed (n=20, nearest-rank p90): demo step median 4 s, p90 6, min 1, max 7 = 5.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet; ceiling 4 s. Live Jobs API spot-check of 44576080583 (1 s), 44465043275 (1 s), 44323919922 (7 s) matched stored rows. Only dashboard generation in docs.yml is the demo step (lines 57-58; scripts/simulate-dashboard-pages.mjs). Reuse blocked: now = Date.now() (line 67) embeds generatedAt. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-19T20:20:22Z",
+      "worker_run_id": "44606850625",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed, no cancelled run inside the window (cancelled 43991812013 is outside it). Live gh run list and main = 4eb6bb3 = source_sha; window unchanged since the 18:22Z evaluation. Live Jobs API of 44576080583 matched stored row (handoff 5 s, configure 1, upload 2, deploy setup 1; Deploy Pages 92 s outlier kept; removable 9 s). Recomputed stored transfer_model rows (nearest-rank p90, n=20): removable median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; exec p90 113; 15 percent gate 11.85 s and 60 s gate unmet. Deploy Pages (GitHub-managed) excluded. Merging deploy into build saves about 6 s (handoff plus deploy setup) and removes the environment-gated deploy job; rejected. Open #20815 (blobless checkout, other category) still OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not repeated. No suggestion; noop; next_category advanced.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1920,7 +1920,8 @@
     "ceiling_saving_s": 9,
     "decision": "not actionable",
     "reverified_note_14": "Re-verified 2026-11-19T14:33:28Z worker 44544330056: window unchanged (44465043275..43992363367, HEAD 7145c59); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); live spot-check of 44465043275 matched; decision unchanged (not actionable).",
-    "reverified_note_16": "Re-verified 2026-11-19T16:34:00Z worker 44566881270: window unchanged (44465043275..43992363367, HEAD 7145c59); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); decision unchanged (not actionable)."
+    "reverified_note_16": "Re-verified 2026-11-19T16:34:00Z worker 44566881270: window unchanged (44465043275..43992363367, HEAD 7145c59); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); decision unchanged (not actionable).",
+    "reverified_note_final": "2026-11-19T20:20:22Z worker 44606850625: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); live Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable)."
   },
   "dependency_phase_last_checked": {
     "evaluated_at": "2026-11-19T18:54:25Z",
@@ -1932,11 +1933,11 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-19T18:54:25Z",
+    "verified_at": "2026-11-19T20:20:22Z",
     "issue": 20815,
     "state": "OPEN",
     "comments": 0,
     "updatedAt": "2026-11-13T17:41:19Z",
-    "note": "Blobless checkout suggestion still represented by open issue 20815 (title prefix self-care:docs-build-time-investigator); not re-proposed; no update tool available to this worker."
+    "note": "Blobless checkout suggestion still represented by open issue 20815 (title prefix self-care:docs-build-time-investigator); re-checked 2026-11-19T20:20Z, still OPEN with 0 comments; not re-proposed; no update tool available to this worker."
   }
 }
