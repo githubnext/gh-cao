@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -302,7 +303,7 @@ func TestReportDeliveryResultRoutesOutput(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 			err := reportDeliveryResult(&stdout, &stderr, tc.result, tc.runErr)
-			if err != tc.runErr {
+			if !errors.Is(err, tc.runErr) {
 				t.Fatalf("error = %v, want %v", err, tc.runErr)
 			}
 			written, other := &stdout, &stderr
@@ -328,7 +329,7 @@ func TestReportDeliveryResultWriteFailureTakesPrecedence(t *testing.T) {
 	}
 	runErr := fmt.Errorf("delivery failed")
 	err = reportDeliveryResult(io.Discard, failingWriter{}, auditdelivery.Result{Status: "failure"}, runErr)
-	if err == nil || err == runErr || !strings.Contains(err.Error(), "could not write") {
+	if err == nil || errors.Is(err, runErr) || !strings.Contains(err.Error(), "could not write") {
 		t.Fatalf("write failure not reported: %v", err)
 	}
 }

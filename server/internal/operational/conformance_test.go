@@ -397,6 +397,49 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("canonical reserve = %d, %v", result, err)
 		}
 	})
+	t.Run("transfer-owners-validation-and-duplicates", func(t *testing.T) {
+		collection := services.Collection
+		if err := collection.WriteAttribute(ctx, "transfer-owners", "octo/a", "1"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := collection.AddMembers(ctx, "transfer:1:repos", "octo/a"); err != nil {
+			t.Fatal(err)
+		}
+		for name, call := range map[string]func() (int, error){
+			"zero installation": func() (int, error) {
+				return collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", 0, []string{"octo/a"})
+			},
+			"negative installation": func() (int, error) {
+				return collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", -3, []string{"octo/a"})
+			},
+			"blank repository": func() (int, error) {
+				return collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", 2, []string{"octo/a", " "})
+			},
+			"blank owners name": func() (int, error) {
+				return collection.TransferOwners(ctx, " ", "transfer:", ":repos", 2, []string{"octo/a"})
+			},
+		} {
+			if transferred, err := call(); err == nil || transferred != 0 {
+				t.Fatalf("%s: transferred %d, error %v; want rejection", name, transferred, err)
+			}
+			if owner, err := collection.ReadAttribute(ctx, "transfer-owners", "octo/a"); err != nil || owner != "1" {
+				t.Fatalf("%s changed ownership: %q, %v", name, owner, err)
+			}
+			if present, err := collection.HasMember(ctx, "transfer:1:repos", "octo/a"); err != nil || !present {
+				t.Fatalf("%s changed membership: %t, %v", name, present, err)
+			}
+		}
+		transferred, err := collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", 2, []string{"octo/a", "octo/a"})
+		if err != nil || transferred != 1 {
+			t.Fatalf("duplicate repository transfer: %d, %v", transferred, err)
+		}
+		if owner, err := collection.ReadAttribute(ctx, "transfer-owners", "octo/a"); err != nil || owner != "2" {
+			t.Fatalf("owner: %q, %v", owner, err)
+		}
+		if present, err := collection.HasMember(ctx, "transfer:1:repos", "octo/a"); err != nil || present {
+			t.Fatalf("old membership: %t, %v", present, err)
+		}
+	})
 	t.Run("focused-delivery-reservations", func(t *testing.T) {
 		deliveries := services.Deliveries
 		reserved, err := deliveries.ReserveDelivery(ctx, "reserved-delivery", time.Hour)
