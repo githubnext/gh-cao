@@ -122,7 +122,53 @@ func (s *Store) DeleteAttribute(ctx context.Context, name, field string) error {
 	return s.HashDelete(ctx, name, field)
 }
 
+// ErrInvalid identifies collection input rejected before any Redis write.
+var ErrInvalid = errors.New("invalid redis operational input")
+
+const maxCollectionNameBytes = 1024
+
+func collectionName(value string) error {
+	if strings.TrimSpace(value) == "" || len(value) > maxCollectionNameBytes || strings.ContainsRune(value, 0) {
+		return fmt.Errorf("empty, oversized, or NUL-containing name: %w", ErrInvalid)
+	}
+	return nil
+}
+
+func collectionNamespace(value string) error {
+	if len(value) > maxCollectionNameBytes || strings.ContainsRune(value, 0) {
+		return fmt.Errorf("invalid opaque namespace: %w", ErrInvalid)
+	}
+	return nil
+}
+
+// TransferOwners applies the same validation and per-repository
+// deduplication as the memory and PostgreSQL adapters; all validation
+// completes before the first write.
 func (s *Store) TransferOwners(ctx context.Context, owners, installationPrefix, installationSuffix string, installation int64, repositories []string) (int, error) {
+	if err := collectionName(owners); err != nil {
+		return 0, err
+	}
+	if err := collectionNamespace(installationPrefix); err != nil {
+		return 0, err
+	}
+	if err := collectionNamespace(installationSuffix); err != nil {
+		return 0, err
+	}
+	if installation <= 0 {
+		return 0, fmt.Errorf("installation ID must be positive: %w", ErrInvalid)
+	}
+	unique := make([]string, 0, len(repositories))
+	seen := make(map[string]struct{}, len(repositories))
+	for _, repository := range repositories {
+		if err := collectionName(repository); err != nil {
+			return 0, err
+		}
+		if _, duplicate := seen[repository]; !duplicate {
+			seen[repository] = struct{}{}
+			unique = append(unique, repository)
+		}
+	}
+	repositories = unique
 	reads := make([][]string, 0, len(repositories))
 	for _, repository := range repositories {
 		reads = append(reads, []string{"HGET", s.Key(owners), repository})
@@ -144,7 +190,11 @@ func (s *Store) TransferOwners(ctx context.Context, owners, installationPrefix, 
 			}
 			old, parseErr := strconv.ParseInt(owner, 10, 64)
 			if parseErr == nil && old > 0 && old != installation {
-				writes = append(writes, []string{"SREM", s.Key(installationPrefix + owner + installationSuffix), repository})
+				oldSet := installationPrefix + owner + installationSuffix
+				if err := collectionName(oldSet); err != nil {
+					return 0, err
+				}
+				writes = append(writes, []string{"SREM", s.Key(oldSet), repository})
 				transferred++
 			}
 		}
