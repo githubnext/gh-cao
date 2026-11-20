@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T23:16:56Z",
-      "worker_run_id": "44635857343",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 is the 21st completed run (outside window); cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live 23:16Z: gh run list shows no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha; docs.yml unchanged. Recomputed stored run_timings (immutable, n=20, nearest-rank p90, no refetch): 'Build synthetic enterprise demo' median 4 s, p90 6, min 1, max 7 = 5.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet; ceiling saving 4 s. Only dashboard generation in docs.yml is that step (runs npm run dashboard:pages:build, package.json:11); docs:build (package.json:47) has no dashboard build. Reuse blocked: scripts/simulate-dashboard-pages.mjs:67 now = Date.now() embeds generatedAt, and scheduled runs refresh synthetic dates by design. Open issues: #20815 (checkout, other category, not repeated); #21249 (automatic incomplete-run notice, not a suggestion). No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T23:33:48Z",
       "worker_run_id": "44638063158",
@@ -870,6 +841,35 @@
         "44023953879"
       ],
       "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 excluded. Live 10:18Z: gh run list shows no docs run newer than 44680921088; main = 4eb6bb3 = source_sha (docs.yml last changed 063cbe9, 2026-11-12); only open label issue is #20815 (checkout, other category, not repeated). Recomputed stored run_timings (nearest-rank p90, n=20, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 113); 15 percent gate 11.85 s and 60 s gate unmet; ceiling 13.5 s before deploy-gating validators, discovery test and any cache restore/save. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; partial .astro cache bounded by the same ceiling and unmeasured. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T10:33:42Z",
+      "worker_run_id": "44719711326",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 excluded. Live 10:33Z: gh run list shows no docs run newer than 44680921088; main = 4eb6bb3 = source_sha. Open label issues: only #20815 (checkout, other category, not repeated). Stored immutable rows recomputed (n=20, nearest-rank p90, no refetch): Build synthetic enterprise demo median 4 s, p90 6, min 1, max 7 = 5.1 percent of exec median 79 s (p90 113); 15 percent gate 11.85 s and 60 s gate unmet; ceiling saving 4 s. Live Jobs API spot-check of 44680921088: demo step 2 s, build job 60 s, deploy 12 s, matches stored row. Reuse still blocked: scripts/simulate-dashboard-pages.mjs:67 defaults now to Date.now() (embeds generatedAt), and scheduled runs refresh synthetic dates by design. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1733,10 +1733,10 @@
     "ceiling_saving_s": 4,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
     "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates; unchanged)",
-    "reverified_at": "2026-11-20T06:25:41Z",
+    "reverified_at": "2026-11-20T10:33:42Z",
     "note": "Re-verified 2026-11-19T10:52Z: window unchanged (no docs.yml run after 44465043275; source 7145c59 = main HEAD); stored rows recomputed (demo median 4 s, p90 6 s, n=20); verdict unchanged (not actionable).",
-    "reverified_worker_run_id": "44687257081",
-    "reverify_note": "Re-verified 2026-11-20T06:25:41Z worker 44687257081: window 44680921088..44023953879 (20 non-cancelled completed, 0 failed); demo median 4 s, p90 6 s, exec median 79 s; step = copy + esbuild bundle; verdict unchanged (not actionable)."
+    "reverified_worker_run_id": "44719711326",
+    "reverify_note": "Re-verified 2026-11-20T10:33Z worker 44719711326: no docs run newer than 44680921088; demo median 4 s, p90 6 s, n=20, exec median 79 s; verdict unchanged (not actionable)."
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
