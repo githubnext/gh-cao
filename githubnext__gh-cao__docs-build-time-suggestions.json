@@ -1,36 +1,7 @@
 {
   "source_sha": "e408102ea1b6bcc7ac796c5dd2945d8155f7d3a2",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-20T10:19:02Z",
-      "worker_run_id": "44717626621",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 excluded. Live 10:18Z: gh run list shows no docs run newer than 44680921088; main = 4eb6bb3 = source_sha (docs.yml last changed 063cbe9, 2026-11-12); only open label issue is #20815 (checkout, other category, not repeated). Recomputed stored run_timings (nearest-rank p90, n=20, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 113); 15 percent gate 11.85 s and 60 s gate unmet; ceiling 13.5 s before deploy-gating validators, discovery test and any cache restore/save. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; partial .astro cache bounded by the same ceiling and unmeasured. No suggestion; noop; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-20T10:33:42Z",
       "worker_run_id": "44719711326",
@@ -870,6 +841,35 @@
         "44043184727"
       ],
       "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44798156216 (push 826c4f4, 2026-11-20T19:00:55Z) .. 44043184727 (push, 2026-11-17T08:01:08Z); 17 push, 3 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 19:52Z: gh run list shows no docs run newer than 44798156216; workspace HEAD e408102 = source_sha; Jobs API spot-check of 44798156216 matched stored row (install 8 s, setup-node 3 s, post 0 s). Recomputed stored run_timings (n=20, nearest-rank p90, no refetch): install median 10 s (p90 12) = 12.7 percent of exec median 79 s; setup+install+post median 13 s (p90 17) = 16.5 percent; 15 percent gate 11.85 s and 60 s gate unmet, install alone cannot reach gate. Caches API 19:45Z: node-cache-Linux-x64-npm-7808ecf8 unchanged (created 2026-11-13T20:57:12Z, no later save), so window runs are exact-key hits. Root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13); no install input change in window. Open worker issue #20815 (checkout, other category) not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T20:18:43Z",
+      "worker_run_id": "44809648886",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44798156216 (push 826c4f4, 2026-11-20T19:00:55Z) .. 44043184727 (push, 2026-11-17T08:01:08Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live check: newest docs run still 44798156216, none queued or in progress; workspace HEAD e408102 = source_sha; docs.yml unchanged vs source_sha; only open worker issue #20815 (checkout, OPEN, 0 comments; not repeated). Recomputed stored run_timings (immutable, n=20, nearest-rank p90, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (exec p90 139). 15 percent gate 11.85 s needs about 88 percent of the step removed; 60 s gate impossible. Halving the Astro build saves at most 6.75 s (8.5 percent). docs:build = astro build && validate-agent-docs && discovery test; validators and discovery gate Pages deploy. Output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasurable (job logs 403 difc, not bypassed). No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
