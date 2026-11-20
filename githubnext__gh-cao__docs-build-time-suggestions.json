@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T17:18:41Z",
-      "worker_run_id": "44575079774",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44567910334 (push 3421dc7, 2026-11-19T16:36Z) .. 43993695761 (push, 2026-11-17T01:11Z); cancelled 43991812013 and 43832015521 excluded; 20 successes (17 push, [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T17:35:00Z",
       "worker_run_id": "44577798218",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed; older runs excluded. Live gh run list at 2026-11-20T03:35Z: no docs run newer than 44576080583, none queued or in progress; main HEAD 4eb6bb3 = source_sha. Recomputed from stored run_timings (no refetch; nearest-rank p90, n=20): queue median 3.5 s (p90 4, max 5), 4.4 percent of exec median 79 s; 60 s and 15 percent (11.85 s) gates unmet. Overlapping run intervals 0; cancel-in-progress true saves 0 s median. Scheduled runs 62/68/72 s required for synthetic-date freshness. Avoidable push rebuilds 0 of 17. Watch shared-only push still absent. Open #20815 (checkout, other category) not repeated. No issue; noop. next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T03:53:19Z",
+      "worker_run_id": "44670266823",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed, 0 cancelled. Live 03:52Z: gh run list shows no docs run newer than 44576080583; main 4eb6bb3 = source_sha; lock files last changed 7c8faf4 (2026-11-13T20:56:33Z), no later lock commit (commits API for both locks). Caches API: node-cache-Linux-x64-npm-7808ecf8 still live (263412733 B, lastAccessed 03:43Z). Stored run_timings recomputed (n=20, nearest-rank p90): setup-node median 3 s (p90 5), install median 10 s (p90 12), post 0 s; setup+install+post median 13 s = 16.5 percent of exec median 79 s. Install-only ceiling 10 s = 12.7 percent; even a zero-cost install stays below the 15 percent gate (11.85 s) and 60 s gate. node_modules cache best case 3-6 s, unvalidated. Checkout median 24 s (30 percent of exec) is represented by open #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z), not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1926,20 +1926,20 @@
     "reverified_note_final": "2026-11-19T20:20:22Z worker 44606850625: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); live Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable)."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-20T02:23:23Z",
-    "worker_run_id": "44659986869",
-    "verdict": "not actionable: install median 10 s (12.7 percent of exec median 79 s), setup+install+post 13 s (16.5 percent) not removable; gate 11.85 s unmet; root lock hash 7808ecf8 live exact-key entry; main HEAD unchanged at 4eb6bb3"
+    "evaluated_at": "2026-11-20T03:53:19Z",
+    "worker_run_id": "44670266823",
+    "verdict": "not actionable: install median 10 s (12.7 percent of exec median 79 s), setup+install+post 13 s (16.5 percent) not removable without an unvalidated cache; gate 11.85 s unmet; lock files unchanged since 7c8faf4; main HEAD unchanged at 4eb6bb3"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-20T03:20:40Z",
+    "verified_at": "2026-11-20T03:53:19Z",
     "issue": 20815,
     "state": "OPEN",
     "updatedAt": "2026-11-13T17:41:19Z",
-    "note": "Blobless checkout suggestion still represented by open issue 20815; re-checked by worker 44666629933 (updatedAt unchanged), not re-proposed; no update tool available to this worker."
+    "note": "Blobless checkout suggestion still represented by open issue 20815; re-checked by worker 44670266823 (updatedAt 2026-11-13T17:41:19Z unchanged, 0 comments), not re-proposed; no update tool available to this worker."
   },
   "scheduling_deploy_handoff": {
     "verified_at": "2026-11-19T23:53:15Z",
