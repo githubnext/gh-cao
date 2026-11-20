@@ -279,3 +279,56 @@ func TestBuildDeliveryOptionsBounds(t *testing.T) {
 		})
 	}
 }
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
+
+func TestReportDeliveryResultRoutesOutput(t *testing.T) {
+	success := auditdelivery.Result{Status: "success", Stage: "complete", Delivered: 3, LastSequence: 9, VerifiedHead: 12, Remaining: 3}
+	failure := auditdelivery.Result{Status: "failure", Stage: "source_open"}
+	runErr := fmt.Errorf("delivery failed")
+
+	cases := []struct {
+		name       string
+		result     auditdelivery.Result
+		runErr     error
+		wantStdout bool
+	}{
+		{name: "success writes stdout", result: success, wantStdout: true},
+		{name: "failure writes stderr", result: failure, runErr: runErr},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			err := reportDeliveryResult(&stdout, &stderr, tc.result, tc.runErr)
+			if err != tc.runErr {
+				t.Fatalf("error = %v, want %v", err, tc.runErr)
+			}
+			written, other := &stdout, &stderr
+			if !tc.wantStdout {
+				written, other = &stderr, &stdout
+			}
+			if other.Len() != 0 {
+				t.Fatalf("result leaked to the wrong stream: %q", other.String())
+			}
+			var got auditdelivery.Result
+			if err := json.NewDecoder(written).Decode(&got); err != nil || got != tc.result {
+				t.Fatalf("result = %+v, %v; want %+v", got, err, tc.result)
+			}
+		})
+	}
+}
+
+func TestReportDeliveryResultWriteFailureTakesPrecedence(t *testing.T) {
+	result := auditdelivery.Result{Status: "success", Stage: "complete"}
+	err := reportDeliveryResult(failingWriter{}, io.Discard, result, nil)
+	if err == nil || !strings.Contains(err.Error(), "could not write") {
+		t.Fatalf("lost result reported as success: %v", err)
+	}
+	runErr := fmt.Errorf("delivery failed")
+	err = reportDeliveryResult(io.Discard, failingWriter{}, auditdelivery.Result{Status: "failure"}, runErr)
+	if err == nil || err == runErr || !strings.Contains(err.Error(), "could not write") {
+		t.Fatalf("write failure not reported: %v", err)
+	}
+}
