@@ -8,7 +8,9 @@ public record ControlPolicy(
         String digest,
         Scope scope,
         Defaults defaults,
-        Map<String, Campaign> campaigns) {
+        Inventory inventory,
+        Map<String, Campaign> campaigns,
+        Map<String, Workflow> workflows) {
 
     /** Owner and repository allow-lists; empty means "not restricted by this list". */
     public record Scope(List<String> owners, List<String> repositories) { }
@@ -25,4 +27,20 @@ public record ControlPolicy(
             Integer rolloutPercent,
             Map<String, Mode> targets,
             Map<String, Worker> workers) { }
+
+    /** Inventory ceilings with schema defaults applied (specs/control-architecture.md §5.3). */
+    public record Inventory(int maxScanRepositories, int cellCount, int cellIndex, int batchSize, int batchIndex) {
+        public static Inventory defaults() {
+            return new Inventory(1000, 1, 0, 100_000, 0);
+        }
+    }
+
+    /** Standalone workflow declaration keyed by exact compiled workflow slug (CAO-EXE-005). */
+    public record Workflow(
+            boolean enabled,
+            Mode mode,
+            Integer maxRepositories,
+            Integer rolloutPercent,
+            Mode maxMode,
+            Map<String, Mode> targets) { }
 }
