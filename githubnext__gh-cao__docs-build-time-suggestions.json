@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T16:54:18Z",
-      "worker_run_id": "44570433632",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647",
-        "43993695761"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44567910334 (push 3421dc7, 2026-11-19T16:36Z) .. 43993695761 (push, 2026-11-17T01:11Z); cancelled 43991812013 and 43832015521 outside window; 20 successes (17 push, 3 sched [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T17:18:41Z",
       "worker_run_id": "44575079774",
@@ -870,6 +841,35 @@
         "44004300647"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); older 43993695761 and cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list at evaluation: no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha. Stored transfer rows recomputed (no refetch; nearest-rank p90, n=20): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. Jobs API spot-check of 44576080583 matched stored row (handoff 5, configure 1, upload 2, deploy setup 1, Deploy Pages 92 outlier, exec 160). Deploy Pages is GitHub-managed (median 7 s; outliers 92 s in 44576080583 and 69 s in 44337804857 disclosed, excluded from removable). Merge-deploy-into-build saves about 7 s and stays rejected (github-pages environment and id-token: write would move into the npm-ci build job). Artifact 7-9 MB; upload median 2 s. Open #20815 (checkout) not repeated; #21249 is an aw incomplete-run report, not a suggestion. No issue created; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T03:35:00Z",
+      "worker_run_id": "44668427424",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879",
+        "44004300647"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed; older runs excluded. Live gh run list at 2026-11-20T03:35Z: no docs run newer than 44576080583, none queued or in progress; main HEAD 4eb6bb3 = source_sha. Recomputed from stored run_timings (no refetch; nearest-rank p90, n=20): queue median 3.5 s (p90 4, max 5), 4.4 percent of exec median 79 s; 60 s and 15 percent (11.85 s) gates unmet. Overlapping run intervals 0; cancel-in-progress true saves 0 s median. Scheduled runs 62/68/72 s required for synthetic-date freshness. Avoidable push rebuilds 0 of 17. Watch shared-only push still absent. Open #20815 (checkout, other category) not repeated. No issue; noop. next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1757,8 +1757,8 @@
     "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
   },
   "scheduling_verified": {
-    "verified_at": "2026-11-20T01:52:25Z",
-    "worker_run_id": "44656291336",
+    "verified_at": "2026-11-20T03:35:00Z",
+    "worker_run_id": "44668427424",
     "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
     "window": "latest 20 completed docs.yml runs 44576080583 (push) .. 44004300647 (push); 20 successes (17 push, 3 schedule), 0 failed",
     "queue_s": {
@@ -1779,7 +1779,7 @@
     "concurrency": "documentation-pages cancel-in-progress false kept; no overlapping run intervals in window; cancel true saves 0 s median",
     "avoidable_rebuilds": "0 of 17 push heads",
     "decision": "not actionable (unchanged): queue 3.5 s median below 11.85 s gate; scheduled daily rebuild required for synthetic-date freshness",
-    "reverified_note": "Re-verified by worker 44656291336 from stored immutable rows (recomputed) and live gh run list; no new docs.yml run since 44576080583."
+    "reverified_note": "Re-verified by worker 44668427424 from stored immutable rows (recomputed) and one live gh run list; no new docs.yml run since 44576080583."
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-19T17:18:41Z",
