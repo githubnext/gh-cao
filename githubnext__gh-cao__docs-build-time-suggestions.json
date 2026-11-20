@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T22:19:42Z",
-      "worker_run_id": "44626965761",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed; 43993695761 outside window; cancelled 43991812013 excluded. Live 22:19Z: no docs run newer than 44576080583; main 4eb6bb3 = source_sha. Live run-level queue 0 s for all 20; zero overlapping run intervals; stored job queue median 3.5 s, p90 4, max 5 (below 11.85 s gate); exec median 79 s, p90 113. cancel-in-progress true saves 0 s median. Scheduled runs (68/72/62 s) required for synthetic-date freshness, not removable. Avoidable pushes 0 of 17 (3421dc7 and 4eb6bb3 build-consumed via docs/**). Watch: shared-only push absent. Open issues: #20815 only (checkout, other category, not repeated). No issue created; noop. next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T22:33:15Z",
       "worker_run_id": "44629105450",
@@ -870,6 +841,35 @@
         "44023953879"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; 44004300647 and cancelled 43991812013 outside window. Live 08:21Z: gh run list shows no docs run newer than 44680921088; main HEAD 4eb6bb3 = source_sha; only open issue with label self-care:docs-build-time-investigator is 20815 (OPEN, 0 comments, unchanged since 2026-11-13T17:41:19Z). Stored transfer_model rows recomputed (n=20, nearest-rank p90, no refetch): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. Deploy Pages (GitHub-managed) median 7 s, p90 69 s (n=19); tail not workflow-controllable. Merge-deploy-into-build stays rejected (github-pages environment and id-token boundary). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T08:35:53Z",
+      "worker_run_id": "44703258378",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 08:35Z: no docs run newer than 44680921088, none queued or in progress; main HEAD 4eb6bb3 = source_sha. Live run wall (startedAt..updatedAt, n=20): median 84 s, p90 118 s; stored exec median 79 s, p90 113 s. Overlapping run intervals 0, so cancel-in-progress true saves 0 s median. Queue median 3.5 s (p90 4) = 4.4 percent of exec median, below 11.85 s gate. Schedule walls 66/72/76/82 s kept for synthetic-date refresh (workflow cron comment). Avoidable push rebuilds 0 of 16 (build-consumed per stored commit map). Jobs API spot-check 44680921088 matches stored row (build 60 s, deploy 12 s). Checkout (largest removable step, median 24 s, p90 31 s, about 30 percent of exec median) is covered by open #20815 (OPEN, 0 comments, unchanged since 2026-11-13T17:41:19Z); not repeated. Only open issue with worker label: #20815. No issue created; noop. next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1759,8 +1759,8 @@
     "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
   },
   "scheduling_verified": {
-    "verified_at": "2026-11-20T06:55:10Z",
-    "worker_run_id": "44690711093",
+    "verified_at": "2026-11-20T08:35:53Z",
+    "worker_run_id": "44703258378",
     "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
     "window": "latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed",
     "queue_s": {
@@ -1941,10 +1941,10 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-20T05:53:28Z",
+    "verified_at": "2026-11-20T08:35:53Z",
     "issue": 20815,
     "state": "OPEN",
-    "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T05:34:16Z); checkout median 24 s unchanged, not re-proposed; no update tool available to this worker. Re-checked 2026-11-20T05:53:28Z: still the only open issue with label self-care:docs-build-time-investigator; not re-proposed."
+    "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T08:35:53Z; updatedAt 2026-11-13T17:41:19Z, 0 comments). Checkout median 24 s (p90 31 s) unchanged; not re-proposed; no update tool available to this worker."
   },
   "scheduling_deploy_handoff": {
     "verified_at": "2026-11-19T23:53:15Z",
