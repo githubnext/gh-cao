@@ -2296,7 +2296,7 @@ grains are not necessarily reconstructible: Run status and conclusion,
 requested and resolved models, friction and total Run costs, token classes,
 call and outcome events, and execution and dispatched-target repositories
 retain their separate meanings. Browser schema upgrades SHALL follow §5.1,
-preserving compatible stores during additive version 44/45 upgrades and
+preserving compatible stores during additive version 44, 45, and 46 upgrades and
 rebuilding incompatible projections; PostgreSQL requires a fresh schema matching TypeSpec.
 Retained row counts SHALL be calculated from namespace-scoped entity tables
 in the same read snapshot, not persisted in `cao_quality`.
