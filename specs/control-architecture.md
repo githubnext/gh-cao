@@ -294,6 +294,8 @@ The `$schema` property SHOULD identify `https://raw.githubusercontent.com/github
 
 A control repository uses `control-plane`. A target repository uses `target-authority`. A repository serving both roles MAY contain both. The document MUST NOT contain secrets, private keys, access tokens, or authentication headers.
 
+**CAO-CFG-008:** A document MAY contain a root `git` object that overrides the commit identity used by local dashboard maintenance. When present, `git` MUST contain exactly the string properties `name` and `email`. Neither value MAY contain control characters or `<` or `>`; `name` MUST NOT begin or end with whitespace, and `email` MUST contain exactly one `@` with non-empty local and domain parts. A `git` object alone does not satisfy CAO-CFG-003. The object is non-secret execution metadata: it MUST NOT configure authentication, grant repository access, or alter rollout policy or workflow authority.
+
 ### 5.3 Control-Plane Model
 
 | Property | Purpose | Omission behavior |
@@ -658,4 +660,5 @@ Invalid JSON, schema violations, unknown static identities, widening requests, u
 - Defined the central orchestrator and worker execution contract, credential reach, runtime records, deprecated monthly budget compatibility, revalidation timing, and protected environment boundary.
 - Required job-local GitHub App installation tokens to be scoped to the single admitted target or review repository rather than defaulting to the control repository or an installation-wide wildcard.
 - Added conformance classes, compliance levels, tests, examples, and security and privacy considerations.
+- Defined the optional root `git` commit-identity override for local dashboard maintenance as non-authoritative metadata (CAO-CFG-008).
 - Defined single-run manual worker debug admission, rejected campaign-level debug policy and dispatches, and added provenance and forced-staging compliance cases.
