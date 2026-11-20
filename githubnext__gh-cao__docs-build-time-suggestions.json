@@ -1,36 +1,7 @@
 {
  "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-19T19:17:33Z",
-   "worker_run_id": "44596065614",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed; cancelled 43991812013 is the 21s [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-19T19:32:46Z",
    "worker_run_id": "44598772467",
@@ -870,6 +841,35 @@
     "44023953879"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; 44004300647 rolled out; cancelled 43991812013 outside window. Install median 10 s p90 12 (12.7 percent of exec median 79 s); setup-node median 3 s; setup+install+post median 13 s (16.5 percent); net node_modules cache ceiling about 3-7 s, below the 11.85 s 15 percent gate and 60 s gate; not actionable. Checkout median 24 s remains covered by open #20815, not re-proposed.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-20T05:53:28Z",
+   "worker_run_id": "44683608509",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 excluded. Live 05:52Z: gh run list shows no docs run newer than 44680921088; main HEAD 4eb6bb3 = source_sha (main commit 2026-11-19T17:20:13Z); no Astro input change; only open worker issue is 20815 (blobless checkout, not re-proposed). Stored rows recomputed (immutable, n=20, nearest-rank p90, no refetch): Build documentation median 13.5 s, p90 15 = 17.1 percent of exec median 79 s (p90 113); 15 percent gate 11.85 s needs 88 percent of the step removed; 60 s gate impossible (step max 16 s). Halving the Astro build saves at most 6.75 s (8.5 percent). Validators and discovery test gate deploy and cannot be removed; sub-step split not measurable (job logs HTTP 403 DIFC, not bypassed).",
    "suggestion_fingerprint": null
   }
  ],
@@ -1839,7 +1839,8 @@
   "decision": "not actionable (unchanged): whole step produces dist/ required by deploy and runs deploy-gating validators and the discovery test; the 15 percent gate (11.85 s) needs the Astro build to be at least 11.85 s of a 13.5 s step, leaving under 1.65 s for validators, discovery test and any cache restore/save; not evidenced; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance",
   "reverified_note": "Re-verified 2026-11-20T01:00:21Z worker 44649799389: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s); live Jobs API matched 44576080583 build docs 15 s; job-log endpoint still HTTP 403 DIFC; decision unchanged (not actionable).",
   "reverified_note_2": "Re-verified 2026-11-20T02:37:20Z worker 44661631099: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s); decision unchanged (not actionable).",
-  "reverified_note_3": "Re-verified 2026-11-20T04:21:07Z worker 44673356350: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s); job-log endpoint HTTP 403 DIFC re-probed; decision unchanged (not actionable)."
+  "reverified_note_3": "Re-verified 2026-11-20T04:21:07Z worker 44673356350: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s); job-log endpoint HTTP 403 DIFC re-probed; decision unchanged (not actionable).",
+  "reverified_note_4": "Re-verified 2026-11-20T05:53:28Z worker 44683608509: window unchanged (44680921088..44023953879, main 4eb6bb3); stored rows recomputed (build docs median 13.5 s, p90 15, 17.1 percent of exec median 79 s); decision unchanged (not actionable)."
  },
  "burst_analysis": {
   "verified_at": "2026-11-18T03:53:32Z",
@@ -1936,10 +1937,10 @@
   "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
  },
  "pending_open_issue": {
-  "verified_at": "2026-11-20T05:34:16Z",
+  "verified_at": "2026-11-20T05:53:28Z",
   "issue": 20815,
   "state": "OPEN",
-  "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T05:34:16Z); checkout median 24 s unchanged, not re-proposed; no update tool available to this worker."
+  "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T05:34:16Z); checkout median 24 s unchanged, not re-proposed; no update tool available to this worker. Re-checked 2026-11-20T05:53:28Z: still the only open issue with label self-care:docs-build-time-investigator; not re-proposed."
  },
  "scheduling_deploy_handoff": {
   "verified_at": "2026-11-19T23:53:15Z",
