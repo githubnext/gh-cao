@@ -1,36 +1,7 @@
 {
  "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-19T17:52:22Z",
-   "worker_run_id": "44581124721",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 is the next older completed run and excluded; 20 successes (17 pus [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-19T18:22:40Z",
    "worker_run_id": "44586456835",
@@ -870,6 +841,35 @@
     "44004300647"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 outside window; cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live 04:20Z: gh run list shows no docs run newer than 44576080583; workspace HEAD 4eb6bb3 = source_sha. Recomputed stored run_timings (n=20, nearest-rank p90): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 113). 15 percent gate 11.85 s needs at least 88 percent of the step removed; 60 s gate impossible (step max 16 s). Halving the Astro build saves at most 6.75 s (8.5 percent). Validators and discovery test gate deploy and cannot be removed. Sub-step split unmeasurable: job-log endpoint re-probed 04:20Z returns HTTP 403 DIFC (not bypassed). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (docs/components/SiteFooter.astro:9; scripts/validate-agent-docs.mjs:571). #20877 OPEN, 0 comments, updatedAt 2026-11-18T04:41Z; no Astro upgrade merged in window. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-20T04:35:52Z",
+   "worker_run_id": "44675032601",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879",
+    "44004300647"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 is the 21st completed run and excluded; cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list at 2026-11-20T04:35:52Z: no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha; API commits?path shows docs.yml last changed 063cbe9 (2026-11-12, before window). Recomputed stored run_timings (immutable, n=20, nearest-rank p90, no refetch): demo step median 4 s, p90 6 (min 1, max 7) = 5.1 percent of exec median 79 s. Live Jobs spot-check of 44576080583 (demo 1 s, build docs 15 s, install 11 s) matched stored rows. Ceiling 4 s is below the 11.85 s 15 percent gate and the 60 s gate; reuse blocked by scripts/simulate-dashboard-pages.mjs:67 Date.now() and by the scheduled synthetic-date refresh (by design). Checkout (median 24 s) is outside this cycle and represented by open #20815 (unchanged since 2026-11-13T17:41:19Z); not repeated. #21249 is an automatic incomplete-run notice, not a suggestion. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1731,10 +1731,10 @@
   "ceiling_saving_s": 4,
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
   "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates; unchanged)",
-  "reverified_at": "2026-11-20T01:19:03Z",
+  "reverified_at": "2026-11-20T04:35:52Z",
   "note": "Re-verified 2026-11-19T10:52Z: window unchanged (no docs.yml run after 44465043275; source 7145c59 = main HEAD); stored rows recomputed (demo median 4 s, p90 6 s, n=20); verdict unchanged (not actionable).",
-  "reverified_worker_run_id": "44652276127",
-  "reverify_note": "Re-verified 2026-11-20T01:19:03Z worker 44652276127: window 44576080583..44004300647 (20 completed, 0 failed); demo median 4 s, p90 6 s; exec median 79 s; live Jobs API spot-checks of 44576080583 and 44465043275 matched stored rows; reuse blocker at scripts/simulate-dashboard-pages.mjs:67; verdict unchanged (not actionable)."
+  "reverified_worker_run_id": "44675032601",
+  "reverify_note": "Re-verified 2026-11-20T04:35:52Z worker 44675032601: window 44576080583..44004300647 (20 completed, 0 failed) unchanged; demo median 4 s, p90 6 s; exec median 79 s; live Jobs spot-check of 44576080583 matched; reuse blocker at scripts/simulate-dashboard-pages.mjs:67; verdict unchanged (not actionable)."
  },
  "astro_output_reuse": {
   "verified_at": "2026-11-16T06:36:53Z",
@@ -1936,11 +1936,11 @@
   "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
  },
  "pending_open_issue": {
-  "verified_at": "2026-11-20T03:53:19Z",
+  "verified_at": "2026-11-20T04:35:52Z",
   "issue": 20815,
   "state": "OPEN",
   "updatedAt": "2026-11-13T17:41:19Z",
-  "note": "Blobless checkout suggestion still represented by open issue 20815; re-checked by worker 44670266823 (updatedAt 2026-11-13T17:41:19Z unchanged, 0 comments), not re-proposed; no update tool available to this worker."
+  "note": "Blobless checkout suggestion still represented by open issue 20815; re-checked by worker 44675032601 (updatedAt 2026-11-13T17:41:19Z unchanged), not re-proposed; no update tool available to this worker."
  },
  "scheduling_deploy_handoff": {
   "verified_at": "2026-11-19T23:53:15Z",
