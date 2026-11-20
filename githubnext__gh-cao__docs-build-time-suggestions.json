@@ -1,36 +1,7 @@
 {
  "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-19T18:54:25Z",
-   "worker_run_id": "44591852920",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280",
-    "44060953578",
-    "44043184727",
-    "44041835448",
-    "44023953879",
-    "44004300647"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 20 successes (17 push, 3 schedule), 0 failed, no cancelled run in window; canc [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-19T19:17:33Z",
    "worker_run_id": "44596065614",
@@ -871,6 +842,35 @@
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 17 push, 3 schedule, 20 success, 0 failed; cancelled 43991812013 excluded. Queue median 3.5 s (p90 4, max 5) vs 11.85 s gate; 0 wall-clock overlapping run intervals, min gap 190 s, so cancel-in-progress saves 0 s; 0 avoidable push rebuilds; daily schedule needed for synthetic-date refresh. Largest removable item (checkout median 24 s) still tracked by open #20815, not re-proposed.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-20T05:34:16Z",
+   "worker_run_id": "44681367582",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254",
+    "44253520996",
+    "44252368502",
+    "44244171280",
+    "44060953578",
+    "44043184727",
+    "44041835448",
+    "44023953879"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; 44004300647 rolled out; cancelled 43991812013 outside window. Install median 10 s p90 12 (12.7 percent of exec median 79 s); setup-node median 3 s; setup+install+post median 13 s (16.5 percent); net node_modules cache ceiling about 3-7 s, below the 11.85 s 15 percent gate and 60 s gate; not actionable. Checkout median 24 s remains covered by open #20815, not re-proposed.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1004,8 +1004,8 @@
   }
  ],
  "run_timings": {
-  "evaluated_at": "2026-11-19T17:35:00Z",
-  "window": "latest 20 completed docs.yml runs: 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 rolled out; cancelled 43991812013 is the 21st completed run and excluded; 20 successes (17 push, 3 schedule), 0 failed",
+  "evaluated_at": "2026-11-20T05:34:16Z",
+  "window": "latest 20 completed non-cancelled docs.yml runs: 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; 44004300647 rolled out; cancelled 43991812013 outside window",
   "columns": [
    "run",
    "event",
@@ -1023,8 +1023,25 @@
    "deploy_job_s",
    "exec_s"
   ],
-  "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end. Medians (n=20, average of middle pair): exec 79.0 s (p90 113), queue 3.5 s, checkout 24.0 s, setup-node 3.0 s, install 10.0 s, build docs 13.5 s (p90 15), demo 4.0 s, upload 2.0 s, deploy job 10.0 s. Added 44576080583 (exec 160 s; GitHub-managed Deploy Pages 92 s outlier, disclosed and kept; build docs 15 s); dropped 43993695761 (build docs 10 s).",
+  "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end. Medians (n=20, average of middle pair): exec 79 s (p90 113), queue 3.5 s, checkout 24 s, setup-node 3 s, install 10 s, build docs 13.5 s (p90 15), demo 4 s, upload 2 s, deploy job 10 s. Added 44680921088 (exec 78 s, build docs 15 s); dropped 44004300647 (exec 79 s).",
   "rows": [
+   [
+    "44680921088",
+    "schedule",
+    "success",
+    "4eb6bb3",
+    4,
+    60,
+    24,
+    2,
+    12,
+    0,
+    15,
+    2,
+    2,
+    12,
+    78
+   ],
    [
     "44576080583",
     "push",
@@ -1347,29 +1364,12 @@
     2,
     9,
     62
-   ],
-   [
-    "44004300647",
-    "push",
-    "success",
-    "7b85edf",
-    4,
-    62,
-    24,
-    2,
-    10,
-    0,
-    14,
-    6,
-    2,
-    11,
-    79
    ]
   ]
  },
  "transfer_model": {
-  "verified_at": "2026-11-19T23:33:48Z",
-  "window": "latest 20 completed docs.yml runs: 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 rolled out; cancelled 43991812013 is the 21st completed run and excluded; 20 successes (17 push, 3 schedule), 0 failed",
+  "verified_at": "2026-11-20T05:34:16Z",
+  "window": "latest 20 completed non-cancelled docs.yml runs: 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; 44004300647 rolled out; cancelled 43991812013 outside window",
   "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
   "columns": [
    "run",
@@ -1384,6 +1384,18 @@
    "exec_s"
   ],
   "rows": [
+   [
+    "44680921088",
+    "schedule",
+    6,
+    1,
+    2,
+    1,
+    9,
+    12,
+    10,
+    78
+   ],
    [
     "44576080583",
     "push",
@@ -1611,18 +1623,6 @@
     9,
     8,
     62
-   ],
-   [
-    "44004300647",
-    "push",
-    6,
-    0,
-    2,
-    1,
-    7,
-    11,
-    9,
-    79
    ]
   ],
   "summary": {
@@ -1658,7 +1658,8 @@
   "note_removable": "removable (handoff+configure+upload+deploy setup) median 9.0 s, p90 11 s, max 13 s; 11.4 percent of exec median 79.0 s; 15 percent gate 11.85 s and 60 s gate unmet",
   "worker_run_id": "44638063158",
   "reverified_note_23": "Re-verified 2026-11-19T23:33:48Z worker 44638063158: window unchanged (44576080583..44004300647, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, max 13, 11.4 percent of exec median 79 s; exec p90 113); live Jobs API spot-check of 44576080583, 44465043275, 44337804857 matched; decision unchanged (not actionable).",
-  "reverified_note_latest_run": "2026-11-20T04:52:43Z worker 44676919825: window unchanged (44576080583..44004300647, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable)."
+  "reverified_note_latest_run": "2026-11-20T04:52:43Z worker 44676919825: window unchanged (44576080583..44004300647, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable).",
+  "note_window_rolled": "Window rolled to 44680921088 at 2026-11-20T05:34:16Z: removable median 9 s, p90 11, max 13 (11.4 percent of exec median 79 s); decision unchanged (not actionable)."
  },
  "commit_paths": {
   "verified_at": "2026-11-16T02:26:27Z",
@@ -1926,20 +1927,19 @@
   "reverified_note_final": "2026-11-19T20:20:22Z worker 44606850625: window unchanged (44576080583..44004300647, main 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); live Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable)."
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-20T03:53:19Z",
-  "worker_run_id": "44670266823",
-  "verdict": "not actionable: install median 10 s (12.7 percent of exec median 79 s), setup+install+post 13 s (16.5 percent) not removable without an unvalidated cache; gate 11.85 s unmet; lock files unchanged since 7c8faf4; main HEAD unchanged at 4eb6bb3"
+  "evaluated_at": "2026-11-20T05:34:16Z",
+  "worker_run_id": "44681367582",
+  "verdict": "not actionable: install median 10 s (12.7 percent of exec median 79 s), setup+install+post 13 s (16.5 percent) not removable without an unvalidated cache; net node_modules cache about 3-7 s, below 11.85 s gate; window 44680921088..44023953879; main HEAD unchanged at 4eb6bb3"
  },
  "job_topology_note": {
   "verified_at": "2026-11-18T22:20:34Z",
   "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
  },
  "pending_open_issue": {
-  "verified_at": "2026-11-20T05:19:49Z",
+  "verified_at": "2026-11-20T05:34:16Z",
   "issue": 20815,
   "state": "OPEN",
-  "updatedAt": "2026-11-13T17:41:19Z",
-  "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T05:19Z); checkout median 24.0 s unchanged, not re-proposed; no update tool available to this worker."
+  "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T05:34:16Z); checkout median 24 s unchanged, not re-proposed; no update tool available to this worker."
  },
  "scheduling_deploy_handoff": {
   "verified_at": "2026-11-19T23:53:15Z",
