@@ -1,8 +1,11 @@
 import { h } from '../dom.js';
+import { createDebug, diagnosticErrorName } from '../debug.js';
 import { octicon } from '../octicons.js';
 import { effect, state } from '../reactive.js';
 import { createFactoryScope } from './factory-elements.js';
 import { declaredCliActionPresentation, renderDeclaredCliAction } from './cli-actions.js';
+
+const debugSelection = createDebug('card-list-selection');
 
 /**
  * Selection is interaction state only. The query cursor, not the DOM or a new
@@ -70,9 +73,13 @@ export function createCardListSelection(options) {
           next.set(id, row);
         }
         selected = next;
+        debugSelection({ event: 'select-all-query', status: 'selected', count: next.size, total: options.total ?? null });
         changed();
       } catch (failure) {
-        if (!scope.signal.aborted) error.set(failure instanceof Error ? failure.message : 'Could not select the complete query. Try again.');
+        if (!scope.signal.aborted) {
+          debugSelection({ event: 'select-all-query', status: 'failed', errorName: diagnosticErrorName(failure) });
+          error.set(failure instanceof Error ? failure.message : 'Could not select the complete query. Try again.');
+        }
       } finally {
         if (!scope.signal.aborted) busy.set(false);
       }
@@ -136,6 +143,7 @@ export function createCardListSelection(options) {
           id = identity(row);
           if (loaded.some((item) => item.id === id)) throw new Error('Selection keys are not unique. Refresh the list.');
         } catch (failure) {
+          debugSelection({ event: 'selection-key', status: 'invalid', errorName: diagnosticErrorName(failure), loaded: loaded.length });
           invalid.set(failure instanceof Error ? failure.message : 'Invalid selection key.');
           continue;
         }
