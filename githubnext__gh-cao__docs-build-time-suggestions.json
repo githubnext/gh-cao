@@ -1,36 +1,7 @@
 {
-  "source_sha": "9139480b44b6d6d6909b3278a0fa6afbdbd33b3a",
-  "next_category": "artifact transfer and Pages packaging",
+  "source_sha": "e408102ea1b6bcc7ac796c5dd2945d8155f7d3a2",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-20T08:22:33Z",
-      "worker_run_id": "44701565257",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; 44004300647 and cancelled 43991812013 outside window. Live 08:21Z: gh run list shows no docs run newer than 44680921088; main HEAD 4eb6bb3 = source_sha; only open issue with label self-care:docs-build-time-investigator is 20815 (OPEN, 0 comments, unchanged since 2026-11-13T17:41:19Z). Stored transfer_model rows recomputed (n=20, nearest-rank p90, no refetch): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. Deploy Pages (GitHub-managed) median 7 s, p90 69 s (n=19); tail not workflow-controllable. Merge-deploy-into-build stays rejected (github-pages environment and id-token boundary). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-20T08:35:53Z",
       "worker_run_id": "44703258378",
@@ -870,6 +841,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44767894115 (push d55b65c, 2026-11-20T15:54:03Z) .. 44041835448 (push, 2026-11-17T07:50:44Z); 17 push, 3 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 18:52Z: gh run list shows no docs run newer than 44767894115; main 9139480 = source_sha; only open worker issue #20815 (checkout, other category, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not repeated). Stored run_timings recomputed (no refetch, nearest-rank p90, n=20): demo step median 3.5 s, p90 6, min 1, max 7 = 4.3 percent of exec median 80.5 s; 15 percent gate 12.07 s and 60 s gate unmet even at full removal; ceiling saving 3.5 s. Jobs API spot-check of 44767894115 matched stored row (demo 1 s, checkout 86 s). Reuse still blocked: scripts/simulate-dashboard-pages.mjs:67 now = Date.now() and :76 generatedAt; scheduled runs refresh synthetic dates by design. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T19:18:40Z",
+      "worker_run_id": "44800219734",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs: 44798156216 (push 826c4f4, 2026-11-20T19:00:55Z) .. 44043184727 (push, 2026-11-17T08:01:08Z); 17 push, 3 schedule, 20 success, 0 failed; 44041835448 rolled out; no cancelled runs in window. Live 19:17Z: gh run list shows new docs run 44798156216 (push 826c4f4, success, 19:00:55Z) since prior window head 44767894115; main HEAD e408102 (was 9139480); only open label issue is #20815 (checkout, other category, not repeated). Jobs API for 44798156216: handoff 6, configure 1, upload 2, deploy setup 0, removable 9, deploy pages 7, deploy job 10, exec 72; added to stored transfer rows and 44041835448 dropped. Recomputed (n=20, nearest-rank p90): removable median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s (p90 139); 15 percent gate 11.85 s and 60 s gate unmet even if removable fully eliminated. Deploy Pages (GitHub-managed) median 7 s, p90 69 s (n=19); tail not workflow-controllable. Merge-deploy-into-build stays rejected (github-pages environment and id-token boundary). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1003,8 +1003,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-20T16:19:10Z",
-    "window": "latest 20 completed non-cancelled docs.yml runs: 44767894115 (push d55b65c, 2026-11-20T15:54:03Z) .. 44041835448 (push, 2026-11-17T07:50:44Z); 17 push, 3 schedule, 20 success, 0 failed; 44023953879 rolled out; cancelled 43991812013 outside window",
+    "evaluated_at": "2026-11-20T19:18:40Z",
+    "window": "latest 20 completed non-cancelled docs.yml runs: 44798156216 (push 826c4f4, 2026-11-20T19:00:55Z) .. 44043184727 (push, 2026-11-17T08:01:08Z); 17 push, 3 schedule, 20 success, 0 failed; 44041835448 rolled out; no cancelled runs in window",
     "columns": [
       "run",
       "event",
@@ -1022,8 +1022,25 @@
       "deploy_job_s",
       "exec_s"
     ],
-    "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end. Medians (n=20, average of middle pair): exec 80.5 s (p90 139), queue 4 s, checkout 24 s (p90 53), setup-node 3 s, install 10 s, build docs 14 s (p90 15), demo 3.5 s, upload 2 s, deploy job 10 s. Added 44767894115 (exec 143 s, checkout 86 s outlier); dropped 44023953879 (exec 79 s).",
+    "note": "Jobs API step timestamps; completed runs immutable; exec = build job start to deploy job end. Medians (n=20, average of middle pair): exec 79 s (p90 139), queue 3.5 s, checkout 24 s (p90 53), setup-node 3 s, install 10 s, build docs 13.5 s (p90 15), demo 3 s, upload 2 s, deploy job 10 s. Added 44798156216 (exec 72 s); dropped 44041835448 (exec 82 s).",
     "rows": [
+      [
+        "44798156216",
+        "push",
+        "success",
+        "826c4f4",
+        3,
+        56,
+        25,
+        3,
+        8,
+        0,
+        12,
+        1,
+        2,
+        10,
+        72
+      ],
       [
         "44767894115",
         "push",
@@ -1346,29 +1363,12 @@
         2,
         9,
         75
-      ],
-      [
-        "44041835448",
-        "push",
-        "success",
-        "58c3e57",
-        4,
-        66,
-        25,
-        4,
-        10,
-        0,
-        14,
-        6,
-        3,
-        10,
-        82
       ]
     ]
   },
   "transfer_model": {
-    "verified_at": "2026-11-20T16:19:10Z",
-    "window": "latest 20 completed non-cancelled docs.yml runs: 44767894115 (push d55b65c, 2026-11-20T15:54:03Z) .. 44041835448 (push, 2026-11-17T07:50:44Z); 17 push, 3 schedule, 20 success, 0 failed; 44023953879 rolled out; cancelled 43991812013 outside window",
+    "verified_at": "2026-11-20T19:18:40Z",
+    "window": "latest 20 completed non-cancelled docs.yml runs: 44798156216 (push 826c4f4, 2026-11-20T19:00:55Z) .. 44043184727 (push, 2026-11-17T08:01:08Z); 17 push, 3 schedule, 20 success, 0 failed; 44041835448 rolled out; no cancelled runs in window",
     "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed)",
     "columns": [
       "run",
@@ -1383,6 +1383,18 @@
       "exec_s"
     ],
     "rows": [
+      [
+        "44798156216",
+        "push",
+        6,
+        1,
+        2,
+        0,
+        7,
+        10,
+        9,
+        72
+      ],
       [
         "44767894115",
         "push",
@@ -1610,18 +1622,6 @@
         9,
         9,
         75
-      ],
-      [
-        "44041835448",
-        "push",
-        6,
-        0,
-        3,
-        1,
-        7,
-        10,
-        10,
-        82
       ]
     ],
     "summary": {
@@ -1629,7 +1629,7 @@
       "removable_p90_s": 11,
       "removable_max_s": 13,
       "exec_median_s": 79,
-      "exec_p90_s": 113,
+      "exec_p90_s": 139,
       "removable_pct_of_exec_median": 11.4,
       "gate_15pct_s": 11.85,
       "gate_60s_absolute": "not met",
@@ -1653,10 +1653,10 @@
     },
     "worker_run_id": "44638063158",
     "last_reverified": {
-      "verified_at": "2026-11-20T17:34:24Z",
-      "worker_run_id": "44783870409",
-      "window": "unchanged (44767894115..44041835448, main 9139480)",
-      "result": "stored rows recomputed (removable median 9 s, p90 11, max 13 = 11.2 percent of exec median 80.5 s); Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable). Earlier per-run re-verification notes compacted; the evaluations list retains dated history."
+      "verified_at": "2026-11-20T19:18:40Z",
+      "worker_run_id": "44800219734",
+      "window": "rolled: added 44798156216, dropped 44041835448",
+      "result": "stored rows recomputed (removable median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s); Jobs API read of 44798156216 matched; decision unchanged (not actionable)."
     }
   },
   "commit_paths": {
@@ -1932,7 +1932,7 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-20T16:19:10Z",
+    "verified_at": "2026-11-20T19:18:40Z",
     "issue": 20815,
     "state": "OPEN",
     "note": "Blobless checkout suggestion still represented by open #20815 (0 comments, updatedAt 2026-11-13T17:41:19Z). Checkout median 24 s unchanged; window p90 rose 31 to 53 s with 44767894115 checkout 86 s outlier. Not re-proposed (median not materially changed; no update tool). Re-propose if #20815 closes without change or checkout median materially moves."
@@ -1945,5 +1945,9 @@
       "44567910334": 6
     },
     "note": "build completed to deploy job created; deploy job queue; no environment approval wait; merge-deploy rejected earlier (github-pages environment and id-token boundary)"
+  },
+  "window_head_note": {
+    "verified_at": "2026-11-20T19:18:40Z",
+    "note": "44798156216 (push 826c4f4, 2026-11-20T19:00Z) is the newest window head; push trigger matched docs.yml paths, per-commit build-consumed classification not verified. Scheduling category must verify commit file lists via commits API before any rebuild-avoidance claim."
   }
 }
