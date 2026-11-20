@@ -1,36 +1,7 @@
 {
   "source_sha": "9f0e584456a9181be65c4edb027956b2aed503e1",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-20T13:52:41Z",
-      "worker_run_id": "44747691812",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 13:52Z: gh run list shows no docs run newer than 44680921088; workspace HEAD 4eb6bb3 = source_sha; open self-care:docs-build-time-investigator issues: only #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; checkout, other category, not repeated). Recomputed stored run_timings (immutable, n=20, nearest-rank p90, no refetch): demo step median 4 s, p90 6, max 7 = 5.1 percent of exec median 79 s; ceiling 4 s vs 11.85 s (15 percent) and 60 s gates. Reuse still blocked by scripts/simulate-dashboard-pages.mjs (now = Date.now()). No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-20T14:19:47Z",
       "worker_run_id": "44751777331",
@@ -871,6 +842,34 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 23:32Z: gh run list unchanged, no docs run after 44812654835; main now 9f0e584 (compare from 3bd1058: 3 server/ files, no docs trigger path; source_sha updated). Stored build-docs rows recomputed (n=20, nearest-rank p90): median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 139). 15 percent gate 11.85 s needs 88 percent of the step removed; 60 s gate unreachable. Jobs API spot-check of 44812654835 matched stored row (build docs 10 s, install 7 s, checkout 29 s). Output reuse previously rejected (PUBLIC_PAGES_BUILD_COMMIT provenance, verified 2026-11-16; not re-read this run). Sub-step split unmeasurable (job logs HTTP 403). No suggestion. next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T23:54:00Z",
+      "worker_run_id": "44839646827",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 23:54Z: gh run list unchanged (newest 44812654835); main 9f0e584 = one commit (#21324) touching only server Go files, outside docs.yml paths, no docs run. Demo step (Build synthetic enterprise demo: scripts/simulate-dashboard-pages.mjs -> buildDashboardSite profile demo) median 2.5 s, p90 6, max 7, n=20 (stored rows recomputed, no refetch); 3.2 percent of exec median 79 s; ceiling saving 2.5 s vs 15 percent gate 11.85 s and 60 s gate: unmet even at max 7 s. Reuse blocked: marker generatedAt = Date.now() and schedule run refreshes synthetic dates. Verdict: not actionable; no issue created."
     }
   ],
   "docs_cache_model": {
@@ -1731,10 +1730,10 @@
     "ceiling_saving_s": 4,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
     "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates; unchanged)",
-    "reverified_at": "2026-11-20T22:17:30Z",
+    "reverified_at": "2026-11-20T23:54:00Z",
     "note": "Re-verified 2026-11-19T10:52Z: window unchanged (no docs.yml run after 44465043275; source 7145c59 = main HEAD); stored rows recomputed (demo median 4 s, p90 6 s, n=20); verdict unchanged (not actionable).",
-    "reverified_worker_run_id": "44827321497",
-    "reverify_note": "Re-verified 2026-11-20T22:17:30Z worker 44827321497: window unchanged (44812654835..44060953578, main 3bd1058); stored demo_s recomputed (median 2.5 s, p90 6, max 7, n=20; 3.2 percent of exec median 79 s); ceiling saving 2.5 s; verdict unchanged (not actionable)."
+    "reverified_worker_run_id": "44839646827",
+    "reverify_note": "Re-verified 2026-11-20T23:54Z worker 44839646827: window unchanged (44812654835..44060953578); main 9f0e584 adds server-only commit outside docs.yml paths; stored demo_s recomputed (median 2.5 s, p90 6, max 7, n=20; 3.2 percent of exec median 79 s); ceiling saving 2.5 s; verdict unchanged (not actionable)."
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
@@ -1947,7 +1946,7 @@
     "note": "build completed to deploy job created; deploy job queue; no environment approval wait; merge-deploy rejected earlier (github-pages environment and id-token boundary)"
   },
   "window_head_note": {
-    "verified_at": "2026-11-20T19:34:41Z",
-    "note": "826c4f4 (push, 2026-11-20T19:00Z) verified via commits API: dashboard/site/src/command-origin.js (build-consumed via build.mjs cp of src) plus test-only file; trigger satisfied by src, not avoidable."
+    "verified_at": "2026-11-20T23:54:00Z",
+    "note": "9f0e584 (push, 2026-11-20T23:25Z, PR #21324) verified via compare API 3bd1058...9f0e584: one commit touching server/cmd/cao-dashboard/audit_delivery_test.go, server/internal/operational/conformance_test.go, server/internal/redisx/operational.go; all outside docs.yml on.push.paths; no docs run expected or observed. docs-consumed state at 9f0e584 equals 3bd1058. Earlier 826c4f4 note retained in evaluations: build-consumed via dashboard/site/src/command-origin.js."
   }
 }
