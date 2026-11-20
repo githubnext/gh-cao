@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-19T23:33:48Z",
-      "worker_run_id": "44638063158",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live gh run list at 23:32Z: no docs run newer than 44576080583; HEAD 4eb6bb3 = source_sha. Recomputed stored transfer_model rows (n=20, nearest-rank p90): removable (handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet; ceiling 9 s. Live Jobs API spot-check of 44576080583, 44465043275, 44337804857 matched stored rows. Deploy Pages (GitHub-managed) median 7 s, p90 69 s (n=19): tails 69 s (44337804857, artifact expired) and 92 s (44576080583); github-pages artifact 7476250 B in the 92 s run vs 7476202 B (7 s, 44567910334) and 7474457 B (7 s, 44465043275), so size is not the driver and the tail is not workflow-controllable. Merge-deploy-into-build stays rejected (github-pages environment and id-token boundary). Exec p90 113 s in this window (was 108 in prior window). No open artifact-transfer issue (open #20815 is checkout, other category, not repeated). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-19T23:53:15Z",
       "worker_run_id": "44640859748",
@@ -871,6 +842,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 excluded. Live 10:33Z: gh run list shows no docs run newer than 44680921088; main = 4eb6bb3 = source_sha. Open label issues: only #20815 (checkout, other category, not repeated). Stored immutable rows recomputed (n=20, nearest-rank p90, no refetch): Build synthetic enterprise demo median 4 s, p90 6, min 1, max 7 = 5.1 percent of exec median 79 s (p90 113); 15 percent gate 11.85 s and 60 s gate unmet; ceiling saving 4 s. Live Jobs API spot-check of 44680921088: demo step 2 s, build job 60 s, deploy 12 s, matches stored row. Reuse still blocked: scripts/simulate-dashboard-pages.mjs:67 defaults now to Date.now() (embeds generatedAt), and scheduled runs refresh synthetic dates by design. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T10:52:41Z",
+      "worker_run_id": "44722441392",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 non-cancelled completed docs.yml runs 44680921088 (schedule, head 4eb6bb3, 2026-11-20T05:25:22Z) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 and 44004300647 outside window. Live gh run list: no docs run newer than 44680921088; workspace HEAD 4eb6bb3 = source_sha; docs.yml diff vs source_sha empty. Stored transfer_model rows recomputed (n=20, nearest-rank p90, no refetch): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. Jobs API spot-check of 44680921088 matched stored row (handoff 6, configure 1, upload 2, deploy setup 1, Deploy Pages 9 GitHub-managed, exec 78). Deploy Pages (median 7 s; outliers 92 s in 44576080583 and 69 s in 44337804857) excluded as GitHub-managed. Merge-deploy-into-build (saves about 7-9 s) stays rejected (github-pages environment and id-token boundary). Open #20815 (checkout) OPEN, 0 comments, not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1660,7 +1660,8 @@
     "reverified_note_23": "Re-verified 2026-11-19T23:33:48Z worker 44638063158: window unchanged (44576080583..44004300647, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, max 13, 11.4 percent of exec median 79 s; exec p90 113); live Jobs API spot-check of 44576080583, 44465043275, 44337804857 matched; decision unchanged (not actionable).",
     "reverified_note_latest_run": "2026-11-20T04:52:43Z worker 44676919825: window unchanged (44576080583..44004300647, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable).",
     "note_window_rolled": "Window rolled to 44680921088 at 2026-11-20T05:34:16Z: removable median 9 s, p90 11, max 13 (11.4 percent of exec median 79 s); decision unchanged (not actionable).",
-    "reverified_note_2026-11-20T06:43Z": "worker 44689392524: window unchanged (44680921088..44023953879, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44680921088 matched (handoff 6, configure 1, upload 2, deploy setup 1, Deploy Pages 9, exec 78); decision unchanged (not actionable)."
+    "reverified_note_2026-11-20T06:43Z": "worker 44689392524: window unchanged (44680921088..44023953879, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44680921088 matched (handoff 6, configure 1, upload 2, deploy setup 1, Deploy Pages 9, exec 78); decision unchanged (not actionable).",
+    "reverified_note_worker_44722441392": "2026-11-20T10:52:41Z: window unchanged (44680921088..44023953879, main 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); Jobs API spot-check of 44680921088 matched; decision unchanged (not actionable)."
   },
   "commit_paths": {
     "verified_at": "2026-11-16T02:26:27Z",
@@ -1941,7 +1942,7 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-20T08:35:53Z",
+    "verified_at": "2026-11-20T10:52:41Z",
     "issue": 20815,
     "state": "OPEN",
     "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T08:35:53Z; updatedAt 2026-11-13T17:41:19Z, 0 comments). Checkout median 24 s (p90 31 s) unchanged; not re-proposed; no update tool available to this worker."
