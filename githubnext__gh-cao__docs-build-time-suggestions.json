@@ -1,36 +1,7 @@
 {
   "source_sha": "4eb6bb3eae5eab640cd73cc4eb71913231309984",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-20T02:37:20Z",
-      "worker_run_id": "44661631099",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879",
-        "44004300647"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed docs.yml runs 44576080583 (push 4eb6bb3, 2026-11-19T17:20:18Z) .. 44004300647 (push, 2026-11-17T02:36:58Z); 43993695761 is the 21st completed run (outside window); cancelled 43991812013 excluded; 20 successes (17 push, 3 schedule), 0 failed. Live 02:36Z: gh run list shows no docs run newer than 44576080583; main HEAD 4eb6bb3 = source_sha, unchanged; no Astro input change; #20877 (dependabot root astro family task) still OPEN, updated 2026-11-18T04:41Z, no Astro upgrade merged. Recomputed stored run_timings (n=20, nearest-rank p90, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 113); 15 percent gate 11.85 s and 60 s gate unmet. Sub-step split (astro build vs validate-agent-docs vs discovery test) still unmeasurable: job logs HTTP 403 DIFC (not bypassed); no local node_modules, install not attempted. Ceiling: validators and discovery test gate deploy and cannot be removed; Astro-stage net saving S <= A - R with A <= 13.5 s and R (restore and substitution overhead, assumed >= 1 s, unmeasured); reaching 11.85 s needs A >= 12.85 s, i.e. validators <= about 0.65 s, not evidenced. Whole-output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (docs/components/SiteFooter.astro:9; scripts/validate-agent-docs.mjs:571). No suggestion; noop; next_category advanced to reusable dashboard generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-20T02:52:49Z",
       "worker_run_id": "44663465037",
@@ -870,6 +841,35 @@
         "44023953879"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 13:16Z: gh run list shows no docs run newer than 44680921088; main HEAD 4eb6bb3 = source_sha; open self-care issues: only #20815 (checkout, other category). Stored run_timings recomputed (no refetch; nearest-rank p90, n=20): install median 10 s (p90 12) = 12.7 percent of exec median 79 s; setup-node median 3 s; post 0 s; setup+install+post median 13 s (p90 17) = 16.5 percent. Gate 11.85 s (15 percent) or 60 s unmet, and install alone cannot reach 15 percent even at zero cost. Caches API 13:15Z: node-cache-Linux-x64-npm-7808ecf8 is the single live entry (251.20 MiB, created 2026-11-13T20:57:12Z, no later save), so window runs are exact-key hits. node_modules cache best case about 3-7 s, unvalidated, below gate. Checkout covered by open #20815, not re-proposed. No suggestion; noop; next_category advanced to Astro documentation generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T13:33:54Z",
+      "worker_run_id": "44744811924",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448",
+        "44023953879"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 13:32Z: gh run list shows no docs run newer than 44680921088; main HEAD 4eb6bb3 unchanged (commit 2026-11-19T17:20:13Z); only open worker issue is 20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z). Recomputed stored run_timings (immutable, n=20, nearest-rank p90, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.1 percent of exec median 79 s (p90 113); 15 percent gate 11.85 s needs 88 percent of the step removed; 60 s gate impossible (step max 16 s). Halving the Astro build saves at most 6.75 s (8.5 percent). docs:build = astro build && validate-agent-docs && discovery test; validators and discovery gate deploy and cannot be removed. Sub-step split unmeasurable: job-logs endpoint re-probed 13:33Z returns 403 difc_forbidden (not bypassed). Output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (docs/components/SiteFooter.astro:9; scripts/validate-agent-docs.mjs:571). No suggestion; noop; next_category advanced to reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1944,7 +1944,7 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-20T12:22:56Z",
+    "verified_at": "2026-11-20T13:33:54Z",
     "issue": 20815,
     "state": "OPEN",
     "note": "Blobless checkout suggestion still represented by open issue 20815 (only open issue with label self-care:docs-build-time-investigator at 2026-11-20T08:35:53Z; updatedAt 2026-11-13T17:41:19Z, 0 comments). Checkout median 24 s (p90 31 s) unchanged; not re-proposed; no update tool available to this worker."
