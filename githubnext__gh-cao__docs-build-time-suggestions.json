@@ -948,9 +948,9 @@
     ]
   },
   "reliability_blocker": {
-    "observed_at": "2026-11-19T06:47:20Z",
-    "worker_run_id": "44473864330",
-    "status": "Reported incomplete (agent-declared, unverified): GitHub API 403 rate limit on first live evidence call; no evaluation recorded for that run. Later runs, including this one, completed live reads without a rate limit; no retry loop."
+    "observed_at": "2026-11-20T09:18:41Z",
+    "worker_run_id": "44709224897",
+    "status": "Reported incomplete: GitHub REST API 403 user rate limit on the first two live evidence calls (open-issue search and docs.yml run list); no evaluation recorded; next_category unchanged (Astro documentation generation). No retry loop; no API calls after the limit. Prior incident 44473864330 (2026-11-19T06:47:20Z) handled the same way."
   },
   "etag_note": "06:35Z: gh api -i on docs.yml jobs endpoint returned no ETag header; completed-run rows are immutable: reuse run_timings and transfer_model.",
   "observations_pending": [
