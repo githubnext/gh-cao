@@ -34,7 +34,7 @@ public final class PolicyParser {
     private static final String SCHEMA_ID =
             "https://raw.githubusercontent.com/githubnext/gh-cao/main/.github/workflows/shared/cao.schema.json";
     private static final Set<String> UNSUPPORTED_CONTROL_KEYS = Set.of(
-            "activity", "inventory", "web", "workflows", "operations", "publishing",
+            "activity", "web", "operations", "publishing",
             "marketplace", "webhook-gateway", "token-broker");
     private static final Set<String> UNSUPPORTED_CAMPAIGN_KEYS = Set.of(
             "icon", "deploy", "workflow-values");
@@ -86,7 +86,7 @@ public final class PolicyParser {
                 throw new PolicyException("control-plane." + key + " is not supported by the Java backend yet");
             }
         }
-        keys(control, "control-plane", Set.of("scope", "defaults", "campaigns"));
+        keys(control, "control-plane", Set.of("scope", "inventory", "defaults", "campaigns", "workflows"));
         ControlPolicy.Scope scope = new ControlPolicy.Scope(List.of(), List.of());
         if (control.has("scope")) {
             JsonNode node = control.get("scope");
@@ -108,6 +108,8 @@ public final class PolicyParser {
                     integer(node, "rollout-percent", 1, 100, "control-plane.defaults"));
             budget(node, "control-plane.defaults");
         }
+        ControlPolicy.Inventory inventory = control.has("inventory")
+                ? parseInventory(control.get("inventory")) : ControlPolicy.Inventory.defaults();
         Map<String, ControlPolicy.Campaign> campaigns = new LinkedHashMap<>();
         if (control.has("campaigns")) {
             JsonNode node = control.get("campaigns");
@@ -119,7 +121,85 @@ public final class PolicyParser {
                 campaigns.put(name, parseCampaign(node.get(name), "control-plane.campaigns." + name));
             }
         }
-        return new ControlPolicy(digest, scope, defaults, Map.copyOf(campaigns));
+        Map<String, ControlPolicy.Workflow> workflows = new LinkedHashMap<>();
+        if (control.has("workflows")) {
+            JsonNode node = control.get("workflows");
+            mapping(node, "control-plane.workflows");
+            for (String name : names(node)) {
+                if (!SLUG.matcher(name).matches()) {
+                    throw new PolicyException("malformed workflow identifier");
+                }
+                workflows.put(name, parseWorkflow(node.get(name), "control-plane.workflows." + name, scope));
+            }
+        }
+        return new ControlPolicy(digest, scope, defaults, inventory, Map.copyOf(campaigns), Map.copyOf(workflows));
+    }
+
+    private static ControlPolicy.Inventory parseInventory(JsonNode node) {
+        String path = "control-plane.inventory";
+        mapping(node, path);
+        keys(node, path, Set.of("max-scan-repositories", "cell-count", "cell-index", "batch-size", "batch-index"));
+        ControlPolicy.Inventory base = ControlPolicy.Inventory.defaults();
+        Integer scan = integer(node, "max-scan-repositories", 1, 100_000, path);
+        Integer count = integer(node, "cell-count", 1, 1000, path);
+        Integer cell = integer(node, "cell-index", 0, Integer.MAX_VALUE, path);
+        Integer size = integer(node, "batch-size", 1, 100_000, path);
+        Integer batch = integer(node, "batch-index", 0, Integer.MAX_VALUE, path);
+        ControlPolicy.Inventory inventory = new ControlPolicy.Inventory(
+                scan == null ? base.maxScanRepositories() : scan,
+                count == null ? base.cellCount() : count,
+                cell == null ? base.cellIndex() : cell,
+                size == null ? base.batchSize() : size,
+                batch == null ? base.batchIndex() : batch);
+        if (inventory.cellIndex() >= inventory.cellCount()) {
+            throw new PolicyException(path + ".cell-index must be smaller than cell-count");
+        }
+        return inventory;
+    }
+
+    /** Standalone declarations carry only rollout and enablement; execution fields are unknown properties. */
+    private static ControlPolicy.Workflow parseWorkflow(JsonNode node, String path, ControlPolicy.Scope scope) {
+        mapping(node, path);
+        keys(node, path, Set.of("enabled", "mode", "max-mode", "max-repositories", "rollout-percent",
+                "monthly-ai-credit-budget", "targets"));
+        budget(node, path);
+        Map<String, Mode> targets = new LinkedHashMap<>();
+        if (node.has("targets")) {
+            JsonNode targetNode = node.get("targets");
+            mapping(targetNode, path + ".targets");
+            for (String repository : names(targetNode)) {
+                if (!REPOSITORY.matcher(repository).matches()) {
+                    throw new PolicyException(path + ".targets has a malformed repository");
+                }
+                JsonNode policy = targetNode.get(repository);
+                mapping(policy, path + ".targets." + repository);
+                keys(policy, path + ".targets." + repository, Set.of("mode"));
+                if (!policy.has("mode")) {
+                    throw new PolicyException(path + ".targets." + repository + ".mode is required");
+                }
+                String normalized = repository.toLowerCase(Locale.ROOT);
+                if (!scope.repositories().isEmpty() && scope.repositories().stream()
+                        .noneMatch(allowed -> allowed.equalsIgnoreCase(normalized))) {
+                    throw new PolicyException(path + ".targets." + repository
+                            + " is outside control-plane.scope.allowed-repositories");
+                }
+                if (!scope.owners().isEmpty() && scope.owners().stream()
+                        .noneMatch(owner -> owner.equalsIgnoreCase(normalized.substring(0, normalized.indexOf('/'))))) {
+                    throw new PolicyException(path + ".targets." + repository
+                            + " is outside control-plane.scope.allowed-owners");
+                }
+                if (targets.put(normalized, mode(policy, path + ".targets." + repository + ".mode")) != null) {
+                    throw new PolicyException(path + ".targets has a case-insensitive duplicate");
+                }
+            }
+        }
+        return new ControlPolicy.Workflow(
+                bool(node, "enabled", path),
+                mode(node, path + ".mode"),
+                integer(node, "max-repositories", 1, 1000, path),
+                integer(node, "rollout-percent", 1, 100, path),
+                mode(node, path + ".max-mode", "max-mode"),
+                Map.copyOf(targets));
     }
 
     private static ControlPolicy.Campaign parseCampaign(JsonNode node, String path) {
