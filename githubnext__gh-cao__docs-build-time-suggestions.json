@@ -1,36 +1,7 @@
 {
   "source_sha": "9139480b44b6d6d6909b3278a0fa6afbdbd33b3a",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-20T06:43:33Z",
-      "worker_run_id": "44689392524",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448",
-        "44023953879"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44680921088 (schedule, 2026-11-20T05:25:22Z, head 4eb6bb3) .. 44023953879 (schedule, 2026-11-17T05:24:59Z); 16 push, 4 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 06:43Z: gh run list shows no docs run after 44680921088; HEAD 4eb6bb3 = source_sha. Jobs API spot-check of 44680921088 matched stored row (handoff 6, configure 1, upload 2, deploy setup 1, Deploy Pages 9; exec 78). Recomputed stored transfer_model rows (n=20, nearest-rank p90, no refetch): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet. Handoff and deploy setup are GitHub-managed; configure and upload are required for Pages deploy, so no concrete change reaches the gate. Deploy Pages (GitHub-managed) median 7 s, p90 69 s (n=19); tail not workflow-controllable (artifact size not the driver). Merge-deploy-into-build stays rejected (github-pages environment and id-token boundary). Checkout median 24 s is outside the five categories and tracked by open #20815, not repeated. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-20T06:55:10Z",
       "worker_run_id": "44690711093",
@@ -870,6 +841,35 @@
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44767894115 (push d55b65c, 2026-11-20T15:54:03Z) .. 44041835448 (push, 2026-11-17T07:50:44Z); 17 push, 3 schedule, 20 success, 0 failed; 44023953879 rolled out; cancelled 43991812013 outside window. Live 17:17Z gh run list: no docs run newer than 44767894115; main 9139480 = source_sha = workspace HEAD. Open worker issues: #20815 (checkout, other category, unchanged since 2026-11-13); #21302 is a reported-incomplete record, not a suggestion. Stored demo_s rows recomputed (immutable, n=20, nearest-rank p90, no refetch): demo median 3.5 s, p90 6, max 7 = 4.3 percent of exec median 80.5 s; 15 percent gate 12.07 s and 60 s gate unmet even if the whole step were removed. Reuse still blocked by scripts/simulate-dashboard-pages.mjs:67 (now = Date.now() default) and the daily synthetic-date refresh. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-20T17:34:24Z",
+      "worker_run_id": "44783870409",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578",
+        "44043184727",
+        "44041835448"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44767894115 (push d55b65c, 2026-11-20T15:54:03Z) .. 44041835448 (push, 2026-11-17T07:50:44Z); 17 push, 3 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 17:33Z gh run list: window unchanged, no docs run after 44767894115; main 9139480 = source_sha. Live Jobs API spot-check of 44576080583 matched stored row (handoff 5, configure 1, upload 2, deploy setup 1, Deploy Pages 92, exec 160). Recomputed stored transfer_model rows (immutable, n=20, nearest-rank p90, no refetch): removable median 9 s, p90 11, max 13 = 11.2 percent of exec median 80.5 s; 15 percent gate 12.07 s and 60 s gate unmet; merge-deploy ceiling about 6 s, previously rejected (github-pages environment and id-token boundary). Deploy Pages (GitHub-managed) median 7 s; tails 92 s (44576080583) and 69 s (44337804857) excluded from removable time. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1640,8 +1640,6 @@
       "run": "43877103800",
       "result": "Live Jobs API matched stored rows for 43877103800, 43840581457 and 43814432358 (handoff 5/6/5, configure 0/0/0, upload 2/3/3, deploy setup 1/1/1, deploy pages 7/6/7, exec 73/132/120)"
     },
-    "evaluated_note": "2026-11-19T06:26:19Z worker 44471680339: window rolled to 44465043275 (schedule, exec 68 s, removable 8 s); removable median 9 s, not actionable (Deploy Pages excluded as GitHub-managed).",
-    "reverified_note": "Re-verified 2026-11-17T06:54:51Z by worker 44034238011: window rolled to 44023953879; decision unchanged (ceiling 9 s vs 11.85 s and 60 s gates; merge-deploy-into-build about 6 s, rejected).",
     "artifact_bytes": {
       "44336140223": 7456414,
       "44324821276": 7455859,
@@ -1653,24 +1651,13 @@
       "p90_s": 7,
       "handoff_median_s": 5
     },
-    "reverified_note_latest": "2026-11-19T18:22:40Z worker 44586456835: window unchanged (no docs run after 44576080583). Recomputed removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s; decision unchanged (not actionable). Exec p90 nearest-rank is 113 s; the stored summary exec_p90_s 108 uses a different interpolation and is retained for continuity.",
-    "note_removable": "removable (handoff+configure+upload+deploy setup) median 9.0 s, p90 11 s, max 13 s; 11.4 percent of exec median 79.0 s; 15 percent gate 11.85 s and 60 s gate unmet",
     "worker_run_id": "44638063158",
-    "reverified_note_23": "Re-verified 2026-11-19T23:33:48Z worker 44638063158: window unchanged (44576080583..44004300647, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, max 13, 11.4 percent of exec median 79 s; exec p90 113); live Jobs API spot-check of 44576080583, 44465043275, 44337804857 matched; decision unchanged (not actionable).",
-    "reverified_note_latest_run": "2026-11-20T04:52:43Z worker 44676919825: window unchanged (44576080583..44004300647, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable).",
-    "note_window_rolled": "Window rolled to 44680921088 at 2026-11-20T05:34:16Z: removable median 9 s, p90 11, max 13 (11.4 percent of exec median 79 s); decision unchanged (not actionable).",
-    "reverified_note_2026-11-20T06:43Z": "worker 44689392524: window unchanged (44680921088..44023953879, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44680921088 matched (handoff 6, configure 1, upload 2, deploy setup 1, Deploy Pages 9, exec 78); decision unchanged (not actionable).",
-    "reverified_note_worker_44722441392": "2026-11-20T10:52:41Z: window unchanged (44680921088..44023953879, main 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11 s, 11.4 percent of exec median 79 s); Jobs API spot-check of 44680921088 matched; decision unchanged (not actionable).",
-    "live_spot_check": {
-      "verified_at": "2026-11-20T12:39:44Z",
-      "worker_run_id": "44737044128",
-      "runs": [
-        "44680921088",
-        "44576080583"
-      ],
-      "result": "Jobs API step timestamps matched stored rows; no change to decision"
-    },
-    "reverified_note_worker_44751777331": "2026-11-20T14:19:47Z: worker 44751777331: window unchanged (44680921088..44023953879, HEAD 4eb6bb3); stored rows recomputed (removable median 9 s, p90 11, max 13, 11.4 percent of exec median 79 s); Jobs API spot-check of 44680921088 matched; decision unchanged (not actionable)."
+    "last_reverified": {
+      "verified_at": "2026-11-20T17:34:24Z",
+      "worker_run_id": "44783870409",
+      "window": "unchanged (44767894115..44041835448, main 9139480)",
+      "result": "stored rows recomputed (removable median 9 s, p90 11, max 13 = 11.2 percent of exec median 80.5 s); Jobs API spot-check of 44576080583 matched; decision unchanged (not actionable). Earlier per-run re-verification notes compacted; the evaluations list retains dated history."
+    }
   },
   "commit_paths": {
     "verified_at": "2026-11-16T02:26:27Z",
@@ -1827,7 +1814,7 @@
     "window": "latest 20 completed non-cancelled docs.yml runs: 44767894115 (push d55b65c, 2026-11-20T15:54:03Z) .. 44041835448 (push, 2026-11-17T07:50:44Z); 17 push, 3 schedule, 20 success, 0 failed",
     "method": "stored immutable run_timings rows (no refetch); nearest-rank p90, n=20",
     "build_docs_s": {
-      "median": 14.0,
+      "median": 14,
       "p90": 15,
       "min": 8,
       "max": 16,
@@ -1839,7 +1826,7 @@
     },
     "build_docs_share_exec_median_pct": 17.4,
     "gate_15pct_s": 12.1,
-    "ceiling_saving_s": 14.0,
+    "ceiling_saving_s": 14,
     "sub_step_split": "not measurable (job logs HTTP 403 DIFC, not bypassed)",
     "input_check": "9139480 touched only specs/dashboard-data.md (not a docs.yml trigger path); d55b65c touched docs/ and was consumed by run 44767894115 already in the window; astro 7.4.2 unchanged",
     "decision": "not actionable (unchanged): the whole Build documentation step produces dist/ required by deploy and runs deploy-gating validators and the discovery test; the 15 percent gate (12.1 s) would need about 86 percent of the step removed; 60 s gate impossible; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance",
