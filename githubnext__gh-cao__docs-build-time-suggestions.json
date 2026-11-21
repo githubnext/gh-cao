@@ -1,36 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T01:00:57Z",
-      "worker_run_id": "44847046525",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed; cancelled 43991812013 outside window. Live 00:59Z gh run list: no docs run newer than 44812654835; compare 3bd1058...9f0e584 = 1 commit touching only server Go files (no docs.yml trigger path), so source_sha 9f0e584 expects no docs run. Stored rows recomputed (immutable, n=20, nearest-rank p90, no refetch): queue median 4 s, p90 4, max 5 = 5.1 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate unmet even if all queue time removed. Interval check from startedAt/updatedAt: 0 overlaps, min gap 190 s, so cancel-in-progress saves 0 s; false kept. Avoidable push rebuilds 0 of 17; 3 schedule runs required for synthetic-date refresh. No suggestion; noop; next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T01:19:33Z",
       "worker_run_id": "44849075048",
@@ -866,6 +837,35 @@
         "44244171280"
       ],
       "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 10:31Z gh run list (30 rows): no docs run newer than 44870776753, none queued or running; main and workspace HEAD bb9a74f = source_sha; open worker issues: only #20815 (checkout, other category, OPEN, 0 comments). Stored transfer_model rows recomputed (immutable, n=20, nearest-rank p90, no refetch): removable (handoff + Configure Pages + Upload artifact + deploy setup) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s (p90 139); 15 percent gate 11.775 s and 60 s gate unmet even at 100 percent removal. Deploy Pages (GitHub-managed) median 7 s, p90 69 s, not workflow-removable. Merge-deploy-into-build ceiling about 6 s, still rejected (github-pages environment and id-token boundary). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T10:52:57Z",
+      "worker_run_id": "44896092478",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 10:51Z: no in_progress or waiting docs run; queued 37642403569 is a 2026-10-07 workflow_run stub outside the window and not blocking; main = bb9a74f = source_sha (compare identical). Recomputed from immutable run_timings (n=20, nearest-rank p90, no refetch): queue median 3.5 s (p90 4); exec median 78.5 s (p90 139). Adjacent-interval overlap 0 (min gap 190 s from 07:31Z check), so cancel-in-progress true saves 0 s; keep false. Avoidable push rebuilds 0 of 16; 4 schedule runs required for synthetic-date refresh. Deploy-stage outliers (GitHub-managed Deploy Pages 92 s on 44576080583, 69 s on 44337804857) are not concurrency-related and not workflow-controllable. No suggestion; no issue; noop. next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1751,8 +1751,8 @@
     "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
   },
   "scheduling_verified": {
-    "verified_at": "2026-11-21T07:33:11Z",
-    "worker_run_id": "44880458795",
+    "verified_at": "2026-11-21T10:52:57Z",
+    "worker_run_id": "44896092478",
     "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
     "window": "latest 20 completed non-cancelled docs.yml runs 44870776753..44244171280; 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled",
     "queue_s": {
@@ -1763,14 +1763,14 @@
       "median": 78.5,
       "p90_nearest_rank": 139
     },
-    "run_level_s": {
-      "median": 83,
-      "p90": 143,
-      "max": 165
+    "push_vs_schedule_exec_median_s": {
+      "push": 82,
+      "schedule": 73
     },
-    "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping adjacent run intervals (live startedAt/updatedAt re-verified 07:31Z, n=20, min gap 190 s); cancel true saves 0 s",
-    "avoidable_rebuilds": "0 of 16 push heads avoidable (build-consumed); 4 schedule runs each refresh synthetic dates and are required for freshness",
-    "decision": "not actionable (re-checked 2026-11-21T07:33:11Z, worker 44880458795): no overlap, cancel true saves 0 s, 0 avoidable push heads, schedule runs required for freshness"
+    "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping adjacent intervals; cancel true saves 0 s",
+    "avoidable_rebuilds": "0 of 16 push heads avoidable; 4 schedule runs required for freshness",
+    "deploy_outliers": "GitHub-managed Deploy Pages 92 s (44576080583) and 69 s (44337804857); not concurrency-related",
+    "decision": "not actionable (re-checked 2026-11-21T10:52:57Z, worker 44896092478)"
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-19T17:18:41Z",
@@ -1958,8 +1958,8 @@
     "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03"
   },
   "issue_search_note": {
-    "observed_at": "2026-11-21T10:32:00Z",
-    "note": "Label-scoped REST search (label self-care:docs-build-time-investigator, state open) at 10:31Z returned only #20815 (checkout, 0 comments). No issue created in worker run 44894550694."
+    "observed_at": "2026-11-21T10:52:57Z",
+    "note": "Label-scoped and title search (open) at 10:51Z returned only #20815 (checkout, 0 comments, updatedAt 2026-11-13T17:41:19Z). No issue created in worker run 44896092478."
   },
   "stale_queued_run": {
     "observed_at": "2026-11-21T09:18:55Z",
