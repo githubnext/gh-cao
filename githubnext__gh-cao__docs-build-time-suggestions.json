@@ -1,36 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T01:19:33Z",
-      "worker_run_id": "44849075048",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed; cancelled 43991812013 and 43832015521 outside window. Live 01:18Z: gh run list unchanged (no docs run after 44812654835); main HEAD 9f0e584 = source_sha (server-only commit, outside trigger paths); package-lock.json and dashboard/site/package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z); caches API: node-cache-Linux-x64-npm-7808ecf8 is the only Linux npm entry, created 2026-11-13T20:57:12Z, no later save, so window runs are exact-key hits. Stored rows recomputed (n=20, nearest-rank p90, no refetch): setup-node median 3 s (p90 5); install median 9.5 s (p90 12) = 12.0 percent of exec median 79 s; setup+install+post median 13 s (p90 17) = 16.5 percent. Outliers 44576080583 (exec 160 s) and 44767894115 (exec 143 s) retained in medians; not install-related. Node cache best case (unvalidated) about 3-6 s is below the 11.85 s (15 percent) and 60 s gates. Checkout (median 24 s) remains covered by open #20815, not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T01:33:03Z",
       "worker_run_id": "44850419567",
@@ -866,6 +837,35 @@
         "44244171280"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 10:51Z: no in_progress or waiting docs run; queued 37642403569 is a 2026-10-07 workflow_run stub outside the window and not blocking; main = bb9a74f = source_sha (compare identical). Recomputed from immutable run_timings (n=20, nearest-rank p90, no refetch): queue median 3.5 s (p90 4); exec median 78.5 s (p90 139). Adjacent-interval overlap 0 (min gap 190 s from 07:31Z check), so cancel-in-progress true saves 0 s; keep false. Avoidable push rebuilds 0 of 16; 4 schedule runs required for synthetic-date refresh. Deploy-stage outliers (GitHub-managed Deploy Pages 92 s on 44576080583, 69 s on 44337804857) are not concurrency-related and not workflow-controllable. No suggestion; no issue; noop. next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T11:17:24Z",
+      "worker_run_id": "44898076035",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280"
+      ],
+      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live: gh run list shows nothing newer than 44870776753; HEAD bb9a74f = source_sha; root and dashboard/site lock last changed 7c8faf4 (2026-11-13T20:56Z), no later lock commit. Caches API: node-cache-Linux-x64-npm-7808ecf8 unchanged (created 2026-11-13T20:57:12Z, no save since, last accessed 11:14Z), so window runs are exact-key hits. Recomputed stored run_timings rows (n=20, nearest-rank p90, no refetch): setup-node median 3 s (p90 5); install median 10 s (p90 12) = 12.7 percent of exec median 78.5 s; setup+install+post median 13 s (p90 17) = 16.6 percent. 15 percent gate 11.78 s unmet even at zero install cost; only a node_modules cache is concrete (best case about 3-7 s, unvalidated) and does not reach the gate. Open #20815 (checkout) is the only open issue for this worker; not repeated. No suggestion; noop; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1920,19 +1920,19 @@
     "reverified_note_self_care_44886693511": "2026-11-21T08:53:02Z worker 44886693511: window unchanged (44870776753..44244171280, main bb9a74f); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s, 11.5 percent of exec median 78.5 s); live Jobs API read of 44870776753 matched; decision unchanged (not actionable)."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-21T09:33:51Z",
-    "worker_run_id": "44889885426",
-    "verdict": "not actionable (unchanged): window 44870776753..44244171280; main bb9a74f; exact-key hit verified by live caches API 09:33Z; install median 10 s (12.7 percent), setup+install+post median 13 s (16.6 percent); gates 11.78 s and 60 s unmet"
+    "evaluated_at": "2026-11-21T11:17:24Z",
+    "worker_run_id": "44898076035",
+    "verdict": "not actionable (unchanged): window 44870776753..44244171280; main bb9a74f; exact-key hit verified by live caches API; install median 10 s (12.7 percent), setup+install+post median 13 s (16.6 percent); gates 11.78 s and 60 s unmet"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-21T08:53:02Z",
+    "verified_at": "2026-11-21T11:17:24Z",
     "issue": 20815,
     "state": "OPEN",
-    "note": "Blobless checkout suggestion still represented by open #20815 (updatedAt 2026-11-13T17:41:19Z, 0 comments, rechecked via label-scoped REST search). Checkout median about 24 s unchanged. Not re-proposed."
+    "note": "Blobless checkout suggestion still represented by open #20815 (updatedAt 2026-11-13T17:41:19Z, 0 comments; label-scoped open search rechecked). Checkout median about 24 s unchanged. Not re-proposed."
   },
   "scheduling_deploy_handoff": {
     "verified_at": "2026-11-19T23:53:15Z",
