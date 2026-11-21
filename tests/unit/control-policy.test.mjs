@@ -769,6 +769,35 @@ test("control policy applies schema defaults and campaign values", () => {
   assert.deepEqual(result.output.allowed_owners, ["acme"]);
 });
 
+test("control policy validates and exposes the opt-in multi-target worker bound", () => {
+  const document = JSON.parse(minimalPolicy);
+  document["control-plane"].campaigns.dependabot.workers["update-planner"]["max-targets-per-run"] = 3;
+  const policy = JSON.stringify(document);
+
+  assert.equal(validate(policy).status, 0);
+  assert.equal(schema.$defs.workerPolicy.properties["max-targets-per-run"].minimum, 2);
+  assert.equal(schema.$defs.workerPolicy.properties["max-targets-per-run"].maximum, 20);
+  const result = effective(policy);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.output.worker_policies["dependabot-update-planner"], {
+    worker: "update-planner",
+    enabled: true,
+    max_mode: "live",
+    max_targets_per_run: 3,
+  });
+  assert.equal(
+    controlSettings(parsePolicy(policy), "acme/control").campaigns.dependabot.worker_policies["dependabot-update-planner"].max_targets_per_run,
+    3,
+  );
+
+  for (const invalid of [0, 1, 21, 2.5, "3", true, null]) {
+    document["control-plane"].campaigns.dependabot.workers["update-planner"]["max-targets-per-run"] = invalid;
+    const rejected = validate(JSON.stringify(document));
+    assert.notEqual(rejected.status, 0, `max-targets-per-run ${JSON.stringify(invalid)} unexpectedly succeeded`);
+    assert.match(rejected.stderr, /max-targets-per-run must be an integer in 2\.\.20/);
+  }
+});
+
 test("control policy exposes scope and publishing defaults to deterministic add-ons", () => {
   assert.deepEqual(controlSettings(parsePolicy(minimalPolicy), "acme/control"), {
     allowed_owners: ["acme"],

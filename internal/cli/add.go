@@ -147,6 +147,9 @@ func mergeCampaignDeclaration(policy map[string]any, declaration *campaignDeclar
 		if mode := old["max-mode"]; mode == "review" || mode == "live" {
 			value["max-mode"] = mode
 		}
+		if limit, ok := old["max-targets-per-run"]; ok && nativeInteger(2, 20)(limit, "max-targets-per-run") == nil {
+			value["max-targets-per-run"] = limit
+		}
 		workers[worker.Name] = value
 	}
 	campaign["workers"] = workers

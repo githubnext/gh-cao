@@ -45,7 +45,8 @@ const CAMPAIGN_KEYS = ["enabled", ...DEFAULT_KEYS, "icon", "targets", "workers",
 const WORKFLOW_KEYS = ["enabled", ...DEFAULT_KEYS, "max-mode", "targets"];
 const OPERATION_KEYS = ["enabled", "mode", "max-mode", "max-repositories", "targets"];
 const TARGET_POLICY_KEYS = ["mode"];
-const WORKER_KEYS = ["workflow", "enabled", "max-mode"];
+const WORKER_KEYS = ["workflow", "enabled", "max-mode", "max-targets-per-run"];
+const MAX_TARGETS_PER_WORKER_RUN = 20;
 const PUBLISHING_KEYS = ["enabled", "control-repositories", "reviewers"];
 const MARKETPLACE_KEYS = ["cache-ttl-seconds", "registries"];
 const REGISTRY_KEYS = ["id", "name", "repository", "path", "ref", "format", "api-url", "auth"];
@@ -901,6 +902,9 @@ function validateOperationPolicies(campaigns, collection = "campaigns") {
       workflows.add(worker.workflow);
       if ("enabled" in worker) assertBoolean(worker.enabled, `${workerPath}.enabled`);
       if ("max-mode" in worker) assertMode(worker["max-mode"], `${workerPath}.max-mode`);
+      if ("max-targets-per-run" in worker) {
+        assertInteger(worker["max-targets-per-run"], `${workerPath}.max-targets-per-run`, 2, MAX_TARGETS_PER_WORKER_RUN);
+      }
     }
   }
 }
@@ -1022,6 +1026,7 @@ export function effectivePolicy(
         worker,
         enabled: policy.enabled ?? true,
         max_mode: policy["max-mode"] ?? null,
+        ...("max-targets-per-run" in policy ? { max_targets_per_run: policy["max-targets-per-run"] } : {}),
       }];
     }),
   );
@@ -1115,6 +1120,7 @@ export function controlSettings(document, controlRepository) {
         worker,
         enabled: workerPolicy.enabled ?? true,
         max_mode: workerPolicy["max-mode"] ?? null,
+        ...("max-targets-per-run" in workerPolicy ? { max_targets_per_run: workerPolicy["max-targets-per-run"] } : {}),
       }]),
     ),
     ...(policy.targets ? {

@@ -17,7 +17,10 @@ import {
   parsePolicy,
 } from "./policy.mjs";
 import { AuthorityError, validateTargetScope } from "./authority.mjs";
-import { operationBinding, operationRequest, prepareOperation, resolveOperation, validateOperationHandoff } from "./operations.mjs";
+import {
+  MULTI_TARGET_ENVELOPE_VERSION, multiTargetInput, operationBinding, operationRequest, prepareOperation,
+  resolveMultiTargetWorker, resolveOperation, validateOperationHandoff,
+} from "./operations.mjs";
 import { credentialFailure, inventoryScope, InventoryError, verifyCredentials, withInventoryCredentials } from "./inventory-credentials.mjs";
 
 const AGENT_DIRECTORY = "/tmp/gh-aw/agent";
@@ -39,10 +42,10 @@ const ADMISSION_CHECKS = [
   ["Control plane", "The `control-plane` declaration is present."],
   ["Workflow identity", "The operation/standalone workflow or campaign role and exact worker identity are authorized."],
   ["Campaign", "The requested operation, campaign or standalone workflow is declared and enabled."],
-  ["Worker", "For worker runs, the requested worker is declared and enabled."],
-  ["Target input", "Any supplied `target_repo` uses the exact `owner/repository` form."],
-  ["Mode input", "Any supplied `safe_output_mode` does not exceed the checked-in mode ceiling; debug requires a manual, human-authorized worker with staged outputs."],
-  ["Run limits", "Any supplied `max_repos` and `rollout_percent` do not exceed checked-in limits."],
+  ["Worker", "For worker runs, the requested worker is declared and enabled; multi-target workers also declare `max-targets-per-run` and match their checked-in workflow."],
+  ["Target input", "Any supplied `target_repo` uses the exact `owner/repository` form; a multi-target `target_repos` envelope is versioned, single-owner, in scope and correlated with its orchestrator run."],
+  ["Mode input", "Any supplied `safe_output_mode` does not exceed the checked-in mode ceiling; debug requires a manual, human-authorized worker with staged outputs; multi-target workers are review-only with one common destination."],
+  ["Run limits", "Any supplied `max_repos` and `rollout_percent` do not exceed checked-in limits; a multi-target set stays within the stricter worker and campaign repository bound."],
   ["GitHub API capacity", "The admission credential has enough primary REST API capacity; precompute also handles subsequent capacity failures."],
 ];
 
@@ -244,14 +247,19 @@ function failedAdmissionCheckIndex(reason) {
     reason === "role must be orchestrator, worker, or standalone"
     || reason === "worker identity is required"
     || reason === "worker identity is forbidden for orchestrators"
+    || reason === "multi-target workers require campaign and worker identities"
   ) return 3; // Workflow identity
   if (reason.startsWith("standalone ") || reason.startsWith("workflow identity")) return 3;
   if (reason === "campaign-undeclared" || reason === "campaign-disabled") return 4; // Campaign
   if (reason === "workflow-undeclared" || reason === "workflow-disabled") return 4;
   if (reason === "operation-undeclared" || reason === "operation-disabled") return 4;
   if (reason === "worker-disabled" || reason.startsWith("unknown worker:")) return 5; // Worker
-  if (reason.startsWith("target_repo ")) return 6; // Target input
+  if (reason === "worker-multi-target-undeclared" || reason === "multi-target worker identity must match GITHUB_WORKFLOW_REF") return 5;
+  if (reason.startsWith("target_repos count")) return 8; // Run limits
+  if (reason.startsWith("target_repo ") || reason.startsWith("target_repos")) return 6; // Target input
+  if (["central_repo ", "correlation_id ", "control_plane_run_url "].some(prefix => reason.startsWith(prefix))) return 6;
   if (reason === "safe_output_mode exceeds checked-in policy" || reason === "safe_output_mode must be review or live") return 7; // Mode input
+  if (reason === "safe_output_mode must be review for multi-target workers" || reason.startsWith("safe_output_repo ")) return 7;
   if (reason.startsWith("debug ")) return 7; // Debug admission
   if (reason.startsWith("max_repositories") || reason.startsWith("rollout_percent")) return 8; // Run limits
   if (reason === "github-api-capacity-insufficient" || reason === "github-api-capacity-unavailable") return 9; // GitHub API capacity
@@ -290,7 +298,7 @@ function writeAdmissionSummary({ authorized, campaignName, role, reason, apiCapa
 
 function githubApiRequestRequirement(policy, options) {
   let estimated = options.role === "orchestrator" ? 2 : 0;
-  if (options.role === "direct") {
+  if (options.role === "direct" || options.role === "multi-target-worker") {
     estimated += 1 + 2 * policy.authority_envelope.grants.length;
   } else if (options.role === "orchestrator" || options.role === "standalone") {
     estimated += options.targetRepository
@@ -431,6 +439,12 @@ async function validateDebugLaunch(policy, options) {
   logDecision("debug-launch", "accepted", { actor, safe_outputs_staged: true });
 }
 
+function resolveMultiTargetPolicy(document, options) {
+  return resolveMultiTargetWorker(document, multiTargetInput(process.env), operationBinding(process.env), {
+    campaign: options.campaignName, worker: options.workerName,
+  });
+}
+
 function admissionDirectory() {
   return join(environment("RUNNER_TEMP", "/tmp"), "cao");
 }
@@ -458,6 +472,9 @@ function writeAdmissionRecord(result, options, workflowSha) {
     role: options.role,
     worker: options.workerName,
     target_repository: options.targetRepository,
+    ...(options.role === "multi-target-worker" ? {
+      target_repositories: result.authorized ? result.authority_envelope.grants.map(grant => grant.target) : [],
+    } : {}),
     authorized: Boolean(result.authorized),
     reason: result.reason || "unknown",
     failed_check: failedIndex >= 0 ? ADMISSION_CHECKS[failedIndex][0] : null,
@@ -484,6 +501,9 @@ async function admit() {
     if (options.role === "direct" && (options.campaignName || options.workerName)) {
       throw new ControlError("direct operations must not specify campaign or worker identities");
     }
+    if (options.role === "multi-target-worker" && (!options.campaignName || !options.workerName || options.workflowName)) {
+      throw new ControlError("multi-target workers require campaign and worker identities");
+    }
     if (!SHA_PATTERN.test(workflowSha)) throw new ControlError("github.workflow_sha must be an exact commit SHA");
     logDecision("admission-inputs", "accepted", {
       campaign: options.campaignName,
@@ -491,6 +511,7 @@ async function admit() {
       role: options.role,
       worker: options.workerName || "none",
       target_requested: Boolean(options.targetRepository),
+      ...(options.role === "multi-target-worker" ? { target_set_requested: Boolean(environment("CAO_TARGET_REPOSITORIES")) } : {}),
       mode_narrowing_requested: Boolean(options.requestedMode),
       repository_limit_requested: Boolean(options.requestedMaxRepositories),
       rollout_narrowing_requested: Boolean(options.requestedRolloutPercent),
@@ -514,7 +535,8 @@ async function admit() {
     }
     const effective = options.role === "direct"
       ? resolveOperation(document, operationRequest(process.env), operationBinding(process.env))
-      : effectivePolicy(document, options);
+      : options.role === "multi-target-worker" ? resolveMultiTargetPolicy(document, options)
+        : effectivePolicy(document, options);
     if (effective.authorized) await validateDebugLaunch(effective, options);
     logDecision("effective-policy", effective.authorized ? "authorized" : "denied", {
       reason: effective.reason,
@@ -1063,6 +1085,15 @@ async function writeStandalonePrecompute(context) {
   });
 }
 
+// A multi-target dispatch covers up to its worker bound; every covered repository still counts toward the cap.
+function batchedDispatchCap(batchSizes, dispatchMaximum) {
+  if (!batchSizes.some(size => size > 1)) return 0;
+  const dispatches = repositories => batchSizes.reduce((sum, size) => sum + Math.ceil(repositories / size), 0);
+  let cap = 0;
+  while (cap < 1000 && dispatches(cap + 1) <= dispatchMaximum) cap += 1;
+  return cap;
+}
+
 async function writeOrchestratorPrecompute(context) {
   if (!SHA_PATTERN.test(context.workflowSha)) throw new ControlError("github.workflow_sha must be an exact commit SHA");
   const sourcePath = controlSourcePath();
@@ -1084,6 +1115,7 @@ async function writeOrchestratorPrecompute(context) {
       worker: policy?.worker ?? null,
       policy_enabled: enabled,
       max_mode: policy?.max_mode ?? null,
+      ...(policy?.max_targets_per_run ? { max_targets_per_run: policy.max_targets_per_run } : {}),
       id: match?.id ?? null,
       name: match?.name ?? null,
       path: match?.path ?? null,
@@ -1107,11 +1139,15 @@ async function writeOrchestratorPrecompute(context) {
     return resolved;
   });
   const eligibleWorkers = workerWorkflows.filter(({ eligible }) => eligible).length;
+  const batchSizes = workerWorkflows.filter(({ eligible }) => eligible).map(worker => worker.max_targets_per_run ?? 1);
   const percentCap = resolvedCandidates.length === 0
     ? 0
     : Math.max(1, Math.ceil(resolvedCandidates.length * context.policy.rollout_percent / 100));
   const workersPerTarget = Math.min(eligibleWorkers, context.dispatchMaximum);
-  const dispatchCap = workersPerTarget === 0 ? 0 : Math.floor(context.dispatchMaximum / workersPerTarget);
+  const dispatchCap = Math.max(
+    workersPerTarget === 0 ? 0 : Math.floor(context.dispatchMaximum / workersPerTarget),
+    batchedDispatchCap(batchSizes, context.dispatchMaximum),
+  );
   const effectiveMaximum = Math.min(context.policy.max_repositories, percentCap, dispatchCap);
   logDecision("repository-cap", "resolved", {
     candidates: resolvedCandidates.length,
@@ -1121,6 +1157,7 @@ async function writeOrchestratorPrecompute(context) {
     rollout_cap: percentCap,
     dispatch_cap: dispatchCap,
     effective_cap: effectiveMaximum,
+    ...(batchSizes.some(size => size > 1) ? { multi_target_workers: batchSizes.filter(size => size > 1).length } : {}),
   });
 
   const result = {
@@ -1192,6 +1229,45 @@ async function writeOperationPrecompute(admitted) {
   logDecision("precompute", "prepared", { role: "direct", candidate_count: candidates.length });
 }
 
+async function writeMultiTargetPrecompute(admitted) {
+  const binding = operationBinding(process.env);
+  const document = parsePolicy(await decodeRepositoryFile(binding.repository, POLICY_PATH, binding.policySha));
+  const resolved = resolveMultiTargetPolicy(document, policyOptions());
+  validateOperationHandoff(admitted, resolved, binding);
+  const envelope = resolved.authority_envelope;
+  const destination = envelope.grants[0].destination;
+  if (!repositoryEqual(environment("CAO_SAFE_OUTPUT_REPOSITORY"), destination)) {
+    throw new ControlError("multi-target safe_output_repo must equal the admitted review destination");
+  }
+  const candidates = await prepareOperation(envelope, {
+    loadRepository: repository => loadRepository(`repos/${repository}`),
+    validateDestination: grant => validateOutputDestination({
+      mode: grant.mode, role: "multi-target-worker", targetRepository: grant.target,
+      safeOutputRepository: grant.destination, controlRepository: binding.repository,
+    }),
+  });
+  const input = multiTargetInput(process.env);
+  writeJson(OUTPUT_PATH, {
+    authorized: true, reason: "authorized", control_role: "multi-target-worker",
+    campaign: resolved.campaign, bundle: resolved.campaign, worker: resolved.worker, enabled: true,
+    envelope_version: Number(MULTI_TARGET_ENVELOPE_VERSION),
+    target_repos: envelope.grants.map(grant => grant.target),
+    safe_output_mode: "review",
+    safe_output_repo: destination,
+    effective_max_repos: envelope.maxTargets,
+    correlation_id: input.correlationId,
+    central_repo: input.centralRepository,
+    control_plane_run_url: input.controlPlaneRunUrl,
+    authority_envelope: envelope,
+    candidate_repositories: candidates,
+    worker_workflows: [],
+    repo_error: "",
+    policy_source: { repository: binding.repository, path: POLICY_PATH, sha: binding.policySha },
+  });
+  writeActionsOutputs({ authorized: true, reason: "authorized" });
+  logDecision("precompute", "prepared", { role: "multi-target-worker", candidate_count: candidates.length });
+}
+
 function precomputeFailure(error) {
   return error instanceof ControlError || error instanceof PolicyError || error instanceof AuthorityError
     ? new InventoryError("precompute-contract-invalid", error.message, { phase: "control" })
@@ -1207,7 +1283,7 @@ function writeIncompletePrecompute(policy, error) {
     control_role: environment("CAO_ROLE"),
     campaign: importIdentity("CAO_CAMPAIGN"),
     bundle: importIdentity("CAO_CAMPAIGN"),
-    worker: environment("CAO_ROLE") === "worker" ? environment("CAO_WORKER") : "",
+    worker: ["worker", "multi-target-worker"].includes(environment("CAO_ROLE")) ? environment("CAO_WORKER") : "",
     workflow: importIdentity("CAO_WORKFLOW"),
     inventory_status: "incomplete",
     repo_error: failure.message,
@@ -1257,7 +1333,8 @@ async function precompute() {
       const options = policyOptions({ normalizeOrchestrator: true });
       const document = parsePolicy(await decodeRepositoryFile(options.controlRepository, POLICY_PATH, environment("GITHUB_WORKFLOW_SHA")));
       const operation = options.role === "direct"
-        ? resolveOperation(document, operationRequest(process.env), operationBinding(process.env)) : null;
+        ? resolveOperation(document, operationRequest(process.env), operationBinding(process.env))
+        : options.role === "multi-target-worker" ? resolveMultiTargetPolicy(document, options) : null;
       const current = operation ?? effectivePolicy(document, options);
       if (!current.authorized) throw new InventoryError("policy-handoff-denied", "Policy no longer admits this exact workflow request.");
       if (operation) validateOperationHandoff(policy, operation, operationBinding(process.env));
@@ -1308,6 +1385,11 @@ async function precompute() {
 async function preparePrecompute(policy, repositories = undefined) {
   if (environment("CAO_ROLE") === "direct") {
     await writeOperationPrecompute(policy);
+    markInventoryComplete();
+    return;
+  }
+  if (environment("CAO_ROLE") === "multi-target-worker") {
+    await writeMultiTargetPrecompute(policy);
     markInventoryComplete();
     return;
   }
