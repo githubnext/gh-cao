@@ -1,36 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T06:24:39Z",
-      "worker_run_id": "44875108621",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 06:24Z: gh run list shows no docs run newer than 44870776753, none queued or running; HEAD = source_sha bb9a74f; git status clean. Live caches API: node-cache-Linux-x64-npm-7808ecf8 (created 2026-11-13T20:57:12Z, ref main, last accessed 06:22Z) is the docs.yml key; root package-lock.json digest reproduces 7808ecf8, so window runs are exact-key hits. Jobs API spot-check of 44870776753 matched stored row (install 11 s, setup-node 3 s, build docs 15 s). Recomputed stored immutable run_timings (n=20, nearest-rank p90, no refetch): install median 10 s (p90 12) = 12.7 percent of exec median 78.5 s; setup+install+post median 13 s (p90 17) = 16.6 percent. 15 percent gate 11.78 s and 60 s gate unmet; install best case (node_modules restore 3-5 s, unvalidated) saves about 5-7 s; setup-node required for pinned Node 24. Dashboard lock still outside the cache key (observation only, no effect today). Open #20815 (checkout, other category) not repeated. No issue; noop; next_category advanced to Astro documentation generation.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T06:42:14Z",
       "worker_run_id": "44876447481",
@@ -867,6 +838,35 @@
         "44244171280"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 16:16Z gh run list: no docs run newer than 44870776753, none queued or in progress; workspace HEAD bb9a74f = source_sha. Recomputed stored run_timings (n=20, nearest-rank p90, no refetch): exec median 78.5 s (p90 139), queue median 3.5 s (p90 4); push median 82 s (n=16), schedule median 73 s (n=4). 0 of 16 push heads avoidable; 4 schedule runs needed for synthetic-date refresh. cancel-in-progress true saves 0 s; documentation-pages concurrency kept. No issue; noop; next_category advanced to dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T16:53:30Z",
+      "worker_run_id": "44926656069",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280"
+      ],
+      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753..44244171280 (16 push, 4 schedule, 20 success, 0 failed, 0 cancelled); HEAD bb9a74f unchanged; live run list matched the window. Stored Jobs rows recomputed without refetch: install median 10 s (p90 12) = 12.7 percent of exec median 78.5 s; setup+install+post median 13 s = 16.6 percent, a ceiling only if fully removed; realistic node_modules restore saves about 5-7 s (unvalidated), below both gates (11.78 s and 60 s). Live cache node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13, 263412733 B, accessed 16:43Z); root lock hashFiles reproduces 7808ecf8. Dashboard lock outside the key stays watch-only (no dashboard-only lock change in window). No issue; noop; next_category advanced to Astro documentation generation.",
       "suggestion_fingerprint": null
     }
   ],
