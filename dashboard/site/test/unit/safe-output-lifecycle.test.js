@@ -102,3 +102,63 @@ describe('safe-output lifecycle model', () => {
     });
   });
 });
+
+describe('safe-output lifecycle debug logging', () => {
+  const base = {
+    id: 'output:secret-id', repositoryId: 'repository:1', workflowId: 'workflow:1', runId: 'run:1',
+    safeOutputType: 'create_issue', deliveryState: 'delivered', deliverySignal: 'safe_output.result',
+    ruleVersion: 'v1', targetUrl: 'https://github.com/octo/private/issues/7',
+    adoptionSource: 'adoption-registry', adoptionObservedAt: '2026-11-15T10:00:00Z'
+  };
+
+  /** @param {string} search */
+  async function load(search) {
+    const output = { debug: vi.fn() };
+    vi.doMock('../../src/debug.js', async () => {
+      const actual = /** @type {typeof import('../../src/debug.js')} */ (
+        await vi.importActual('../../src/debug.js')
+      );
+      return {
+        ...actual,
+        createDebug: (/** @type {string} */ category) => actual.createDebug(category, { search: () => search, output })
+      };
+    });
+    vi.resetModules();
+    const module = await import('../../src/data/model/safe-output-lifecycle.js');
+    return { output, ...module };
+  }
+
+  afterEach(() => {
+    vi.doUnmock('../../src/debug.js');
+    vi.resetModules();
+  });
+
+  it('is silent by default', async () => {
+    const { output, mergeOutputLifecycle: merge } = await load('');
+    merge({ ...base, adoptionSource: 'github-api' }, base);
+    expect(() => merge(base, { ...base, runId: 'run:2' })).toThrow(TypeError);
+    expect(output.debug).not.toHaveBeenCalled();
+  });
+
+  it('logs conflicts and precedence under safe-output-lifecycle without identifiers', async () => {
+    const { output, mergeOutputLifecycle: merge } = await load('?debug=safe-output-lifecycle');
+    merge({ ...base, adoptionSource: 'github-api' }, base);
+    expect(() => merge(base, { ...base, runId: 'run:2' })).toThrow('conflicting runId');
+    expect(output.debug).toHaveBeenNthCalledWith(1, '[cao:safe-output-lifecycle]', {
+      operation: 'merge', status: 'kept-previous', field: 'adoption', previousAuthority: 3, incomingAuthority: 1
+    });
+    expect(output.debug).toHaveBeenNthCalledWith(2, '[cao:safe-output-lifecycle]', {
+      operation: 'merge', status: 'conflict', field: 'runId'
+    });
+    const logged = JSON.stringify(output.debug.mock.calls);
+    for (const sensitive of ['secret-id', 'octo/private', 'run:2', 'repository:1']) {
+      expect(logged).not.toContain(sensitive);
+    }
+  });
+
+  it('can be excluded by category filter', async () => {
+    const { output, mergeOutputLifecycle: merge } = await load('?debug=*,-safe-output-lifecycle');
+    merge({ ...base, adoptionSource: 'github-api' }, base);
+    expect(output.debug).not.toHaveBeenCalled();
+  });
+});
