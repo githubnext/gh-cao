@@ -45,7 +45,7 @@ If shared control, authentication, or multiple campaigns may be affected, use th
 
 ## Repository Pull Request Reviewers
 
-This source repository maintains three on-demand reviewers adapted from
+This source repository maintains three reviewers adapted from
 [`github/gh-aw` at `7517bb7`](https://github.com/github/gh-aw/tree/7517bb740093e38f08ca54f6c2758ee7bfb6f53d/.github/workflows).
 It also maintains a CAO-specific service architecture reviewer.
 They are repository-local tools, not installed campaigns or fleet operations.
@@ -62,9 +62,12 @@ slash-command dispatcher:
   overlap and significant architectural decisions, and suggest precise architecture
   documentation updates without editing files or creating ADRs.
 
-All four support explicit invocation. The architecture reviewer also runs when
-a PR changing `server/**/*.go` is marked ready for review; the other three have
-no automatic PR triggers. None have scheduled triggers.
+All four support explicit invocation. Each also runs when a pull request is
+marked ready for review and changes matching paths: the architecture reviewer
+for `server/**/*.go`, the design gate for its listed code, shared workflow, and
+`adr/**` paths, `/matt` for files outside root `*.md`, `docs/`, `adr/`, `specs/`,
+lock files, and generated files, and the test-quality reviewer for test files.
+None have scheduled triggers.
 They share bounded, uncached PR prefetch, reject incomplete file listings and
 head changes during acquisition, and disclose unavailable or truncated diffs.
 Reviewers inspect untrusted PR code without executing it. Reviews and comments
