@@ -1,36 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-20T17:17:22Z",
-      "worker_run_id": "44781165934",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44767894115 (push d55b65c, 2026-11-20T15:54:03Z) .. 44041835448 (push, 2026-11-17T07:50:44Z); 17 push, 3 schedule, 20 success, 0 failed; 44023953879 rolled out; cancelled 43991812013 outside window. Live 17:17Z gh run list: no docs run newer than 44767894115; main 9139480 = source_sha = workspace HEAD. Open worker issues: #20815 (checkout, other category, unchanged since 2026-11-13); #21302 is a reported-incomplete record, not a suggestion. Stored demo_s rows recomputed (immutable, n=20, nearest-rank p90, no refetch): demo median 3.5 s, p90 6, max 7 = 4.3 percent of exec median 80.5 s; 15 percent gate 12.07 s and 60 s gate unmet even if the whole step were removed. Reuse still blocked by scripts/simulate-dashboard-pages.mjs:67 (now = Date.now() default) and the daily synthetic-date refresh. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-20T17:34:24Z",
       "worker_run_id": "44783870409",
@@ -867,6 +838,34 @@
         "44060953578"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 03:19Z: gh run list shows no docs.yml run after 44812654835; HEAD bb9a74f = source_sha; only open issue for this worker is #20815 (blobless checkout), no Astro duplicate. Stored immutable rows recomputed without refetch (n=20, nearest-rank p90): build docs median 13.5 s (p90 15), exec median 79 s (p90 139), build docs share 17.1 percent. 15 percent gate 11.85 s would require removing 88 percent of the step; the step must still produce dist/ for deploy and the validation/discovery test is required for correctness, so the 60 s and 15 percent gates are unreachable. Output reuse remains rejected (PUBLIC_PAGES_BUILD_COMMIT provenance); sub-step split unmeasurable (job log HTTP 403 DIFC, not bypassed). No suggestion; next_category advanced to reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-11-21T03:34:01Z",
+      "worker_run_id": "44861512693",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280",
+        "44060953578"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 03:34Z: gh run list shows no docs.yml run after 44812654835; HEAD bb9a74f = source_sha; only open issue for this worker is #20815 (blobless checkout), no dashboard-generation duplicate. Stored immutable rows recomputed without refetch (n=20, nearest-rank p90): demo step median 2.5 s (p90 6, max 7) = 3.2 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate both unreachable (ceiling saving 2.5 s). Reuse rejected: scripts/simulate-dashboard-pages.mjs defaults now to Date.now() and the schedule exists to refresh synthetic dates (docs.yml cron comment), so reuse would weaken freshness. No suggestion; next_category advanced to artifact transfer and Pages packaging."
     }
   ],
   "docs_cache_model": {
@@ -1727,10 +1726,10 @@
     "ceiling_saving_s": 4,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 defaults now = Date.now(); dist/cao copied and deployed each run (verified at HEAD 7145c59)",
     "verdict": "not actionable (ceiling 4 s is below both 15 percent and 60 s gates; unchanged)",
-    "reverified_at": "2026-11-21T01:53:24Z",
+    "reverified_at": "2026-11-21T03:34:01Z",
     "note": "Re-verified 2026-11-19T10:52Z: window unchanged (no docs.yml run after 44465043275; source 7145c59 = main HEAD); stored rows recomputed (demo median 4 s, p90 6 s, n=20); verdict unchanged (not actionable).",
-    "reverified_worker_run_id": "44852433394",
-    "reverify_note": "Re-verified 2026-11-21T01:53:24Z worker 44852433394: window unchanged (44812654835..44060953578); compare 3bd1058...bb9a74f has no docs trigger path; stored demo_s recomputed (median 2.5 s, p90 6, max 7, n=20; 3.2 percent of exec median 79 s); ceiling saving 2.5 s; verdict unchanged (not actionable)."
+    "reverified_worker_run_id": "44861512693",
+    "reverify_note": "Re-verified 2026-11-21T03:34:01Z worker 44861512693: window unchanged (44812654835..44060953578); HEAD bb9a74f = source_sha; stored demo_s recomputed (median 2.5 s, p90 6, max 7, n=20; 3.2 percent of exec median 79 s); ceiling saving 2.5 s; verdict unchanged (not actionable)."
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
@@ -1928,7 +1927,7 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-20T20:55:06Z",
+    "verified_at": "2026-11-21T03:34:01Z",
     "issue": 20815,
     "state": "OPEN",
     "note": "Blobless checkout suggestion still represented by open #20815 (0 comments, updatedAt 2026-11-13T17:41:19Z). Checkout median 24 s unchanged over the 20-run window (p90 53 with outliers 86 s and 96 s). Not re-proposed (median not materially changed; no update tool). Re-propose if #20815 closes without change or checkout median materially moves."
