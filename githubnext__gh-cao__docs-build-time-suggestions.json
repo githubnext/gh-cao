@@ -1,36 +1,7 @@
 {
   "source_sha": "c05079cdfb276ca29c5762ccce8502eb57ec8a73",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T10:32:00Z",
-      "worker_run_id": "44894550694",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280"
-      ],
-      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 10:31Z gh run list (30 rows): no docs run newer than 44870776753, none queued or running; main and workspace HEAD bb9a74f = source_sha; open worker issues: only #20815 (checkout, other category, OPEN, 0 comments). Stored transfer_model rows recomputed (immutable, n=20, nearest-rank p90, no refetch): removable (handoff + Configure Pages + Upload artifact + deploy setup) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s (p90 139); 15 percent gate 11.775 s and 60 s gate unmet even at 100 percent removal. Deploy Pages (GitHub-managed) median 7 s, p90 69 s, not workflow-removable. Merge-deploy-into-build ceiling about 6 s, still rejected (github-pages environment and id-token boundary). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T10:52:57Z",
       "worker_run_id": "44896092478",
@@ -870,6 +841,35 @@
       ],
       "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44940649662 (push, c05079c, 2026-11-21T19:23:04Z) .. 44252368502 (push, 2026-11-18T06:34:43Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; 44244171280 dropped by cap. Live 20:52Z gh run list: newest docs run 44940649662, none queued or running; HEAD c05079c = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): demo step median 2 s (p90 6, max 7) = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; full removal saves at most 2 s median. Step verified to call buildDashboardSite (scripts/simulate-dashboard-pages.mjs), so no hidden dashboard build elsewhere. Reuse still blocked by Date.now() default (scripts/simulate-dashboard-pages.mjs:67) and daily synthetic-date refresh. No issue created; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T21:17:16Z",
+      "worker_run_id": "44950423929",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502"
+      ],
+      "outcome": "complete, not actionable (window unchanged since 19:33Z; newest 44940649662 already in stored rows). Window: latest 20 completed non-cancelled docs.yml runs 44940649662 (push, c05079c, 2026-11-21T19:23:04Z) .. 44252368502 (push, 2026-11-18T06:34:43Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; dropped 44244171280 (schedule). Live gh run list (40) at 21:16Z: no docs run newer than 44940649662, none queued or running; open worker issues: only #20815 (checkout, other category, not repeated). Recomputed immutable transfer_model rows (n=20, nearest-rank p90, no refetch): handoff median 5 s (p90 7); configure 1 s; upload 2 s (p90 3; artifact 7.46 MB); deploy setup 1 s; removable median 9 s (p90 11, max 13) = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at 100 percent removal. Deploy Pages (GitHub-managed) median 7 s, tails 69-92 s, not workflow-controllable. Merge-deploy ceiling about 6 s still rejected (github-pages environment and id-token boundary). No suggestion; no issue; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1656,9 +1656,9 @@
     },
     "worker_run_id": "44638063158",
     "last_reverified": {
-      "verified_at": "2026-11-21T19:33:18Z",
-      "worker_run_id": "44941193491",
-      "result": "window shifted by new push run 44940649662 (c05079c); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s, 11.5 percent of exec median 78.5 s); live Jobs API read of 44940649662 matched; decision unchanged (not actionable)."
+      "verified_at": "2026-11-21T21:17:16Z",
+      "worker_run_id": "44950423929",
+      "result": "window unchanged since 19:33Z (newest 44940649662, c05079c); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s, 11.5 percent of exec median 78.5 s); decision unchanged (not actionable)."
     }
   },
   "commit_paths": {
