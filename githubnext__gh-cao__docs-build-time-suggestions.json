@@ -1,36 +1,7 @@
 {
   "source_sha": "c05079cdfb276ca29c5762ccce8502eb57ec8a73",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T10:17:04Z",
-      "worker_run_id": "44893311964",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list (limit 40) unchanged, no docs run newer than 44870776753; source_sha bb9a74f unchanged. Stored demo_s rows recomputed (immutable, n=20, nearest-rank p90, no refetch): median 2 s, p90 6, max 7 = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; full removal saves at most 2 s median. Live Jobs API spot-check of 44870776753: demo step 05:25:53-05:25:54 (1 s), matches stored row. Reuse blocked: scripts/simulate-dashboard-pages.mjs:67 default now = Date.now(); docs.yml runs the step every build for the daily synthetic-date refresh. No suggestion; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T10:32:00Z",
       "worker_run_id": "44894550694",
@@ -869,6 +840,35 @@
         "44252368502"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44940649662 (push, c05079c, 2026-11-21T19:23:04Z) .. 44252368502 (push, 2026-11-18T06:34:43Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 20:31Z gh run list: no newer docs run; main c05079c = source_sha. Stored build_docs_s rows recomputed (n=20, nearest-rank p90, no refetch): median 14 s, p90 15, min 8, max 16 = 17.8 percent of exec median 78.5 s (p90 139). 15 percent gate 11.78 s needs 84 percent of the step removed; 60 s gate unreachable. Build step = one docs:build invocation (astro build, validate-agent-docs, discovery test); sub-step split unmeasurable (build job logs API 403 difc_forbidden re-checked 20:32Z, not bypassed). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Open issues: only #20815 (checkout, other category, 0 comments). No suggestion; no issue; noop; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T20:52:35Z",
+      "worker_run_id": "44948301591",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502"
+      ],
+      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44940649662 (push, c05079c, 2026-11-21T19:23:04Z) .. 44252368502 (push, 2026-11-18T06:34:43Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; 44244171280 dropped by cap. Live 20:52Z gh run list: newest docs run 44940649662, none queued or running; HEAD c05079c = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): demo step median 2 s (p90 6, max 7) = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; full removal saves at most 2 s median. Step verified to call buildDashboardSite (scripts/simulate-dashboard-pages.mjs), so no hidden dashboard build elsewhere. Reuse still blocked by Date.now() default (scripts/simulate-dashboard-pages.mjs:67) and daily synthetic-date refresh. No issue created; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
