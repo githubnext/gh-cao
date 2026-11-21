@@ -12,7 +12,7 @@ import {
   mergeDashboardPage,
   normalizeDashboardPageChunk,
 } from "../../dashboard/site/src/dashboard-chunks.js";
-import { scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
+import { activateViewMode, scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
 import { serverDashboardPageExclusionReason } from "./dashboard-server-page-coverage.mjs";
 import { createDashboardServerQueryBudget } from "./dashboard-server-query-budget.mjs";
 
@@ -73,9 +73,13 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await page.setViewportSize(viewport);
     await page.clock.install();
     await page.goto(`/?access_token=${accessToken}#page-indexing`);
-    await page.getByRole('button', { name: viewport.width < 768 ? 'Switch to Cards view' : 'Cards', exact: true }).click();
-    const view = page.locator('[data-view-id="ingestion-webhook-status"]');
-    await expect(view.getByRole('heading', { name: 'Webhook counters (process-local, since restart)' })).toBeVisible();
+    const activePage = page.locator('[data-page-id="indexing"]');
+    await expect(activePage).toBeVisible();
+    expect(await activateViewMode(page, activePage, "card")).toBe(true);
+    await expect(activePage).toHaveAttribute("data-view-mode", "card");
+    const view = activePage.getByRole("region", { name: "Webhook counters (process-local, since restart)" });
+    await expect(view).toBeVisible();
+    await scrollRenderedViewsIntoView(activePage);
     await expect(page.locator('[data-page-id="indexing"]')).not.toHaveAttribute('aria-busy', 'true');
     const received = view.locator('dl > div').filter({ has: page.locator('dt', { hasText: /^Received$/ }) }).locator('dd');
     const headers = { Authorization: `Bearer ${accessToken}` };
@@ -150,11 +154,10 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
     await queryBudget.waitForBudget();
     await page.goto(`/#page-${expected.page}`);
     await expect(page.getByRole("heading", { name: expected.heading, exact: true, level: 1 })).toBeVisible();
-    const tableMode = page.getByRole("button", { name: "Table", exact: true });
-    await expect(tableMode).toBeVisible();
-    await tableMode.click();
-    await expect(tableMode).toHaveAttribute("aria-pressed", "true");
     const activePage = page.locator(`[data-page-id="${expected.page}"]`);
+    await expect(activePage).toHaveAttribute("data-view-modes", /\btable\b/);
+    expect(await activateViewMode(page, activePage, "table")).toBe(true);
+    await expect(activePage).toHaveAttribute("data-view-mode", "table");
     await expect(activePage).not.toHaveAttribute("aria-busy", "true", { timeout: 30_000 });
     await scrollRenderedViewsIntoView(activePage);
     const view = activePage.locator(`[data-view-id="${expected.view}"]`);

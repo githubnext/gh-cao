@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { ENTITY_STORES } from "../../dashboard/site/src/data/storage/indexeddb.js";
 import config from "../playwright/configs/dashboard-deployed.config.mjs";
 import {
-  activateTableViewMode,
+  activateViewMode,
   configureDeployedStorageQuota,
   DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS,
   DEPLOYED_REFRESH_TIMEOUT_MS,
@@ -196,40 +196,31 @@ test("deployed dashboard scrolling uses a stable view snapshot", async () => {
 });
 
 test("deployed dashboard activates table mode before hydrating table views", async () => {
-  const clicks = [];
+  let clicks = 0;
   const activePage = {
-    locator(selector) {
-      assert.equal(selector, '[data-view-mode-value="table"]');
-      return {
-        async count() {
-          return 1;
-        },
-        async click() {
-          clicks.push(selector);
-        },
-      };
+    async getAttribute(name) {
+      return { "data-view-modes": "chart card table", "data-view-mode": "chart" }[name];
+    },
+  };
+  const page = {
+    getByRole(role, { name }) {
+      assert.equal(role, "button");
+      assert.match("Switch to Cards view", name);
+      assert.match("Switch to Table view", name);
+      return { async click() { clicks++; } };
     },
   };
 
-  assert.equal(await activateTableViewMode(activePage), true);
-  assert.deepEqual(clicks, ['[data-view-mode-value="table"]']);
+  assert.equal(await activateViewMode(page, activePage, "table"), true);
+  assert.equal(clicks, 2);
 });
 
 test("deployed dashboard tolerates pages without table mode", async () => {
   const activePage = {
-    locator() {
-      return {
-        async count() {
-          return 0;
-        },
-        async click() {
-          assert.fail("table mode should not be clicked");
-        },
-      };
-    },
+    async getAttribute() { return "chart"; },
   };
 
-  assert.equal(await activateTableViewMode(activePage), false);
+  assert.equal(await activateViewMode(null, activePage, "table"), false);
 });
 
 test("deployed dashboard scrolling tolerates lazy view replacement only", async () => {

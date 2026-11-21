@@ -145,6 +145,7 @@ export const responsiveStyles = `@media (min-width: 701px) and (max-width: 900px
   .mobile-nav-menu-actions .dashboard-data-controls { min-width: 0; flex-direction: column; align-items: stretch; }
   .mobile-nav-menu-actions .dashboard-horizon { width: 100%; max-width: 100%; padding-right: 0; border-right: 0; }
   .mobile-nav-menu-actions .dashboard-horizon .horizon-details { display: block; font-weight: 400; }
+  .mobile-nav-menu-actions .dashboard-horizon .horizon-details > summary { min-height: 24px; }
   .mobile-nav-menu-actions .dashboard-horizon > .filter-tuning-controls { display: grid; grid-template-columns: minmax(0, 1fr); border: 0; animation: none; position: static; width: 100%; max-height: none; overflow: visible; padding: 8px; box-shadow: none; }
   .mobile-nav-menu-actions .account-menu { width: 100%; }
   .mobile-nav-menu-actions .dashboard-current-status { width: 100%; display: block; }
