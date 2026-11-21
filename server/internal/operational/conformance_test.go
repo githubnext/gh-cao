@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"math/bits"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -78,6 +79,9 @@ func TestAdapters(t *testing.T) {
 		t.Run(name, func(t *testing.T) { conformance(t, factory(t)) })
 	}
 }
+
+// second returns the error from a two-value call.
+func second(_ int, err error) error { return err }
 
 func conformance(t *testing.T, store operational.Store) {
 	t.Helper()
@@ -395,6 +399,43 @@ func conformance(t *testing.T, store operational.Store) {
 		}
 		if result, err := services.RateLimits.ReserveRateLimit(ctx, "legacy-noncanonical", "canonical", 0, 1, time.Now().Unix()); err != nil || result != 0 {
 			t.Fatalf("canonical reserve = %d, %v", result, err)
+		}
+	})
+	t.Run("legacy-budget-rejects-invalid-arguments", func(t *testing.T) {
+		const name, field = "legacy-invalid-arguments", "installation"
+		limits := services.RateLimits
+		if err := services.Collection.WriteAttribute(ctx, name, field, "5|0|0"); err != nil {
+			t.Fatal(err)
+		}
+		now := time.Now().Unix()
+		rejected := map[string]error{
+			"reserve negative floor": second(limits.ReserveRateLimit(ctx, name, field, -1, 1, now)),
+			"reserve zero cost":      second(limits.ReserveRateLimit(ctx, name, field, 0, 0, now)),
+			"reserve negative cost":  second(limits.ReserveRateLimit(ctx, name, field, 0, -1, now)),
+			"reserve zero now":       second(limits.ReserveRateLimit(ctx, name, field, 0, 1, 0)),
+			"reserve negative now":   second(limits.ReserveRateLimit(ctx, name, field, 0, 1, -1)),
+			"reserve empty name":     second(limits.ReserveRateLimit(ctx, "", field, 0, 1, now)),
+			"reserve empty field":    second(limits.ReserveRateLimit(ctx, name, " ", 0, 1, now)),
+			"observe negative":       limits.ObserveRateLimit(ctx, name, field, -1, now),
+			"observe negative reset": limits.ObserveRateLimit(ctx, name, field, 1, -1),
+			"observe empty name":     limits.ObserveRateLimit(ctx, "", field, 1, now),
+			"observe empty field":    limits.ObserveRateLimit(ctx, name, "", 1, now),
+			"park negative":          limits.ParkRateLimit(ctx, name, field, -1),
+			"park empty name":        limits.ParkRateLimit(ctx, " ", field, now),
+			"park empty field":       limits.ParkRateLimit(ctx, name, "", now),
+		}
+		if bits.UintSize == 64 {
+			const oversized = int(1<<40 + 1)
+			rejected["reserve oversized cost"] = second(limits.ReserveRateLimit(ctx, name, field, 0, oversized, now))
+			rejected["observe oversized"] = limits.ObserveRateLimit(ctx, name, field, oversized, now)
+		}
+		for label, err := range rejected {
+			if err == nil {
+				t.Errorf("%s was accepted", label)
+			}
+		}
+		if value, err := services.Collection.ReadAttribute(ctx, name, field); err != nil || value != "5|0|0" {
+			t.Fatalf("rejected rate-limit writes changed state: %q, %v", value, err)
 		}
 	})
 	t.Run("transfer-owners-validation-and-duplicates", func(t *testing.T) {
