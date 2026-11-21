@@ -23,6 +23,10 @@ var storeLog = logger.New("cao:redis:store")
 
 const ingestionHealthKey = "state:ingestion-health"
 
+// maxRateLimitValue matches the memory and PostgreSQL adapters' bound on
+// legacy rate-limit headroom and reservation cost.
+const maxRateLimitValue = int64(1 << 40)
+
 var ingestionCounterNames = map[string]struct{}{
 	"webhookReceived":        {},
 	"webhookDuplicate":       {},
@@ -143,6 +147,15 @@ func (s *Store) LockHeld(ctx context.Context, name string) (bool, error) {
 func (s *Store) ReserveRateLimit(
 	ctx context.Context, key, field string, floor, cost int, now int64,
 ) (int, error) {
+	if err := collectionName(key); err != nil {
+		return 0, err
+	}
+	if err := collectionName(field); err != nil {
+		return 0, err
+	}
+	if floor < 0 || cost <= 0 || int64(cost) > maxRateLimitValue || now <= 0 {
+		return 0, fmt.Errorf("invalid legacy budget reservation: %w", ErrInvalid)
+	}
 	script := `
 local value = redis.call("HGET", KEYS[1], ARGV[1]) or ""
 local remaining, reset, parked = string.match(value, "^(-?%d+)|(-?%d+)|(-?%d+)$")
@@ -178,6 +191,15 @@ return 0`
 func (s *Store) ObserveRateLimit(
 	ctx context.Context, key, field string, remaining int, reset int64,
 ) error {
+	if err := collectionName(key); err != nil {
+		return err
+	}
+	if err := collectionName(field); err != nil {
+		return err
+	}
+	if remaining < 0 || int64(remaining) > maxRateLimitValue || reset < 0 {
+		return fmt.Errorf("invalid legacy budget observation: %w", ErrInvalid)
+	}
 	script := `
 local value = redis.call("HGET", KEYS[1], ARGV[1]) or ""
 local current, current_reset, parked = string.match(value, "^(-?%d+)|(-?%d+)|(-?%d+)$")
@@ -202,6 +224,15 @@ return 0`
 func (s *Store) ParkRateLimit(
 	ctx context.Context, key, field string, parkedTo int64,
 ) error {
+	if err := collectionName(key); err != nil {
+		return err
+	}
+	if err := collectionName(field); err != nil {
+		return err
+	}
+	if parkedTo < 0 {
+		return fmt.Errorf("invalid legacy budget parking time: %w", ErrInvalid)
+	}
 	script := `
 local value = redis.call("HGET", KEYS[1], ARGV[1]) or ""
 local remaining, reset, parked = string.match(value, "^(-?%d+)|(-?%d+)|(-?%d+)$")
