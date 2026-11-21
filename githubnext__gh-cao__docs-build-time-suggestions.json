@@ -1,36 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-20T22:52:43Z",
-      "worker_run_id": "44832023562",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push, 2026-11-20T20:34:54Z, head 3bd1058 = source_sha) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 22:52Z: gh run list shows no docs run newer than 44812654835 and none queued or in progress; window unchanged since the 21:20Z scheduling check. Run-level startedAt..updatedAt median 84 s, p90 143, max 165 (job-level stored median 79, p90 139, max 160; definitions differ, same window). Queue stored median 4 s, p90 4, max 5 (gh run list createdAt equals startedAt, so queue is not measurable there). 0 overlapping adjacent run intervals (n=20); cancel-in-progress true would save 0 s; documentation-pages concurrency kept. Avoidable rebuilds: 0 of 17 push heads (all build-consumed per commit_paths and path_filter_verified); 3 schedule runs required for synthetic-date refresh. Burst 2026-11-16 (43831980991/43832040488) remains one event, rejected. Open #20815 (checkout) not repeated. No suggestion; noop; next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-20T23:17:16Z",
       "worker_run_id": "44835204122",
@@ -865,6 +836,35 @@
         "44244171280"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 08:5xZ: gh run list shows no docs run newer than 44870776753; main = bb9a74f = source_sha; live Jobs API read of 44870776753 matched stored row (handoff 5 s, Configure Pages 1 s, upload 2 s, deploy setup 0 s, Deploy Pages 7 s). Recomputed stored immutable transfer_model rows (n=20, nearest-rank p90, no refetch): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s (p90 139); 15 percent gate 11.78 s and 60 s gate unmet even at 100 percent removal. Deploy-into-build merge (about 5 s handoff) stays rejected (github-pages environment and id-token: write boundary). Deploy Pages GitHub-managed (median 7 s, tails 69 and 92 s), not workflow-controllable. Artifact 7-9 MB, upload median 2 s. Open issues via label-scoped REST search: only #20815 (checkout, other category, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z), not repeated. No issue; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T09:18:55Z",
+      "worker_run_id": "44888662424",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; cancelled 43991812013 outside window. Live 09:18Z: gh run list shows no docs run after 44870776753 and 0 in_progress; one queued docs run 37642403569 (workflow_run, created 2026-10-07, 0 jobs) is an orphan outside the 14-day window and does not block: all 20 window runs have startedAt equal to createdAt. main bb9a74f = source_sha (compare identical). Live startedAt/updatedAt recomputed (n=20): 0 adjacent overlaps, min gap 190 s; run-level median 83 s, p90 143, max 165. Stored queue median 3.5 s, p90 4 (4.5 percent of exec median 78.5 s). cancel-in-progress true saves 0 s; documentation-pages concurrency kept. Avoidable push heads 0 of 16 (build-consumed per stored path_filter_verified); 4 schedule runs required for synthetic-date refresh. Maximum controllable saving is far below the 11.8 s (15 percent) and 60 s gates. Open worker issues (label self-care:docs-build-time-investigator): only #20815 (checkout, other category, not repeated). No issue created. No suggestion; noop; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1959,5 +1959,15 @@
   "issue_search_note": {
     "observed_at": "2026-11-21T08:53:02Z",
     "note": "Label-scoped REST search (repos/githubnext/gh-cao/issues, label self-care:docs-build-time-investigator, state open) returned only #20815 (0 comments). No issue created in worker run 44886693511."
+  },
+  "stale_queued_run": {
+    "observed_at": "2026-11-21T09:18:55Z",
+    "run_id": "37642403569",
+    "event": "workflow_run",
+    "created_at": "2026-10-07T15:12:12Z",
+    "status": "queued",
+    "jobs": 0,
+    "head": "6206962",
+    "effect": "none observed; outside 14-day window and sample; not a concurrency blocker (window runs start at creation). Re-check only if a newer docs run stays queued."
   }
 }
