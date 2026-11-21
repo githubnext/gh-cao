@@ -138,7 +138,9 @@ test("CAO server image supports downstream Compose role selection", async () => 
 
   assert.ok(dashboardRuntime);
   assert.ok(collectorRuntime);
-  assert.match(dashboardRuntime, /RUN apk upgrade --no-cache \\\n    && apk add --no-cache ca-certificates/);
+  assert.match(dashboardRuntime, /^FROM go-service-runtime AS dashboard-runtime$/m);
+  assert.match(runtimeStage("webhook-gateway-runtime"), /^FROM go-service-runtime AS webhook-gateway-runtime$/m);
+  assert.match(runtimeStage("go-service-runtime"), /RUN apk upgrade --no-cache \\\n    && apk add --no-cache ca-certificates-bundle \\\n    && apk del --no-cache apk-tools ssl_client/);
   assert.match(collectorRuntime, /RUN apk upgrade --no-cache \\\n    && apk add --no-cache ca-certificates git/);
   assert.match(dockerfile, /ENTRYPOINT \["\/app\/cao-dashboard"\]/);
   assert.match(dockerfile, /CMD \["serve-hosted"/);

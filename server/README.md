@@ -1765,7 +1765,7 @@ flowchart LR
 | Shared API model | `internal/model/` | Defines logical sources, diagnostics, and query metrics. |
 | Telemetry | `internal/telemetry/` | Configures OpenTelemetry trace, metric, and opt-in log providers, exposes the server's tracer, and writes W3C trace/span id response headers. |
 | Local Redis | `docker-compose.yml` | Runs plain Redis on `127.0.0.1:6379`. |
-| Container image | `Dockerfile` | Builds the dashboard and Go service into a non-root image for host-neutral deployments. |
+| Container image | `Dockerfile` | Builds the dashboard and Go service into a non-root image for host-neutral deployments. The dashboard and webhook gateway images keep the Alpine CA bundle but omit APK and its OpenSSL libraries; the collector keeps its Git dependencies. |
 
 ### Host capability profiles
 

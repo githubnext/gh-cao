@@ -60,7 +60,18 @@ RUN CGO_ENABLED=0 go build \
     -o /out/cao-webhook-gateway \
     ./cmd/cao-webhook-gateway
 
-FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS dashboard-runtime
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS go-service-runtime
+
+# Static Go services use Go TLS and only need the CA bundle. Keep BusyBox for
+# the dashboard's loopback HTTP probe, but remove the tools that pull in OpenSSL.
+# hadolint ignore=DL3018
+RUN apk upgrade --no-cache \
+    && apk add --no-cache ca-certificates-bundle \
+    && apk del --no-cache apk-tools ssl_client \
+    && addgroup -S -g 65532 cao \
+    && adduser -S -D -H -u 65532 -G cao cao
+
+FROM go-service-runtime AS dashboard-runtime
 
 ARG VERSION=dev
 ARG REVISION=unknown
@@ -72,13 +83,7 @@ LABEL org.opencontainers.image.title="Central Agentic Ops dashboard server" \
       org.opencontainers.image.created="${CREATED}" \
       org.opencontainers.image.source="https://github.com/githubnext/gh-cao"
 
-# Keep Alpine packages and CA roots current on rebuilds.
-# hadolint ignore=DL3018
-RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates \
-    && addgroup -S -g 65532 cao \
-    && adduser -S -D -H -u 65532 -G cao cao \
-    && mkdir -p /app/site /app/source /app/queries /app/agent \
+RUN mkdir -p /app/site /app/source /app/queries /app/agent \
     && chown -R cao:cao /app
 
 COPY --from=server-build --chown=cao:cao /out/cao-dashboard /app/cao-dashboard
@@ -168,13 +173,8 @@ USER 65532:65532
 ENTRYPOINT ["/app/cao-dashboard"]
 CMD ["collect", "--database-queries", "/app/queries/database.json"]
 
-FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS webhook-gateway-runtime
+FROM go-service-runtime AS webhook-gateway-runtime
 
-# hadolint ignore=DL3018
-RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates \
-    && addgroup -S -g 65532 cao \
-    && adduser -S -D -H -u 65532 -G cao cao
 COPY --from=server-build --chown=cao:cao /out/cao-webhook-gateway /app/cao-webhook-gateway
 WORKDIR /app
 USER 65532:65532

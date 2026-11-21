@@ -103,7 +103,8 @@ test("synthetic enterprise demo refreshes and renders populated views", async ({
         && detail?.pageId === "overview"
         && detail?.status === "completed"
       ), null, { timeout: 120_000 });
-    await expect(overviewPage.locator('[aria-busy="true"]')).toHaveCount(0);
+    // The page shell can finish rendering before its worker-backed queries settle.
+    await expect(overviewPage.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 120_000 });
     for (const { href, detail } of populatedOverviewStations) {
       const station = overviewPage.locator(".factory-station").filter({
         has: page.locator(`a[href="${href}"]`),
