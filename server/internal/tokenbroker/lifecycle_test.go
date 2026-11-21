@@ -1,10 +1,53 @@
 package tokenbroker
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
 )
+
+func TestDiagnosticJobDoesNotSelectCredentialContext(t *testing.T) {
+	f := newFixture(t)
+	call := func(operation, job string) int {
+		t.Helper()
+		body := map[string]string{"oidc_token": "valid", "job_id": job}
+		if operation == "invalidate" {
+			body["operation"] = operation
+		} else {
+			body["token_type"] = operation
+			if operation == "copilot-request" {
+				body["provider"] = "github"
+			}
+		}
+		raw, err := json.Marshal(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return f.call(string(raw)).Code
+	}
+	if call("copilot-request", "agent ü;%\r\n") != 200 {
+		t.Fatal("v2 exchange with diagnostic job rejected")
+	}
+	job := f.identity.CheckRunID
+	f.identity.CheckRunID = "8002"
+	if call("invalidate", "agent ü;%\r\n") != 204 || len(f.revoked) != 0 {
+		t.Fatal("caller-supplied job selected another signed job's credentials")
+	}
+	f.identity.CheckRunID = job
+	if call("invalidate", "different-name") != 204 || len(f.revoked) != 1 {
+		t.Fatal("diagnostic job change prevented signed job cleanup")
+	}
+	for _, tokenType := range []string{"copilot-request", "copilot-task", "github-app"} {
+		if call(tokenType, "another-name") != 403 || f.mints != 1 {
+			t.Fatal("closed execution permitted another capability or job name")
+		}
+	}
+	f.identity.RunAttempt = "3"
+	if call("copilot-request", "agent") != 200 {
+		t.Fatal("invalidation leaked into another attempt")
+	}
+}
 
 func TestPreviouslyAuthorizedCleanupSurvivesPolicyRevocation(t *testing.T) {
 	for _, change := range []string{"remove-policy", "empty-enrollment", "rotate-sha"} {

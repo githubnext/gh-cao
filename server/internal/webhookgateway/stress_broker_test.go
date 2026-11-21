@@ -106,6 +106,7 @@ func (b *stressBroker) Verify(_ context.Context, raw string) (admission.Identity
 		Issuer: admission.Issuer, Subject: "repo:simulator/repo-01001:ref:refs/heads/main",
 		Repository: "simulator/repo-01001", RepositoryID: "1001", OwnerID: "42",
 		RunID: raw, RunAttempt: "1", CheckRunID: raw, Ref: "refs/heads/main",
+		RefType: "branch", RunnerEnvironment: "github-hosted",
 		Event: "workflow_dispatch", Actor: "simulator", ActorID: "101",
 		WorkflowRef: "simulator/repo-01001/.github/workflows/test.lock.yml@refs/heads/main",
 		WorkflowSHA: strings.Repeat("a", 40),

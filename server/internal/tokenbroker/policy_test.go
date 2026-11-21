@@ -65,6 +65,7 @@ func TestPolicyRuleRejectsUnsafeAuthority(t *testing.T) {
 func TestExactTagRefProfile(t *testing.T) {
 	f := newFixture(t)
 	f.identity.Ref = "refs/tags/release-1.0"
+	f.identity.RefType = "tag"
 	f.identity.Subject = "repo:acme/project:ref:" + f.identity.Ref
 	f.identity.WorkflowRef = "acme/project/.github/workflows/triage.lock.yml@" + f.identity.Ref
 	f.identity.Event = "push"
