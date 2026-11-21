@@ -1,11 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { startDashboardPagesPreview, waitForSyntheticPopulation } from "../helpers/dashboard-pages-preview.mjs";
 import { captureMobileDashboardScreenshot } from "./dashboard-screenshot.mjs";
-import {
-  deployedActivityShardEntries,
-} from "./dashboard-deployed-refresh-helpers.mjs";
 import {
   summarizeAccessibilityTree,
   summarizeDomTree,
@@ -13,26 +9,7 @@ import {
 } from "./dashboard-tree-analysis.mjs";
 
 const maximumDomNodes = 6_000;
-const maximumWebKitShardCount = 5;
 let preview;
-let sourcePayload;
-let expectedActivityShardPaths;
-
-function optionalPositiveInteger(name) {
-  const value = process.env[name];
-  if (value === undefined) return undefined;
-  if (!/^[1-9]\d*$/.test(value)) throw new Error(`${name} must be a positive integer.`);
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed)) throw new Error(`${name} must be a safe integer.`);
-  return parsed;
-}
-
-function mobileDebugShardLimit() {
-  const requested = optionalPositiveInteger("MOBILE_DEBUG_SHARD_LIMIT");
-  return process.env.MOBILE_BROWSER === "webkit"
-    ? Math.min(requested ?? maximumWebKitShardCount, maximumWebKitShardCount)
-    : requested;
-}
 
 function metricValues(metrics) {
   return Object.fromEntries(metrics.map(({ name, value }) => [name, value]));
@@ -193,14 +170,6 @@ function formatDomAnalysis(dom) {
 
 test.beforeAll(async () => {
   preview = await startDashboardPagesPreview();
-  const dataDirectory = join(preview.site, "demo-data");
-  const manifest = JSON.parse(await readFile(join(dataDirectory, "payload-hashes.json"), "utf8"));
-  const shards = deployedActivityShardEntries(manifest).slice(0, mobileDebugShardLimit());
-  expectedActivityShardPaths = shards.map(({ name }) => `/${name}`);
-  const sizes = await Promise.all(shards.map(async ({ name }) => (await stat(join(dataDirectory, name))).size));
-  const activityBytes = sizes.reduce((total, size) => total + size, 0);
-  const inventoryBytes = (await stat(join(dataDirectory, "inventory-sources.json"))).size;
-  sourcePayload = { activityBytes, inventoryBytes, totalBytes: activityBytes + inventoryBytes };
 });
 
 test.afterAll(async () => {
@@ -210,8 +179,7 @@ test.afterAll(async () => {
 test("synthetic enterprise demo loads within the mobile DOM budget", async ({ page }, testInfo) => {
   const pageErrors = [];
   let crashed = false;
-  const shardResponses = new Map();
-  let inventoryResponse;
+  const snapshotRequests = [];
   const memoryMb = optionalNumber("MOBILE_MEMORY_MB");
   const network = {
     downloadKbps: optionalNumber("MOBILE_NETWORK_DOWNLOAD_KBPS"),
@@ -243,13 +211,11 @@ test("synthetic enterprise demo loads within the mobile DOM budget", async ({ pa
   page.on("pageerror", (error) => {
     pageErrors.push(error.message);
   });
-  page.on("response", (response) => {
-    const pathname = new URL(response.url()).pathname;
-    const shardPath = /\/gh-aw-logs-(?:runs|records)\/[^/]+\.jsonl$/.exec(pathname)?.[0];
-    if (shardPath) {
-      shardResponses.set(shardPath, response);
+  page.on("request", (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (/\/(?:gh-aw-logs-(?:runs|records)\/[^/]+\.jsonl|inventory-sources\.json|payload-hashes\.json)$/.test(pathname)) {
+      snapshotRequests.push(pathname);
     }
-    if (pathname.endsWith("/inventory-sources.json")) inventoryResponse = response;
   });
 
   await page.addInitScript(() => {
@@ -261,10 +227,7 @@ test("synthetic enterprise demo loads within the mobile DOM budget", async ({ pa
     });
   });
 
-  const parameters = new URLSearchParams({ debug: "1" });
-  const shardLimit = mobileDebugShardLimit();
-  if (shardLimit !== undefined) parameters.set("debug-shard-limit", String(shardLimit));
-  await page.goto(`${preview.url}/?${parameters}`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${preview.url}/?debug=1`, { waitUntil: "domcontentloaded" });
   const dashboard = page.locator(".dashboard-root");
   await expect(dashboard).toBeVisible({ timeout: networkIsConstrained ? 60_000 : 5_000 });
   await memoryInvestigation.mark("dashboard-visible");
@@ -276,6 +239,7 @@ test("synthetic enterprise demo loads within the mobile DOM budget", async ({ pa
     await page.evaluate(() => window.__dashboardRefreshStatus),
     "The dashboard must complete its canonical data refresh",
   ).toBe("completed");
+  await waitForSyntheticPopulation(page, { timeout: 540_000 });
   await expect(dashboard).not.toHaveAttribute("aria-busy", "true", { timeout: 540_000 });
   await expect(page.locator(".loading-progress")).toHaveCount(0, { timeout: 30_000 });
   await memoryInvestigation.mark("dashboard-idle");
@@ -284,16 +248,7 @@ test("synthetic enterprise demo loads within the mobile DOM budget", async ({ pa
   // can attribute node counts to their owning JSON view.
   await expect(dashboard).toHaveAttribute("data-json-path", "$.dashboard", { timeout: 30_000 });
 
-  expect(
-    [...shardResponses.keys()].sort(),
-    "The dashboard must request every canonical activity shard",
-  ).toEqual([...expectedActivityShardPaths].sort());
-  expect(
-    [...shardResponses.values()].every((response) => response.ok()),
-    "Dashboard activity shard requests must succeed",
-  ).toBe(true);
-  expect(inventoryResponse, "The dashboard must request inventory sources").toBeDefined();
-  expect(inventoryResponse?.ok(), `Dashboard inventory returned ${inventoryResponse?.status()}`).toBe(true);
+  expect(snapshotRequests, "The demo must generate data without fetching snapshot payloads").toEqual([]);
   expect(crashed, "The mobile browser page crashed while rendering the dashboard").toBe(false);
   expect(pageErrors, "The dashboard emitted browser errors").toEqual([]);
 
@@ -385,7 +340,7 @@ test("synthetic enterprise demo loads within the mobile DOM budget", async ({ pa
     const navigation = performance.getEntriesByType("navigation")[0];
     const memory = performance.memory;
     const resources = performance.getEntriesByType("resource")
-      .filter(({ name }) => /\/(?:gh-aw-logs-(?:runs|records)\/[^/]+\.jsonl|inventory-sources\.json|dashboard\.json)$/.test(new URL(name).pathname))
+      .filter(({ name }) => new URL(name).pathname.endsWith("/dashboard.json"))
       .map(({ name, duration, transferSize, encodedBodySize, decodedBodySize }) => ({
         name: new URL(name).pathname.split("/").at(-1),
         durationMs: Number(duration.toFixed(2)),
@@ -420,7 +375,6 @@ test("synthetic enterprise demo loads within the mobile DOM budget", async ({ pa
       network: networkIsConstrained ? network : null,
     },
     runtime,
-    sourcePayload,
     memory,
     dom: summarizeDomTree(domTree.nodes, domTree.structures),
     accessibility,

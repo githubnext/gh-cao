@@ -41,8 +41,6 @@ import { createGitHubDataService } from './data/github-service.js';
 import { isGitHubQuerySource, githubSnapshotSource } from './data/github-query-sources.js';
 import { queryCalloutVisibility } from './data/queries/callouts.js';
 import { DEMO_MODE } from './deployment-profile.js';
-import { synthesizeEnterpriseDemo, syntheticMemoryManifest, syntheticMemoryContent } from './data/demo/synthesis.js';
-import { enterpriseDemo } from './data/demo/sample.mjs';
 
 const debugIngestion = createDebug('data:ingestion');
 const debugPerformance = createDebug('data:performance');
@@ -415,7 +413,9 @@ async function queryRepositoryMemory(request, signal) {
     cache: 'no-store', credentials: 'same-origin', signal
   });
   if (manifestResponse && !manifestResponse.ok) throw new Error(`Manifest request returned ${manifestResponse.status}.`);
-  const manifest = DEMO_MODE ? syntheticMemoryManifest(campaignIds) : await manifestResponse?.json();
+  const manifest = DEMO_MODE
+    ? (await import('./data/demo/synthesis.js')).syntheticMemoryManifest(campaignIds)
+    : await manifestResponse?.json();
   if (manifest?.version !== 1 || !Array.isArray(manifest.campaigns)) {
     throw new Error('Repository-memory manifest is invalid.');
   }
@@ -435,7 +435,7 @@ async function queryRepositoryMemory(request, signal) {
   const filePath = repositoryMemoryPath(request.path);
   const file = campaign.files.find((entry) => entry.path === filePath);
   if (!file) throw new Error('Memory file path is invalid.');
-  if (DEMO_MODE) return syntheticMemoryContent(campaignId, filePath);
+  if (DEMO_MODE) return (await import('./data/demo/synthesis.js')).syntheticMemoryContent(campaignId, filePath);
   const campaignRoot = new URL(`${encodeURIComponent(campaignId)}/`, memoryRoot);
   const fileUrl = new URL(filePath.split('/').map(encodeURIComponent).join('/'), campaignRoot);
   if (fileUrl.origin !== memoryRoot.origin || !fileUrl.href.startsWith(campaignRoot.href)) {
@@ -1048,6 +1048,7 @@ export function processDataRequest(request, signal) {
       try {
         if (DEMO_MODE) {
           if (!sourceUrl.pathname.endsWith('/demo-data/')) throw new TypeError('Synthetic demo requires its isolated data namespace.');
+          const { enterpriseDemo, synthesizeEnterpriseDemo } = await import('./data/demo/synthesis.js');
           hasCompleteDashboardSnapshot = false;
           progress.log(`Synthesizing ${enterpriseDemo.repositories.toLocaleString('en-US')} repositories, ${enterpriseDemo.runs.toLocaleString('en-US')} runs, ${enterpriseDemo.campaigns} campaigns and ${enterpriseDemo.installedWorkflows} installed agentic workflows locally.`);
           const demo = await synthesizeEnterpriseDemo(indexedDB, {

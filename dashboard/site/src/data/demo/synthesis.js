@@ -2,6 +2,8 @@ import { enterpriseActivityBatches, enterpriseDemo, enterpriseMemory, enterprise
 import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSourceBatches, ingestDashboardSources } from '../ingest/coordinator.js';
 import { canonicalDatabaseName, DATABASE_VERSION, deleteCanonicalDatabase, readTransaction, readTransactions, recordTransaction } from '../storage/indexeddb.js';
 
+export { enterpriseDemo };
+
 const receiptId = 'synthetic-demo:population';
 const batchSize = 1_000;
 const installedBatchSize = 50;

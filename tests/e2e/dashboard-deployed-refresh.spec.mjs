@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
 import {
-  activateTableViewMode,
+  activateViewMode,
   configureDeployedStorageQuota,
   DEPLOYED_INITIAL_IMPORT_TIMEOUT_MS,
   DEPLOYED_REFRESH_TIMEOUT_MS,
@@ -126,9 +126,8 @@ test("synthetic enterprise demo refreshes and renders populated views", async ({
           && detail?.pageId === nextPageId
           && detail?.status === "completed"
         ), pageId, { timeout: 120_000 });
-      if (await activateTableViewMode(activePage)) {
-        await expect(activePage).toHaveAttribute("data-view-mode", "table");
-      }
+      expect(await activateViewMode(page, activePage, "table")).toBe(true);
+      await expect(activePage).toHaveAttribute("data-view-mode", "table");
       await activePage.locator("details.view-disclosure").evaluateAll((details) => {
         for (const detail of details) {
           detail.open = true;
@@ -141,7 +140,7 @@ test("synthetic enterprise demo refreshes and renders populated views", async ({
       }).toPass({ timeout: 60_000 });
       await expect(activePage.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 120_000 });
       await expect(activePage.locator('[aria-label^="Unable to load "]')).toHaveCount(0);
-      const populatedRows = activePage.locator("tbody > tr").filter({ has: page.locator("td") });
+      const populatedRows = activePage.locator("tbody > tr:visible").filter({ has: page.locator("td") });
       await expect(populatedRows.first(), `${pageId} should render populated rows`).toBeVisible();
     }
 
