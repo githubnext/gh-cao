@@ -1,38 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T03:53:12Z",
-      "worker_run_id": "44863075273",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578",
-        "44043184727",
-        "44041835448"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed; no cancelled runs in window. Live gh run list (25): window unchanged, no docs run after 44812654835; HEAD bb9a74f = source_sha. Stored transfer_model rows recomputed (immutable, n=20, nearest-rank p90, no refetch): removable median 9 s, p90 11, max 13 = 11.4 percent of exec median 79 s (p90 139); 15 percent gate 11.85 s and 60 s gate unmet. Components: handoff median 5 s, configure 1 s, upload 2 s, deploy setup 1 s; Deploy Pages (GitHub-managed) median 7 s, tails 92 s (44576080583) and 69 s (44337804857) excluded. Merge-deploy ceiling about 6 s, still rejected (github-pages environment and id-token boundary). No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T04:19:44Z",
       "worker_run_id": "44865344240",
@@ -870,6 +839,35 @@
       ],
       "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 13:32Z gh run list: no docs run newer than 44870776753; HEAD bb9a74f = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): demo step median 2 s (p90 6, max 7) = 2.5 percent of exec median 78.5 s; push 2.5 s, schedule 1.5 s; window sum 59 s of 1796 s exec. Full removal would save at most 2 s median (76.0 s), so 15 percent gate 11.78 s and 60 s gate unmet. Reuse still blocked by Date.now() default (scripts/simulate-dashboard-pages.mjs:67) and schedule exists for synthetic-date refresh. Label-scoped open issue search: only #20815 (checkout, other category), not repeated. No issue created. next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T13:54:14Z",
+      "worker_run_id": "44910852791",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280"
+      ],
+      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 13:54Z: gh run list shows no docs run newer than 44870776753; main bb9a74f = source_sha. Live Jobs API read of 44870776753 matched stored row (build 61 s, handoff 5, configure 1, upload 2, deploy setup 0, Deploy Pages 7 s, exec 74 s; artifact 7475055 B). Recomputed stored transfer_model rows (n=20, nearest-rank p90, no refetch): removable median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s (p90 139); 15 percent gate 11.78 s and 60 s gate unmet. Deploy Pages is GitHub-managed (median 7 s, n=19, tails 69-92 s) and not workflow-controllable. Merge-deploy ceiling about 6 s, still rejected (github-pages environment and id-token boundary). Open issues from this worker: only #20815 (checkout, other category, not repeated) via REST label search. No issue; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1656,10 +1654,9 @@
     },
     "worker_run_id": "44638063158",
     "last_reverified": {
-      "verified_at": "2026-11-21T05:34:00Z",
-      "worker_run_id": "44871130879",
-      "window": "latest 20 completed non-cancelled docs.yml runs: 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dropped 44060953578",
-      "result": "live Jobs API read of 44870776753 added (build 61, handoff 5, configure 1, upload 2, deploy setup 0, deploy pages 7, exec 74); stored rows recomputed; removable median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; decision unchanged (not actionable)."
+      "verified_at": "2026-11-21T13:54:14Z",
+      "worker_run_id": "44910852791",
+      "result": "live Jobs API read of 44870776753 matched stored row; stored rows recomputed (removable median 9 s, p90 11 s, max 13 s, 11.5 percent of exec median 78.5 s); decision unchanged (not actionable)."
     }
   },
   "commit_paths": {
@@ -1962,8 +1959,8 @@
     "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03"
   },
   "issue_search_note": {
-    "observed_at": "2026-11-21T13:16:13Z",
-    "note": "Label-scoped open search (self-care:docs-build-time-investigator) returned only #20815 (checkout, unchanged). No issue created in worker run 44907788057."
+    "observed_at": "2026-11-21T13:54:14Z",
+    "note": "REST label search (repos/githubnext/gh-cao/issues, state=open, label self-care:docs-build-time-investigator) returned only #20815 (checkout, unchanged). A gh issue list call returned 'has disabled issues' although repos API reports has_issues true; use the REST search. No issue created in worker run 44910852791."
   },
   "stale_queued_run": {
     "observed_at": "2026-11-21T09:18:55Z",
