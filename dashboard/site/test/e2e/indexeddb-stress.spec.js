@@ -1,34 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { build } from 'esbuild';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const siteRoot = fileURLToPath(new URL('../..', import.meta.url));
 const databaseName = 'gh-aw-cao-dashboard-data';
-/** @type {string} */
-let workerBundle;
-
-test.beforeAll(async () => {
-  const result = await build({
-    entryPoints: [join(siteRoot, 'src/data-worker.js')],
-    bundle: true,
-    format: 'esm',
-    platform: 'browser',
-    write: false
-  });
-  workerBundle = result.outputFiles[0].text;
-});
 
 test.beforeEach(async ({ context, page }) => {
   await context.route('https://dashboard.test/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     if (pathname === '/' || pathname === '/index.html') {
       await route.fulfill({ contentType: 'text/html', body: '<main>IndexedDB stress test</main>' });
-      return;
-    }
-    if (pathname === '/src/data-worker.js') {
-      await route.fulfill({ contentType: 'application/javascript', body: workerBundle });
       return;
     }
     const filePath = join(siteRoot, pathname);
