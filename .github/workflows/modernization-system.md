@@ -21,6 +21,9 @@ on:
       max_repos:
         default: 6
         type: number
+      expected_control_sha:
+        description: Native operator reviewed control revision; reject a moved dispatch branch
+        type: string
   permissions:
     contents: read
     actions: read
@@ -33,6 +36,17 @@ jobs:
     outputs:
       cao_authorized: ${{ steps.cao_admission.outputs.authorized == 'true' && steps.cao_precompute.outputs.authorized != 'false' }}
       cao_reason: ${{ steps.cao_precompute.outputs.reason || steps.cao_admission.outputs.reason }}
+    steps:
+      - name: Fence native modernization review revision
+        env:
+          EXPECTED_CONTROL_SHA: ${{ inputs.expected_control_sha }}
+          ACTUAL_CONTROL_SHA: ${{ github.workflow_sha }}
+        run: |
+          # CAO_MODERNIZATION_REVIEWED_SHA_V1
+          if [ -n "$EXPECTED_CONTROL_SHA" ] && [ "$EXPECTED_CONTROL_SHA" != "$ACTUAL_CONTROL_SHA" ]; then
+            echo "Reviewed modernization control revision changed; request a fresh preview." >&2
+            exit 1
+          fi
 if: needs.pre_activation.outputs.cao_authorized == 'true'
 imports:
   - uses: shared/control.md
@@ -135,19 +149,40 @@ measurable acceptance per task and for the complete system, backwards-compatible
 transitions, explicit target platform if any, risks, sequencing and independent
 review. Start by filing one coordinated central proposal, not target issues.
 
-Include a fenced JSON plan conforming exactly to
-`modernization/engagement.mjs`'s `cao-modernization/v1` contract. Use an
-engagement ID, objective, at most ten repositories (each with `repository`,
-exact current default-branch `base_sha` and `base_branch`), at most fifty tasks
-(each with `id`, `repository`, `title`, `objective`, nonempty `acceptance`,
-`depends_on`, and exact roster `specialists` directory IDs), and nonempty
-`integration_acceptance`. Dependencies must be an acyclic task graph. Every
-repository must be admitted; don't quietly drop a system dependency.
+## Human-readable assessment proposal
 
-The proposal must tell a human to review the plan and commit it as
-`.github/cao/modernization.json` with policy and workflow changes in one reviewed
-commit. That commit is approval of the concrete plan, not permission to widen
-CAO scope or enable live mode. Do not write the plan or approve it yourself.
+Write the issue for a human reviewer in Markdown, not as a serialized plan.
+Do not embed JSON, YAML, or another machine-readable plan in the issue body,
+including code fences, collapsed details, or hidden comments.
+
+Include:
+
+- An executive summary, engagement ID, objective, findings and recommendation.
+- A repository baseline table with the exact admitted repository links, default
+  branches and commit SHAs. Cover at most ten repositories; do not silently omit
+  a system dependency.
+- A task sequence table with stable task IDs, repository, readable task title,
+  dependency IDs and actual roster specialist directory IDs. Use at most fifty
+  tasks and an acyclic dependency graph.
+- A short section per task explaining its objective, evidence and measurable
+  acceptance checkboxes. Keep task IDs consistent with the sequence table.
+- System-wide integration acceptance checkboxes, backwards-compatibility and
+  coexistence constraints, risks, unknowns and decisions requiring human input.
+- An approval section explaining the next human decision and its boundaries.
+
+Keep the executable `cao-modernization/v1` plan separate from the report.
+After human review, a schema-valid `.github/cao/modernization.json` may be
+prepared from the reviewed proposal, preserving its exact baselines, task IDs,
+objectives, acceptance criteria, dependencies and specialists. It must pass
+`modernization/engagement.mjs` validation and be committed with any policy and
+workflow changes in one reviewed approval commit. The Markdown issue itself
+does not approve execution or widen CAO scope or live authority. Do not write
+or commit that approval file, or approve the proposal, during assessment.
+
+Create a new issue for each assessment, with this workflow run's numeric ID in
+the title so title deduplication cannot replace an earlier assessment. Leave
+previous assessment issues and their contents unchanged. Derive findings from
+the selected repositories, not by copying an earlier proposal.
 
 ## Whole-system verification
 

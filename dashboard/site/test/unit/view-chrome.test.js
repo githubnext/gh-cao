@@ -96,6 +96,16 @@ describe('view chrome component helpers', () => {
     expect(chrome[0]?.textContent).not.toContain('As of');
   });
 
+  it.each([
+    ['partial', 'fresh'],
+    ['complete', 'stale'],
+    ['unknown', 'unknown']
+  ])('keeps %s / %s evidence visible rather than implying complete fresh coverage', (completeness, freshness) => {
+    const chrome = renderViewSectionChrome({ 'as-of': '2026-08-29T20:00:00Z', completeness, freshness }, []);
+    expect(chrome[0]?.getAttribute('role')).toBe('status');
+    expect(chrome[0]?.textContent).toBe(`Evidence completeness: ${completeness}; freshness: ${freshness}.`);
+  });
+
   it('DLS-VIEW-013 renders reusable custom-view availability messages and affected-source details', () => {
     expect(customViewAvailabilityMessage('available')).toBe('Data available.');
     expect(customViewAvailabilityMessage('empty')).toBe('No observations matched the effective context.');

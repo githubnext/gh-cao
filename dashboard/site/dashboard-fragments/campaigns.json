@@ -995,6 +995,25 @@
           }
         },
         {
+          "id": "campaign-modernization-actions",
+          "title": "Modernization actions",
+          "description": "The shared Modernization lifecycle controls. Native checks, not retained campaign evidence, own current readiness and authorization; each mutation requires a fresh confirmed preview.",
+          "show-title": false,
+          "mark": "element",
+          "element": "modernization-controls",
+          "layout": "full",
+          "data": {
+            "sources": ["modernization-control-repositories"],
+            "arguments": [{ "name": "campaign", "field": "operator-campaign" }],
+            "query-context": false,
+            "time": { "range": "all" }
+          },
+          "config": {
+            "body": "campaign",
+            "actions": { "status": "modernization-status", "preview": "modernization-preview", "execute": "modernization-execute" }
+          }
+        },
+        {
           "id": "campaign-readme",
           "title": "README",
           "data": {

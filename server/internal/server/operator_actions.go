@@ -84,7 +84,7 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 
 func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
-	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "enable-repository-workflows", "enable-workflow", "disable-repository-workflows", "disable-workflow", "add-repository", "setup-cao":
+	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "enable-repository-workflows", "enable-workflow", "disable-repository-workflows", "disable-workflow", "add-repository", "setup-cao", "modernization-status", "modernization-preview", "modernization-execute":
 	default:
 		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared setup, repository maintenance, and enrollment actions are available.")
 	}
@@ -92,12 +92,16 @@ func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request
 	if err != nil {
 		return invocation, err
 	}
-	plan, err := hostedcli.PlanLocalMaintenance(invocation.Command)
+	plan, err := hostedcli.PlanLocalOperator(invocation.Command)
 	if err != nil {
 		return invocation, cliFailure(http.StatusUnprocessableEntity, "Maintenance requires an exact target and supported options; updates and upgrades must publish a pull request.")
 	}
 	if !hostedcli.LocalRepositoryOperationsAllowed(plan.Repository) {
 		return invocation, cliFailure(http.StatusForbidden, "github/gh-aw is excluded from CAO operations.")
+	}
+	if strings.HasPrefix(request.ID, "modernization-") != (plan.Kind == hostedcli.KindModernization) ||
+		plan.Kind == hostedcli.KindModernization && request.ID != "modernization-"+plan.Args[1] {
+		return invocation, cliFailure(http.StatusForbidden, "Modernization requires its exact declared domain action.")
 	}
 	if plan.Kind == hostedcli.KindCaoSetup {
 		if request.ID != "setup-cao" {
@@ -244,7 +248,7 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 	if connection == nil {
 		return &rejected, cliFailure(http.StatusServiceUnavailable, "Native operator adapter is unavailable; no command was started.")
 	}
-	plan, err := hostedcli.PlanLocalMaintenance(command.Command)
+	plan, err := hostedcli.PlanLocalOperator(command.Command)
 	if err != nil {
 		return &rejected, cliFailure(http.StatusUnprocessableEntity, "Queued command is invalid; no command was started.")
 	}
@@ -265,7 +269,14 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 			return &rejected, cliFailure(http.StatusForbidden, "The repository is outside the current local CAO maintenance scope; no command was started.")
 		}
 	}
-	content, err := json.Marshal(plan.Args)
+	var payload any = plan.Args
+	if plan.Kind == hostedcli.KindModernization {
+		payload = struct {
+			Args  []string `json:"args"`
+			Input *string  `json:"input,omitempty"`
+		}{plan.Args, command.Input}
+	}
+	content, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
@@ -329,6 +340,13 @@ func (a *App) callOperatorAdapter(ctx context.Context, command operational.CLICo
 			return nil, err
 		}
 		if event.Stream == "stdout" || event.Stream == "stderr" {
+			if plan.Kind == hostedcli.KindModernization && event.Stream == "stdout" &&
+				strings.HasPrefix(event.Data, "CAO_MODERNIZATION_RESULT:") &&
+				(operational.ValidateCLICommandText(event.Data) != nil || strings.Contains(event.Data, "[REDACTED]")) {
+				// Never silently change the concrete plan the human is reviewing,
+				// or let text redaction destroy the structured result frame.
+				event.Data = "CAO_MODERNIZATION_RESULT:{\"schema\":\"cao-modernization-operator/v1\",\"status\":\"output-unavailable\",\"canExecute\":false,\"reason\":\"Sensitive output cannot be presented as an exact reviewed plan. Inspect remote state before making another request; this is not proof that execution was rejected.\"}\n"
+			}
 			output(event.Stream, []byte(event.Data))
 		}
 		if event.Complete {

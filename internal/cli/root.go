@@ -69,5 +69,6 @@ Help, version, and catalog discovery work offline.`,
 	root.AddCommand(evidenceCommand(defaultEvidenceDeps(version)))
 	root.AddCommand(dashboardCommand(version, boundedDashboardGH, installedDashboardLogs))
 	root.AddCommand(dashboardActionCommand())
+	root.AddCommand(modernizationCommand(gh))
 	return root
 }

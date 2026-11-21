@@ -1,0 +1,16 @@
+{
+  "page": "ops",
+  "action-view": "ops-modernization-actions",
+  "views": ["ops-attention", "ops-in-flight", "ops-repositories", "ops-recent-outputs"],
+  "attention-states": ["blocked", "review", "unknown"],
+  "in-flight-runs": ["102", "103"],
+  "active-run-statuses": ["in_progress", "in-progress"],
+  "repository": {
+    "ops-repository": "octodemo/ops-synthetic",
+    "observed-workflows": 6,
+    "workflows-with-runs": 5,
+    "blocked": 1,
+    "review": 1,
+    "unknown": 1
+  }
+}

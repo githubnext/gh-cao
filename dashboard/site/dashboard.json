@@ -1386,6 +1386,33 @@
             "target": "repository-pattern"
           }
         }
+      },
+      {
+        "id": "modernization-status",
+        "level": "explore",
+        "label": "Check Modernization readiness",
+        "description": "Read the selected control repository's current plan, policy, task evidence and authorized capabilities through the native operator.",
+        "icon": "search",
+        "command": "gh cao modernization status --repo {{repository}}",
+        "placement": "view"
+      },
+      {
+        "id": "modernization-preview",
+        "level": "explore",
+        "label": "Review Modernization action",
+        "description": "Prepare a bounded, expiring native action preview without dispatching a workflow or publishing an approval.",
+        "icon": "checklist",
+        "command": "gh cao modernization preview --repo {{repository}} --action {{operation}} --mode {{mode}}",
+        "placement": "view"
+      },
+      {
+        "id": "modernization-execute",
+        "level": "operate",
+        "label": "Confirm Modernization action",
+        "description": "Execute exactly one confirmed, current native preview. Reject changed control revisions, changed policy, expired previews and replay.",
+        "icon": "play",
+        "command": "gh cao modernization execute --repo {{repository}} --preview {{preview}}",
+        "placement": "view"
       }
     ],
     "horizon": {
@@ -1507,6 +1534,7 @@
         "label": "Experimental",
         "experimental": true,
         "pages": [
+          "ops",
           "wizard",
           "model-routing",
           "steering",
@@ -1542,6 +1570,7 @@
     ]
   },
   "fragments": [
+    "dashboard-fragments/ops.json",
     "dashboard-fragments/wizard.json",
     "dashboard-fragments/commands.json",
     "dashboard-fragments/governance.json",

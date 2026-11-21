@@ -10,6 +10,7 @@ import { contentStyles } from './styles-content.js';
 import { governanceStyles } from './styles-governance.js';
 import { promptWizardStyles } from './styles-prompt-wizard.js';
 import { workflowValueStyles } from './styles-workflow-value.js';
+import { modernizationStyles } from './styles-modernization.js';
 import { responsiveStyles } from './styles-responsive.js';
 import { accessibilityStyles } from './styles-accessibility.js';
 
@@ -27,6 +28,7 @@ export const primerStyles = [
   governanceStyles,
   promptWizardStyles,
   workflowValueStyles,
+  modernizationStyles,
   responsiveStyles,
   accessibilityStyles
 ].join('');
@@ -50,7 +52,8 @@ export const deferredFeatureStyles = [
   operationStyles,
   governanceStyles,
   promptWizardStyles,
-  workflowValueStyles
+  workflowValueStyles,
+  modernizationStyles
 ].join('');
 
 // The overrides are repeated so they still follow the deferred rules they target.

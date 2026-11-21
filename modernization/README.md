@@ -38,8 +38,8 @@ credentials remain separate and must already be configured through CAO.
 
 | Phase | Result and completion criterion |
 |---|---|
-| Assess | Run `modernization-system` with explicit `target_repos`. Squad files one central proposal with exact baselines, an acyclic task graph, named specialists and measurable task/system acceptance. No target issue or PR is created. |
-| Approve | A human reviews the proposal and commits its concrete JSON as `.github/cao/modernization.json`. Every repository must be admitted by CAO at that workflow SHA. This record approves intent, not rollout or credentials. |
+| Assess | Run `modernization-system` with explicit `target_repos`. Squad files a new human-readable Markdown proposal with exact baselines, an acyclic task graph, named specialists and measurable task/system acceptance. Its title includes the run ID; earlier assessments remain unchanged. No target issue or PR is created. |
+| Approve | A human reviews the Markdown proposal. Prepare its concrete JSON separately, validate it with `engagement.mjs`, and commit it as `.github/cao/modernization.json` in a reviewed approval commit. Every repository must be admitted by CAO at that workflow SHA. This record approves intent, not rollout or credentials. |
 | File issues | The coordinator dispatches at most three ready tasks per run, additionally bounded by CAO's effective repository count. One worker creates one linked issue per task, including dependency IDs and the plan digest. Dependent issues can be filed before their prerequisites finish. |
 | Implement | After the issue exists, a single-target worker can implement only when all predecessors are complete. Different Squad specialists author and review the patch. Live outputs are tested **draft** PRs; no merge or deployment capability is granted. |
 | Unblock | A predecessor must have one matching merged PR into the approved default branch, an independent approving GitHub review on its exact head, and at least one successful check/status with no failing or pending evidence. Closing an issue does not unblock anything. |
@@ -62,11 +62,62 @@ rather than bypassing it through an independent upload job.
 If the base moves or a handoff expires, run the coordinator again; do not retry
 with forged or manually altered inputs.
 
+## Local dashboard operator actions
+
+The local PostgreSQL dashboard can check readiness, assess, review and approve
+a concrete JSON plan, review the next task batch, inspect linked issues/PRs,
+and verify results. These actions use the existing authenticated, same-origin
+command queue and durable audit, not browser GitHub credentials or the hosted
+command executor. Static and hosted dashboards without the native authorization
+remain unavailable.
+
+The native command contract is:
+
+```sh
+gh cao modernization status --repo OWNER/CONTROL
+gh cao modernization preview --repo OWNER/CONTROL --action run --mode review
+gh cao modernization execute --repo OWNER/CONTROL --preview PREVIEW_ID
+```
+
+Preview actions are `assess`, `approve-plan`, `run`, and `verify`. Only `run`
+accepts `live`, and only within the existing reviewed campaign, target and worker
+ceilings. An `approve-plan` preview reads the concrete plan JSON from standard
+input; other actions accept no plan input. Commands return one
+`CAO_MODERNIZATION_RESULT:` JSON frame. Status includes native task states and
+issue/PR links; successful workflow dispatch reports acceptance, not completion.
+
+The selected control repository must match the owning CLI checkout origin, and
+the current GitHub user must have write access. Source selection uses only the
+bounded exact reviewed scope, never dashboard observations or owner discovery.
+Plan approval additionally requires a clean checkout matching the reviewed
+remote default-branch head. It creates only the engagement-file commit through
+GitHub's expected-head compare-and-swap; it does not overwrite local work or
+change policy, installation, merging or deployment.
+
+Previews expire after five minutes and bind the plan, policy, control revision,
+repository scope and actual task evidence. Execution revalidates that binding
+and persistently consumes the preview before any mutation; an uncertain write
+must be inspected remotely rather than retried. Dispatch uses the reviewed
+default branch with an `expected_control_sha` pre-activation fence, since the
+GitHub dispatch API's ref contract is a branch or tag, not a commit SHA. A moved
+branch fails before agent activation. The coordinator also rejects a changed
+`expected_batch_digest`, including task phase and base evidence, before freezing
+dispatch. Older installed workflows lacking these fences, or a runtime that
+differs from the native operator's production semantics, are explicitly
+unavailable until reviewed updates are installed.
+
 ## Reviewed plan contract
 
 The production validator is [`engagement.mjs`](engagement.mjs). No additional
 fields are accepted. Use actual roster directory IDs from
 `squad/.squad/agents/` in `specialists`, not invented job titles.
+
+Assessment issues contain Markdown summaries, baseline and task tables, and
+acceptance checklists, not embedded JSON plans. The machine-readable example
+below describes the separate approval file, not the assessment's issue format.
+Converting a reviewed proposal must preserve its baselines, task IDs, objectives,
+acceptance criteria, dependencies and specialists; it is not permission to
+silently change the proposed work.
 
 ```json
 {

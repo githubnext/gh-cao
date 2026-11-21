@@ -7,6 +7,7 @@ import test from "node:test";
 import { parse } from "yaml";
 import { planDigest, readyTasks, systemReadScope, taskComplete, taskMarker, validateDispatch, validateOutputs, validatePlan } from "../../modernization/engagement.mjs";
 import { boundedPages, collectEvidence } from "../../modernization/github.mjs";
+import { assertReviewedBatch } from "../../modernization/actions.mjs";
 
 const sha = "a".repeat(40);
 const digest = "b".repeat(64);
@@ -179,6 +180,47 @@ test("production evidence adapter requires approved baseline ancestry and unambi
   await assert.rejects(collectEvidence(value, hash, candidates, client, client, "octodemo/control"), /duplicate/);
 });
 
+test("native review fences reject moved control revisions before activation and bind the actual task batch", () => {
+  for (const name of ["modernization", "modernization-system"]) {
+    for (const suffix of [".md", ".lock.yml"]) {
+      const source = readFileSync(new URL(`../../.github/workflows/${name}${suffix}`, import.meta.url), "utf8");
+      const document = suffix === ".md" ? parse(source.split("---")[1]) : parse(source);
+      const job = document.jobs[suffix === ".md" ? "pre-activation" : "pre_activation"];
+      const step = job.steps.find(step => step.run?.includes("CAO_MODERNIZATION_REVIEWED_SHA_V1"));
+      assert.equal(step.env.EXPECTED_CONTROL_SHA, "${{ inputs.expected_control_sha }}");
+      assert.equal(step.env.ACTUAL_CONTROL_SHA, "${{ github.workflow_sha }}");
+      assert.equal(step["continue-on-error"], undefined);
+      assert.equal(step.if, undefined);
+      for (const [expected, actual, status] of [["", sha, 0], [sha, sha, 0], ["b".repeat(40), sha, 1]]) {
+        let code = 0;
+        try {
+          execFileSync("sh", ["-c", step.run], { env: { ...process.env, EXPECTED_CONTROL_SHA: expected, ACTUAL_CONTROL_SHA: actual }, stdio: "pipe" });
+        } catch (error) {
+          code = error.status;
+        }
+        assert.equal(code, status);
+      }
+    }
+  }
+  const runtime = readFileSync(new URL("../../modernization/actions.mjs", import.meta.url), "utf8");
+  assert.ok(runtime.indexOf("assertReviewedBatch(") < runtime.indexOf('save("dispatch.json"'));
+});
+
+test("coordinator fails closed when the ready batch differs from the reviewed batch", () => {
+  const ready = [{ repository: "octo/one", task: "assess" }];
+  const reviewed = planDigest(ready);
+  assert.doesNotThrow(() => assertReviewedBatch(reviewed, ready));
+  assert.doesNotThrow(() => assertReviewedBatch(undefined, ready));
+  for (const [expected, batch] of [
+    [reviewed, [...ready, { repository: "octo/two", task: "assess" }]],
+    [reviewed, []],
+    ["not-a-digest", ready],
+    [reviewed.toUpperCase(), ready],
+  ]) {
+    assert.throws(() => assertReviewedBatch(expected, batch), /reviewed task batch changed/);
+  }
+});
+
 test("compiled workers use the native Squad agent and run trusted guards before publication", () => {
   const worker = readFileSync(new URL("../../.github/workflows/modernization-task.lock.yml", import.meta.url), "utf8");
   assert.match(worker, /--disable-builtin-mcps[\s\S]*--agent squad/);
@@ -199,6 +241,18 @@ test("compiled workers use the native Squad agent and run trusted guards before 
   assert.match(coordinator, /await runtime\.guardDispatchOutputs\(github\)/);
   assert.ok(parse(coordinator).jobs.safe_outputs.needs.includes("modernization_guard"));
   assert.ok(coordinator.indexOf("Resolve dependency-ready modernization tasks") < coordinator.indexOf("Freeze modernization dispatch evidence"));
+});
+
+test("system assessments publish Markdown without turning the report into executable approval", () => {
+  const source = readFileSync(new URL("../../.github/workflows/modernization-system.md", import.meta.url), "utf8");
+  const config = parse(/^---\n([\s\S]*?)\n---/.exec(source)[1]);
+  assert.equal(config["safe-outputs"]["create-issue"].max, 1);
+  assert.equal(config["safe-outputs"]["create-issue"]["deduplicate-by-title"], true);
+  assert.match(source, /Do not embed JSON, YAML/);
+  assert.doesNotMatch(source, /Include a fenced JSON plan/);
+  assert.match(source, /workflow run's numeric ID in\s+the title/);
+  assert.match(source, /previous assessment issues and their contents unchanged/);
+  assert.match(source, /Do not write\s+or commit that approval file/);
 });
 
 test("native team setup materializes the complete runtime including required local skills", () => {

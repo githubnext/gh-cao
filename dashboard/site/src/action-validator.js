@@ -94,6 +94,13 @@ export function isReadOnlyCliAction(action) {
   if (action.arguments?.length || typeof action.command !== 'string') return false;
   const tokens = parseCliActionTokens(action.command);
   const allowed = environmentDefaultsCommand(action.command)?.operation === 'get' || Boolean(tokens && (
+    tokens[0] === 'gh' && tokens[1] === 'cao' && tokens[2] === 'modernization'
+      && tokens[4] === '--repo' && (tokens[5] === '{{repository}}' || /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(tokens[5] ?? ''))
+      && (tokens[3] === 'status' && tokens.length === 6
+        || tokens[3] === 'preview' && tokens.length === 10 && tokens[6] === '--action'
+          && ['assess', 'approve-plan', 'run', 'verify', '{{operation}}'].includes(tokens[7])
+          && tokens[8] === '--mode' && ['review', 'live', '{{mode}}'].includes(tokens[9]))
+    ||
     tokens[0] === 'gh' && tokens[1] === 'aw'
       && ['status', 'list', 'logs', 'version'].includes(tokens[2]) && tokens.length === 3
     || tokens[0] === 'gh' && tokens[1] === 'cao' && (

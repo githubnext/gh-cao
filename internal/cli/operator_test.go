@@ -48,7 +48,7 @@ func TestOperatorCommandInventory(t *testing.T) {
 	slices.Sort(names)
 	want := []string{
 		"__dashboard_aw", "add", "admission", "api-cost", "campaigns", "computation", "dashboard", "deploy", "doctor", "download", "evidence", "gh", "init",
-		"mcp", "pages", "prompt", "queries", "query", "query-info",
+		"mcp", "modernization", "pages", "prompt", "queries", "query", "query-info",
 		"repos", "setup", "update", "upgrade-gh-aw", "value", "version",
 	}
 	if !reflect.DeepEqual(names, want) {

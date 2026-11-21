@@ -5,6 +5,24 @@
   },
   "pages": [
     {
+      "id": "ops",
+      "title": "Ops",
+      "description": "Inspect retained farm evidence and review policy-checked Modernization actions.",
+      "intent": "Give operators an attention-first view of retained farm evidence and explicitly confirmed Modernization actions. Review authoritative native plan and policy previews before dispatch or approval. Installation, rollout changes, merging and deployment remain unavailable.",
+      "subject": "Retained CAO evidence in the selected scope and horizon.",
+      "objective": "Investigate farm evidence and review the next authorized Modernization step.",
+      "acceptance": "Keep retained evidence distinct from current native action checks. Require an explicit, revision-bound confirmation for every plan approval or workflow dispatch. Preserve partial, stale, unavailable and empty evidence; missing evidence is not idle and delivery is not acceptance or Value.",
+      "experimental": true,
+      "parameters": [],
+      "queries": [
+        "modernization-control-repositories",
+        "ops-attention",
+        "ops-in-flight",
+        "ops-recent-outputs",
+        "ops-repositories"
+      ]
+    },
+    {
       "id": "wizard",
       "title": "Workflow wizard",
       "description": "Choose a pattern and review a generation prompt for an Agentic Workflow or Campaign.",
@@ -697,7 +715,8 @@
         "campaign-insight-tab-counts",
         "campaign-issue-tab-counts",
         "campaign-problem-tab-counts",
-        "campaign-readme-details"
+        "campaign-readme-details",
+        "modernization-control-repositories"
       ]
     },
     {
@@ -1726,6 +1745,133 @@
     }
   ],
   "queries": [
+    {
+      "id": "modernization-control-repositories",
+      "subject": "Retained control repositories declaring the Modernization coordinator.",
+      "objective": "Suggest explicit control-repository selections for authorized Modernization actions.",
+      "acceptance": "Return one coordinate per retained coordinator repository. This inventory suggests a selection only; it does not authorize actions or establish plan approval or readiness.",
+      "description": "",
+      "parameters": [
+        {
+          "name": "campaign",
+          "field": "operator-campaign"
+        }
+      ],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [
+        "campaign-detail",
+        "ops"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "ops-attention",
+      "subject": "Latest retained workflow states in the selected scope and horizon.",
+      "objective": "Inspect blockers, pending review and missing run evidence.",
+      "acceptance": "Order blocked, review, unknown, then newest observation and identity. Preserve evidence links. Unknown is not idle; pending delivery is not acceptance.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "work-items"
+      ],
+      "used-by-pages": [
+        "ops"
+      ],
+      "execution": {
+        "local": false,
+        "requirements": [],
+        "reason": "Requires work-items, which the local PostgreSQL projection does not provide."
+      }
+    },
+    {
+      "id": "ops-in-flight",
+      "subject": "Retained run attempts with a nonterminal native status.",
+      "objective": "Inspect the last recorded execution state, not a live queue.",
+      "acceptance": "Include queued, requested, pending, waiting and native in_progress attempts, retaining compatibility with in-progress; order newest creation then identity. Keep attempts distinct, missing timestamps and links unknown, and completed runs out.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "runs"
+      ],
+      "used-by-pages": [
+        "ops"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "runs"
+        ]
+      }
+    },
+    {
+      "id": "ops-repository-work",
+      "subject": "Latest retained workflow states grouped by control repository.",
+      "objective": "Compare observed workflow coverage and unresolved work.",
+      "acceptance": "Count one work item per workflow and native state, keyed by organization and repository. Run coverage counts workflows with a timed latest run, not all attempts or target coverage; untimed evidence is excluded.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "work-items"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": false,
+        "requirements": [],
+        "reason": "Requires work-items, which the local PostgreSQL projection does not provide."
+      }
+    },
+    {
+      "id": "ops-repositories",
+      "subject": "Retained repository inventory with latest workflow-state counts.",
+      "objective": "Find repositories needing investigation without claiming farm health.",
+      "acceptance": "Keep repositories without workflows; unmatched counts remain null, not zero. Join on organization and repository. Link to repository details and label missing run evidence; no enrollment or live-status claim.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "ops-repository-work",
+        "repositories"
+      ],
+      "used-by-pages": [
+        "ops"
+      ],
+      "execution": {
+        "local": false,
+        "requirements": [
+          "repositories"
+        ],
+        "reason": "Requires work-items, which the local PostgreSQL projection does not provide."
+      }
+    },
+    {
+      "id": "ops-recent-outputs",
+      "subject": "Retained output lifecycle evidence in the selected scope and horizon.",
+      "objective": "Inspect delivery, adoption basis and survival independently.",
+      "acceptance": "Order by delivery clock descending then output identity. Preserve producing repository, adoption signal/source and evidence links. Delivery and registry fallback acceptance never imply human acceptance or operational Value.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "outcomes"
+      ],
+      "used-by-pages": [
+        "ops"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "outcomes"
+        ]
+      }
+    },
     {
       "id": "command-queue",
       "subject": "Show the durable local CLI command queue.",

@@ -992,6 +992,43 @@ describe('dashboard DOM provenance', () => {
     }
   });
 
+  it('marks self-bound element sources failed when the page source binding fails', async () => {
+    resetSourceStore();
+    window.history.replaceState({}, '', '#page-ops');
+    const loadPageSources = /** @type {NonNullable<Parameters<typeof renderDashboardView>[0]['loadPageSources']>} */ (vi.fn(
+      () => Promise.reject(new Error('dashboard access token is required'))
+    ));
+    const rendered = renderDashboardView({
+      document: {
+        languageVersion: '0.1.0',
+        dashboard: {
+          id: 'ops-failure', title: 'Ops failure',
+          pages: [{
+            id: 'ops', kind: 'custom', title: 'Ops',
+            views: [{
+              id: 'ops-modernization', title: 'Modernization', mark: 'element', element: 'modernization-controls',
+              data: { sources: ['modernization-control-repositories'] },
+              config: { actions: { status: 'modernization-status', preview: 'modernization-preview', execute: 'modernization-execute' } }
+            }]
+          }]
+        }
+      },
+      sources: {},
+      loadPageSources
+    });
+    document.body.append(rendered);
+    try {
+      await vi.waitFor(() => expect(rendered.querySelector('.modernization-controls')?.textContent)
+        .toContain('Farm coordinator evidence is unavailable.'));
+      expect(rendered.textContent).not.toContain('Finding this farm');
+    } finally {
+      disposeDashboard(rendered);
+      rendered.remove();
+      resetSourceStore();
+      window.history.replaceState({}, '', '/');
+    }
+  });
+
   it('updates nested section views from separate queries without replacing sibling UX', async () => {
     const requests = new Map();
     const loadPageSources = /** @type {NonNullable<Parameters<typeof renderDashboardView>[0]['loadPageSources']>} */ (vi.fn(() => {

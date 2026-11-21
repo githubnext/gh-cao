@@ -66,6 +66,87 @@ func TestOperatorProductionMaintenanceCatalogAdmission(t *testing.T) {
 	}
 }
 
+func TestOperatorModernizationAdmissionAndNativeInputEnvelope(t *testing.T) {
+	catalog, err := hostedcli.ParseCatalog([]byte(`{"dashboard":{"cli-actions":[
+	{"id":"modernization-preview","command":"gh cao modernization preview --repo {{repository}} --action {{operation}} --mode {{mode}}"},
+	{"id":"update-repository","command":"gh cao modernization status --repo {{repository}}"}
+	]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	planInput := `{"schema":"cao-modernization/v1"}`
+	outputFrame := "CAO_MODERNIZATION_RESULT:{\"kind\":\"preview\"}\n"
+	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		var request struct {
+			Args  []string `json:"args"`
+			Input *string  `json:"input"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request.Input == nil || *request.Input != planInput ||
+			strings.Join(request.Args, " ") != "modernization preview --repo octodemo/control --action approve-plan --mode review" {
+			t.Errorf("native approval input envelope corrupted: %#v %v", request, err)
+		}
+		if err := json.NewEncoder(w).Encode(map[string]any{"stream": "stdout", "data": outputFrame}); err != nil {
+			t.Error(err)
+		}
+		_, _ = w.Write([]byte("{\"complete\":true,\"exitCode\":0}\n"))
+	}))
+	defer adapter.Close()
+	config := &LocalOperatorActionsConfig{Repositories: []string{"octodemo/control"}}
+	app := &App{hostedCLI: &hostedCLI{catalog: catalog, local: config}, config: Config{
+		OperatorActions: &LocalOperatorConfig{AdapterURL: adapter.URL, OperatorActions: config},
+	}}
+	request := hostedcli.Request{ID: "modernization-preview", Input: &planInput, Values: map[string]string{
+		"repository": "octodemo/control", "operation": "approve-plan", "mode": "review",
+	}}
+	invocation, err := app.admitOperatorAction(t.Context(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{ID: 1, CLICommandInvocation: invocation}, func(string, []byte) {})
+	if err != nil || code == nil || *code != 0 || calls != 1 {
+		t.Fatalf("native approval command failed: %v %v calls=%d", code, err, calls)
+	}
+	request.Values["repository"] = "octodemo/outside"
+	if _, err := app.admitOperatorAction(t.Context(), request); err == nil {
+		t.Fatal("out-of-scope modernization action admitted")
+	}
+	if _, err := app.admitOperatorAction(t.Context(), hostedcli.Request{ID: "update-repository", Values: map[string]string{"repository": "octodemo/control"}}); err == nil {
+		t.Fatal("modernization was admitted through generic maintenance identity")
+	}
+	for _, sensitive := range []bool{false, true} {
+		objective := strings.Repeat("reviewed objective ", 1000)
+		if sensitive {
+			objective = "ghp_" + strings.Repeat("a", 40)
+		}
+		value, err := json.Marshal(map[string]any{"kind": "status", "plan": map[string]any{"objective": objective}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		outputFrame = "CAO_MODERNIZATION_RESULT:" + string(value) + "\n"
+		var output strings.Builder
+		code, err := app.callOperatorAdapter(t.Context(), operational.CLICommand{ID: 2, CLICommandInvocation: invocation}, func(stream string, data []byte) {
+			if stream == "stdout" {
+				output.Write(data)
+			}
+		})
+		if err != nil || code == nil || *code != 0 {
+			t.Fatalf("structured native output failed: %v %v", code, err)
+		}
+		var result map[string]any
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(strings.TrimSpace(output.String()), "CAO_MODERNIZATION_RESULT:")), &result); err != nil {
+			t.Fatalf("structured native result was corrupted: %v", err)
+		}
+		if sensitive && (strings.Contains(output.String(), objective) || result["status"] != "output-unavailable") {
+			t.Fatal("sensitive concrete plan was exposed or silently changed")
+		}
+		if !sensitive && !strings.Contains(output.String(), objective) {
+			t.Fatal("bounded concrete plan was suppressed")
+		}
+	}
+}
+
 func TestOperatorEnrollmentReachesNativeAdapterOutsideMaintenanceScope(t *testing.T) {
 	calls := make(chan []string, 1)
 	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

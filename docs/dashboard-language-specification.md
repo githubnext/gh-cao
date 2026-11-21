@@ -60,11 +60,13 @@ This specification does not cover:
 - causal inference.
 
 The authorized local command surface also registers `command-terminal` with
-`data.sources: []`. It is an interaction-only terminal, not an evidence view:
-execution details, output attachment, cancellation and retry cross the data
-worker's queue transport. Queue history, status filtering, ordering and counts
-remain declarative queries over the registered operational sources. Published
-dashboards neither enable this transport nor request queue data.
+`data.sources: []`: an interaction-only terminal, not an evidence view, whose
+execution, output, cancellation and retry cross the data worker's queue
+transport. Queue history, status filtering, ordering and counts remain
+declarative queries over registered sources. Published dashboards neither
+enable this transport nor request queue data.
+
+`modernization-controls` binds `config.actions`; its rows grant no authority.
 
 The `storage-info` element also declares `data.sources: []`. It presents deployment
 configuration rather than activity evidence: browser-local IndexedDB, local-server
@@ -1531,8 +1533,8 @@ A smell row identifies one detected condition with a stable `smell-id` and uniqu
 The optional table-column field `display` is `text`, `status`, `grader-status`, `mode`, `active-state`, `label`, `ref`, `digest`, `outcome-link`, `run-link`, `repository-link`, `workflow-link`, or `evidence-link` and defaults to `text`. It selects presentation independently from the field name. The optional table-column field `filter` is boolean and defaults to `true`; `false` excludes the column from interactive facet filters without changing its display or sorting. Named UI element values are `campaign-route`, `workflow-route-page`, `outcome-detail`, `outcome-detail-section`, `problem-detail`, `entity-route`, `configuration-policy`, `measure-history`, `factory-header`, `factory-floor`, `link-button-list`, and `markdown`; renderers dispatch these values without inferring behavior from page IDs, view IDs, or source contents.
 
 A dashboard CLI action placement is `toolbar`, `settings`, `view`, or `row`. Toolbar `verb: add` actions share the chrome **+** menu, keeping approval and capability checks. A `view` action is rendered only by the view that references it and is not duplicated in Settings or the global toolbar.
-The dashboard may declare at most 26 CLI actions. This authoring bound does not
-grant execution authority or change command-service allowlists.
+A dashboard declares at most 32 CLI actions; this bound grants no execution
+authority or allowlist entry.
 
 CLI command text supports literal `{{field}}` substitutions, not expressions or
 shell evaluation. Row fields remain bounded, validated command tokens.

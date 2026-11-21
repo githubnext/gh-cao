@@ -212,8 +212,14 @@ func (c *Catalog) Resolve(request Request, context TemplateContext) (operational
 		}
 	}
 	command := strings.Join(parts, " ")
-	if (request.Input != nil) != (command == "gh agent-task create --from-file -") {
+	if (request.Input != nil) != (command == "gh agent-task create --from-file -" || modernizationPlanInput(command)) {
 		return operational.CLICommandInvocation{}, requestError(400, "CLI action input is not valid for this command.")
+	}
+	if modernizationPlanInput(command) {
+		var plan map[string]any
+		if json.Unmarshal([]byte(*request.Input), &plan) != nil || plan == nil {
+			return operational.CLICommandInvocation{}, requestError(400, "Modernization approval requires a concrete JSON plan.")
+		}
 	}
 	return operational.CLICommandInvocation{
 		ActionID: action.ID, Command: command, Arguments: request.Arguments, Values: request.Values, Input: request.Input,

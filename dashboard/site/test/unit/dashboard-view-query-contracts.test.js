@@ -288,6 +288,7 @@ describe('dashboard view query contracts', () => {
       label: 'Experimental',
       experimental: true,
       pages: [
+        'ops',
         'wizard',
         'model-routing',
         'steering',

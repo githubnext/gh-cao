@@ -415,9 +415,9 @@ export function validateView(view, viewNode, path, viewIds, errors) {
     ));
   }
 
-  if (view.element === 'environment-defaults' && view.config === undefined) {
+  if ((view.element === 'environment-defaults' || view.element === 'modernization-controls') && view.config === undefined) {
     errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField,
-      'environment-defaults requires config.actions with scoped CLI action references.', `${path}.config`));
+      `${view.element} requires config.actions with scoped CLI action references.`, `${path}.config`));
   }
   if (view.element === 'prompt-wizard' || isPlainObject(view.config) && view.config.wizard !== undefined) {
     try {
@@ -448,7 +448,27 @@ export function validateView(view, viewNode, path, viewIds, errors) {
       const configNode = getValueNodeByKey(viewNode, 'config');
       validateObjectKeys(configNode, VIEW_ELEMENT_CONFIG_KEYS, `${path}.config`, errors);
       const defaultsActions = view.config.actions;
-      if ((view.config.actions !== undefined || view.element === 'environment-defaults') && (view.element !== 'environment-defaults'
+      if (view.element === 'modernization-controls') {
+        const commands = {
+          status: 'gh cao modernization status --repo {{repository}}',
+          preview: 'gh cao modernization preview --repo {{repository}} --action {{operation}} --mode {{mode}}',
+          execute: 'gh cao modernization execute --repo {{repository}} --preview {{preview}}'
+        };
+        if (!isPlainObject(defaultsActions) || Object.keys(defaultsActions).length !== 3
+          || Object.entries(commands).some(([key, command]) => {
+            const action = state.declaredCliActions.get(String(defaultsActions?.[key] ?? ''));
+            return action?.command !== command || action.placement !== 'view' || action['copy-only'] === true
+              || action.level !== (key === 'execute' ? 'operate' : 'explore') || (Array.isArray(action.arguments) && action.arguments.length > 0);
+          })) {
+          errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField,
+            'modernization-controls config.actions must reference exact view-placed Modernization status/preview/execute commands with matching levels.',
+            `${path}.config.actions`));
+        }
+        if (view.config.body !== undefined && view.config.body !== 'campaign') {
+          errors.push(createError(ERROR_CODES.invalidScopeFilterTimeAggregationOrOrderReference,
+            'modernization-controls config.body supports only campaign.', `${path}.config.body`));
+        }
+      } else if ((view.config.actions !== undefined || view.element === 'environment-defaults') && (view.element !== 'environment-defaults'
         || !isPlainObject(defaultsActions)
         || Object.keys(defaultsActions).length !== 6
         || ['get-repo', 'update-repo', 'get-org', 'update-org', 'get-ent', 'update-ent']
@@ -490,10 +510,10 @@ export function validateView(view, viewNode, path, viewIds, errors) {
            `${path}.config.body`
          ));
        }
-      } else if (view.config.body !== undefined) {
+      } else if (view.config.body !== undefined && view.element !== 'modernization-controls') {
        errors.push(createError(
          ERROR_CODES.missingOrInvalidRequiredField,
-         'config.body is supported only for the workflow-route-page, campaign-route, and outcome-detail-section elements.',
+         'config.body is supported only for the workflow-route-page, campaign-route, outcome-detail-section, and modernization-controls elements.',
          `${path}.config.body`
        ));
       }

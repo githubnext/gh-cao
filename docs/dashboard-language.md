@@ -94,6 +94,49 @@ data is about or intended to show. Its optional `objective` explains why the que
 exists or what to improve or understand; `acceptance` states the conditions for
 the query to be acceptable. Views use the same three semantic fields.
 
+### Watch the retained farm
+
+**Experimental → Ops** is an attention-first view of retained CAO
+evidence. It shows the latest recorded workflow blockers, pending review and
+unknown states; nonterminal run attempts; repository inventory and workflow
+coverage; and recent safe-output lifecycles with evidence links. Its queries and
+cards live in `dashboard/site/dashboard-fragments/ops.json` and use the shared
+page subscription through the worker or Go/PostgreSQL query boundary.
+
+The selected scope and horizon bound the evidence, not a live execution queue
+or a complete enrolled-target census. Repository counts describe latest
+workflow states; timed-run coverage excludes untimed runs. Missing, partial,
+stale and unavailable evidence does not establish an idle or healthy farm.
+Delivery, registry-derived adoption, human acceptance and operational Value are
+distinct. The evidence views remain read-only.
+Before the first local snapshot, it remains navigable with explicit missing-data
+states; it does not collect evidence or supply sample rows.
+
+Ops also offers the shared **Modernization** lifecycle controls, available from
+the Modernization campaign page too. The controls target the farm: its control
+repository is identified from retained Modernization coordinator inventory (a
+choice appears only when several farms are retained), and the native operator
+re-checks it. Choose **Check farm readiness** to see every repository and task
+in the approved plan. Assess the system, review/import and
+approve a concrete plan, review the next ready batch, inspect issues and pull
+requests, or verify results. Review mode is the default. Live mode cannot exceed
+the control repository's reviewed policy. Each mutation requires a fresh native
+preview of its exact revision, repositories, tasks and effects followed by
+separate confirmation. Changing inputs or expiration invalidates the preview;
+stale policy, plan, revision or task evidence is rejected natively.
+
+These controls use the authorized native command queue, not browser GitHub
+credentials. The selected repository must match the owning CLI checkout's origin.
+Hosted or static deployments without that reviewed native adapter explicitly
+remain read-only. Accepted dispatch means only submission, not run success,
+human acceptance or operational Value. Navigation detaches output without
+cancelling remote work; inspect command history before retrying uncertain
+outcomes. Installation, rollout changes, merging and deployment remain excluded.
+
+Source metadata cannot be projected as row data by these declarative views.
+The shared view chrome therefore exposes incomplete or stale evidence metadata
+directly, including unknown states, without a view-specific query or UI element.
+
 ## A small query
 
 This query answers “Which workflows used the most AI Credits?” It groups usage
