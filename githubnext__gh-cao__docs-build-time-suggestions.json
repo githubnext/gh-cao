@@ -1,36 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T08:35:12Z",
-      "worker_run_id": "44885256490",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 08:35Z: gh run list shows no docs run newer than 44870776753; main = workspace HEAD = source_sha bb9a74f. Recomputed stored run_timings demo_s (n=20, nearest-rank p90, no refetch): median 2 s, p90 6, max 7 = 2.5 percent of exec median 78.5 s; ceiling saving 2 s vs 15 percent gate 11.78 s and 60 s gate: unmet. Only dashboard generation is the Build synthetic enterprise demo step (docs.yml:55-58); docs:build (astro) does not invoke dashboard/site build, so no duplicate build; docs.yml has no dashboard job. Reuse still blocked: scripts/simulate-dashboard-pages.mjs:67 now=Date.now() feeds generatedAt (line 76). Label-scoped REST open-issue search: only #20815 (checkout, other category). No issue; noop; next_category advanced to artifact transfer and Pages packaging.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T08:53:02Z",
       "worker_run_id": "44886693511",
@@ -869,6 +840,35 @@
         "44244171280"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 18:51Z: newest docs run still 44870776753; main bb9a74f = source_sha; Jobs API spot-check of 44870776753 Build documentation 15 s matches stored row. Stored build_docs_s recomputed (n=20, nearest-rank p90, no refetch): median 13.5 s, p90 15, min 8, max 16 = 17.2 percent of exec median 78.5 s; push median 13 (n=16), schedule 14 (n=4). 15 percent gate 11.78 s needs 87 percent of the step removed; 60 s gate unreachable. docs:build = astro build && validate-agent-docs && discovery test (package.json:47); validator and test read dist/, no duplicate Astro build. Output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT (SiteFooter.astro:9; validate-agent-docs.mjs:571). Sub-step split unmeasured: build job logs HTTP 403 (DIFC) re-checked 18:52Z, not bypassed. No issue; noop; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T19:15:10Z",
+      "worker_run_id": "44939682057",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280"
+      ],
+      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 19:15Z gh run list (25 rows): no docs run newer than 44870776753; HEAD bb9a74f = source_sha; open worker issues: only #20815 (checkout, other category, 0 comments, updatedAt 2026-11-13T17:41:19Z). Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): demo_s median 2 s, p90 6, max 7 = 2.5 percent of exec median 78.5 s; ceiling saving 2 s vs 15 percent gate 11.78 s and 60 s gate: unmet. Reuse still blocked: scripts/simulate-dashboard-pages.mjs:67 now=Date.now() feeds generatedAt (line 76); docs.yml:55-58 runs the step every build. No issue; noop; next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1711,8 +1711,8 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-21T17:31:18Z",
-    "worker_run_id": "44930229927",
+    "verified_at": "2026-11-21T19:15:10Z",
+    "worker_run_id": "44939682057",
     "window": "latest 20 completed non-cancelled docs.yml runs 44870776753 .. 44244171280; 16 push, 4 schedule, 20 success",
     "method": "recomputed from immutable run_timings rows (no refetch); nearest-rank p90; n=20; live gh run list and one Jobs API read (44870776753) at 15:32Z",
     "demo_step_s": {
@@ -1730,7 +1730,7 @@
     "gate_15pct_s": 11.78,
     "ceiling_saving_s": 2,
     "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 default now = Date.now(); docs.yml runs the step every build",
-    "verdict": "not actionable (ceiling 2 s median; unchanged)"
+    "verdict": "not actionable (unchanged): window 44870776753..44244171280 unchanged at 19:15Z; demo_s median 2 s, p90 6 s; 2.5 percent of exec median; gates unmet"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
@@ -1961,8 +1961,8 @@
     "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03"
   },
   "issue_search_note": {
-    "observed_at": "2026-11-21T18:20:06Z",
-    "note": "gh issue list (label self-care:docs-build-time-investigator, open) returned only #20815 (checkout, unchanged, 0 comments). No issue created in worker run 44934620307."
+    "observed_at": "2026-11-21T19:15:10Z",
+    "note": "gh issue list (label self-care:docs-build-time-investigator, open) returned only #20815 (checkout, unchanged, 0 comments). No issue created in worker run 44939682057."
   },
   "stale_queued_run": {
     "observed_at": "2026-11-21T09:18:55Z",
