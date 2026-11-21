@@ -98,6 +98,10 @@ The checked-in Value evidence packet that recurring collection uses as its start
 
 The `collection-health` registered runtime source: a bounded, read-only snapshot of the server-side webhook and collection profile's queue depth, pending tasks, dead letters, backfill state, and recent webhook and collection outcomes. It is exposed only through the authorized Dashboard Language query boundary, never stored in browser IndexedDB, and returns no raw error messages or credentials. See the Dashboard Language Specification, Section 5.4.
 
+## Commit identity override
+
+The optional root `git` object in a CAO policy document (`cao.json`) that sets the author and committer `name` and `email` for local `gh cao dashboard` maintenance commits. When present, it takes precedence over `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables and Git `user.name` and `user.email` configuration. It is non-secret execution metadata: it configures no authentication, grants no repository access, and changes no rollout policy or workflow authority. See CAO-CFG-008 in the [Control Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/control-architecture.md).
+
 ## Coordinator
 
 The CAO operator-facing name for the workflow that selects and dispatches work for a campaign. The canonical gh-aw term is [Orchestrator Workflow](https://github.github.com/gh-aw/reference/glossary/#orchestrator-workflow). Workflow source, policy, campaign manifests, and other technical contracts use the role name `orchestrator`.
