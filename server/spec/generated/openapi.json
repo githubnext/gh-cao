@@ -1224,7 +1224,7 @@
     "/api/token-broker": {
       "post": {
         "operationId": "TokenBroker_exchange",
-        "description": "Optional, request-only organization GitHub App broker implementing the gh-aw exchange shape. Authentication is exclusively the oidc_token in the JSON body, not OAuth, CSRF, a bearer header, or admission. The exact configured HTTPS endpoint is the OIDC audience. Enrolled immutable owner/repository IDs, workflow reference and SHA, trusted event/ref and signed job identity must match before issuance. App private keys are read from Azure Key Vault using managed identity. All responses are no-store with empty failure bodies. This initial single-process profile does not claim integrated-deployment conformance; actual Copilot use and renewal require operator acceptance.",
+        "description": "Optional, request-only organization GitHub App broker accepting gh-aw v2.0.0 exchange envelopes. Only copilot-request is supported; copilot-task and github-app return 501 after identity and enrollment checks. Authentication is exclusively the oidc_token in the JSON body, not OAuth, CSRF, a bearer header, or admission. The exact configured HTTPS endpoint is the OIDC audience. Enrolled immutable owner/repository IDs, workflow reference and SHA, trusted event/ref/type, signed github-hosted runner and signed job identity must match before issuance. Diagnostic job_id never selects credentials or grants authority. App private keys are read from Azure Key Vault using managed identity. All responses are no-store with empty failure bodies. This initial single-process profile does not claim integrated-deployment conformance; actual Copilot use and renewal require operator acceptance.",
         "parameters": [],
         "responses": {
           "200": {
@@ -1403,6 +1403,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/UnsupportedCopilotTaskExchange"
+                  },
+                  {
+                    "$ref": "#/components/schemas/UnsupportedGitHubAppExchange"
                   },
                   {
                     "$ref": "#/components/schemas/TokenBrokerInvalidation"
@@ -3956,6 +3959,16 @@
         },
         "description": "Only the credential and its actual upstream expiry are returned; no provider endpoint or other authority is conveyed."
       },
+      "BrokerJobContext": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Original logical GITHUB_JOB value, not percent-encoded. May be omitted when unavailable."
+          }
+        },
+        "description": "gh-aw v2 diagnostic metadata, never authorization or credential-selection evidence."
+      },
       "CollectionStatus": {
         "type": "object",
         "required": [
@@ -4262,6 +4275,10 @@
           "oidc_token"
         ],
         "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Original logical GITHUB_JOB value, not percent-encoded. May be omitted when unavailable."
+          },
           "token_type": {
             "type": "string",
             "enum": [
@@ -6857,6 +6874,10 @@
           "oidc_token"
         ],
         "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Original logical GITHUB_JOB value, not percent-encoded. May be omitted when unavailable."
+          },
           "operation": {
             "type": "string",
             "enum": [
@@ -7877,6 +7898,10 @@
           "oidc_token"
         ],
         "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Original logical GITHUB_JOB value, not percent-encoded. May be omitted when unavailable."
+          },
           "token_type": {
             "type": "string",
             "enum": [
@@ -7892,6 +7917,33 @@
           "not": {}
         },
         "description": "A known but unsupported capability; identity and enrollment are verified before returning 501."
+      },
+      "UnsupportedGitHubAppExchange": {
+        "type": "object",
+        "required": [
+          "token_type",
+          "oidc_token"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Original logical GITHUB_JOB value, not percent-encoded. May be omitted when unavailable."
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "github-app"
+            ]
+          },
+          "oidc_token": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A known but unsupported capability; no GitHub tools or safe-output credential is issued."
       },
       "UsageArtifactID": {
         "type": "string",

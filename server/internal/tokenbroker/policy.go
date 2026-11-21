@@ -32,6 +32,7 @@ func (s *Service) authorizedIdentity(i admission.Identity) bool {
 	if !stableID.MatchString(i.RepositoryID) || !stableID.MatchString(i.OwnerID) ||
 		!stableID.MatchString(i.RunID) || !stableID.MatchString(i.RunAttempt) ||
 		!stableID.MatchString(i.CheckRunID) || i.EnvironmentPresent || i.OwnerID != s.config.OwnerID ||
+		i.RunnerEnvironment != "github-hosted" ||
 		i.Issuer != admission.Issuer || !revision.MatchString(i.WorkflowSHA) ||
 		!validWorkflowRef(i.WorkflowRef) ||
 		!strings.HasPrefix(i.WorkflowRef, i.Repository+"/.github/workflows/") {
@@ -42,6 +43,10 @@ func (s *Service) authorizedIdentity(i admission.Identity) bool {
 	legacySubject := "repo:" + i.Repository + ":ref:" + ref
 	immutableSubject := "repo:" + owner + "@" + i.OwnerID + "/" + repository + "@" + i.RepositoryID + ":ref:" + ref
 	if !ok || i.Ref != ref || (i.Subject != legacySubject && i.Subject != immutableSubject) {
+		return false
+	}
+	if (strings.HasPrefix(ref, "refs/heads/") && i.RefType != "branch") ||
+		(strings.HasPrefix(ref, "refs/tags/") && i.RefType != "tag") {
 		return false
 	}
 	switch i.Event {
