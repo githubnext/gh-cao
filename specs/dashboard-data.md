@@ -1,7 +1,7 @@
 ---
 title: Central Agentic Ops Dashboard Data Architecture Specification
 description: Canonical data model, ingestion, IndexedDB persistence, consistency, recovery, and scale requirements for the gh-cao dashboard.
-version: 1.8.5
+version: 1.8.6
 status: Working Draft
 editors:
   - GitHub Next
@@ -9,7 +9,7 @@ editors:
 
 # Central Agentic Ops Dashboard Data Architecture Specification
 
-**Version:** 1.8.5
+**Version:** 1.8.6
 **Status:** Working Draft
 **Repository:** `githubnext/gh-cao`
 **Target implementation:** Dashboard data subsystem
@@ -1061,11 +1061,26 @@ preserve previously published evidence, including admitted streamed observations
 and its discovery checkpoint. Acquisition SHALL resume fixed-interval pagination
 across passes and restarts, split intervals exceeding the provider's filtered
 search ceiling, retain earlier admitted pages inside the requested detail
-window, and preserve same-second run boundaries. It SHALL bound each pass to
-100 core API points shared across selected repositories and installed collectors,
-reserve at least 1000 points or 20% of the reported core quota, and fail closed
-when quota cannot be observed. Quota exhaustion SHALL pause rather than consume
-the reserve. Concurrent unrelated clients share the provider quota.
+window, and preserve same-second run boundaries. Each pass SHALL read at most
+one 1000-run interval, requested as no more than ten 100-run pages, unless
+quota pauses it. It SHALL bound each pass to 500 core API points shared across
+selected repositories and installed collectors, counting only the pass's own
+requests so that other consumers of the same token cannot exhaust it. It SHALL
+reserve at least 1000 points or 20% of the reported core quota, recheck that
+reserve before every request, and fail closed when quota cannot be observed.
+Quota exhaustion SHALL pause rather than consume the reserve. Concurrent
+unrelated clients share the provider quota.
+Runs that never executed, namely skipped activations and runs awaiting approval,
+SHALL be excluded from acquisition. Until history discovery reaches the requested
+window, including on an empty database, the persistent local server SHALL run
+passes back to back, two seconds apart; reserve exhaustion SHALL wait for the
+quota reset, and failed passes SHALL keep the normal refresh cadence.
+Discovered agentic runs lacking artifacts SHALL enter a persisted
+per-repository artifact backlog, ordered newest first, holding at most 5000 runs
+and pruned to the requested window. Each pass SHALL request artifacts for at
+most `--count` backlog runs; runs left by a time or quota ceiling MUST be
+retried in later passes, even after the history cursor has advanced, so their
+safe outputs are ingested.
 The `transactions` store MAY contain one `local-dashboard-ingestion` receipt,
 with `ingestionStatus`, `ingestionMessage`, `ingestionRepository`, `scannedHours`,
 `targetHours`, observed `apiRemaining`, `apiReserve`, `apiResetAt`, and
@@ -5645,6 +5660,14 @@ set or enumerate unrelated worker partitions.
 ---
 
 # 74. Change Log
+
+## Version 1.8.6 — Local acquisition pass budget and artifact backlog
+
+* Corrected §5.2 to bound each local acquisition pass to 500 self-counted core
+  API points instead of 100, with one 1000-run interval read per pass.
+* Required back-to-back passes until history discovery reaches the requested
+  window, excluded runs that never executed, and specified the persisted
+  per-repository artifact backlog.
 
 ## Version 1.8.4 — Bounded browser ingestion fetch retry
 
