@@ -1,35 +1,7 @@
 {
   "source_sha": "bb9a74f6914385d674c6bb10236c91939be72733",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T03:34:01Z",
-      "worker_run_id": "44861512693",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280",
-        "44060953578"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44812654835 (push 3bd1058, 2026-11-20T20:34:54Z) .. 44060953578 (push, 2026-11-17T10:01:34Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 03:34Z: gh run list shows no docs.yml run after 44812654835; HEAD bb9a74f = source_sha; only open issue for this worker is #20815 (blobless checkout), no dashboard-generation duplicate. Stored immutable rows recomputed without refetch (n=20, nearest-rank p90): demo step median 2.5 s (p90 6, max 7) = 3.2 percent of exec median 79 s; 15 percent gate 11.85 s and 60 s gate both unreachable (ceiling saving 2.5 s). Reuse rejected: scripts/simulate-dashboard-pages.mjs defaults now to Date.now() and the schedule exists to refresh synthetic dates (docs.yml cron comment), so reuse would weaken freshness. No suggestion; next_category advanced to artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-11-21T03:53:12Z",
       "worker_run_id": "44863075273",
@@ -868,6 +840,35 @@
         "44244171280"
       ],
       "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 13:16Z gh run list: no docs run newer than 44870776753; HEAD bb9a74f = source_sha; package.json astro 7.4.2 (no Astro upgrade at HEAD). Stored build-docs rows recomputed without refetch (n=20, nearest-rank p90): median 13.5 s (p90 15, min 8, max 16) = 17.2 percent of exec median 78.5 s; 15 percent gate 11.78 s needs 87 percent of the step removed; 60 s gate unreachable. docs:build runs astro build, validate-agent-docs and the discovery test, which read dist/; no duplicate build to remove; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT. Label-scoped open issue search: only #20815 (checkout), not repeated. No suggestion; noop; next_category advanced to reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T13:32:26Z",
+      "worker_run_id": "44909117026",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502",
+        "44244171280"
+      ],
+      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 13:32Z gh run list: no docs run newer than 44870776753; HEAD bb9a74f = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): demo step median 2 s (p90 6, max 7) = 2.5 percent of exec median 78.5 s; push 2.5 s, schedule 1.5 s; window sum 59 s of 1796 s exec. Full removal would save at most 2 s median (76.0 s), so 15 percent gate 11.78 s and 60 s gate unmet. Reuse still blocked by Date.now() default (scripts/simulate-dashboard-pages.mjs:67) and schedule exists for synthetic-date refresh. Label-scoped open issue search: only #20815 (checkout, other category), not repeated. No issue created. next_category advanced to artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1711,10 +1712,10 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-21T11:52:33Z",
-    "worker_run_id": "44900903101",
+    "verified_at": "2026-11-21T13:32:26Z",
+    "worker_run_id": "44909117026",
     "window": "latest 20 completed non-cancelled docs.yml runs 44870776753 .. 44244171280; 16 push, 4 schedule, 20 success",
-    "method": "recomputed from immutable run_timings rows (no refetch); nearest-rank p90; n=20; live gh run list unchanged",
+    "method": "recomputed from immutable run_timings rows (no refetch); nearest-rank p90; n=20; live gh run list unchanged at 13:32Z",
     "demo_step_s": {
       "median": 2,
       "p90": 6,
