@@ -1,36 +1,7 @@
 {
-  "source_sha": "c05079cdfb276ca29c5762ccce8502eb57ec8a73",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "22d22e49d15d6daa46ad5eee954a61c6022f0f63",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-21T10:52:57Z",
-      "worker_run_id": "44896092478",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254",
-        "44253520996",
-        "44252368502",
-        "44244171280"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 10:51Z: no in_progress or waiting docs run; queued 37642403569 is a 2026-10-07 workflow_run stub outside the window and not blocking; main = bb9a74f = source_sha (compare identical). Recomputed from immutable run_timings (n=20, nearest-rank p90, no refetch): queue median 3.5 s (p90 4); exec median 78.5 s (p90 139). Adjacent-interval overlap 0 (min gap 190 s from 07:31Z check), so cancel-in-progress true saves 0 s; keep false. Avoidable push rebuilds 0 of 16; 4 schedule runs required for synthetic-date refresh. Deploy-stage outliers (GitHub-managed Deploy Pages 92 s on 44576080583, 69 s on 44337804857) are not concurrency-related and not workflow-controllable. No suggestion; no issue; noop. next_category advanced to dependency installation and caching.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-21T11:17:24Z",
       "worker_run_id": "44898076035",
@@ -869,6 +840,35 @@
         "44252368502"
       ],
       "outcome": "complete, not actionable (window unchanged since 19:33Z; newest 44940649662 already in stored rows). Window: latest 20 completed non-cancelled docs.yml runs 44940649662 (push, c05079c, 2026-11-21T19:23:04Z) .. 44252368502 (push, 2026-11-18T06:34:43Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; dropped 44244171280 (schedule). Live gh run list (40) at 21:16Z: no docs run newer than 44940649662, none queued or running; open worker issues: only #20815 (checkout, other category, not repeated). Recomputed immutable transfer_model rows (n=20, nearest-rank p90, no refetch): handoff median 5 s (p90 7); configure 1 s; upload 2 s (p90 3; artifact 7.46 MB); deploy setup 1 s; removable median 9 s (p90 11, max 13) = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at 100 percent removal. Deploy Pages (GitHub-managed) median 7 s, tails 69-92 s, not workflow-controllable. Merge-deploy ceiling about 6 s still rejected (github-pages environment and id-token boundary). No suggestion; no issue; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-21T21:33:30Z",
+      "worker_run_id": "44951754874",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214",
+        "44254629254",
+        "44253520996",
+        "44252368502"
+      ],
+      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44940649662 (push, c05079c, 2026-11-21T19:23:04Z) .. 44252368502 (push, 2026-11-18T06:34:43Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; 44244171280 dropped by cap. Live 21:33Z gh run list (25): one in_progress docs run 44952052187 (push, 22d22e4, started 21:32:22Z) excluded until completed; main moved c05079c to 22d22e4 (compare: one commit, docs/glossary.md, docs/** on.push.paths, build-consumed). Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): queue median 3.5 s (p90 4, max 5) = 4.5 percent of exec median 78.5 s; exec p90 139; push exec median 82 s (n=17), schedule 74 s (n=3). Live createdAt/startedAt/updatedAt: 0 overlapping adjacent executions, min gap 190 s; cancel-in-progress true would save 0 s; documentation-pages group keeps cancel-in-progress false (deployment ordering). Avoidable push rebuilds 0 of 17 (c05079c touched 3 dashboard/site/src files, build-consumed). Schedule cron 05:23 UTC kept: synthetic dates use Date.now default (scripts/simulate-dashboard-pages.mjs:67); no push in window before 05:23 UTC on its day, so no redundant schedule; schedule runs do not block pushes. Gates 60 s and 11.78 s unmet. Open issues: only #20815 (checkout, other category, 0 comments, updatedAt 2026-11-13T17:41:19Z), not repeated. No issue; noop; next_category advanced to dependency installation and caching.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1947,8 +1947,8 @@
     "note": "build completed to deploy job created; deploy job queue; no environment approval wait; merge-deploy rejected earlier (github-pages environment and id-token boundary)"
   },
   "window_head_note": {
-    "verified_at": "2026-11-20T23:54:00Z",
-    "note": "9f0e584 (push, 2026-11-20T23:25Z, PR #21324) verified via compare API 3bd1058...9f0e584: one commit touching server/cmd/cao-dashboard/audit_delivery_test.go, server/internal/operational/conformance_test.go, server/internal/redisx/operational.go; all outside docs.yml on.push.paths; no docs run expected or observed. docs-consumed state at 9f0e584 equals 3bd1058. Earlier 826c4f4 note retained in evaluations: build-consumed via dashboard/site/src/command-origin.js."
+    "verified_at": "2026-11-21T21:33:30Z",
+    "note": "main 22d22e4 (one commit, docs/glossary.md) starts push docs run 44952052187 at 21:32:22Z; build-consumed; excluded from the sample until completed. c05079c (window head) touched 10 files, 3 under dashboard/site/src (build-consumed). Local clone history is grafted at c05079c (c05079c^ unavailable): use REST commit/compare APIs for file lists."
   },
   "astro_step_recheck": {
     "verified_at": "2026-11-21T20:32:23Z",
