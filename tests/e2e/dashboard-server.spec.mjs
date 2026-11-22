@@ -23,6 +23,11 @@ const SERVER_LOCAL_ONLY_PAGES = new Map([
 const accessToken = process.env.DASHBOARD_SERVER_ACCESS_TOKEN
   || "0123456789abcdef0123456789abcdef";
 
+// Go allows a PostgreSQL read transaction up to 60 seconds. Leave time for
+// HTTP transport and let the browser render the result before timing out.
+const queryRequestTimeout = 65_000;
+const queryRenderTimeout = 75_000;
+
 const queryBudget = createDashboardServerQueryBudget();
 let captureQueryResponse;
 
@@ -31,7 +36,7 @@ test.beforeEach(async ({ context }) => {
   await context.route("**/api/v1/query", async (route) => {
     const capture = captureQueryResponse;
     await queryBudget.run(async () => {
-      const response = await route.fetch();
+      const response = await route.fetch({ timeout: queryRequestTimeout });
       capture?.({ ...captureDashboardQueryResponse(response), request: route.request() });
       await route.fulfill({ response });
       return response;
@@ -258,7 +263,7 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
             }
           }).toPass({ timeout: 30_000 });
           await scrollRenderedViewsIntoView(activePage);
-          await expect(activePage.locator(visibleBusyViewSelector)).toHaveCount(0, { timeout: 30_000 });
+          await expect(activePage.locator(visibleBusyViewSelector)).toHaveCount(0, { timeout: queryRenderTimeout });
           const failures = await activePage.locator('[aria-label^="Unable to load "]')
             .evaluateAll((items) => items.map((item) => item.getAttribute("aria-label")));
           result.errors.push(...failures, ...browserErrors);
