@@ -1,36 +1,7 @@
 {
   "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-22T02:52:59Z",
-      "worker_run_id": "44977758791",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44974265341 (push, 9edb6bb, 2026-11-22T02:03:16Z) .. 44254629254 (push, 2026-11-18T06:53:01Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; dropped ... [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-22T03:21:12Z",
       "worker_run_id": "44979899710",
@@ -869,6 +840,35 @@
         "44311127214"
       ],
       "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 12:3xZ: newest docs.yml 44989298582, HEAD 9edb6bb = source_sha, 0 queued or in progress; 20 stored transfer_model rows recomputed without refetch: removable (handoff 5 + configure 1 + upload 2 + deploy setup 1) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; Deploy Pages is GitHub-managed, median 7 s, tails 92 s (44576080583) and 69 s (44337804857) in 2 of 20 runs, not repeated and artifact size unmeasured for those runs; artifacts 7.5-9.4 MB; no repeated workflow-side lever). Issue search: only #20815 open (checkout, not re-proposed).",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-22T12:54:01Z",
+      "worker_run_id": "45024292697",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214"
+      ],
+      "outcome": "complete, not actionable (re-verified; window unchanged since 11:17Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dropped 44254629254. Live gh run list 12:5xZ: same 20 IDs, none queued or in progress, HEAD 9edb6bb = source_sha. Recomputed from stored run_timings (no refetch): queue median 3 s, p90 4 s; push exec median 84.5 s, schedule 75.5 s; 0 overlapping executions (createdAt/updatedAt intervals); 0 of 16 push heads avoidable (path_filter_verified); 4 schedule runs kept for synthetic-date freshness. Considered and rejected: reuse of Astro output on schedule runs whose head a push run built in-window (3 of 4 schedule runs; 14 s median on those runs only, 0 s effect on the 78.5 s workflow median; needs cross-run artifact access beyond contents: read and a deploy-provenance review). Gates 60 s and 15 percent (11.78 s) unmet. Open issue search: only #20815 (checkout, not repeated).",
       "suggestion_fingerprint": null
     }
   ],
@@ -1777,7 +1777,15 @@
     },
     "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions; group referenced only by docs.yml",
     "avoidable_rebuilds": "0 of 16 push heads; 4 schedule runs required for synthetic-date freshness",
-    "verdict": "not actionable (re-verified 2026-11-22T09:33:47Z)"
+    "verdict": "not actionable (re-verified 2026-11-22T09:33:47Z)",
+    "last_reverified_at": "2026-11-22T12:54:01Z",
+    "last_reverified_worker_run_id": "45024292697",
+    "same_head_schedule_reuse": {
+      "verdict": "rejected (not actionable)",
+      "evidence": "schedule 44989298582 on 9edb6bb after push 44974265341; 44680921088 on 4eb6bb3 after push 44576080583; 44465043275 on 7145c59 after push 44357668509; 44870776753 on bb9a74f has no in-window push",
+      "savings": "Astro build ~14 s median on those runs only; checkout and demo still needed; 0 s workflow-median effect",
+      "blockers": "cross-run artifact download needs actions: read (workflow has contents: read only); deploy provenance; artifact retention"
+    }
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-19T17:18:41Z",
