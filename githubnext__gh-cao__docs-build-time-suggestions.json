@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-22T12:37:41Z",
-   "worker_run_id": "45022947541",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214"
-   ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 12:3xZ: newest docs.yml 44989298582, HEAD 9edb6bb = source_sha, 0 queued or in progress; 20 stored transfer_model rows ... [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-22T12:54:01Z",
    "worker_run_id": "45024292697",
@@ -870,6 +841,35 @@
    ],
    "outcome": "complete, not actionable (window unchanged: live gh run list at 2026-11-22T22:32:14Z shows the same 20 completed non-cancelled IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued; main and local HEAD 9edb6bb = source_sha). Stored run_timings recomputed without refetch: demo step median 2 s, nearest-rank p90 4 s, max 7 s = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at full removal (ceiling saving 2 s). Cross-run reuse blocked by synthetic-date generatedAt (scripts/simulate-dashboard-pages.mjs:67,76); docs:build has no dashboard-site builder. Open issues for this worker: #20815 only (checkout, out of category); #21405 is an automatic incomplete-result report, not a suggestion. No suggestion.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T22:51:35Z",
+   "worker_run_id": "45079820476",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list and main HEAD 9edb6bb (= source_sha) unchanged at 22:51Z. Stored immutable transfer_model rows recomputed: removable (handoff + Configure Pages + Upload Pages artifact + deploy Set up job) median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet. Jobs API spot check of 44989298582 matched row fields; handoff is 5 s job-level or 6 s from last build step (ambiguity noted; removable 8-9 s, decision unchanged). Merging build and deploy blocked by github-pages environment/id-token boundary (scheduling_deploy_handoff). Deploy Pages (GitHub-managed) excluded; outliers 44576080583 (92 s) and 44337804857 (69 s) disclosed.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1655,9 +1655,9 @@
   },
   "worker_run_id": "44638063158",
   "last_reverified": {
-   "verified_at": "2026-11-22T21:16:19Z",
-   "worker_run_id": "45070845124",
-   "result": "window unchanged (44989298582..44311127214, HEAD 9edb6bb); live gh run list matched; stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s); gates unmet; decision unchanged (not actionable)."
+   "verified_at": "2026-11-22T22:51:35Z",
+   "worker_run_id": "45079820476",
+   "result": "window unchanged (44989298582..44311127214, HEAD 9edb6bb); live gh run list matched; Jobs API spot check of 44989298582 matched stored fields (handoff 5 s job-level vs 6 s step-level stored; removable 8-9 s); removable median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s; gates unmet; decision unchanged (not actionable)."
   },
   "live_spot_check": {
    "verified_at": "2026-11-22T01:06:00Z",
