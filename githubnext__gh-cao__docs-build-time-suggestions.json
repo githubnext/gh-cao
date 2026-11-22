@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bb",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-21T17:14:58Z",
-   "worker_run_id": "44928716812",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280"
-   ],
-   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 17:14Z gh run list (30 rows): no docs run newer than 44870776753, none queued or in progress; main and workspace HEAD bb9a74f = source_sha. Stored run_timings rows recomputed locally (n=20, nearest-rank p90, no refetch): Build documentation median 13.5 s, p90 15, min 8, max 16 = 17.2 percent of exec median 78.5 s (exec p90 139). 15 percent gate 11.78 s needs 87 percent of the step removed; 60 s gate unreachable. The step runs docs:build (package.json:47: astro build, validate-agent-docs, discovery test) and must produce dist/ for deploy; validators read dist/, so they cannot be dropped or run ahead of Astro. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (docs/components/SiteFooter.astro:9; scripts/validate-agent-docs.mjs:571). Sub-step split unmeasured (job logs HTTP 403, not bypassed). Open worker issues: only #20815 (checkout, other category, OPEN, 0 comments), not repeated. Correlation 44928349950-4528. No issue; noop; next_category advanced to reusable dashboard generation.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-21T17:31:18Z",
    "worker_run_id": "44930229927",
@@ -869,6 +840,35 @@
    ],
    "outcome": "complete, not actionable (window unchanged in composition since 02:52Z: 44974265341 newest, 44254629254 oldest; 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; no docs run newer than 44974265341 at 03:19Z). Immutable run_timings recomputed, no refetch: install median 10.5 s (p90 12) = 13.0 percent of exec median 80.5 s; 15 percent gate 12.07 s unmet even at full install removal; setup-node median 4 s (required for pinned Node 24); post-setup-node 0-1 s in 20/20 = exact-key hits. Live caches API 03:18Z: node-cache-Linux-x64-npm-7808ecf8 present, 263412733 B, root lock unchanged since 7c8faf4 (2026-11-13); 9edb6bb touches no lock, package, or docs.yml file. node_modules cache best case 3-6 s (unvalidated) below gates. Open issues: only #20815 (checkout), not repeated. No issue; noop; next_category advanced to Astro documentation generation.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T03:35:01Z",
+   "worker_run_id": "44981019330",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254"
+   ],
+   "outcome": "complete, not actionable (window unchanged in composition since 03:21Z; 44974265341 is newest). Window: latest 20 completed non-cancelled docs.yml runs 44974265341 (push, 9edb6bb, 2026-11-22T02:03:16Z) .. 44254629254 (push, 2026-11-18T06:53:01Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 03:34Z: same 20 IDs, none queued or in progress; HEAD 9edb6bb = source_sha. Live Jobs API read of 44974265341: Build documentation 02:04:00-02:04:11 (11 s) matches stored row. Stored build_docs_s recomputed (n=20, nearest-rank p90, no refetch): median 14 s, p90 15, min 8, max 16 = 17.4 percent of exec median 80.5 s (exec p90 139); push 14 (n=17) vs schedule 15 (n=3). 15 percent gate 12.07 s needs 86 percent of the step removed; 60 s gate unreachable. Step produces dist/ required by deploy and validators read dist/, so they cannot be dropped or run ahead of Astro; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Sub-step split unmeasured (job logs not readable, not bypassed). Open worker issues not searched (no create). No issue; noop; correlation 44980651752-4558; next_category advanced to reusable dashboard generation.",
+   "suggestion_fingerprint": null
   }
  ],
  "docs_cache_model": {
@@ -1624,7 +1624,7 @@
    ]
   ],
   "summary": {
-   "removable_median_s": 9.0,
+   "removable_median_s": 9,
    "removable_p90_s": 11,
    "removable_max_s": 13,
    "exec_median_s": 80.5,
@@ -1720,7 +1720,7 @@
   "window": "latest 20 completed non-cancelled docs.yml runs 44974265341 (push, 9edb6bb, 2026-11-22T02:03:16Z) .. 44254629254 (push, 2026-11-18T06:53:01Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; dropped 44253520996 (push, exec 78 s)",
   "method": "recomputed from immutable run_timings rows (no refetch); nearest-rank p90; n=20; live Jobs API read of 44974265341 (demo step 02:04:11-02:04:12) and gh run list 02:20Z (30 rows, all success, none queued)",
   "demo_step_s": {
-   "median": 2.0,
+   "median": 2,
    "p90": 6,
    "min": 1,
    "max": 7,
@@ -1732,7 +1732,7 @@
   },
   "demo_share_of_exec_median_pct": 2.5,
   "gate_15pct_s": 12.07,
-  "ceiling_saving_s": 2.0,
+  "ceiling_saving_s": 2,
   "reuse_blocker": "scripts/simulate-dashboard-pages.mjs:67 default now = Date.now(); feeds generatedAt in the output; docs.yml runs the step every build",
   "verdict": "not actionable (unchanged): demo step 2 s median, 2.5 percent of exec median; 15 percent and 60 s gates unmet even at full removal",
   "live_check": "Jobs API 44952052187 demo step 21:33:30-21:33:32 matched stored row; gh run list 00:36Z no newer docs run"
