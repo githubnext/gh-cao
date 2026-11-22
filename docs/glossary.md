@@ -112,7 +112,7 @@ The repository that hosts CAO workflows and policy. It coordinates work across e
 
 ## Copilot requests token broker
 
-A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) that exchanges a GitHub Actions OIDC identity for a dedicated organization App installation token limited to `organization_copilot_requests: read`. The control repository's `control-plane.token-broker.copilot-requests.workflows` policy must pin the exact owner and repository IDs, workflow reference, and workflow revision; an empty list authorizes nothing. It grants credential authorization only, never rollout, admission, or repository-write authority.
+A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) that exchanges a GitHub Actions OIDC identity for a dedicated organization App installation token limited to `organization_copilot_requests: read`. Only the `copilot-request` capability is issued; known `copilot-task` and `github-app` requests return 501 after identity and enrollment checks. The control repository's `control-plane.token-broker.copilot-requests.workflows` policy must pin the exact owner and repository IDs, workflow reference, and workflow revision; an empty list authorizes nothing. Issuance also requires signed `github-hosted` runner evidence and a signed `ref_type` matching the enrolled branch or tag. The diagnostic `job_id` never selects credentials. The broker grants credential authorization only, never rollout, admission, or repository-write authority.
 
 ## Daily partition
 
