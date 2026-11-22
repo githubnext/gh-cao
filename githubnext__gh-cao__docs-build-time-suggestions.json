@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-22T13:52:40Z",
-   "worker_run_id": "45029483895",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214"
-   ],
-   "outcome": "complete, not actionable (window unchanged; live gh run list at 13:52Z: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; main == ... [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-22T14:17:27Z",
    "worker_run_id": "45031714642",
@@ -869,6 +840,35 @@
     "44311127214"
    ],
    "outcome": "complete, not actionable. Window unchanged (live gh run list 23:31Z: same 20 completed non-cancelled IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; main 9edb6bb == source_sha). Stored rows recomputed without refetch: setup-node median 4 s p90 6; post-step median 0 s; install median 9.5 s p90 12; setup+install+post median 14 s p90 17 = 17.8 pct of exec median 78.5 s. Best case removes install (9.5 s, 12.1 pct), but a node_modules restore costs about 3-6 s, so net saving is about 3-6 s; both 15 pct gate (11.78 s) and 60 s gate unmet. Lock history: root and dashboard package-lock.json last changed 7c8faf4 (2026-11-13), so no dashboard-only lock change. Cache 7808ecf8 present (created 2026-11-13T20:57Z, last accessed 23:28Z, 263412733 B). Next category: Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T23:51:55Z",
+   "worker_run_id": "45085196172",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable (window unchanged: live gh run list at 23:50Z shows the same 20 completed non-cancelled IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued; main HEAD 9edb6bb = source_sha; Jobs API spot check of 44989298582 matches stored row (Build documentation 14 s); build docs median 14 s, p90 15 s = 17.8 pct of exec median 78.5 s; 15 pct gate 11.78 s needs about 84 pct of the step removed; 60 s gate unreachable; docs:build validators and integration test are correctness gates; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasurable, job logs HTTP 403 DIFC, not bypassed)",
    "suggestion_fingerprint": null
   }
  ],
@@ -1983,10 +1983,10 @@
   "note": "Main 062a72e (2026-11-22T01:01Z, tests/e2e/dashboard-server.spec.mjs) and 627ee49 (22:42Z, server/Dockerfile, server/README.md, tests/e2e, tests/unit) match no docs trigger path; neither added a docs run. 22d22e4 (glossary, docs/glossary.md) is build-consumed."
  },
  "astro_step_recheck": {
-  "verified_at": "2026-11-22T22:17:39Z",
-  "worker_run_id": "45076552482",
-  "correlation_id": "45076081806-4614",
-  "window": "44989298582..44311127214 (16 push, 4 schedule, 20 success); live gh run list unchanged at 22:1xZ; stored rows recomputed (no log refetch)",
+  "verified_at": "2026-11-22T23:51:55Z",
+  "worker_run_id": "45085196172",
+  "correlation_id": "45084790665-4619",
+  "window": "44989298582..44311127214 (16 push, 4 schedule, 20 success); live gh run list unchanged at 23:50Z; one Jobs API spot check of 44989298582; stored rows recomputed (no log refetch)",
   "decision": "not actionable (unchanged): build docs median 14 s p90 15 s (17.8 percent of exec median 78.5 s); 84 percent removal needed for 15 percent gate (11.78 s); 60 s gate unreachable; docs:build validators and integration test are correctness gates; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance"
  },
  "hashfiles_key_verified": {
