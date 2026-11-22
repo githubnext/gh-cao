@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-22T12:54:01Z",
-   "worker_run_id": "45024292697",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214"
-   ],
-   "outcome": "complete, not actionable (re-verified; window unchanged since 11:17Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 ... [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-22T13:33:09Z",
    "worker_run_id": "45027755659",
@@ -869,6 +840,35 @@
     "44311127214"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list and main HEAD 9edb6bb (= source_sha) unchanged at 22:51Z. Stored immutable transfer_model rows recomputed: removable (handoff + Configure Pages + Upload Pages artifact + deploy Set up job) median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet. Jobs API spot check of 44989298582 matched row fields; handoff is 5 s job-level or 6 s from last build step (ambiguity noted; removable 8-9 s, decision unchanged). Merging build and deploy blocked by github-pages environment/id-token boundary (scheduling_deploy_handoff). Deploy Pages (GitHub-managed) excluded; outliers 44576080583 (92 s) and 44337804857 (69 s) disclosed.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T23:18:20Z",
+   "worker_run_id": "45082214856",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 23:17Z: same 20 completed non-cancelled IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; main == 9edb6bb == source_sha; open label issues: #20815 only, 0 comments, updatedAt 2026-11-13T17:41:19Z). Stored rows recomputed without refetch: queue median 3 s p90 4 s; exec median 78.5 s p90 139 s; push 84.5 s vs schedule 75.5 s medians; 0 of 16 push heads avoidable (all build-consumed); schedule runs needed for synthetic dates; same-head schedule reuse 0.5 s effect, rejected; build-only cancel-in-progress rejected (single burst event). Next category: dependency installation and caching.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1785,8 +1785,8 @@
   "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions; group referenced only by docs.yml",
   "avoidable_rebuilds": "0 of 16 push heads; 4 schedule runs required for synthetic-date freshness",
   "verdict": "not actionable (re-verified 2026-11-22T09:33:47Z)",
-  "last_reverified_at": "2026-11-22T21:32:18Z",
-  "last_reverified_worker_run_id": "45072320112",
+  "last_reverified_at": "2026-11-22T23:18:20Z",
+  "last_reverified_worker_run_id": "45082214856",
   "same_head_schedule_reuse": {
    "verdict": "rejected (not actionable)",
    "evidence": "schedule 44989298582 on 9edb6bb after push 44974265341; 44680921088 on 4eb6bb3 after push 44576080583; 44465043275 on 7145c59 after push 44357668509; 44870776753 on bb9a74f has no in-window push",
@@ -1794,7 +1794,7 @@
    "blockers": "cross-run artifact download needs actions: read (workflow has contents: read only); deploy provenance; artifact retention",
    "counterfactual_2026_11_22": "exec median 78.5 -> 78 s (0.5 s) if the three same-head schedule builds saved their build step; not actionable"
   },
-  "last_reverified_note": "window unchanged (44989298582..44311127214, main 9edb6bb); live gh run list and gh api main at worker 45072320112: same 20 IDs, none queued or in progress; verdict unchanged (not actionable)."
+  "last_reverified_note": "window unchanged (44989298582..44311127214, main 9edb6bb) at worker 45082214856; live run list and HEAD unchanged; verdict unchanged (not actionable)."
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-19T17:18:41Z",
@@ -1995,8 +1995,8 @@
   "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03"
  },
  "issue_search_note": {
-  "observed_at": "2026-11-22T18:18:00Z",
-  "note": "gh issue list (open; label self-care:docs-build-time-investigator) returned only #20815 (checkout, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z). No issue created in worker run 45054089214."
+  "observed_at": "2026-11-22T23:18:20Z",
+  "note": "gh issue list (open; label self-care:docs-build-time-investigator) returned only #20815 (checkout, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z). No issue created in worker run 45082214856."
  },
  "stale_queued_run": {
   "observed_at": "2026-11-21T09:18:55Z",
