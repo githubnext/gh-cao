@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-22T08:34:15Z",
-   "worker_run_id": "45003138639",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214"
-   ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-22T08:53:00Z",
    "worker_run_id": "45004585465",
@@ -869,6 +840,35 @@
     "44311127214"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 18:3xZ: main == 9edb6bb == source_sha; same 20 IDs, none queued or in progress; no package-lock change since 7c8faf4 (2026-11-13); exact-key Linux cache 7808ecf8 present (last accessed 18:28Z). Recomputed run_timings (n=20, nearest-rank p90, no refetch; jobs spot-check of 44989298582 matched). setup-node median 4 s, install median 9.5 s (p90 12), post 0 s; dependency phase median 14 s (p90 17) = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; realistic net saving from cache-layout change 3-6 s.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T18:52:49Z",
+   "worker_run_id": "45057262249",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list at 18:52Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued; main == 9edb6bb == source_sha). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z). Build documentation median 14 s, p90 15 s, 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s needs 84 percent of the step removed; 60 s gate unreachable (max 16 s). Sub-step split unmeasured (job logs 403 difc, not bypassed). Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT embedded). Checkout median 25 s (32 percent of exec) is outside this category and remains represented by open #20815; not re-proposed.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1979,10 +1979,10 @@
   "note": "Main 062a72e (2026-11-22T01:01Z, tests/e2e/dashboard-server.spec.mjs) and 627ee49 (22:42Z, server/Dockerfile, server/README.md, tests/e2e, tests/unit) match no docs trigger path; neither added a docs run. 22d22e4 (glossary, docs/glossary.md) is build-consumed."
  },
  "astro_step_recheck": {
-  "verified_at": "2026-11-22T17:16:52Z",
-  "worker_run_id": "45048219983",
-  "correlation_id": "45047724741-4599",
-  "window": "44989298582..44311127214 (16 push, 4 schedule, 20 success); live gh run list 17:16Z unchanged",
+  "verified_at": "2026-11-22T18:52:49Z",
+  "worker_run_id": "45057262249",
+  "correlation_id": "45056748507-4604",
+  "window": "44989298582..44311127214 (16 push, 4 schedule, 20 success); live gh run list unchanged",
   "decision": "not actionable: build docs median 14 s p90 15 s (17.8 percent of exec median 78.5 s); 84 percent removal needed for 15 percent gate (11.78 s); 60 s gate unreachable; sub-step split unmeasured (403 on job logs); stored rows recomputed, no refetch"
  },
  "hashfiles_key_verified": {
