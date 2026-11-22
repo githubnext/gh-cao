@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bb",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-21T18:20:06Z",
-   "worker_run_id": "44934620307",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996",
-    "44252368502",
-    "44244171280"
-   ],
-   "outcome": "complete, not actionable (re-checked, window unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44870776753 (schedule, bb9a74f, 2026-11-21T05:24:55Z) .. 44244171280 (schedule, 2026-11-18T05:25:33Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 18:19Z gh run list (40 rows): no docs run newer than 44870776753, 0 queued or in progress; main and workspace HEAD bb9a74f = source_sha. Live startedAt/updatedAt recomputed (n=20): 0 adjacent overlaps, min gap 190 s; run-level median 83.0 s, p90 143, max 165. Stored queue median 3.5 s, p90 4 (4.5 percent of exec median 78.5 s). cancel-in-progress true saves 0 s; documentation-pages concurrency kept. 0 of 16 push heads avoidable; 4 schedule runs required for synthetic-date refresh. Maximum controllable saving far below the 11.8 s (15 percent) and 60 s gates. Open worker issues: only #20815 (checkout, other category, OPEN, 0 comments), not repeated. No issue; noop; next_category advanced to dependency installation and caching. Correlation 44934132463-4531.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-21T18:33:54Z",
    "worker_run_id": "44935896281",
@@ -868,6 +839,35 @@
     "44254629254"
    ],
    "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44974265341 (push, 9edb6bb, 2026-11-22T02:03:16Z) .. 44254629254 (push, 2026-11-18T06:53:01Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 04:20Z (30 rows): no docs run newer than 44974265341, none queued or running; HEAD 9edb6bb = source_sha; open worker issues: only #20815 (checkout, other category, OPEN, 0 comments, not repeated). Recomputed stored transfer_model rows (n=20, nearest-rank p90, no refetch): removable (handoff + Configure Pages + Upload artifact + deploy Set up job) median 9 s, p90 11, max 13 = 11.2 percent of exec median 80.5 s; 15 percent gate 12.07 s and 60 s gate unmet even at 100 percent removal. Deploy Pages (GitHub-managed) median 7 s, p90 14, max 92 (single outlier). Merging deploy into build would save about 6 s and would move id-token/pages permissions into the job that runs npm ci; rejected for deployment safety. No suggestion; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds. Correlation 44983968759-4560; worker run 44984388844.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T04:36:00Z",
+   "worker_run_id": "44985442435",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214",
+    "44254629254"
+   ],
+   "outcome": "complete, not actionable (re-verified). Window: latest 20 completed non-cancelled docs.yml runs 44974265341 (push, 9edb6bb, 2026-11-22T02:03:16Z) .. 44254629254 (push, 2026-11-18T06:53:01Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; dropped 44253520996. Live gh run list at 04:35Z: window composition identical to stored run_timings; no docs run queued or in progress (only stale queued 37642403569, 2026-10-07). Stored rows recomputed (n=20, nearest-rank p90, no refetch): queue median 3.5 s (p90 4) = 4.3 percent of exec median 80.5 s; exec p90 139; push exec median 82 (n=17), schedule 74 (n=3). Concurrency documentation-pages cancel-in-progress false: 0 overlapping executions, min createdAt gap 303 s; cancel-in-progress true saves 0 s and would risk cancelling in-flight deploys. Avoidable push rebuilds 0 of 17 (all build-consumed); 3 schedule runs are the daily refresh required by specs/dashboard-data.md:498. Live Jobs API spot-check 44974265341 matched stored row (queue 3, build 57, deploy 9, exec 71). Max per-run removable scheduling time 3.5 s; 15 percent gate 12.07 s and 60 s gate unmet. Open worker issues: only #20815 (checkout, other category), not repeated. No issue; noop; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1758,8 +1758,8 @@
   "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
  },
  "scheduling_verified": {
-  "verified_at": "2026-11-22T02:52:59Z",
-  "worker_run_id": "44977758791",
+  "verified_at": "2026-11-22T04:36:00Z",
+  "worker_run_id": "44985442435",
   "source_sha": "9edb6bb",
   "window": "latest 20 completed non-cancelled docs.yml runs 44974265341..44254629254; 17 push, 3 schedule, 20 success",
   "queue_s": {
@@ -1774,10 +1774,9 @@
    "push": 82,
    "schedule": 74
   },
-  "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions (live createdAt + stored queue/exec); min run-start gap 5 min; cancel true saves 0 s median",
-  "avoidable_rebuilds": "0 of 17 push heads avoidable; 9edb6bb build-consumed (docs/authentication.md); 3 schedule runs are the daily build required by specs/dashboard-data.md:498",
-  "watch": "push before the 05:23Z cron on the same UTC day (e.g. 44974265341 at 02:03Z before the 2026-11-22 schedule) can duplicate a build; skip needs actions:read and saves ~74 s per skipped run, not median exec",
-  "verdict": "not actionable (unchanged)"
+  "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions; min createdAt gap 303 s",
+  "avoidable_rebuilds": "0 of 17 push heads avoidable; 3 schedule runs required by specs/dashboard-data.md:498",
+  "verdict": "not actionable (unchanged, re-verified 04:36Z)"
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-19T17:18:41Z",
