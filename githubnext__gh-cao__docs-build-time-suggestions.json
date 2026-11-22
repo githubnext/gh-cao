@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-22T13:33:09Z",
-   "worker_run_id": "45027755659",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214"
-   ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 13:32Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; HEAD 9edb6bb = ... [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-22T13:52:40Z",
    "worker_run_id": "45029483895",
@@ -869,6 +840,35 @@
     "44311127214"
    ],
    "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 23:17Z: same 20 completed non-cancelled IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; main == 9edb6bb == source_sha; open label issues: #20815 only, 0 comments, updatedAt 2026-11-13T17:41:19Z). Stored rows recomputed without refetch: queue median 3 s p90 4 s; exec median 78.5 s p90 139 s; push 84.5 s vs schedule 75.5 s medians; 0 of 16 push heads avoidable (all build-consumed); schedule runs needed for synthetic dates; same-head schedule reuse 0.5 s effect, rejected; build-only cancel-in-progress rejected (single burst event). Next category: dependency installation and caching.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T23:31:45Z",
+   "worker_run_id": "45083502733",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable. Window unchanged (live gh run list 23:31Z: same 20 completed non-cancelled IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; main 9edb6bb == source_sha). Stored rows recomputed without refetch: setup-node median 4 s p90 6; post-step median 0 s; install median 9.5 s p90 12; setup+install+post median 14 s p90 17 = 17.8 pct of exec median 78.5 s. Best case removes install (9.5 s, 12.1 pct), but a node_modules restore costs about 3-6 s, so net saving is about 3-6 s; both 15 pct gate (11.78 s) and 60 s gate unmet. Lock history: root and dashboard package-lock.json last changed 7c8faf4 (2026-11-13), so no dashboard-only lock change. Cache 7808ecf8 present (created 2026-11-13T20:57Z, last accessed 23:28Z, 263412733 B). Next category: Astro documentation generation.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1955,9 +1955,9 @@
   }
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-22T21:52:23Z",
-  "worker_run_id": "45074171848",
-  "verdict": "not actionable (unchanged): window 44989298582..44311127214 unchanged; live main 9edb6bb; live cache 7808ecf8 present (last accessed 21:43Z); setup+install+post median 14 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet"
+  "evaluated_at": "2026-11-22T23:31:45Z",
+  "worker_run_id": "45083502733",
+  "verdict": "not actionable (unchanged): window 44989298582..44311127214 unchanged; live main 9edb6bb; root and dashboard package-lock.json last changed 7c8faf4 (2026-11-13); cache 7808ecf8 present (accessed 23:28Z); setup+install+post median 14 s = 17.8 pct of exec median 78.5 s; best-case install removal 9.5 s; 15 pct gate 11.78 s and 60 s gate unmet"
  },
  "job_topology_note": {
   "verified_at": "2026-11-18T22:20:34Z",
