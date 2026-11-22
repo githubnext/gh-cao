@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "id": "risk-review-finding-closure",
+  "task": {
+    "actor": "Repository operator",
+    "subject": "The synthetic pull-request risk review standalone workflow in githubnext/gh-cao and the review findings it raises against pull requests",
+    "intent": "Show which findings the pull-request risk review workflow raised in the horizon, when each severity appeared and whether it remains open, and link each open finding to its pull request so an operator can route follow-up before merge; a resolved or absent finding is not proof that the underlying risk is gone.",
+    "activationConditions": [
+      "The githubnext/gh-cao repository declares a standalone workflow at .github/workflows/pr-risk-review.md.",
+      "A pull request opened or updated in githubnext/gh-cao creates one stable review opportunity for that workflow, and the workflow records at least one finding against it within the 30-day horizon.",
+      "The gh-aw operational-value protocol publishes finding-closure-attainment observations for that workflow."
+    ],
+    "requiredEffects": [
+      "Each finding recorded for the workflow appears once in the severity timeline at its observation time, with its native status and a link to the run that raised it.",
+      "Each open finding appears in the follow-up queue, newest first, with its code, kind, severity, summary, raising run, and a link to its pull request when that association is available.",
+      "Each published finding-closure-attainment observation appears once with its native ratio value and maturity status, so interim and matured values remain distinguishable."
+    ],
+    "noopConditions": [
+      "No finding is recorded for the workflow in the horizon; the empty timeline does not prove that a review ran or that the pull requests were low risk.",
+      "No finding-closure-attainment observation is published for the workflow in the horizon; the attainment view has no points and must not be filled with zeros.",
+      "The findings or operational-values source is unavailable; the dashboard must report an unavailable state rather than an empty or zero result."
+    ],
+    "successConditions": [
+      "The operator can identify each open finding, its severity, and the pull request to act on without opening a workflow run.",
+      "Severity lanes and status colors keep open, resolved, and dismissed findings distinct, and the timeline does not imply an ordering between severities.",
+      "Null attainment observations remain gaps, and the follow-up queue is ordered deterministically by observation time descending and then by finding code ascending."
+    ],
+    "uncertainties": [
+      "A finding is an observation from one review pass; it does not establish that the pull request introduced an exploitable defect.",
+      "A finding leaves the open queue only after a later observation records a new status; absence alone does not prove that the finding was resolved.",
+      "Finding-closure attainment is gh-aw's native result and is maturity-dependent; an interim value is not final attainment.",
+      "A finding without an associated pull request remains valid and is not linked to a pull request it was not observed against."
+    ]
+  },
+  "operationalValue": {
+    "upstream": "gh-aw",
+    "opportunity": "One pull-request review opportunity per pull request that the workflow evaluates.",
+    "repositories": [
+      "githubnext/gh-cao"
+    ],
+    "acceptedEvidence": [
+      "findings rows recorded for the pull-request risk review workflow",
+      "operational-values rows whose definition is finding-closure-attainment"
+    ],
+    "orderedMetrics": [
+      {
+        "id": "finding-closure-attainment",
+        "unit": "ratio",
+        "direction": "higher_is_better",
+        "range": [
+          0,
+          1
+        ],
+        "selection": "direct"
+      }
+    ],
+    "baseline": {
+      "kind": "attainment-only",
+      "value": null,
+      "cutoff": null
+    },
+    "preservation": "Preserve the upstream metric identity, order, native finite value or null, ratio unit, higher-is-better direction, and maturity status. Finding counts by severity and status are separate deterministic counts and must never replace or be combined with the attainment metric."
+  },
+  "logicalSources": {
+    "findings": {
+      "rows": [
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "code": "write-permission-expansion",
+          "finding-kind": "permissions",
+          "finding-severity": "high",
+          "finding-status": "open",
+          "finding-summary": "A pull request grants write permission to a job that processes untrusted input.",
+          "run": "9311",
+          "observed-at": "2026-08-26T10:00:00Z",
+          "run-link": {
+            "relation": "run",
+            "href": "https://github.com/githubnext/gh-cao/actions/runs/9311",
+            "label": "Run 9311"
+          },
+          "pull-request-link": {
+            "relation": "pull-request",
+            "href": "https://github.com/githubnext/gh-cao/pull/212",
+            "label": "Pull request 212"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "code": "unpinned-checkout-ref",
+          "finding-kind": "supply-chain",
+          "finding-severity": "medium",
+          "finding-status": "resolved",
+          "finding-summary": "A checkout references a mutable branch instead of an immutable commit.",
+          "run": "9340",
+          "observed-at": "2026-08-27T09:00:00Z",
+          "run-link": {
+            "relation": "run",
+            "href": "https://github.com/githubnext/gh-cao/actions/runs/9340",
+            "label": "Run 9340"
+          },
+          "pull-request-link": {
+            "relation": "pull-request",
+            "href": "https://github.com/githubnext/gh-cao/pull/214",
+            "label": "Pull request 214"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "code": "broad-token-scope",
+          "finding-kind": "permissions",
+          "finding-severity": "high",
+          "finding-status": "open",
+          "finding-summary": "A token scope is wider than the steps in the changed job require.",
+          "run": "9362",
+          "observed-at": "2026-08-28T14:30:00Z",
+          "run-link": {
+            "relation": "run",
+            "href": "https://github.com/githubnext/gh-cao/actions/runs/9362",
+            "label": "Run 9362"
+          },
+          "pull-request-link": {
+            "relation": "pull-request",
+            "href": "https://github.com/githubnext/gh-cao/pull/216",
+            "label": "Pull request 216"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "code": "untrusted-comment-quoting",
+          "finding-kind": "untrusted-input",
+          "finding-severity": "low",
+          "finding-status": "dismissed",
+          "finding-summary": "Quoted comment text is length bounded and the flagged path is not reachable.",
+          "run": "9363",
+          "observed-at": "2026-08-28T15:00:00Z",
+          "run-link": {
+            "relation": "run",
+            "href": "https://github.com/githubnext/gh-cao/actions/runs/9363",
+            "label": "Run 9363"
+          },
+          "pull-request-link": {
+            "relation": "pull-request",
+            "href": "https://github.com/githubnext/gh-cao/pull/216",
+            "label": "Pull request 216"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "code": "artifact-retention-default",
+          "finding-kind": "hygiene",
+          "finding-severity": "informational",
+          "finding-status": "open",
+          "finding-summary": "Artifact retention is left at the repository default.",
+          "run": "9380",
+          "observed-at": "2026-08-29T08:00:00Z",
+          "run-link": {
+            "relation": "run",
+            "href": "https://github.com/githubnext/gh-cao/actions/runs/9380",
+            "label": "Run 9380"
+          }
+        }
+      ]
+    },
+    "operational-values": {
+      "rows": [
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "operational-value-definition": "finding-closure-attainment",
+          "operational-value-role": "primary",
+          "operational-value-name": "Finding closure attainment",
+          "operational-value-unit": "ratio",
+          "operational-value-direction": "higher_is_better",
+          "operational-value": 0.4,
+          "maturity-status": "interim",
+          "coverage-status": "complete",
+          "observed-at": "2026-08-27T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "operational-value-definition": "finding-closure-attainment",
+          "operational-value-role": "primary",
+          "operational-value-name": "Finding closure attainment",
+          "operational-value-unit": "ratio",
+          "operational-value-direction": "higher_is_better",
+          "operational-value": 0.6,
+          "maturity-status": "interim",
+          "coverage-status": "complete",
+          "observed-at": "2026-08-28T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "operational-value-definition": "finding-closure-attainment",
+          "operational-value-role": "primary",
+          "operational-value-name": "Finding closure attainment",
+          "operational-value-unit": "ratio",
+          "operational-value-direction": "higher_is_better",
+          "operational-value": null,
+          "maturity-status": "unavailable",
+          "coverage-status": "unavailable",
+          "missing-reason": "review-incomplete",
+          "observed-at": "2026-08-29T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          }
+        },
+        {
+          "organization": "githubnext",
+          "repository": "gh-cao",
+          "workflow": ".github/workflows/pr-risk-review.md",
+          "operational-value-definition": "finding-closure-attainment",
+          "operational-value-role": "primary",
+          "operational-value-name": "Finding closure attainment",
+          "operational-value-unit": "ratio",
+          "operational-value-direction": "higher_is_better",
+          "operational-value": 0.8,
+          "maturity-status": "matured",
+          "coverage-status": "complete",
+          "observed-at": "2026-08-30T00:00:00Z",
+          "repository-link": {
+            "relation": "repository",
+            "href": "https://github.com/githubnext/gh-cao",
+            "label": "githubnext/gh-cao"
+          }
+        }
+      ]
+    }
+  },
+  "dashboard": "risk-review-finding-closure.dashboard.yml"
+}

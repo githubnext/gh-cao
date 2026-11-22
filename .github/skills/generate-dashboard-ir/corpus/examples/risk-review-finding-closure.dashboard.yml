@@ -1,0 +1,124 @@
+language-version: "0.1.0"
+dashboard:
+  id: risk-review-finding-closure
+  title: PR risk review finding closure
+  defaults:
+    scope:
+      repositories:
+        - githubnext/gh-cao
+      workflows:
+        - .github/workflows/pr-risk-review.md
+    time:
+      range: 30d
+  pages:
+    - id: risk-review-finding-closure
+      kind: custom
+      title: PR risk review finding closure
+      description: Shows the findings the pull-request risk review workflow raised over time, the open follow-up queue, and its native finding-closure attainment.
+      views:
+        - id: finding-severity-timeline
+          title: Finding timeline by severity
+          description: Each review finding at its observation time, in its severity lane and colored by native status.
+          subject: Review findings recorded by the PR risk review workflow over time, by severity and status.
+          objective: Show when findings appeared and whether each severity remains open.
+          acceptance: Each finding is one observation at its exact timestamp in its severity lane; no finding is aggregated or bucketed, and status is also shown as text.
+          data:
+            source: findings
+            filters:
+              workflow: .github/workflows/pr-risk-review.md
+          mark: chart
+          chart: swimlane
+          layout: full
+          disclosure: essential
+          encoding:
+            x:
+              field: observed-at
+              type: temporal
+              title: Observed
+            y:
+              field: finding-severity
+              type: nominal
+              title: Severity
+            color:
+              field: finding-status
+              type: nominal
+              title: Status
+            href:
+              field: run-link
+              type: nominal
+        - id: open-finding-queue
+          title: Open finding follow-up queue
+          description: Unresolved review findings, newest first, with the run that raised each one and its pull request when one is associated.
+          subject: Open review findings recorded by the PR risk review workflow in the selected horizon.
+          objective: Give the operator each unresolved finding with its summary, severity, raising run, and pull request to act on.
+          acceptance: Lists only open findings for the selected workflow, newest first, with a run link and a pull-request link only where that association is available.
+          data:
+            source: findings
+            filters:
+              workflow: .github/workflows/pr-risk-review.md
+              finding-status: open
+            order-by:
+              - field: observed-at
+                direction: desc
+              - field: code
+                direction: asc
+            limit: 20
+          mark: table
+          controls: interactive
+          layout: full
+          disclosure: essential
+          empty-message: No open review findings are recorded for this workflow in the selected horizon; this does not confirm that a review ran.
+          encoding:
+            href:
+              field: pull-request-link
+              type: nominal
+            columns:
+              - field: code
+                type: nominal
+                title: Finding
+              - field: finding-kind
+                type: nominal
+                title: Kind
+              - field: finding-severity
+                type: ordinal
+                title: Severity
+                display: status
+              - field: finding-summary
+                type: nominal
+                title: Summary
+              - field: run
+                type: nominal
+                title: Run
+                display: run-link
+              - field: observed-at
+                type: temporal
+                title: Observed
+        - id: finding-closure-attainment-trend
+          title: Finding-closure attainment
+          description: Native finding-closure attainment observations over time; interim and matured values are distinguished and unavailable observations remain gaps.
+          subject: Published finding-closure-attainment observations for the PR risk review workflow.
+          objective: Show whether closure attainment is rising, flat, or unavailable without treating an incomplete review as zero.
+          acceptance: Plots each native ratio observation without averaging across maturity states; null observations remain gaps and maturity status remains visible.
+          data:
+            source: operational-values
+            filters:
+              workflow: .github/workflows/pr-risk-review.md
+              operational-value-definition: finding-closure-attainment
+          mark: chart
+          chart: dot
+          layout: half
+          disclosure: essential
+          encoding:
+            x:
+              field: observed-at
+              type: temporal
+              time-unit: day
+              title: Observed
+            y:
+              field: operational-value
+              type: quantitative
+              title: Attainment (ratio)
+            color:
+              field: maturity-status
+              type: nominal
+              title: Maturity

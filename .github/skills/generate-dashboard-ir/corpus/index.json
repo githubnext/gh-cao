@@ -7,6 +7,11 @@
       "dashboard": "examples/failed-run-investigation.dashboard.yml"
     },
     {
+      "id": "risk-review-finding-closure",
+      "metadata": "examples/risk-review-finding-closure.json",
+      "dashboard": "examples/risk-review-finding-closure.dashboard.yml"
+    },
+    {
       "id": "triage-review-readiness",
       "metadata": "examples/triage-review-readiness.json",
       "dashboard": "examples/triage-review-readiness.dashboard.yml"
