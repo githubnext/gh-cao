@@ -1,36 +1,7 @@
 {
   "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-22T02:36:30Z",
-      "worker_run_id": "44976620512",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214",
-        "44254629254"
-      ],
-      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44974265341 (push, 9edb6bb, 2026-11-22T02:03:16Z) .. 44254629254 (push, 2026-11-18T06:53:01Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancel ... [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-22T02:52:59Z",
       "worker_run_id": "44977758791",
@@ -870,6 +841,35 @@
       ],
       "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 12:21Z: no newer or in-progress docs.yml run; HEAD 9edb6bb = source_sha. Demo step (docs.yml:55-58) median 2 s, p90 4 s, 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at full removal; cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). Stored rows recomputed, no refetch.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-22T12:37:41Z",
+      "worker_run_id": "45022947541",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214"
+      ],
+      "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 12:3xZ: newest docs.yml 44989298582, HEAD 9edb6bb = source_sha, 0 queued or in progress; 20 stored transfer_model rows recomputed without refetch: removable (handoff 5 + configure 1 + upload 2 + deploy setup 1) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; Deploy Pages is GitHub-managed, median 7 s, tails 92 s (44576080583) and 69 s (44337804857) in 2 of 20 runs, not repeated and artifact size unmeasured for those runs; artifacts 7.5-9.4 MB; no repeated workflow-side lever). Issue search: only #20815 open (checkout, not re-proposed).",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1652,9 +1652,9 @@
     },
     "worker_run_id": "44638063158",
     "last_reverified": {
-      "verified_at": "2026-11-22T10:52:43Z",
-      "worker_run_id": "45014261230",
-      "result": "window unchanged (44989298582..44311127214, HEAD 9edb6bb); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s); gates unmet; decision unchanged (not actionable)"
+      "verified_at": "2026-11-22T12:37:41Z",
+      "worker_run_id": "45022947541",
+      "result": "window unchanged (44989298582..44311127214, HEAD 9edb6bb); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s); gates unmet; decision unchanged (not actionable). Re-open only if a Deploy Pages tail over 30 s recurs in at least 3 of 20 runs with artifact-size evidence tying it to a workflow-controlled cause."
     },
     "live_spot_check": {
       "verified_at": "2026-11-22T01:06:00Z",
