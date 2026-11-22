@@ -1,35 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-22T08:20:25Z",
-   "worker_run_id": "45002049305",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214"
-   ],
-   "outcome": "complete, not actionable (window unchanged since 05:32Z; main == 9edb6bb, compare identical; root and dashboard/site lock files last changed 7c8faf4 2026-11-13). Stored rows recomputed: setup_node median 4 s, install median 9.5 s (p90 12), ... [compacted]"
-  },
   {
    "evaluated_at": "2026-11-22T08:34:15Z",
    "worker_run_id": "45003138639",
@@ -56,7 +28,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dro ... [compacted]",
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -85,7 +57,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dro ... [compacted]",
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -114,7 +86,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Liv ... [compacted]",
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -143,7 +115,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Liv ... [compacted]",
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -172,7 +144,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 ca ... [compacted]",
+   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -201,7 +173,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 08:34Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dropped 44254629254. Live gh run list 10:17Z: same 20 IDs, none queued or in progress; HEAD 9edb6bb = source_sha. Stored build_docs_s recomputed (n=20, nearest-rank p90, no refetch): median 14 s, p90 15, min 8, max 16 = 17.8 percent of exec median 78.5 s (exec p90 139); push 13 (n=16) vs schedule 14.5 (n=4). 15 percent gate 11.78 s needs 84 percent of the step removed; 60 s gate unreachable (whole step 14 s). Build job log read (job 137106620254) returned HTTP 403 difc_forbidden at 10:17Z; not bypassed, so sub-step split remains unmeasured. validators and deploy keep dist/ required; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Open worker issues: only #20815 (checkout, OPEN, 0 comments), not repeated. No issue; noop; correlation 45011004614-4578; next_category advanced to reusable dashboard generation.",
+   "outcome": "complete, not actionable (window unchanged since 08:34Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -230,7 +202,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dropped 44254629254 (push). Live gh run list 10:32Z: same 20 IDs, none queued or in progress; HEAD 9edb6bb = source_sha. Stored demo_s recomputed (n=20, nearest-rank p90, no refetch): median 2 s, p90 4, max 7 = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unreachable even at full removal (max saving 2 s). Reuse blocker re-read at source: scripts/simulate-dashboard-pages.mjs:67 now=Date.now() feeds generatedAt (line 76); docs.yml:55-58 runs the step every build. Build job logs not re-read (prior 403 DIFC). Open worker issues: only #20815 (checkout, other category, not repeated), last checked 10:17Z. No issue; noop; correlation 45012255214-4579; next_category advanced to artifact transfer and Pages packaging.",
+   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -259,7 +231,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 10:52Z: same 20 IDs, none queued or running; HEAD 9edb6bb = source_sha. Stored transfer_model recomputed (n=20, nearest-rank p90, no refetch): removable (handoff 5 + configure 1 + upload 2 + deploy setup 1) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at 100 percent removal. Deploy Pages (GitHub-managed) median 7 s, p90 14, max 92 s. Merge-deploy ceiling (about 6-7 s) still rejected: github-pages environment and id-token boundary. Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, OPEN, 0 comments), not repeated. No issue; noop; correlation 45013854076-4580; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "outcome": "complete, not actionable (window unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -288,7 +260,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success. Live 11:16Z: no docs run queued or in progress (only stale 37642403569, outside window); main 9edb6bb = source_sha; open worker issues only #20815. Recomputed stored rows (n=20, no refetch): queue median 3 s (p90 4); exec median 78.5 s (p90 139); push 84.5 s (n=16), schedule 75.5 s (n=4). 0 overlapping runs; documentation-pages cancel-in-progress false kept; cancel true saves 0 s. Path filter: 0 of 16 push heads avoidable. 1 of 4 schedule runs (44989298582) repeats a same-UTC-day successful push head (44974265341); skipping it saves 74 s once, not median exec, and conflicts with the daily-build requirement (specs/dashboard-data.md ~L498) and needs actions:read; watch only. Checkout median 25 s (32 percent of exec median) is already represented by open #20815; not re-proposed. No issue; noop; next_category advanced to dependency installation and caching. Correlation 45015822172-4581.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -317,7 +289,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; HEAD 9edb6bb = source_sha). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 11:31Z: no newer docs run, none queued or in progress. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): setup-node median 4 s, install 9.5 s (p90 12), post 0 s; setup+install+post median 13.5 s = 17.2 percent of exec median 78.5 s; 15 percent gate 11.78 s unmet by install-only removal (9.5 s); 60 s gate unmet. Live caches API at 11:33Z: node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57:12Z, refs/heads/main); root package-lock.json last changed 7c8faf4 (2026-11-13), so exact-key hit persists. Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, OPEN, 0 comments); not repeated. No issue; noop; next_category advanced to Astro documentation generation. Correlation 45017122971-4582.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; HEAD 9edb6bb = source_sha). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 2026-11-22T05:24:45Z) .. ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -346,7 +318,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 11:50Z: same 20 IDs, none queued or in progress; HEAD 9edb6bb = source_sha. Stored build_docs_s recomputed (n=20, nearest-rank p90, no refetch): median 14 s, p90 15, min 8, max 16 = 17.8 percent of exec median 78.5 s. 15 percent gate 11.78 s needs 84 percent of the step removed; 60 s gate unreachable. Sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (last verified 06:36Z; not re-read this run, scope limited to docs.yml). Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, OPEN, 0 comments), not repeated. No issue; noop; next_category advanced to reusable dashboard generation. Correlation 45018740434-4583.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -375,7 +347,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 12:21Z: no newer or in-progress docs.yml run; HEAD 9edb6bb = source_sha. Demo step (docs.yml:55-58) median 2 s, p90 4 s, 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at full removal; cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). Stored rows recomputed, no refetch.",
+   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -404,7 +376,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 12:3xZ: newest docs.yml 44989298582, HEAD 9edb6bb = source_sha, 0 queued or in progress; 20 stored transfer_model rows recomputed without refetch: removable (handoff 5 + configure 1 + upload 2 + deploy setup 1) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; Deploy Pages is GitHub-managed, median 7 s, tails 92 s (44576080583) and 69 s (44337804857) in 2 of 20 runs, not repeated and artifact size unmeasured for those runs; artifacts 7.5-9.4 MB; no repeated workflow-side lever). Issue search: only #20815 open (checkout, not re-proposed).",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 12:3xZ: newest docs.yml 44989298582, HEAD 9edb6bb = source_sha, 0 queued or in progress; 20 stored transfer_model rows ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -433,7 +405,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (re-verified; window unchanged since 11:17Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dropped 44254629254. Live gh run list 12:5xZ: same 20 IDs, none queued or in progress, HEAD 9edb6bb = source_sha. Recomputed from stored run_timings (no refetch): queue median 3 s, p90 4 s; push exec median 84.5 s, schedule 75.5 s; 0 overlapping executions (createdAt/updatedAt intervals); 0 of 16 push heads avoidable (path_filter_verified); 4 schedule runs kept for synthetic-date freshness. Considered and rejected: reuse of Astro output on schedule runs whose head a push run built in-window (3 of 4 schedule runs; 14 s median on those runs only, 0 s effect on the 78.5 s workflow median; needs cross-run artifact access beyond contents: read and a deploy-provenance review). Gates 60 s and 15 percent (11.78 s) unmet. Open issue search: only #20815 (checkout, not repeated).",
+   "outcome": "complete, not actionable (re-verified; window unchanged since 11:17Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -462,7 +434,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 13:32Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; HEAD 9edb6bb = source_sha). Stored run_timings recomputed (n=20, no refetch): setup-node median 4 s, install median 9.5 s (p90 12), post 0 s; dependency phase median 14 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even if all install time (9.5 s) were removed; live caches API 13:28Z: node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57:12Z, refs/heads/main). Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, OPEN, 0 comments, updatedAt 2026-11-13); not repeated. No issue; noop; next_category advanced to Astro documentation generation. Correlation 45027296494-4588.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 13:32Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; HEAD 9edb6bb = ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -491,7 +463,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged; live gh run list at 13:52Z: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; main == 9edb6bb == source_sha). Recomputed from stored run_timings (n=20, no refetch): build_docs_s median 14 s, nearest-rank p90 15 s, = 17.8 percent of exec median 78.5 s. Step runs astro build + validate-agent-docs + agent-docs-discovery test. 15 percent gate 11.78 s needs 84 percent removal; 60 s gate unreachable (whole step 14 s). Output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT). Sub-step split unmeasured (build job logs 403 difc_forbidden; not re-read, no bypass). Next: reusable dashboard generation.",
+   "outcome": "complete, not actionable (window unchanged; live gh run list at 13:52Z: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; main == ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -520,7 +492,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 14:17Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued; main HEAD 9edb6bb = source_sha). demo_s median 2 s, p90 4 s, 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at full removal; cross-run reuse blocked by Date.now synthetic timestamps",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 14:17Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued; main HEAD 9edb6bb = source_sha). ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -549,7 +521,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 14:31Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; HEAD 9edb6bb = source_sha). Stored transfer_model rows recomputed (n=20, nearest-rank p90, no refetch): removable (handoff 5 + configure 1 + upload 2 + deploy setup 1) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at full removal. Deploy Pages (GitHub-managed) median 7 s, p90 14 s; tails 92 s (44576080583) and 69 s (44337804857) in 2 of 20 runs, below the 3-of-20 re-open threshold. Live Jobs API spot-check of 44989298582 matched stored row within 1 s. No issue; noop; next_category advanced to scheduling, concurrency, and avoidable rebuilds. Correlation 45032613945-4591.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 14:31Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; HEAD 9edb6bb = ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -578,7 +550,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (re-verified; window unchanged since 05:24Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dropped 44254629254. Live gh run list 14:51Z: same 20 IDs, none queued or in progress; main == 9edb6bb == source_sha. Recomputed from stored run_timings (n=20, no refetch): queue median 3 s; exec median 78.5 s, nearest-rank p90 139 s; 0 overlapping executions. Counterfactual removing all same-head schedule rebuilds (44989298582, 44680921088, 44465043275; build step ~13-15 s) moves exec median only 0.5 s (78.5 to 78). 60 s and 15 percent (11.78 s) gates unmet. Schedule runs kept for synthetic-date freshness; 0 of 16 push heads avoidable. Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, other category, not repeated). No issue; noop; next_category advanced to dependency installation and caching. Correlation 45034442058-4592.",
+   "outcome": "complete, not actionable (re-verified; window unchanged since 05:24Z). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -607,7 +579,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 15:17Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; main HEAD 9edb6bb = source_sha). Stored run_timings recomputed (n=20, no refetch): setup-node median 4 s, install median 9.5 s (p90 12), post 0 s; dependency phase median 14 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even if all install time were removed (9.5 s). Live caches API 15:14Z: node-cache-Linux-x64-npm-7808ecf8 exact-key entry present (263412733 B, created 2026-11-13T20:57:12Z); local root lock hash reproduces 7808ecf8; dashboard lock 36b11d9f unchanged since 7c8faf4; no lock commit since. Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, other category, not repeated). No issue; noop; next_category advanced to Astro documentation generation.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 15:17Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; main HEAD 9edb6bb = ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -636,7 +608,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 15:31Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; local HEAD 9edb6bb = source_sha). Recomputed stored run_timings (n=20, no refetch; medians match): build_docs_s median 14 s, nearest-rank p90 15 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s needs 84 percent removal of the step; 60 s gate unreachable. Sub-step split (astro build vs validators) unmeasured: build-job logs 403 difc_forbidden, no bypass. Dropping validators would weaken correctness; Astro output cache rejected (PUBLIC_PAGES_BUILD_COMMIT embedded); a new job adds about 25 s checkout plus about 14 s dependency phase, so a split is net-negative. Next: reusable dashboard generation.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 15:31Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; local HEAD 9edb6bb = ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -665,7 +637,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 15:53Z: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; HEAD 9edb6bb = source_sha). Recomputed stored run_timings (n=20, nearest-rank p90): demo_s median 2 s, p90 4 s, max 7 s = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unreachable (full removal saves at most 7 s). Cross-run reuse still blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). No suggestion; no issue search needed. correlation 45039930098-4595."
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 15:53Z: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; ... [compacted]"
   },
   {
    "evaluated_at": "2026-11-22T16:18:58Z",
@@ -693,7 +665,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; dropped 44254629254. Live gh run list 16:18Z: same 20 IDs, none in progress; only queued run 37642403569 is stale and outside window; local HEAD 9edb6bb = source_sha. Recomputed stored transfer_model and run_timings (n=20, nearest-rank p90, no refetch; deploy and exec columns reconcile): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at 100 percent removal. Deploy Pages (GitHub-managed) median 7 s; tails 92 s and 69 s in 2 of 20 runs, below the 3-of-20 re-open threshold. Merge-deploy still rejected (github-pages environment and id-token boundary). Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, OPEN, 0 comments), not repeated. No issue; noop; correlation 45042274022-4596; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -722,7 +694,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 16:3xZ: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; HEAD 9edb6bb = source_sha). Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): queue_s median 3 s, p90 4 s, max 5 s; exec_s median 78.5 s (push 84.5, schedule 75.5); no concurrency wait; documentation-pages cancel-in-progress false; avoidable push rebuilds 0 of 16 (path filter verified); 4 schedule runs needed for synthetic-date freshness; same-head schedule reuse rejected (0 s workflow-median effect). 15 percent gate 11.78 s and 60 s gate unmet; no removable scheduling cost.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 16:3xZ: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -751,7 +723,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 16:52Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; main HEAD 9edb6bb = source_sha). Recomputed stored run_timings (n=20, nearest-rank p90, no refetch): setup-node median 4 s, install 9.5 s (p90 12), post 0 s; dependency phase median 14 s (p90 17) = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s unmet (install-only removal 9.5 s = 12.1 percent); 60 s gate unmet. Live caches API 16:52Z: node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57:12Z, refs/heads/main, last accessed 16:43Z). Open issues labelled self-care:docs-build-time-investigator: only #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); not repeated. No issue; noop; next_category advanced to Astro documentation generation. Correlation 45045440167-4598.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 16:52Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; main HEAD 9edb6bb = ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -780,7 +752,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 17:16Z: same 20 IDs, none newer, none queued or in progress. Recomputed from immutable run_timings rows (no refetch; nearest-rank p90, n=20): build_docs_s median 14 s, p90 15 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s needs 84 percent of the step removed; 60 s gate unreachable. Step must still produce dist/ for deploy; Astro output reuse rejected (embeds PUBLIC_PAGES_BUILD_COMMIT); sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed). Checkout (median 25 s) is outside this category and remains covered by open #20815.",
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -809,7 +781,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 17:31Z: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; HEAD 9edb6bb = source_sha). docs:build = astro build + validate-agent-docs + agent-docs-discovery test; grep 17:31Z finds no dashboard-site builder import in astro.config.mjs, docs/plugins, or validators, so dashboard generation is only the demo step. Stored demo_s recomputed (n=20, nearest-rank p90): median 2 s, p90 4 s, max 7 s = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unreachable (full removal saves at most 7 s). Cross-run reuse still blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). No suggestion; no issue created. correlation 45049186146-4600.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 17:31Z: same 20 IDs, newest 44989298582, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -838,7 +810,7 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 17:51Z: same 20 IDs, none queued. Stored transfer_model rows recomputed (nearest-rank p90, n=20): removable median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; full removal saves at most 9 s and Configure/Upload/deploy setup are required for Pages deployment. Deploy Pages (GitHub-managed) median 7 s excluded. Spot check 44989298582 Jobs API matched stored row (handoff 5 s job-level vs 6 s deploy Set up job step; immaterial). No suggestion; no issue created; open #20815 unchanged (0 comments). Control correlation 45051055985-4601.",
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 ... [compacted]",
    "suggestion_fingerprint": null
   },
   {
@@ -867,7 +839,36 @@
     "44318642809",
     "44311127214"
    ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 18:18Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; HEAD 9edb6bb = source_sha). Stored rows recomputed (n=20, nearest-rank p90, no refetch): queue median 3 s (p90 4); exec median 78.5 s (p90 139); push 84.5 s (n=16) vs schedule 75.5 s (n=4); 0 overlapping runs; documentation-pages cancel-in-progress false kept (docs.yml:28-30); cancel true saves 0 s median. Avoidable push rebuilds 0 of 16. Same-head schedule reuse (3 of 4 schedule runs rebuild a head an in-window push built; 1 same UTC day) rejected: 0.5 s median counterfactual, needs actions:read for cross-run artifact reuse, daily build required (specs/dashboard-data.md ~L498-505). Open issues labelled self-care:docs-build-time-investigator: only #20815 (OPEN, 0 comments), not repeated. No issue; noop; next_category advanced to dependency installation and caching. Correlation 45053623424-4602.",
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 18:18Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; none queued or in progress; HEAD 9edb6bb = ... [compacted]",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T18:34:46Z",
+   "worker_run_id": "45055502217",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 18:3xZ: main == 9edb6bb == source_sha; same 20 IDs, none queued or in progress; no package-lock change since 7c8faf4 (2026-11-13); exact-key Linux cache 7808ecf8 present (last accessed 18:28Z). Recomputed run_timings (n=20, nearest-rank p90, no refetch; jobs spot-check of 44989298582 matched). setup-node median 4 s, install median 9.5 s (p90 12), post 0 s; dependency phase median 14 s (p90 17) = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; realistic net saving from cache-layout change 3-6 s.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1950,9 +1951,9 @@
   }
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-22T16:53:17Z",
-  "worker_run_id": "45045997656",
-  "verdict": "not actionable (unchanged): window 44989298582..44311127214 unchanged; setup 4 s + install 9.5 s (p90 12) + post 0 s = dependency phase median 14 s (17.8 percent of exec median 78.5 s); 15 percent gate 11.78 s and 60 s gate unmet; live caches API 16:52Z shows exact-key entry present"
+  "evaluated_at": "2026-11-22T18:34:46Z",
+  "worker_run_id": "45055502217",
+  "verdict": "not actionable (unchanged): window 44989298582..44311127214 unchanged; live main 9edb6bb; dependency phase median 14 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet"
  },
  "job_topology_note": {
   "verified_at": "2026-11-18T22:20:34Z",
