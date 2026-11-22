@@ -1,36 +1,7 @@
 {
   "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-22T09:53:15Z",
-      "worker_run_id": "45009401487",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214"
-      ],
-      "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 ... [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-22T10:17:57Z",
       "worker_run_id": "45011475233",
@@ -869,6 +840,35 @@
         "44311127214"
       ],
       "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 19:5xZ: same 20 IDs, none queued or in progress, main == 9edb6bb == source_sha. Queue median 3 s, p90 4 s (2 pct of exec median 78.5 s). Push exec median 84.5 s vs schedule 75.5 s. Avoidable pushes 0 of 16 (3bd1058, 826c4f4, d55b65c checked now: all build-consumed). Overlapping executions 0. Same-head schedules 3 of 4 (44989298582, 44680921088, 44465043275) are the daily synthetic-date refresh, required by design; removal saves about 0.5 s median and weakens freshness. Gates 11.78 s and 60 s unmet.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-22T20:17:51Z",
+      "worker_run_id": "45065301223",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809",
+        "44311127214"
+      ],
+      "outcome": "complete, not actionable (window unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 20:16Z: same 20 IDs, none queued; main HEAD 9edb6bb = source_sha. Dependency phase setup+install+post median 14 s (p90 17 s) = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; install median 9.5 s alone = 12.1 percent. Cache node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, ref main, last_accessed 20:15Z); post-setup-node 0-1 s = exact-key hit. Stored immutable rows recomputed, no job refetch. Correlation 45064866385-4608.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1953,9 +1953,9 @@
     }
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-22T18:34:46Z",
-    "worker_run_id": "45055502217",
-    "verdict": "not actionable (unchanged): window 44989298582..44311127214 unchanged; live main 9edb6bb; dependency phase median 14 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet"
+    "evaluated_at": "2026-11-22T20:17:51Z",
+    "worker_run_id": "45065301223",
+    "verdict": "not actionable (unchanged): window 44989298582..44311127214 unchanged; live main 9edb6bb; live cache 7808ecf8 present; dependency phase median 14 s = 17.8 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
