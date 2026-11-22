@@ -96,7 +96,13 @@ func (a *App) localMarketplaceSource(ctx context.Context) model.Source {
 		marketplaceLog.PrintfContext(ctx, "local marketplace request unavailable")
 		return marketplaceUnavailableSource()
 	}
-	response, err := http.DefaultClient.Do(request)
+	// Match the other operator-adapter calls: no ambient proxy and no
+	// redirects, so the private adapter cannot steer this request elsewhere.
+	client := &http.Client{Transport: &http.Transport{Proxy: nil}, CheckRedirect: func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	defer client.CloseIdleConnections()
+	response, err := client.Do(request)
 	if err != nil {
 		marketplaceLog.PrintfContext(ctx, "local marketplace resolution failed")
 		return marketplaceUnavailableSource()
