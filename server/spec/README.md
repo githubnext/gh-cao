@@ -10,7 +10,10 @@ are intentionally out of scope.
 
 `token-broker.tsp` specifies the OIDC-in-body exchange and job invalidation
 protocol, independently of dashboard session authentication and activation
-admission. It supports `copilot-request` only; no task credential is issued.
+admission. Its gh-aw v2 envelopes accept optional diagnostic `job_id` strings,
+never job authorization evidence. It supports `copilot-request` only;
+`copilot-task` and `github-app` are known unsupported capabilities and return
+501 after identity and enrollment verification.
 
 `storage.tsp` is a separate, **fresh-only** physical Postgres contract.
 `storage.tspconfig.yaml` runs the repository-owned `postgres-emitter.mjs` to

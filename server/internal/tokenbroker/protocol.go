@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 )
@@ -14,6 +15,8 @@ import (
 const bodyLimit = 65536
 
 var errInvalid = errors.New("invalid broker input")
+
+var providerID = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,63}$`)
 
 type request struct {
 	tokenType, provider, identity string
@@ -93,6 +96,15 @@ func decodeRequest(w http.ResponseWriter, r *http.Request) (request, int) {
 	if json.Unmarshal(body, &fields) != nil || fields == nil {
 		return request{}, http.StatusBadRequest
 	}
+	// job_id is diagnostic only. Never retain it in the authorization or
+	// credential registry, whose job key comes from signed identity evidence.
+	for _, raw := range fields {
+		var value string
+		if string(raw) == "null" || json.Unmarshal(raw, &value) != nil {
+			return request{}, http.StatusBadRequest
+		}
+	}
+	delete(fields, "job_id")
 	read := func(name string) string {
 		var s string
 		_ = json.Unmarshal(fields[name], &s)
@@ -114,10 +126,10 @@ func decodeRequest(w http.ResponseWriter, r *http.Request) (request, int) {
 	}
 	switch out.tokenType {
 	case "copilot-request":
-		if len(fields) != 3 || out.provider == "" {
+		if len(fields) != 3 || !providerID.MatchString(out.provider) {
 			return request{}, http.StatusBadRequest
 		}
-	case "copilot-task":
+	case "copilot-task", "github-app":
 		if len(fields) != 2 {
 			return request{}, http.StatusBadRequest
 		}

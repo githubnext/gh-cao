@@ -210,7 +210,11 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if !input.invalidate && input.tokenType == "copilot-task" {
+	if !input.invalidate && state != nil && state.invalidated {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	if !input.invalidate && (input.tokenType == "copilot-task" || input.tokenType == "github-app") {
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}

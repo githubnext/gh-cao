@@ -747,8 +747,11 @@ Actions OIDC identities for dedicated organization App installation tokens with
 only `organization_copilot_requests: read`. Its protected
 `control-plane.token-broker.copilot-requests.workflows` policy pins immutable
 owner/repository IDs, workflow reference and revision; signed job context
-isolates issuance and invalidation. It never grants rollout, admission, or
-repository-write authority and does not implement Copilot tasks. Private keys
+isolates issuance and invalidation. The gh-aw v2 optional diagnostic `job_id`
+does not participate in that binding. Signed branch/tag type and GitHub-hosted
+runner evidence are required; self-hosted runner attestation is unsupported.
+It never grants rollout, admission, or repository-write authority and does not
+issue `copilot-task` or `github-app` credentials. Private keys
 are read from Azure Key Vault using managed identity, never from policy or
 caller inputs. This initial HTTPS, process-owned, explicitly single-replica
 profile keeps a bounded process-local credential registry for revocation;

@@ -27,6 +27,7 @@ type Identity struct {
 	RunID, RunAttempt, Ref, Event, Actor, ActorID      string
 	WorkflowRef, WorkflowSHA                           string
 	CheckRunID                                         string
+	RefType, RunnerEnvironment                         string
 	EnvironmentPresent                                 bool
 }
 
@@ -76,6 +77,11 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Identity, error) {
 	h, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil || len(h) > 1024 || strictJSON(h, &header) != nil || header == nil {
 		return Identity{}, ErrDenied
+	}
+	for _, name := range []string{"jku", "x5u", "jwk", "x5c"} {
+		if _, exists := header[name]; exists {
+			return Identity{}, ErrDenied
+		}
 	}
 	p, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil || strictJSON(p, &claims) != nil || claims == nil {
@@ -137,6 +143,7 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Identity, error) {
 		Event: get("event_name"), Actor: get("actor"), ActorID: get("actor_id"),
 		WorkflowRef: get("workflow_ref"), WorkflowSHA: get("workflow_sha"),
 		CheckRunID: get("check_run_id"),
+		RefType:    get("ref_type"), RunnerEnvironment: get("runner_environment"),
 	}
 	_, i.EnvironmentPresent = claims["environment"]
 	if reason := identityViolation(i); reason != "" {
