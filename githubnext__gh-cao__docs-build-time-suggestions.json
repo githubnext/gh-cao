@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bb",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-21T23:31:41Z",
-   "worker_run_id": "44961904308",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996"
-   ],
-   "outcome": "complete, not actionable (unchanged since 21:51Z). Window: latest 20 completed non-cancelled docs.yml runs 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z) .. 44253520996 (push, 2026-11-18T06:44:06Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled; no newer docs.yml run at 23:30Z; main 627ee49 = source_sha. Recomputed from stored immutable run_timings: install median 11 s (p90 12) = 13.7 percent of exec median 80.5 s; setup-node 3.5 s; post 0 s (exact-key hit); setup+install+post median 14 s = 17.4 percent. Live caches API 23:28Z: node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57:12Z, 263412733 B, no newer save). Removing install entirely (11 s) stays below the 15 percent gate (12.07 s) and the 60 s gate; a node_modules cache nets about 3-6 s. Checkout (median 24.5 s) is outside this category and remains represented by open #20815.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-21T23:53:01Z",
    "worker_run_id": "44963604739",
@@ -869,6 +840,35 @@
     "44311127214"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 09:32Z: unchanged, none queued or running, HEAD 9edb6bb = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): queue median 3 s (p90 4) = 3.8 percent of exec median 78.5 s (p90 139); push exec median 84.5 s, schedule 75.5 s. Concurrency: documentation-pages used only by docs.yml; cancel-in-progress false kept; 0 overlapping executions (min createdAt gap 5 min vs exec at most 160 s); cancel true saves 0 s median. Avoidable rebuilds: all 16 push heads build-consumed (path_filter_verified); 0 avoidable. 4 schedule runs needed for daily synthetic-date refresh (scripts/simulate-dashboard-pages.mjs:67 now=Date.now()). Only 44989298582 had a same-UTC-day prior push (44974265341); skipping it would save about 75 s on one run, 0 s median, needs actions:read and weakens daily freshness: watch only. Gates 60 s / 11.8 s unmet. Open issues not searched (no create); last search 08:34Z: only #20815. No suggestion; next_category advanced to dependency installation and caching.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T09:53:15Z",
+   "worker_run_id": "45009401487",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable (unchanged). Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 09:52Z: same 20 IDs, none newer, none queued or in progress; workspace HEAD 9edb6bb = source_sha. Live caches API 09:52Z: node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57:12Z, refs/heads/main), total_count 1, no newer save. package-lock.json and dashboard/site/package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z), before window. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): setup-node median 4 s (p90 6), install median 9.5 s (p90 12), post 0 s; setup+install+post median 13.5 s = 17.2 percent of exec median 78.5 s (p90 139). 15 percent gate 11.78 s: install-only removal (9.5 s) misses; setup-node also restores the npm cache, so removing it moves cost into install; a node_modules cache nets an unvalidated 4-6 s; 60 s gate unmet. Observation re-open conditions (dashboard-only lock change, install median above 11.4 s) not met. Checkout (median 25 s, p90 53) is outside the categories and represented by open #20815 (only open docs build-time issue; 0 comments; updatedAt 2026-11-13T17:41:19Z); not repeated. No issue created; noop; next_category advanced to Astro documentation generation. Correlation 45008944532-4577.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1931,9 +1931,9 @@
   "reverified_note_44903248908": "2026-11-21T12:21:29Z worker 44903248908: window unchanged (44870776753..44244171280, main bb9a74f); live Jobs API read of 44870776753 matched stored row (handoff 5, configure 1, upload 2, deploy setup 0, Deploy Pages 7 s); removable median 9 s, p90 11 s, max 13 s; decision unchanged (not actionable)."
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-22T08:20:25Z",
-  "worker_run_id": "45002049305",
-  "verdict": "not actionable (unchanged): window 44989298582..44311127214 (no new docs.yml run since 05:24Z); setup 4 s + install 9.5 s (p90 12) + post 0 s; 15 percent gate 11.78 s unmet even at full install removal; setup-node required for Node 24; 60 s gate unmet"
+  "evaluated_at": "2026-11-22T09:53:15Z",
+  "worker_run_id": "45009401487",
+  "verdict": "not actionable (unchanged): window 44989298582..44311127214 (no docs.yml run newer than 05:24Z at 09:52Z); setup 4 s + install 9.5 s (p90 12) + post 0 s = 13.5 s (17.2 percent); 15 percent gate 11.78 s unmet by install-only removal; setup-node also restores npm cache; 60 s gate unmet"
  },
  "job_topology_note": {
   "verified_at": "2026-11-18T22:20:34Z",
@@ -1970,8 +1970,8 @@
   "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03"
  },
  "issue_search_note": {
-  "observed_at": "2026-11-22T08:34:15Z",
-  "note": "gh issue list (open; label self-care:docs-build-time-investigator and search docs build time) returned only #20815 (checkout, OPEN). No issue created in worker run 45003138639."
+  "observed_at": "2026-11-22T09:53:15Z",
+  "note": "gh issue list (open; label self-care:docs-build-time-investigator, and search 'docs build time' in title/body) returned only #20815 (checkout, OPEN, 0 comments). No issue created in worker run 45009401487."
  },
  "stale_queued_run": {
   "observed_at": "2026-11-21T09:18:55Z",
