@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bb",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-21T23:16:37Z",
-   "worker_run_id": "44960742406",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214",
-    "44254629254",
-    "44253520996"
-   ],
-   "outcome": "complete, not actionable (window changed: 44952052187 newest). Window: latest 20 completed non-cancelled docs.yml runs 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z) .. 44253520996 (push, 2026-11-18T06:44:06Z); 17 push, 3 schedule, 20 success, 0 failed, 0 cancelled. Live 23:16Z gh run list: 0 queued or in progress; stored window ids match live window; docs.yml last changed 063cbe9 (2026-11-12, gh api commits?path); HEAD 627ee49 = source_sha. Live run-level timestamps: 0 adjacent overlapping executions; cancel-in-progress true saves 0 s. Stored rows recomputed (n=20, nearest-rank p90, no refetch): queue median 3.5 s (p90 4) = 4.3 percent of exec median 80.5 s; exec p90 139 s; push exec median 82 s, schedule 74 s. Avoidable rebuilds: 0 of 17 push heads (22d22e4 touched docs/glossary.md, build-consumed); 3 schedule runs required for synthetic-date freshness (Date.now() default, scripts/simulate-dashboard-pages.mjs). Gates 60 s / 12.1 s unmet. Open issues labelled self-care:docs-build-time-investigator: only #20815 (checkout, other category, not repeated). No suggestion; noop; next_category advanced to dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-21T23:31:41Z",
    "worker_run_id": "44961904308",
@@ -869,6 +840,35 @@
     "44311127214"
    ],
    "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 09:17Z: same 20 IDs, none queued or running; HEAD 9edb6bb = source_sha. Live Jobs API read of 44974265341 matched stored row (handoff 5 s, configure 1 s, upload 1 s, exec 71 s). Stored transfer_model recomputed (n=20, nearest-rank p90, no refetch): removable (handoff+configure+upload+deploy setup) median 9 s, p90 11, max 13 = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at 100 percent removal. Deploy Pages GitHub-managed (median 7 s, p90 14, max 92 s). Merge-deploy ceiling about 5 s still rejected (github-pages environment and id-token boundary). Open worker issues: only #20815 (checkout, OPEN), not repeated. No issue; noop; correlation 45006236619-4575; next_category advanced to scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-22T09:33:47Z",
+   "worker_run_id": "45007817201",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 09:32Z: unchanged, none queued or running, HEAD 9edb6bb = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90, no refetch): queue median 3 s (p90 4) = 3.8 percent of exec median 78.5 s (p90 139); push exec median 84.5 s, schedule 75.5 s. Concurrency: documentation-pages used only by docs.yml; cancel-in-progress false kept; 0 overlapping executions (min createdAt gap 5 min vs exec at most 160 s); cancel true saves 0 s median. Avoidable rebuilds: all 16 push heads build-consumed (path_filter_verified); 0 avoidable. 4 schedule runs needed for daily synthetic-date refresh (scripts/simulate-dashboard-pages.mjs:67 now=Date.now()). Only 44989298582 had a same-UTC-day prior push (44974265341); skipping it would save about 75 s on one run, 0 s median, needs actions:read and weakens daily freshness: watch only. Gates 60 s / 11.8 s unmet. Open issues not searched (no create); last search 08:34Z: only #20815. No suggestion; next_category advanced to dependency installation and caching.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1755,8 +1755,8 @@
   "mapped_window_pushes_without_docs_or_astro_input": "14 of 17 (commit_paths map; 0599943 and dbf9df7 unmapped)"
  },
  "scheduling_verified": {
-  "verified_at": "2026-11-22T07:53:23Z",
-  "worker_run_id": "44999988714",
+  "verified_at": "2026-11-22T09:33:47Z",
+  "worker_run_id": "45007817201",
   "source_sha": "9edb6bb",
   "window": "latest 20 completed non-cancelled docs.yml runs 44989298582..44311127214; 16 push, 4 schedule, 20 success",
   "queue_s": {
@@ -1773,9 +1773,9 @@
    "push": 84.5,
    "schedule": 75.5
   },
-  "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions",
+  "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions; group referenced only by docs.yml",
   "avoidable_rebuilds": "0 of 16 push heads; 4 schedule runs required for synthetic-date freshness",
-  "verdict": "not actionable (unchanged, re-verified 2026-11-22T07:53:23Z)"
+  "verdict": "not actionable (re-verified 2026-11-22T09:33:47Z)"
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-19T17:18:41Z",
