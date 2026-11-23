@@ -56,11 +56,11 @@ func dashboardServerAssets(options dashboardOptions) (server, site string, clean
 		if _, err := fs.Stat(bundle, "site/index.html"); err != nil {
 			return "", "", nil, errors.New("source build has no local server bundle; use a release binary or pass --server-executable and --site")
 		}
-		directory, err := os.MkdirTemp(".", ".gh-cao-dashboard-")
+		directory, err := os.MkdirTemp(dashboardExtractionParent(runtime.GOOS), ".gh-cao-dashboard-")
 		if err != nil {
 			return "", "", nil, err
 		}
-		cleanup = func() { _ = os.RemoveAll(directory) }
+		cleanup = func() { removeDashboardExtraction(directory) }
 		err = fs.WalkDir(bundle, ".", func(name string, entry fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -487,7 +487,7 @@ func dashboardPostgresNamespace(repositories []string) string {
 func printDashboardReady(output io.Writer, address string, repositories []string, cache string, options dashboardOptions) {
 	maintenance := "dashboard-confirmed commands execute through the local queue; no terminal prompt."
 	if runtime.GOOS == "windows" {
-		maintenance = "copy-only; native command execution is unavailable on Windows."
+		maintenance = "copy-only on Windows; copy confirmed commands from the dashboard into this terminal."
 	}
 	_, _ = fmt.Fprintf(output,
 		"\nCAO dashboard is ready. Open this URL in your browser:\n\n"+
@@ -521,4 +521,27 @@ func dashboardServerEnvironment() []string {
 		result = append(result, value)
 	}
 	return append(result, "OTEL_SDK_DISABLED=true")
+}
+
+// dashboardExtractionParent keeps POSIX extraction beside the working tree,
+// avoiding noexec temporary mounts. Windows has no noexec temporary folder and
+// a working-tree folder would be left in the user's project if the console is
+// closed, so it uses the per-user temporary directory.
+func dashboardExtractionParent(goos string) string {
+	if goos == "windows" {
+		return ""
+	}
+	return "."
+}
+
+// removeDashboardExtraction retries briefly because Windows keeps an exited
+// executable locked until the process handle is released.
+func removeDashboardExtraction(directory string) {
+	for attempt := 0; ; attempt++ {
+		err := os.RemoveAll(directory)
+		if err == nil || runtime.GOOS != "windows" || attempt == 20 {
+			return
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
 }

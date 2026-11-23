@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -113,9 +113,6 @@ func TestDashboardServingIntegration(t *testing.T) {
 	}
 	if managed {
 		t.Run("managed", func(t *testing.T) {
-			if runtime.GOOS == "windows" {
-				t.Fatal("managed Windows PostgreSQL is unsupported: production private-file checks require a Windows ACL implementation and Docker Desktop bind-mount identity is not normalized; use an explicitly provisioned disposable PostgreSQL URL instead")
-			}
 			engine, err := selectDashboardEngine(ctx, "docker")
 			if err != nil {
 				t.Fatalf("selected managed integration requires local Docker with Linux containers: %v", err)
@@ -801,7 +798,7 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 			if err != nil || !container.State.Running {
 				t.Fatalf("managed PostgreSQL is not a real running container: %v", err)
 			}
-			if _, err := validateDashboardPostgresContainer(container, state, filepath.Join(postgres, "data")); err != nil {
+			if _, err := validateDashboardPostgresContainer(container, state, dashboardPostgresDataLocation(runtime.GOOS, postgres)); err != nil {
 				t.Fatal(err)
 			}
 			if phase == 1 && (state.ContainerID != previous.ContainerID || state.Owner != previous.Owner) {
@@ -946,10 +943,13 @@ func cleanupDashboardServingPostgres(t *testing.T, engine dashboardEngine, direc
 	}
 	// The deterministic name also finds a container created just before a setup
 	// failure persisted its ID. Never enumerate or remove unrelated containers.
-	digest := sha256.Sum256([]byte(directory))
-	name := fmt.Sprintf("gh-cao-postgres-%x", digest[:12])
+	name := dashboardPostgresName(directory)
+	data := dashboardPostgresDataLocation(runtime.GOOS, directory)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	if data.Volume {
+		defer cleanupDashboardServingPostgresVolume(t, ctx, engine, data.Source, state.Owner)
+	}
 	found, err := engine.run(ctx, "container", "ls", "--all", "--filter", "name=^"+name+"$", "--format", "{{.ID}}")
 	if err != nil {
 		t.Errorf("locate uniquely named test PostgreSQL: %v", err)
@@ -965,12 +965,9 @@ func cleanupDashboardServingPostgres(t *testing.T, engine dashboardEngine, direc
 		t.Error("refusing cleanup: container does not match test cache owner, image and identity")
 		return
 	}
-	data := filepath.Join(directory, "data")
-	if runtime.GOOS != "windows" {
-		if err := validateDashboardPostgresOwnership(container, state, data); err != nil {
-			t.Errorf("refusing to change permissions outside test-owned PostgreSQL data: %v", err)
-			return
-		}
+	if err := validateDashboardPostgresOwnership(container, state, data); err != nil {
+		t.Errorf("refusing to change permissions outside test-owned PostgreSQL data: %v", err)
+		return
 	}
 	// Stop PostgreSQL before restoring ownership: a live server creates and
 	// removes files under its data directory, which makes a recursive chown fail.
@@ -978,16 +975,38 @@ func cleanupDashboardServingPostgres(t *testing.T, engine dashboardEngine, direc
 		t.Errorf("remove uniquely owned test PostgreSQL: %v", err)
 		return
 	}
-	if runtime.GOOS != "windows" {
+	if !data.Volume {
 		// PostgreSQL changes its bind mount to its container UID. Restore the
 		// invoking user's ownership before removing this private test workspace.
 		owner := fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 		if _, err := engine.run(ctx, "run", "--rm", "--network", "none", "--user", "0",
 			"--label", dashboardPostgresLabel+"="+state.Owner,
-			"--volume", data+":/var/lib/postgresql/data:Z",
+			"--volume", data.Source+":/var/lib/postgresql/data:Z",
 			"--entrypoint", "chown", dashboardPostgresImage,
 			"-R", owner, "/var/lib/postgresql/data"); err != nil {
 			t.Errorf("restore test-owned PostgreSQL cache ownership: %v", err)
 		}
+	}
+}
+
+// cleanupDashboardServingPostgresVolume removes only the uniquely named data
+// volume whose owner label matches this test cache.
+func cleanupDashboardServingPostgresVolume(t *testing.T, ctx context.Context, engine dashboardEngine, volume, owner string) {
+	t.Helper()
+	found, err := engine.run(ctx, "volume", "ls", "--quiet", "--filter", "name="+volume)
+	if err != nil {
+		t.Errorf("locate test-owned PostgreSQL data volume: %v", err)
+		return
+	}
+	if !slices.Contains(strings.Fields(string(found)), volume) {
+		return
+	}
+	labels, err := engine.run(ctx, "volume", "inspect", "--format", "{{index .Labels \""+dashboardPostgresLabel+"\"}}", volume)
+	if err != nil || strings.TrimSpace(string(labels)) != owner {
+		t.Errorf("refusing to remove PostgreSQL data volume not owned by this test cache: %v", err)
+		return
+	}
+	if _, err := engine.run(ctx, "volume", "rm", volume); err != nil {
+		t.Errorf("remove test-owned PostgreSQL data volume: %v", err)
 	}
 }

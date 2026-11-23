@@ -80,6 +80,14 @@ test("streaming ingestion is stressed with Chromium open and retains local diagn
   assert.equal(artifact.with["if-no-files-found"], "error");
 });
 
+test("Windows serving runs the native ACL and managed data-layout tests", () => {
+  const step = workflow.jobs.serving.steps.find((entry) => entry.name === "Test Windows private state and managed data layout");
+  assert.equal(step.if, "runner.os == 'Windows'");
+  for (const name of ["PrivateFilesSurviveRestart", "OwnedContainerLifecycle", "RefusesForeignWindowsDataVolume"]) {
+    assert.match(step.run, new RegExp(name));
+  }
+});
+
 test("POSIX local serving exercises the checksum-verified DuckDB v2.0.0 session archive", () => {
   const steps = workflow.jobs.serving.steps;
   const duckdb = steps.findIndex((step) => step.name === "Install checksum-verified DuckDB v2.0.0");
@@ -128,12 +136,13 @@ test("Docker Desktop coverage is explicit and cannot execute untrusted PRs on se
     "github.event_name == 'workflow_dispatch' && inputs.docker_desktop && github.ref == 'refs/heads/main'");
   assert.equal(workflow.on.workflow_dispatch.inputs.docker_desktop.default, false);
   assert.equal(job.environment, "dashboard-desktop-tests");
-  assert.deepEqual(job.strategy.matrix.include.map((entry) => entry.os), ["Windows", "macOS"]);
+  assert.deepEqual(job.strategy.matrix.include.map((entry) => `${entry.os}/${entry.backend}`),
+    ["Windows/docker-explicit", "Windows/docker", "macOS/docker-explicit"]);
+  assert.match(job.name, /\$\{\{ matrix\.backend \}\}/, "job names must stay unique per backend");
   for (const entry of job.strategy.matrix.include) {
     assert.ok(entry.runner.includes("self-hosted"));
     assert.ok(entry.runner.includes(entry.os));
     assert.ok(entry.runner.includes("cao-dashboard-docker-ephemeral"));
-    assert.equal(entry.backend, "docker-explicit");
   }
   assert.deepEqual(job.steps, workflow.jobs.serving.steps, "run exactly the same serving test");
 });
