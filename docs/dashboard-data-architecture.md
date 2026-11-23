@@ -108,9 +108,9 @@ operational data, including cached responses at former URLs. This removes
 live-data publication and implicit acquisition paths, not the cost of the
 IndexedDB/worker/service-worker adapters and cross-backend conformance.
 Operational artifacts remain bounded read-only transport for authorized local
-and hosted consumers. Acquisition requires authenticated Actions access or an
-explicit direct operational `payload-hashes.json` URL; there is no default
-Pages download or implied hosted export API.
+and hosted consumers. Acquisition requires an explicit direct operational
+`payload-hashes.json` URL or native collection; no Actions workflow publishes
+the snapshot, and there is no default Pages download or implied hosted export API.
 
 Migration does not scrub old deployments or browser storage. Redeploying the
 demo replaces current Pages artifacts; legacy real-data browser databases stay
@@ -127,12 +127,12 @@ Acquisition profile and HTTP hosting are independent design axes. Choose
 ```mermaid
 flowchart LR
   accTitle: Mutually exclusive acquisition profiles
-  accDescr: The default Actions profile publishes verified artifacts. The optional native collector acquires exact-attempt evidence through durable admission and publication. Both feed the same canonical model, but must not co-write one dataset.
+  accDescr: The default Actions profile is specified to produce an immutable snapshot for verification and canonical publication. Current operator guidance says no Actions workflow publishes an operational artifact, so that step is a source conflict. The optional native collector acquires exact-attempt evidence through durable admission and publication. Both feed the same canonical model, but must not co-write one dataset.
   GitHub["GitHub evidence"] --> Choice{"One acquisition profile"}
   Choice -->|Default| Actions["Actions Activity pipeline"]
-  Actions --> Artifact["Immutable dashboard artifact"]
-  Artifact --> Verify["Hash and relationship validation"]
-  Verify --> Snapshot["Canonical snapshot publication"]
+  Actions -.->|"Specified snapshot; publication conflict"| Artifact["Immutable snapshot directory"]
+  Artifact -.-> Verify["Hash and relationship validation"]
+  Verify -.-> Snapshot["Canonical snapshot publication"]
   Choice -->|Explicit native selection| Admission["Enrollment-fenced admission"]
   Admission --> Queue["Durable receipt-fenced queue"]
   Queue --> Native["Native exact-attempt acquisition"]
@@ -140,11 +140,21 @@ flowchart LR
   Intent --> Snapshot
 ```
 
-The default **Actions profile** publishes inventory, hashes, compact normalized
-run-information JSONL, run-record JSONL for PostgreSQL ingestion and headless
-consumers. Raw Activity JSONL remains in the Activity cache, not the deployed
-browser payload. Browser ingestion reads JSONL and inventory; it does not
-import a database file into IndexedDB.
+The default **Actions profile** is specified as an Activity pipeline that
+publishes an immutable snapshot directory containing inventory, hashes, compact
+normalized run-information JSONL, and run-record JSONL for PostgreSQL ingestion
+and headless consumers. Raw Activity JSONL remains in the Activity cache, not
+the deployed browser payload. Browser ingestion reads JSONL and inventory; it
+does not import a database file into IndexedDB.
+
+**Source conflict:** [Server Ingestion §2](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md#2-profiles)
+describes this immutable snapshot directory as the Actions-profile input, while
+[dashboard-data §3.2.1](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md#321-deployment-and-publication-profiles)
+and [Data ingestion](dashboard-data-ingestion.md#before-the-first-activity-snapshot)
+state that no Actions workflow publishes an operational snapshot artifact. Operators
+must use a trusted direct manifest URL or explicit native collection, and this guide
+does not reconcile the conflict. Verify the current publication path before relying on
+Actions-profile artifact freshness.
 
 The optional **native collector profile** requires explicit native selection,
 canonical PostgreSQL, and durable PostgreSQL operational ownership. GitHub
