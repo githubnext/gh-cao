@@ -1,36 +1,7 @@
 {
   "source_sha": "eb19410c572cdd9b176f9805a3d404fe6fcf5fc5",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-23T12:40:23Z",
-      "worker_run_id": "45175927815",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809"
-      ],
-      "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z) unchanged: live gh run list at 12:39Z shows the same 20 completed non-cancelled IDs (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled, none queued); main 9edb6bb == source_sha; docs.yml unchanged. Stored build_docs_s recomputed without refetch (row IDs equal live window): median 13.5 s, nearest-rank p90 15 s, min 8, max 16 = 17.4 percent of exec median 77.5 s; 15 percent gate 11.62 s needs 86 percent of the step removed; 60 s gate unreachable (max 16 s). Jobs API spot check of 45117916746 matched (Build documentation 11 s). docs:build = astro build && validate-agent-docs.mjs && agent-docs-discovery test (package.json:47); validators need dist and are correctness gates, so no parallel gain. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT: SiteFooter.astro:9, starlight-agent/resource.ts:233, validate-agent-docs.mjs:571). Sub-step split unmeasured (job logs HTTP 403 DIFC; not bypassed). No issue created.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-23T12:53:06Z",
       "worker_run_id": "45178053844",
@@ -867,6 +838,35 @@
         "44323919922"
       ],
       "outcome": "complete, not actionable. Window 45249995178 (push, eb19410, 2026-11-23T19:32:26Z) .. 44323919922 (push, ea7a94f, 2026-11-18T14:24:31Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 22:17Z: no docs run newer than 19:32Z, none queued; main eb19410 = source_sha. Stored run_timings recomputed without refetch (nearest-rank p90): setup-node median 3.5 s (p90 6), install median 9.5 s (p90 12), post 0-1 s; setup+install+post median 13.5 s (p90 17) = 17.4 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet; even full removal of install (9.5 s) plus setup (3.5 s) stays under the gate and build/dashboard steps need node_modules. Newest run jobs API 45249995178: setup 3 s, install 10 s, post 0 s (cache hit). Root-lock cache entry live (263412733 B, created 2026-11-13T20:57Z, last accessed 22:14Z). No suggestion, no issue.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-23T22:34:22Z",
+      "worker_run_id": "45280252199",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922"
+      ],
+      "outcome": "complete, not actionable. Window 45249995178 (push, eb19410, 2026-11-23T19:32:26Z) .. 44323919922 (push, ea7a94f, 2026-11-18T14:24:31Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; live gh run list 22:32Z returns the same 20 IDs as the stored set; main eb19410 == source_sha. Recomputed stored run_timings (no refetch): Build documentation (npm run docs:build) avg-median 14 s, nearest-rank p90 15, min 10, max 16 = 18.1 percent of exec median 77.5 s; 15 percent gate 11.62 s needs about 83 percent of the step removed; 60 s gate unreachable (max 16 s). docs:build = astro build, then validate-agent-docs.mjs and agent-docs-discovery test; build output is required by deploy and validators are correctness gates; no subprocess rebuild in the validators or test. Output reuse still rejected (PUBLIC_PAGES_BUILD_COMMIT: docs/components/SiteFooter.astro:9, docs/plugins/starlight-agent/resource.ts:233, scripts/validate-agent-docs.mjs:571). Static lockfile check: astro-mermaid 2.1.0 declares no browser runtime (playwright is dev e2e only), so no hidden headless-render cost. Sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed) and not decision-relevant: even perfect caching of Astro internals cannot reach the 11.62 s gate. Open investigator issues: #20815 only (checkout, out of category, not re-proposed). No issue created. Correlation 45279385057-4685. Next: reusable dashboard generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -2036,5 +2036,27 @@
     "verified_at": "2026-11-22T10:17:57Z",
     "worker_run_id": "45011475233",
     "status": "build job logs for 44989298582 (job 137106620254) return HTTP 403 difc_forbidden; sub-step split (astro build vs validators) remains unmeasured; no bypass attempted"
+  },
+  "astro_step_latest": {
+    "verified_at": "2026-11-23T22:34:22Z",
+    "worker_run_id": "45280252199",
+    "window": "latest 20 completed non-cancelled docs.yml runs 45249995178 .. 44323919922 (15 push, 5 schedule, 20 success)",
+    "method": "stored immutable run_timings rows (no refetch); avg-median and nearest-rank p90 at n=20; live gh run list and gh issue list cross-checked",
+    "build_docs_s": {
+      "median": 14,
+      "p90": 15,
+      "min": 10,
+      "max": 16,
+      "n": 20
+    },
+    "exec_s": {
+      "median": 77.5,
+      "p90": 139
+    },
+    "build_docs_share_exec_median_pct": 18.1,
+    "gate_15pct_s": 11.62,
+    "required_step_removal_pct_for_15pct_gate": 83,
+    "decision": "not actionable: build output is required by deploy; validators are correctness gates; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; 60 s gate unreachable",
+    "supersedes": "astro_step_recheck build_docs median 13.5 s (older 20-run window)"
   }
 }
