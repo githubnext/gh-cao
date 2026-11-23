@@ -1,36 +1,7 @@
 {
   "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-22T21:16:19Z",
-      "worker_run_id": "45070845124",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214"
-      ],
-      "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list at 21:16Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; HEAD 9edb6bb = source_sha). Stored transfer_model rows recomputed (no refetch): removable median 9 s, p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; Deploy Pages excluded (GitHub-managed). No suggestion.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-22T21:32:18Z",
       "worker_run_id": "45072320112",
@@ -870,6 +841,35 @@
       ],
       "outcome": "complete, not actionable. Window 45117916746..44318642809 (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled); live gh run list 07:52Z shows no newer run; HEAD 9edb6bb = source_sha; open label issues: #20815 only. Build synthetic enterprise demo (stored run_timings demo_s, recomputed n=20): median 1.5 s, nearest-rank p90 3 s, max 7 s = 1.9 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet even at full removal (ceiling 1.5 s). Cross-run reuse blocked: generatedAt from Date.now (scripts/simulate-dashboard-pages.mjs:67,76); docs.yml:55-58 runs the step every build. No suggestion. Next: artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-23T08:25:40Z",
+      "worker_run_id": "45138051898",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809"
+      ],
+      "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z): 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 08:24Z shows the same 20 IDs, none queued or in progress; HEAD 9edb6bb = source_sha; docs.yml unchanged. Stored transfer_model rows recomputed, no refetch: handoff median 5 s; configure 1 s; upload 2 s; deploy setup 1 s; removable median 9 s, p90 11 s, max 13 s = 11.6 pct of exec median 77.5 s; 15 pct gate 11.63 s and 60 s gate unmet. Deploy Pages (median 7 s; tails 92 s 44576080583 and 69 s 44337804857) is GitHub-managed, not workflow-removable. Build+deploy merge rejected: moves id-token write into build steps that run npm lifecycle scripts and docs build. Live Jobs API spot-check of 45117916746 matched stored row (removable 10 s, exec 73 s). Open issues: #20815 only (checkout, not re-proposed). Next: scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1655,9 +1655,9 @@
     },
     "worker_run_id": "44638063158",
     "last_reverified": {
-      "verified_at": "2026-11-23T06:33:23Z",
-      "worker_run_id": "45124484784",
-      "result": "window unchanged at 45117916746..44318642809; stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s); gates unmet; not actionable"
+      "verified_at": "2026-11-23T08:25:40Z",
+      "worker_run_id": "45138051898",
+      "result": "window unchanged at 45117916746..44318642809; stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s); live Jobs API read of 45117916746 matched stored row; gates unmet; not actionable"
     },
     "live_spot_check": {
       "verified_at": "2026-11-22T01:06:00Z",
