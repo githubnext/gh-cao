@@ -69,6 +69,10 @@ CAO_POSTGRES_URL is supplied, a local PostgreSQL container is pulled, started
 and provisioned automatically using Docker or Podman (Docker is tried first).
 Pass --container-engine docker|podman (or set CAO_CONTAINER_ENGINE) to use only
 that engine. Data stays in the ignored local dashboard cache.
+Missing or unusable container engines produce OS-specific package-manager
+and startup guidance for Windows 11+, macOS, and Linux; these checks do not
+install dependencies. A separate PostgreSQL installation is not required
+when using Docker or Podman.
 GitHub CLI authentication and an installed gh-aw extension supporting
 'gh aw logs --format jsonl' are required for collection. Existing
 gh-aw artifact caches are reused. The evidence window defaults to seven days;

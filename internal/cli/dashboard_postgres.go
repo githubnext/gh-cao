@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -63,7 +64,7 @@ func (output *dashboardEngineOutput) Write(value []byte) (int, error) {
 func newDashboardEngine(name string) (dashboardEngine, error) {
 	binary, err := exec.LookPath(name)
 	if err != nil {
-		return dashboardEngine{}, fmt.Errorf("%s is not installed", name)
+		return dashboardEngine{}, fmt.Errorf("%s is not available on PATH: %w", name, err)
 	}
 	return dashboardEngine{name: name, run: func(ctx context.Context, args ...string) ([]byte, error) {
 		var output, diagnostic dashboardEngineOutput
@@ -187,16 +188,116 @@ func selectDashboardEngine(ctx context.Context, name string) (dashboardEngine, e
 		if err == nil {
 			return engine, nil
 		}
-		failures = append(failures, err)
+		failures = append(failures, fmt.Errorf("%w\n%s", err,
+			dashboardEngineHelp(runtime.GOOS, candidate, errors.Is(err, exec.ErrNotFound))))
 	}
 	if name != "" {
 		alternative := "podman"
 		if name == "podman" {
 			alternative = "docker"
 		}
-		return dashboardEngine{}, fmt.Errorf("%s is not usable for managed PostgreSQL; start it, pass --container-engine %s, or supply --postgres-url: %w", name, alternative, errors.Join(failures...))
+		return dashboardEngine{}, fmt.Errorf("%s is not usable for managed PostgreSQL; select --container-engine %s or supply a pre-provisioned --postgres-url: %w\n%s", name, alternative, errors.Join(failures...), dashboardPostgresHelp(runtime.GOOS))
 	}
-	return dashboardEngine{}, fmt.Errorf("no usable local container engine; start Docker/Podman or supply --postgres-url: %w", errors.Join(failures...))
+	return dashboardEngine{}, fmt.Errorf("no usable local container engine for managed PostgreSQL: %w\n%s", errors.Join(failures...), dashboardPostgresHelp(runtime.GOOS))
+}
+
+func dashboardEngineHelp(goos, engine string, missing bool) string {
+	var help []string
+	if missing {
+		switch goos {
+		case "windows":
+			id := "Docker.DockerDesktop"
+			if engine == "podman" {
+				id = "RedHat.Podman"
+			}
+			help = append(help, "Native Windows 11+ route: Windows does not include a Linux container engine. "+
+				"Install with WinGet in PowerShell: winget install --exact --id "+id+
+				". If winget is unavailable, update App Installer through Microsoft Store.")
+		case "darwin":
+			command := "brew install --cask docker-desktop"
+			if engine == "podman" {
+				command = "brew install podman"
+			}
+			help = append(help, "macOS: install with Homebrew: "+command+
+				". If brew is unavailable, set up Homebrew using your organization's approved procedure.")
+		case "linux":
+			if engine == "docker" {
+				help = append(help, "Linux: install Docker Engine using your distribution's package manager "+
+					"(Debian/Ubuntu: sudo apt update && sudo apt install docker.io). "+
+					"For other distributions, follow https://docs.docker.com/engine/install/ "+
+					"and use the package-repository instructions, not the convenience script.")
+			} else {
+				help = append(help, "Linux: install Podman using your distribution's package manager: "+
+					"Debian/Ubuntu: sudo apt update && sudo apt install podman; "+
+					"Fedora/RHEL: sudo dnf install podman; Arch: sudo pacman -S podman; "+
+					"openSUSE: sudo zypper install podman.")
+			}
+		default:
+			help = append(help, "Install "+engine+" using your operating system's package manager.")
+		}
+		help = append(help, "After installation, reopen the terminal so PATH is refreshed.")
+	}
+	if engine == "docker" {
+		switch goos {
+		case "windows":
+			help = append(help, "Start Docker Desktop and wait until the engine is ready. "+
+				"Use the WSL 2 backend and Linux containers, not Windows containers.")
+		case "darwin":
+			help = append(help, "Start Docker Desktop and wait until the engine is ready.")
+		case "linux":
+			help = append(help, "Start Docker Engine (systemd: sudo systemctl start docker) "+
+				"and ensure your user has permission to access it; do not run gh cao as root.")
+		}
+		help = append(help, "Check docker context show and docker info; select a local Linux engine, not a remote context.")
+	} else {
+		if goos == "windows" || goos == "darwin" {
+			help = append(help, "Initialize a local Linux VM with podman machine init (only if none exists), "+
+				"then run podman machine start.")
+			if goos == "windows" {
+				help = append(help, "Use Podman's WSL provider.")
+			}
+		}
+		help = append(help, "Check podman system connection list and podman info; the selected endpoint must be local.")
+	}
+	if goos == "windows" {
+		help = append(help, dashboardWindowsWSLHelp())
+	}
+	return strings.Join(help, "\n")
+}
+
+func dashboardWindowsWSLHelp() string {
+	return "WSL 2 prerequisite: if missing, install with winget install --exact --id Microsoft.WSL. " +
+		"Enable Windows Subsystem for Linux and Virtual Machine Platform in 'Turn Windows features on or off' " +
+		"(administrator approval required), enable hardware virtualization in BIOS/UEFI, " +
+		"and restart Windows after enabling features."
+}
+
+func dashboardPostgresHelp(goos string) string {
+	help := "A separate PostgreSQL installation is NOT required with Docker/Podman; gh cao provisions it automatically. " +
+		"No dependency installation is performed by this check.\n" +
+		"Alternative: install native PostgreSQL using a package manager"
+	switch goos {
+	case "windows":
+		help = "Windows 11+ WSL 2 route (instead of running CAO in Windows): " +
+			"in PowerShell, run winget install --exact --id Microsoft.WSL and " +
+			"winget install --exact --id Canonical.Ubuntu.2404. " + dashboardWindowsWSLHelp() +
+			" Run wsl --set-default-version 2 before launching Ubuntu. " +
+			"Inside Ubuntu, run sudo apt update && sudo apt install gh podman, " +
+			"authenticate with gh auth login, install the CAO extension with gh extension install githubnext/gh-cao, " +
+			"then run gh cao dashboard --container-engine podman " +
+			"with your original repository flags from your Linux home directory. " +
+			"Windows-only gh/CAO installations are not a substitute for Linux executables.\n" + help
+		help += " (Windows 11+: winget install --exact --id PostgreSQL.PostgreSQL.16)"
+	case "darwin":
+		help += " (macOS: brew install postgresql@16)"
+	case "linux":
+		help += " (Debian/Ubuntu: sudo apt install postgresql; Fedora/RHEL: sudo dnf install postgresql-server; " +
+			"Arch: sudo pacman -S postgresql; openSUSE: sudo zypper install postgresql-server)"
+	}
+	return help + ", start the database service, and provision the CAO owner/runtime roles before supplying " +
+		"--postgres-url or CAO_POSTGRES_URL. Installing PostgreSQL alone does not configure dashboard storage. " +
+		"See https://github.com/githubnext/gh-cao/blob/main/server/POSTGRES.md for database provisioning. " +
+		"Then rerun gh cao dashboard with your original flags."
 }
 
 func dashboardPostgresSecret() (string, error) {
