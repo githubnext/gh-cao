@@ -16,8 +16,8 @@ Docker is tried first, then Podman. Pass `--container-engine docker|podman` (or 
 `CAO_CONTAINER_ENGINE`) to use only that engine.
 
 Persistent data and private local credentials live under
-`.github/cao/dashboard/<repository-scope>/postgres/`; the PostgreSQL data directory
-is bind-mounted into the container. The cache is added to `.gitignore`.
+`.github/cao/dashboard/<repository-scope>/postgres/`; on macOS and Linux the
+PostgreSQL data directory is bind-mounted into the container. The cache is added to `.gitignore`.
 Image layers remain in the container engine. `--cache-dir` overrides the cache.
 The container and data are retained for subsequent dashboard sessions.
 
@@ -40,6 +40,40 @@ gh auth login
 gh extension install githubnext/gh-cao
 gh cao dashboard --repo OWNER/REPOSITORY
 ```
+
+These commands work unchanged in Windows Command Prompt and PowerShell.
+
+### Windows 11 from a clean machine
+
+Native Windows is supported from Command Prompt or PowerShell; WSL is optional.
+Install the GitHub CLI and a container engine with WinGet, then **reopen the
+terminal** so `PATH` is refreshed:
+
+```bat
+winget install --exact --id GitHub.cli
+winget install --exact --id Docker.DockerDesktop
+```
+
+- **Docker Desktop** uses the WSL 2 backend with Linux containers. It needs
+  hardware virtualization enabled in BIOS/UEFI, may install WSL 2
+  (`winget install --exact --id Microsoft.WSL`) with administrator approval,
+  and can require a Windows restart. Start Docker Desktop and wait until the
+  engine is running before `gh cao dashboard`.
+- **Licensing:** Docker Desktop requires a paid subscription for larger
+  organizations. **Podman** is a free alternative:
+  `winget install --exact --id RedHat.Podman`, then `podman machine init` (once)
+  and `podman machine start`; run the dashboard with `--container-engine podman`.
+- **Storage:** Private state and credentials stay in the per-repository cache,
+  restricted to your Windows account by an access-control list. PostgreSQL data
+  lives in an owner-labelled engine volume named
+  `gh-cao-postgres-<id>-data` instead of a bind mount, because Windows file
+  sharing cannot preserve PostgreSQL's required ownership and permissions.
+  Deleting the cache folder does not delete that volume; remove it with
+  `docker volume rm` (or `podman volume rm`) after removing its container.
+- **Maintenance commands** are copy-only on Windows: the dashboard shows them
+  for you to paste into the terminal instead of running them.
+- The bundled server is extracted to your user temporary folder and removed
+  when the command stops.
 
 In an existing repository checkout, `gh cao dashboard` resolves the current
 repository instead. Repeat `--repo OWNER/REPOSITORY` to select up to **20 exact

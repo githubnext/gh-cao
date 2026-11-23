@@ -216,6 +216,12 @@ jobs:
           mkdir -p .tmp
           go -C server build -mod=readonly -o "../.tmp/cao-dashboard${EXE_SUFFIX}" ./cmd/cao-dashboard
           go build -mod=readonly -o ".tmp/gh-cao${EXE_SUFFIX}" ./cmd/gh-cao
+      - name: Test Windows private state and managed data layout
+        # Hosted Windows has no Linux container engine; these tests exercise the
+        # real NTFS ACL checks and the engine-volume layout used by managed mode.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: go test ./internal/cli -run '^TestDashboardPostgres(PrivateFilesSurviveRestart|OwnedContainerLifecycle|RefusesForeignWindowsDataVolume)$' -count=1 -v
       - name: Verify dashboard build assets
         shell: bash
         run: node --test --test-name-pattern="^docs dashboard installs renderer assets without experimental campaign pages$" tests/unit/dashboard-site-build.test.mjs
@@ -243,7 +249,7 @@ jobs:
     # These labels must select isolated, single-job disposable desktop runners.
     if: github.event_name == 'workflow_dispatch' && inputs.docker_desktop && github.ref == 'refs/heads/main'
     environment: dashboard-desktop-tests
-    name: ${{ matrix.os }} / Docker Desktop
+    name: ${{ matrix.os }} / Docker Desktop / ${{ matrix.backend }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 25
     strategy:
@@ -253,6 +259,10 @@ jobs:
           - os: Windows
             runner: [self-hosted, Windows, X64, cao-dashboard-docker-ephemeral]
             backend: docker-explicit
+            suffix: ".exe"
+          - os: Windows
+            runner: [self-hosted, Windows, X64, cao-dashboard-docker-ephemeral]
+            backend: docker
             suffix: ".exe"
           - os: macOS
             runner: [self-hosted, macOS, ARM64, cao-dashboard-docker-ephemeral]

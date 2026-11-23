@@ -296,17 +296,39 @@ func TestDashboardEngineAutomaticSelection(t *testing.T) {
 }
 
 func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
-	for _, provider := range []string{"docker", "podman"} {
-		t.Run(provider, func(t *testing.T) {
+	for _, test := range []struct{ provider, goos string }{
+		{"docker", "linux"}, {"podman", "linux"}, {"docker", "windows"}, {"podman", "windows"},
+	} {
+		provider := test.provider
+		t.Run(provider+"/"+test.goos, func(t *testing.T) {
+			previous := dashboardPostgresGOOS
+			dashboardPostgresGOOS = test.goos
+			t.Cleanup(func() { dashboardPostgresGOOS = previous })
 			directory := t.TempDir()
+			data := dashboardPostgresDataLocation(test.goos, directory)
 			id := strings.Repeat("a", 64)
 			var calls []string
 			running := true
 			foreign := false
+			volumes := map[string]string{}
 			engine := dashboardEngine{name: provider}
 			engine.run = func(_ context.Context, args ...string) ([]byte, error) {
 				calls = append(calls, strings.Join(args, " "))
 				switch args[0] {
+				case "volume":
+					switch args[1] {
+					case "ls":
+						var names []string
+						for name := range volumes {
+							names = append(names, name)
+						}
+						return []byte(strings.Join(names, "\n")), nil
+					case "create":
+						volumes[args[len(args)-1]] = strings.TrimPrefix(args[3], dashboardPostgresLabel+"=")
+						return nil, nil
+					case "inspect":
+						return json.Marshal(map[string]string{dashboardPostgresLabel: volumes[args[len(args)-1]]})
+					}
 				case "image":
 					return nil, errors.New("image is not cached")
 				case "pull", "run", "exec":
@@ -332,9 +354,13 @@ func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 						container.Config.Labels[dashboardPostgresLabel] = "foreign"
 					}
 					container.State.Running = running
-					container.Mounts = append(container.Mounts, struct{ Type, Source, Destination string }{
-						"bind", filepath.Join(directory, "data"), "/var/lib/postgresql/data",
-					})
+					mount := struct{ Type, Name, Source, Destination string }{
+						Type: "bind", Source: data.Source, Destination: "/var/lib/postgresql/data",
+					}
+					if data.Volume {
+						mount.Type, mount.Name, mount.Source = "volume", data.Source, "/var/lib/docker/volumes/"+data.Source+"/_data"
+					}
+					container.Mounts = append(container.Mounts, mount)
 					container.NetworkSettings.Ports = map[string][]struct {
 						HostIP   string `json:"HostIp"`
 						HostPort string
@@ -350,9 +376,21 @@ func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 			initial := slices.Clone(calls)
 			if !slices.ContainsFunc(initial, func(call string) bool { return strings.HasPrefix(call, "pull ") }) ||
 				!slices.ContainsFunc(initial, func(call string) bool {
-					return strings.Contains(call, "--volume "+filepath.Join(directory, "data")+":/var/lib/postgresql/data:Z")
+					if data.Volume {
+						return strings.Contains(call, "--volume "+data.Source+":/var/lib/postgresql/data --volume")
+					}
+					return strings.Contains(call, "--volume "+data.Source+":/var/lib/postgresql/data:Z")
 				}) {
-				t.Fatal("container did not pull PostgreSQL and bind-mount its cache")
+				t.Fatal("container did not pull PostgreSQL and mount its data")
+			}
+			if _, err := os.Stat(filepath.Join(directory, "data")); data.Volume != errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("data directory presence does not match the %s layout: %v", test.goos, err)
+			}
+			if data.Volume {
+				state, err := readDashboardPostgresState(filepath.Join(directory, "state.json"))
+				if err != nil || volumes[data.Source] != state.Owner {
+					t.Fatalf("Windows data volume is not owner-labelled: %v %v", volumes, err)
+				}
 			}
 			running, calls = false, nil
 			reused, samePassword, err := startDashboardPostgres(t.Context(), engine, directory)
@@ -367,6 +405,61 @@ func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 				t.Fatal("foreign container ownership did not fail before start")
 			}
 		})
+	}
+}
+
+func TestDashboardPostgresRefusesForeignWindowsDataVolume(t *testing.T) {
+	previous := dashboardPostgresGOOS
+	dashboardPostgresGOOS = "windows"
+	t.Cleanup(func() { dashboardPostgresGOOS = previous })
+	directory := t.TempDir()
+	volume := dashboardPostgresDataLocation("windows", directory).Source
+	engine := dashboardEngine{name: "docker", run: func(_ context.Context, args ...string) ([]byte, error) {
+		switch strings.Join(args[:2], " ") {
+		case "container ls":
+			return nil, nil
+		case "volume ls":
+			return []byte(volume + "\n"), nil
+		case "volume inspect":
+			return []byte(`{"` + dashboardPostgresLabel + `":"foreign"}`), nil
+		}
+		t.Fatalf("foreign data volume reached %v", args)
+		return nil, nil
+	}}
+	if _, _, err := startDashboardPostgres(t.Context(), engine, directory); err == nil ||
+		!strings.Contains(err.Error(), "data volume is not owned") {
+		t.Fatalf("foreign data volume was adopted: %v", err)
+	}
+}
+
+func TestDashboardPostgresPrivateFilesSurviveRestart(t *testing.T) {
+	directory := t.TempDir()
+	if err := dashboardSecurePrivate(directory, true); err != nil {
+		t.Fatal(err)
+	}
+	filename := filepath.Join(directory, "state.json")
+	state := dashboardPostgresState{Version: 1, Engine: "docker",
+		Owner: strings.Repeat("a", 64), RuntimePassword: strings.Repeat("b", 64)}
+	if err := writeDashboardPostgresState(filename, state); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := readDashboardPostgresState(filename); err != nil || got != state {
+		t.Fatalf("private state written by this platform was rejected on reuse: %v", err)
+	}
+	password := filepath.Join(directory, "password")
+	if err := writeDashboardPrivateFile(password, []byte(strings.Repeat("c", 64))); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(password)
+	if err != nil || !dashboardIsPrivate(password, info) {
+		t.Fatalf("private credential written by this platform is not private: %v", err)
+	}
+	shared := filepath.Join(t.TempDir(), "shared.json")
+	if err := os.WriteFile(shared, []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Lstat(shared); err != nil || dashboardIsPrivate(shared, info) {
+		t.Fatal("a default-permission file was accepted as private")
 	}
 }
 
