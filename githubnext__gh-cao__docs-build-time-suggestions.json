@@ -1,36 +1,7 @@
 {
   "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-22T19:52:47Z",
-      "worker_run_id": "45062864953",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 19:5xZ: same 20 IDs, none queued or in progress, main == 9edb6bb == source_sha. Queue median 3 s, p90 4 s (2 pct of exec median 78.5 s). Push exec median 84.5 s vs schedule 75.5 s. Avoidable pushes 0 of 16 (3bd1058, 826c4f4, d55b65c checked now: all build-consumed). Overlapping executions 0. Same-head schedules 3 of 4 (44989298582, 44680921088, 44465043275) are the daily synthetic-date refresh, required by design; removal saves about 0.5 s median and weakens freshness. Gates 11.78 s and 60 s unmet.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-22T20:17:51Z",
       "worker_run_id": "45065301223",
@@ -870,6 +841,35 @@
       ],
       "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 06:32Z: same 20 IDs, none queued; main HEAD 9edb6bb == source_sha; docs.yml unchanged. Stored immutable transfer_model rows recomputed without refetch (window IDs match live list): removable (handoff + Configure Pages + Upload Pages artifact + deploy Set up job) median 9 s, nearest-rank p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet; merge-deploy saves median 6 s (handoff + deploy setup) and stays rejected (github-pages environment and id-token boundary); Deploy Pages (GitHub-managed) excluded; outliers 44576080583 (92 s) and 44337804857 (69 s) disclosed; open label issue search: only #20815 (checkout); no issue created",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-23T07:04:25Z",
+      "worker_run_id": "45128062435",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809"
+      ],
+      "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z): 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 07:03Z unchanged; none in progress; only queued record 37642403569 (outside window, stale); main == 9edb6bb == source_sha; docs.yml unchanged; open issues: #20815 only (checkout, not re-proposed). Recomputed stored rows, no refetch: queue median 3 s p90 4 s max 5; exec median 77.5 s p90 139 s (push 82 s n=15, schedule 74 s n=5); 0 overlapping runs under documentation-pages cancel-in-progress false; 0 of 15 push heads avoidable (path filter, build-consumed); schedule runs required for synthetic-date refresh (Date.now generatedAt), same-head schedule reuse rejected (about 13.5 s build saving on some runs, still needs date refresh; artifact reuse needs actions:read and breaks PUBLIC_PAGES_BUILD_COMMIT provenance); build-to-deploy handoff plus removable deploy setup/upload/configure median 9 s = 11.6 pct of exec median, below 15 pct gate 11.63 s and 60 s gate; build+deploy merge blocked by github-pages environment/id-token boundary. Next: dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1628,7 +1628,7 @@
       ]
     ],
     "summary": {
-      "removable_median_s": 9.0,
+      "removable_median_s": 9,
       "removable_p90_s": 11,
       "removable_max_s": 13,
       "exec_median_s": 77.5,
@@ -1637,7 +1637,7 @@
       "gate_15pct_s": 11.62,
       "gate_60s_absolute": "not met",
       "decision": "not actionable",
-      "deploy_pages_median_s": 7.0,
+      "deploy_pages_median_s": 7,
       "deploy_pages_p90_s": 14,
       "deploy_pages_n": 20
     },
@@ -1787,8 +1787,8 @@
     "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions; group referenced only by docs.yml",
     "avoidable_rebuilds": "0 of 16 push heads; 4 schedule runs required for synthetic-date freshness",
     "verdict": "not actionable (re-verified 2026-11-22T09:33:47Z)",
-    "last_reverified_at": "2026-11-23T04:52:43Z",
-    "last_reverified_worker_run_id": "45114088457",
+    "last_reverified_at": "2026-11-23T07:04:25Z",
+    "last_reverified_worker_run_id": "45128062435",
     "same_head_schedule_reuse": {
       "verdict": "rejected (not actionable)",
       "evidence": "schedule 44989298582 on 9edb6bb after push 44974265341; 44680921088 on 4eb6bb3 after push 44576080583; 44465043275 on 7145c59 after push 44357668509; 44870776753 on bb9a74f has no in-window push",
@@ -1796,7 +1796,7 @@
       "blockers": "cross-run artifact download needs actions: read (workflow has contents: read only); deploy provenance; artifact retention",
       "counterfactual_2026_11_22": "exec median 78.5 -> 78 s (0.5 s) if the three same-head schedule builds saved their build step; not actionable"
     },
-    "last_reverified_note": "window unchanged (44989298582..44311127214, main 9edb6bb) at worker 45114088457; live run list, stored-row recomputation and Jobs API spot check unchanged; verdict unchanged (not actionable)."
+    "last_reverified_note": "window unchanged (45117916746..44318642809, main 9edb6bb) at worker 45128062435; live run list, stored-row recomputation, open-issue check unchanged; verdict unchanged (not actionable)."
   },
   "dependency_phase": {
     "evaluated_at": "2026-11-19T17:18:41Z",
