@@ -276,6 +276,7 @@ type dashboardColdStartGitHub struct {
 	beforeSecondPass func(context.Context) error
 	artifactHandler  func(http.ResponseWriter, *http.Request) bool
 	mutex            sync.Mutex
+	ghAWInstalled    bool
 	passes           []time.Time
 	historyPages     int
 	oversized        int
@@ -425,7 +426,23 @@ func (g *dashboardColdStartGitHub) get(ctx context.Context, path string) ([]byte
 
 func (g *dashboardColdStartGitHub) execute(ctx context.Context, args ...string) (string, string, error) {
 	var path string
+	if reflect.DeepEqual(args, []string{"aw", "logs", "--help"}) {
+		if !g.ghAWInstalled {
+			return "", "", fmt.Errorf("gh-aw is not installed")
+		}
+		return "", "--format jsonl", nil
+	}
+	if reflect.DeepEqual(args, []string{"extension", "install", "github/gh-aw", "--pin", dashboardLogsVersion, "--force"}) {
+		if g.ghAWInstalled {
+			return "", "", fmt.Errorf("unexpected reinstall of compatible gh-aw")
+		}
+		g.ghAWInstalled = true
+		return "", "", nil
+	}
 	if reflect.DeepEqual(args, []string{"aw", "list", "--repo", "octo/api", "--json"}) {
+		if !g.ghAWInstalled {
+			return "", "", fmt.Errorf("cannot list workflows without gh-aw")
+		}
 		return "[]", "", nil
 	}
 	switch {

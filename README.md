@@ -33,7 +33,6 @@ reopen Command Prompt so `PATH` is refreshed:
 ```bat
 winget install --exact --id GitHub.cli
 winget install --exact --id Docker.DockerDesktop
-gh auth login
 ```
 
 Start Docker Desktop and wait until its engine is running. Docker Desktop needs
@@ -41,6 +40,10 @@ WSL 2 and hardware virtualization, may ask for administrator approval and a
 restart, and requires a paid subscription for larger organizations. Podman
 (`winget install --exact --id RedHat.Podman`, then `podman machine init` and
 `podman machine start`) is a free alternative; pass `--container-engine podman`.
+
+In the reopened terminal, run `gh auth login`, then the extension install and
+dashboard commands above. The dashboard installs gh-aw before workflow discovery
+if the streaming log command is unavailable.
 
 No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
 Node.js or gh-aw installation is required. A running Docker or Podman engine
