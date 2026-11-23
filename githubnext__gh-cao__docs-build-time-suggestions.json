@@ -1,14 +1,7 @@
 {
   "source_sha": "8fb9650f59ad7b0bd51a35bd4cee686a6976af31",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-23T13:52:51Z",
-      "worker_run_id": "45187560002",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": ["45117916746", "44989298582", "44974265341", "44952052187", "44940649662", "44870776753", "44812654835", "44798156216", "44767894115", "44680921088", "44576080583", "44567910334", "44465043275", "44357668509", "44343962371", "44337804857", "44336140223", "44324821276", "44323919922", "44318642809"],
-      "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live run list 13:51Z: no docs run after 05:27Z, none in progress; stale queued 37642403569 outside window. main 9edb6bb (committed 2026-11-22T02:03Z). Recomputed stored run_timings: setup-node median 3.5 s, install median 8.5 s (p90 12), post 0 s; setup+install+post median 13.5 s (p90 17) = 17.4 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet; node_modules cache net saving 3-6 s (unvalidated) and removing setup and install is infeasible because build and dashboard steps need node_modules. Lock-hash cache-key watch last verified 12:24Z, not triggered. No suggestion, no issue. Correlation 45186788820-4659."
-    },
     {
       "evaluated_at": "2026-11-23T14:21:23Z",
       "worker_run_id": "45192575847",
@@ -239,6 +232,14 @@
       "evidence_run_ids": ["44989298582", "44974265341", "44952052187", "44940649662", "44870776753", "44812654835", "44798156216", "44767894115", "44680921088", "44576080583", "44567910334", "44465043275", "44357668509", "44343962371", "44337804857", "44336140223", "44324821276", "45117916746", "45249995178", "45282794439"],
       "outcome": "complete, not actionable. Window 45282794439 (push, 8fb9650, 2026-11-23T22:46:12Z) .. 44324821276 (push, c32c4d9, 2026-11-18T14:29:34Z): 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 45249995178 (push, eb19410) and 45282794439 entered, 44323919922 displaced. Live Jobs API spot checks of both new runs matched stored rows (build queue 3 s and 2 s; exec 67 s and 74 s). Stored run_timings recomputed, n=20, nearest-rank p90: queue median 3 s, p90 4 s, max 5 s; exec median 77 s, p90 139 s; push median 79 s (n=15), schedule median 74 s (n=5). Overlap: 0 overlapping runs by timestamps; documentation-pages cancel-in-progress false; no docs run queued or in progress (stale queued 37642403569 created 2026-10-07, outside window). Avoidable: 0 of 15 push heads; both new pushes touched docs/** (docs/cao-cli.md; 8fb9650 also docs/setup-quickstarts.md). Schedule runs are the daily synthetic-date refresh (scripts/simulate-dashboard-pages.mjs Date.now generatedAt); same-head reuse median effect about 0.5 s, rejected (cross-run artifact download needs actions read; contents read only). Best possible saving is the 3 s queue, below the 11.55 s (15 pct) and 60 s gates. No suggestion, no issue. Next: dependency installation and caching. Correlation 45288489075-4688.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-23T23:53:31Z",
+      "worker_run_id": "45292066423",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": ["45282794439", "45249995178", "45117916746", "44989298582", "44974265341", "44952052187", "44940649662", "44870776753", "44812654835", "44798156216", "44767894115", "44680921088", "44576080583", "44567910334", "44465043275", "44357668509", "44343962371", "44337804857", "44336140223", "44324821276"],
+      "outcome": "complete, not actionable. Window 45282794439 (push, 8fb9650, 2026-11-23T22:46:12Z) .. 44324821276 (push, c32c4d9, 2026-11-18T14:29:34Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 2026-11-23T23:53:31Z returns the same 20 IDs as the stored run_timings set, none queued or in progress; main 8fb9650 == source_sha. Recomputed stored run_timings rows (no refetch, n=20, nearest-rank p90): setup_node median 3.5 s p90 6; install median 9.5 s p90 12; post 0 s (exact-key hit); setup+install+post median 13.5 s p90 17 = 17.5 percent of exec median 77 s; 15 percent gate 11.55 s; 60 s gate unmet. Install alone is 12.3 percent of exec median, below the gate even at full removal; clearing the gate needs setup+install removed with under 2 s net replacement cost, which a node_modules cache (multi-hundred-MB restore, net 3-6 s unmeasured) cannot meet and which adds lock/platform correctness risk. Cache: exact key node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57:12Z after lock commit 7c8faf4 at 20:56:33Z, last_accessed 23:44:05Z); post 0-1 s in 20/20 = exact-key hit inferred (job logs HTTP 403 DIFC, not bypassed). Lock history via commits API: root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13); docs.yml last changed 063cbe9 (2026-11-12). Dashboard-lock cache-coverage watch stays dormant (trigger: dashboard-only lock change plus install median above 11.4 s; current 9.5 s). Local clone is shallow; local git diff/log not used. Open self-care issues: #20815 only (checkout, out of category, not re-proposed). No suggestion; no issue created. Correlation 45291378798-4689. Next category: Astro documentation generation.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -247,13 +248,13 @@
     "key": "node-cache-<RUNNER_OS>-<arch>-npm-<hashFiles(package-lock.json) root only>",
     "restore": "exact key only; no restore-keys",
     "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03 (263412733 B; created 2026-11-13T20:57:12Z; ref refs/heads/main; listed 22:51Z)",
-    "root_lock_history": "root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z); no lock commit through 88f652f4",
+    "root_lock_history": "root and dashboard/site package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z); docs.yml last changed 063cbe9 (2026-11-12T06:17:07Z); verified via commits API path queries at worker 45292066423",
     "hashing": "hashFiles = sha256 over concatenated binary per-file sha256 digests; root-only reproduces 7808ecf8; root+dashboard reproduces aaf3a193 (not used by docs.yml)",
     "hits": "success runs: Post Set up Node.js 0-1 s (exact-key hit inferred); failed runs: post step skipped, so cannot be classified",
     "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
     "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
     "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-    "live_entry_last_accessed": "2026-11-23T17:15:35Z (caches API at worker 45225875294; created 2026-11-13T20:57:12Z; 263412733 B)",
+    "live_entry_last_accessed": "2026-11-23T23:44:05Z (caches API at worker 45292066423)",
     "window_2026_11_15T1930Z": {
       "n_success": 8,
       "setup_node_median_s": 4,
@@ -751,9 +752,9 @@
     "last_reverified_note": "unchanged window 45117916746..44318642809 at 14:5xZ; same 20 IDs live; main 9edb6bb; removable median 9 p90 11 = 11.6 pct of exec median 77.5; ceiling 9 s below 11.62 s gate; not actionable"
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-23T22:18:31Z",
-    "worker_run_id": "45277811835",
-    "verdict": "not actionable (unchanged): window 45249995178..44323919922 at 22:17Z; source eb19410; setup+install+post median 13.5 s p90 17 = 17.4 pct of exec median 77.5; gate 11.62 s; newest run cache hit (post 0 s); root-lock cache entry live"
+    "evaluated_at": "2026-11-23T23:53:31Z",
+    "worker_run_id": "45292066423",
+    "verdict": "not actionable (unchanged): window 45282794439..44324821276 at 2026-11-23T23:53:31Z; source 8fb9650; setup+install+post median 13.5 s p90 17 = 17.5 pct of exec median 77 s; 15 pct gate 11.55 s; 60 s gate unmet; newest runs cache hit (post 0-1 s); root-lock cache entry live; no lock change since 7c8faf4."
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
@@ -810,8 +811,8 @@
     "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03"
   },
   "issue_search_note": {
-    "observed_at": "2026-11-23T21:53:04Z",
-    "note": "open label search self-care:docs-build-time-investigator returned only #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); no issue created in worker run 45273472462"
+    "observed_at": "2026-11-23T23:53:31Z",
+    "note": "open self-care issues: #20815 (this campaign, checkout category, OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z), #21274 and #20667 (other workers). No issue created in worker run 45292066423."
   },
   "stale_queued_run": {
     "observed_at": "2026-11-23T23:34:31Z",
