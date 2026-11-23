@@ -90,6 +90,13 @@ original dashboard command. An installed engine that is stopped, inaccessible,
 using Windows containers, or pointed at a remote endpoint needs configuration,
 not reinstallation; the CLI retains the underlying check failure.
 
+For Podman, inspect `podman system connection list`: managed PostgreSQL accepts
+`unix://`, `npipe://`, or endpoints using numeric loopback addresses
+(`127.0.0.1` or `[::1]`). Hostnames, including `ssh://localhost`, are rejected
+even when a local Podman machine reports them. Configure that local machine's
+connection to use its numeric loopback address, preserving the connection's
+port, identity and socket path; do not substitute a remote endpoint.
+
 To deliberately use native PostgreSQL instead, install it through a package
 manager: Windows `winget install --exact --id PostgreSQL.PostgreSQL.16`,
 macOS `brew install postgresql@16`, or your Linux distribution's PostgreSQL

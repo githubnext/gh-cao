@@ -56,6 +56,34 @@ func TestDashboardEngineRejectsRemoteConnectionsBeforeWork(t *testing.T) {
 	}
 }
 
+func TestDashboardPodmanLocalhostEndpointGuidance(t *testing.T) {
+	for _, name := range []string{"CONTAINER_HOST", "CONTAINER_CONNECTION"} {
+		t.Setenv(name, "")
+	}
+	engine := dashboardEngine{name: "podman", run: func(_ context.Context, args ...string) ([]byte, error) {
+		if args[0] == "system" {
+			return []byte(`[{"Name":"machine","Default":true,"URI":"ssh://user@localhost:12345/run/podman/podman.sock"}]`), nil
+		}
+		t.Fatal("hostname endpoint reached runtime or resource operations")
+		return nil, nil
+	}}
+	if err := engine.verifyLocal(t.Context()); err == nil || !strings.Contains(err.Error(), "remote Podman connection") {
+		t.Fatalf("localhost hostname should retain existing fail-closed behavior: %v", err)
+	}
+	if !dashboardLocalEngineEndpoint("ssh://user@127.0.0.1:12345/run/podman/podman.sock") ||
+		!dashboardLocalEngineEndpoint("ssh://user@[::1]:12345/run/podman/podman.sock") {
+		t.Fatal("documented numeric loopback alternatives are rejected")
+	}
+	for _, goos := range []string{"windows", "darwin", "linux"} {
+		help := dashboardEngineHelp(goos, "podman", false)
+		for _, want := range []string{"ssh://localhost", "not accepted", "127.0.0.1", "[::1]", "port, identity and socket path"} {
+			if !strings.Contains(help, want) {
+				t.Fatalf("%s guidance does not explain endpoint limitation %q: %s", goos, want, help)
+			}
+		}
+	}
+}
+
 func TestDashboardEngineSelection(t *testing.T) {
 	for _, test := range []struct {
 		flag    string

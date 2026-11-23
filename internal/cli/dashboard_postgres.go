@@ -257,7 +257,11 @@ func dashboardEngineHelp(goos, engine string, missing bool) string {
 				help = append(help, "Use Podman's WSL provider.")
 			}
 		}
-		help = append(help, "Check podman system connection list and podman info; the selected endpoint must be local.")
+		help = append(help, "Check podman system connection list and podman info; the selected endpoint must be "+
+			"unix://, npipe://, or use a numeric loopback address (127.0.0.1 or [::1]). "+
+			"Hostnames, including ssh://localhost, are not accepted by the managed PostgreSQL check. "+
+			"If a local machine reports localhost, configure its connection to use the numeric loopback address "+
+			"while preserving its port, identity and socket path.")
 	}
 	if goos == "windows" {
 		help = append(help, dashboardWindowsWSLHelp())
