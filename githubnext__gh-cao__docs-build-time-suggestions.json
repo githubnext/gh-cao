@@ -1,36 +1,7 @@
 {
   "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-23T02:52:52Z",
-      "worker_run_id": "45102394349",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809",
-        "44311127214"
-      ],
-      "outcome": "complete, not actionable. Window: latest 20 completed non-cancelled docs.yml runs 44989298582 (schedule, 9edb6bb, 2026-11-22T05:24:45Z) .. 44311127214 (push, 2026-11-18T13:11:07Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list and main 9edb6bb == source_sha unchanged; none queued or in progress. Stored transfer_model rows recomputed (no refetch): removable median 9 s, nearest-rank p90 11 s, max 13 s = 11.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet; ceiling saving about 9 s. Merge-deploy stays rejected (github-pages environment and id-token boundary). Deploy Pages GitHub-managed. Open issues owned by worker: #20815 only (checkout, outside category, not re-proposed). No issue created; correlation 45101901560-4627.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-23T03:21:07Z",
       "worker_run_id": "45105167244",
@@ -869,6 +840,35 @@
         "44318642809"
       ],
       "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 12:53Z: same 20 IDs, none queued; main 9edb6bb = source_sha; no docs.yml dashboard job (demo step lives in build). Demo step median 1.5 s, p90 3 s, max 7 s (recomputed from stored run_timings); 1.9 percent of exec median 77.5 s. Full removal saves at most 1.5 s, failing 60 s and 15 percent (11.62 s) gates; cross-run reuse blocked (Date.now generatedAt; step runs every build). No suggestion; #20815 unchanged, not re-proposed."
+    },
+    {
+      "evaluated_at": "2026-11-23T13:19:30Z",
+      "worker_run_id": "45182470812",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922",
+        "44318642809"
+      ],
+      "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 13:19Z: same 20 IDs as a set, none queued; main 9edb6bb == source_sha; docs.yml unchanged. Stored transfer_model rows recomputed without refetch (cross-checked against run_timings exec, deploy_job, upload): removable (handoff + Configure Pages + Upload artifact + deploy setup) median 9 s, p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet even at p90; Deploy Pages (GitHub-managed) median 7 s excluded; merge-deploy stays rejected (github-pages environment and id-token boundary). Open label issues: #20815 only (checkout, not re-proposed). No issue created. Correlation 45181520089-4657. Next: scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1654,9 +1654,9 @@
     },
     "worker_run_id": "44638063158",
     "last_reverified": {
-      "verified_at": "2026-11-23T11:33:59Z",
-      "worker_run_id": "45165746886",
-      "result": "window unchanged at 45117916746..44318642809; live Jobs API read of 45117916746 matched stored row; removable median 9 s p90 11 s = 11.6 percent of exec median 77.5 s; gates unmet; not actionable"
+      "verified_at": "2026-11-23T13:19:30Z",
+      "worker_run_id": "45182470812",
+      "result": "window unchanged as a set at 45117916746..44318642809 (main 9edb6bb); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s); gates unmet; decision unchanged (not actionable)."
     },
     "live_spot_check": {
       "verified_at": "2026-11-22T01:06:00Z",
