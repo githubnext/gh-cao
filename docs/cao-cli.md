@@ -36,8 +36,11 @@ Release binaries embed the existing Go server and built dashboard. Collection
 uses the installed gh-aw extension with `gh aw logs --format jsonl` support
 (v1.2.3 or newer). `install-gh-cao.sh` installs gh-aw when missing and asks before
 upgrading an older version; an older campaign manifest cannot lower this minimum.
-Before acquiring artifacts, the dashboard also checks streaming support and installs v1.2.3 if unavailable,
-without changing workflows or CAO policy. Use an authenticated GitHub CLI and
+Both `gh cao dashboard` and `gh cao dashboard collect` check streaming support
+before workflow discovery and install v1.2.3 if needed, without changing workflows
+or CAO policy. If installation fails, check `gh auth status --hostname github.com`,
+run `gh extension install github/gh-aw --pin v1.2.3 --force`, then retry.
+Use an authenticated GitHub CLI and
 Docker or Podman; no Node.js, npm, or Redis setup is needed. Without an explicit
 `--postgres-url` or `CAO_POSTGRES_URL`, the command pulls and starts an owned
 PostgreSQL container and provisions separate owner/runtime roles. Its private

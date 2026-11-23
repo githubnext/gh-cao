@@ -36,6 +36,11 @@ func dashboardTestGH(t *testing.T, now time.Time) ghExecutor {
 			return encode(map[string]any{"nameWithOwner": repository, "url": "https://github.com/" + repository, "id": "R_" + repository})
 		}
 		switch args[0] + " " + args[1] {
+		case "aw logs":
+			if !reflect.DeepEqual(args, []string{"aw", "logs", "--help"}) {
+				t.Fatalf("unexpected gh-aw command: %v", args)
+			}
+			return "", "--format jsonl", nil
 		case "api --hostname":
 			if args[len(args)-1] == "rate_limit" {
 				return encode(map[string]any{"resources": map[string]any{"core": dashboardQuota{
