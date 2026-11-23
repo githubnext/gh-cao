@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-22T14:17:27Z",
-   "worker_run_id": "45031714642",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809",
-    "44311127214"
-   ],
-   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list 14:17Z: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued; main HEAD 9edb6bb = source_sha). ... [compacted]",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-22T14:32:45Z",
    "worker_run_id": "45033034337",
@@ -869,6 +840,35 @@
     "44311127214"
    ],
    "outcome": "complete, not actionable (window unchanged: live gh run list at 23:50Z shows the same 20 completed non-cancelled IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued; main HEAD 9edb6bb = source_sha; Jobs API spot check of 44989298582 matches stored row (Build documentation 14 s); build docs median 14 s, p90 15 s = 17.8 pct of exec median 78.5 s; 15 pct gate 11.78 s needs about 84 pct of the step removed; 60 s gate unreachable; docs:build validators and integration test are correctness gates; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasurable, job logs HTTP 403 DIFC, not bypassed)",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-23T00:38:17Z",
+   "worker_run_id": "45089598644",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809",
+    "44311127214"
+   ],
+   "outcome": "complete, not actionable (window unchanged since 05:24Z; live gh run list at 00:3xZ: same 20 IDs, 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; main == 9edb6bb == source_sha). Demo step ('Build synthetic enterprise demo', docs.yml build job) recomputed from stored run_timings (n=20, nearest-rank p90): median 2 s, p90 4 s, max 7 s = 2.5 percent of exec median 78.5 s; 15 percent gate 11.78 s and 60 s gate unmet even at full removal; cross-run reuse blocked (synthetic Date.now generatedAt). No refetch. Correlation 45089068697-4620.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1736,8 +1736,8 @@
   "reuse_blocker": "cross-run reuse would pin synthetic dates (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt); docs.yml:55-58 runs the step every build; cache restore cannot beat 2 s",
   "verdict": "not actionable: demo step median 2 s (2.5 percent of exec median 78.5 s), p90 4 s; 15 percent and 60 s gates unmet even at full removal. Re-verified 2026-11-22T10:33:06Z on unchanged window.",
   "live_check": "gh run list 10:32Z: newest docs.yml run 44989298582 (schedule, success); none queued or in progress; HEAD 9edb6bb = source_sha",
-  "last_reverified_at": "2026-11-22T22:32:14Z",
-  "last_reverified_worker_run_id": "45077958838",
+  "last_reverified_at": "2026-11-23T00:38:17Z",
+  "last_reverified_worker_run_id": "45089598644",
   "live_check_2": "17:31Z gh run list: same 20 IDs as window; HEAD 9edb6bb; docs:build has no dashboard-site builder (grep)",
   "live_check_3": "19:16Z gh run list: same 20 IDs, newest 44989298582, no queued or in-progress runs; gh api main = 9edb6bb; package.json docs:build has no dashboard-site builder",
   "live_check_4": "20:52Z gh run list: same 20 IDs, HEAD 9edb6bb; demo median 2 s p90 4 s unchanged; verdict unchanged",
