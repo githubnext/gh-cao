@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "Astro documentation generation",
+ "next_category": "reusable dashboard generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-23T05:35:00Z",
-   "worker_run_id": "45118325599",
-   "category": "Astro documentation generation",
-   "evidence_run_ids": [
-    "45117916746",
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809"
-   ],
-   "outcome": "complete, not actionable (window rolled: new schedule run 45117916746 at 05:27Z, success, 9edb6bb; dropped 44311127214; live gh run list 05:35Z shows 20 completed non-cancelled IDs, 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled, none queued; main 9edb6bb == source_sha; build docs median 13.5 s, p90 15 s = 17.4 percent of exec median 77.5 s; 15 percent gate 11.62 s needs 86 percent of the step removed; 60 s gate unreachable; output reuse rejected; open label issues: #20815 only)",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-23T05:52:13Z",
    "worker_run_id": "45120083978",
@@ -866,6 +837,35 @@
     "44318642809"
    ],
    "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live 15:32Z: gh run list unchanged (no new or in-progress docs runs); main 9edb6bb == source_sha; docs.yml last changed 063cbe9 (2026-11-12); both locks last changed 7c8faf4 (2026-11-13); root cache node-cache-Linux-x64-npm-7808ecf8 unchanged (263412733 B, created 2026-11-13T20:57Z, last accessed 15:28Z); post-step 0 s in 20/20 and no new cache save => exact-key hit inferred (job logs 403 DIFC). Stored rows recomputed, no refetch: setup_node median 3.5 s p90 6; install median 8.5 s p90 12; phase median 13.5 s p90 17 = 17.4 pct of exec median 77.5 s; 15 pct gate 11.62 s needs whole-phase removal (not possible while build needs node_modules); node_modules cache best case net 3.5-6.5 s (restore 2-5 s, unmeasured) = 4.5-8.4 pct, below both gates, adds lock and platform correctness risk; no suggestion. Open issues: #20815 only (checkout, not re-proposed). Next category: Astro documentation generation.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-23T15:53:59Z",
+   "worker_run_id": "45209722496",
+   "category": "Astro documentation generation",
+   "evidence_run_ids": [
+    "45117916746",
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809"
+   ],
+   "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z) unchanged: live docs.yml run list at 2026-11-23T15:53:59Z returns the same 20 completed non-cancelled IDs (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress; stale queued 37642403569 outside window); main 9edb6bb == source_sha == local HEAD; docs.yml read at 9edb6bb (docs:build = astro build, then validate-agent-docs.mjs and agent-docs-discovery integration test). Stored build_docs_s recomputed without refetch: median 13.5 s, nearest-rank p90 15 s, max 16 s = 17.4 percent of exec median 77.5 s; 15 percent gate 11.62 s needs about 86 percent of the step removed; 60 s gate unreachable; validators are correctness gates; output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT provenance); sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed); open issues: #20815 only (checkout, not re-proposed). Next: reusable dashboard generation. Correlation 45208582981-4665.",
    "suggestion_fingerprint": null
   }
  ],
@@ -2005,9 +2005,9 @@
    "required_step_removal_pct_for_15pct_gate": 86
   },
   "decision": "not actionable: Build documentation (npm run docs:build) produces dist/ required by deploy; 15 percent gate needs about 86 percent of the step removed; 60 s gate unreachable (max 16 s); validators and node --test are correctness gates; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed)",
-  "last_reverified_at": "2026-11-23T14:21:23Z",
-  "last_reverified_worker_run_id": "45192575847",
-  "last_reverified_note": "unchanged window 45117916746..44318642809 at 2026-11-23T14:21:23Z; same 20 IDs live; main 9edb6bb; build_docs_s median 13.5 p90 15; decision not actionable"
+  "last_reverified_at": "2026-11-23T15:53:59Z",
+  "last_reverified_worker_run_id": "45209722496",
+  "last_reverified_note": "unchanged window 45117916746..44318642809 at 2026-11-23T15:53:59Z; same 20 IDs live; main 9edb6bb; build_docs_s median 13.5 p90 15; decision not actionable"
  },
  "hashfiles_key_verified": {
   "verified_at": "2026-11-21T04:34:06Z",
