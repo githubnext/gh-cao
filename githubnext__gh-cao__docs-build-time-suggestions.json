@@ -1,36 +1,7 @@
 {
  "source_sha": "9edb6bbeff137ad4f9832902f67dc8f5e88bf13a",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-23T07:04:25Z",
-   "worker_run_id": "45128062435",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "45117916746",
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334",
-    "44465043275",
-    "44357668509",
-    "44343962371",
-    "44337804857",
-    "44336140223",
-    "44324821276",
-    "44323919922",
-    "44318642809"
-   ],
-   "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z): 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 07:03Z unchanged; none in progress; only queued record 37642403569 (outside window, stale); main == 9edb6bb == source_sha; docs.yml unchanged; open issues: #20815 only (checkout, not re-proposed). Recomputed stored rows, no refetch: queue median 3 s p90 4 s max 5; exec median 77.5 s p90 139 s (push 82 s n=15, schedule 74 s n=5); 0 overlapping runs under documentation-pages cancel-in-progress false; 0 of 15 push heads avoidable (path filter, build-consumed); schedule runs required for synthetic-date refresh (Date.now generatedAt), same-head schedule reuse rejected (about 13.5 s build saving on some runs, still needs date refresh; artifact reuse needs actions:read and breaks PUBLIC_PAGES_BUILD_COMMIT provenance); build-to-deploy handoff plus removable deploy setup/upload/configure median 9 s = 11.6 pct of exec median, below 15 pct gate 11.63 s and 60 s gate; build+deploy merge blocked by github-pages environment/id-token boundary. Next: dependency installation and caching.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-23T07:22:20Z",
    "worker_run_id": "45130100947",
@@ -867,6 +838,35 @@
     "44318642809"
    ],
    "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 16:32Z: same 20 IDs, none newer, main HEAD 9edb6bb == source_sha; docs.yml unchanged. Stored transfer_model rows recomputed without refetch: removable (handoff + Configure Pages + Upload Pages artifact + deploy Set up job) median 9 s, nearest-rank p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s gate unmet. Live Jobs API spot check of 45117916746 matched stored row (handoff 6, configure 1, upload 2, deploy setup 1, deploy 10, exec 73). Upload median 2 s, configure 1 s, Deploy Pages GitHub-managed excluded; merge-deploy stays rejected (github-pages environment and id-token boundary). No suggestion; no issue created. Next: scheduling, concurrency, and avoidable rebuilds.",
+   "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-23T16:53:12Z",
+   "worker_run_id": "45220737613",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "45117916746",
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115",
+    "44680921088",
+    "44576080583",
+    "44567910334",
+    "44465043275",
+    "44357668509",
+    "44343962371",
+    "44337804857",
+    "44336140223",
+    "44324821276",
+    "44323919922",
+    "44318642809"
+   ],
+   "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z): 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list (30 entries) shows no queued or in-progress docs runs (37642403569 stale, outside window); 0 overlapping consecutive runs; main commit list top 9edb6bb (2026-11-22T02:03:11Z) unchanged; open label issues: #20815 only (0 comments). Stored Jobs API rows recomputed, no refetch: queue median 3 s p90 4 s max 5; exec median 77.5 s p90 139 s; spot check 45117916746 Jobs API build queue 2 s, deploy queue 5 s, exec 73 s (matches). Run-list startedAt equals createdAt, so queue must come from Jobs API. 0 of 15 push heads avoidable; 5 schedule runs needed for synthetic-date freshness; same-head schedule reuse rejected (about 14 s build on 3 runs, 0.5 s exec-median effect). Best possible saving is the 3 s queue, below the 11.6 s (15 pct) and 60 s gates. No suggestion. Next: dependency installation and caching.",
    "suggestion_fingerprint": null
   }
  ],
@@ -1780,8 +1780,8 @@
   "concurrency": "documentation-pages cancel-in-progress false kept; 0 overlapping executions; group referenced only by docs.yml",
   "avoidable_rebuilds": "0 of 16 push heads; 4 schedule runs required for synthetic-date freshness",
   "verdict": "not actionable (re-verified 2026-11-22T09:33:47Z)",
-  "last_reverified_at": "2026-11-23T15:26:06Z",
-  "last_reverified_worker_run_id": "45204281013",
+  "last_reverified_at": "2026-11-23T16:53:12Z",
+  "last_reverified_worker_run_id": "45220737613",
   "same_head_schedule_reuse": {
    "verdict": "rejected (not actionable)",
    "evidence": "schedule 44989298582 on 9edb6bb after push 44974265341; 44680921088 on 4eb6bb3 after push 44576080583; 44465043275 on 7145c59 after push 44357668509; 44870776753 on bb9a74f has no in-window push",
@@ -1789,7 +1789,7 @@
    "blockers": "cross-run artifact download needs actions: read (workflow has contents: read only); deploy provenance; artifact retention",
    "counterfactual_2026_11_22": "exec median 78.5 -> 78 s (0.5 s) if the three same-head schedule builds saved their build step; not actionable"
   },
-  "last_reverified_note": "unchanged window 45117916746..44318642809 at 2026-11-23T15:26:06Z; same 20 IDs live; main 9edb6bb; queue median 3 p90 4; exec median 77.5; not actionable"
+  "last_reverified_note": "unchanged window 45117916746..44318642809 at 2026-11-23T16:53:12Z; same 20 IDs; main 9edb6bb; queue median 3 p90 4 (Jobs API spot check 45117916746 matches); exec median 77.5; not actionable. Run-list startedAt equals createdAt; use Jobs API for queue."
  },
  "dependency_phase": {
   "evaluated_at": "2026-11-19T17:18:41Z",
