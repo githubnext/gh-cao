@@ -1,36 +1,7 @@
 {
   "source_sha": "eb19410c572cdd9b176f9805a3d404fe6fcf5fc5",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-23T11:33:59Z",
-      "worker_run_id": "45165746886",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857",
-        "44336140223",
-        "44324821276",
-        "44323919922",
-        "44318642809"
-      ],
-      "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live at 2026-11-23T11:33:59Z: same 20 IDs, none queued or in progress (only stale 37642403569 from 2026-10-07, outside window); main 9edb6bb == source_sha; live Jobs API read of 45117916746 matched stored row (handoff 6, configure 1, upload 2, deploy setup 1, removable 10, exec 73). Recomputed stored transfer_model rows: removable median 9 s, p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet even if all removable time were eliminated. Deploy Pages (GitHub-managed, median 7 s) excluded; merge-deploy stays rejected (github-pages environment and id-token boundary; would save median 9 s only). Open label issues: #20815 only (checkout, not in category). Correlation 45164918157-4652. Next category: scheduling, concurrency, and avoidable rebuilds.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-23T11:53:34Z",
       "worker_run_id": "45168555999",
@@ -868,6 +839,35 @@
       ],
       "outcome": "complete, not actionable. Window 45249995178 (push, eb19410, 2026-11-23T19:32:26Z) .. 44323919922 (push, ea7a94f, 2026-11-18T14:24:31Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 21:16Z: same 20 IDs; main eb19410 == source_sha; open label issues: #20815 only (checkout, out of category). Category = Build synthetic enterprise demo step (npm run dashboard:pages:build, then cp to dist/cao). demo_s median 1.5 p90 3 max 7 (push median 2 n=15, schedule median 1 n=5) = 1.9 percent of exec median 77.5; 15 percent gate 11.63 s and 60 s gate unmet even at full removal (ceiling 1.5 s). Reuse rejected: generatedAt=Date.now (scripts/simulate-dashboard-pages.mjs:76) must refresh every run; restoring demo output saves at most about 1.5 s and needs source-keyed reuse; parallelizing with Build documentation ceiling about 1.5 s. Live Jobs API spot check 45249995178: demo 19:33:22-19:33:24 (2 s), matches stored row. No issue created. Next category: artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-23T21:34:45Z",
+      "worker_run_id": "45270465547",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334",
+        "44465043275",
+        "44357668509",
+        "44343962371",
+        "44337804857",
+        "44336140223",
+        "44324821276",
+        "44323919922"
+      ],
+      "outcome": "complete, not actionable. Window 45249995178 (push, eb19410, 2026-11-23T19:32:26Z) .. 44323919922 (push, ea7a94f, 2026-11-18T14:24:31Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 21:33Z: same 20 IDs as the stored set, none queued or in progress; main eb19410 == source_sha. Recomputed from stored immutable transfer_model rows (n=20, nearest-rank p90, no refetch): handoff median 5.5 p90 7; configure 1/1; upload 2/3; deploy setup 1/1; removable (handoff+configure+upload+deploy setup) median 9 p90 11 max 13 = 11.6 percent of exec median 77.5 s; 15 percent gate 11.63 s and 60 s gate unmet. Deploy Pages median 7 p90 14 (GitHub-managed, excluded; tails 92 s 44576080583 and 69 s 44337804857). Merging deploy into build would remove only handoff and deploy setup (about 6.5 s), still below gate, and was rejected earlier (github-pages environment and id-token boundary). Live Jobs API spot check of 45249995178 matched stored row (handoff 6, configure 0, upload 2, deploy setup 1, Deploy Pages 7). Open label search: only #20815 (checkout, other category, not re-proposed). No issue created. Next category: scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1653,15 +1653,18 @@
     },
     "worker_run_id": "44638063158",
     "last_reverified": {
-      "verified_at": "2026-11-23T18:21:43Z",
-      "worker_run_id": "45236967482",
-      "result": "window unchanged at 45117916746..44318642809 (main 9edb6bb); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s); live Jobs API spot check of 45117916746 matched; gates unmet; decision unchanged (not actionable)."
+      "verified_at": "2026-11-23T21:34:45Z",
+      "worker_run_id": "45270465547",
+      "result": "window unchanged (45249995178..44323919922, main eb19410); stored rows recomputed (removable median 9 s, p90 11 s, max 13 s = 11.6 percent of exec median 77.5 s); live Jobs API spot check of 45249995178 matched; gates unmet; decision unchanged (not actionable)."
     },
     "live_spot_check": {
       "verified_at": "2026-11-22T01:06:00Z",
       "run": "44952052187",
       "result": "live Jobs API matched stored row; no refetch of other rows"
-    }
+    },
+    "last_reverified_at": "2026-11-23T21:34:45Z",
+    "last_reverified_worker_run_id": "45270465547",
+    "last_reverified_note": "window unchanged at 2026-11-23T21:34:45Z; same 20 IDs live; main eb19410; removable median 9 p90 11 = 11.6 pct of exec median 77.5; not actionable"
   },
   "commit_paths": {
     "verified_at": "2026-11-16T02:26:27Z",
