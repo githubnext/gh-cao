@@ -1,14 +1,7 @@
 {
   "source_sha": "12c41c70a4f0258b92a76ed0601af6ea4004eb61",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-23T14:35:09Z",
-      "worker_run_id": "45195129402",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": ["45117916746", "44989298582", "44974265341", "44952052187", "44940649662", "44870776753", "44812654835", "44798156216", "44767894115", "44680921088", "44576080583", "44567910334", "44465043275", "44357668509", "44343962371", "44337804857", "44336140223", "44324821276", "44323919922", "44318642809"],
-      "outcome": "complete, not actionable. Window 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z) .. 44318642809 (push, 241f8db, 2026-11-18T13:55:10Z) unchanged: live docs.yml run list at 2026-11-23T14:35:09Z returns the same 20 completed non-cancelled IDs (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled, none queued); main 9edb6bb == source_sha; local HEAD 9edb6bb. Stored run_timings recomputed without refetch: demo step (Build synthetic enterprise demo) median 1.5 s, p90 3 s, max 7 s = 1.9 percent of exec median 77.5 s; 15 percent gate 11.62 s and 60 s gate unmet even at full removal (ceiling saving 1.5 s). Cross-run reuse blocked: scripts/simulate-dashboard-pages.mjs:67,76 uses Date.now for generatedAt. No open issue search or issue creation this run; terminal decision noop."
-    },
     {
       "evaluated_at": "2026-11-23T14:52:56Z",
       "worker_run_id": "45198311886",
@@ -239,6 +232,14 @@
       "category": "Astro documentation generation",
       "evidence_run_ids": ["45293283576", "45282794439", "45249995178", "45117916746", "44989298582", "44974265341", "44952052187", "44940649662", "44870776753", "44812654835", "44798156216", "44767894115", "44680921088", "44576080583", "44567910334", "44465043275", "44357668509", "44343962371", "44337804857", "44336140223"],
       "outcome": "complete, not actionable. Window 45293283576 (push, 12c41c7, 2026-11-23T23:58:23Z; bootstrap #21456, 3,637 files, build step 12 s) .. 44336140223 (push, dec68af, 2026-11-18T15:29:01Z): 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled, none queued or in progress (live docs.yml run list ~00:35Z). New run read once via Jobs API; 44324821276 displaced. Stored run_timings recomputed: Build documentation (npm run docs:build) median 13.5 s, nearest-rank p90 15, min 9, max 15 = 17.6 percent of exec median 76.5 s; 15 percent gate 11.47 s needs about 85 percent of the step removed; 60 s gate unreachable. docs:build = astro build && validate-agent-docs.mjs && node --test agent-docs-discovery; validators are correctness gates and dist/ feeds Pages deploy; output reuse rejected (PUBLIC_PAGES_BUILD_COMMIT provenance); sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed). Checkout median 25 s remains with stored open-issue note #20815 (not re-proposed). Next: reusable dashboard generation.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-24T00:59:29Z",
+      "worker_run_id": "45301087629",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": ["45293283576", "45282794439", "45249995178", "45117916746", "44989298582", "44974265341", "44952052187", "44940649662", "44870776753", "44812654835", "44798156216", "44767894115", "44680921088", "44576080583", "44567910334", "44465043275", "44357668509", "44343962371", "44337804857", "44336140223"],
+      "outcome": "complete, not actionable. Window 45293283576 (push, 12c41c7, 2026-11-23T23:58:23Z) .. 44336140223 (push, dec68af, 2026-11-18T15:29:01Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list matches the stored 20-ID set; main = 12c41c7 = source_sha. Recomputed stored demo_s (Build synthetic enterprise demo) from immutable run_timings rows, no refetch: median 1 s, nearest-rank p90 2 s, max 3 s = 1.3 percent of exec median 76.5 s; 15 percent gate 11.48 s and 60 s gate unmet even at full removal. Cross-run reuse still blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). Open issues: #20815 only (checkout, not re-proposed). Correlation 45300282435-4691. Next category: artifact transfer and Pages packaging.",
       "suggestion_fingerprint": null
     }
   ],
@@ -512,10 +513,10 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-23T22:53:27Z",
-    "worker_run_id": "45283278610",
-    "window": "45282794439 (push, 8fb9650, 2026-11-23T22:46:12Z) .. 44324821276 (push, c32c4d9, 2026-11-18T14:29:34Z)",
-    "method": "recomputed from immutable run_timings rows (no refetch) plus one Jobs API read of 45282794439; nearest-rank p90; n=20",
+    "verified_at": "2026-11-24T00:59:29Z",
+    "worker_run_id": "45301087629",
+    "window": "45293283576 (push, 12c41c7, 2026-11-23T23:58:23Z) .. 44336140223 (push, dec68af, 2026-11-18T15:29:01Z)",
+    "method": "recomputed from immutable run_timings rows (no refetch); live gh run list matches the 20-ID set; nearest-rank p90; n=20",
     "demo_step_s": {
       "median": 1,
       "p90": 2,
@@ -524,11 +525,11 @@
       "n": 20
     },
     "exec_s": {
-      "median": 77,
+      "median": 76.5,
       "p90": 139
     },
     "demo_share_of_exec_median_pct": 1.3,
-    "gate_15pct_s": 11.55,
+    "gate_15pct_s": 11.48,
     "ceiling_saving_s": 1,
     "reuse_blocker": "cross-run reuse would pin synthetic dates (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt); docs.yml runs the step every build",
     "verdict": "not actionable: demo step median 1 s (1.3 percent of exec median), p90 2 s; 15 percent and 60 s gates unmet even at full removal."
