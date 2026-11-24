@@ -1,11 +1,12 @@
 # Implementation status
 
-Source SHA: `7cb5134de200cd5d27125613422c3ecc7abdf846` (previous slices authored at `93614994…` / `2fbe39c5…` / `a19872d3…`)
+Source SHA: `a37d08e559899008f2b54e5fdddd16c268fdb666` (this slice; earlier slices authored at `7cb5134d…` / `93614994…` / `2fbe39c5…` / `a19872d3…`)
 Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
-`specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the storage slice.
-`.github/workflows/shared/*`, `server/internal/operational/**` and `server/postgres/operational-grants.sql` are comparison evidence only.
+`specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the storage slice;
+`specs/server-rate-limiting.md` (v1.0.0 working draft) §§2-6 and `server/spec/generated/openapi.json` `/api/health`, `/api/v1/health`, `/api/readiness` for the latest slice.
+`.github/workflows/shared/*`, `server/internal/operational/**`, `server/internal/server/{rate_limit,proxy}.go` and `server/postgres/operational-grants.sql` are comparison evidence only.
 
-## Implemented and verified (`mvn verify`: 73 tests, 0 failures, 0 skipped; baseline was 41)
+## Implemented and verified (`mvn verify`: 119 tests, 0 failures, 0 skipped; baseline at this SHA was 73)
 
 | Spec reference | Behavior |
 | --- | --- |
@@ -26,32 +27,48 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 | Same — runtime/owner separation | `open` runs no DDL and fails closed when the namespace is unprovisioned, at another schema version, or its stored capacity config differs; `OperationalBootstrap` (owner only, `BootstrapMain`) creates the audit subset of the Go schema (append-only trigger, owner-only namespace delete guard, `cao_operational_retain_audit` SECURITY DEFINER with pinned search path, PUBLIC revoked). Tests prove a SELECT/INSERT-only runtime role cannot run DDL, UPDATE/DELETE audit rows, delete namespaces or call retention; retention deletes a contiguous oldest prefix (≤ 512, ≥ 400 days kept, newest row always kept) |
 | Same — transport | `PostgresEndpoint`: `postgres://` only, one TCP host, non-loopback requires `sslmode=verify-full` (`require`/`verify-ca`/`prefer` rejected), unknown URL parameters and Unix sockets rejected, password absent from `toString()` and errors |
 | `/api/health`, `/api/readiness` with the real store | `PostgresServiceState` probes the store on each request: connected when the namespace is provisioned and reachable; stopping the database flips `operational.connected`/`recoveryReady` to false. Data stays unavailable (503) because canonical storage is not implemented. `Main` opens `CAO_POSTGRES_URL` (namespace `CAO_OPERATIONAL_NAMESPACE`, else `CAO_DATABASE_NAMESPACE`, else `hosted-dashboard`) and exits non-zero for an insecure, invalid or unprovisioned store |
-| Packaging (`Dockerfile`) | Non-root uid 10001, env-configured port, shutdown hook. Image NOT built (no Docker); not deployed |
+| `specs/server-rate-limiting.md` §3 (items 1-9), conformance 1 | `RequestLimiter` contract + `PostgresOperationalStore.take`: one namespace-locked transaction under database `clock_timestamp()`; continuous refill capped at capacity; one token per allowed request; fractions kept on a one-token denial; a denied multi-token charge drains the bucket; remaining whole tokens, retry and reset durations; idle bucket expires after exactly two refill periods; backwards clock mints no tokens and never moves the timestamp back; Go argument bounds (name ≤ 1024 bytes/no NUL, capacity ≤ 2^40, cost ≤ capacity, period ≥ 1 ms) rejected before storage; a positive caller deadline bounds connection wait, lock wait, statement time and socket time and any storage failure/corrupt row throws (never "allowed"). Verified on a real disposable PostgreSQL 18: 60 concurrent requests against capacity 20 admit exactly 20, namespace isolation, runtime-role without DDL, lost database fails closed |
+| Same — Go interoperability | 88 vectors produced by a verbatim copy of Go `advanceTokenBucket` and `json.Marshal(tokenBucket)` (`go-token-bucket-vectors.tsv`) are reproduced exactly (stored JSON bytes, allowed, remaining, reset, retry) including float dust, 2^40 capacity and a backwards clock; a Go-written exhausted row stays exhausted in Java; corrupt/negative rows fail closed. Rows are stored in the Go `cao_operational_records` shape (`kind='limiter'`) and charged to the same protected-entry/byte accounting (`128 + len(kind)+len(name)+len(field)+len(value)`); capacity exhaustion fails closed without evicting active buckets; ≤ 512 expired buckets are reclaimed (and their charge released) when a new bucket is created |
+| `specs/server-rate-limiting.md` §3.1 | `QueryCost`: greatest of 1, seconds, ops/250 000, peak rows/100 000, bytes/16 MiB, capped at capacity. Pure function only; not yet charged by any query path (no query execution exists) |
+| `specs/server-rate-limiting.md` §2 hosted edge + public probes; §5; conformance 2, 9 (hosted part), 10 | `RequestAdmission` runs before routing: hosted probes `GET`/`HEAD` `/api/health`, `/api/v1/health`, `/api/readiness` share one per-client `public` bucket (600/min); every other hosted request uses the per-client `edge` bucket (1 200/min); `RateLimit-Limit/Remaining/Reset/Policy` on every metered response; 429 with positive `Retry-After` and the handler not invoked; 503 fail-closed (no rate headers, no detail) when storage cannot decide within 2 s; bucket keys are `class:sha256(subject)` with no address in clear; logs carry only the policy name. Local profile leaves probes unmetered. Probes served at `/api/v1/health` alias per OpenAPI |
+| `specs/server-rate-limiting.md` §4; conformance 6, 7 | `ProxyPolicy`/`ClientAddress`: forwarding headers honored only when the direct peer is inside an explicit trusted CIDR; untrusted peers and direct listeners ignore them; only the final non-empty value of the final field (no leftward scan); `X-Forwarded-For` (v4/v6, ports, brackets, comma lists, repeated fields) before RFC 7239 `for=` (quoted bracketed IPv6 with port); malformed/obfuscated/`unknown`/out-of-range/leading-zero/DNS-name final values fall back to the peer, never an earlier value; addresses parsed without DNS and rendered like Go `net.IP.String()`; effective host (final `X-Forwarded-Host`) must be allow-listed and HTTPS (final `X-Forwarded-Proto`) required by default, else 421 without consulting the limiter |
+| Hosted configuration (fail closed) | `CAO_HOSTED=true` requires `CAO_POSTGRES_URL` (limiter), `CAO_ALLOWED_HOSTS`, and explicit `CAO_TRUSTED_PROXY_CIDRS` when `CAO_TRUST_FORWARDED=true`; a non-loopback bind without hosted mode is refused. `requestLimits` capability is reported `deployment`/`restart` only while a PostgreSQL limiter is enforcing; every other capability stays `unsupported` |
+| Packaging (`Dockerfile`) | Non-root uid 10001, env-configured port, shutdown hook; now defaults `CAO_HOSTED=true`, so a container without allowed hosts and `CAO_POSTGRES_URL` refuses to start. Image NOT built (no Docker); not deployed |
 
 ## Partial
+
+- Rate limiting: only the hosted edge and public-probe classes are enforced. Missing: query (30 cost units/min, post-completion cost charge and "result not returned if the charge fails"), OAuth, general and authenticated-login/Actions-actor subjects, OAuth-state callback subjects, static-asset and webhook edge coverage (no such routes exist), 429 on the `HEAD`-only probe variants beyond the shared bucket test, and Redis/memory limiter adapters. Capacities are fixed defaults (no env overrides). `X-Forwarded-Host`/`Proto` boundary checks follow the Go `classifyProxyRequest`; the Java listener is plain HTTP, so hosted HTTPS is only ever established through a trusted proxy. Per-call connections (no pool) mean each limited request opens one PostgreSQL connection (bounded to 4 concurrent, 2 s deadline) — correct but not production-grade throughput. The limiter row lock is the namespace row, so limiter, audit and any future writes in one namespace serialize on each other; this mirrors Go but is a contention risk.
+- Local JVM check was against a real PostgreSQL 18 but never with TLS to a remote host and never behind a real proxy; the "trusted proxy" in tests and the smoke is 127.0.0.1.
 
 - Operational adapter covers only the `AuditLog` service and its tables. Capabilities in health/readiness remain `unsupported` because no other operational service (cache, limiter, sessions, revocations, leases, queue, quota, CLI commands) exists; the Go `Audit` capability has no field in the OpenAPI `OperationalCapabilities`.
 - Audit: no `admin.rebuild.*` lifecycle callers, no atomic audited operations, no evidence-reader/retention role provisioning (`operational-grants.sql` is only mirrored for the audit grants in tests), no `RetainAudit` Java wrapper (retention SQL is exercised directly), no connection pool (bounded per-call connections, max 4), no cancellation propagation beyond JDBC query timeouts, and the fixed default capacity config is the only accepted one.
 - Schema owner DDL is an audit-only subset of `server/internal/operational/postgres/schema.sql`; the Go store's full contract (records, cache, queues, webhook tables) is not reproduced, so a database provisioned by Go and one by Java are not interchangeable beyond the audit tables.
 - Real TLS to a remote PostgreSQL was not exercised (only URL validation); the packaged-jar smoke (BootstrapMain → Main → Java HTTP client on 127.0.0.1) used trust auth on numeric loopback and observed 503 with `operational.connected=true`; an unprovisioned namespace exited 1. A curl smoke was denied by the sandbox, so a Java client was used.
 
-- Health/readiness: no per-client rate limiting (429), no authorized `revision`/`counts` details. curl smoke of the packaged jar was denied by the sandbox; only startup (`listening on 127.0.0.1:18080`) was observed. HTTP behavior is verified by in-process tests over real loopback sockets.
+- Health/readiness: no authorized `revision`/`counts` details. The packaged jar was smoke-tested (BootstrapMain → hosted `Main` on 127.0.0.1:18080 → Java HTTP client; curl is not used because the sandbox denied it earlier) and shows `RateLimit-*` headers decrementing per client plus the three fail-closed startup refusals; no 429 was provoked there (the default 600/min capacity), which is covered by the in-process real-PostgreSQL tests instead.
 
 - Debug mode: admission logic takes caller-supplied `ManualDebugEvidence`; nothing yet reads the authoritative GitHub event or checks permission live (T-RES-008 recheck at precompute is the caller's duty), and gh-aw staging (T-GHA-004) is out of scope. Ordinary `PolicyResolver` still rejects `debug`; persistent debug policy stays invalid.
 - Policy schema: only `scope`, `defaults`, `campaigns` (mode, caps, targets, workers). Not a full JSON Schema validation.
 
 ## Not implemented
 
-Orchestrator/standalone effective records, standalone workflows and operations,
+Query/OAuth/general request-limit classes and the query cost charge path,
+orchestrator/standalone effective records, standalone workflows and operations,
 `inventory`, `web.host`, host extensions, `target-authority`, authority envelopes,
 exact-SHA policy fetch, canonical ingestion/storage (PostgreSQL), Dashboard Language
-execution, all other HTTP routes, authentication, operational state beyond `AuditLog` (sessions, revocations, leases, queues, quota, rate limiting, CLI commands), canonical PostgreSQL adapter, container image build verification.
+execution, all other HTTP routes, authentication, operational state beyond `AuditLog` and the request limiter (sessions, revocations, leases, queues, GitHub quota, cache, CLI commands), canonical PostgreSQL adapter, container image build verification.
 
 ## Blocked
 
 None. Environment note: the sandbox JDK truststore was empty and `~/.m2` unwritable, so Maven ran with a truststore built from the system CA bundle (`MAVEN_OPTS=-Djavax.net.ssl.trustStore=…`) and `-Dmaven.repo.local` under /tmp (local only). PostgreSQL server binaries (`/usr/lib/postgresql/<n>/bin` or `CAO_TEST_POSTGRES_BIN`) are required for `verify`; their absence fails the build rather than skipping.
 
-## Next bounded slice
+## Next bounded slice (after this one)
+
+Authentication-independent follow-ups, smallest first: (a) env-configurable limits with the Go validation rules and
+operational-grants SQL for the Java runtime role; (b) canonical PostgreSQL storage as described below. Query/OAuth/general
+rate-limit classes should land with the first authenticated route rather than ahead of it.
+
+### Previously proposed (still open)
 
 Canonical PostgreSQL storage: read `server/spec/storage.tsp` and `specs/dashboard-data.md` §§ on ingestion,
 bring up a separate canonical namespace/adapter, ingest a synthetic canonical JSONL fixture through a Java ingestion

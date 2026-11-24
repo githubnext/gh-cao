@@ -26,6 +26,10 @@ The fail-closed policy/authority kernel for the control-plane subset of
   With `CAO_POSTGRES_URL` set, operational connectivity is probed live; canonical data does not
   exist yet, so both endpoints still report 503/unavailable. Without it both report everything unavailable.
   Other routes return 404.
+- `ratelimit` + `http.RequestAdmission`: hosted inbound request limiting per `specs/server-rate-limiting.md`
+  (token bucket in PostgreSQL under database time, `RateLimit-*`/`Retry-After`, 429, fail-closed 503, trusted-proxy
+  client address resolution). Only the **hosted edge** and **public probe** classes are enforced; query, OAuth and
+  general classes await authentication.
 - `Dockerfile`: non-root, provider-neutral; no data or credentials baked in.
 
 Provision (schema owner only, once) then run (after `verify`):
@@ -41,6 +45,13 @@ SELECT/INSERT on `cao_operational_audit_events` for audit (see `server/postgres/
 `CAO_POSTGRES_URL` secrets belong in an Actions/secret store, never an image; a non-loopback host needs
 `sslmode=verify-full`. `CAO_OPERATIONAL_NAMESPACE` defaults to `CAO_DATABASE_NAMESPACE`, then `hosted-dashboard`.
 Startup fails (non-zero) for an invalid, insecure or unprovisioned store.
+
+Hosted profile (`CAO_HOSTED=true`, required for any non-loopback bind): needs `CAO_POSTGRES_URL` (the limiter is mandatory),
+`CAO_ALLOWED_HOSTS` (comma list), `CAO_REQUIRE_HTTPS` (default `true`) and, behind a proxy, `CAO_TRUST_FORWARDED=true` with
+explicit `CAO_TRUSTED_PROXY_CIDRS`. The Java listener is plain HTTP, so HTTPS is established only through a trusted proxy's
+`X-Forwarded-Proto`; without one every hosted request is rejected with 421. Runtime role also needs
+`SELECT, INSERT, UPDATE, DELETE` on `cao_operational_records` and `USAGE, SELECT` on its sequence (see `server/postgres/operational-grants.sql`).
+Local (non-hosted) runs are loopback-only and unmetered.
 
 Run without storage (after `verify`): `CAO_PORT=8080 java -cp "experiments/java-backend/target/cao-java-backend-0.1.0-SNAPSHOT.jar:experiments/java-backend/target/lib/*" org.cao.backend.http.Main`.
 Env: `CAO_BIND` (default `127.0.0.1`, numeric IP; non-loopback requires `CAO_ALLOW_NON_LOOPBACK=true`),

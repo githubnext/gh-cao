@@ -16,9 +16,12 @@ public final class Main {
     public static void main(String[] args) throws Exception {
         Map<String, String> env = System.getenv();
         ServerConfig config = ServerConfig.fromEnvironment(env);
+        HostedConfig.requireHostedForExposure(config, env);
         PostgresOperationalStore store = openStore(env);
+        RequestAdmission admission = HostedConfig.selected(env)
+            ? HostedConfig.admission(env, store) : RequestAdmission.local();
         ServiceState state = store == null ? ServiceState.unconfigured() : new PostgresServiceState(store);
-        ApiServer server = new ApiServer(config, state);
+        ApiServer server = new ApiServer(config, state, admission);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             server.stop(config.shutdownGraceSeconds());
             if (store != null) {

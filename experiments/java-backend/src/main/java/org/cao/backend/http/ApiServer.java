@@ -12,18 +12,27 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Serves {@code GET /api/health} and {@code GET /api/readiness} following
- * {@code server/spec/generated/openapi.json}. All other paths fail explicitly.
+ * Serves {@code GET /api/health} (and its {@code /api/v1/health} alias) and {@code GET /api/readiness} following
+ * {@code server/spec/generated/openapi.json}. All other paths fail explicitly. Every request first
+ * passes {@link RequestAdmission}, so hosted limits apply before routing.
  */
 public final class ApiServer {
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final HttpServer server;
     private final ServiceState state;
+    private final RequestAdmission admission;
     private final AtomicBoolean accepting = new AtomicBoolean(true);
 
+    /** Local profile: loopback-only listener with no request metering. */
     public ApiServer(ServerConfig config, ServiceState state) throws IOException {
+        this(config, state, RequestAdmission.local());
+    }
+
+    public ApiServer(ServerConfig config, ServiceState state, RequestAdmission admission)
+        throws IOException {
         this.state = state;
+        this.admission = admission;
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         server.createContext("/", this::route);
@@ -45,8 +54,14 @@ public final class ApiServer {
 
     private void route(HttpExchange exchange) throws IOException {
         try (exchange) {
+            RequestAdmission.Decision decision = admission.admit(admissionRequest(exchange));
+            decision.headers().forEach((name, value) -> exchange.getResponseHeaders().set(name, value));
+            if (!decision.proceed()) {
+                send(exchange, decision.status(), error(decision.message()));
+                return;
+            }
             String path = exchange.getRequestURI().getPath();
-            boolean health = "/api/health".equals(path);
+            boolean health = "/api/health".equals(path) || "/api/v1/health".equals(path);
             boolean readiness = "/api/readiness".equals(path);
             if (!health && !readiness) {
                 send(exchange, 404, error("not found"));
@@ -63,6 +78,20 @@ public final class ApiServer {
         }
     }
 
+    private static RequestAdmission.Request admissionRequest(HttpExchange exchange) {
+        var headers = exchange.getRequestHeaders();
+        return new RequestAdmission.Request(exchange.getRequestMethod(),
+            exchange.getRequestURI().getPath(), headers.getFirst("Host"), false,
+            exchange.getRemoteAddress().getAddress(), values(headers, "X-Forwarded-For"),
+            values(headers, "Forwarded"), values(headers, "X-Forwarded-Host"),
+            values(headers, "X-Forwarded-Proto"));
+    }
+
+    private static java.util.List<String> values(com.sun.net.httpserver.Headers headers, String name) {
+        java.util.List<String> found = headers.get(name);
+        return found == null ? java.util.List.of() : found;
+    }
+
     private void health(HttpExchange exchange) throws IOException {
         ServiceState.Operational op = state.operational();
         ServiceState.Data data = state.data();
@@ -70,7 +99,7 @@ public final class ApiServer {
         boolean healthy = op.connected() && data.available() && !data.rebuildRequired();
         body.put("status", healthy ? "healthy" : "unhealthy");
         body.putObject("redis").put("connected", op.connected());
-        operational(body, op);
+        operational(body, op, admission.enforcing());
         data(body, data);
         send(exchange, healthy ? 200 : 503, body);
     }
@@ -82,13 +111,16 @@ public final class ApiServer {
         boolean ready = op.connected() && op.recoveryReady() && data.available();
         body.put("ready", ready);
         body.putObject("redis").put("connected", op.connected());
-        operational(body, op);
+        operational(body, op, admission.enforcing());
         data(body, data);
         send(exchange, ready ? 200 : 503, body);
     }
 
-    /** Capabilities are all unsupported: no operational adapter exists, so none is claimed. */
-    private static void operational(ObjectNode body, ServiceState.Operational op) {
+    /**
+     * Only {@code requestLimits} can be claimed, and only while a distributed limiter enforces it;
+     * every other operational service is unimplemented and stays unsupported.
+     */
+    private static void operational(ObjectNode body, ServiceState.Operational op, boolean limits) {
         ObjectNode node = body.putObject("operational");
         node.put("connected", op.connected());
         node.put("recoveryReady", op.recoveryReady());
@@ -96,8 +128,9 @@ public final class ApiServer {
         for (String name : new String[] {"cache", "requestLimits", "sessions", "revocations",
             "githubQuota", "collection", "coordination", "diagnostics"}) {
             ObjectNode cap = caps.putObject(name);
-            cap.put("scope", "unsupported");
-            cap.put("persistence", "volatile");
+            boolean enforced = limits && "requestLimits".equals(name);
+            cap.put("scope", enforced ? "deployment" : "unsupported");
+            cap.put("persistence", enforced ? "restart" : "volatile");
         }
     }
 

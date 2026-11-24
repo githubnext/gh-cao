@@ -1,4 +1,4 @@
--- Operational audit subset of server/internal/operational/postgres/schema.sql (the Go adapter owns
+-- Operational audit and request-limiter subset of server/internal/operational/postgres/schema.sql (the Go adapter owns
 -- the full contract). Run only by the schema owner through OperationalBootstrap; runtime never
 -- executes DDL. {{schema}} is replaced by the owner's current schema.
 CREATE TABLE IF NOT EXISTS cao_operational_namespaces (
@@ -8,6 +8,23 @@ CREATE TABLE IF NOT EXISTS cao_operational_namespaces (
     protected_bytes BIGINT NOT NULL DEFAULT 0 CHECK (protected_bytes >= 0),
     protected_entries BIGINT NOT NULL DEFAULT 0 CHECK (protected_entries >= 0)
 );
+
+-- Generic protected records, copied from the Go adapter. Only request-limiter buckets (kind 'limiter')
+-- are written by this implementation.
+CREATE TABLE IF NOT EXISTS cao_operational_records (
+    namespace TEXT NOT NULL REFERENCES cao_operational_namespaces(namespace) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    field TEXT NOT NULL DEFAULT '',
+    value BYTEA NOT NULL,
+    expires_at TIMESTAMPTZ,
+    position BIGINT GENERATED ALWAYS AS IDENTITY,
+    PRIMARY KEY (namespace, kind, name, field)
+);
+CREATE INDEX IF NOT EXISTS cao_operational_expiry
+    ON cao_operational_records(namespace, expires_at) WHERE expires_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS cao_operational_order
+    ON cao_operational_records(namespace, kind, name, position);
 
 CREATE TABLE IF NOT EXISTS cao_operational_audit_events (
     namespace TEXT NOT NULL REFERENCES cao_operational_namespaces(namespace) ON DELETE CASCADE,

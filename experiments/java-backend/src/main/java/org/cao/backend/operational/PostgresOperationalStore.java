@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -18,8 +19,12 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import org.cao.backend.ratelimit.RateLimitResult;
+import org.cao.backend.ratelimit.RequestLimiter;
+import org.cao.backend.ratelimit.TokenBucket;
 
 /**
  * PostgreSQL adapter for the operational {@link AuditLog}. It owns only {@code cao_operational_*}
@@ -27,10 +32,13 @@ import java.util.concurrent.TimeUnit;
  * provisions storage through {@link OperationalBootstrap}. Appends serialize on the namespace row
  * and use database time, matching {@code server/internal/operational/postgres}.
  */
-public final class PostgresOperationalStore implements AuditLog, AutoCloseable {
+public final class PostgresOperationalStore implements AuditLog, RequestLimiter, AutoCloseable {
     /** Bounds audit persistence, mirroring operational.AuditWriteTimeout. */
     static final int WRITE_TIMEOUT_SECONDS = 5;
     private static final int MAX_CONNECTIONS = 4;
+    /** Protected-state ceilings from {@link #DEFAULT_CONFIG}. */
+    private static final long MAX_PROTECTED_ENTRIES = 200_000;
+    private static final long MAX_PROTECTED_BYTES = 134_217_728;
     private static final ObjectMapper JSON = new ObjectMapper();
 
     /** Go's default capacity configuration, serialized exactly as it stores it. */
@@ -189,6 +197,108 @@ public final class PostgresOperationalStore implements AuditLog, AutoCloseable {
         });
     }
 
+    /**
+     * One namespace-locked transaction under database time: reads the bucket, advances it, charges
+     * protected capacity for a new or grown record and writes it back with an expiry of two refill
+     * periods (specs/server-rate-limiting.md §3). A bucket that cannot be stored fails closed.
+     */
+    @Override
+    public RateLimitResult take(String name, long capacity, long cost, Duration period,
+        Duration deadline) {
+        RequestLimiter.validate(name, capacity, cost, period, deadline);
+        return transact(deadline, c -> {
+            Instant now = databaseTime(c);
+            byte[] stored = limiterBucket(c, name, now);
+            TokenBucket bucket = stored == null ? new TokenBucket(capacity, now)
+                : LimiterRecord.decode(stored);
+            TokenBucket.Transition next = bucket.advance(now, capacity, cost, period);
+            storeLimiterBucket(c, name, stored, LimiterRecord.encode(next.bucket()),
+                next.bucket().at().plus(period.multipliedBy(2)));
+            return next.result();
+        });
+    }
+
+    private byte[] limiterBucket(Connection c, String name, Instant now) throws SQLException {
+        try (PreparedStatement s = c.prepareStatement("SELECT value FROM cao_operational_records "
+            + "WHERE namespace = ? AND kind = 'limiter' AND name = ? AND field = '' "
+            + "AND (expires_at IS NULL OR expires_at > ?)")) {
+            s.setString(1, namespace);
+            s.setString(2, name);
+            s.setObject(3, OffsetDateTime.ofInstant(now, java.time.ZoneOffset.UTC));
+            try (ResultSet r = s.executeQuery()) {
+                return r.next() ? r.getBytes(1) : null;
+            }
+        }
+    }
+
+    /** Charges the namespace's protected capacity by the size delta; exceeding it fails closed. */
+    private void storeLimiterBucket(Connection c, String name, byte[] previous, byte[] value,
+        Instant expires) throws SQLException {
+        long overhead = 128 + "limiter".length() + name.getBytes(StandardCharsets.UTF_8).length;
+        long existing = 0;
+        long added = 1;
+        try (PreparedStatement s = c.prepareStatement("SELECT octet_length(value) FROM "
+            + "cao_operational_records WHERE namespace = ? AND kind = 'limiter' AND name = ? "
+            + "AND field = ''")) {
+            s.setString(1, namespace);
+            s.setString(2, name);
+            try (ResultSet r = s.executeQuery()) {
+                if (r.next()) {
+                    existing = r.getLong(1) + overhead;
+                    added = 0;
+                }
+            }
+        }
+        long delta = overhead + value.length - existing;
+        try (PreparedStatement s = c.prepareStatement("UPDATE cao_operational_namespaces SET "
+            + "protected_bytes = protected_bytes + ?, protected_entries = protected_entries + ? "
+            + "WHERE namespace = ? AND protected_bytes + ? <= ? AND protected_entries + ? <= ?")) {
+            s.setLong(1, delta);
+            s.setLong(2, added);
+            s.setString(3, namespace);
+            s.setLong(4, delta);
+            s.setLong(5, MAX_PROTECTED_BYTES);
+            s.setLong(6, added);
+            s.setLong(7, MAX_PROTECTED_ENTRIES);
+            if (s.executeUpdate() == 0) {
+                throw new OperationalStoreException("operational protected-state capacity exhausted");
+            }
+        }
+        try (PreparedStatement s = c.prepareStatement("INSERT INTO cao_operational_records"
+            + "(namespace, kind, name, field, value, expires_at) VALUES (?, 'limiter', ?, '', ?, ?) "
+            + "ON CONFLICT (namespace, kind, name, field) DO UPDATE SET value = EXCLUDED.value, "
+            + "expires_at = EXCLUDED.expires_at")) {
+            s.setString(1, namespace);
+            s.setString(2, name);
+            s.setBytes(3, value);
+            s.setObject(4, OffsetDateTime.ofInstant(expires, java.time.ZoneOffset.UTC));
+            s.executeUpdate();
+        }
+        if (previous == null && added == 1) {
+            purgeExpiredLimiters(c);
+        }
+    }
+
+    /**
+     * Removes up to 512 idle buckets whose retention elapsed, releasing their protected capacity, so
+     * unbounded distinct subjects cannot exhaust capacity forever. Active buckets are never evicted.
+     */
+    private void purgeExpiredLimiters(Connection c) throws SQLException {
+        try (PreparedStatement s = c.prepareStatement("WITH gone AS (DELETE FROM "
+            + "cao_operational_records WHERE ctid IN (SELECT ctid FROM cao_operational_records "
+            + "WHERE namespace = ? AND kind = 'limiter' AND expires_at <= clock_timestamp() "
+            + "ORDER BY expires_at LIMIT 512) RETURNING octet_length(value) + 128 + octet_length(kind) "
+            + "+ octet_length(name) + octet_length(field) AS size) "
+            + "UPDATE cao_operational_namespaces SET "
+            + "protected_bytes = protected_bytes - coalesce((SELECT sum(size) FROM gone), 0), "
+            + "protected_entries = protected_entries - (SELECT count(*) FROM gone) "
+            + "WHERE namespace = ?")) {
+            s.setString(1, namespace);
+            s.setString(2, namespace);
+            s.executeUpdate();
+        }
+    }
+
     @Override
     public void close() {
         closed = true;
@@ -223,19 +333,28 @@ public final class PostgresOperationalStore implements AuditLog, AutoCloseable {
 
     /** Locks the namespace row first, so every multi-record transition serializes. */
     private <T> T transact(Work<T> work) {
-        return withConnection(c -> {
+        return transact(null, work);
+    }
+
+    /**
+     * As {@link #transact(Work)} with an optional caller deadline: connection wait, lock wait and
+     * statement time are all bounded by it, so a stalled database fails the call instead of delaying it.
+     */
+    private <T> T transact(Duration deadline, Work<T> work) {
+        long millis = deadline == null ? WRITE_TIMEOUT_SECONDS * 1000L : Math.max(1, deadline.toMillis());
+        int seconds = (int) Math.max(1, (millis + 999) / 1000);
+        return withConnection(deadline, c -> {
             c.setAutoCommit(false);
             try (PreparedStatement bound = c.prepareStatement(
                 "SELECT set_config('lock_timeout', ?, true), set_config('statement_timeout', ?, true)")) {
-                String millis = Integer.toString(WRITE_TIMEOUT_SECONDS * 1000);
-                bound.setString(1, millis);
-                bound.setString(2, millis);
+                bound.setString(1, Long.toString(millis));
+                bound.setString(2, Long.toString(millis));
                 bound.execute();
             }
             try (PreparedStatement lock = c.prepareStatement(
                 "SELECT namespace FROM cao_operational_namespaces WHERE namespace = ? FOR UPDATE")) {
                 lock.setString(1, namespace);
-                lock.setQueryTimeout(WRITE_TIMEOUT_SECONDS);
+                lock.setQueryTimeout(seconds);
                 try (ResultSet r = lock.executeQuery()) {
                     if (!r.next()) {
                         throw new OperationalStoreException(
@@ -249,21 +368,34 @@ public final class PostgresOperationalStore implements AuditLog, AutoCloseable {
         });
     }
 
-    /** At most four concurrent connections; permits return even when the driver fails. */
     private <T> T withConnection(Work<T> work) {
+        return withConnection(null, work);
+    }
+
+    /**
+     * At most four concurrent connections; permits return even when the driver fails. A non-null
+     * {@code deadline} also bounds the permit wait and the driver's connect and socket timeouts.
+     */
+    private <T> T withConnection(Duration deadline, Work<T> work) {
         if (closed) {
             throw new OperationalStoreException("operational store is closed");
         }
+        long millis = deadline == null ? WRITE_TIMEOUT_SECONDS * 1000L : Math.max(1, deadline.toMillis());
         try {
-            if (!connections.tryAcquire(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            if (!connections.tryAcquire(millis, TimeUnit.MILLISECONDS)) {
                 throw new OperationalStoreException("operational store connection limit reached");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new OperationalStoreException("interrupted while waiting for a connection", e);
         }
-        try (Connection c = DriverManager.getConnection(endpoint.jdbcUrl(),
-            endpoint.connectionProperties())) {
+        Properties properties = endpoint.connectionProperties();
+        if (deadline != null) {
+            int seconds = (int) Math.max(1, (millis + 999) / 1000);
+            properties.setProperty("connectTimeout", Integer.toString(Math.min(5, seconds)));
+            properties.setProperty("socketTimeout", Integer.toString(Math.min(30, seconds + 1)));
+        }
+        try (Connection c = DriverManager.getConnection(endpoint.jdbcUrl(), properties)) {
             return work.run(c);
         } catch (SQLException e) {
             throw unavailable(e);
