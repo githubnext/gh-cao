@@ -56,6 +56,30 @@ func TestLocalMarketplaceUsesNativeResolverWithoutServerCredentials(t *testing.T
 	}
 }
 
+func TestLocalMarketplaceRejectsAdapterRedirects(t *testing.T) {
+	prefix := "/" + strings.Repeat("b", 48)
+	var followed bool
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		followed = true
+		_ = json.NewEncoder(w).Encode(marketplace.Result{
+			Packages:    []marketplace.Package{{ID: "example/catalog/redirected", Name: "Redirected"}},
+			Diagnostics: []marketplace.RegistryDiagnostic{{RegistryID: "official", Status: "available", Packages: 1}},
+		})
+	}))
+	defer other.Close()
+	adapter := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+"/marketplace", http.StatusTemporaryRedirect)
+	}))
+	defer adapter.Close()
+	app := &App{config: Config{OperatorActions: &LocalOperatorConfig{
+		AdapterURL: adapter.URL + prefix, Marketplace: true,
+	}}}
+	source := app.localMarketplaceSource(t.Context())
+	if followed || len(source.Rows) != 0 || source.Metadata["availability"] != "unavailable" {
+		t.Fatalf("adapter redirect was followed or accepted: followed=%t source=%+v", followed, source)
+	}
+}
+
 func TestMarketplaceResultSourceReportsRegistryCompleteness(t *testing.T) {
 	for _, test := range []struct {
 		name         string
