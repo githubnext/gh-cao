@@ -18,7 +18,7 @@ editors:
 
 This specification defines an **optional** acquisition profile in which the CAO
 server collects Activity evidence directly from a GitHub App, driven by
-webhooks, instead of consuming a snapshot published by GitHub Actions.
+webhooks, instead of consuming an explicitly acquired operational snapshot.
 
 It defines profile selection and exclusivity, enrollment, event admission,
 native acquisition and publication, cold start, gap recovery, rate-limit
@@ -31,10 +31,7 @@ dashboard request abuse protection is defined separately by
 It does not define dashboard presentation, workflow rollout policy, or durable
 operational outcomes. It does not define the canonical data model, the shard
 format, or the `gh aw` audit mapping: those remain owned by
-`specs/server-ingestion.md` and `specs/dashboard-gh-aw-jsonl-mapping.md`.
-
-This specification **conforms to** `specs/server-ingestion.md`. It supersedes nothing.
-Nothing in this document changes the obligations of the Actions profile.
+`specs/dashboard-data.md` and `specs/dashboard-gh-aw-jsonl-mapping.md`.
 
 ## 1. Status and conformance
 
@@ -49,16 +46,17 @@ App-backed collection requires `CAO_COLLECT_NATIVE=true`, durable
 deployment-scoped PostgreSQL operational ownership, and canonical PostgreSQL.
 An App identifier without native selection MUST fail at startup; the former
 filesystem collector and volatile memory collector are not fallback profiles.
-Without an App identifier the existing Actions snapshot profile remains the
-default.
+Without an App identifier native collection is not configured; an operator may
+explicitly ingest a verified operational snapshot. No Actions workflow publishes
+such a snapshot.
 
 ## 2. Profiles
 
 CAO defines two acquisition profiles.
 
-- The **Actions profile** is the default. Activity publishes an immutable
-  snapshot directory, and the server ingests it. It is specified by
-  `specs/server-ingestion.md` and is unaffected by this document.
+- The **snapshot ingestion profile** ingests an explicitly acquired, verified
+  operational snapshot. It does not imply a snapshot publisher or an
+  automatic download.
 - The **collector profile** is defined here. The server acquires evidence
   directly from a GitHub App.
 
@@ -70,8 +68,8 @@ A deployment MUST select exactly one acquisition profile.
   fatal startup error.
 - An implementation MUST NOT allow both profiles to write the same canonical
   dataset, concurrently or interleaved.
-- When no collector configuration is present, the implementation MUST behave as
-  the Actions profile, including its default reconciler.
+- Without collector configuration, snapshot ingestion requires an explicitly
+  selected source; missing evidence MUST NOT be treated as collected data.
 
 ### 2.2 Equivalence
 
@@ -79,13 +77,12 @@ Both profiles MUST produce identical canonical records for the same observation
 window and the same underlying GitHub activity.
 
 - The native Go acquisition adapter MUST preserve the source coverage,
-  canonical equivalence and activation gates of the Actions profile without
+  canonical equivalence and activation gates of snapshot ingestion without
   shelling out to the Activity or gh-aw runtime.
 - The collector profile MUST reconstruct retained operational-value observations
   with a native Go implementation conforming to
   `specs/operational-value-history.md`, using the same campaign adapter contract,
-  retention window, historical campaign selection, and installation-scoped
-  GitHub credentials as the Actions profile.
+  retention window and historical campaign selection for equivalent evidence.
 - Native adapters MUST preserve the authoritative canonical mapping rather than
   define alternate semantics. They MUST compare native records with the Activity
   adapter/normalizer using independent fixture oracles. Routing aggregation MUST
@@ -93,7 +90,7 @@ window and the same underlying GitHub activity.
   Go query engine. The shard format and payload-hash manifest remain shared
   contracts, not separately invented native formats.
 - A conforming implementation MUST provide a profile equivalence test that
-  asserts identical canonical records from Actions-published evidence and
+  asserts identical canonical records from verified snapshot evidence and
   native exact-attempt acquisition covering the same window.
 
 ### 2.3 HTTP host independence
@@ -633,8 +630,8 @@ exact-attempt publication intents in PostgreSQL as specified in section 2.4,
 not in an Activity directory, local overlay, or approved-content trace store.
 Native activation MUST enforce cold start, retention and scope erasure through
 that shared durable representation, and reject backends unable to satisfy
-those contracts. The Actions snapshot layout remains specified separately in
-`specs/server-ingestion.md`; it is not an App-backed collector fallback.
+those contracts. Verified snapshot ingestion is a separate operator-selected
+path, not an App-backed collector fallback.
 
 ## 7. Projection
 
@@ -642,7 +639,7 @@ Projection converts retained evidence into the current canonical PostgreSQL
 dataset. Native publication remains subject to section 2.4's capability and
 ownership contract.
 
-- Projection MUST preserve the Actions profile's canonical mapping. The native
+- Projection MUST preserve the canonical snapshot mapping. The native
   Go adapter MUST satisfy the independent-oracle and production-query
   equivalence requirements in sections 2.2 and 2.4; it MUST NOT introduce
   alternate canonical semantics.
@@ -652,8 +649,8 @@ ownership contract.
 - The collector MUST NOT replay an Activity snapshot, regenerate payloads, or
   schedule a legacy whole-lake replacement. Recovery MUST replay only durable
   native PostgreSQL publications. The separately selected native Value service
-  MUST NOT enable snapshot ingestion or legacy collection. The Actions profile
-  retains its independent manifest-validated snapshot ingestion boundary.
+  MUST NOT enable snapshot ingestion or legacy collection. Explicit snapshot
+  ingestion retains its independent manifest-validated boundary.
 - A replacement MUST commit all current sources, source documents, diagnostics,
   revision state, and evaluation time in one PostgreSQL transaction. A failed
   projection MUST leave the previously committed dataset serving.
@@ -792,8 +789,8 @@ per installation.
 - Missing credentials, missing installation access, an exhausted rate limit, or a
   failed acquisition MUST fail closed. An implementation MUST NOT infer broader
   authority or present partial evidence as complete.
-- A misconfigured collector MUST fail startup. It MUST NOT degrade to the
-  Actions profile or a partial collector.
+- A misconfigured collector MUST fail startup. It MUST NOT degrade to
+  snapshot ingestion or a partial collector.
 - Before collection begins, the collector MUST enumerate the complete App
   installation scope and validate repository visibility: when the control
   repository is public, it MUST fail startup if the credential's scope
@@ -877,7 +874,7 @@ An implementation MUST expose collection status reporting at least enrollment
 coverage, queue depth, processing lag, rate-limit headroom, and dead-letter
 count.
 
-- In the Actions profile the same surface MUST report that collection is not
+- Without a configured collector the same surface MUST report that collection is not
   configured, and MUST NOT fail.
 - Status MUST NOT include tokens, secrets, prompts, or payload contents.
 - Collection acts unattended on customer repositories, so it MUST be traceable:
@@ -1012,7 +1009,7 @@ native publication or source-epoch ownership.
 A conforming implementation:
 
 1. selects exactly one profile and fails startup when both are configured;
-2. leaves the Actions profile's behavior unchanged when the collector is absent;
+2. does not infer a snapshot source when the collector is absent;
 3. derives scope from App installations, never from `cao.json`;
 4. admits and enqueues webhooks without projecting in the request path;
 5. acquires bounded, exact-attempt GitHub evidence with the native Go adapter,
@@ -1023,7 +1020,7 @@ A conforming implementation:
 8. recovers activity gaps by webhook delivery replay and repairs repository lists
    through periodic and operator-triggered authenticated discovery;
 9. governs GitHub budget per installation and fails closed;
-10. passes a profile equivalence test against an Actions-published directory;
+10. passes a profile equivalence test against a verified snapshot directory;
 11. erases retained evidence for repositories that leave ingestion scope, and
     bounds its queues;
 12. admits deliveries without collection credentials, and fails closed when an

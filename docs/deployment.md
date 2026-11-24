@@ -70,7 +70,7 @@ The browser uses server-side PostgreSQL queries; a hosted failure does not
 switch to browser storage or the Pages deployment.
 
 > [!NOTE]
-> Your credential profile still matters for server-backed deployments. Actions snapshot acquisition uses explicitly authorized GitHub access. Dashboard users sign in separately through GitHub OAuth. Independently configured native collection requires its own GitHub App and enrollment; it is not supported by the base Container Apps review bundle.
+> Your credential profile still matters for server-backed deployments. Acquire operational evidence explicitly through a trusted direct manifest or native collection. Dashboard users sign in separately through GitHub OAuth. Independently configured hosted native collection requires its own GitHub App and enrollment; it is not supported by the base Container Apps review bundle.
 
 ## About the shared data flow
 
@@ -82,7 +82,7 @@ verified payload, retention, and backend-processing details;
 [Data model](dashboard-data-model.md) owns entities and identities.
 Independently configured native collection can use server-side workers driven
 by GitHub App webhooks. The [Container Apps review bundle](deployment-azure.md)
-supports explicitly selected Actions snapshots, not collector acquisition;
+supports explicitly selected verified snapshots, not collector acquisition;
 optional staged infrastructure is not native collection activation.
 
 ## What every option guarantees

@@ -1575,10 +1575,10 @@ explicit when evidence is incomplete, incomparable, unmatured, or unavailable.
 
 ### 5.5.1 Authoritative sources and grain
 
-Token-optimization evidence SHALL enter through the Activity publication and
-the existing source-adapter boundary. An optimizer or dashboard MUST NOT
-independently redownload the same run corpus when the Activity generation is
-complete for its scope and window.
+Token-optimization evidence SHALL enter through the canonical ingestion and
+source-adapter boundary. An optimizer or dashboard MUST NOT independently
+redownload the same run corpus when the acquired evidence is complete for its
+scope and window.
 
 The current source authority for gh-aw runtime fields is
 [`logs-jsonl.schema.json`](https://github.com/github/gh-aw/blob/main/schemas/logs-jsonl.schema.json).
@@ -2615,7 +2615,7 @@ reads at most 25 objects; additional work is requeued. Lifecycle hints retain a
 15-minute repository debounce, the existing 200,000-task queue backpressure,
 and delivery deduplication. An hourly scope-repair pass SHALL enqueue only
 repositories with lifecycle state older than 24 hours, providing daily repair
-when webhooks are absent or lost. The Actions profile remains valid without an
+when webhooks are absent or lost. Explicit snapshot ingestion remains valid without an
 inbound receiver.
 
 The private `cao_acquisition_outcomes` operational table MAY retain at most
@@ -3644,11 +3644,11 @@ the same metric version SHALL fail. Original accepted-event dates, native values
 and immutable references SHALL remain evidence, not recalculated report state.
 Existing `operationalValues` semantics and retention SHALL remain unchanged.
 
-Static Activity publication MAY accept an original packet only through a
-reviewed workflow-Value registration that names a confined regular file under
+A reviewed workflow-Value registration MAY name an original packet in a
+confined regular file under
 the trusted checkout's `.github/value-evidence/` directory and pins the SHA-256
 of the decoded schema-v2 envelope. Runtime URLs and network retrieval SHALL NOT
-be accepted. Before replacing retained evidence, Activity SHALL validate the
+be accepted. Before replacing retained evidence, the consumer SHALL validate the
 envelope schema and bounds, digest, repository/workflow/source identity, current
 reviewed Activity scope, frozen contract and accepted history. An exact retry is
 idempotent; conflicting content at the same packet/capture identity, a changed
@@ -3856,20 +3856,11 @@ the same decision and attempt facts in browser and PostgreSQL storage.
 This bounded current-fact contract does not introduce a complete event ledger,
 historical conflict quarantine, or the proposed three-tier storage policy.
 
-Optional Value acquisition MUST NOT delay ordinary Activity publication, consume
-its protected API headroom, or hold the hosted projection lease. A separate job
-or process alone does not isolate GitHub quota. Actions Activity SHALL finish its
-ordinary owner-scoped collection first and MAY then invoke an exact reviewed
-remote collector only when its full `api-requests` ceiling fits above the
-selected credential's protected core reserve. It SHALL persist a bounded,
-secret-free grant and durably consume one unit before each uncached REST,
-search, artifact or GraphQL request. Cached responses consume no new unit.
-Consumption SHALL be fail-closed: a failed or interrupted request MAY remain
-counted but no request may execute before its count is persisted. Exhaustion,
-invalid state, missing enforcement or insufficient admission SHALL retain prior
-evidence and publish a deferral without collector invocation where possible.
-Observed API exhaustion, fast mode and public-only mode retain their precise
-deferral reasons. Git transport SHALL remain under its separate immutable
+Optional Value acquisition MUST NOT consume protected API headroom or hold the
+hosted projection lease. A separate job or process alone does not isolate
+GitHub quota. Exhaustion, invalid state, missing enforcement or insufficient
+admission SHALL retain prior evidence and publish a deferral without collector
+invocation where possible. Git transport SHALL remain under its separate immutable
 inventory/blob bounds and SHALL NOT consume GitHub API request units.
 
 Only the explicitly selected hosted GitHub App collector profile MAY use
@@ -3882,7 +3873,7 @@ SHALL also revisit enabled registrations when deliveries are missed. Value
 work SHALL have bounded per-worker concurrency and a distributed
 single-owner lease per repository, and SHALL NOT
 hold the Activity projection or repository lease across collector execution.
-The default Actions profile has no inbound webhook receiver.
+Explicit snapshot ingestion has no inbound webhook receiver.
 
 The hosted collector SHALL keep installation credentials outside its confined
 collector subprocess. Every uncached API call SHALL use the existing shared
@@ -3925,25 +3916,19 @@ explicitly declare their local capability; other modules may reuse exact,
 version-matched retained observations but SHALL NOT acquire missing inputs.
 Existing fast, public-only and API-limited snapshot gates SHALL remain intact.
 
-Actions SHALL complete Activity publication before starting the optional local
-workflow. A later Activity snapshot may import its validated, bounded results.
 The hosted worker SHALL use its own single-owner lease and a verified private
 snapshot, not the projection lease or a long-held core evidence lock. Computation
 SHALL be bounded to two minutes per batch and thirty seconds per adapter.
 Local output and retained imports SHALL remain within 16 MiB; the hosted private
 snapshot SHALL remain within 256 MiB with individual inputs bounded to 16 MiB.
-An optional result import failure MUST retain accepted evidence without failing
-ordinary Activity publication.
 Completed local results SHALL wait for the next ordinary projection, not create
 a compute/publication retry loop. Computation SHALL use a frozen copy of policy.
 A final short publication rechecks enrollment and compares the completed input
 generation, manifest, policy and retained-result identity with the computation's
 starting state. Changed inputs or accepted evidence SHALL defer publication,
-not overwrite concurrent work. Optional Actions imports SHALL reject conflicting
-measurements at the same observation identity without changing retained evidence.
-Failure, timeout or withdrawal MUST NOT replace accepted evidence or hold up
-ordinary Activity publication. These bounds do not claim isolation from unrelated
-host CPU/I/O consumers, Actions transport requests, or external API consumers.
+not overwrite concurrent work. Failure, timeout or withdrawal MUST NOT replace
+accepted evidence or hold up ordinary evidence ingestion. These bounds do not
+claim isolation from unrelated host CPU/I/O or external API consumers.
 
 Resuming automatic acquisition requires request-accounted shared admission,
 protected core headroom and bounded requests, elapsed time and concurrency,

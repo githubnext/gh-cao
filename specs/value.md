@@ -376,8 +376,7 @@ Search-quota preflight. It MUST reject incomplete
 pagination, inaccessible evidence and malformed lifecycles, preserving all
 previously accepted packets and proof. A selected Dependabot measurement
 without three complete packets for its cutoff MUST publish explicit
-missing/unavailable measurements, not omit them or infer zero. The separate
-Actions snapshot pipeline retains its own reviewed collector.
+missing/unavailable measurements, not omit them or infer zero.
 
 Selected native remote invocations MUST restore the starting packet and proof
 from one PostgreSQL snapshot pinned to their original installation and enrollment
@@ -396,7 +395,7 @@ invocation acknowledges only its original dirty generation.
 A separately admitted local-only lane MAY query an already published canonical
 snapshot through the production Dashboard Language boundary. It MUST NOT use
 target credentials, perform remote acquisition, backfill history
-automatically, or delay ordinary Activity publication.
+automatically, or delay ordinary evidence ingestion.
 
 ### 5.5 Hosted webhook-hinted collection
 
@@ -411,9 +410,8 @@ side effect, or implicit registration.
 ## 6. Admission, budgets, and failure safety
 
 A remote collector MUST declare a reviewed integer `api-requests` ceiling from
-1 through 1,000. Actions Activity MUST finish ordinary owner-scoped collection
-before considering the collector. It MAY invoke the collector only when the
-entire ceiling fits above the selected credential's protected core reserve.
+1 through 1,000. Admission MUST preserve the selected credential's protected
+core reserve.
 
 The admitted collector MUST receive a bounded secret-free durable grant.
 One unit MUST be durably consumed before every uncached REST, Search, artifact,
@@ -448,7 +446,7 @@ They MUST retain the previous accepted packet, proof, immutable facts, capture,
 and cutoff. They MUST NOT publish partial evidence, fabricate zero, or make
 retained evidence appear fresh.
 
-Optional Value work MUST NOT delay or invalidate ordinary Activity publication.
+Optional Value work MUST NOT delay or invalidate ordinary evidence ingestion.
 A separate process or worker is not separate quota.
 
 ## 7. Webhook semantics
@@ -469,7 +467,7 @@ Hosted refresh hints MUST:
   canonical revision before publication; and
 - erase private proof and pending hint state on withdrawal.
 
-The default Actions profile has no inbound webhook receiver. Missed, delayed,
+Explicit snapshot ingestion has no inbound webhook receiver. Missed, delayed,
 duplicated, or reordered deliveries MUST NOT create false freshness or prevent
 the daily repair path from revisiting a due registration.
 

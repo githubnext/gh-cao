@@ -82,7 +82,7 @@ flowchart TB
 | Topology | Query execution | Persistence and ownership | Appropriate use |
 | --- | --- | --- | --- |
 | Synthetic Pages demo | Data Web Worker over IndexedDB | Generated samples, production canonical ingestion; isolated disposable browser state | Enterprise sample exploration, never operational evidence distribution |
-| Local/headless | Go over a selected canonical PostgreSQL namespace | The Activity pipeline owns ordinary snapshot creation, retention, and repair | Operator analysis, CLI consumption, and local development |
+| Local/headless | Go over a selected canonical PostgreSQL namespace | Operator-selected native collection or verified snapshot ingestion | Operator analysis, CLI consumption, and local development |
 | Production hosted | Go over PostgreSQL using bounded, parameterized SQL | Server-side canonical namespace plus separately owned operational state | Authenticated shared dashboards and optionally native acquisition |
 
 Containers and external-listener hosts use the **complete
@@ -119,7 +119,7 @@ deletes storage outside its namespace.
 
 **Source:** dashboard-data §5.2 Go server profile; [Deployment](deployment.md).
 
-## 3. Acquisition: batch publication or native collection
+## 3. Acquisition: verified snapshots or native collection
 
 Acquisition profile and HTTP hosting are independent design axes. Choose
 **exactly one acquisition writer** for a deployment.
@@ -127,40 +127,29 @@ Acquisition profile and HTTP hosting are independent design axes. Choose
 ```mermaid
 flowchart LR
   accTitle: Mutually exclusive acquisition profiles
-  accDescr: The default Actions profile is specified to produce an immutable snapshot for verification and canonical publication. Current operator guidance says no Actions workflow publishes an operational artifact, so that step is a source conflict. The optional native collector acquires exact-attempt evidence through durable admission and publication. Both feed the same canonical model, but must not co-write one dataset.
-  GitHub["GitHub evidence"] --> Choice{"One acquisition profile"}
-  Choice -->|Default| Actions["Actions Activity pipeline"]
-  Actions -.->|"Specified snapshot; publication conflict"| Artifact["Immutable snapshot directory"]
-  Artifact -.-> Verify["Hash and relationship validation"]
-  Verify -.-> Snapshot["Canonical snapshot publication"]
+  accDescr: An explicitly acquired operational snapshot is verified before ingestion. The optional native collector acquires exact-attempt GitHub evidence through durable admission and publication. These paths feed the same canonical model, but must not co-write one dataset.
+  Choice{"One acquisition writer"} -->|Explicit snapshot| Artifact["Verified operational snapshot"]
+  Artifact --> Verify["Hash and relationship validation"]
+  Verify --> Snapshot["Canonical PostgreSQL dataset"]
   Choice -->|Explicit native selection| Admission["Enrollment-fenced admission"]
+  GitHub["GitHub evidence"] --> Admission
   Admission --> Queue["Durable receipt-fenced queue"]
   Queue --> Native["Native exact-attempt acquisition"]
   Native --> Intent["Durable safe publication intent"]
   Intent --> Snapshot
 ```
 
-The default **Actions profile** is specified as an Activity pipeline that
-publishes an immutable snapshot directory containing inventory, hashes, compact
-normalized run-information JSONL, and run-record JSONL for PostgreSQL ingestion
-and headless consumers. Raw Activity JSONL remains in the Activity cache, not
-the deployed browser payload. Browser ingestion reads JSONL and inventory; it
-does not import a database file into IndexedDB.
-
-**Source conflict:** [Server Ingestion §2](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md#2-profiles)
-describes this immutable snapshot directory as the Actions-profile input, while
-[dashboard-data §3.2.1](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md#321-deployment-and-publication-profiles)
-and [Data ingestion](dashboard-data-ingestion.md#before-the-first-activity-snapshot)
-state that no Actions workflow publishes an operational snapshot artifact. Operators
-must use a trusted direct manifest URL or explicit native collection, and this guide
-does not reconcile the conflict. Verify the current publication path before relying on
-Actions-profile artifact freshness.
+Operators may ingest an explicitly acquired, verified operational snapshot
+containing canonical JSONL and inventory. A trusted direct
+`payload-hashes.json` URL is an explicit acquisition path; no Actions workflow
+publishes an operational snapshot. Browser ingestion reads JSONL and inventory;
+it does not import a database file into IndexedDB.
 
 The optional **native collector profile** requires explicit native selection,
 canonical PostgreSQL, and durable PostgreSQL operational ownership. GitHub
 App configuration alone is insufficient. It uses installation-scoped APIs,
 bounded exact-attempt acquisition, and shared quota services rather than
-shelling out to Activity or gh-aw. Both profiles must produce equivalent
+shelling out to Activity or gh-aw. Both paths must produce equivalent
 canonical records for equivalent underlying evidence and observation windows.
 
 This is an **at-least-once delivery and fenced-publication design**, not an
@@ -701,7 +690,7 @@ flowchart TB
 | Canonical entity/query adapter | Azure Database for PostgreSQL Flexible Server | Private delegated subnet and verified TLS; typed canonical tables are a rebuildable read model, not raw-session storage |
 | Focused operational services: OAuth sessions, revocations, queues, leases, quotas, deduplication and durable audit | The same PostgreSQL Flexible Server through the separate operational adapter | `cao_operational_*` tables retain separate lifecycle, atomicity and protected-state bounds. Baseline requires neither Redis nor Azure Service Bus; they are not implied adapter substitutions |
 | Schema ownership and selected snapshot ingestion | Separate manual Azure Container Apps provisioning and ingestion jobs | Distinct identities and owner/runtime credentials; explicit verified snapshot or empty evidence. Jobs do not become archive publishers |
-| Acquisition | Explicitly selected Actions snapshots | Base profile does not support collector acquisition; optional host infrastructure does not activate collection or authorize more repositories |
+| Acquisition | Explicitly selected, verified operational snapshots | Base profile does not support collector acquisition; optional host infrastructure does not activate collection or authorize more repositories |
 | Image distribution | Azure Container Registry, managed-identity pulls | Operators prepare/select dashboard, provisioning and ingestion images; digest pinning alone is not production scan, SBOM or provenance assurance |
 | Secret resolution | Azure Key Vault and managed identities with secret-scoped roles | Secrets remain outside policy and browser payloads. Managed-identity Key Vault access does not itself authenticate Blob/ADX archive adapters, which require their separately configured application credentials |
 | Private unified-session lake: `BlobStore` | Private Azure Blob Storage for immutable Parquet, manifests, lease and conditional pointer publication | Independently default-off; optional staged infrastructure is not activation. Use an approved persistent single-owner host; ephemeral container storage is not the session lake |

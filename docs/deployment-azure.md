@@ -47,7 +47,7 @@ for the complete parameter and activation contract.
 | VNet, delegated subnets and private DNS | Private database connectivity with separately verified ingress proxy peers |
 | Log Analytics | Container logs, not canonical data or evidence of application telemetry delivery |
 
-The base profile uses public OAuth ingress and explicitly selected Actions
+The base profile uses public OAuth ingress and explicitly selected verified
 snapshots. It provisions neither Redis nor Application Insights. Optional
 session-lake and webhook-gateway infrastructure remains separately selected
 and staged; it grants no runtime activation or broader authority. The base
