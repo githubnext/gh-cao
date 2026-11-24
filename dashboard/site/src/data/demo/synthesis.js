@@ -1,3 +1,4 @@
+import { createDebug } from '../../debug.js';
 import { enterpriseActivityBatches, enterpriseDemo, enterpriseMemory, enterpriseRepositorySources, enterpriseSample } from './sample.mjs';
 import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSourceBatches, ingestDashboardSources } from '../ingest/coordinator.js';
 import { canonicalDatabaseName, DATABASE_VERSION, deleteCanonicalDatabase, readTransaction, readTransactions, recordTransaction } from '../storage/indexeddb.js';
@@ -8,6 +9,7 @@ const receiptId = 'synthetic-demo:population';
 const batchSize = 1_000;
 const installedBatchSize = 50;
 const memoryTime = Date.now();
+const debugSynthesis = createDebug('synthesis');
 
 /**
  * Generate raw samples only inside the data worker; all records pass through
@@ -46,6 +48,7 @@ async function populateEnterpriseDemo(indexedDB, options) {
     .some(entry => String(entry.kind).startsWith('synthetic-demo-') || entry.kind === 'dashboard-snapshot');
   if (incompatible || legacy) {
     options.signal?.throwIfAborted();
+    debugSynthesis({ event: 'population-reset', reason: incompatible ? 'incompatible-receipt' : 'legacy-transactions' });
     await deleteCanonicalDatabase(indexedDB);
     receipt = null;
   }
@@ -56,6 +59,11 @@ async function populateEnterpriseDemo(indexedDB, options) {
   let completed = Number(receipt?.repositories ?? 0);
   let installed = Number(receipt?.installedRepositories ?? 0);
   let activityBatches = Number(receipt?.activityBatches ?? 0);
+  debugSynthesis({
+    event: 'population-started', resumed: completed > 0 || installed > 0 || activityBatches > 0, complete,
+    repositories: completed, installedRepositories: installed, activityBatches
+  });
+  const startedAt = Date.now();
   const save = () => recordTransaction(indexedDB, {
     id: receiptId, kind: 'synthetic-demo-progress', createdAt: new Date().toISOString(),
     sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
@@ -122,6 +130,10 @@ async function populateEnterpriseDemo(indexedDB, options) {
     id: receiptId, kind: 'synthetic-demo-complete', createdAt: new Date().toISOString(),
     sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
     repositories: completed, installedRepositories: installed, activityBatches, complete: true,
+  });
+  debugSynthesis({
+    event: 'population-completed', repositories: completed, installedRepositories: installed,
+    activityBatches, durationMs: Date.now() - startedAt
   });
   return { sources, changed: true };
 }
