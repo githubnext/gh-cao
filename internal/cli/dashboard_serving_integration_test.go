@@ -21,6 +21,18 @@ import (
 	"time"
 )
 
+func TestMain(m *testing.M) {
+	if os.Getenv("CAO_TEST_SERVING_GH") == "1" {
+		if slices.Equal(os.Args[1:], []string{"aw", "logs", "--help"}) {
+			_, _ = fmt.Fprintln(os.Stdout, "--format jsonl")
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, "GitHub acquisition intentionally unavailable in serving fixture")
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
+}
+
 // This exercises the real native child, built site and PostgreSQL adapters;
 // only GitHub acquisition is replaced with bounded synthetic evidence.
 func TestDashboardServingIntegration(t *testing.T) {
@@ -439,10 +451,28 @@ func runDashboardServingCLIProcess(t *testing.T, parent context.Context, cli, bi
 		"--server-executable", binary, "--site", builtSite,
 		"--listen", "127.0.0.1:0", "--duration", "30s", "--count", "2")
 	command.Dir = directory
-	// No gh executable, inherited credentials, or operator configuration: this
-	// checks offline process serving, not successful GitHub acquisition.
+	// With no gh executable, credentials, or operator configuration, the real
+	// CLI must fail preflight rather than silently serve without streaming.
 	command.Env = append(dashboardServerEnvironment(), "PATH="+directory, "HOME="+directory,
-		"USERPROFILE="+directory, "CAO_POSTGRES_URL="+postgresURL)
+		"USERPROFILE="+directory, "GH_PATH=", "CAO_POSTGRES_URL="+postgresURL)
+	failed, err := command.CombinedOutput()
+	if err == nil || !bytes.Contains(failed, []byte("automatic gh-aw installation failed")) {
+		t.Fatalf("native gh-cao did not fail its missing-gh preflight: %v\n%s", err, failed)
+	}
+	if bytes.Contains(failed, []byte("access_token=")) {
+		t.Fatal("native gh-cao served before its missing-gh preflight failed")
+	}
+	helper, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The native Go test executable advertises streaming support but rejects
+	// all acquisition and installation, without a shell or production bypass.
+	command = exec.CommandContext(ctx, cli, command.Args[1:]...)
+	command.Dir = directory
+	command.Env = append(dashboardServerEnvironment(), "PATH="+directory, "HOME="+directory,
+		"USERPROFILE="+directory, "CAO_POSTGRES_URL="+postgresURL,
+		"GH_PATH="+helper, "CAO_TEST_SERVING_GH=1")
 	command.Stdout, command.Stderr = output, output
 	command.WaitDelay = 10 * time.Second
 	if err := command.Start(); err != nil {
@@ -618,6 +648,9 @@ func runDashboardServingIntegration(t *testing.T, ctx context.Context, binary, b
 		baseGH := dashboardTestGH(t, now)
 		earlyAcquisition := make(chan struct{}, 1)
 		gh := func(ctx context.Context, args ...string) (string, string, error) {
+			if slices.Equal(args, []string{"aw", "logs", "--help"}) {
+				return baseGH(ctx, args...)
+			}
 			if !output.hasAnnouncedReadiness() {
 				select {
 				case earlyAcquisition <- struct{}{}:
