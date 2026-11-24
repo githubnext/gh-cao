@@ -100,8 +100,8 @@ target repository receives daily repair even when deliveries are missed. Queue
 capacity remains 200,000 outstanding tasks, and the private outcome cache
 remains bounded to 20,000 rows and 16 MiB per target repository.
 
-The Actions profile has no inbound receiver and remains complete for universal
-delivery plus registry-derived adoption. Hosted authoritative adoption covers
+Without hosted webhook collection, available evidence supports delivery and
+registry-derived adoption. Hosted authoritative adoption covers
 same-repository and cross-repository `create_issue` and `create_pull_request`
 only when the exact target repository is currently enrolled. URLs, producer
 credentials, and producer authority never widen that scope. Target withdrawal

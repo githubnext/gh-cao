@@ -432,12 +432,9 @@ frozen function and bounded collector pass verification, the skill stages that
 registration automatically with `value enable --if-absent`, preserving existing
 registrations and explicit `enabled: false` disables. Mere function presence
 never grants execution authority. Reviewed local collectors and policy deploy
-together. Remote collectors also declare a reviewed request ceiling. Actions
-Activity finishes ordinary owner-scoped collection first, admits the full
-ceiling only above the selected credential's protected reserve, and persists a
-secret-free grant that is consumed before every uncached REST, search, artifact
-or GraphQL request. Missing enforcement, insufficient capacity and exhaustion
-fail closed without replacing accepted evidence. Optional hosted App collector
+together. Remote collectors also declare a reviewed request ceiling.
+Missing enforcement, insufficient capacity and exhaustion fail closed without
+replacing accepted evidence. Optional hosted App collector
 deployments turn verified issue, pull-request, completed-run and default-branch
 push deliveries into durable, debounced repository Value invalidations; an
 independent daily sweep repairs missed deliveries without treating a webhook as
@@ -448,7 +445,7 @@ before forwarding GitHub API calls. Unknown quota, changed policy or scope,
 incomplete evidence and failed acquisition retain the previous capture. Only
 validated original packets are published atomically in PostgreSQL; private
 proof and per-pair API, time and byte costs survive refreshes and are erased
-on withdrawal. The default Actions profile has no inbound webhooks. Due
+on withdrawal. Explicit snapshot ingestion does not provide inbound webhooks. Due
 collectors run
 only within effective collection scope and frozen cadence. They continue from
 the retained proof/cutoff, reuse immutable receipts, merged implementations,
@@ -1248,8 +1245,8 @@ As an alternative, the server itself collects evidence from GitHub App
 installations through bounded native Go acquisition and epoch-fenced PostgreSQL
 publication. It does not execute `gh cao`, stage an Activity lake,
 or schedule snapshot replacement. Native recovery replays durable PostgreSQL
-publications; the default Actions profile independently ingests verified
-published snapshots. The separately selected `NativeValueService` owns reviewed
+publications; explicit snapshot ingestion independently validates its selected
+input. The separately selected `NativeValueService` owns reviewed
 Value execution without a snapshot Projector or its dirty-generation lifecycle.
 Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
@@ -1317,11 +1314,7 @@ native quota pool; unlabelled or mismatched calls remain isolated. Reuse never c
 repository, installation, API origin, policy snapshot or collection invocation;
 each collector keeps its own request grant, proof, timeout, starting-packet
 check and publication CAS. Legacy registrations without a manifest remain
-isolated. Actions Activity may admit a reviewed collector only after
-ordinary collection and only when its complete request ceiling fits above the
-protected reserve. It durably counts each uncached GitHub request before
-execution and retains accepted packets/proof on missing capacity or exhaustion.
-Hosted cycles use the same shared quota services and count cache hits separately
+isolated. Hosted cycles use shared quota services and count cache hits separately
 from metered requests. Accepted remote proof is stored as bounded private
 PostgreSQL files keyed by the exact repository/workflow deployment, restored
 into an invocation-local workspace, and replaced in the same transaction as
@@ -1340,15 +1333,13 @@ contract exists. Such deployments remain explicitly `unconfigured`; the system
 does not fabricate a generic Value metric. Adding enterprise coverage means
 adding reviewed workflow-specific contracts and database-local evaluators, not
 deriving outcome claims from runtime success.
-Bounded cache-only/local computation remains independent:
-Actions runs it only after a successful eligible Activity snapshot, while the
-hosted worker uses its own single-owner lease and verified private snapshot.
-Both use the reviewed local-only standard adapter, explicit local-capability
+Bounded cache-only/local computation remains independent. The hosted worker
+uses its own single-owner lease and verified private snapshot. It uses the
+reviewed local-only standard adapter, explicit local-capability
 modules or exact versioned cache reuse, no target credentials or automatic
 backfill, and a two-minute batch/thirty-second adapter budget. Scope, explicit
-disables, fast, public-only and API-limited gates remain enforced. A later
-ordinary snapshot imports completed results; optional work does not acquire
-the projection lease, hold a long core evidence lock, or initiate a
+disables, fast, public-only and API-limited gates remain enforced. Optional work
+does not acquire the projection lease, hold a long core evidence lock, or initiate a
 compute/publication retry loop. Hosted final publication rechecks enrollment
 and the starting generation, manifest, policy and retained-result identities;
 changed inputs defer publication rather than overwrite concurrent evidence.
@@ -2201,8 +2192,8 @@ not authorize cross-repository evidence access.
   The internet-facing dashboard holds the webhook secret but no collection
   private key. Unexposed collector and idempotent backfill services hold the
   read-only GitHub App key. The collection profile leaves
-  `CAO_SOURCE_DIRECTORY` unset; a separately selected Actions snapshot profile
-  can still mount a verified activity artifact read-only.
+  `CAO_SOURCE_DIRECTORY` unset; separately selected snapshot ingestion
+  can still mount a verified operational snapshot read-only.
   Locally source-built images are not admitted through the package workflow's vulnerability scans,
   hardening check, SBOM, or artifact attestations; those guarantees continue
   to apply only to published packages.
@@ -2268,8 +2259,8 @@ not authorize cross-repository evidence access.
   executable PATH or legacy files. Doctor shares native setting and selected
   Value dependency validation, and does not probe legacy lakes or projection
   locks for native deployments. App-backed collection without native selection
-  now fails at startup; only the no-App Actions snapshot profile remains the
-  default. Unsupported Value collector registrations fail closed rather than
+  now fails at startup; without an App, snapshot ingestion requires an explicitly
+  selected source. Unsupported Value collector registrations fail closed rather than
   launching the former JavaScript runtime.
   See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or

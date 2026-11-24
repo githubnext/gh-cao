@@ -23,8 +23,8 @@ publication machinery may live in the CAO control repository.
    `operational_value` records carry compact repository measurements. Richer
    schema-v2 `operational_value_evidence` packets retain report facts such as
    snapshots, accepted-change lineage and drilldowns.
-3. **Let dashboard ingestion display it.** Activity publication or hosted
-   publication ingests the original evidence into canonical storage. Dashboard
+3. **Let dashboard ingestion display it.** Explicit or hosted publication
+   ingests the original evidence into canonical storage. Dashboard
    Language selects the latest primary result for **Value** automatically. No
    workflow-specific dashboard JSON or JavaScript is required.
 

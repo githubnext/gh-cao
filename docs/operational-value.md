@@ -72,8 +72,7 @@ value-dependent query caches are revision-keyed so an old cached card cannot
 hide the new evidence.
 
 See [authentication and command details](cao-cli.md#publish-and-refresh-workflow-value).
-Static dashboards receive the same envelope through Activity publication,
-not a direct database connection.
+The synthetic Pages demo does not receive operational evidence.
 
 ### Verify publication in each deployment
 
@@ -129,49 +128,27 @@ Keep immutable measurements and receipts in the supplied per-workflow workspace
 for reuse. Uploaded report packets cannot register or execute collector code.
 
 Remote acquisition requires a reviewed `api-requests` ceiling on the exact
-registration. Activity completes ordinary collection first, reads the selected
-credential's live capacity, preserves its existing reserve and admits a
-collector only when the entire reviewed ceiling fits above that reserve. The
-collector receives a secret-free durable grant; every uncached REST, search,
-artifact or GraphQL request consumes one unit atomically before execution.
-Cached reads consume no new unit. Exhaustion can overcount a failed request but
-cannot undercount or issue another request. Missing enforcement or insufficient
-capacity defers before invocation and leaves accepted packets, immutable proof
-and freshness clocks unchanged. Fast mode, public-only mode and observed API
-exhaustion keep their more precise deferral reasons. A separate worker alone
-still does not isolate shared quota.
+registration. The hosted collector uses shared quota admission and preserves
+protected capacity. Missing enforcement or insufficient capacity defers before
+invocation and leaves accepted packets, immutable proof and freshness clocks
+unchanged. A separate worker alone does not isolate shared quota.
 Each invoked collector retains `collection-cost.json` in its existing private
 per-pair proof workspace. Its cumulative totals and last 30 attempts record
 actual uncached GitHub requests consumed from the reviewed grant (not the grant
 ceiling), separate capacity-check requests, elapsed collector wall time and
-stdout bytes, including failed attempts. The Activity job also prints aggregate
-costs for that invocation. Unmetered local attempts are counted separately;
+stdout bytes, including failed attempts. Unmetered local attempts are counted separately;
 wall time is not CPU or billing cost, and Git transport is not included in the
 GitHub API count. Capacity checks that defer before invocation appear in the
-job aggregate, not as collector attempts. Retained proof and its cost history
+capacity decision, not as collector attempts. Retained proof and its cost history
 are copied forward together, so a failed refresh does not erase prior usage.
-For registered remote collectors, ordinary Activity reserves their reviewed
-request ceilings on top of its protected API floor before downloading logs.
-If log collection stops at that floor, Value still checks live capacity against
-its own grant and the original protected floor before attempting a refresh.
-Without that capacity it remains deferred; local-only collectors remain deferred
-when ordinary collection reports API exhaustion.
 
 Collectors without remote requests need no ceiling. Git transport and immutable
 blob measurement remain under their separate existing bounds rather than being
 misrepresented as GitHub REST requests.
 
-Bounded cache-only/local computation remains available separately.
-`CAO Local Value` runs only after successful default-branch Activity publication,
-checks the exact snapshot and policy digest, and uses the reviewed local-only
-adapter without target credentials. Local-capable modules (currently Optimization)
-may query that snapshot; remote modules may only reuse exact versioned observations.
-Older/custom adapters defer rather than ignoring local-only mode. The job has a
-five-minute ceiling, with two minutes per computation batch and thirty seconds
-per adapter; it does not backfill history. Existing fast, public-only and
-API-limited gates remain. A later Activity snapshot imports completed results.
-The hosted collector uses the same local runtime under a separate lease and
-private snapshot, never the core projection lease. Publication rechecks enrollment
+Bounded cache-only/local computation remains available separately. The hosted
+collector uses a separate lease and private snapshot, never the core projection
+lease. Publication rechecks enrollment
 and the starting input, policy and retained evidence; a concurrent change defers
 the result rather than overwriting newer evidence. Completed-cache imports reject
 conflicting measurements at an identical observation identity.
@@ -181,9 +158,7 @@ persist a debounced Value refresh hint for enrolled repositories. A separate
 bounded worker checks reviewed remote registrations, current enrollment and
 the frozen cadence before collecting; a daily sweep repairs missed webhooks.
 A webhook is a prompt to inspect evidence, not proof of acceptance or a new
-capture. Ordinary Activity projection and bounded local Value remain
-independent. The default Actions profile has no inbound webhook receiver and
-continues its existing scheduled collection.
+capture. Explicit snapshot ingestion does not provide inbound webhooks.
 
 Value uses a versioned safe-output adoption registry. Delivery is a successfully
 created or applied safe output. Adoption uses an authoritative human decision
@@ -326,7 +301,7 @@ CAO uses one shared campaign module for both collection paths:
 
 Both paths import the same frozen evidence contract, collector, and scoring functions. Default routine collection does not rebuild repository history, and a metric cannot drift between the dashboard record and its historical report.
 
-Accepted operational-value observations are queryable from any local or downloaded canonical PostgreSQL namespace with `cao query --collection operationalValues`. Querying alone does not publish or reconstruct history. An explicit historical evaluation may query missing cadence observations for a named campaign while their authoritative source evidence remains in its bounded canonical database. The automatic local lane does not request that backfill. No history archive is installed with the campaign. Completed numeric records use the ordinary operational Activity snapshot pipeline; they never become Pages demo inputs.
+Accepted operational-value observations are queryable from any local or downloaded canonical PostgreSQL namespace with `cao query --collection operationalValues`. Querying alone does not publish or reconstruct history. An explicit historical evaluation may query missing cadence observations for a named campaign while their authoritative source evidence remains in its bounded canonical database. The automatic local lane does not request that backfill. No history archive is installed with the campaign. Operational records never become Pages demo inputs.
 
 The rolling Activity database is a query source for current observations, not the definition of operational-value history. Explicit evaluation schedules observations from adoption and incrementally preserves accepted snapshots. Git and other immutable repository facts can be reconstructed at historical cutoffs. Ephemeral run, usage, artifact, queue, and tool-call facts can be backfilled only while their source remains available; an expired interval without a contemporaneous snapshot is missing, not zero. Compact operational-value history retains its separate 365-day window, compacted to each metric's declared cadence plus its latest open-bucket observation, while the explicit evidence archive is the durable since-adoption record.
 
