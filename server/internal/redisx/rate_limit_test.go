@@ -2,6 +2,7 @@ package redisx
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -145,3 +146,28 @@ func TestParseRateLimitReplyRejectsMalformedAndOutOfBoundsReplies(t *testing.T) 
 		})
 	}
 }
+
+func TestLegacyRateLimitRejectsInvalidArgumentsBeforeRedis(t *testing.T) {
+	client := &rateLimitCommandClient{value: int64(0)}
+	store := NewStore(client, "legacy-invalid")
+	ctx := t.Context()
+	cases := map[string]error{
+		"reserve zero cost":  second(store.ReserveRateLimit(ctx, "budget", "1", 0, 0, 1)),
+		"reserve zero now":   second(store.ReserveRateLimit(ctx, "budget", "1", 0, 1, 0)),
+		"reserve empty name": second(store.ReserveRateLimit(ctx, "", "1", 0, 1, 1)),
+		"observe negative":   store.ObserveRateLimit(ctx, "budget", "1", -1, 1),
+		"observe empty":      store.ObserveRateLimit(ctx, "budget", " ", 1, 1),
+		"park negative":      store.ParkRateLimit(ctx, "budget", "1", -1),
+		"park empty":         store.ParkRateLimit(ctx, "", "1", 1),
+	}
+	for name, err := range cases {
+		if !errors.Is(err, ErrInvalid) {
+			t.Errorf("%s error = %v, want ErrInvalid", name, err)
+		}
+	}
+	if client.command != nil {
+		t.Fatalf("invalid arguments reached Redis: %#v", client.command)
+	}
+}
+
+func second(_ int, err error) error { return err }
