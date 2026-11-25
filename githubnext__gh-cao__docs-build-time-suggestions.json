@@ -1,35 +1,7 @@
 {
   "source_sha": "f4f70d8d9aa380a2271e749649fba381eb4eb2c8",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T01:20:54Z",
-      "worker_run_id": "45524570954",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334"
-      ],
-      "outcome": "complete, not actionable (unchanged). Correlation 45523841947-4763. Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list at ..."
-    },
     {
       "evaluated_at": "2026-11-25T01:33:41Z",
       "worker_run_id": "45526153883",
@@ -882,6 +854,35 @@
       ],
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45597812390-4792. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list: no runs after 45562958524; compare 779b82f..f4f70d8 changed only server/ (no docs.yml trigger), so window and source unchanged. removable (handoff+configure+upload+deploy setup) median 9 s p90 10 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s unmet; handoff 6 s is scheduler-bound; Deploy Pages GitHub-managed and excluded; no evidence-backed change clears threshold.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-25T11:19:15Z",
+      "worker_run_id": "45602829836",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45601850833-4793; worker run 45602829836. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list at 11:19Z: same window, none queued or in progress; source f4f70d8 = source_sha, pushed without a docs run (server/ only). Queue run median 0 s, job median 3 s (p90 4); exec median 73.5 s (p90 87); overlaps 0; push vs schedule exec median 74 vs 73 s; avoidable push heads 0 of 15; same-day redundant schedules 2 of 20, mean saving 7.4 s per window run, median saving 0 s; 60 s and 15 percent gates unmet; no suggestion."
     }
   ],
   "docs_cache_model": {
@@ -2036,9 +2037,9 @@
     "last_reverified_note": "2026-11-25T10:19:00Z worker 45593271966: window unchanged (live top-20 confirmed); stored rows recomputed (build_docs median 12, p90 15, exec median 73.5); not actionable; output reuse blocker present at f4f70d8."
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-25T09:36:08Z",
-    "worker_run_id": "45586333352",
-    "correlation_id": "45585435579-4788",
+    "verified_at": "2026-11-25T11:19:15Z",
+    "worker_run_id": "45602829836",
+    "correlation_id": "45601850833-4793",
     "window": "45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced",
     "queue_run_s": {
       "median": 0,
@@ -2077,7 +2078,7 @@
       "requires": "actions: read (docs.yml permissions contents: read) plus same-day freshness check",
       "reopen_if": "three or more same-day redundant schedule runs in a 20-run window, or the synthetic-date freshness design changes (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt)"
     },
-    "verdict": "not actionable (re-verified 2026-11-25T09:36:08Z): window unchanged; overlaps 0; median saving 0 s; 60 s and 15 percent median gates unmet; watch item only"
+    "verdict": "not actionable (re-verified 2026-11-25T11:19:15Z): window unchanged since 06:45Z; overlaps 0; median saving 0 s; 60 s and 15 percent median gates unmet; watch item only"
   },
   "head_path_filter_check": {
     "verified_at": "2026-11-25T04:36:14Z",
