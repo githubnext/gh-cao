@@ -1,36 +1,7 @@
 {
  "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-25T10:52:20Z",
-   "worker_run_id": "45598504021",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "45562958524",
-    "45553538993",
-    "45551175273",
-    "45483718747",
-    "45473261375",
-    "45472166796",
-    "45470904895",
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "45117916746",
-    "45249995178",
-    "45282794439",
-    "45293283576",
-    "45333239050"
-   ],
-   "outcome": "complete, not actionable (unchanged verdict). Correlation 45597812390-4792. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list: no runs after 45562958524; compare 779b82f..f4f70d8 changed only server/ (no docs.yml trigger), so window and source unchanged. removable (handoff+configure+upload+deploy setup) median 9 s p90 10 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s unmet; handoff 6 s is scheduler-bound; Deploy Pages GitHub-managed and excluded; no evidence-backed change clears threshold.",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-25T11:19:15Z",
    "worker_run_id": "45602829836",
@@ -899,6 +870,36 @@
    ],
    "suggestion_fingerprint": null,
    "outcome": "complete, not actionable (unchanged verdict). Correlation 45701851282-4823; worker run 45702610005. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 21:18Z: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha, no docs run for it. Recomputed stored run_timings (n=20, nearest-rank p90): demo_s median 1, p90 2, max 3 = 1.4 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet even at full removal; cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). Open issues: #20815 only (checkout, OPEN, 0 comments, not re-proposed); no issue created. Next category: artifact transfer and Pages packaging."
+  },
+  {
+   "evaluated_at": "2026-11-25T21:33:40Z",
+   "worker_run_id": "45704840639",
+   "correlation_id": "45704026548-4824",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "45625202695",
+    "45562958524",
+    "45553538993",
+    "45551175273",
+    "45483718747",
+    "45473261375",
+    "45472166796",
+    "45470904895",
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "45117916746",
+    "45249995178",
+    "45282794439",
+    "45293283576",
+    "45333239050"
+   ],
+   "suggestion_fingerprint": null,
+   "outcome": "complete, not actionable (unchanged verdict). Correlation 45704026548-4824; worker run 45704840639. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 21:3xZ: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha. Recomputed transfer_model rows (n=20, nearest-rank p90, 20 row sums and exec cross-checked against run_timings): removable median 9 s p90 10 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet even at full removal; handoff 6 s is scheduler-bound; Deploy Pages (GitHub-managed) excluded; merging deploy into build would save about 7 s but breaks the github-pages environment and id-token boundary; no suggestion."
   }
  ],
  "docs_cache_model": {
@@ -2072,9 +2073,9 @@
   "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
  },
  "artifact_transfer_last_checked": {
-  "evaluated_at": "2026-11-25T19:53:06Z",
-  "worker_run_id": "45688945227",
-  "correlation_id": "45688062403-4819",
+  "evaluated_at": "2026-11-25T21:33:40Z",
+  "worker_run_id": "45704840639",
+  "correlation_id": "45704026548-4824",
   "result": "not actionable (unchanged): removable median 9 s p90 10 = 12.2 pct of exec median 73.5 s; gates 11.0 s and 60 s unmet; window 45625202695..44798156216, source 16a88ce; rows reused, live window list unchanged."
  },
  "checkout_watch": {
