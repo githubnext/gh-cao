@@ -1,36 +1,7 @@
 {
  "source_sha": "f4f70d8d9aa380a2271e749649fba381eb4eb2c8",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-25T02:38:32Z",
-   "worker_run_id": "45533930195",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "45483718747",
-    "45473261375",
-    "45472166796",
-    "45470904895",
-    "45333239050",
-    "45293283576",
-    "45282794439",
-    "45249995178",
-    "45117916746",
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "44940649662",
-    "44870776753",
-    "44812654835",
-    "44798156216",
-    "44767894115",
-    "44680921088",
-    "44576080583",
-    "44567910334"
-   ],
-   "outcome": "complete, not actionable (unchanged). Correlation 45533234484-4767. Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live docs.yml list at ...",
-   "suggestion_fingerprint": null
-  },
   {
    "evaluated_at": "2026-11-25T02:57:40Z",
    "worker_run_id": "45536216576",
@@ -886,6 +857,36 @@
    ],
    "outcome": "complete, not actionable (unchanged verdict). Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list 12:23Z: same 20 IDs, none queued or in progress; source f4f70d8 unchanged. One live Jobs read of 45562958524: Build synthetic enterprise demo 2 s matched stored row. Stored demo_s recomputed: median 1, p90 2, max 3 (1.4 pct of exec median 73.5 s); 15 pct gate 11 s and 60 s gate unmet even at full removal; cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). Label-scoped open search: #20815 only (checkout category). No issue created.",
    "suggestion_fingerprint": null
+  },
+  {
+   "evaluated_at": "2026-11-25T12:40:16Z",
+   "worker_run_id": "45615478318",
+   "correlation_id": "45614592215-4797",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "45562958524",
+    "45553538993",
+    "45551175273",
+    "45483718747",
+    "45473261375",
+    "45472166796",
+    "45470904895",
+    "45333239050",
+    "45293283576",
+    "45282794439",
+    "45249995178",
+    "45117916746",
+    "44989298582",
+    "44974265341",
+    "44952052187",
+    "44940649662",
+    "44870776753",
+    "44812654835",
+    "44798156216",
+    "44767894115"
+   ],
+   "suggestion_fingerprint": null,
+   "outcome": "complete, not actionable (unchanged verdict). Correlation 45614592215-4797; worker run 45615478318. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list 12:40Z: same 20 IDs, none queued or in progress; HEAD f4f70d8 = source_sha. Live Jobs read of 45562958524 matched stored transfer row (handoff 5, configure 0, upload 3, deploy setup 1). Recomputed stored transfer_model rows (n=20, nearest-rank p90): removable median 9 p90 10 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet even at full removal; Deploy Pages (GitHub-managed) excluded; no suggestion."
   }
  ],
  "docs_cache_model": {
@@ -2094,9 +2095,9 @@
   "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
  },
  "artifact_transfer_last_checked": {
-  "evaluated_at": "2026-11-25T10:52:20Z",
-  "worker_run_id": "45598504021",
-  "correlation_id": "45597812390-4792",
-  "result": "not actionable (unchanged): removable median 9 s p90 10 = 12.2 pct of exec median 73.5 s; gates 11.0 s and 60 s unmet; window unchanged (no docs.yml runs after 45562958524; f4f70d8 changes server/ only)."
+  "evaluated_at": "2026-11-25T12:40:16Z",
+  "worker_run_id": "45615478318",
+  "correlation_id": "45614592215-4797",
+  "result": "not actionable (unchanged): removable median 9 s p90 10 = 12.2 pct of exec median 73.5 s; gates 11.0 s and 60 s unmet; window unchanged since 12:23Z (no docs.yml runs after 45562958524; HEAD f4f70d8 = source_sha); live Jobs spot check of 45562958524 matched stored row."
  }
 }
