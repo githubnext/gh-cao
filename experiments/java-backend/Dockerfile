@@ -1,6 +1,7 @@
 # Local build: docker build -t cao-java-backend experiments/java-backend (after `mvn verify`).
 # Provider-neutral; contains no data or credentials. Not built or published by this repository.
 # Supply CAO_POSTGRES_URL (secret reference, verify-full TLS if remote) and namespaces at run time; run
+# Optionally mount the reviewed cao.json read-only and set CAO_POLICY_PATH (CORS is refused on non-loopback binds today).
 # org.cao.backend.operational.BootstrapMain separately with owner credentials, never in this container.
 FROM eclipse-temurin:21-jre
 RUN useradd --system --uid 10001 --no-create-home cao

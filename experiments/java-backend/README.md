@@ -26,6 +26,13 @@ The fail-closed policy/authority kernel for the control-plane subset of
   With `CAO_POSTGRES_URL` set, operational connectivity is probed live; canonical data does not
   exist yet, so both endpoints still report 503/unavailable. Without it both report everything unavailable.
   Other routes return 404.
+- CORS and local host validation (`specs/server-cors.md` §§2-4, local profile only): `CorsPolicy` /
+  `HostPolicy` read `control-plane.web.host.cors` from the reviewed `cao.json` named by `CAO_POLICY_PATH`
+  (never from environment origins); invalid policy fails startup. Listed origins get exact-origin
+  `Access-Control-Allow-Origin`, GET/HEAD-only preflights and no credentials header; loopback Host
+  validation answers 421. Hosted (non-loopback) listeners refuse CORS because forwarded-host validation
+  is not implemented. `PolicyParser` still rejects the `web` section, so `HostPolicy` is a separate,
+  partial loader that validates only the path to `cors`.
 - `Dockerfile`: non-root, provider-neutral; no data or credentials baked in.
 
 Provision (schema owner only, once) then run (after `verify`):

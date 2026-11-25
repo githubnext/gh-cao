@@ -11,6 +11,15 @@ public record ServerConfig(String bind, int port, long shutdownGraceSeconds) {
     public static final String GRACE = "CAO_SHUTDOWN_GRACE_SECONDS";
     public static final String ALLOW_NON_LOOPBACK = "CAO_ALLOW_NON_LOOPBACK";
 
+    /** True when the listener address is a loopback literal (the local profile). */
+    public boolean loopback() {
+        try {
+            return InetAddress.getByName(bind).isLoopbackAddress();
+        } catch (java.net.UnknownHostException e) {
+            return false;
+        }
+    }
+
     public static ServerConfig fromEnvironment(Map<String, String> env) {
         String bind = env.getOrDefault(BIND, "127.0.0.1");
         if (!bind.matches("[0-9.]+") && !bind.contains(":")) {

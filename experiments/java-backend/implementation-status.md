@@ -1,11 +1,11 @@
 # Implementation status
 
-Source SHA: `7cb5134de200cd5d27125613422c3ecc7abdf846` (previous slices authored at `93614994…` / `2fbe39c5…` / `a19872d3…`)
-Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
+Source SHA: `16a88ce97c36c1bf5dda840eacb9e0458769f5a3` (previous slices authored at `7cb5134d…` / `93614994…` / `2fbe39c5…` / `a19872d3…`)
+Governing contracts: `specs/server-cors.md` (working draft v1.0.0, this slice, local profile); `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
 `specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the storage slice.
 `.github/workflows/shared/*`, `server/internal/operational/**` and `server/postgres/operational-grants.sql` are comparison evidence only.
 
-## Implemented and verified (`mvn verify`: 73 tests, 0 failures, 0 skipped; baseline was 41)
+## Implemented and verified (`mvn verify`: 87 tests, 0 failures, 0 skipped; baseline at this SHA was 73)
 
 | Spec reference | Behavior |
 | --- | --- |
@@ -26,9 +26,12 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 | Same — runtime/owner separation | `open` runs no DDL and fails closed when the namespace is unprovisioned, at another schema version, or its stored capacity config differs; `OperationalBootstrap` (owner only, `BootstrapMain`) creates the audit subset of the Go schema (append-only trigger, owner-only namespace delete guard, `cao_operational_retain_audit` SECURITY DEFINER with pinned search path, PUBLIC revoked). Tests prove a SELECT/INSERT-only runtime role cannot run DDL, UPDATE/DELETE audit rows, delete namespaces or call retention; retention deletes a contiguous oldest prefix (≤ 512, ≥ 400 days kept, newest row always kept) |
 | Same — transport | `PostgresEndpoint`: `postgres://` only, one TCP host, non-loopback requires `sslmode=verify-full` (`require`/`verify-ca`/`prefer` rejected), unknown URL parameters and Unix sockets rejected, password absent from `toString()` and errors |
 | `/api/health`, `/api/readiness` with the real store | `PostgresServiceState` probes the store on each request: connected when the namespace is provisioned and reachable; stopping the database flips `operational.connected`/`recoveryReady` to false. Data stays unavailable (503) because canonical storage is not implemented. `Main` opens `CAO_POSTGRES_URL` (namespace `CAO_OPERATIONAL_NAMESPACE`, else `CAO_DATABASE_NAMESPACE`, else `hosted-dashboard`) and exits non-zero for an insecure, invalid or unprovisioned store |
+| `specs/server-cors.md` §§2, 3.2-3.5, 4.1-4.5, 6.1-6.9 (loopback/local profile) | `CorsPolicy`: ≤32 origins, `max-age` 1..86400 (default 600), exact `https` origins or loopback `http` (`localhost`, 127/8, `[::1]`), no `*`/`null`/userinfo/path/query/fragment/trailing dot/underscore/IDN/empty label, port 1..65535, lowercase and default-port normalization, merge of normalized duplicates, exact string match. `HostPolicy.loadCors` reads `control-plane.web.host.cors` from `cao.json` (strict duplicate keys, UTF-8, no expressions, unknown members such as `allow-credentials` rejected, case-insensitive duplicate entries rejected); `Main` loads it from `CAO_POLICY_PATH` and fails startup on invalid policy. `CorsFilter`: same-origin default emits no `Access-Control-*` and no `Vary`; with a policy every response has `Vary: Origin`; listed origin + valid host gets `Access-Control-Allow-Origin` (never `*`, never `Allow-Credentials`); preflight (`OPTIONS` + `Access-Control-Request-Method`) answered 204 before the handler, GET/HEAD get methods/`Traceparent`/max-age, other methods get no permission headers; unlisted/absent/repeated `Origin` gets nothing. `LocalHostGuard`: non-loopback `Host` → 421 with no CORS headers. `Cross-Origin-Resource-Policy: same-origin` always. Tests use raw HTTP/1.1 over real `127.0.0.1` sockets; packaged-jar smoke observed the 204 preflight and a startup failure for `allow-credentials` |
 | Packaging (`Dockerfile`) | Non-root uid 10001, env-configured port, shutdown hook. Image NOT built (no Docker); not deployed |
 
 ## Partial
+
+- CORS (`specs/server-cors.md`): hosted profile (forwarded-host/HTTPS proxy validation §4.1) is not implemented, so a non-loopback listener refuses to start with a CORS policy; pre-authentication edge rate limit ordering (§4.1) and authentication/401 behaviour (§5, §6.9-6.10) do not exist because there is no authentication or OAuth. §6.2 cross-validation against the JavaScript validator is not run; `HostPolicy` validates only the path to `cors` (the rest of `web.host`, such as `target`/`operational-store`, is not interpreted) and `PolicyParser` still rejects `web`. Origins are matched only in the local-profile host check; log redaction (§7) is trivially satisfied (nothing logged) but untested.
 
 - Operational adapter covers only the `AuditLog` service and its tables. Capabilities in health/readiness remain `unsupported` because no other operational service (cache, limiter, sessions, revocations, leases, queue, quota, CLI commands) exists; the Go `Audit` capability has no field in the OpenAPI `OperationalCapabilities`.
 - Audit: no `admin.rebuild.*` lifecycle callers, no atomic audited operations, no evidence-reader/retention role provisioning (`operational-grants.sql` is only mirrored for the audit grants in tests), no `RetainAudit` Java wrapper (retention SQL is exercised directly), no connection pool (bounded per-call connections, max 4), no cancellation propagation beyond JDBC query timeouts, and the fixed default capacity config is the only accepted one.
@@ -45,11 +48,15 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 Orchestrator/standalone effective records, standalone workflows and operations,
 `inventory`, `web.host`, host extensions, `target-authority`, authority envelopes,
 exact-SHA policy fetch, canonical ingestion/storage (PostgreSQL), Dashboard Language
-execution, all other HTTP routes, authentication, operational state beyond `AuditLog` (sessions, revocations, leases, queues, quota, rate limiting, CLI commands), canonical PostgreSQL adapter, container image build verification.
+execution, all other HTTP routes, authentication, operational state beyond `AuditLog` (sessions, revocations, leases, queues, quota, rate limiting, CLI commands), canonical PostgreSQL adapter, container image build verification, hosted CORS (forwarded-host validation), CSRF.
 
 ## Blocked
 
 None. Environment note: the sandbox JDK truststore was empty and `~/.m2` unwritable, so Maven ran with a truststore built from the system CA bundle (`MAVEN_OPTS=-Djavax.net.ssl.trustStore=…`) and `-Dmaven.repo.local` under /tmp (local only). PostgreSQL server binaries (`/usr/lib/postgresql/<n>/bin` or `CAO_TEST_POSTGRES_BIN`) are required for `verify`; their absence fails the build rather than skipping.
+
+## Contract notes
+
+`specs/server-cors.md` §4.1 says a failing host receives a "misdirected-request rejection"; Go uses 421, as does Java. §3.3.6 says IP literals are accepted without defining IPv4 octet validation; Java rejects out-of-range octets for `http`, and accepts any `https` DNS-shaped host including digit-only labels (as the Go regexp does).
 
 ## Next bounded slice
 

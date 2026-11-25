@@ -2,6 +2,7 @@ package org.cao.backend.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
@@ -23,10 +24,30 @@ public final class ApiServer {
     private final AtomicBoolean accepting = new AtomicBoolean(true);
 
     public ApiServer(ServerConfig config, ServiceState state) throws IOException {
+        this(config, state, CorsPolicy.sameOrigin());
+    }
+
+    /**
+     * Cross-origin access is limited to the loopback profile: host validation for hosted
+     * (forwarded-host) deployments is not implemented, so enabling CORS there fails closed.
+     */
+    public ApiServer(ServerConfig config, ServiceState state, CorsPolicy cors) throws IOException {
+        boolean loopback = config.loopback();
+        if (cors.enabled() && !loopback) {
+            throw new IllegalArgumentException(
+                "CORS requires a loopback bind: hosted request-host validation is not implemented");
+        }
         this.state = state;
         this.server = HttpServer.create(new InetSocketAddress(config.bind(), config.port()), 0);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-        server.createContext("/", this::route);
+        HttpContext context = server.createContext("/", this::route);
+        context.getFilters().add(new ResourcePolicyFilter());
+        if (cors.enabled()) {
+            context.getFilters().add(new CorsFilter(cors));
+        }
+        if (loopback) {
+            context.getFilters().add(new LocalHostGuard());
+        }
     }
 
     public void start() {
