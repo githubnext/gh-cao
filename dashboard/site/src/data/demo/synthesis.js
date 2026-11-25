@@ -1,8 +1,11 @@
 import { enterpriseActivityBatches, enterpriseDemo, enterpriseMemory, enterpriseRepositorySources, enterpriseSample } from './sample.mjs';
 import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSourceBatches, ingestDashboardSources } from '../ingest/coordinator.js';
 import { canonicalDatabaseName, DATABASE_VERSION, deleteCanonicalDatabase, readTransaction, readTransactions, recordTransaction } from '../storage/indexeddb.js';
+import { createDebug } from '../../debug.js';
 
 export { enterpriseDemo };
+
+const debugSynthesis = createDebug('synthesis');
 
 const receiptId = 'synthetic-demo:population';
 const batchSize = 1_000;
@@ -46,6 +49,7 @@ async function populateEnterpriseDemo(indexedDB, options) {
     .some(entry => String(entry.kind).startsWith('synthetic-demo-') || entry.kind === 'dashboard-snapshot');
   if (incompatible || legacy) {
     options.signal?.throwIfAborted();
+    debugSynthesis({ event: 'reset', reason: incompatible ? 'incompatible-receipt' : 'legacy-data' });
     await deleteCanonicalDatabase(indexedDB);
     receipt = null;
   }
@@ -56,6 +60,10 @@ async function populateEnterpriseDemo(indexedDB, options) {
   let completed = Number(receipt?.repositories ?? 0);
   let installed = Number(receipt?.installedRepositories ?? 0);
   let activityBatches = Number(receipt?.activityBatches ?? 0);
+  debugSynthesis({
+    event: 'start', resumed: receipt !== null, complete,
+    repositories: completed, installedRepositories: installed, activityBatches
+  });
   const save = () => recordTransaction(indexedDB, {
     id: receiptId, kind: 'synthetic-demo-progress', createdAt: new Date().toISOString(),
     sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
@@ -122,6 +130,9 @@ async function populateEnterpriseDemo(indexedDB, options) {
     id: receiptId, kind: 'synthetic-demo-complete', createdAt: new Date().toISOString(),
     sampleTime: now, sampleDay, sampleVersion: enterpriseDemo.version, schemaVersion: DATABASE_VERSION,
     repositories: completed, installedRepositories: installed, activityBatches, complete: true,
+  });
+  debugSynthesis({
+    event: 'complete', repositories: completed, installedRepositories: installed, activityBatches
   });
   return { sources, changed: true };
 }
