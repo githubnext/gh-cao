@@ -1,36 +1,7 @@
 {
   "source_sha": "87b57a96937f5e21ec12121afa3766795c28a115",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-24T20:19:00Z",
-      "worker_run_id": "45478722717",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "45117916746",
-        "45249995178",
-        "45282794439",
-        "45293283576",
-        "45333239050"
-      ],
-      "outcome": "complete, not actionable. Correlation 45477829670-4749; worker run 45478722717. Window 45473261375 (push, a973b6b, 2026-11-24T19:43:41Z) .. 44465043275 (schedule, 7145c59, 2026-11-19T05:25:17Z); 14 push, 6 schedule, 20 success, 0 failed, 0  [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-24T20:34:11Z",
       "worker_run_id": "45481374064",
@@ -873,6 +844,36 @@
         "44680921088"
       ],
       "outcome": "complete, not actionable. Correlation 45559624378-4778; worker run 45560193045. Window 45553538993 (schedule, 87b57a9, 2026-11-25T05:25:59Z) .. 44680921088 (schedule, 4eb6bb3, 2026-11-20T05:25:22Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 06:25Z: same 20 IDs, all completed, none queued; main 87b57a9 == source_sha. Run-level queue (createdAt to startedAt) median 0 p90 0; job queue (stored rows) median 3 p90 4; exec median 73.5 p90 83 (stored rows). Concurrency group: 0 overlaps, min gap 299 s. Avoidable push heads 0 of 14: 87b57a9 changes docs/styles/branding.css, consumed by Astro. Same-day schedule redundancy: 2 of 6 schedules (44989298582 on 2026-11-22 after push 44974265341; 45553538993 on 2026-11-25 after push 45551175273; same head each time) rebuilt a head already built successfully that UTC day. Savings 71-77 s per occurrence, but median saving 0 s; mean about 7.4 s per window run; a skip needs actions read (docs.yml has contents read only) and a same-day freshness check. Recorded as watch item; not proposed. No open-issue search (no candidate); no issue created. Next category: dependency installation and caching.",
+      "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-25T06:46:03Z",
+      "worker_run_id": "45562520932",
+      "correlation_id": "45561832923-4779",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088"
+      ],
+      "outcome": "complete, not actionable (unchanged verdict). Window 45553538993 (schedule, 87b57a9, 2026-11-25T05:25:59Z) .. 44680921088 (schedule, 4eb6bb3, 2026-11-20T05:25:22Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list 06:45Z: same 20 IDs, none queued; HEAD 87b57a9 == source_sha; commits API file list for 87b57a9 has no lock or docs.yml change. Stored rows recomputed (no refetch, nearest-rank p90, n=20): setup_node median 3 p90 5; install median 8 p90 11 (push 8, schedule 8.5); post median 0 p90 1; setup+install+post median 13 p90 16 = 17.7 pct of exec median 73.5 s; 15 pct gate 11.0 s unmet; install alone 10.9 pct (best case removal, below gate); 60 s gate unreachable. Cache node-cache-Linux-x64-npm-7808ecf8 live (263412733 B, created 2026-11-13T20:57:12Z, last accessed 2026-11-25T06:45Z); exact-key hit inferred from post 0-1 s (job logs HTTP 403 DIFC, not bypassed). No flag-level npm change can save more than the 8 s install median. Open #20815 only (checkout, other category, not re-proposed). No issue created. Next category: Astro documentation generation.",
       "suggestion_fingerprint": null
     }
   ],
@@ -1949,10 +1950,10 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-25T04:53:17Z",
-    "worker_run_id": "45549349066",
-    "correlation_id": "45548780746-4774",
-    "verdict": "not actionable (unchanged): window 45483718747..44567910334; setup+install+post median 13 s p90 16 = 17.6 pct of exec median 74 s; best-case install removal 8.5 s and net node_modules cache 3-6 s both below 11.1 s gate; 60 s gate unreachable; cache 7808ecf8 live; lockfiles unchanged since 7c8faf4."
+    "evaluated_at": "2026-11-25T06:46:03Z",
+    "worker_run_id": "45562520932",
+    "correlation_id": "45561832923-4779",
+    "verdict": "not actionable (unchanged): window 45553538993..44680921088; setup+install+post median 13 s p90 16 = 17.7 pct of exec median 73.5 s; install best-case removal 8 s is below the 11.0 s gate; 60 s gate unreachable; cache 7808ecf8 live; lockfiles unchanged at 87b57a9."
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
@@ -2009,8 +2010,8 @@
     "live_entry": "node-cache-Linux-x64-npm-7808ecf86239c1f0dd62fe1dd5b43da3171aacadfae45b42e96254e33cb16e03"
   },
   "issue_search_note": {
-    "observed_at": "2026-11-25T04:53:17Z",
-    "worker_run_id": "45549349066",
+    "observed_at": "2026-11-25T06:46:03Z",
+    "worker_run_id": "45562520932",
     "note": "label-scoped open search (self-care:docs-build-time-investigator): #20815 only (checkout, other category, 0 comments, updated 2026-11-13T17:41:19Z); no issue created"
   },
   "stale_queued_run": {
