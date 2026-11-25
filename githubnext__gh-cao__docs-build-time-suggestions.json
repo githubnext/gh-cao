@@ -1,36 +1,7 @@
 {
   "source_sha": "87b57a96937f5e21ec12121afa3766795c28a115",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-24T19:54:30Z",
-      "worker_run_id": "45474156316",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275"
-      ],
-      "outcome": "complete, not actionable. Window 45473261375 (push, a973b6b, 2026-11-24T19:43:41Z) .. 44465043275 (schedule, 7145c59, 2026-11-19T05:25:17Z); 14 push, 6 schedule, 20 success, 0 failed; cancelled excluded 43991812013 and 43832015521 (outside  [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-24T20:19:00Z",
       "worker_run_id": "45478722717",
@@ -874,6 +845,35 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable. Correlation 45555624107-4777. Window 45553538993 (schedule, 87b57a9, 2026-11-25T05:25:59Z) .. 44680921088 (schedule, 4eb6bb3, 2026-11-20T05:25:22Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled. Removable overhead (handoff + Configure Pages + upload + deploy setup) median 9 s p90 10 max 11 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet even at full removal. Live Jobs reads of 45551175273 and 45553538993 matched run_timings."
+    },
+    {
+      "evaluated_at": "2026-11-25T06:27:33Z",
+      "worker_run_id": "45560193045",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088"
+      ],
+      "outcome": "complete, not actionable. Correlation 45559624378-4778; worker run 45560193045. Window 45553538993 (schedule, 87b57a9, 2026-11-25T05:25:59Z) .. 44680921088 (schedule, 4eb6bb3, 2026-11-20T05:25:22Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 06:25Z: same 20 IDs, all completed, none queued; main 87b57a9 == source_sha. Run-level queue (createdAt to startedAt) median 0 p90 0; job queue (stored rows) median 3 p90 4; exec median 73.5 p90 83 (stored rows). Concurrency group: 0 overlaps, min gap 299 s. Avoidable push heads 0 of 14: 87b57a9 changes docs/styles/branding.css, consumed by Astro. Same-day schedule redundancy: 2 of 6 schedules (44989298582 on 2026-11-22 after push 44974265341; 45553538993 on 2026-11-25 after push 45551175273; same head each time) rebuilt a head already built successfully that UTC day. Savings 71-77 s per occurrence, but median saving 0 s; mean about 7.4 s per window run; a skip needs actions read (docs.yml has contents read only) and a same-day freshness check. Recorded as watch item; not proposed. No open-issue search (no candidate); no issue created. Next category: dependency installation and caching.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -2053,20 +2053,48 @@
     "verdict": "not actionable (unchanged): Build documentation produces dist/ required by deploy; validators and node --test are correctness gates; 60 s gate unreachable; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance"
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-25T04:36:14Z",
-    "worker_run_id": "45547469222",
-    "correlation_id": "45546802197-4773",
-    "window": "45483718747..44567910334 (15 push, 5 schedule, 20 success, 0 cancelled)",
-    "queue_run_median_s": 0,
-    "queue_run_p90_s": 0,
-    "queue_job_median_s": 3,
-    "queue_job_p90_s": 4,
-    "run_level_exec_median_s": 77.5,
-    "run_level_exec_p90_s": 92,
+    "verified_at": "2026-11-25T06:27:33Z",
+    "worker_run_id": "45560193045",
+    "correlation_id": "45559624378-4778",
+    "window": "45553538993 (schedule, 87b57a9, 2026-11-25T05:25:59Z) .. 44680921088 (schedule, 4eb6bb3, 2026-11-20T05:25:22Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled",
+    "queue_run_s": {
+      "median": 0,
+      "p90": 0
+    },
+    "queue_job_s": {
+      "median": 3,
+      "p90_nearest_rank": 4
+    },
+    "exec_s": {
+      "median": 73.5,
+      "p90_nearest_rank": 83
+    },
     "overlaps": 0,
     "min_gap_between_runs_s": 299,
-    "avoidable_push_heads": "0 of 15",
-    "verdict": "not actionable (re-verified 2026-11-25T04:36:14Z)"
+    "avoidable_push_heads": "0 of 14 (87b57a9 touches docs/styles/branding.css, build-consumed)",
+    "same_day_schedule_redundancy": {
+      "instances": [
+        {
+          "schedule": "44989298582",
+          "after_push": "44974265341",
+          "head": "9edb6bb",
+          "date": "2026-11-22",
+          "exec_s": 77
+        },
+        {
+          "schedule": "45553538993",
+          "after_push": "45551175273",
+          "head": "87b57a9",
+          "date": "2026-11-25",
+          "exec_s": 71
+        }
+      ],
+      "median_saving_s": 0,
+      "mean_saving_per_window_run_s": 7.4,
+      "requires": "actions: read (docs.yml permissions contents: read) plus same-day freshness check",
+      "reopen_if": "three or more same-day redundant schedule runs in a 20-run window, or the synthetic-date freshness design changes (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt)"
+    },
+    "verdict": "not actionable (re-verified 2026-11-25T06:27:33Z): median saving 0 s; 60 s and 15 percent median gates unmet; watch item only"
   },
   "head_path_filter_check": {
     "verified_at": "2026-11-25T04:36:14Z",
