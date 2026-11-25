@@ -1,36 +1,7 @@
 {
   "source_sha": "f4f70d8d9aa380a2271e749649fba381eb4eb2c8",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T00:35:36Z",
-      "worker_run_id": "45518813371",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged). Correlation 45518100413-4761; worker run 45518813371. Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled..."
-    },
     {
       "evaluated_at": "2026-11-25T01:03:34Z",
       "worker_run_id": "45522293325",
@@ -881,6 +852,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list 10:18Z: same 20 IDs, none queued or in progress; source f4f70d8 equals source_sha and HEAD. Recomputed from stored run_timings (n=20, nearest-rank p90): build_docs median 12 p90 15 min 9 max 15 = 16.3 pct of exec median 73.5 s; 15 pct gate 11.0 s needs 92 pct of the step removed; 60 s gate unreachable. Build step produces dist/ required by deploy; validate-agent-docs and node --test are correctness gates; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Sub-step split not re-attempted (job logs previously HTTP 403 DIFC). No Jobs API or log calls this run. Next category: reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-11-25T10:35:39Z",
+      "worker_run_id": "45595855374",
+      "correlation_id": "45594921632-4791",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45594921632-4791; worker run 45595855374. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list 10:34Z: same 20 IDs, none queued or in progress; live Jobs read of 45562958524 demo step 2 s matched stored row. demo_s median 1 p90 2 max 3 (1.4 pct of exec median 73.5); ceiling saving <=3 s vs 11 s gate."
     }
   ],
   "docs_cache_model": {
@@ -1714,11 +1715,11 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-25T07:21:29Z",
-    "worker_run_id": "45566959479",
-    "correlation_id": "45566288626-4781",
+    "verified_at": "2026-11-25T10:35:39Z",
+    "worker_run_id": "45595855374",
+    "correlation_id": "45594921632-4791",
     "window": "45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced",
-    "method": "stored immutable run_timings rows recomputed (no refetch), nearest-rank p90, n=20; live docs.yml list 07:20Z unchanged; source f4f70d8 not a docs trigger",
+    "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); live docs.yml list 10:34Z unchanged; one live Jobs read of 45562958524 (demo step 2 s matched stored row); source f4f70d8 unchanged",
     "demo_step_s": {
       "median": 1,
       "p90": 2,
