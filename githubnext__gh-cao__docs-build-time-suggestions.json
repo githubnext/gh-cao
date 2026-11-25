@@ -1,36 +1,7 @@
 {
   "source_sha": "f4f70d8d9aa380a2271e749649fba381eb4eb2c8",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T01:03:34Z",
-      "worker_run_id": "45522293325",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334"
-      ],
-      "outcome": "complete, not actionable (unchanged). Correlation 45521584652-4762. Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live docs.yml list at ...",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-25T01:20:54Z",
       "worker_run_id": "45524570954",
@@ -882,6 +853,35 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45594921632-4791; worker run 45595855374. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list 10:34Z: same 20 IDs, none queued or in progress; live Jobs read of 45562958524 demo step 2 s matched stored row. demo_s median 1 p90 2 max 3 (1.4 pct of exec median 73.5); ceiling saving <=3 s vs 11 s gate."
+    },
+    {
+      "evaluated_at": "2026-11-25T10:52:20Z",
+      "worker_run_id": "45598504021",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "45117916746",
+        "45249995178",
+        "45282794439",
+        "45293283576",
+        "45333239050"
+      ],
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45597812390-4792. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list: no runs after 45562958524; compare 779b82f..f4f70d8 changed only server/ (no docs.yml trigger), so window and source unchanged. removable (handoff+configure+upload+deploy setup) median 9 s p90 10 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s unmet; handoff 6 s is scheduler-bound; Deploy Pages GitHub-managed and excluded; no evidence-backed change clears threshold.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -2090,9 +2090,9 @@
     "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
   },
   "artifact_transfer_last_checked": {
-    "evaluated_at": "2026-11-25T09:18:55Z",
-    "worker_run_id": "45583795312",
-    "correlation_id": "45583122116-4787",
-    "result": "not actionable (unchanged): removable median 9 s = 12.2 pct of exec median 73.5 s; gates 11.0 s and 60 s unmet. Live Jobs spot checks 45562958524 and 45553538993 matched transfer_model rows."
+    "evaluated_at": "2026-11-25T10:52:20Z",
+    "worker_run_id": "45598504021",
+    "correlation_id": "45597812390-4792",
+    "result": "not actionable (unchanged): removable median 9 s p90 10 = 12.2 pct of exec median 73.5 s; gates 11.0 s and 60 s unmet; window unchanged (no docs.yml runs after 45562958524; f4f70d8 changes server/ only)."
   }
 }
