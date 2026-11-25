@@ -1,37 +1,7 @@
 {
   "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T12:25:05Z",
-      "worker_run_id": "45612946451",
-      "correlation_id": "45612014103-4796",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115"
-      ],
-      "outcome": "complete, not actionable (unchanged verdict). Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list 12:23Z: same 20 IDs, none queued or in progress; source f4f70d8 unchanged. One live Jobs read of 45562958524: Build synthetic enterprise demo 2 s matched stored row. Stored demo_s recomputed: median 1, p90 2, max 3 (1.4 pct of exec median 73.5 s); 15 pct gate 11 s and 60 s gate unmet even at full removal; cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). Label-scoped open search: #20815 only (checkout category). No issue created.",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-25T12:40:16Z",
       "worker_run_id": "45615478318",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list at NOW: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha. Stored rows recomputed (n=20, nearest-rank p90): build_docs median 12 p90 15 min 9 max 15 = 16.3 pct of exec median 73.5 s; 15 pct gate 11.03 s needs 92 pct of the step removed; 60 s gate unreachable. Live Jobs read of 45625202695 matched stored row (build_docs 14, checkout 67). Job logs not re-attempted (HTTP 403 DIFC at 08:38Z); sub-step split unmeasured. Output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; validators and node --test read dist/. No issue created. Next category: reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-11-25T22:53:08Z",
+      "worker_run_id": "45716446915",
+      "correlation_id": "45715664284-4828",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Live gh run list 22:51Z: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha; commits API: 16a88ce did not touch docs.yml (last 063cbe9). Live Jobs read 45625202695: Build synthetic enterprise demo 1 s matched stored row. Stored demo_s recomputed (n=20, nearest-rank p90): median 1, p90 2, max 3 = 1.4 pct of exec median 73.5 s; 15 pct gate 11 s and 60 s gate unmet even at full removal; cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76), and the daily schedule exists to refresh synthetic dates. No issue created. Next category: artifact transfer and Pages packaging."
     }
   ],
   "docs_cache_model": {
