@@ -1,36 +1,7 @@
 {
-  "source_sha": "a37d08e559899008f2b54e5fdddd16c268fdb666",
-  "next_category": "Astro documentation generation",
+  "source_sha": "87b57a96937f5e21ec12121afa3766795c28a115",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-24T18:53:00Z",
-      "worker_run_id": "45463587796",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857"
-      ],
-      "outcome": "complete, not actionable (unchanged). Correlation 45462709868-4745. Window 45333239050 (schedule, 12c41c7, 2026-11-24T05:25:40Z) .. 44337804857 (push, b350331, 2026-11-18T15:37:34Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled. L [compacted]",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-24T19:18:19Z",
       "worker_run_id": "45467995109",
@@ -873,6 +844,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged). Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list: same 20 IDs, none queued or in progress; main a37d08e == source_sha; docs.yml last changed 063cbe9 (2026-11-12), both lockfiles 7c8faf4 (2026-11-13). Stored rows recomputed (n=20, nearest-rank p90): setup-node median 3.5 p90 5; install median 8.5 p90 11 max 12 = 11.5 pct of exec median 74 s; post-setup 0-1 s (exact-key hit inferred, logs 403 DIFC); setup+install+post median 13 p90 16 = 17.6 pct. 15 pct gate 11.1 s: best-case install removal (8.5 s) and net node_modules cache estimate (3-6 s) both below gate; 60 s gate unreachable. Cache 7808ecf8 live (263412733 B, created 2026-11-13). Cache-key coverage gap (dashboard lock not in cache-dependency-path) is correctness/freshness, not speed; watch only. No issue created. Next category: Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-11-25T05:21:41Z",
+      "worker_run_id": "45552511737",
+      "correlation_id": "45551759859-4775",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "45117916746",
+        "45249995178",
+        "45282794439",
+        "45293283576",
+        "45333239050"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Window 45551175273 (push, 87b57a9, 2026-11-25T05:05:39Z) .. 44576080583 (push, 4eb6bb3, 2026-11-19T17:20:18Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44567910334 displaced. Live docs.yml list: same 20 IDs, all completed, none queued. HEAD 87b57a9 (source_sha was a37d08e); new run added via one Jobs API read matching its stored row (Build documentation 12 s). Build documentation median 12 s, p90 15, min 9, max 15 (push 12, schedule 14) = 16.2 pct of exec median 74 s; 15 pct gate 11.1 s needs 92 pct of the step removed; 60 s gate unreachable. docs:build = astro build && validate-agent-docs && agent-docs-discovery test: correctness gates; dist/ required by deploy; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. No cache signal exists for this step and a partial Astro cache is bounded by the 12 s step (cannot reach gate). Sub-step split unmeasured (job logs previously HTTP 403; not retried). transfer_model and other sections keep their prior windows; no open-issue search (no candidate); no issue created. Next category: reusable dashboard generation."
     }
   ],
   "docs_cache_model": {
@@ -1009,8 +1010,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-24T20:53:00Z",
-    "window": "45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44465043275 displaced",
+    "evaluated_at": "2026-11-25T05:21:41Z",
+    "window": "45551175273 (push, 87b57a9, 2026-11-25T05:05:39Z) .. 44576080583 (push, 4eb6bb3, 2026-11-19T17:20:18Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44567910334 displaced",
     "columns": [
       "run",
       "event",
@@ -1028,8 +1029,25 @@
       "deploy_job_s",
       "exec_s"
     ],
-    "note": "Rows updated 2026-11-24T20:53Z: added 45483718747 from live Jobs API (queue 4, build_job 67, checkout 32, install 8, build_docs 11, demo 3, upload 3, deploy_job 10, exec 83 = build_job + handoff 6 + deploy_job); other rows immutable and reused. Medians (nearest-rank p90, n=20): exec_s 74 (p90 87); queue_s 3 (p90 4); build_job_s 59 (p90 67); checkout_s 25 (p90 32); setup_node_s 3.5 (p90 5); install_s 8.5 (p90 11); build_docs_s 12 (p90 15); demo_s 1 (p90 2); upload_s 2 (p90 3); deploy_job_s 9.5 (p90 12).",
+    "note": "Rows updated 2026-11-25 (worker 45552511737): added 45551175273 from one live Jobs API read (queue 3, build_job 55, checkout 24, setup 3, install 8, post 0, build_docs 12, demo 1, upload 2, deploy_job 9; exec 70 = build_job + handoff 6 + deploy_job 9); 44567910334 displaced; other rows immutable and reused. Medians (nearest-rank p90, n=20): exec_s 74 (p90 87); queue_s 3 (p90 4); build_job_s 59 (p90 67); checkout_s 25 (p90 32); setup_node_s 3 (p90 5); install_s 8.5 (p90 11); build_docs_s 12 (p90 15); demo_s 1 (p90 2); upload_s 2 (p90 3); deploy_job_s 9 (p90 12).",
     "rows": [
+      [
+        "45551175273",
+        "push",
+        "success",
+        "87b57a9",
+        3,
+        55,
+        24,
+        3,
+        8,
+        0,
+        12,
+        1,
+        2,
+        9,
+        70
+      ],
       [
         "45483718747",
         "push",
@@ -1267,23 +1285,6 @@
         2,
         96,
         160
-      ],
-      [
-        "44567910334",
-        "push",
-        "success",
-        "3421dc7",
-        3,
-        51,
-        23,
-        4,
-        6,
-        0,
-        10,
-        1,
-        2,
-        11,
-        68
       ],
       [
         "45117916746",
