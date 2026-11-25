@@ -1,37 +1,7 @@
 {
-  "source_sha": "f4f70d8d9aa380a2271e749649fba381eb4eb2c8",
-  "next_category": "reusable dashboard generation",
+  "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T03:53:08Z",
-      "worker_run_id": "45542594177",
-      "correlation_id": "45542007757-4771",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334"
-      ],
-      "outcome": "complete, not actionable (unchanged). Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list at 2026-11-25T03:53:08Z: same 20 ...",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-25T04:21:51Z",
       "worker_run_id": "45545812084",
@@ -890,6 +860,36 @@
       ],
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45623492226-4800; worker run 45624251988. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live docs.yml list 13:33Z: same 20 IDs, none queued or in progress; source f4f70d8 = source_sha. Stored rows recomputed (n=20): build_docs median 12, p90 15, min 9, max 15; exec median 73.5, p90 87; share 16.3 pct; 15 pct gate 11.0 s needs 92 pct of the step removed; 60 s gate unreachable. scripts/validate-agent-docs.mjs and tests/integration/agent-docs-discovery.test.mjs read dist/, so they cannot overlap the Astro build; output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT; sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed).",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-25T13:55:07Z",
+      "worker_run_id": "45627772472",
+      "correlation_id": "45626657546-4801",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "45117916746",
+        "45249995178",
+        "45282794439",
+        "45293283576",
+        "45333239050"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 45333239050 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Dashboard generation is the Build synthetic enterprise demo step: median 1 s (p90 2, max 3), 1.4 pct of exec median 73.5 s; removable maximum 3 s, 15 pct gate 11.0 s and 60 s gate unmet. Cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76) and docs.yml runs the step every build. Checkout tail 67 s is outside this category; #20815 still the only tracked item, not re-proposed."
     }
   ],
   "docs_cache_model": {
@@ -1023,11 +1023,15 @@
     {
       "observed_at": "2026-11-19T23:33:48Z",
       "note": "Watch (artifact transfer category, not a speed suggestion): 44576080583 (push 4eb6bb3) Deploy Pages 92 s and 44337804857 (69 s) are the two tails >60 s in the 20-run window (Deploy Pages median 7 s, nearest-rank p90 14 s; 69 s is the second-largest tail, not p90). github-pages artifact size is unchanged in the 92 s run (7476250 B vs 7476202 B in a 7 s run), so size is not the driver; the tail is GitHub-managed and not removable by workflow edits in this worker scope. Re-evaluate only if tails keep recurring with a changed artifact size."
+    },
+    {
+      "observed_at": "2026-11-25T13:55:07Z",
+      "note": "Checkout tail: 45625202695 (16a88ce, push) checkout 67 s; checkout median stays 25 s (p90 32) after 44767894115 (86 s) left the window. Not a median change; #20815 (blobless checkout) remains the only tracked item. Re-check in artifact or scheduling evaluations only if checkout median changes materially."
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-25T06:58:15Z",
-    "window": "45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced",
+    "evaluated_at": "2026-11-25T13:55:07Z",
+    "window": "45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 45333239050 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced",
     "columns": [
       "run",
       "event",
@@ -1045,8 +1049,25 @@
       "deploy_job_s",
       "exec_s"
     ],
-    "note": "Rows updated 2026-11-25 (worker 45563909103): added 45562958524 from one live Jobs API read (queue 4, build_job 82, checkout 40, setup 7, install 10, post 0, build_docs 14, demo 2, upload 3, deploy_job 11; exec 98 = build_job + handoff 5 + deploy_job 11); 44680921088 displaced; other rows immutable and reused. Medians (n=20; even-n average, nearest-rank p90): exec_s 73.5 (p90 87); queue_s 3 (p90 4); build_job_s 58.5 (p90 72); checkout_s 25 (p90 32); setup_node_s 3.5 (p90 6); install_s 8 (p90 11); build_docs_s 12 (p90 15); demo_s 1 (p90 2); upload_s 2 (p90 3); deploy_job_s 9 (p90 11).",
+    "note": "Rows updated 2026-11-25 (worker 45627772472): added 45625202695 (push, 16a88ce, 13:35:48Z) from one live Jobs API read (queue 3, build_job 108, checkout 67, setup 5, install 10, post 0, build_docs 14, demo 1, upload 4, deploy_job 12, handoff 6; exec 126); 44767894115 displaced. Other rows immutable and reused. Medians (n=20, even-n average, nearest-rank p90): exec_s 73.5 (p90 87); queue_s 3 (p90 4); build_job_s 58.5 (p90 72); checkout_s 25 (p90 32); setup_node_s 3.5 (p90 6); install_s 8 (p90 11); build_docs_s 12 (p90 15); demo_s 1 (p90 2); upload_s 2 (p90 3); deploy_job_s 9 (p90 11). transfer_model, astro_step_latest and other category records still cite the pre-45625202695 window; recompute them from these rows before a verdict.",
     "rows": [
+      [
+        "45625202695",
+        "push",
+        "success",
+        "16a88ce",
+        3,
+        108,
+        67,
+        5,
+        10,
+        0,
+        14,
+        1,
+        4,
+        12,
+        126
+      ],
       [
         "45562958524",
         "push",
@@ -1284,23 +1305,6 @@
         2,
         10,
         72
-      ],
-      [
-        "44767894115",
-        "push",
-        "success",
-        "d55b65c",
-        4,
-        129,
-        86,
-        5,
-        11,
-        0,
-        15,
-        1,
-        3,
-        9,
-        143
       ],
       [
         "45117916746",
@@ -1723,13 +1727,13 @@
     "note": "Local clone is shallow (rev-list count 1); git log -- <lock> is unreliable here. Use repos/githubnext/gh-cao/commits?path= for lock history."
   },
   "dashboard_generation_verified": {
-    "verified_at": "2026-11-25T10:35:39Z",
-    "worker_run_id": "45595855374",
-    "correlation_id": "45594921632-4791",
-    "window": "45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced",
-    "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); live docs.yml list 10:34Z unchanged; one live Jobs read of 45562958524 (demo step 2 s matched stored row); source f4f70d8 unchanged",
+    "verified_at": "2026-11-25T13:55:07Z",
+    "worker_run_id": "45627772472",
+    "correlation_id": "45626657546-4801",
+    "window": "45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 45333239050 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced",
+    "method": "stored run_timings rows recomputed (nearest-rank p90, n=20); live Jobs read of 45625202695 (demo 1 s); source 16a88ce (HEAD)",
     "demo_step_s": {
-      "median": 1,
+      "median": 1.0,
       "p90": 2,
       "min": 1,
       "max": 3,
@@ -1746,9 +1750,9 @@
     "ceiling_saving_s": 3,
     "reuse_blocker": "cross-run reuse would pin synthetic dates (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt); docs.yml runs the step every build",
     "verdict": "not actionable: demo step median 1 s (1.4 percent of exec median), p90 2 s, max 3 s; 15 percent and 60 s gates unmet even at full removal.",
-    "last_reverified_note": "2026-11-25T12:25:05Z worker 45612946451: window unchanged (same 20 IDs as live list 12:23Z); stored demo_s recomputed (median 1, p90 2, max 3; 1.4 pct of exec median 73.5 s); one live Jobs read of 45562958524 matched; reuse blocker present at f4f70d8; not actionable.",
-    "last_reverified_at": "2026-11-25T12:25:05Z",
-    "last_reverified_worker_run_id": "45612946451"
+    "last_reverified_note": "2026-11-25 worker 45627772472: window rolled to include 45625202695 (16a88ce) and drop 44767894115; demo still median 1 s; reuse blocker present at HEAD (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt); not actionable.",
+    "last_reverified_at": "2026-11-25T13:55:07Z",
+    "last_reverified_worker_run_id": "45627772472"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
