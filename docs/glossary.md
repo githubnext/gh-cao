@@ -14,6 +14,10 @@ human operator
 		  └─ performs one bounded task using an AI agent and engine
 ```
 
+## Acquisition profile
+
+One of the two mutually exclusive ways a deployment acquires operational evidence into the canonical dataset. A deployment MUST select exactly one. The **snapshot ingestion profile** ingests an explicitly acquired, verified operational snapshot and implies no snapshot publisher or automatic download. The optional **collector profile** acquires evidence directly from a GitHub App through native Go acquisition and fenced publication. Both must produce identical canonical records for the same observation window and underlying GitHub activity. The former default Actions profile is retired. See the [server ingestion specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md#2-profiles).
+
 ## Acquisition requirement
 
 A reviewed declaration of a GitHub data source, native Core, Search, or GraphQL quota pool, versioned primitive, exact population scope, and cache lifetime. Workflow registrations for one repository may union identical requirements, and Value collection requests must name one. An exact-response cache hit is valid only for a request that identifies its reviewed requirement and pool; unknown or mismatched identities remain metered. See the [GitHub API capacity specification](https://github.com/githubnext/gh-cao/blob/main/specs/github-api-capacity.md).
@@ -217,6 +221,10 @@ The degree to which a workflow's intended repository outcome is attained across 
 ## Operational grader
 
 The run-scoped result produced by gh-aw's upstream `operational-value` grader protocol. The protocol identifier remains `operational-value` for compatibility, but CAO refers to the resulting grader evidence as an operational grader so it is not confused with campaign-defined repository operational value.
+
+## Operational snapshot
+
+A bounded, read-only canonical JSONL dataset with its inventory and `payload-hashes.json` manifest, which an operator explicitly acquires and verifies before ingesting into canonical PostgreSQL for local or hosted analysis. No Actions workflow publishes an operational snapshot, and the synthetic Pages demo is never a snapshot source. Ingestion requires an explicitly selected source; no default or directory-discovery source exists. See the [Dashboard data specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md).
 
 ## Operational store
 
