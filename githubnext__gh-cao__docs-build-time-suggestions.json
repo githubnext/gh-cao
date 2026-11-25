@@ -1,36 +1,7 @@
 {
   "source_sha": "a37d08e559899008f2b54e5fdddd16c268fdb666",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-24T18:22:44Z",
-      "worker_run_id": "45458053754",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334",
-        "44465043275",
-        "44357668509",
-        "44343962371",
-        "44337804857"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged). Correlation 45456976923-4743. Window 45333239050 (schedule, 12c41c7, 2026-11-24T05:25:40Z) .. 44337804857 (push, b350331, 2026-11-18T15:37:34Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled. L [compacted]"
-    },
     {
       "evaluated_at": "2026-11-24T18:35:23Z",
       "worker_run_id": "45460567352",
@@ -872,6 +843,35 @@
       ],
       "outcome": "complete, not actionable. Correlation 45545209080-4772; worker run 45545812084. Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live top-20 completed list at evaluation matches the same 20 IDs, none queued; main a37d08e == source_sha. Stored transfer_model rows recomputed without refetch (nearest-rank p90, n=20): handoff median 6 p90 6; configure 1/1; upload 2/3; deploy setup 1/1; removable (handoff+configure+upload+deploy setup) median 9 p90 10 max 11 = 12.2 pct of exec median 74 s; 15 pct gate 11.1 s unmet; 60 s gate unmet even if all removable time vanished (max 11 s). Deploy Pages (GitHub-managed) median 7 p90 8 excluded; 92 s tail in 44576080583 is an outlier and not removable by workflow edits. Live Jobs API spot check 45333239050 matched its transfer row (handoff 6, configure 1, upload 1, deploy setup 1, Deploy Pages 6, deploy job 8). Caveat: its stored run_timings build_job_s 59 disagrees with live build started..completed 55 s (exec 69 = 55+6+8); transfer row and medians unaffected; run_timings left unchanged. Merging deploy into build remains rejected (github-pages environment and id-token boundary). No open-issue search (no candidate); no issue created. Next category: scheduling, concurrency, and avoidable rebuilds.",
       "suggestion_fingerprint": null
+    },
+    {
+      "evaluated_at": "2026-11-25T04:36:14Z",
+      "worker_run_id": "45547469222",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "44767894115",
+        "44680921088",
+        "44576080583",
+        "44567910334"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged). Correlation 45546802197-4773. Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list 04:34Z (25 newest): same 20 IDs, none queued or in progress; main a37d08e == source_sha. Run queue median 0 s, p90 0; run exec median 77.5 s, p90 92, max 165; 0 overlaps; min gap 299 s; job-level queue median 3 s p90 4 (stored). documentation-pages cancel-in-progress false, sole reference docs.yml. Avoidable push rebuilds 0 of 15. Post-window commits 17491d4 (specs/ only) and a37d08e (server/ only) did not trigger; docs reference specs/ only via GitHub URLs, no build reads. 5 schedule runs kept for synthetic-date freshness. Max queue saving 3 s vs 11.1 s gate; 60 s gate unreachable. No issue; no open-issue search (no candidate). Next category: dependency installation and caching."
     }
   ],
   "docs_cache_model": {
@@ -2065,9 +2065,9 @@
     "verdict": "not actionable (unchanged): Build documentation produces dist/ required by deploy; validators and node --test are correctness gates; 60 s gate unreachable; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance"
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-25T02:57:40Z",
-    "worker_run_id": "45536216576",
-    "correlation_id": "45535050828-4768",
+    "verified_at": "2026-11-25T04:36:14Z",
+    "worker_run_id": "45547469222",
+    "correlation_id": "45546802197-4773",
     "window": "45483718747..44567910334 (15 push, 5 schedule, 20 success, 0 cancelled)",
     "queue_run_median_s": 0,
     "queue_run_p90_s": 0,
@@ -2078,13 +2078,16 @@
     "overlaps": 0,
     "min_gap_between_runs_s": 299,
     "avoidable_push_heads": "0 of 15",
-    "verdict": "not actionable (re-verified 2026-11-25T02:57:40Z)"
+    "verdict": "not actionable (re-verified 2026-11-25T04:36:14Z)"
   },
   "head_path_filter_check": {
-    "verified_at": "2026-11-25T02:57:40Z",
+    "verified_at": "2026-11-25T04:36:14Z",
     "head": "a37d08e",
-    "files": 3,
-    "docs_consumed_files": 0,
-    "note": "server/internal/redisx and operational test only; no docs.yml run expected or observed; path filter behaved correctly"
+    "post_window_commits_since_69a4cbc": {
+      "17491d4": "specs/ only; no docs.yml trigger (correct)",
+      "a37d08e": "server/ only; no docs.yml trigger (correct)"
+    },
+    "docs_build_reads_specs": false,
+    "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
   }
 }
