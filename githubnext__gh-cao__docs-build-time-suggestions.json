@@ -1,37 +1,7 @@
 {
   "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T04:21:51Z",
-      "worker_run_id": "45545812084",
-      "correlation_id": "45545209080-4772",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115",
-        "44680921088",
-        "44576080583",
-        "44567910334"
-      ],
-      "outcome": "complete, not actionable. Correlation 45545209080-4772; worker run 45545812084. Window 45483718747 (push, 69a4cbc, 2026-11-24T20:43:16Z) .. 44567910334 (push, 3421dc7, 2026-11-19T16:36:00Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live top-2...",
-      "suggestion_fingerprint": null
-    },
     {
       "evaluated_at": "2026-11-25T04:36:14Z",
       "worker_run_id": "45547469222",
@@ -890,6 +860,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 45333239050 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Dashboard generation is the Build synthetic enterprise demo step: median 1 s (p90 2, max 3), 1.4 pct of exec median 73.5 s; removable maximum 3 s, 15 pct gate 11.0 s and 60 s gate unmet. Cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76) and docs.yml runs the step every build. Checkout tail 67 s is outside this category; #20815 still the only tracked item, not re-proposed."
+    },
+    {
+      "evaluated_at": "2026-11-25T14:19:10Z",
+      "worker_run_id": "45632056938",
+      "correlation_id": "45631207688-4802",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216"
+      ],
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45631207688-4802; worker run 45632056938. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Live gh run list 14:19Z: no docs.yml run newer than 45625202695; source 16a88ce equals source_sha. One live Jobs read of 45625202695: handoff 6, configure 1, upload 4, deploy setup 1, Deploy Pages 8 (GitHub-managed, excluded), exec 126. transfer_model recomputed (n=20, nearest-rank p90): removable median 9 p90 10 max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet even at full removal. Merging deploy into build stays rejected. No issue created. Next category: scheduling, concurrency, and avoidable rebuilds.",
+      "suggestion_fingerprint": null
     }
   ],
   "docs_cache_model": {
@@ -1394,10 +1394,10 @@
     ]
   },
   "transfer_model": {
-    "verified_at": "2026-11-25T06:58:15Z",
-    "worker_run_id": "45556248749",
-    "correlation_id": "45555624107-4777",
-    "window": "45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced",
+    "verified_at": "2026-11-25T14:19:10Z",
+    "worker_run_id": "45632056938",
+    "correlation_id": "45631207688-4802",
+    "window": "45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Corrects earlier window text that labeled 45333239050 as the oldest; 45333239050 is schedule 12c41c7 at 2026-11-24T05:25:40Z.",
     "method": "Jobs API step timestamps; handoff = deploy started_at minus build completed_at; removable = handoff + Configure Pages + Upload Pages artifact + deploy Set up job; Deploy Pages excluded (GitHub-managed). Live Jobs reads this run: 45551175273 and 45553538993 (exec matched run_timings: 70 and 71). Other rows immutable and reused.",
     "columns": [
       "run",
@@ -1412,6 +1412,18 @@
       "exec_s"
     ],
     "rows": [
+      [
+        "45625202695",
+        "push",
+        6,
+        1,
+        4,
+        1,
+        8,
+        12,
+        12,
+        126
+      ],
       [
         "45562958524",
         "push",
@@ -1581,18 +1593,6 @@
         72
       ],
       [
-        "44767894115",
-        "push",
-        5,
-        1,
-        3,
-        1,
-        6,
-        9,
-        10,
-        143
-      ],
-      [
         "45117916746",
         "schedule",
         6,
@@ -1656,8 +1656,8 @@
     "summary": {
       "removable_median_s": 9,
       "removable_p90_s": 10,
-      "removable_max_s": 11,
-      "removable_mean_s": 9.2,
+      "removable_max_s": 12,
+      "removable_mean_s": 9.25,
       "exec_median_s": 73.5,
       "exec_p90_s": 87,
       "removable_pct_of_exec_median": 12.2,
@@ -1666,7 +1666,7 @@
       "handoff_median_s": 6,
       "upload_median_s": 2,
       "deploy_pages_median_s": 7,
-      "deploy_pages_p90_s": 7,
+      "deploy_pages_p90_s": 8,
       "decision": "not actionable"
     },
     "artifact_bytes": {
@@ -1675,7 +1675,7 @@
       "44060953578": 9354549,
       "43877103800": 9242961
     },
-    "note": "Rows recomputed 2026-11-25 with 45562958524 (live Jobs API read; handoff 5, configure 0, upload 3, deploy setup 1, Deploy Pages 7, deploy_job 11). Summary recomputed from rows; removable median 9 s; gates unmet; not actionable."
+    "note": "Rows recomputed 2026-11-25T14:19Z (worker 45632056938): added 45625202695 from one live Jobs read (handoff 6, configure 1, upload 4, deploy setup 1, Deploy Pages 8, deploy_job 12); 44767894115 displaced. Summary recomputed from rows (nearest-rank p90, even-n median). Not actionable."
   },
   "commit_paths": {
     "verified_at": "2026-11-16T02:26:27Z",
@@ -2102,9 +2102,9 @@
     "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
   },
   "artifact_transfer_last_checked": {
-    "evaluated_at": "2026-11-25T12:40:16Z",
-    "worker_run_id": "45615478318",
-    "correlation_id": "45614592215-4797",
-    "result": "not actionable (unchanged): removable median 9 s p90 10 = 12.2 pct of exec median 73.5 s; gates 11.0 s and 60 s unmet; window unchanged since 12:23Z (no docs.yml runs after 45562958524; HEAD f4f70d8 = source_sha); live Jobs spot check of 45562958524 matched stored row."
+    "evaluated_at": "2026-11-25T14:19:10Z",
+    "worker_run_id": "45632056938",
+    "correlation_id": "45631207688-4802",
+    "result": "not actionable (unchanged): removable median 9 s p90 10 = 12.2 pct of exec median 73.5 s; gates 11.0 s and 60 s unmet; window now includes 45625202695 (16a88ce), source unchanged; live Jobs read of 45625202695 recorded in transfer_model."
   }
 }
