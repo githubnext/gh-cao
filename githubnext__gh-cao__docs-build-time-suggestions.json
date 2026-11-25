@@ -1,37 +1,7 @@
 {
   "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T12:54:16Z",
-      "worker_run_id": "45617593945",
-      "correlation_id": "45616750895-4798",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "44767894115"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45616750895-4798; worker run 45617593945. Window 45562958524 (push, 779b82f, 2026-11-25T06:45:23Z) .. 44767894115 (push, d55b65c, 2026-11-20T15:54:03Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44680921088 displaced. Live gh run list 12:53Z: same 20 IDs, none queued or in progress; HEAD f4f70d8 = source_sha, no docs run created for it (path filter not matched). Live createdAt..updatedAt wall n=20: median 77 s, p90 92 s; overlaps 0; min gap between runs 299 s. Same-day redundant schedules 2 of 20 (45553538993 after 45551175273, 44989298582 after 44974265341), mean saving 7.4 s per window run, median saving 0 s; avoidable push heads 0 of 15; 60 s and 15 percent (11 s of exec median 73.5 s) gates unmet; no suggestion."
-    },
     {
       "evaluated_at": "2026-11-25T13:20:08Z",
       "worker_run_id": "45621855833",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45719115379-4829; worker run 45719943574. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Live docs.yml list 23:18Z: same 20 IDs, none queued or in progress; source 16a88ce = HEAD = source_sha. Stored transfer_model rows recomputed (n=20, nearest-rank p90): removable (handoff+configure+upload+deploy setup) median 9 p90 10 max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet; Deploy Pages (GitHub-managed) excluded; merge-into-build still rejected. No issue created. Next category: scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-25T23:33:39Z",
+      "worker_run_id": "45721764536",
+      "correlation_id": "45721042439-4830",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45721042439-4830; worker run 45721764536. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list 23:32Z: same 20 IDs, none newer; HEAD 16a88ce = source_sha; cron 23 5 and documentation-pages cancel-in-progress false unchanged. Queue median 3 p90 4; exec median 73.5 p90 87; push 74 vs schedule 73; wall median 77 p90 92; overlaps 0; min gap 299 s. Same-day redundant schedules 2 of 20 (45553538993 after 45551175273, head 87b57a9; 44989298582 after 44974265341, head 9edb6bb): savings 71 s and 77 s, mean 7.4 s per window run, median 0 s; 60 s and 15 pct (11.0 s) gates unmet. Other 3 schedules had no same-day build of their head. Freshness dependency confirmed: scripts/simulate-dashboard-pages.mjs:67 Date.now default. Reopen only at three or more same-day redundant schedules in a 20-run window or a synthetic-date design change. No issue created."
     }
   ],
   "docs_cache_model": {
@@ -2057,11 +2057,11 @@
     "last_reverified_note": "2026-11-25T22:33:12Z worker 45713552765 (correlation 45712901674-4827): window unchanged; live Jobs read of 45625202695 matched stored rows; not actionable."
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-25T21:53:13Z",
-    "worker_run_id": "45707784922",
-    "correlation_id": "45706969660-4825",
-    "window": "45625202695 (push, 16a88ce) .. 44798156216 (push, 826c4f4); unchanged at 21:52Z",
-    "verdict": "not actionable (re-verified 2026-11-25T21:52Z): queue median 3 p90 4 max 4; exec median 73.5 p90 87; schedule exec median 73 vs push 74; same-head duplicates 3 (schedule freshness refresh is required, removing a duplicate does not shorten any run); 60 s and 15 pct gates unmet; watch item only"
+    "verified_at": "2026-11-25T23:33:39Z",
+    "worker_run_id": "45721764536",
+    "correlation_id": "45721042439-4830",
+    "window": "45625202695 (push, 16a88ce) .. 44798156216 (push, 826c4f4); unchanged at 23:32Z",
+    "verdict": "not actionable: queue median 3 p90 4; exec median 73.5 p90 87; schedule exec median 73 vs push 74; same-day redundant schedules 2 of 20; median saving 0 s; 60 s and 15 pct gates unmet; watch item only"
   },
   "head_path_filter_check": {
     "verified_at": "2026-11-25T04:36:14Z",
