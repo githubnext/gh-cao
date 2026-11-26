@@ -54,16 +54,25 @@ func newAuditDeliverCommand() *cobra.Command {
 			result, err = auditdelivery.Run(ctx, store, destination, options)
 			return err
 		}()
-		out := cmd.OutOrStdout()
-		if runErr != nil {
-			out = cmd.ErrOrStderr()
-		}
-		if err := json.NewEncoder(out).Encode(result); err != nil {
-			return errors.New("audit delivery could not write its operational result")
-		}
-		return runErr
+		return reportDeliveryResult(cmd.OutOrStdout(), cmd.ErrOrStderr(), result, runErr)
 	}
 	return cmd
+}
+
+// reportDeliveryResult writes the operational result as JSON to stdout on
+// success and to stderr on failure, then returns the delivery error. A write
+// failure takes precedence so a lost result is never reported as success.
+func reportDeliveryResult(stdout, stderr io.Writer, result auditdelivery.Result, runErr error) error {
+	out := stdout
+	if runErr != nil {
+		out = stderr
+	}
+	auditDeliveryLog.Printf("audit delivery finished: status=%s stage=%s delivered=%d remaining=%d failed=%t",
+		result.Status, result.Stage, result.Delivered, result.Remaining, runErr != nil)
+	if err := json.NewEncoder(out).Encode(result); err != nil {
+		return errors.New("audit delivery could not write its operational result")
+	}
+	return runErr
 }
 
 // buildDeliveryOptions validates the invocation bounds and loads the optional

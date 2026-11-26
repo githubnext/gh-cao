@@ -73,6 +73,20 @@ func TestGitHubQuotaRejectsInvalidArguments(t *testing.T) {
 	if _, _, _, err := store.ObserveGitHubQuota(ctx, "a:1:core", GitHubQuotaObservation{Limit: 1, Remaining: 1}, ""); err == nil {
 		t.Fatal("observation without a reset time was accepted")
 	}
+	for name, observation := range map[string]GitHubQuotaObservation{
+		"epoch reset":        {Limit: 1, Remaining: 1, ResetAt: time.UnixMilli(0)},
+		"pre-epoch reset":    {Limit: 1, Remaining: 1, ResetAt: time.UnixMilli(-1)},
+		"pre-epoch observed": {Limit: 1, Remaining: 1, ResetAt: time.Now(), ObservedAt: time.UnixMilli(-1)},
+	} {
+		if _, _, _, err := store.ObserveGitHubQuota(ctx, "a:1:core", observation, ""); err == nil {
+			t.Fatalf("%s observation was accepted", name)
+		}
+	}
+	for name, until := range map[string]time.Time{"epoch": time.UnixMilli(0), "pre-epoch": time.UnixMilli(-1)} {
+		if _, _, err := store.ParkGitHubQuota(ctx, "a:1:core", until, "x"); err == nil {
+			t.Fatalf("%s parking was accepted", name)
+		}
+	}
 	if _, _, err := store.ParkGitHubQuota(ctx, "a:1:core", time.Time{}, "x"); err == nil {
 		t.Fatal("parking without an end time was accepted")
 	}

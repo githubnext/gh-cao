@@ -14,6 +14,10 @@ human operator
 		  └─ performs one bounded task using an AI agent and engine
 ```
 
+## Acquisition profile
+
+One of the two mutually exclusive ways a deployment acquires operational evidence into the canonical dataset. A deployment MUST select exactly one. The **snapshot ingestion profile** ingests an explicitly acquired, verified operational snapshot and implies no snapshot publisher or automatic download. The optional **collector profile** acquires evidence directly from a GitHub App through native Go acquisition and fenced publication. Both must produce identical canonical records for the same observation window and underlying GitHub activity. The former default Actions profile is retired. See the [server ingestion specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-ingestion.md#2-profiles).
+
 ## Acquisition requirement
 
 A reviewed declaration of a GitHub data source, native Core, Search, or GraphQL quota pool, versioned primitive, exact population scope, and cache lifetime. Workflow registrations for one repository may union identical requirements, and Value collection requests must name one. An exact-response cache hit is valid only for a request that identifies its reviewed requirement and pool; unknown or mismatched identities remain metered. See the [GitHub API capacity specification](https://github.com/githubnext/gh-cao/blob/main/specs/github-api-capacity.md).
@@ -98,6 +102,10 @@ The checked-in Value evidence packet that recurring collection uses as its start
 
 The `collection-health` registered runtime source: a bounded, read-only snapshot of the server-side webhook and collection profile's queue depth, pending tasks, dead letters, backfill state, and recent webhook and collection outcomes. It is exposed only through the authorized Dashboard Language query boundary, never stored in browser IndexedDB, and returns no raw error messages or credentials. See the Dashboard Language Specification, Section 5.4.
 
+## Commit identity override
+
+The optional root `git` object in a CAO policy document (`cao.json`) that sets the author and committer `name` and `email` for local `gh cao dashboard` maintenance commits. When present, it takes precedence over `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables and Git `user.name` and `user.email` configuration. It is non-secret execution metadata: it configures no authentication, grants no repository access, and changes no rollout policy or workflow authority. See CAO-CFG-008 in the [Control Architecture Specification](https://github.com/githubnext/gh-cao/blob/main/specs/control-architecture.md).
+
 ## Coordinator
 
 The CAO operator-facing name for the workflow that selects and dispatches work for a campaign. The canonical gh-aw term is [Orchestrator Workflow](https://github.github.com/gh-aw/reference/glossary/#orchestrator-workflow). Workflow source, policy, campaign manifests, and other technical contracts use the role name `orchestrator`.
@@ -108,7 +116,7 @@ The repository that hosts CAO workflows and policy. It coordinates work across e
 
 ## Copilot requests token broker
 
-A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) that exchanges a GitHub Actions OIDC identity for a dedicated organization App installation token limited to `organization_copilot_requests: read`. The control repository's `control-plane.token-broker.copilot-requests.workflows` policy must pin the exact owner and repository IDs, workflow reference, and workflow revision; an empty list authorizes nothing. It grants credential authorization only, never rollout, admission, or repository-write authority.
+A separately opt-in, single-replica server endpoint (`POST /api/token-broker`) that exchanges a GitHub Actions OIDC identity for a dedicated organization App installation token limited to `organization_copilot_requests: read`. Only the `copilot-request` capability is issued; known `copilot-task` and `github-app` requests return 501 after identity and enrollment checks. The control repository's `control-plane.token-broker.copilot-requests.workflows` policy must pin the exact owner and repository IDs, workflow reference, and workflow revision; an empty list authorizes nothing. Issuance also requires signed `github-hosted` runner evidence and a signed `ref_type` matching the enrolled branch or tag. The diagnostic `job_id` never selects credentials. The broker grants credential authorization only, never rollout, admission, or repository-write authority.
 
 ## Daily partition
 
@@ -162,6 +170,10 @@ The single campaign selected for historical operational-value reconstruction in 
 
 An experimental hosted-server mode, enabled with `serve-hosted --experimental --hosted-cli-actions`, in which step-up administrators queue declared `cao` actions. A separate `execute-cli` process runs each queued action with a single-use, repository-scoped GitHub App installation token that is revoked when the command finishes. Executor replicas coordinate through a durable, fenced PostgreSQL queue lease. See the [hosted CLI actions specification](https://github.com/githubnext/gh-cao/blob/main/specs/server-hosted-cli.md).
 
+## Item source
+
+A closed, reviewed `archive-*` source in a session-query that flattens one collection of the last agent-phase trajectory event of each complete active trace, such as `archive-objectives`, `archive-actions`, or `archive-tool-calls`. Item sources are approved evidence projections, not raw payload access: they never expose `PayloadJSON`, forbid `first` and real-valued `sum`, and must be accepted against real Kusto before a backend advertises them. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
+
 ## Keyset page
 
 A bounded page of a declarative query output, selected by an ordered stable key rather than an offset. For Value workflow lists the key is the exact stored `(repositoryId, path, id)` tuple under the `utf8-bytewise-v1` comparator, and the keyset predicate is pushed into the canonical read. The boundary reads one extra key to report `has-more` and never computes a fleet-wide total count. Its continuation token binds the resolved query plan and the `workflow-subject-revision`, so an identity-stale continuation fails closed and restarts at page one. See the Dashboard Language Data Specification, Value workflow lists.
@@ -210,6 +222,10 @@ The degree to which a workflow's intended repository outcome is attained across 
 
 The run-scoped result produced by gh-aw's upstream `operational-value` grader protocol. The protocol identifier remains `operational-value` for compatibility, but CAO refers to the resulting grader evidence as an operational grader so it is not confused with campaign-defined repository operational value.
 
+## Operational snapshot
+
+A bounded, read-only canonical JSONL dataset with its inventory and `payload-hashes.json` manifest, which an operator explicitly acquires and verifies before ingesting into canonical PostgreSQL for local or hosted analysis. No Actions workflow publishes an operational snapshot, and the synthetic Pages demo is never a snapshot source. Ingestion requires an explicitly selected source; no default or directory-discovery source exists. See the [Dashboard data specification](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-data.md).
+
 ## Operational store
 
 The provider-neutral storage contract in `server/internal/operational/` that exposes immutable per-feature cache, request-limit, OAuth, quota, collection, coordination, and diagnostic capabilities. PostgreSQL is the default adapter for a selector-free reviewed host, using only its own `cao_operational_*` tables and never the canonical dashboard entity/query schema; explicit Redis configuration remains supported, and an explicit, acknowledged single-process in-memory adapter is a bounded, volatile alternative that loses all operational state on restart. See [Server operational storage](https://github.com/githubnext/gh-cao/blob/main/specs/server-operational-storage.md).
@@ -238,6 +254,10 @@ File-database repair and conversion commands are removed. PostgreSQL partition a
 
 The canonical gh-aw capability that persists files with unlimited retention in a dedicated `memory/<campaign-slug>` Git branch, distinct from the 7-day `cache-memory`. CAO campaigns configure it with `repo-memory.branch-name` so a coordinator can read and update bounded, advisory cross-run state through `$GH_AW_MEMORY_DIR` before dispatch selection; workers share the branch only when their work benefits from that shared history. Repo memory is never policy, target authority, credential storage, or a substitute for current repository evidence. See the canonical gh-aw definition of [Repo Memory](https://github.github.com/gh-aw/reference/glossary/#repo-memory).
 
+## Reviewed grader definition
+
+A checked-in, declarative `session-query` under `server/internal/sessionarchive/testdata/graders/` that recomputes one upstream `github/gh-aw` built-in grader over the private session archive. It is accepted only after replay on local DuckDB and real Kusto, must fit the maximum GitHub repository shape, and its results are compared within any declared tolerance rather than inferred. Graders that depend on unavailable or unexpressible state remain unsupported, and recomputed results do not replace the original grader observations. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md) and the [grader query feasibility tracker](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive-grader-queries.md).
+
 ## Run
 
 One execution of a coordinator, worker, or standalone workflow. A coordinator run may produce many dispatches; each dispatch starts a separate worker run. A run records activity and evidence, but successful completion alone does not prove operational value. Use **run** rather than **session**: a run is the canonical execution entity, and canonical Domain, Tool, Audit, and Issue records link directly to it.
@@ -261,6 +281,10 @@ A declared, bounded way for a workflow to produce an external effect, such as cr
 ## Session archive
 
 An independently default-off, private analytics store of approved complete unified-session traces, kept as immutable Parquet files (local DuckDB queries) or Blob objects (hosted ADX queries). It adds analytics without changing PostgreSQL schemas, canonical queries, ingestion, retention, or operational state, and cannot authorize collection or widen policy. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
+
+## Session query
+
+The explicitly named `session-query` analytical operation over the private session archive, accepting only `language-version: "0.2.0"` and one closed Dashboard Language `query` over `archive-events` or an approved item source. It is not the generic `query`, accepts no SQL, scripts, cross-trace joins, or `PayloadJSON`, and must fail rather than clamp or emulate an unsupported operator. Local DuckDB and hosted ADX run it under the same bounded budgets. See the [session archive specification](https://github.com/githubnext/gh-cao/blob/main/specs/session-archive.md).
 
 ## Standalone workflow
 

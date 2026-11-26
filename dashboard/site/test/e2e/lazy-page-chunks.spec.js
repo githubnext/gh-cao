@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -284,7 +285,7 @@ test('core dashboard stays small and page chunks load on demand with in-memory c
   await expect(preview).toContainText('Page intent:\nDetermine which repository most needs CAO operational investigation.');
   await expect(preview).toContainText('https://github.com/githubnext/gh-cao/blob/main/skills/central-agentic-ops/SKILL.md');
   await page.getByRole('button', { name: 'Close prompt preview' }).click();
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect.poll(() => pageText(page, 'repositories')).toMatch(
     /Ingestion %|No repositories discovered\.|gh-cao|Loading Repositories/
   );
@@ -326,7 +327,7 @@ test('built inventory tables resolve partial-source queries through the producti
   await page.waitForFunction(() => Reflect.get(window, '__dashboardImportComplete') === true);
   for (const [pageId, identity] of [['campaigns', 'Dependabot'], ['repositories', 'gh-cao']]) {
     await navigateToPage(page, pageId);
-    await page.getByRole('button', { name: 'Table', exact: true }).click();
+    await selectViewMode(page, 'table');
     const active = page.locator(`[data-page-id="${pageId}"]`);
     await expect(active.locator('table')).toContainText(identity);
     await expect(active.locator('[data-view-state="unavailable"]')).toHaveCount(0);
@@ -334,7 +335,7 @@ test('built inventory tables resolve partial-source queries through the producti
   }
 });
 
-for (const mode of ['table', 'card']) {
+for (const mode of /** @type {const} */ (['table', 'card'])) {
   test(`page-bound Campaigns preserves its ${mode} preview while event records are still loading`, async ({ context, page }) => {
     const recordsName = shardName.replace('gh-aw-logs-runs/', 'gh-aw-logs-records/');
     const shards = normalizedActivityShards(logs, queryDashboardSourceObservations(inventory).observations);
@@ -363,7 +364,7 @@ for (const mode of ['table', 'card']) {
       await page.goto(`${origin}/#page-campaigns`);
       await page.getByRole('button', { name: 'Explore data', exact: true }).click();
       const active = page.locator('[data-page-id="campaigns"]');
-      await active.locator(`[data-view-mode-value="${mode}"]`).click();
+      await selectViewMode(page, mode);
       const inventoryView = active.locator('[data-view-id="campaigns-inventory"]');
       await expect(inventoryView.locator('a[href="#page-campaign-insights?campaign=dependabot"]:visible').first()).toBeVisible();
       await expect(inventoryView).toContainText('Dependabot');
@@ -601,11 +602,8 @@ test('marketplace cards stay within their grid at mobile, tablet, and desktop wi
         });
     })), { message: `Card content should fit at ${width}px` }).toBe(true);
 
+    await expect(page.locator('[data-page-id="marketplace"] .document-list-header > p')).toHaveCount(0);
     if (width <= 700) {
-      await expect.poll(() => page.locator('[data-page-id="marketplace"] .document-list-header > p').evaluate((paragraph) => {
-        const bounds = paragraph.getBoundingClientRect();
-        return bounds.width > 0 && bounds.left >= 16 && bounds.right <= innerWidth - 16;
-      }), { message: `Introductory text should have mobile gutters at ${width}px` }).toBe(true);
       await expect.poll(() => cards.evaluateAll((items) => {
         if (items.length !== 3) return false;
         const [first, second] = items.map((card) => card.getBoundingClientRect());
@@ -626,7 +624,7 @@ test('marketplace cards stay within their grid at mobile, tablet, and desktop wi
     card.scrollWidth <= card.clientWidth + 1)).toBe(true);
 });
 
-for (const width of [390, 1440]) {
+for (const width of [320, 390, 518, 1440]) {
   test(`marketplace progressively loads canonical package pages at ${width}px`, async ({ context, page }) => {
     const packageRows = Array.from({ length: 65 }, (_, index) => ({
       ...inventory['marketplace-packages'].rows[0],
@@ -654,9 +652,19 @@ for (const width of [390, 1440]) {
     await page.goto(`${origin}/#page-marketplace`);
     await expect(page.locator('html')).toHaveAttribute('data-test-refresh-state', 'completed');
     const marketplace = page.locator('[data-page-id="marketplace"]');
+    await expect(page.locator('.dashboard-root')).toHaveClass(/dashboard-full-view/);
+    await expect(marketplace.locator('[data-view-id="marketplace-packages"]')).toHaveAttribute('data-view-layout', 'full-view');
+    await expect(marketplace.locator('.document-list-header > p')).toHaveCount(0);
     const cards = marketplace.locator('.entity-card-list-card');
     await expect(cards).toHaveCount(25);
     await expect(cards.locator('.issue-list-card-title')).toHaveText(packageRows.slice(0, 25).map(row => row.name));
+    await expect.poll(() => cards.evaluateAll(items => items.every(card => {
+      const bounds = card.getBoundingClientRect();
+      return card.scrollHeight <= card.clientHeight + 1 && [...card.children].every(child => {
+        const content = child.getBoundingClientRect();
+        return content.height === 0 || (content.top >= bounds.top && content.bottom <= bounds.bottom + 1);
+      });
+    })), { message: 'Card rows must contain their content instead of shrinking into overlapping rows' }).toBe(true);
     const first = cards.first().getByRole('link', { name: packageRows[0].name });
     const firstCard = await cards.first().elementHandle();
     const more = marketplace.getByRole('button', { name: 'Load more', exact: true });

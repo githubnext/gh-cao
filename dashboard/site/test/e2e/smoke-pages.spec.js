@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { assert, authoritativeDashboard, buildPresenterModuleUrl, expect, expectLayoutWithin, registerSmokeRoutes, test } from './helpers/smoke-fixtures.js';
 
 registerSmokeRoutes();
@@ -57,7 +58,7 @@ for (const width of [1440, 390]) {
     await expect(statuses).toContainText('Improving');
     if (width > 600) {
       await expect(value.locator('[data-view-id="value-overview-table"]')).toBeHidden();
-      await value.getByRole('button', { name: 'Table' }).click();
+      await selectViewMode(page, 'table');
       await expect(statuses).toBeHidden();
       await expect(value.locator('[data-view-id="value-overview-table"]')).toBeVisible();
     }
@@ -191,7 +192,7 @@ test('workflow Value movement bars open the exact native results', async ({ page
   const movement = page.locator('[data-page-id="value-movement"]');
   await expect(movement.getByRole('cell', { name: 'Improved measure' })).toBeVisible();
   await expect(movement.getByRole('cell', { name: 'Worsened measure' })).toHaveCount(0);
-  await movement.getByRole('button', { name: 'Cards' }).click();
+  await selectViewMode(page, 'card');
   await movement.locator('[data-card-drill="query"]').click();
   await expect(page).toHaveURL(/#page-value-report\?query=value-report-summary&title=Improved\+measure&report=first$/);
 });
@@ -466,9 +467,10 @@ test('Ingestion shows daily run counts, shard activity dates and retained transa
   await expect(transactionsPage.locator('[data-chart-widget="scatter"] .scatter-chart-point')).toHaveCount(2);
   await expect(transactionsPage.locator('[data-chart-widget="horizontal-bar"]')).toHaveCount(1);
   await expect(transactionsPage.locator('[data-view-id="ingestion-queue-sizes"]')).toHaveCount(0);
-  await transactionsPage.getByRole('button', { name: 'Cards', exact: true }).click();
+  await selectViewMode(page, 'card');
   await expect(view).toBeVisible();
-  await expect(view.locator('.entity-card-list-card')).toHaveCount(100);
+  await expect(view.locator('.entity-card-list-card')).toHaveCount(25);
+  await expect(view.locator('.entity-card-list-load-status')).toHaveText('Showing 25 of 100 items');
   await expect(view.locator('.entity-card-list-card').getByText('Committed records').first()).toBeVisible();
   await expect(view.locator('.entity-card-list-card').getByText('Payload hash').first()).toBeVisible();
 
@@ -626,7 +628,7 @@ test('Runs renders a last-week stacked area graph above its responsive table and
     expect(rendering.labelBottom).toBeCloseTo(rendering.gridY, 0);
     expect(rendering.labelRight).toBeLessThan(rendering.axisX);
   }
-  await page.getByRole('button', { name: 'Table', exact: true }).click();
+  await selectViewMode(page, 'table');
   await expect(table).toBeVisible();
   await expect(table.locator('tbody > tr')).toHaveCount(25);
   const more = table.locator('[data-table-more]');
@@ -659,8 +661,8 @@ test('Runs renders a last-week stacked area graph above its responsive table and
   assert(facetControlBox);
   assert(scrolledSummaryBox);
   expect(scrolledSummaryBox.y - (facetControlBox.y + facetControlBox.height)).toBeGreaterThanOrEqual(4);
-  await page.getByRole('button', { name: 'Cards' }).click();
-  await page.getByRole('button', { name: 'Chart' }).click();
+  await selectViewMode(page, 'card');
+  await selectViewMode(page, 'chart');
   await expect(areaGraph).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -758,27 +760,23 @@ test('a page combining a chart with a full-view table fills and scrolls in table
   const scroll = view.locator('.table-scroll');
   const cards = view.locator('[data-mobile-card-list]');
   const cardScroll = cards.locator('.mobile-table-card-list-items');
-  const chrome = page.locator('.dashboard-page:not([hidden]) > .page-chrome');
-  const fullViewSpacing = () => chrome.evaluate((element) => {
-    const selector = element.querySelector('.view-mode-control');
+  const activePage = page.locator('.dashboard-page:not([hidden])');
+  const fullViewSpacing = () => activePage.evaluate((element) => {
     const header = document.querySelector('.app-main > .top-nav');
-    const content = element.parentElement?.querySelector('.custom-view-grid');
-    if (!selector || !header || !content) throw new Error('Expected full-view toolbar and content.');
-    return {
-      selectorGap: selector.getBoundingClientRect().top - header.getBoundingClientRect().bottom,
-      contentGap: content.getBoundingClientRect().top - element.getBoundingClientRect().bottom
-    };
+    const content = element.querySelector('.custom-view-grid');
+    if (!header || !content) throw new Error('Expected full-view header and content.');
+    return content.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
   });
   await expect(chart.locator('[data-chart-widget="pie"]')).toBeVisible();
   await expect(page.locator('.org-sidebar')).toBeVisible();
   await expect(scroll).toBeHidden();
   await expect(dashboardRoot).not.toHaveClass(/dashboard-full-view/);
 
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(chart).toBeHidden();
   await expect(scroll).toBeVisible();
   await expect(dashboardRoot).toHaveClass(/dashboard-full-view/);
-  await expect.poll(fullViewSpacing).toEqual({ selectorGap: 12, contentGap: 0 });
+  await expect.poll(fullViewSpacing).toBe(0);
   await expect(page.locator('.org-sidebar')).toBeVisible();
   await expect.poll(async () => scroll.evaluate((element) => ({
     fillsView: Math.abs(innerHeight - element.getBoundingClientRect().bottom) <= 1,
@@ -787,11 +785,11 @@ test('a page combining a chart with a full-view table fills and scrolls in table
   await scroll.evaluate((element) => { element.scrollTop = 100; });
   await expect.poll(async () => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 
-  await page.getByRole('button', { name: 'Cards' }).click();
+  await selectViewMode(page, 'card');
   await expect(chart).toBeHidden();
   await expect(scroll).toBeHidden();
   await expect(cards).toBeVisible();
-  await expect.poll(fullViewSpacing).toEqual({ selectorGap: 12, contentGap: 0 });
+  await expect.poll(fullViewSpacing).toBe(0);
   await expect(cards.locator('.entity-card-list-card').first()).toBeVisible();
   await expect(cards.locator('.entity-card-list-card').first()).toContainText('copilot / model-1');
   await expect(cards.getByRole('button', { name: 'Load more cards' })).toHaveCount(0);
@@ -807,7 +805,7 @@ test('a page combining a chart with a full-view table fills and scrolls in table
   await expect.poll(async () => cardScroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   await expect(cards.locator('.entity-card-list-card')).toHaveCount(50);
 
-  await page.getByRole('button', { name: 'Chart' }).click();
+  await selectViewMode(page, 'chart');
   await expect(chart).toBeVisible();
   await expect(scroll).toBeHidden();
   await expect(dashboardRoot).not.toHaveClass(/dashboard-full-view/);
@@ -874,7 +872,7 @@ test('Runs renders the worker-projected table', async ({ page }) => {
   const view = runsPage.locator('[data-view-layout="full-view"]');
   const rows = view.locator('.custom-table tbody tr');
 
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('2');
   await expect(rows.locator('a').first()).toBeVisible();
@@ -962,13 +960,13 @@ test('Issues switches between its top-repository chart, table, and cards', async
 
   await expect(chart.locator('[data-chart-widget="pie"]')).toBeVisible();
   await expect(chart).toContainText('githubnext/alpha');
-  await expect(page.getByRole('button', { name: 'Chart' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.dashboard-page:visible')).toHaveAttribute('data-view-mode', 'chart');
 
-  await page.getByRole('button', { name: 'Table' }).click();
+  await selectViewMode(page, 'table');
   await expect(table.locator('tbody tr')).toHaveCount(3);
   await expect(table.locator('tbody tr').first()).toContainText('Alpha issue 2');
 
-  await page.getByRole('button', { name: 'Cards' }).click();
+  await selectViewMode(page, 'card');
   await expect(cards.locator('.entity-card-list-card')).toHaveCount(3);
   await expect(cards.locator('.entity-card-list-card').first()).toContainText('Alpha issue 2');
   await expect(cards.locator('.entity-card-list-card').first().locator('[data-card-drill="external"]')).toHaveAttribute(

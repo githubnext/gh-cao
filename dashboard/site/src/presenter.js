@@ -26,7 +26,7 @@ import { declaredAgentTaskActionId, renderDeclaredCliAction } from './components
 import { effectiveViewSemantics } from './view-semantics.js';
 import { semanticViewPrompt } from './semantic-view-prompt.js';
 import { normalizeViewAction } from './action-model.js';
-import { enableHorizonOutsideClickDismissal, renderFilterBar, renderViewModeControl, setTimeWindowFilter, setTimeWindowRange } from './components/filter-bar.js';
+import { enableHorizonOutsideClickDismissal, renderFilterBar, setTimeWindowFilter, setTimeWindowRange } from './components/filter-bar.js';
 import { renderDashboardForm } from './components/dashboard-form.js';
 import { bindSiteCallouts } from './components/site-callout.js';
 import { renderDashboardHorizon } from './components/dashboard-horizon.js';
@@ -39,7 +39,7 @@ import { dashboardFormDefaultValues, dashboardViewAliasName } from './data/queri
 import { dashboardHorizonHours, formatDashboardHorizon, formatDashboardHorizonHours, resolveDashboardHorizon } from './horizon.js';
 import { sourceContinuation } from './data/continuation.js';
 import { renderDashboardNavigation, enableDashboardNavigation, syncDashboardNavigationIndicators, syncDashboardNavigationAvailability, syncMobileViewModeToggle } from './components/dashboard-navigation.js';
-import { renderDashboardHeader, renderRouteBreadcrumbs } from './components/dashboard-header.js';
+import { renderDashboardHeader, renderDashboardPageHelp, renderRouteBreadcrumbs } from './components/dashboard-header.js';
 import { renderAccountMenu } from './components/account-menu.js';
 import { renderDashboardFooter } from './components/dashboard-footer.js';
 import { renderDashboardFrame } from './components/dashboard-frame.js';
@@ -87,11 +87,11 @@ import {
  */
 
 /**
- * @typedef {{ id: string, kind: 'built-in', page: string, title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, requires?: { capability?: 'cli-queue'|'admin', source?: string, message?: string }, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], definition?: { views?: Array<unknown>, sections?: PresentablePageSection[], ['data-state']?: Record<string, boolean> } }} PresentableBuiltInPage
+ * @typedef {{ id: string, kind: 'built-in', page: string, title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, tooltip?: import('./components/dashboard-header.js').PageTooltip, requires?: { capability?: 'cli-queue'|'admin', source?: string, message?: string }, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], definition?: { views?: Array<unknown>, sections?: PresentablePageSection[], ['data-state']?: Record<string, boolean> } }} PresentableBuiltInPage
  */
 
 /**
- * @typedef {{ id: string, kind: 'custom', title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, requires?: { capability?: 'cli-queue'|'admin', source?: string, message?: string }, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['retain-on-navigation']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], route?: { ['hash-query-parameter']?: string, ['navigation-page']?: string, ['availability-view']?: string, ['availability-message']?: string, ['partial-message']?: string, ['title-format']?: 'title-case', breadcrumbs?: import('./components/dashboard-header.js').RouteBreadcrumb[] }, views: unknown[], sections?: PresentablePageSection[] }} PresentableCustomPage
+ * @typedef {{ id: string, kind: 'custom', title?: string, ['navigation-label']?: string, ['navigation-indicator']?: Record<string, unknown>, description?: string, tooltip?: import('./components/dashboard-header.js').PageTooltip, requires?: { capability?: 'cli-queue'|'admin', source?: string, message?: string }, icon?: string, ['class-name']?: string, experimental?: boolean, ['filter-bar']?: boolean, ['view-mode-control']?: boolean, ['pull-refresh']?: boolean, ['mode-indicator']?: boolean, ['retain-on-navigation']?: boolean, ['query-binding']?: 'view'|'page', form?: Record<string, unknown>, chunk?: string, ['source-names']?: string[], ['lazy-source-names']?: string[], ['table-source-names']?: string[], route?: { ['hash-query-parameter']?: string, ['navigation-page']?: string, ['availability-view']?: string, ['availability-message']?: string, ['partial-message']?: string, ['title-format']?: 'title-case', breadcrumbs?: import('./components/dashboard-header.js').RouteBreadcrumb[] }, views: unknown[], sections?: PresentablePageSection[] }} PresentableCustomPage
  */
 
 /**
@@ -710,6 +710,8 @@ function enableResponsiveReportActions(root, signal) {
   const overviewHeader = root.querySelector('.overview-header');
   const mobileHeaderSlot = root.querySelector('.mobile-page-header');
   const headerDesktopSlot = overviewHeader?.parentElement;
+  const viewModeToggle = root.querySelector('.mobile-view-mode-toggle');
+  const mobileToggleSlot = viewModeToggle?.parentElement;
   const view = root.ownerDocument.defaultView;
   const media = view?.matchMedia?.('(max-width: 700px)');
   if (!(actions instanceof HTMLElement) || !(mobileSlot instanceof HTMLElement) || !desktopSlot || !media) return;
@@ -717,6 +719,13 @@ function enableResponsiveReportActions(root, signal) {
   const placeActions = () => {
     const destination = media.matches ? mobileSlot : desktopSlot;
     if (actions.parentElement !== destination) destination.append(actions);
+    if (viewModeToggle instanceof HTMLElement && mobileToggleSlot) {
+      const toggleDestination = media.matches ? mobileToggleSlot : actions;
+      if (viewModeToggle.parentElement !== toggleDestination) {
+        if (media.matches) toggleDestination.insertBefore(viewModeToggle, toggleDestination.querySelector('.mobile-nav-menu'));
+        else toggleDestination.prepend(viewModeToggle);
+      }
+    }
     if (overviewHeader instanceof HTMLElement && mobileHeaderSlot instanceof HTMLElement && headerDesktopSlot) {
       if (media.matches) {
         if (overviewHeader.parentElement !== mobileHeaderSlot) mobileHeaderSlot.prepend(overviewHeader);
@@ -837,6 +846,7 @@ function renderPagePlaceholder(page) {
     'data-page-id': page.id,
     'data-page-title': getPageTitle(page),
     'data-page-description': payload.description ?? '',
+    'data-page-tooltip': page.tooltip ? JSON.stringify(page.tooltip) : undefined,
     'data-page-experimental': page.experimental === true ? 'true' : undefined,
     'data-page-mode-indicator': page['mode-indicator'] === true ? 'true' : undefined,
     'data-route-parameter': routeParameter,
@@ -1046,8 +1056,12 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
           }
         });
         const cardToolbar = selectedViewMode === 'card'
-          ? rendered.querySelector('.mobile-table-card-toolbar') : null;
-        if (cardToolbar) {
+          ? rendered.querySelector('.mobile-table-card-toolbar')
+          : rendered.querySelector('.table-card-list > .mobile-table-card-toolbar');
+        const selectionHeader = rendered.querySelector('.entity-card-selection-header');
+        if (selectionHeader) {
+          selectionHeader.append(filterBar);
+        } else if (cardToolbar) {
           cardToolbar.querySelector('.mobile-table-card-toolbar-title')?.remove();
           cardToolbar.append(filterBar);
         } else rendered.prepend(filterBar);
@@ -1352,13 +1366,8 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
         : [...pageSources.values()])
     })
     : null;
-  const viewModeControl = viewModeControlEnabled && viewModes.length > 1
-    ? renderViewModeControl(viewModes, selectedViewMode, (viewMode) => {
-      dispatchQueryContextChange(currentFilters, currentTimeWindow, viewMode);
-    })
-    : null;
-  const pageChrome = filterBar || viewModeControl
-    ? h('div', { className: 'page-chrome' }, filterBar, viewModeControl)
+  const pageChrome = filterBar
+    ? h('div', { className: 'page-chrome' }, filterBar)
     : null;
   const parameterForm = isPlainObject(page.form)
     ? renderDashboardForm(page.form, queryContext?.formValues, (formValues) => {
@@ -1384,13 +1393,15 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
       'data-page-id': page.id,
       'data-page-title': title,
       'data-page-description': page.description ?? '',
+      'data-page-tooltip': page.tooltip ? JSON.stringify(page.tooltip) : undefined,
       'data-page-experimental': page.experimental === true ? 'true' : undefined,
       'data-route-parameter': routeParameter,
       'data-route-navigation-page': routeNavigationPage,
       'data-route-title-format': page.route?.['title-format'],
       'data-route-breadcrumbs': page.route?.breadcrumbs ? JSON.stringify(page.route.breadcrumbs) : undefined,
       'data-retain-on-navigation': page['retain-on-navigation'] === true ? 'true' : undefined,
-      'data-view-mode': selectedViewMode
+      'data-view-mode': selectedViewMode,
+      'data-view-modes': viewModeControlEnabled ? viewModes.join(' ') : undefined
     },
     renderedRouteTabs,
     pageChrome,
@@ -1399,6 +1410,10 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
       ? [renderHiddenDataStateMetrics(summarizeDataState(pageSources)), renderedContent]
       : [h('p', null, 'No custom views available.')])
   );
+  root.addEventListener('dashboard-view-mode-change', (event) => {
+    if (!(event instanceof CustomEvent) || !viewModeControlEnabled || !viewModes.includes(event.detail)) return;
+    dispatchQueryContextChange(currentFilters, currentTimeWindow, event.detail);
+  });
   const availabilityViewId = page.route?.['availability-view'];
   const availabilityIndex = views.findIndex((view) => isPlainObject(view) && view.id === availabilityViewId);
   if (availabilityIndex >= 0 && routeNavigationPage) {
@@ -1621,6 +1636,13 @@ export function enableDashboardPageNavigation(root, dashboardTitle = '', renderP
   const pageTitle = root.querySelector('#page-title');
   const pageTitleLink = root.querySelector('[data-page-title-link]');
   const pageExperimental = root.querySelector('.title-area [data-page-experimental]');
+  const pageHelp = root.querySelector('[data-page-help]');
+  /** @param {HTMLElement | undefined} page */
+  const syncPageHelp = (page) => {
+    if (pageHelp instanceof HTMLElement) {
+      renderDashboardPageHelp(pageHelp, page?.dataset.pageTooltip ? JSON.parse(page.dataset.pageTooltip) : null);
+    }
+  };
   /** @param {HTMLElement | undefined} page */
   const syncPageExperimental = (page) => {
     if (pageExperimental instanceof HTMLElement) pageExperimental.hidden = page?.dataset.pageExperimental !== 'true';
@@ -1692,6 +1714,7 @@ export function enableDashboardPageNavigation(root, dashboardTitle = '', renderP
     if (breadcrumbPage) breadcrumbPage.textContent = title;
     if (pageTitle) pageTitle.textContent = title;
     syncPageExperimental(page);
+    syncPageHelp(page);
     updateDocumentTitle(root.ownerDocument, title, dashboardTitle);
     renderPageTitleLink(pageTitleLink, null);
     if (pageDescription) {
@@ -2035,6 +2058,7 @@ export function enableDashboardPageNavigation(root, dashboardTitle = '', renderP
     if (breadcrumbPage) breadcrumbPage.textContent = title;
     if (pageTitle) pageTitle.textContent = title;
     syncPageExperimental(page);
+    syncPageHelp(page);
     updateDocumentTitle(root.ownerDocument, title, dashboardTitle);
     renderPageTitleLink(pageTitleLink, null);
     if (pageDescription) {
@@ -2652,7 +2676,8 @@ function renderCustomViewContent(pageId, view, index, sources, units, cardTempla
         const next = await sourcePage.load(token);
         return {
           rows: next?.rows ?? [],
-          continuationToken: next?.continuationToken
+          continuationToken: next?.continuationToken,
+          metadata: next?.metadata
         };
       }
     } : undefined

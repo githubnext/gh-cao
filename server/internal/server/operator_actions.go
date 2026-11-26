@@ -28,6 +28,7 @@ type LocalOperatorConfig struct {
 	AdapterURL      string                      `json:"adapterUrl"`
 	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
 	ManagedUpdates  bool                        `json:"managedUpdates,omitempty"`
+	Marketplace     bool                        `json:"marketplace,omitempty"`
 }
 
 func (c *LocalOperatorActionsConfig) allows(repository string) bool {
@@ -83,7 +84,7 @@ func (a *App) enableOperatorActions(ctx context.Context) error {
 
 func (a *App) admitOperatorAction(ctx context.Context, request hostedcli.Request) (operational.CLICommandInvocation, error) {
 	switch request.ID {
-	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "disable-repository-workflows", "disable-workflow", "add-repository", "setup-cao":
+	case "upgrade-repository", "upgrade-target-repository", "update-campaign", "update-workflow-source", "update-workflows", "update-repository", "update-repository-sources", "enable-repository-workflows", "enable-workflow", "disable-repository-workflows", "disable-workflow", "add-repository", "setup-cao":
 	default:
 		return operational.CLICommandInvocation{}, cliFailure(http.StatusForbidden, "Only declared setup, repository maintenance, and enrollment actions are available.")
 	}

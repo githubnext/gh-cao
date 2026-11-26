@@ -334,7 +334,7 @@ export async function startDashboardData(options) {
   };
   configureSourceLoader(createBatchedSourceLoader(dashboardContext));
   const startAutomaticUpdates = () => {
-    if (usesRemoteDataBackend(document)) return;
+    if (DEMO_MODE || usesRemoteDataBackend(document)) return;
     stopAutomaticDataUpdates = startAutomaticDashboardDataUpdates([
       new URL("./payload-hashes.json", sourceUrl).href,
       sourceUrl,
@@ -385,7 +385,7 @@ export async function startDashboardData(options) {
   let upgradeStarted = false;
   let overlayMounted = false;
   const showFirstLoadOverlay = () => {
-    if (overlayMounted || cleanup.signal.aborted) return;
+    if (DEMO_MODE || overlayMounted || cleanup.signal.aborted) return;
     overlayMounted = true;
     mountFirstLoadOverlay({ document, signal: cleanup.signal, retry: () => refreshSources() });
   };

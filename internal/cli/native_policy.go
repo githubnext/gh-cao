@@ -27,6 +27,8 @@ var (
 	nativeWorkflowRef  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9][A-Za-z0-9._-]*/\.github/workflows/[A-Za-z0-9_-][A-Za-z0-9._-]*\.ya?ml@refs/(?:heads|tags)/[A-Za-z0-9_-]+(?:[./][A-Za-z0-9_-]+)*$`)
 	nativeWorkflowLock = regexp.MustCompile(`\.lock(?:/|$)`)
 	nativeCommitSHA    = regexp.MustCompile(`^[a-f0-9]{40}$`)
+	nativeGitName      = regexp.MustCompile(`^[^\x00-\x20\x7f<>](?:[^\x00-\x1f\x7f<>]*[^\x00-\x20\x7f<>])?$`)
+	nativeGitEmail     = regexp.MustCompile(`^[^\x00-\x20\x7f<>@]+@[^\x00-\x20\x7f<>@]+$`)
 )
 
 // nativeValidateTokenBroker mirrors $defs.tokenBroker in cao.schema.json.
@@ -332,6 +334,9 @@ func nativeValidatePolicy(document map[string]any) error {
 	rule := nativePolicyObject(map[string]nativePolicyRule{
 		"$schema": nativeEnum(schemaURL), "version": nativeInteger(1, 1),
 		"gh-aw-version": nativePolicyString(nativeExactVersion), "control-plane": control,
+		"git": nativePolicyObject(map[string]nativePolicyRule{
+			"name": nativePolicyString(nativeGitName), "email": nativePolicyString(nativeGitEmail),
+		}, "name", "email"),
 		"target-authority": nativePolicyObject(map[string]nativePolicyRule{
 			"campaigns": nativeMapping(slugPattern, nativePolicyObject(map[string]nativePolicyRule{"authority": nativePolicyString(repositoryPattern)}, "authority")),
 		}, "campaigns"),

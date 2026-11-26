@@ -195,9 +195,10 @@ function executeDatabaseQuery(queryName, inputs, sources, metadataSource, budget
   const preservesLifecycleMetadata = [
     'output-lifecycles', 'output-delivery-events', 'output-adoption-events'
   ].includes(queryName);
+  const metadataInput = Object.hasOwn(sources, metadataSource) ? metadataSource : queryName;
   const inheritedMetadata = preservesLifecycleMetadata
     ? result.metadata
-    : queryMetadata(DIRECT_EVIDENCE_SOURCES.has(queryName) ? {} : sources, metadataSource, queryName, true);
+    : queryMetadata(DIRECT_EVIDENCE_SOURCES.has(queryName) ? {} : sources, metadataInput, queryName, true);
   return /** @type {import('../../presenter.js').LogicalSourceInput} */ ({
     ...result,
     metadata: unavailable

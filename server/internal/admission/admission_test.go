@@ -95,16 +95,43 @@ type policyFunc func(context.Context, Identity) (Allowances, error)
 func TestVerifierExposesSignedBrokerJobClaimsWithoutChangingAdmissionProfile(t *testing.T) {
 	f := newFixture(t)
 	f.claims["check_run_id"] = "987654321"
+	f.claims["ref_type"] = "branch"
+	f.claims["runner_environment"] = "github-hosted"
 	identity, err := f.verifier.Verify(context.Background(), f.token(t, f.claims))
-	if err != nil || identity.CheckRunID != "987654321" || identity.EnvironmentPresent {
+	if err != nil || identity.CheckRunID != "987654321" || identity.EnvironmentPresent ||
+		identity.RefType != "branch" || identity.RunnerEnvironment != "github-hosted" {
 		t.Fatal("signed job claim was not preserved")
 	}
 	key := identity.Key()
 	f.claims["check_run_id"] = "987654322"
 	f.claims["environment"] = "production"
+	f.claims["ref_type"] = "tag"
+	f.claims["runner_environment"] = "self-hosted"
 	identity, err = f.verifier.Verify(context.Background(), f.token(t, f.claims))
-	if err != nil || identity.CheckRunID != "987654322" || !identity.EnvironmentPresent || identity.Key() != key {
+	if err != nil || identity.CheckRunID != "987654322" || !identity.EnvironmentPresent || identity.Key() != key ||
+		identity.RefType != "tag" || identity.RunnerEnvironment != "self-hosted" {
 		t.Fatal("broker claim extraction changed admission identity semantics")
+	}
+}
+
+func TestVerifierRejectsUntrustedKeyHeaders(t *testing.T) {
+	f := newFixture(t)
+	for _, name := range []string{"jku", "x5u", "jwk", "x5c"} {
+		t.Run(name, func(t *testing.T) {
+			token := jwt.NewWithClaims(jwt.SigningMethodRS256, f.claims)
+			token.Header["kid"] = f.kid
+			token.Header[name] = "https://attacker.example/key"
+			raw, err := token.SignedString(f.key)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := f.verifier.Verify(t.Context(), raw); !errors.Is(err, ErrDenied) {
+				t.Fatalf("untrusted key header accepted: %v", err)
+			}
+		})
+	}
+	if f.keysRead != 0 {
+		t.Fatal("rejected key headers triggered discovery")
 	}
 }
 

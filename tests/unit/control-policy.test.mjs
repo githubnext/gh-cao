@@ -24,6 +24,24 @@ function validate(policy) {
   });
 }
 
+test("local Git identity is non-secret metadata and rejects incomplete or unsafe configuration", () => {
+  const document = {
+    version: 1, "gh-aw-version": "v1.2.3", "control-plane": {},
+    git: { name: "CAO Automation", email: "automation@example.test" },
+  };
+  assert.deepEqual(parsePolicy(JSON.stringify(document)).git, document.git);
+  for (const git of [
+    {}, { name: "Name" }, { name: "Name", email: "bad" },
+    { name: "Bad\nName", email: "a@example.test" },
+    { name: "Name\n", email: "a@example.test" },
+    { name: "Name", email: "a@example.test\n" },
+    { name: " Name", email: "a@example.test" },
+    { name: "Name", email: "a@example.test", password: "not-allowed" },
+  ]) {
+    assert.throws(() => parsePolicy(JSON.stringify({ ...document, git })));
+  }
+});
+
 test("control policy recognizes an isolated, opt-in webhook gateway without enabling campaigns", () => {
   const document = {
     version: 1, "gh-aw-version": "v0.92.4",

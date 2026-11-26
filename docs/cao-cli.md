@@ -36,15 +36,83 @@ Release binaries embed the existing Go server and built dashboard. Collection
 uses the installed gh-aw extension with `gh aw logs --format jsonl` support
 (v1.2.3 or newer). `install-gh-cao.sh` installs gh-aw when missing and asks before
 upgrading an older version; an older campaign manifest cannot lower this minimum.
-Before acquiring artifacts, the dashboard also checks streaming support and installs v1.2.3 if unavailable,
-without changing workflows or CAO policy. Use an authenticated GitHub CLI and
+Both `gh cao dashboard` and `gh cao dashboard collect` check streaming support
+before workflow discovery and install v1.2.3 if needed, without changing workflows
+or CAO policy. If installation fails, check `gh auth status --hostname github.com`,
+run `gh extension install github/gh-aw --pin v1.2.3 --force`, then retry.
+Use an authenticated GitHub CLI and
 Docker or Podman; no Node.js, npm, or Redis setup is needed. Without an explicit
 `--postgres-url` or `CAO_POSTGRES_URL`, the command pulls and starts an owned
-PostgreSQL container and provisions separate owner/runtime roles. Its data is
-bind-mounted under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
+PostgreSQL container and provisions separate owner/runtime roles. Its private
+state lives under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
+On macOS and Linux its data is bind-mounted there; on Windows it is kept in an
+owner-labelled engine volume, `gh-cao-postgres-<id>-data`, because Windows file
+sharing cannot preserve PostgreSQL's ownership and permission requirements.
+Windows restricts the cache's state and credential files to the current user
+with an access-control list.
 Docker is tried first, then Podman; `--container-engine docker|podman` (or
 `CAO_CONTAINER_ENGINE`) selects one engine exclusively. An explicit
 connection bypasses container management and requires pre-provisioned storage.
+
+If neither engine is usable, the CLI reports each failed check and gives
+OS-specific installation and startup guidance. These checks only suggest
+commands; they do not download or install dependencies. **A separate PostgreSQL
+installation is not needed** with Docker or Podman.
+
+| OS | Install a container engine with a package manager | Start/check it |
+| --- | --- | --- |
+| Windows 11+ (Command Prompt or PowerShell) | `winget install --exact --id Docker.DockerDesktop` or `winget install --exact --id RedHat.Podman` | Start Docker Desktop with the WSL 2 backend and Linux containers; check `docker info`. For Podman, initialize a machine once with `podman machine init`, then `podman machine start` and `podman info`. |
+| macOS | `brew install --cask docker-desktop` or `brew install podman` | Start Docker Desktop and check `docker info`; or initialize/start a Podman machine as above. |
+| Linux | Debian/Ubuntu: `sudo apt update && sudo apt install podman`; Fedora/RHEL: `sudo dnf install podman`; Arch: `sudo pacman -S podman`; openSUSE: `sudo zypper install podman` | Check `podman info`. Docker users should follow their distribution's [package-repository installation instructions](https://docs.docker.com/engine/install/), start the daemon, and check `docker info` without running CAO as root. |
+
+**Windows 11+ has two routes; it does not include Docker or a Linux container
+engine by default.** The native route is the shortest from Command Prompt.
+Docker Desktop requires a paid subscription for larger organizations; Podman is
+a free alternative. If WinGet is unavailable, update **App Installer** through
+Microsoft Store. Both routes require hardware virtualization enabled and may
+require administrator approval. In **Turn Windows features on or off**, enable
+**Windows Subsystem for Linux** and **Virtual Machine Platform**, then restart
+Windows. Enable hardware virtualization in BIOS/UEFI if it is disabled.
+
+1. **Run CAO natively in Windows with a configured engine.** Use the
+   WinGet Docker Desktop or Podman commands in the table above. Install WSL
+   with `winget install --exact --id Microsoft.WSL` if missing, and restart
+   if prompted. Start Docker Desktop, enable its WSL 2 backend, select
+   **Linux containers**, and wait until `docker info` succeeds. For Podman,
+   use its WSL provider, initialize a machine once, start it, and check
+   `podman info`. Then rerun the original command in Command Prompt or PowerShell, using
+   `--container-engine podman` if selecting Podman.
+2. **Run CAO inside WSL 2.** In Command Prompt or PowerShell, install WSL and Ubuntu with
+   `winget install --exact --id Microsoft.WSL` and
+   `winget install --exact --id Canonical.Ubuntu.2404`. Restart if prompted,
+   run `wsl --set-default-version 2` before launching Ubuntu, then complete
+   Ubuntu's first-run setup. In the Ubuntu terminal, run
+   `sudo apt update && sudo apt install gh podman`,
+   `gh auth login`, then `gh extension install githubnext/gh-cao`.
+   Run `gh cao dashboard --container-engine podman --repo OWNER/REPO`
+   from your Linux home directory. This route needs neither Docker Desktop
+   nor a separate PostgreSQL installation. Inside WSL, use the Linux
+   GitHub CLI and CAO extension installed there, not the Windows `.exe` files.
+
+After installing an engine, reopen the terminal to refresh `PATH` and rerun the
+original dashboard command. An installed engine that is stopped, inaccessible,
+using Windows containers, or pointed at a remote endpoint needs configuration,
+not reinstallation; the CLI retains the underlying check failure.
+
+For Podman, inspect `podman system connection list`: managed PostgreSQL accepts
+`unix://`, `npipe://`, or endpoints using numeric loopback addresses
+(`127.0.0.1` or `[::1]`). Hostnames, including `ssh://localhost`, are rejected
+even when a local Podman machine reports them. Configure that local machine's
+connection to use its numeric loopback address, preserving the connection's
+port, identity and socket path; do not substitute a remote endpoint.
+
+To deliberately use native PostgreSQL instead, install it through a package
+manager: Windows `winget install --exact --id PostgreSQL.PostgreSQL.16`,
+macOS `brew install postgresql@16`, or your Linux distribution's PostgreSQL
+packages. Start its service and follow the [database provisioning instructions](https://github.com/githubnext/gh-cao/blob/main/server/POSTGRES.md)
+before supplying `--postgres-url` or `CAO_POSTGRES_URL`; installing the
+server alone is not sufficient.
+
 By default, all dashboard code, static assets, query contracts, and the canonical
 artifact normalizer come from the installed extension binary, not a CAO checkout
 or separately installed runtime files. Existing GitHub CLI configuration and
@@ -248,7 +316,8 @@ native CLI using the operator's GitHub CLI identity; credentials never reach the
 read-only Go dashboard host. Closing output only detaches; canceling a command
 terminates its owned process tree. Retries require fresh dashboard confirmation.
 An interactive terminal is not required. Native execution
-is currently supported on Unix; Windows cannot execute these actions.
+is currently supported on Unix. On Windows these actions are copy-only: the
+dashboard shows each command for you to paste into the terminal.
 No maintenance command runs merely because the dashboard starts, and this mode
 does not mutate remote runs, dispatch workflows, change rollout policy or enable
 hosted execution.

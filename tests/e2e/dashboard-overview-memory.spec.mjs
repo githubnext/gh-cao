@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
-import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
+import { startDashboardPagesPreview, waitForSyntheticPopulation } from "../helpers/dashboard-pages-preview.mjs";
 import { WorkerHeapProbe, remoteDebuggingPort } from "./dashboard-worker-memory.mjs";
 
 const sampleIntervalMs = numberSetting("DASHBOARD_OVERVIEW_MEMORY_SAMPLE_INTERVAL_MS", 50);
@@ -51,7 +51,7 @@ async function canonicalDatabaseState(page) {
     // to be discovered rather than guessed; opening a guessed name would
     // silently create an empty database instead.
     const databases = await indexedDB.databases();
-    const descriptor = databases.find(({ name }) => name?.startsWith("gh-aw-cao-dashboard-data"));
+    const descriptor = databases.find(({ name }) => name?.startsWith("gh-aw-cao-dashboard-data:synthetic-demo"));
     if (!descriptor?.name) return { name: null, version: 0, storeNames: [], counts: {} };
     const database = await new Promise((resolve, reject) => {
       const request = indexedDB.open(descriptor.name, descriptor.version);
@@ -64,9 +64,31 @@ async function canonicalDatabaseState(page) {
       request.onsuccess = () => resolve([name, request.result]);
       request.onerror = () => reject(request.error);
     }))));
+    const receipt = await new Promise((resolve, reject) => {
+      const request = database.transaction("transactions").objectStore("transactions").get("synthetic-demo:population");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const oldestRun = await new Promise((resolve, reject) => {
+      const request = database.transaction("runs").objectStore("runs").index("byStorageTimestamp").openCursor();
+      request.onsuccess = () => resolve(request.result?.value.startedAt ?? null);
+      request.onerror = () => reject(request.error);
+    });
+    const blockedDomains = await new Promise((resolve, reject) => {
+      const domains = new Set();
+      const request = database.transaction("domains").objectStore("domains")
+        .index("byQueryDomain").openCursor(undefined, "nextunique");
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return resolve(domains.size);
+        if (cursor.value.decision === "denied") domains.add(cursor.value.domain);
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error);
+    });
     const version = database.version;
     database.close();
-    return { name: descriptor.name, version, storeNames, counts };
+    return { name: descriptor.name, version, storeNames, counts, receipt, oldestRun, blockedDomains, storage: await navigator.storage.estimate() };
   });
 }
 
@@ -93,24 +115,28 @@ test("the synthetic enterprise Overview renders within a bounded data-worker hea
   const ingestionProbe = new WorkerHeapProbe({ port: remoteDebuggingPort() });
   await page.goto(overviewUrl(preview), { waitUntil: "domcontentloaded" });
   expect(await ingestionProbe.attach()).toBe(true);
-  await sampleWhile(ingestionProbe, "ingestion", () =>
-    page.waitForFunction(() => window.__dashboardRefreshStatus === "completed", null, { timeout: 600_000 }));
+  await sampleWhile(ingestionProbe, "ingestion", async () => {
+    await waitForSyntheticPopulation(page, { timeout: 600_000 });
+    await page.waitForFunction(() => window.__dashboardRefreshStatus === "completed", null, { timeout: 600_000 });
+  });
   const ingested = await canonicalDatabaseState(page);
   ingestionProbe.close();
 
-  expect(ingested.counts.runs).toBeGreaterThan(0);
-  expect(ingested.counts.repositories).toBeGreaterThan(0);
+  console.log("Synthetic population", JSON.stringify(ingested));
   // Proves the Overview heap budget is measured against a fully ingested
   // database rather than a run-phase-only or shard-limited subset.
   expect(ingested.counts.tools).toBeGreaterThan(0);
   expect(ingested.storeNames).not.toContain("dailyOverviewAggregates");
   expect(ingested.storeNames).not.toContain("overviewAggregateMetadata");
 
-  // Reloading against the already-ingested database isolates the Overview page
+  // Reopening against the already-ingested database isolates the Overview page
   // load from ingestion, so the heap peak belongs to its declarative queries.
   // The probe is attached after the reload so it measures the replacement
   // worker rather than the one the reload is about to discard.
-  await page.reload({ waitUntil: "domcontentloaded" });
+  const workersClosed = Promise.all(page.workers().map(worker => worker.waitForEvent("close")));
+  await page.goto("about:blank");
+  await workersClosed;
+  await page.goto(overviewUrl(preview), { waitUntil: "domcontentloaded" });
   const overviewProbe = new WorkerHeapProbe({ port: remoteDebuggingPort() });
   expect(await overviewProbe.attach()).toBe(true);
   const overviewStartedAt = performance.now();
@@ -157,7 +183,18 @@ test("the synthetic enterprise Overview renders within a bounded data-worker hea
     path: metricsPath,
     contentType: "application/json",
   });
+  for (const [name, width] of [["desktop", 1440], ["mobile", 390]]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.locator(".dashboard-overview-page .custom-view").first()).toBeVisible();
+    const screenshot = testInfo.outputPath(`synthetic-fleet-${name}.png`);
+    await page.screenshot({ path: screenshot, fullPage: true });
+    await testInfo.attach(`synthetic-fleet-${name}`, { path: screenshot, contentType: "image/png" });
+  }
 
+  expect(ingested.counts.runs).toBe(5_000);
+  expect(ingested.counts.repositories).toBe(1_000);
+  expect(ingested.counts.workflows).toBe(4_000);
+  expect(ingested.blockedDomains).toBeGreaterThanOrEqual(100);
   expect(renderedViews).toBeGreaterThan(0);
   expect(peakIngestionBytes).toBeGreaterThan(0);
   // Fails an unmeasured run rather than letting an empty sample set satisfy

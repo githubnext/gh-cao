@@ -22,6 +22,7 @@ type dashboardConfigurationKey struct{}
 
 type dashboardConfigurationSnapshot struct {
 	digest       string
+	git          dashboardGitIdentity
 	repositories []map[string]any
 	owners       map[string]bool
 	bounds       map[string]bool
@@ -106,6 +107,9 @@ func readDashboardConfiguration(path string) (*dashboardConfigurationSnapshot, e
 	}
 	digest := sha256.Sum256(canonical)
 	snapshot := &dashboardConfigurationSnapshot{digest: hex.EncodeToString(digest[:])}
+	if git, ok := document["git"].(map[string]any); ok {
+		snapshot.git = dashboardGitIdentity{Name: nativeText(git["name"]), Email: nativeText(git["email"])}
+	}
 	control, _ := document["control-plane"].(map[string]any)
 	scope, _ := control["scope"].(map[string]any)
 	repositories := map[string]bool{}

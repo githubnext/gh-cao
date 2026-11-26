@@ -3,23 +3,175 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
-import { Readable } from "node:stream";
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import {
   assertSafePagesOutput, parsePagesArguments, prepareDashboardPages,
 } from "../../scripts/simulate-dashboard-pages.mjs";
-import { ingestCachedGhAwJsonl, ingestDashboardSources, ingestNormalizedJsonl } from "../../dashboard/site/src/data/ingest/coordinator.js";
-import { enterpriseSample } from "../../scripts/dashboard-demo-data.mjs";
+import { finalizeNormalizedJsonlIngestion, ingestCachedGhAwJsonl, ingestDashboardSources, ingestDashboardSourceBatches } from "../../dashboard/site/src/data/ingest/coordinator.js";
+import {
+  enterpriseActivityBatches, enterpriseBlockedDomains, enterpriseDemo, enterpriseRepository,
+  enterpriseRepositorySources, enterpriseRepositoryVocabulary, enterpriseSample as generateEnterpriseSample, enterpriseWorkflowNames,
+} from "../../scripts/dashboard-demo-data.mjs";
+import { demoSha256 } from "../../dashboard/site/src/data/demo/hash.mjs";
 import { loadDashboardSourceSync } from "../../dashboard/report/bundle-dashboards.mjs";
 import { queryDatabaseSources } from "../../dashboard/site/src/data/queries/database.js";
 import { compileDashboardViewPayloadQueries } from "../../dashboard/site/src/data/queries/view-payload-compiler.js";
 import { processDataRequest } from "../../dashboard/site/src/data-worker.js";
 import { readCollection } from "../../dashboard/site/src/data/storage/indexeddb.js";
-import { relationshipErrors } from "../../dashboard/site/src/data/model/schema.js";
 import { isExpiredCanonicalRecord } from "../../dashboard/site/src/data/storage/retention.js";
 
 const root = path.resolve(".");
+const enterpriseSample = (now, options = {}) => generateEnterpriseSample(now, { runs: 1_200, repositories: 12, count: 12, ...options });
+
+test("the browser enterprise sample streams exactly 5,000 distinct runs in bounded batches", () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const ids = new Set();
+  const repositories = new Map();
+  const earlyCoverage = new Set();
+  const blockedDomains = new Set();
+  const approvedDomains = new Set();
+  const mcpTools = new Set();
+  const mcpServers = new Set();
+  let firstBatchRepositories;
+  let runs = 0;
+  for (const batch of enterpriseActivityBatches(now)) {
+    assert.ok(batch.runs <= 100, "normalization batches stay within the existing query budgets");
+    const records = batch.records.filter(record => record.kind === "run");
+    assert.equal(records.length, batch.runs);
+    if (runs === 0) firstBatchRepositories = new Set(records.map(({ run }) => run.repository)).size;
+    for (const { run } of records) {
+      ids.add(run.run_id);
+      repositories.set(run.repository, (repositories.get(run.repository) ?? 0) + 1);
+      if (ids.size <= enterpriseDemo.repositories * 3) earlyCoverage.add(run.repository);
+      if (Date.parse(run.started_at) >= now - 7 * 86_400_000) {
+        for (const [domain, requests] of Object.entries(run.firewall_analysis.requests_by_domain)) {
+          if (requests.blocked > 0) blockedDomains.add(domain);
+          if (requests.allowed > 0) approvedDomains.add(domain);
+        }
+        for (const call of run.mcp_tool_usage.tool_calls) {
+          if (call.server_name === "bash") continue;
+          mcpTools.add(call.tool_name);
+          mcpServers.add(call.server_name);
+        }
+      }
+    }
+    runs += batch.runs;
+  }
+  assert.equal(runs, 5_000);
+  assert.equal(ids.size, 5_000);
+  assert.equal(earlyCoverage.size, 1_000, "cover the fleet within the first 3,000 randomly interleaved runs");
+  assert.ok(firstBatchRepositories >= 50 && firstBatchRepositories < 100,
+    "early batches are diverse but allow realistic repeated activity, unlike strict round-robin");
+  assert.equal(repositories.size, 1_000);
+  assert.equal(blockedDomains.size, 128, "the retained firewall window includes all blocked-domain samples");
+  assert.deepEqual(blockedDomains, new Set(enterpriseBlockedDomains));
+  assert.ok([...blockedDomains].every(domain => domain.endsWith(".invalid")));
+  assert.ok(approvedDomains.size >= 8, "retained sessions cover varied public approved domains");
+  assert.ok(approvedDomains.has("packagefeedproxy.microsoft.io"));
+  assert.ok(approvedDomains.has("proxy.golang.org"));
+  assert.ok(mcpTools.size >= 15, "retained sessions cover varied MCP tool names");
+  assert.ok(mcpTools.has("issue_read") && mcpTools.has("actions_list") && mcpTools.has("pull_request_read"));
+  assert.deepEqual(mcpServers, new Set(["github", "agenticworkflows"]));
+  const counts = [...repositories.values()].toSorted((left, right) => right - left);
+  const topDecile = counts.slice(0, 100).reduce((sum, count) => sum + count, 0) / runs;
+  assert.ok(topDecile > 0.3 && topDecile < 0.75, "a busy minority, not a uniform fleet or a single-repository monopoly");
+  assert.ok(counts[0] > counts[500] * 10, "log-normal repository activity has a substantial right tail");
+  const combined = enterpriseSample(now, { count: 2 }).records.filter(record => record.kind === "run");
+  const partitioned = [0, 1].flatMap(start => enterpriseSample(now, { start, count: 1 }).records)
+    .filter(record => record.kind === "run");
+  const byId = (left, right) => left.run.run_id - right.run.run_id;
+  assert.deepEqual(combined.toSorted(byId), partitioned.toSorted(byId), "worker repository partitions preserve run and session identities");
+});
+
+test("repository names use four safe words with a collision-free 32-bit naming space", () => {
+  assert.equal(enterpriseRepositoryVocabulary.length, 256);
+  const vocabulary = new Set(enterpriseRepositoryVocabulary);
+  assert.equal(vocabulary.size, 256);
+  assert.ok([...vocabulary].every(word => /^[a-z]+$/.test(word)));
+  const names = new Set();
+  const positions = Array.from({ length: 4 }, () => new Set());
+  for (let index = 0; index < 65_536; index++) {
+    const repository = enterpriseRepository(index);
+    assert.ok(repository.startsWith("contoso/"));
+    names.add(repository);
+    const words = repository.split("/")[1].split("-");
+    assert.equal(words.length, 4);
+    for (const [position, word] of words.entries()) {
+      assert.ok(vocabulary.has(word));
+      positions[position].add(word);
+    }
+    if (index < enterpriseDemo.repositories) assert.equal(enterpriseRepository(index), repository);
+  }
+  assert.equal(names.size, 65_536);
+  for (const words of positions) assert.equal(words.size, 256, "all eight bits are used at each word position");
+  assert.notEqual(enterpriseRepository(0), enterpriseRepository(0xffff_ffff));
+  for (const index of [-1, 0x1_0000_0000, 0.5, NaN]) assert.throws(() => enterpriseRepository(index), RangeError);
+});
+
+test("Value throughput follows the allocated run population rather than an independent fleet multiplier", () => {
+  const sample = enterpriseSample(Date.parse("2040-06-15T12:00:00Z"), { runs: 0 });
+  const evidence = sample.records.filter(record => record.kind === "operational_value_evidence");
+  assert.equal(evidence.length, 48);
+  for (const { operational_value_evidence: packet } of evidence) {
+    assert.ok(packet.facts.some(fact => fact["fact-kind"] === "contract"));
+    assert.equal(packet.facts.some(fact => ["output", "implementation"].includes(fact["fact-kind"])), false);
+    assert.equal(new Set(packet.facts.filter(fact => fact["fact-kind"] === "snapshot").map(fact => fact.value)).size, 1);
+  }
+});
+
+test("workflow names vary safely across repositories and agree with run and Value evidence", () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const names = new Set(enterpriseWorkflowNames);
+  assert.equal(names.size, 64);
+  assert.ok([...names].every(name => /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)));
+  const inventory = generateEnterpriseSample(now, { count: enterpriseDemo.installedRepositories, includeHistory: false });
+  const installed = inventory.sources.workflows.rows;
+  assert.deepEqual(new Set(installed.map(workflow => workflow["workflow-name"])), names);
+  const sample = enterpriseSample(now);
+  for (const { run } of sample.records.filter(record => record.kind === "run")) {
+    assert.ok(names.has(run.workflow_name));
+    const source = installed.find(workflow => `${workflow.organization}/${workflow.repository}` === run.repository
+      && workflow.workflow === run.workflow_path);
+    assert.equal(source?.["workflow-name"], run.workflow_name);
+  }
+  for (const record of sample.records.filter(record => record.kind === "operational_value_evidence")) {
+    const packet = record.operational_value_evidence;
+    const contract = packet.facts.find(fact => fact["fact-kind"] === "contract");
+    const source = installed.find(workflow => `${workflow.organization}/${workflow.repository}` === packet.repository
+      && workflow.workflow === packet.sourcePath);
+    assert.equal(contract["workflow-name"], source?.["workflow-name"]);
+  }
+});
+
+test("browser sample SHA-256 matches standard UTF-8 hashing across block boundaries", () => {
+  for (const input of ["", "abc", "👩🏽‍💻 synthetic enterprise", "a".repeat(55), "b".repeat(64), "c".repeat(1_000)]) {
+    assert.equal(demoSha256(input), createHash("sha256").update(input).digest("hex"));
+  }
+});
+
+test("bounded raw repository inventory uses production normalization and preserves earlier batches", async () => {
+  const indexedDB = new IDBFactory();
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  async function* batches() {
+    yield enterpriseRepositorySources(0, 100, now);
+    yield enterpriseRepositorySources(100, 100, now);
+  }
+  const result = await ingestDashboardSourceBatches(indexedDB, batches());
+  assert.equal(result.committedRecords, 200);
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 200);
+  const controller = new AbortController();
+  async function* aborted() {
+    yield enterpriseRepositorySources(200, 100, now);
+    controller.abort();
+    yield enterpriseRepositorySources(300, 100, now);
+  }
+  await assert.rejects(ingestDashboardSourceBatches(indexedDB, aborted(), { signal: controller.signal }), /abort/i);
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 300);
+  await ingestDashboardSourceBatches(indexedDB, batches());
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 300, "replay upserts rather than duplicating");
+  assert.deepEqual([enterpriseDemo.repositories, enterpriseDemo.campaigns, enterpriseDemo.installedWorkflows], [1_000, 3, 4_000]);
+});
 
 test("enterprise distributions are reproducible, seasonal and uneven rather than one run per workflow per day", () => {
   for (const date of ["2040-06-15T12:00:00Z", "2040-06-17T23:59:00Z", "2040-06-20T00:00:00Z"]) {
@@ -92,12 +244,12 @@ test("workflow output rates, batch sizes, issue/PR mix and tool activity are het
     assert.ok(Math.max(...outputRates) - Math.min(...outputRates) > 0.6, "output probability is not shared by all workflows");
     assert.ok(runs.some(run => run.safe_outputs.length >= 4), "orchestrators can create batches");
     assert.ok(runs.some(run => run.conclusion === "success" && run.safe_outputs.length === 0), "successful no-ops are normal");
-    const mix = name => {
-      const outputs = runs.filter(run => run.workflow_name === name).flatMap(run => run.safe_outputs);
+    const mix = slug => {
+      const outputs = runs.filter(run => run.workflow_path === `.github/workflows/${slug}.md`).flatMap(run => run.safe_outputs);
       return outputs.filter(output => output.type === "create_pull_request").length / outputs.length;
     };
-    assert.ok(mix("Dependency review") < 0.25 && mix("Security review") < 0.25, "review workflows favor findings");
-    assert.ok(mix("Repository assistant") > 0.75 && mix("Documentation maintenance") > 0.75, "repair workflows favor PRs");
+    assert.ok(mix("dependency-review") < 0.25 && mix("security-review") < 0.25, "review workflows favor findings");
+    assert.ok(mix("repository-assistant") > 0.75 && mix("documentation") > 0.75, "repair workflows favor PRs");
     assert.ok(new Set(runs.map(run => run.mcp_tool_usage.tool_calls.length)).size > 10, "tool call counts vary");
     assert.deepEqual(new Set(runs.map(run => run.skill_activations.length)), new Set([0, 1, 2]));
     const urls = runs.flatMap(run => run.safe_outputs).map(output => output.url);
@@ -149,6 +301,101 @@ test("probabilistic outcomes preserve timestamps, output eligibility and delayed
   assert.deepEqual(outputStates, new Set(["open", "closed"]));
   assert.ok(delays.size > 20);
   assert.ok(changes.some(change => change > 0) && changes.some(change => change < 0));
+});
+
+test("synthetic unified sessions conserve usage across turns and phases without inventing terminal evidence", () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const runs = enterpriseSample(now).records.filter(record => record.kind === "run").map(record => record.run);
+  const turns = new Set();
+  for (const run of runs) {
+    const session = run.cao_unified_session;
+    assert.ok(session, "every sample uses the production unified-session parser");
+    const events = session.events;
+    const pending = run.status !== "completed";
+    const approval = run.conclusion === "action_required";
+    const interrupted = pending || ["cancelled", "timed_out"].includes(run.conclusion);
+    const requests = events.filter(event => event.type === "firewall.token_usage" && event.fields.phase === "agent");
+    if (approval) {
+      assert.equal(events.some(event => event.type === "session.start"), false);
+      assert.equal(events.some(event => event.type === "firewall.token_usage"), false);
+      assert.equal(run.token_usage_summary.total_aic, 0);
+    } else {
+      assert.ok(events.some(event => event.type === "session.start"));
+      assert.ok(run.github_api_calls >= run.mcp_tool_usage.tool_calls.filter(call => call.server_name === "github").length,
+        "network activity covers generated GitHub tool calls without an unrelated request multiplier");
+      assert.ok(requests.length >= 2 && requests.length <= 20);
+      turns.add(requests.length);
+      assert.ok(requests[0].fields.inputTokens > requests[1].fields.inputTokens, "initial prompt dominates uncached input");
+      assert.equal(requests[0].fields.cacheReadTokens, 0);
+      assert.ok(requests.at(-1).fields.cacheReadTokens > 0, "later turns reuse context");
+      for (const [field, value] of Object.entries(run.token_usage_summary)) {
+        assert.ok(Math.abs(value - session.run.token_usage_summary[field]) < 1e-8,
+          `${field} conserves totals despite proxy/report/snapshot copies`);
+      }
+    }
+    assert.equal(events.some(event => event.type === "session.result"), !approval && !interrupted);
+    assert.equal(events.some(event => event.type === "detection.result"), !approval && !interrupted);
+    assert.equal(events.some(event => event.type === "session.collection"), !pending);
+    if (pending) {
+      assert.equal(events.some(event => event.type === "session.shutdown"), false);
+      assert.equal(events.some(event => event.type === "workflow.job_result" && event.fields.name === "agent"), false);
+    }
+    for (const event of events) {
+      if (event.timestamp) {
+        assert.ok(Date.parse(event.timestamp) >= Date.parse(run.started_at));
+        assert.ok(Date.parse(event.timestamp) <= Date.parse(run.updated_at));
+      }
+    }
+    const tools = events.filter(event => ["tool.execution_start", "mcp.tool_call"].includes(event.type));
+    assert.equal(tools.reduce((sum, event) => sum + event.fields.invocationCount, 0), run.mcp_tool_usage.tool_calls.length);
+    for (const call of tools.filter(event => event.type === "tool.execution_start")) {
+      assert.ok(events.some(event => event.type === "tool.execution_complete"
+        && event.fields.correlationId === call.fields.correlationId));
+    }
+    const outputs = events.filter(event => event.type === "safe_output.result");
+    assert.equal(outputs.length, run.safe_outputs.length);
+    if (outputs.length) assert.equal(run.conclusion, "success");
+    assert.ok(events.length < 500, "bounded per-run event population");
+  }
+  assert.ok(turns.size >= 10, "session length follows heterogeneous work rather than a fixed template");
+});
+
+test("unified demo telemetry survives canonical ingestion with exact run accounting", async () => {
+  const now = Date.parse("2040-06-15T12:00:00Z");
+  const population = enterpriseSample(now).records.filter(record => record.kind === "run");
+  const records = ["success", "failure", "pending", "action_required", "timed_out", "cancelled"]
+    .map(outcome => population.find(record => record.run.classification === outcome
+      && Date.parse(record.run.started_at) >= now - 6 * 86_400_000));
+  const resolution = population.find(record => record.run.cao_unified_session.events
+    .some(event => event.type === "model.resolution") && Date.parse(record.run.started_at) >= now - 6 * 86_400_000);
+  if (!records.includes(resolution)) records.push(resolution);
+  assert.ok(records.every(Boolean));
+  const indexedDB = new IDBFactory();
+  await ingestCachedGhAwJsonl(indexedDB, records.map(record => JSON.stringify(record)).join("\n"), { now });
+  const canonical = await readCollection(indexedDB, "runs");
+  assert.equal(canonical.length, records.length);
+  for (const { run } of records) {
+    const actual = canonical.find(row => row.githubRunId === String(run.run_id));
+    assert.ok(actual);
+    for (const [field, source] of Object.entries({ inputTokens: "total_input_tokens", outputTokens: "total_output_tokens",
+      cacheReadTokens: "total_cache_read_tokens", cacheWriteTokens: "total_cache_write_tokens",
+      reasoningTokens: "total_reasoning_tokens", aicTotal: "total_aic" })) {
+      assert.ok(Math.abs(actual[field] - run.token_usage_summary[source]) < 1e-8, `${field} round trips`);
+    }
+  }
+  const audits = await readCollection(indexedDB, "audits");
+  for (const type of ["session.start", "assistant.message", "session.result", "model.resolution", "detection.result"]) {
+    assert.ok(audits.some(row => row.type === type), `${type} passes through production ingestion`);
+  }
+  const domains = await readCollection(indexedDB, "domains");
+  assert.ok(domains.some(row => row.type === "firewall.http_access" && row.responseBytes > 0 && row.latencyMs > 0));
+  assert.deepEqual(new Set(domains.filter(row => row.decision === "allowed").map(row => row.domain)),
+    new Set(records.flatMap(({ run }) => Object.entries(run.firewall_analysis.requests_by_domain)
+      .filter(([, counts]) => counts.allowed > 0).map(([domain]) => domain))));
+  const tools = await readCollection(indexedDB, "tools");
+  assert.deepEqual(new Set(tools.filter(row => row.mcpServer).map(row => `${row.mcpServer}/${row.mcpTool}`)),
+    new Set(records.flatMap(({ run }) => run.mcp_tool_usage.tool_calls
+      .filter(call => call.server_name !== "bash").map(call => `${call.server_name}/${call.tool_name}`))));
 });
 
 test("rebuilding the enterprise sample does not duplicate daily Value observations", async () => {
@@ -203,7 +450,7 @@ test("Pages output refuses repository paths, unowned data, and symlink ancestors
   assert.equal(await readFile(path.join(directory, "keep.txt"), "utf8"), "important");
 });
 
-test("sample-only build produces verified canonical enterprise data and no operational exports", { timeout: 120_000 }, async (t) => {
+test("data-free build leaves browser samples to production canonical ingestion, without operational exports", { timeout: 240_000 }, async (t) => {
   const directory = await workspace(t);
   const output = path.join(directory, "site");
   const now = Date.parse("2040-06-15T12:00:00.000Z");
@@ -224,32 +471,37 @@ test("sample-only build produces verified canonical enterprise data and no opera
   const html = await readFile(path.join(output, "index.html"), "utf8");
   assert.match(html, /dashboard-deployment" content="synthetic-demo"/);
   assert.match(html, /connect-src 'self'/);
-  const data = path.join(output, "demo-data");
-  const inventory = JSON.parse(await readFile(path.join(data, "inventory-sources.json"), "utf8"));
+  assert.ok(!names.includes("demo-data"), "build must not pregenerate demo data or manifests");
+  // The scale contract above covers 5,000 runs; keep this ingestion fixture
+  // bounded while retaining the full history, fleet and outcome coverage.
+  const sample = enterpriseSample(now, { count: 50, runs: 240 });
+  const sampleRuns = sample.records.filter(record => record.kind === "run").map(record => record.run);
+  assert.equal(new Set(sampleRuns.map(run => run.started_at.slice(0, 10))).size, 21);
+  assert.equal(new Set(sampleRuns.map(run => run.repository)).size, 12);
+  assert.equal(new Set(sampleRuns.map(run => run.workflow_path)).size, 4);
+  assert.deepEqual(new Set(sampleRuns.map(run => run.conclusion)),
+    new Set(["success", "failure", "timed_out", "cancelled", "action_required", null]));
+  const inventory = sample.sources;
   assert.equal(inventory.workflows.metadata["source-kind"], "synthetic");
   assert.equal(inventory.workflows.metadata["as-of"], new Date(now).toISOString());
-  const manifest = JSON.parse(await readFile(path.join(data, "payload-hashes.json"), "utf8"));
   const indexedDB = new IDBFactory();
   await ingestDashboardSources(indexedDB, inventory, { now, deferMaintenance: true });
-  const records = {};
-  // Use the canonical production boundary, including run-before-detail ingestion.
-  const shards = Object.entries(manifest).sort(([a], [b]) =>
-    Number(b.startsWith("gh-aw-logs-runs/")) - Number(a.startsWith("gh-aw-logs-runs/")) || a.localeCompare(b));
-  for (const [name, expected] of shards) {
-    assert.match(name, /^gh-aw-logs-(?:runs|records)\/[^/]+\.jsonl$/);
-    const bytes = await readFile(path.join(data, name));
-    assert.equal(createHash("sha256").update(bytes).digest("hex"), expected);
-    for (const entry of bytes.toString().trim().split("\n").map(line => JSON.parse(line))) {
-      if (entry.kind === "record") (records[entry.collection] ??= []).push(entry.record);
-    }
-    await ingestNormalizedJsonl(indexedDB, Readable.from([bytes]), {
-      payloadIdentity: expected, payloadScope: name, now, deferMaintenance: true,
-      expectedPhase: name.startsWith("gh-aw-logs-runs/") ? "runs" : "records",
+  let batchIndex = 0;
+  for (const batch of enterpriseActivityBatches(now, { repositories: 12, runs: sample.runs })) {
+    await ingestCachedGhAwJsonl(indexedDB, batch.records.map(record => JSON.stringify(record)).join("\n"), {
+      now, deferMaintenance: true, payloadScope: `synthetic-demo-test/activity/${batchIndex}`,
     });
+    if (batchIndex++ === 0) {
+      const partial = await readCollection(indexedDB, "runs");
+      assert.equal(partial.length, 100);
+      assert.equal(new Set(partial.map(run => run.repository)).size, 12,
+        "early canonical results include the entire fixture fleet, not one completed repository");
+    }
   }
-  assert.deepEqual(relationshipErrors(records), []);
+  await finalizeNormalizedJsonlIngestion(indexedDB, { now });
   const runs = await readCollection(indexedDB, "runs");
-  assert.equal(runs.length, marker.runs);
+  assert.equal(runs.length, sample.runs);
+  assert.equal(marker.repositories, 1_000);
   const dashboardDocument = loadDashboardSourceSync(path.join(root, "dashboard/site/dashboard.json")).document.dashboard;
   const overview = dashboardDocument.pages.find(page => page.id === "overview");
   const rhythmQuery = compileDashboardViewPayloadQueries(overview, "overview", {
@@ -267,11 +519,12 @@ test("sample-only build produces verified canonical enterprise data and no opera
   assert.equal(rhythm.rows[0].rhythm.days.length, 7);
   assert.ok(rhythm.rows[0].rhythm.days.some(day => day.current > 0), "current week has visible bars");
   assert.ok(rhythm.rows[0].rhythm.days.every(day => day.previous > 0), "last week has visible bars");
-  assert.equal((await readCollection(indexedDB, "repositories")).length, 12);
-  assert.equal((await readCollection(indexedDB, "workflows")).length, 48);
+  assert.equal((await readCollection(indexedDB, "repositories")).length, 50);
+  assert.equal((await readCollection(indexedDB, "workflows")).length, 200);
+  assert.equal((await readCollection(indexedDB, "campaigns")).length, 3);
   const expectedOutputs = new Map();
   const lifecycleByUrl = new Map();
-  for (const { run } of enterpriseSample(now).records.filter(record => record.kind === "run")) {
+  for (const { run } of sample.records.filter(record => record.kind === "run")) {
     const key = `${run.repository}:${run.workflow_path}`;
     const retainedOutputs = run.safe_outputs.filter(output => !isExpiredCanonicalRecord("issues",
       { timestamp: output.timestamp }, { now }));
@@ -299,12 +552,16 @@ test("sample-only build produces verified canonical enterprise data and no opera
   for (const field of ["agentVersion", "modelId", "engine", "duration", "aicTotal", "inputTokens", "outputTokens"]) {
     assert.ok(runs.every(run => run[field] !== undefined && run[field] !== null && run[field] !== ""), `run.${field}`);
   }
-  const memory = JSON.parse(await readFile(path.join(data, "memory/manifest.json"), "utf8"));
-  assert.equal(memory.campaigns.length, 2);
+  assert.equal(sample.memory.length, 3);
   assert.ok(runs.some(run => run.conclusion === "failure"));
-  assert.ok(runs.every(run => run.id.includes("sample-enterprise/")));
+  assert.ok(runs.every(run => run.id.includes("contoso/")));
   const tools = await readCollection(indexedDB, "tools");
   assert.ok(tools.length > 0);
   assert.ok(tools.some(record => !isExpiredCanonicalRecord("tools", record, { now: now + 60_000 })));
+  const blockedDomains = new Set((await readCollection(indexedDB, "domains"))
+    .filter(record => record.decision === "denied").map(record => record.domain));
+  for (const domain of enterpriseBlockedDomains.slice(0, 12)) {
+    assert.ok(blockedDomains.has(domain), "guaranteed blocked domains survive production normalization");
+  }
   assert.match(await readFile(path.join(output, "llms.txt"), "utf8"), /not operational evidence/);
 });

@@ -120,10 +120,15 @@ export function shouldIgnoreRequestFailure({
   );
 }
 
-export async function activateTableViewMode(activePage) {
-  const tableMode = activePage.locator('[data-view-mode-value="table"]');
-  if (await tableMode.count() === 0) return false;
-  await tableMode.click();
+export async function activateViewMode(page, activePage, targetMode) {
+  const modes = (await activePage.getAttribute("data-view-modes") ?? "").split(/\s+/);
+  if (!modes.includes(targetMode)) return false;
+  const currentMode = await activePage.getAttribute("data-view-mode");
+  const currentIndex = modes.indexOf(currentMode);
+  if (currentIndex < 0) throw new Error(`Invalid dashboard view mode: ${currentMode}`);
+  const clicks = (modes.indexOf(targetMode) - currentIndex + modes.length) % modes.length;
+  const toggle = page.getByRole("button", { name: /^Switch to (Chart|Table|Cards) view$/ });
+  for (let index = 0; index < clicks; index++) await toggle.click();
   return true;
 }
 

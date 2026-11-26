@@ -14,6 +14,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -42,7 +44,7 @@ type dashboardPostgresContainer struct {
 		Labels map[string]string
 	}
 	State           struct{ Running bool }
-	Mounts          []struct{ Type, Source, Destination string }
+	Mounts          []struct{ Type, Name, Source, Destination string }
 	NetworkSettings struct {
 		Ports map[string][]struct {
 			HostIP   string `json:"HostIp"`
@@ -63,7 +65,7 @@ func (output *dashboardEngineOutput) Write(value []byte) (int, error) {
 func newDashboardEngine(name string) (dashboardEngine, error) {
 	binary, err := exec.LookPath(name)
 	if err != nil {
-		return dashboardEngine{}, fmt.Errorf("%s is not installed", name)
+		return dashboardEngine{}, fmt.Errorf("%s is not available on PATH: %w", name, err)
 	}
 	return dashboardEngine{name: name, run: func(ctx context.Context, args ...string) ([]byte, error) {
 		var output, diagnostic dashboardEngineOutput
@@ -187,16 +189,125 @@ func selectDashboardEngine(ctx context.Context, name string) (dashboardEngine, e
 		if err == nil {
 			return engine, nil
 		}
-		failures = append(failures, err)
+		failures = append(failures, fmt.Errorf("%w\n%s", err,
+			dashboardEngineHelp(runtime.GOOS, candidate, errors.Is(err, exec.ErrNotFound))))
 	}
 	if name != "" {
 		alternative := "podman"
 		if name == "podman" {
 			alternative = "docker"
 		}
-		return dashboardEngine{}, fmt.Errorf("%s is not usable for managed PostgreSQL; start it, pass --container-engine %s, or supply --postgres-url: %w", name, alternative, errors.Join(failures...))
+		return dashboardEngine{}, fmt.Errorf("%s is not usable for managed PostgreSQL; select --container-engine %s or supply a pre-provisioned --postgres-url: %w\n%s", name, alternative, errors.Join(failures...), dashboardPostgresHelp(runtime.GOOS))
 	}
-	return dashboardEngine{}, fmt.Errorf("no usable local container engine; start Docker/Podman or supply --postgres-url: %w", errors.Join(failures...))
+	return dashboardEngine{}, fmt.Errorf("no usable local container engine for managed PostgreSQL: %w\n%s", errors.Join(failures...), dashboardPostgresHelp(runtime.GOOS))
+}
+
+func dashboardEngineHelp(goos, engine string, missing bool) string {
+	var help []string
+	if missing {
+		switch goos {
+		case "windows":
+			id := "Docker.DockerDesktop"
+			if engine == "podman" {
+				id = "RedHat.Podman"
+			}
+			help = append(help, "Native Windows 11+ route: Windows does not include a Linux container engine. "+
+				"Install with WinGet in Command Prompt or PowerShell: winget install --exact --id "+id+
+				". If winget is unavailable, update App Installer through Microsoft Store. "+
+				"Docker Desktop requires a paid subscription for larger organizations; "+
+				"Podman (RedHat.Podman) is a free alternative used with --container-engine podman.")
+		case "darwin":
+			command := "brew install --cask docker-desktop"
+			if engine == "podman" {
+				command = "brew install podman"
+			}
+			help = append(help, "macOS: install with Homebrew: "+command+
+				". If brew is unavailable, set up Homebrew using your organization's approved procedure.")
+		case "linux":
+			if engine == "docker" {
+				help = append(help, "Linux: install Docker Engine using your distribution's package manager "+
+					"(Debian/Ubuntu: sudo apt update && sudo apt install docker.io). "+
+					"For other distributions, follow https://docs.docker.com/engine/install/ "+
+					"and use the package-repository instructions, not the convenience script.")
+			} else {
+				help = append(help, "Linux: install Podman using your distribution's package manager: "+
+					"Debian/Ubuntu: sudo apt update && sudo apt install podman; "+
+					"Fedora/RHEL: sudo dnf install podman; Arch: sudo pacman -S podman; "+
+					"openSUSE: sudo zypper install podman.")
+			}
+		default:
+			help = append(help, "Install "+engine+" using your operating system's package manager.")
+		}
+		help = append(help, "After installation, reopen the terminal so PATH is refreshed.")
+	}
+	if engine == "docker" {
+		switch goos {
+		case "windows":
+			help = append(help, "Start Docker Desktop and wait until the engine is ready. "+
+				"Use the WSL 2 backend and Linux containers, not Windows containers.")
+		case "darwin":
+			help = append(help, "Start Docker Desktop and wait until the engine is ready.")
+		case "linux":
+			help = append(help, "Start Docker Engine (systemd: sudo systemctl start docker) "+
+				"and ensure your user has permission to access it; do not run gh cao as root.")
+		}
+		help = append(help, "Check docker context show and docker info; select a local Linux engine, not a remote context.")
+	} else {
+		if goos == "windows" || goos == "darwin" {
+			help = append(help, "Initialize a local Linux VM with podman machine init (only if none exists), "+
+				"then run podman machine start.")
+			if goos == "windows" {
+				help = append(help, "Use Podman's WSL provider.")
+			}
+		}
+		help = append(help, "Check podman system connection list and podman info; the selected endpoint must be "+
+			"unix://, npipe://, or use a numeric loopback address (127.0.0.1 or [::1]). "+
+			"Hostnames, including ssh://localhost, are not accepted by the managed PostgreSQL check. "+
+			"If a local machine reports localhost, configure its connection to use the numeric loopback address "+
+			"while preserving its port, identity and socket path.")
+	}
+	if goos == "windows" {
+		help = append(help, dashboardWindowsWSLHelp())
+	}
+	return strings.Join(help, "\n")
+}
+
+func dashboardWindowsWSLHelp() string {
+	return "WSL 2 prerequisite: if missing, install with winget install --exact --id Microsoft.WSL. " +
+		"Enable Windows Subsystem for Linux and Virtual Machine Platform in 'Turn Windows features on or off' " +
+		"(administrator approval required), enable hardware virtualization in BIOS/UEFI, " +
+		"and restart Windows after enabling features."
+}
+
+func dashboardPostgresHelp(goos string) string {
+	help := "A separate PostgreSQL installation is NOT required with Docker/Podman; gh cao provisions it automatically. " +
+		"No dependency installation is performed by this check.\n" +
+		"Alternative: install native PostgreSQL using a package manager"
+	switch goos {
+	case "windows":
+		help = "Windows 11+ native route: install Docker Desktop (winget install --exact --id Docker.DockerDesktop) " +
+			"or Podman (winget install --exact --id RedHat.Podman), start it, and rerun gh cao dashboard " +
+			"from this Command Prompt; both use WSL 2. " +
+			"Alternative WSL 2 route (run CAO inside Linux): " +
+			"run winget install --exact --id Microsoft.WSL and " +
+			"winget install --exact --id Canonical.Ubuntu.2404. " + dashboardWindowsWSLHelp() +
+			" Run wsl --set-default-version 2 before launching Ubuntu. " +
+			"Inside Ubuntu, run sudo apt update && sudo apt install gh podman, " +
+			"authenticate with gh auth login, install the CAO extension with gh extension install githubnext/gh-cao, " +
+			"then run gh cao dashboard --container-engine podman " +
+			"with your original repository flags from your Linux home directory. " +
+			"Inside WSL, use the Linux gh and CAO installed there, not the Windows .exe files.\n" + help
+		help += " (Windows 11+: winget install --exact --id PostgreSQL.PostgreSQL.16)"
+	case "darwin":
+		help += " (macOS: brew install postgresql@16)"
+	case "linux":
+		help += " (Debian/Ubuntu: sudo apt install postgresql; Fedora/RHEL: sudo dnf install postgresql-server; " +
+			"Arch: sudo pacman -S postgresql; openSUSE: sudo zypper install postgresql-server)"
+	}
+	return help + ", start the database service, and provision the CAO owner/runtime roles before supplying " +
+		"--postgres-url or CAO_POSTGRES_URL. Installing PostgreSQL alone does not configure dashboard storage. " +
+		"See https://github.com/githubnext/gh-cao/blob/main/server/POSTGRES.md for database provisioning. " +
+		"Then rerun gh cao dashboard with your original flags."
 }
 
 func dashboardPostgresSecret() (string, error) {
@@ -211,7 +322,7 @@ func readDashboardPostgresState(filename string) (dashboardPostgresState, error)
 	if err != nil {
 		return state, err
 	}
-	if !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 || info.Size() > 4096 {
+	if !info.Mode().IsRegular() || !dashboardIsPrivate(filename, info) || info.Size() > 4096 {
 		return state, errors.New("managed PostgreSQL state must be a private regular file")
 	}
 	content, err := os.ReadFile(filename)
@@ -237,6 +348,10 @@ func writeDashboardPostgresState(filename string, state dashboardPostgresState) 
 		return err
 	}
 	defer func() { _ = os.Remove(temporary) }()
+	if err := dashboardSecurePrivate(temporary, false); err != nil {
+		_ = file.Close()
+		return err
+	}
 	if _, err := file.Write(content); err != nil {
 		_ = file.Close()
 		return err
@@ -260,7 +375,32 @@ func (engine dashboardEngine) inspectPostgres(ctx context.Context, id string) (d
 	return containers[0], nil
 }
 
-func validateDashboardPostgresOwnership(container dashboardPostgresContainer, state dashboardPostgresState, data string) error {
+// dashboardPostgresGOOS selects the managed data layout; tests override it.
+var dashboardPostgresGOOS = runtime.GOOS
+
+// dashboardPostgresData identifies where managed PostgreSQL keeps its cluster.
+type dashboardPostgresData struct {
+	Source string
+	Volume bool
+}
+
+func dashboardPostgresName(directory string) string {
+	digest := sha256.Sum256([]byte(directory))
+	return fmt.Sprintf("gh-cao-postgres-%x", digest[:12])
+}
+
+// dashboardPostgresDataLocation bind-mounts the cache on POSIX hosts. Windows
+// bind mounts cross Docker Desktop/Podman file sharing, which rejects
+// PostgreSQL's ownership and 0700 requirements and reports translated sources,
+// so Windows uses an owner-labelled engine volume instead.
+func dashboardPostgresDataLocation(goos, directory string) dashboardPostgresData {
+	if goos == "windows" {
+		return dashboardPostgresData{Source: dashboardPostgresName(directory) + "-data", Volume: true}
+	}
+	return dashboardPostgresData{Source: filepath.Join(directory, "data")}
+}
+
+func validateDashboardPostgresOwnership(container dashboardPostgresContainer, state dashboardPostgresState, data dashboardPostgresData) error {
 	if container.Config.Labels[dashboardPostgresLabel] != state.Owner || container.Config.Image != dashboardPostgresImage ||
 		state.ContainerID != "" && container.ID != state.ContainerID {
 		return errors.New("the PostgreSQL container is not owned by this dashboard cache")
@@ -268,7 +408,11 @@ func validateDashboardPostgresOwnership(container dashboardPostgresContainer, st
 	found := false
 	for _, mount := range container.Mounts {
 		if mount.Destination == "/var/lib/postgresql/data" {
-			found = mount.Type == "bind" && filepath.Clean(mount.Source) == filepath.Clean(data)
+			if data.Volume {
+				found = mount.Type == "volume" && mount.Name == data.Source
+			} else {
+				found = mount.Type == "bind" && filepath.Clean(mount.Source) == filepath.Clean(data.Source)
+			}
 		}
 	}
 	if !found {
@@ -277,7 +421,7 @@ func validateDashboardPostgresOwnership(container dashboardPostgresContainer, st
 	return nil
 }
 
-func validateDashboardPostgresContainer(container dashboardPostgresContainer, state dashboardPostgresState, data string) (string, error) {
+func validateDashboardPostgresContainer(container dashboardPostgresContainer, state dashboardPostgresState, data dashboardPostgresData) (string, error) {
 	if err := validateDashboardPostgresOwnership(container, state, data); err != nil {
 		return "", err
 	}
@@ -299,7 +443,7 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 	if info, err := os.Lstat(directory); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return "", "", errors.New("managed PostgreSQL requires a real private cache directory")
 	}
-	if err := os.Chmod(directory, 0o700); err != nil {
+	if err := dashboardSecurePrivate(directory, true); err != nil {
 		return "", "", err
 	}
 	lock := filepath.Join(directory, "setup.lock")
@@ -326,7 +470,7 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 		return "", "", errors.New("this dashboard cache belongs to another container engine; select it or use a different --cache-dir")
 	}
 	passwordFile := filepath.Join(directory, "password")
-	if info, err := os.Lstat(passwordFile); err == nil && (!info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0) {
+	if info, err := os.Lstat(passwordFile); err == nil && (!info.Mode().IsRegular() || !dashboardIsPrivate(passwordFile, info)) {
 		return "", "", errors.New("managed PostgreSQL credentials must be a private regular file")
 	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return "", "", err
@@ -338,20 +482,23 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 			return "", "", secretErr
 		}
 		adminPassword = []byte(secret)
-		err = os.WriteFile(passwordFile, adminPassword, 0o600)
+		err = writeDashboardPrivateFile(passwordFile, adminPassword)
 	}
 	if err != nil || len(adminPassword) != 64 {
 		return "", "", errors.New("the managed PostgreSQL administrator credential is unavailable")
 	}
-	data := filepath.Join(directory, "data")
-	if err := os.MkdirAll(data, 0o700); err != nil {
-		return "", "", err
+	data := dashboardPostgresDataLocation(dashboardPostgresGOOS, directory)
+	mount := data.Source + ":/var/lib/postgresql/data"
+	if !data.Volume {
+		if err := os.MkdirAll(data.Source, 0o700); err != nil {
+			return "", "", err
+		}
+		if info, err := os.Lstat(data.Source); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return "", "", errors.New("managed PostgreSQL data must be a real cache directory")
+		}
+		mount += ":Z"
 	}
-	if info, err := os.Lstat(data); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return "", "", errors.New("managed PostgreSQL data must be a real cache directory")
-	}
-	digest := sha256.Sum256([]byte(directory))
-	name := fmt.Sprintf("gh-cao-postgres-%x", digest[:12])
+	name := dashboardPostgresName(directory)
 	if state.ContainerID == "" {
 		// Listing by exact name distinguishes absence from a daemon/permission failure.
 		content, err := engine.run(ctx, "container", "ls", "--all", "--filter", "name=^"+name+"$", "--format", "{{.ID}}")
@@ -359,6 +506,11 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 			return "", "", err
 		}
 		if strings.TrimSpace(string(content)) == "" {
+			if data.Volume {
+				if err := engine.ensureDashboardPostgresVolume(ctx, data.Source, state.Owner); err != nil {
+					return "", "", err
+				}
+			}
 			if _, err := engine.run(ctx, "image", "inspect", dashboardPostgresImage); err != nil {
 				if _, err := engine.run(ctx, "pull", "--quiet", dashboardPostgresImage); err != nil {
 					return "", "", err
@@ -367,7 +519,7 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 			_, err = engine.run(ctx, "run", "--detach", "--name", name,
 				"--label", dashboardPostgresLabel+"="+state.Owner,
 				"--publish", "127.0.0.1::5432",
-				"--volume", data+":/var/lib/postgresql/data:Z",
+				"--volume", mount,
 				"--volume", passwordFile+":/run/secrets/postgres:ro,Z",
 				"--env", "POSTGRES_DB=cao_dashboard", "--env", "POSTGRES_USER=cao_bootstrap",
 				"--env", "POSTGRES_PASSWORD_FILE=/run/secrets/postgres",
@@ -417,6 +569,42 @@ func startDashboardPostgres(ctx context.Context, engine dashboardEngine, directo
 	address.User = url.UserPassword("cao_bootstrap", string(adminPassword))
 	address.RawQuery = "sslmode=disable"
 	return address.String(), state.RuntimePassword, nil
+}
+
+// ensureDashboardPostgresVolume creates the owner-labelled data volume, or
+// adopts it only when an earlier run from this cache created it.
+func (engine dashboardEngine) ensureDashboardPostgresVolume(ctx context.Context, volume, owner string) error {
+	content, err := engine.run(ctx, "volume", "ls", "--quiet", "--filter", "name="+volume)
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(strings.Fields(string(content)), volume) {
+		_, err = engine.run(ctx, "volume", "create", "--label", dashboardPostgresLabel+"="+owner, volume)
+		return err
+	}
+	content, err = engine.run(ctx, "volume", "inspect", "--format", "{{json .Labels}}", volume)
+	if err != nil {
+		return err
+	}
+	var labels map[string]string
+	if json.Unmarshal(bytes.TrimSpace(content), &labels) != nil || labels[dashboardPostgresLabel] != owner {
+		return errors.New("the PostgreSQL data volume is not owned by this dashboard cache")
+	}
+	return nil
+}
+
+func writeDashboardPrivateFile(filename string, content []byte) error {
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if err := dashboardSecurePrivate(filename, false); err != nil {
+		_ = file.Close()
+		_ = os.Remove(filename)
+		return err
+	}
+	_, err = file.Write(content)
+	return errors.Join(err, file.Close())
 }
 
 func configureDashboardPostgres(ctx context.Context, server, cache, namespace, supplied, engineName string) (string, error) {

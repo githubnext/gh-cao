@@ -18,13 +18,32 @@ or human review.
 ## Open a local dashboard
 
 Use your locally authenticated [GitHub CLI](https://cli.github.com) to install
-the release extension and inspect a repository:
+the release extension and inspect a repository. These commands work unchanged
+in Windows Command Prompt, PowerShell, and POSIX shells:
 
 ```bash
 gh auth status
 gh extension install githubnext/gh-cao
 gh cao dashboard --repo OWNER/REPOSITORY
 ```
+
+**Fresh Windows 11 machine:** install the prerequisites with WinGet, then
+reopen Command Prompt so `PATH` is refreshed:
+
+```bat
+winget install --exact --id GitHub.cli
+winget install --exact --id Docker.DockerDesktop
+```
+
+Start Docker Desktop and wait until its engine is running. Docker Desktop needs
+WSL 2 and hardware virtualization, may ask for administrator approval and a
+restart, and requires a paid subscription for larger organizations. Podman
+(`winget install --exact --id RedHat.Podman`, then `podman machine init` and
+`podman machine start`) is a free alternative; pass `--container-engine podman`.
+
+In the reopened terminal, run `gh auth login`, then the extension install and
+dashboard commands above. The dashboard installs gh-aw before workflow discovery
+if the streaming log command is unavailable.
 
 No CAO cloud deployment, Azure setup, hosted dashboard, Redis, or separate
 Node.js or gh-aw installation is required. A running Docker or Podman engine
@@ -33,8 +52,9 @@ existing repository checkout, use `gh cao dashboard` without `--repo`.
 No `gh cao setup` or control-repository configuration is needed.
 
 Open the **Dashboard:** URL printed in the terminal. The bundled Go server
-serves on loopback and queries local PostgreSQL. Managed data is bind-mounted
-under the ignored `.github/cao/dashboard/<scope>/postgres/` cache.
+serves on loopback and queries local PostgreSQL. Private state lives under the
+ignored `.github/cao/dashboard/<scope>/postgres/` cache; managed data is
+bind-mounted there on macOS and Linux, and kept in an engine volume on Windows.
 Docker is tried first, then Podman. Pass `--container-engine docker|podman` (or set
 `CAO_CONTAINER_ENGINE`) to use only that engine. `--postgres-url` or
 `CAO_POSTGRES_URL` bypasses container management and uses provisioned storage.
@@ -72,7 +92,8 @@ Setup does not configure Pages.
 
 > [!TIP]
 > **SAML-token installation failure:** Use the
-> [curl installer](docs/cao-cli.md#control-plane-installer):
+> [curl installer](docs/cao-cli.md#control-plane-installer) from a Bash shell
+> (on Windows, Git Bash or WSL; it does not run in Command Prompt):
 > `curl -fsSL https://raw.githubusercontent.com/githubnext/gh-cao/main/install-gh-cao.sh | bash -s -- --setup`.
 
 Follow [Set Up CAO](docs/setup-quickstarts.md) for authentication, scope,

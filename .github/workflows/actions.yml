@@ -38,8 +38,6 @@ jobs:
     name: ${{ matrix.device }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      MOBILE_DEBUG_SHARD_LIMIT: 10
     strategy:
       fail-fast: false
       matrix:
@@ -180,7 +178,7 @@ jobs:
               const names = mobileAccessibility
                 ? `${mobileAccessibility.accessibleNames.passes ? 'Pass' : 'Fail'} (${mobileAccessibility.accessibleNames.unnamedInteractive.length} unnamed)`
                 : 'n/a'
-              return `| ${analysis.device} | ${analysis.browser} | ${analysis.profile} | ${memory} | ${networkLabel} | ${analysis.dom.totalElements} | ${analysis.runtime?.navigation?.loadMs ?? 'n/a'} | ${formatBytes(analysis.memory?.peakProcessTreePss?.processTreePssBytes)} | ${formatBytes(analysis.memory?.peakJsHeap?.jsHeapUsedSize)} | ${formatBytes(analysis.memory?.afterGarbageCollection?.jsHeapUsedSize)} | ${formatBytes(analysis.sourcePayload?.totalBytes)} | ${targetSize} | ${reflow} | ${zoom} | ${names} |`
+              return `| ${analysis.device} | ${analysis.browser} | ${analysis.profile} | ${memory} | ${networkLabel} | ${analysis.dom.totalElements} | ${analysis.runtime?.navigation?.loadMs ?? 'n/a'} | ${formatBytes(analysis.memory?.peakProcessTreePss?.processTreePssBytes)} | ${formatBytes(analysis.memory?.peakJsHeap?.jsHeapUsedSize)} | ${formatBytes(analysis.memory?.afterGarbageCollection?.jsHeapUsedSize)} | ${targetSize} | ${reflow} | ${zoom} | ${names} |`
             })
             const marker = '<!-- mobile-dashboard-analysis -->'
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
@@ -193,8 +191,8 @@ jobs:
               '',
               '<details><summary><b>Mobile analysis measurements</b></summary>',
               '',
-              '| Device | Browser | Profile | Memory limit | Network down/up, latency | DOM elements | Load (ms) | Peak process PSS | Peak JS heap | Retained JS heap | Source payload | Visible target size | Visible reflow | Zoom | Visible accessible names |',
-              '| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |',
+              '| Device | Browser | Profile | Memory limit | Network down/up, latency | DOM elements | Load (ms) | Peak process PSS | Peak JS heap | Retained JS heap | Visible target size | Visible reflow | Zoom | Visible accessible names |',
+              '| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |',
               ...rows,
               '',
               '</details>',

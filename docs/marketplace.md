@@ -16,8 +16,10 @@ package without one simply shows no README preview.
 Agentics workflow previews use their matching `docs/NAME.md` documentation, or
 the workflow prompt body when no documentation is available.
 
-The dashboard does not contact registries or install packages. Its **Add**
-action only copies the canonical command:
+The browser never contacts registries, and the dashboard never installs
+packages. Local and hosted resolvers read registries only through their trusted
+server-side adapters; the local dashboard's web server receives only normalized
+catalog metadata. Its **Add** action only copies the canonical command:
 
 ```sh
 gh cao add OWNER/REPOSITORY[/PATH]@COMMIT

@@ -209,6 +209,38 @@ afterEach(() => {
 });
 
 describe('canonical view sources', () => {
+  it.each(['complete', 'partial', 'unknown'])('preserves %s Marketplace source metadata across canonical pages', async (completeness) => {
+    await upsertCanonicalBatch(indexedDB, canonicalBatch({
+      marketplacePackages: ['Alpha', 'Beta'].map((name) => ({
+        id: name, name, registryId: 'official', sourceCoordinate: `githubnext/gh-cao/${name}@main`
+      }))
+    }));
+    const inventory = {
+      'marketplace-packages': {
+        rows: [],
+        metadata: { ...metadata, 'retrieved-at': metadata['as-of'], completeness, freshness: 'fresh', availability: 'available' }
+      }
+    };
+    const queries = [{
+      name: 'package-page', from: 'marketplace-packages',
+      'order-by': [{ field: 'package-name', direction: 'asc' }]
+    }];
+    const options = { sourceNames: ['package-page'], queries };
+    const first = await loadDatabaseQuerySources(indexedDB, inventory, {
+      ...options, pagination: { 'package-page': { limit: 1 } }
+    });
+    const next = await loadDatabaseQuerySources(indexedDB, inventory, {
+      ...options,
+      pagination: { 'package-page': { limit: 1, continuationToken: first['package-page'].continuationToken } }
+    });
+    expect(first['package-page'].rows.map((row) => row['package-name'])).toEqual(['Alpha']);
+    expect(next['package-page'].rows.map((row) => row['package-name'])).toEqual(['Beta']);
+    expect(next['package-page'].metadata).toMatchObject({
+      'as-of': metadata['as-of'], 'retrieved-at': metadata['as-of'],
+      completeness, freshness: 'fresh', availability: 'available'
+    });
+  });
+
   it('executes native Value movement from the IndexedDB operationalValues projection', async () => {
     const repositoryId = 'repository:octo%2Fone';
     const base = {

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"math/bits"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -78,6 +79,9 @@ func TestAdapters(t *testing.T) {
 		t.Run(name, func(t *testing.T) { conformance(t, factory(t)) })
 	}
 }
+
+// second returns the error from a two-value call.
+func second(_ int, err error) error { return err }
 
 func conformance(t *testing.T, store operational.Store) {
 	t.Helper()
@@ -259,6 +263,31 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("no-op quota mutations retained state: entries %d -> %d, %v", before.Entries, after.Entries, err)
 		}
 	})
+	t.Run("quota-rejects-non-positive-epoch-times", func(t *testing.T) {
+		quota := services.GitHubQuota
+		bucket := "github-app-1:epoch-times:core"
+		now := time.Now().UTC()
+		epoch := time.UnixMilli(0).UTC()
+		before := time.UnixMilli(-1).UTC()
+		for name, observation := range map[string]operational.GitHubQuotaObservation{
+			"epoch reset":        {Limit: 5000, Remaining: 4000, ResetAt: epoch},
+			"pre-epoch reset":    {Limit: 5000, Remaining: 4000, ResetAt: before},
+			"pre-epoch observed": {Limit: 5000, Remaining: 4000, ResetAt: now.Add(time.Hour), ObservedAt: before},
+		} {
+			if _, _, _, err := quota.ObserveGitHubQuota(ctx, bucket, observation, ""); err == nil {
+				t.Fatalf("%s observation error = %v, want rejection", name, err)
+			}
+		}
+		for name, until := range map[string]time.Time{"epoch": epoch, "pre-epoch": before} {
+			if _, _, err := quota.ParkGitHubQuota(ctx, bucket, until, "backoff"); err == nil {
+				t.Fatalf("%s parking error = %v, want rejection", name, err)
+			}
+		}
+		state, err := quota.GitHubQuotaSnapshot(ctx, bucket)
+		if err != nil || state.Known || !state.ParkedUntil.IsZero() || !state.ResetAt.IsZero() {
+			t.Fatalf("rejected quota writes changed state: %+v, %v", state, err)
+		}
+	})
 	t.Run("in-flight-blocking-read-cancellation", func(t *testing.T) {
 		queue := services.Queue
 		if err := queue.EnsureQueue(ctx, "cancel-blocking-read", "workers"); err != nil {
@@ -370,6 +399,86 @@ func conformance(t *testing.T, store operational.Store) {
 		}
 		if result, err := services.RateLimits.ReserveRateLimit(ctx, "legacy-noncanonical", "canonical", 0, 1, time.Now().Unix()); err != nil || result != 0 {
 			t.Fatalf("canonical reserve = %d, %v", result, err)
+		}
+	})
+	t.Run("legacy-budget-rejects-invalid-arguments", func(t *testing.T) {
+		const name, field = "legacy-invalid-arguments", "installation"
+		limits := services.RateLimits
+		if err := services.Collection.WriteAttribute(ctx, name, field, "5|0|0"); err != nil {
+			t.Fatal(err)
+		}
+		now := time.Now().Unix()
+		rejected := map[string]error{
+			"reserve negative floor": second(limits.ReserveRateLimit(ctx, name, field, -1, 1, now)),
+			"reserve zero cost":      second(limits.ReserveRateLimit(ctx, name, field, 0, 0, now)),
+			"reserve negative cost":  second(limits.ReserveRateLimit(ctx, name, field, 0, -1, now)),
+			"reserve zero now":       second(limits.ReserveRateLimit(ctx, name, field, 0, 1, 0)),
+			"reserve negative now":   second(limits.ReserveRateLimit(ctx, name, field, 0, 1, -1)),
+			"reserve empty name":     second(limits.ReserveRateLimit(ctx, "", field, 0, 1, now)),
+			"reserve empty field":    second(limits.ReserveRateLimit(ctx, name, " ", 0, 1, now)),
+			"observe negative":       limits.ObserveRateLimit(ctx, name, field, -1, now),
+			"observe negative reset": limits.ObserveRateLimit(ctx, name, field, 1, -1),
+			"observe empty name":     limits.ObserveRateLimit(ctx, "", field, 1, now),
+			"observe empty field":    limits.ObserveRateLimit(ctx, name, "", 1, now),
+			"park negative":          limits.ParkRateLimit(ctx, name, field, -1),
+			"park empty name":        limits.ParkRateLimit(ctx, " ", field, now),
+			"park empty field":       limits.ParkRateLimit(ctx, name, "", now),
+		}
+		if bits.UintSize == 64 {
+			const oversized = int(1<<40 + 1)
+			rejected["reserve oversized cost"] = second(limits.ReserveRateLimit(ctx, name, field, 0, oversized, now))
+			rejected["observe oversized"] = limits.ObserveRateLimit(ctx, name, field, oversized, now)
+		}
+		for label, err := range rejected {
+			if err == nil {
+				t.Errorf("%s was accepted", label)
+			}
+		}
+		if value, err := services.Collection.ReadAttribute(ctx, name, field); err != nil || value != "5|0|0" {
+			t.Fatalf("rejected rate-limit writes changed state: %q, %v", value, err)
+		}
+	})
+	t.Run("transfer-owners-validation-and-duplicates", func(t *testing.T) {
+		collection := services.Collection
+		if err := collection.WriteAttribute(ctx, "transfer-owners", "octo/a", "1"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := collection.AddMembers(ctx, "transfer:1:repos", "octo/a"); err != nil {
+			t.Fatal(err)
+		}
+		for name, call := range map[string]func() (int, error){
+			"zero installation": func() (int, error) {
+				return collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", 0, []string{"octo/a"})
+			},
+			"negative installation": func() (int, error) {
+				return collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", -3, []string{"octo/a"})
+			},
+			"blank repository": func() (int, error) {
+				return collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", 2, []string{"octo/a", " "})
+			},
+			"blank owners name": func() (int, error) {
+				return collection.TransferOwners(ctx, " ", "transfer:", ":repos", 2, []string{"octo/a"})
+			},
+		} {
+			if transferred, err := call(); err == nil || transferred != 0 {
+				t.Fatalf("%s: transferred %d, error %v; want rejection", name, transferred, err)
+			}
+			if owner, err := collection.ReadAttribute(ctx, "transfer-owners", "octo/a"); err != nil || owner != "1" {
+				t.Fatalf("%s changed ownership: %q, %v", name, owner, err)
+			}
+			if present, err := collection.HasMember(ctx, "transfer:1:repos", "octo/a"); err != nil || !present {
+				t.Fatalf("%s changed membership: %t, %v", name, present, err)
+			}
+		}
+		transferred, err := collection.TransferOwners(ctx, "transfer-owners", "transfer:", ":repos", 2, []string{"octo/a", "octo/a"})
+		if err != nil || transferred != 1 {
+			t.Fatalf("duplicate repository transfer: %d, %v", transferred, err)
+		}
+		if owner, err := collection.ReadAttribute(ctx, "transfer-owners", "octo/a"); err != nil || owner != "2" {
+			t.Fatalf("owner: %q, %v", owner, err)
+		}
+		if present, err := collection.HasMember(ctx, "transfer:1:repos", "octo/a"); err != nil || present {
+			t.Fatalf("old membership: %t, %v", present, err)
 		}
 	})
 	t.Run("focused-delivery-reservations", func(t *testing.T) {

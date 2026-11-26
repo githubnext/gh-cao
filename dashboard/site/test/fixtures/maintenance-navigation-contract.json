@@ -5,6 +5,13 @@
   },
   "labels": ["Repositories", "Workflows", "Campaigns"],
   "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-workflows"],
+  "card-lists": ["maintenance-repositories", "maintenance-standalone-workflows", "maintenance-campaigns"],
+  "page-size": 25,
+  "selection-commands": [
+    ["update-repository-sources", "enable-repository-workflows", "disable-repository-workflows"],
+    ["update-workflow-source", "enable-workflow", "disable-workflow"],
+    ["update-campaign", "enable-campaign", "disable-campaign"]
+  ],
   "repository-drill": { "type": "external", "field": "repository-url" },
   "repository-upgrade-action": {
     "action": "upgrade-target-repository",

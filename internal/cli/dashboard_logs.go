@@ -15,8 +15,6 @@ import (
 	"time"
 
 	gh "github.com/cli/go-gh/v2"
-
-	"github.com/githubnext/gh-cao/internal/ghcli"
 )
 
 type dashboardLogCommand func(context.Context, []string, io.Writer) error
@@ -39,7 +37,10 @@ func ensureDashboardLogs(ctx context.Context, gh ghExecutor) error {
 	_, _ = fmt.Fprintf(os.Stderr, "Installing gh-aw %s for streaming dashboard collection...\n", dashboardLogsVersion)
 	_, _, err := gh(ctx, "extension", "install", "github/gh-aw", "--pin", dashboardLogsVersion, "--force")
 	if err != nil {
-		return errors.New("dashboard collection requires gh-aw with JSONL streaming; automatic installation failed; install github/gh-aw " + dashboardLogsVersion + " and retry")
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return errors.New("automatic gh-aw installation failed; check 'gh auth status --hostname github.com', run 'gh extension install github/gh-aw --pin " + dashboardLogsVersion + " --force', then retry the dashboard")
 	}
 	if !supported() {
 		return errors.New("installed gh-aw does not support 'gh aw logs --format jsonl'")
@@ -109,9 +110,6 @@ func dashboardObservedWorkflowIDs(workflows []dashboardWorkflow, runs []map[stri
 }
 
 func installedDashboardLogs(ctx context.Context, request dashboardLogRequest) error {
-	if err := ensureDashboardLogs(ctx, ghcli.Exec); err != nil {
-		return err
-	}
 	return downloadDashboardLogs(ctx, request, executeDashboardLogs)
 }
 

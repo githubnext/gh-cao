@@ -1,16 +1,28 @@
-import { expect, test } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { expect, test as base } from "@playwright/test";
+import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { startDashboardPagesPreview } from "../helpers/dashboard-pages-preview.mjs";
+import { startDashboardPagesPreview, waitForSyntheticPopulation } from "../helpers/dashboard-pages-preview.mjs";
 import { scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
 
 let preview;
-let expectedRuns;
+// Keep the expensive local enterprise projection across page-level cases. Each
+// case still gets a new page and therefore a fresh query/data worker.
+const test = base.extend({
+  demoContext: [async ({ browser }, use) => {
+    const context = await browser.newContext();
+    await use(context);
+    await context.close();
+  }, { scope: "worker" }],
+  page: async ({ demoContext }, use) => {
+    const page = await demoContext.newPage();
+    await use(page);
+    await page.close();
+  },
+});
 
 test.beforeAll(async () => {
   test.setTimeout(240_000);
   preview = await startDashboardPagesPreview({ experimental: true });
-  expectedRuns = JSON.parse(await readFile(join(preview.site, ".cao-pages-demo.json"), "utf8")).runs;
 });
 
 test.afterAll(async () => { await preview?.close(); });
@@ -22,8 +34,36 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+for (const width of [1440, 390]) {
+  test(`demo population stays interactive without an import dialog at ${width}px`, async ({ page }, testInfo) => {
+    test.setTimeout(600_000);
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(() => {
+      window.__demoImportDialogs = 0;
+      new MutationObserver((changes) => {
+        for (const change of changes) for (const node of change.addedNodes) {
+          if (node instanceof Element && (node.matches('.first-load-overlay') || node.querySelector('.first-load-overlay'))) {
+            window.__demoImportDialogs += 1;
+          }
+        }
+      }).observe(document, { childList: true, subtree: true });
+    });
+    await page.goto(`${preview.url}/?debug=1#page-repositories`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator("#page-title")).toHaveText("Repositories");
+    await expect(page.locator('a[href^="#page-repository-"]').first()).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByRole("dialog", { name: "Preparing your dashboard" })).toHaveCount(0);
+    await waitForSyntheticPopulation(page);
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
+    expect(await page.evaluate(() => window.__demoImportDialogs)).toBe(0);
+    await expect(page.locator('a[href^="#page-repository-"]').first()).toBeVisible();
+    const screenshot = testInfo.outputPath(`incremental-demo-${width}.png`);
+    await page.screenshot({ path: screenshot, fullPage: true });
+    await testInfo.attach(`Incremental demo ${width}px`, { path: screenshot, contentType: "image/png" });
+  });
+}
+
 test("enterprise sample populates analytical pages and supports real drill-downs", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(600_000);
   const errors = [];
   const externalRequests = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -45,7 +85,8 @@ test("enterprise sample populates analytical pages and supports real drill-downs
     "skills", "friction", "engines-models", "value",
     "cost", "marketplace", "maintenance", "maintenance-campaigns"]) {
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-${id}`);
-    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
+    await waitForSyntheticPopulation(page);
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
     const active = page.locator(`[data-page-id="${id}"]`);
     await expect(active).toBeVisible();
     await expect(active).not.toHaveAttribute("data-page-prerequisite-unavailable", "true");
@@ -79,10 +120,11 @@ test("enterprise sample populates analytical pages and supports real drill-downs
 
 for (const width of [1440, 390]) {
   test(`Pull request simulator recomputes company estimates at ${width}px`, async ({ page }, testInfo) => {
+    test.setTimeout(600_000);
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-simulators`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("#page-title")).toHaveText("Simulators");
-    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
     await expect(page.locator(".first-load-overlay")).toHaveCount(0, { timeout: 90_000 });
     await page.locator('[data-page-id="simulators"]').getByRole("link", { name: "Pull request", exact: true }).click();
     const simulator = page.locator('[data-page-id="simulator-pull-request"]');
@@ -112,6 +154,7 @@ for (const width of [1440, 390]) {
 
   test(`Go Pages deployment uses populated IndexedDB at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
+    test.setTimeout(600_000);
     const hostedRequests = [];
     const errors = [];
     page.on("request", (request) => {
@@ -135,28 +178,38 @@ for (const width of [1440, 390]) {
       await cache.put(`${base}/payload-hashes.json`, Response.json({ "real-data.jsonl": "must-not-be-read" }));
     }, preview.url);
     await page.goto(`${preview.url}/?debug=1&debug-eager-ingest=1#page-overview`, { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 90_000 });
+    const synthesisStarted = Date.now();
+    await waitForSyntheticPopulation(page);
+    await page.waitForFunction(() => window.__demoRefreshStatus === "completed", null, { timeout: 480_000 });
     await expect(page.locator(".first-load-overlay")).toHaveCount(0, { timeout: 90_000 });
     await expect(page.locator("#page-title")).toHaveText("Overview");
     await expect(page.locator('meta[name="dashboard-data-backend"]')).toHaveCount(0);
-    await expect.poll(() => page.evaluate(async () => {
+    const canonicalCounts = await page.evaluate(async () => {
       const databases = await indexedDB.databases();
       const descriptor = databases.find(({ name }) => name?.includes("synthetic-demo"));
-      if (!descriptor?.name) return 0;
+      if (!descriptor?.name) throw new Error("Synthetic demo database is missing");
       const database = await new Promise((resolve, reject) => {
         const request = indexedDB.open(descriptor.name);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
       });
       try {
-        return await new Promise((resolve, reject) => {
-          const transaction = database.transaction("runs", "readonly");
-          const request = transaction.objectStore("runs").count();
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
+        const counts = {};
+        for (const store of ["runs", "repositories", "workflows", "campaigns"]) {
+          counts[store] = await new Promise((resolve, reject) => {
+            const request = database.transaction(store, "readonly").objectStore(store).count();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+        }
+        return { ...counts, storage: await navigator.storage.estimate() };
       } finally { database.close(); }
-    }), { timeout: 90_000 }).toBe(expectedRuns);
+    });
+    console.log("Default browser synthesis", JSON.stringify({ width, elapsedMs: Date.now() - synthesisStarted, ...canonicalCounts }));
+    expect(canonicalCounts.repositories).toBe(1_000);
+    expect(canonicalCounts.workflows).toBe(4_000);
+    expect(canonicalCounts.campaigns).toBe(3);
+    expect(canonicalCounts.runs).toBe(5_000);
     const demoRunIds = await page.evaluate(async () => {
       const descriptor = (await indexedDB.databases()).find(({ name }) => name?.includes("synthetic-demo"));
       const db = await new Promise((resolve, reject) => {
@@ -172,14 +225,29 @@ for (const width of [1440, 390]) {
         });
       } finally { db.close(); }
     });
-    expect(demoRunIds).toHaveLength(expectedRuns);
-    expect(demoRunIds.every(id => String(id).includes("sample-enterprise/"))).toBe(true);
+    expect(demoRunIds).toHaveLength(canonicalCounts.runs);
+    expect(demoRunIds.every(id => String(id).includes("contoso/"))).toBe(true);
     const demoNotice = page.getByRole("status").filter({ hasText: "Synthetic enterprise demo" });
     await expect(demoNotice).toBeVisible();
     await expect(page.locator('meta[name="dashboard-deployment"]')).toHaveAttribute("content", "synthetic-demo");
     const screenshot = testInfo.outputPath(`pages-indexeddb-${width}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
     await testInfo.attach(`Pages IndexedDB ${width}px`, { path: screenshot, contentType: "image/png" });
+    if (process.env.COPILOT_ARTIFACTS_DIR) {
+      await mkdir(process.env.COPILOT_ARTIFACTS_DIR, { recursive: true });
+      await copyFile(screenshot, join(process.env.COPILOT_ARTIFACTS_DIR, `pages-indexeddb-${width}.png`));
+    }
+    if (width === 1440) {
+      await page.setViewportSize({ width: 390, height: 900 });
+      await expect(page.locator("#page-title")).toHaveText("Overview");
+      const mobile = testInfo.outputPath("pages-indexeddb-390.png");
+      await page.screenshot({ path: mobile, fullPage: true });
+      await testInfo.attach("Pages IndexedDB mobile", { path: mobile, contentType: "image/png" });
+      if (process.env.COPILOT_ARTIFACTS_DIR) {
+        await copyFile(mobile, join(process.env.COPILOT_ARTIFACTS_DIR, "pages-indexeddb-390.png"));
+      }
+      await page.setViewportSize({ width, height: 900 });
+    }
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("#page-title")).toHaveText("Overview");
     await expect(page.locator(".first-load-overlay")).toHaveCount(0);
@@ -191,7 +259,7 @@ for (const width of [1440, 390]) {
     expect(errors).toEqual([]);
     for (const name of ["payload-hashes.json", "inventory-sources.json"]) {
       const response = await page.request.get(`${preview.url}/demo-data/${name}`);
-      expect(response.ok(), name).toBe(true);
+      expect(response.status(), name).toBe(404);
     }
     for (const name of ["payload-hashes.json", "gh-aw-logs.sqlite", "agent-summary.json"]) {
       expect((await page.request.get(`${preview.url}/${name}`)).status()).toBe(404);

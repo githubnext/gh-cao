@@ -56,6 +56,34 @@ func TestDashboardEngineRejectsRemoteConnectionsBeforeWork(t *testing.T) {
 	}
 }
 
+func TestDashboardPodmanLocalhostEndpointGuidance(t *testing.T) {
+	for _, name := range []string{"CONTAINER_HOST", "CONTAINER_CONNECTION"} {
+		t.Setenv(name, "")
+	}
+	engine := dashboardEngine{name: "podman", run: func(_ context.Context, args ...string) ([]byte, error) {
+		if args[0] == "system" {
+			return []byte(`[{"Name":"machine","Default":true,"URI":"ssh://user@localhost:12345/run/podman/podman.sock"}]`), nil
+		}
+		t.Fatal("hostname endpoint reached runtime or resource operations")
+		return nil, nil
+	}}
+	if err := engine.verifyLocal(t.Context()); err == nil || !strings.Contains(err.Error(), "remote Podman connection") {
+		t.Fatalf("localhost hostname should retain existing fail-closed behavior: %v", err)
+	}
+	if !dashboardLocalEngineEndpoint("ssh://user@127.0.0.1:12345/run/podman/podman.sock") ||
+		!dashboardLocalEngineEndpoint("ssh://user@[::1]:12345/run/podman/podman.sock") {
+		t.Fatal("documented numeric loopback alternatives are rejected")
+	}
+	for _, goos := range []string{"windows", "darwin", "linux"} {
+		help := dashboardEngineHelp(goos, "podman", false)
+		for _, want := range []string{"ssh://localhost", "not accepted", "127.0.0.1", "[::1]", "port, identity and socket path"} {
+			if !strings.Contains(help, want) {
+				t.Fatalf("%s guidance does not explain endpoint limitation %q: %s", goos, want, help)
+			}
+		}
+	}
+}
+
 func TestDashboardEngineSelection(t *testing.T) {
 	for _, test := range []struct {
 		flag    string
@@ -103,6 +131,90 @@ func TestDashboardRejectsInvalidContainerEngineBeforeCollection(t *testing.T) {
 }
 
 func ptr(value string) *string { return &value }
+
+func TestDashboardDependencyGuidance(t *testing.T) {
+	for _, test := range []struct {
+		goos, engine, install, start string
+	}{
+		{"windows", "docker", "winget install --exact --id Docker.DockerDesktop", "Linux containers"},
+		{"windows", "podman", "winget install --exact --id RedHat.Podman", "podman machine start"},
+		{"darwin", "docker", "brew install --cask docker-desktop", "Start Docker Desktop"},
+		{"darwin", "podman", "brew install podman", "podman machine start"},
+		{"linux", "docker", "sudo apt install docker.io", "sudo systemctl start docker"},
+		{"linux", "podman", "sudo dnf install podman", "podman info"},
+	} {
+		t.Run(test.goos+"/"+test.engine, func(t *testing.T) {
+			missing := dashboardEngineHelp(test.goos, test.engine, true)
+			if !strings.Contains(missing, test.install) || !strings.Contains(missing, test.start) ||
+				!strings.Contains(missing, "reopen the terminal") {
+				t.Fatalf("missing engine has no actionable install/start/PATH guidance: %s", missing)
+			}
+			unusable := dashboardEngineHelp(test.goos, test.engine, false)
+			if strings.Contains(unusable, test.install) || !strings.Contains(unusable, test.start) {
+				t.Fatalf("installed engine should receive startup help, not reinstallation: %s", unusable)
+			}
+			if test.goos != "windows" && strings.Contains(missing, "winget") ||
+				test.goos != "darwin" && strings.Contains(missing, "brew") {
+				t.Fatalf("guidance includes another OS's package manager: %s", missing)
+			}
+			if test.goos == "windows" && !strings.Contains(unusable, "Virtual Machine Platform") {
+				t.Fatalf("Windows engine failure omitted required OS configuration: %s", unusable)
+			}
+		})
+	}
+}
+
+func TestDashboardPostgresDependencyAlternatives(t *testing.T) {
+	for _, test := range []struct{ goos, install string }{
+		{"windows", "winget install --exact --id PostgreSQL.PostgreSQL.16"},
+		{"darwin", "brew install postgresql@16"},
+		{"linux", "sudo apt install postgresql"},
+	} {
+		t.Run(test.goos, func(t *testing.T) {
+			help := dashboardPostgresHelp(test.goos)
+			for _, want := range []string{test.install, "NOT required", "No dependency installation is performed",
+				"provision the CAO owner/runtime roles", "--postgres-url", "CAO_POSTGRES_URL"} {
+				if !strings.Contains(help, want) {
+					t.Fatalf("missing %q in PostgreSQL alternative: %s", want, help)
+				}
+			}
+			if test.goos == "windows" {
+				for _, want := range []string{"WSL 2 route", "Microsoft.WSL", "Canonical.Ubuntu.2404",
+					"wsl --set-default-version 2", "sudo apt install gh podman",
+					"gh extension install githubnext/gh-cao", "gh auth login", "--container-engine podman"} {
+					if !strings.Contains(help, want) {
+						t.Fatalf("WSL route is missing %q: %s", want, help)
+					}
+				}
+			} else if strings.Contains(help, "WSL") {
+				t.Fatalf("non-Windows guidance includes WSL setup: %s", help)
+			}
+		})
+	}
+}
+
+func TestDashboardMissingEnginesReportPlatformGuidance(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	for _, selected := range []string{"", "docker", "podman"} {
+		t.Run(selected, func(t *testing.T) {
+			_, err := selectDashboardEngine(t.Context(), selected)
+			if !errors.Is(err, exec.ErrNotFound) {
+				t.Fatalf("missing engine did not preserve its cause: %v", err)
+			}
+			for _, engine := range []string{"docker", "podman"} {
+				if selected != "" && engine != selected {
+					continue
+				}
+				if !strings.Contains(err.Error(), dashboardEngineHelp(runtime.GOOS, engine, true)) {
+					t.Fatalf("missing %s has no platform-specific help: %v", engine, err)
+				}
+			}
+			if !strings.Contains(err.Error(), dashboardPostgresHelp(runtime.GOOS)) {
+				t.Fatalf("missing engines have no database/WSL alternative: %v", err)
+			}
+		})
+	}
+}
 
 func TestDashboardEngineAutomaticSelection(t *testing.T) {
 	if runtime.GOOS == "windows" {
@@ -152,6 +264,21 @@ func TestDashboardEngineAutomaticSelection(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), test.wantError) {
 					t.Fatalf("got %v, want %q", err, test.wantError)
 				}
+				if !strings.Contains(err.Error(), "NOT required") || !strings.Contains(err.Error(), "--postgres-url") {
+					t.Fatalf("engine failure has no PostgreSQL alternative: %v", err)
+				}
+				if test.name == "neither installed" || test.name == "explicit docker missing" ||
+					test.name == "explicit podman missing" {
+					if !errors.Is(err, exec.ErrNotFound) ||
+						!strings.Contains(err.Error(), "package manager") && !strings.Contains(err.Error(), "Homebrew") {
+						t.Fatalf("missing dependency cause or installation help was lost: %v", err)
+					}
+				}
+				if test.name == "explicit docker unusable" {
+					if !strings.Contains(err.Error(), "context failed") || strings.Contains(err.Error(), "After installation") {
+						t.Fatalf("failed engine probe lost diagnostics or suggested reinstallation: %v", err)
+					}
+				}
 			} else if err != nil || engine.name != test.want {
 				t.Fatalf("got %q %v, want %q", engine.name, err, test.want)
 			}
@@ -169,17 +296,39 @@ func TestDashboardEngineAutomaticSelection(t *testing.T) {
 }
 
 func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
-	for _, provider := range []string{"docker", "podman"} {
-		t.Run(provider, func(t *testing.T) {
+	for _, test := range []struct{ provider, goos string }{
+		{"docker", "linux"}, {"podman", "linux"}, {"docker", "windows"}, {"podman", "windows"},
+	} {
+		provider := test.provider
+		t.Run(provider+"/"+test.goos, func(t *testing.T) {
+			previous := dashboardPostgresGOOS
+			dashboardPostgresGOOS = test.goos
+			t.Cleanup(func() { dashboardPostgresGOOS = previous })
 			directory := t.TempDir()
+			data := dashboardPostgresDataLocation(test.goos, directory)
 			id := strings.Repeat("a", 64)
 			var calls []string
 			running := true
 			foreign := false
+			volumes := map[string]string{}
 			engine := dashboardEngine{name: provider}
 			engine.run = func(_ context.Context, args ...string) ([]byte, error) {
 				calls = append(calls, strings.Join(args, " "))
 				switch args[0] {
+				case "volume":
+					switch args[1] {
+					case "ls":
+						var names []string
+						for name := range volumes {
+							names = append(names, name)
+						}
+						return []byte(strings.Join(names, "\n")), nil
+					case "create":
+						volumes[args[len(args)-1]] = strings.TrimPrefix(args[3], dashboardPostgresLabel+"=")
+						return nil, nil
+					case "inspect":
+						return json.Marshal(map[string]string{dashboardPostgresLabel: volumes[args[len(args)-1]]})
+					}
 				case "image":
 					return nil, errors.New("image is not cached")
 				case "pull", "run", "exec":
@@ -205,9 +354,13 @@ func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 						container.Config.Labels[dashboardPostgresLabel] = "foreign"
 					}
 					container.State.Running = running
-					container.Mounts = append(container.Mounts, struct{ Type, Source, Destination string }{
-						"bind", filepath.Join(directory, "data"), "/var/lib/postgresql/data",
-					})
+					mount := struct{ Type, Name, Source, Destination string }{
+						Type: "bind", Source: data.Source, Destination: "/var/lib/postgresql/data",
+					}
+					if data.Volume {
+						mount.Type, mount.Name, mount.Source = "volume", data.Source, "/var/lib/docker/volumes/"+data.Source+"/_data"
+					}
+					container.Mounts = append(container.Mounts, mount)
 					container.NetworkSettings.Ports = map[string][]struct {
 						HostIP   string `json:"HostIp"`
 						HostPort string
@@ -223,9 +376,21 @@ func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 			initial := slices.Clone(calls)
 			if !slices.ContainsFunc(initial, func(call string) bool { return strings.HasPrefix(call, "pull ") }) ||
 				!slices.ContainsFunc(initial, func(call string) bool {
-					return strings.Contains(call, "--volume "+filepath.Join(directory, "data")+":/var/lib/postgresql/data:Z")
+					if data.Volume {
+						return strings.Contains(call, "--volume "+data.Source+":/var/lib/postgresql/data --volume")
+					}
+					return strings.Contains(call, "--volume "+data.Source+":/var/lib/postgresql/data:Z")
 				}) {
-				t.Fatal("container did not pull PostgreSQL and bind-mount its cache")
+				t.Fatal("container did not pull PostgreSQL and mount its data")
+			}
+			if _, err := os.Stat(filepath.Join(directory, "data")); data.Volume != errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("data directory presence does not match the %s layout: %v", test.goos, err)
+			}
+			if data.Volume {
+				state, err := readDashboardPostgresState(filepath.Join(directory, "state.json"))
+				if err != nil || volumes[data.Source] != state.Owner {
+					t.Fatalf("Windows data volume is not owner-labelled: %v %v", volumes, err)
+				}
 			}
 			running, calls = false, nil
 			reused, samePassword, err := startDashboardPostgres(t.Context(), engine, directory)
@@ -240,6 +405,61 @@ func TestDashboardPostgresOwnedContainerLifecycle(t *testing.T) {
 				t.Fatal("foreign container ownership did not fail before start")
 			}
 		})
+	}
+}
+
+func TestDashboardPostgresRefusesForeignWindowsDataVolume(t *testing.T) {
+	previous := dashboardPostgresGOOS
+	dashboardPostgresGOOS = "windows"
+	t.Cleanup(func() { dashboardPostgresGOOS = previous })
+	directory := t.TempDir()
+	volume := dashboardPostgresDataLocation("windows", directory).Source
+	engine := dashboardEngine{name: "docker", run: func(_ context.Context, args ...string) ([]byte, error) {
+		switch strings.Join(args[:2], " ") {
+		case "container ls":
+			return nil, nil
+		case "volume ls":
+			return []byte(volume + "\n"), nil
+		case "volume inspect":
+			return []byte(`{"` + dashboardPostgresLabel + `":"foreign"}`), nil
+		}
+		t.Fatalf("foreign data volume reached %v", args)
+		return nil, nil
+	}}
+	if _, _, err := startDashboardPostgres(t.Context(), engine, directory); err == nil ||
+		!strings.Contains(err.Error(), "data volume is not owned") {
+		t.Fatalf("foreign data volume was adopted: %v", err)
+	}
+}
+
+func TestDashboardPostgresPrivateFilesSurviveRestart(t *testing.T) {
+	directory := t.TempDir()
+	if err := dashboardSecurePrivate(directory, true); err != nil {
+		t.Fatal(err)
+	}
+	filename := filepath.Join(directory, "state.json")
+	state := dashboardPostgresState{Version: 1, Engine: "docker",
+		Owner: strings.Repeat("a", 64), RuntimePassword: strings.Repeat("b", 64)}
+	if err := writeDashboardPostgresState(filename, state); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := readDashboardPostgresState(filename); err != nil || got != state {
+		t.Fatalf("private state written by this platform was rejected on reuse: %v", err)
+	}
+	password := filepath.Join(directory, "password")
+	if err := writeDashboardPrivateFile(password, []byte(strings.Repeat("c", 64))); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(password)
+	if err != nil || !dashboardIsPrivate(password, info) {
+		t.Fatalf("private credential written by this platform is not private: %v", err)
+	}
+	shared := filepath.Join(t.TempDir(), "shared.json")
+	if err := os.WriteFile(shared, []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Lstat(shared); err != nil || dashboardIsPrivate(shared, info) {
+		t.Fatal("a default-permission file was accepted as private")
 	}
 }
 

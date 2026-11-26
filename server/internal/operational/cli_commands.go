@@ -104,6 +104,9 @@ type CLICommandInvocation struct {
 	Actor      string `json:"actor,omitempty"`
 	ActorID    int64  `json:"actorId,omitempty"`
 	Repository string `json:"repository,omitempty"`
+	// Origin is the in-dashboard hash route where the action was approved.
+	// It is navigation context only and never affects admission or execution.
+	Origin string `json:"origin,omitempty"`
 }
 
 var cliSecret = regexp.MustCompile(`(?i)\b(?:gh[pousr]_[a-z0-9_]+|github_pat_[a-z0-9_]+|AKIA[A-Z0-9]{16})|-----BEGIN .*PRIVATE KEY-----|\bBearer\s+\S+|(?:token|secret|password|credential|authorization|private[-_]?key)\s*["']?\s*[:=]\s*["']?\S+|--[\w-]*(?:token|password|secret|credential)\b`)
@@ -111,6 +114,13 @@ var cliSecretKey = regexp.MustCompile(`(?i)token|secret|password|credential|auth
 var cliIdempotency = regexp.MustCompile(`^[A-Za-z0-9._:-]{1,128}$`)
 var cliActor = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:\[bot\])?$`)
 var cliRepository = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$`)
+var cliOrigin = regexp.MustCompile(`^#page-[a-z0-9][a-z0-9-]{0,127}(?:\?[A-Za-z0-9._~%&=+:,@/!*'()-]{0,1000})?$`)
+
+// ValidCLICommandOrigin reports whether origin is empty or a bounded
+// in-dashboard hash route that cannot name another document or scheme.
+func ValidCLICommandOrigin(origin string) bool {
+	return origin == "" || cliOrigin.MatchString(origin)
+}
 
 // RedactCLICommandText replaces credential-shaped substrings so subprocess
 // output can cross the storage boundary that ValidateCLICommandText guards.
@@ -166,7 +176,7 @@ func (i CLICommandInvocation) validate() (string, error) {
 		(i.Input != nil && utf8.RuneCountInString(*i.Input) > 100000) ||
 		(i.Actor != "" && !cliActor.MatchString(i.Actor)) ||
 		i.ActorID < 0 || (i.Actor != "" && i.ActorID == 0) || (i.Actor == "" && i.ActorID != 0) ||
-		(i.Repository != "" && !cliRepository.MatchString(i.Repository)) {
+		(i.Repository != "" && !cliRepository.MatchString(i.Repository)) || !ValidCLICommandOrigin(i.Origin) {
 		return cliRejectShape, ErrCLICommandInput
 	}
 	for key, value := range i.Values {
@@ -179,7 +189,7 @@ func (i CLICommandInvocation) validate() (string, error) {
 			return cliRejectText, err
 		}
 	}
-	for _, text := range []string{i.ActionID, i.Command} {
+	for _, text := range []string{i.ActionID, i.Command, i.Origin} {
 		if err := ValidateCLICommandText(text); err != nil {
 			return cliRejectText, err
 		}

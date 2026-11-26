@@ -12,7 +12,7 @@ import {
   mergeDashboardPage,
   normalizeDashboardPageChunk,
 } from "../../dashboard/site/src/dashboard-chunks.js";
-import { scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
+import { activateViewMode, scrollRenderedViewsIntoView } from "./dashboard-deployed-refresh-helpers.mjs";
 import { serverDashboardPageExclusionReason } from "./dashboard-server-page-coverage.mjs";
 import { createDashboardServerQueryBudget } from "./dashboard-server-query-budget.mjs";
 
@@ -23,6 +23,11 @@ const SERVER_LOCAL_ONLY_PAGES = new Map([
 const accessToken = process.env.DASHBOARD_SERVER_ACCESS_TOKEN
   || "0123456789abcdef0123456789abcdef";
 
+// Go allows a PostgreSQL read transaction up to 60 seconds. Leave time for
+// HTTP transport and let the browser render the result before timing out.
+const queryRequestTimeout = 65_000;
+const queryRenderTimeout = 75_000;
+
 const queryBudget = createDashboardServerQueryBudget();
 let captureQueryResponse;
 
@@ -31,7 +36,7 @@ test.beforeEach(async ({ context }) => {
   await context.route("**/api/v1/query", async (route) => {
     const capture = captureQueryResponse;
     await queryBudget.run(async () => {
-      const response = await route.fetch();
+      const response = await route.fetch({ timeout: queryRequestTimeout });
       capture?.({ ...captureDashboardQueryResponse(response), request: route.request() });
       await route.fulfill({ response });
       return response;
@@ -73,9 +78,13 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     await page.setViewportSize(viewport);
     await page.clock.install();
     await page.goto(`/?access_token=${accessToken}#page-indexing`);
-    await page.getByRole('button', { name: viewport.width < 768 ? 'Switch to Cards view' : 'Cards', exact: true }).click();
-    const view = page.locator('[data-view-id="ingestion-webhook-status"]');
-    await expect(view.getByRole('heading', { name: 'Webhook counters (process-local, since restart)' })).toBeVisible();
+    const activePage = page.locator('[data-page-id="indexing"]');
+    await expect(activePage).toBeVisible();
+    expect(await activateViewMode(page, activePage, "card")).toBe(true);
+    await expect(activePage).toHaveAttribute("data-view-mode", "card");
+    const view = activePage.getByRole("region", { name: "Webhook counters (process-local, since restart)" });
+    await expect(view).toBeVisible();
+    await scrollRenderedViewsIntoView(activePage);
     await expect(page.locator('[data-page-id="indexing"]')).not.toHaveAttribute('aria-busy', 'true');
     const received = view.locator('dl > div').filter({ has: page.locator('dt', { hasText: /^Received$/ }) }).locator('dd');
     const headers = { Authorization: `Bearer ${accessToken}` };
@@ -150,11 +159,10 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
     await queryBudget.waitForBudget();
     await page.goto(`/#page-${expected.page}`);
     await expect(page.getByRole("heading", { name: expected.heading, exact: true, level: 1 })).toBeVisible();
-    const tableMode = page.getByRole("button", { name: "Table", exact: true });
-    await expect(tableMode).toBeVisible();
-    await tableMode.click();
-    await expect(tableMode).toHaveAttribute("aria-pressed", "true");
     const activePage = page.locator(`[data-page-id="${expected.page}"]`);
+    await expect(activePage).toHaveAttribute("data-view-modes", /\btable\b/);
+    expect(await activateViewMode(page, activePage, "table")).toBe(true);
+    await expect(activePage).toHaveAttribute("data-view-mode", "table");
     await expect(activePage).not.toHaveAttribute("aria-busy", "true", { timeout: 30_000 });
     await scrollRenderedViewsIntoView(activePage);
     const view = activePage.locator(`[data-view-id="${expected.view}"]`);
@@ -239,23 +247,23 @@ test("deployed shards populate server-backed dashboard views", async ({ context,
             view?.data && (typeof view.data.source === "string" || Array.isArray(view.data.sources))
           ));
           const unavailable = activePage.locator('[data-view-state="unavailable"][role="alert"]');
-          if (definition.route?.["availability-view"] && await unavailable.isVisible()) {
-            await expect(views, "Unavailable detail pages replace their views with recovery actions").toHaveCount(0);
-            await expect(unavailable).toContainText(definition.route["availability-message"]);
-            await expect(unavailable.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
-            await expect(unavailable.getByRole("link")).toHaveAttribute(
-              "href", `#page-${definition.route["navigation-page"]}`,
-            );
-            result.availability = "unavailable";
-          } else {
-            const rendered = await views.evaluateAll((items) =>
-              items.map((item) => item.getAttribute("data-view-id")));
-            for (const viewId of declared) {
-              if (!rendered.includes(viewId)) result.errors.push(`Missing view: ${viewId}`);
+          await expect(async () => {
+            if (definition.route?.["availability-view"] && await unavailable.isVisible()) {
+              await expect(views, "Unavailable detail pages replace their views with recovery actions").toHaveCount(0);
+              await expect(unavailable).toContainText(definition.route["availability-message"]);
+              await expect(unavailable.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+              await expect(unavailable.getByRole("link")).toHaveAttribute(
+                "href", `#page-${definition.route["navigation-page"]}`,
+              );
+              result.availability = "unavailable";
+            } else {
+              const rendered = await views.evaluateAll((items) =>
+                items.map((item) => item.getAttribute("data-view-id")));
+              expect(rendered, `Declared views for ${definition.id}`).toEqual(expect.arrayContaining(declared));
             }
-          }
+          }).toPass({ timeout: 30_000 });
           await scrollRenderedViewsIntoView(activePage);
-          await expect(activePage.locator(visibleBusyViewSelector)).toHaveCount(0, { timeout: 30_000 });
+          await expect(activePage.locator(visibleBusyViewSelector)).toHaveCount(0, { timeout: queryRenderTimeout });
           const failures = await activePage.locator('[aria-label^="Unable to load "]')
             .evaluateAll((items) => items.map((item) => item.getAttribute("aria-label")));
           result.errors.push(...failures, ...browserErrors);

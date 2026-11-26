@@ -39,6 +39,17 @@ provider, snapshot-only readers continue to read retained package inventory.
 Registry resolution remains read-only and MUST NOT write to canonical
 snapshot.
 
+The on-demand local dashboard resolves registries through its private native
+operator adapter. A short-lived resolver subprocess receives the configured
+registry environment; the web server receives only normalized package metadata
+and diagnostics. GitHub credentials remain excluded from the web server.
+The adapter caches safe results for the configured registry TTL and invalidates
+them when the local policy changes or becomes unavailable.
+
+Canonical package queries preserve the published inventory's completeness,
+freshness, and timestamps on every lazy page, including when its logical source
+name differs from the canonical store name. Unknown completeness remains unknown.
+
 ## Package contract
 
 Both backends return rows with the same safe fields:
@@ -109,4 +120,6 @@ card list without search, filters, or derived rankings. The directory loads
 canonical query pages of 25 packages as the user scrolls, with an accessible
 manual load/retry control. Summary cards show the package name, description,
 publisher, and registry; version and public repository statistics remain on
-the detail page. Mobile introductory text has a 16-pixel horizontal gutter.
+the detail page. The directory uses full-view lazy-list layout without introductory
+text. Its scrollable grid sizes rows to their content, preventing package cards
+from collapsing or overlapping on narrow viewports.

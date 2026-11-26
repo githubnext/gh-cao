@@ -2,7 +2,6 @@ import { h } from '../dom.js';
 import { createDebug } from '../debug.js';
 import { debounce } from '../debounce.js';
 import { dashboardHorizonHours, formatDashboardHorizon } from '../horizon.js';
-import { octicon } from '../octicons.js';
 import { effect, state } from '../reactive.js';
 import { scopedStorageKey } from '../storage-scope.js';
 import { renderCountBadge, renderLabeledControl, renderIconSpan } from './ui-primitives.js';
@@ -15,8 +14,6 @@ const TIME_RANGE_OPTIONS = ['1h', '6h', '24h', '3d', '1w', '2w', '4w', '30d'];
 const MODE_OPTIONS = ['review', 'live', 'unknown'];
 const ALL_RECORDED = 'all';
 const TIME_WINDOW_SELECT_LABEL = 'Time window';
-const VIEW_MODE_LABELS = { chart: 'Chart', table: 'Table', card: 'Cards' };
-const VIEW_MODE_ICONS = { chart: 'graph', table: 'table', card: 'stack' };
 export const HORIZON_FILTER_STORAGE_KEY = scopedStorageKey('central-agentic-ops.dashboard.horizon-filter-settings');
 
 /**
@@ -79,22 +76,16 @@ export function renderFilterBar(onChange, options = {}) {
     null
   );
   const expanded = state(false);
-  // The smallest DOM update needed from expanded state: the sibling horizon
-  // toggle's accessible state and the root's expanded class.
+  // Reflect expanded state on the root; external triggers mirror the event.
   effect(() => {
     const isExpanded = expanded.get();
-    root.querySelector('.horizon-toggle')?.setAttribute('aria-expanded', String(isExpanded));
     root.classList.toggle('filter-bar-expanded', isExpanded);
+    root.dispatchEvent(new CustomEvent('dashboard-horizon-expanded', { detail: isExpanded }));
   }, { signal: options.signal });
-  root.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element) || !event.target.closest('.horizon-toggle')) return;
-    expanded.set((current) => !current);
-  }, { signal: options.signal });
+  root.addEventListener('dashboard-horizon-toggle', () => expanded.set((current) => !current), { signal: options.signal });
   root.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || !expanded.get()) return;
-    const toggle = root.querySelector('.horizon-toggle');
     expanded.set(false);
-    if (toggle instanceof HTMLElement) toggle.focus();
     event.stopPropagation();
   }, { signal: options.signal });
   root.addEventListener('dashboard-horizon-collapse', () => expanded.set(false), { signal: options.signal });
@@ -151,50 +142,6 @@ export function renderFilterBar(onChange, options = {}) {
 }
 
 /**
- * @param {Array<'chart'|'table'|'card'>} modes
- * @param {'chart'|'table'|'card'|undefined} initialMode
- * @param {(mode: 'chart'|'table'|'card') => void} onChange
- */
-export function renderViewModeControl(modes, initialMode, onChange) {
-  const root = h('div', { className: 'view-mode-control', role: 'group', 'aria-label': 'View mode' });
-  const selectedMode = state(initialMode);
-  const buttons = new Map(modes.map((mode) => {
-    const button = h(
-      'button',
-      { type: 'button', className: 'view-mode-option', 'data-view-mode-value': mode },
-      octicon(VIEW_MODE_ICONS[mode]),
-      h('span', null, VIEW_MODE_LABELS[mode])
-    );
-    button.addEventListener('click', () => {
-      if (selectedMode.get() === mode) return;
-      selectedMode.set(mode);
-      onChange(mode);
-    });
-    button.addEventListener('keydown', (event) => {
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
-      event.preventDefault();
-      const modeIndex = modes.indexOf(mode);
-      const nextIndex = event.key === 'Home'
-        ? 0
-        : event.key === 'End'
-          ? modes.length - 1
-          : (modeIndex + ((event.key === 'ArrowRight' || event.key === 'ArrowDown') ? 1 : -1) + modes.length) % modes.length;
-      buttons.get(modes[nextIndex])?.click();
-      buttons.get(modes[nextIndex])?.focus();
-    });
-    return [mode, button];
-  }));
-  root.append(...buttons.values());
-  effect(() => {
-    const activeMode = selectedMode.get();
-    for (const [mode, button] of buttons) {
-      button.setAttribute('aria-pressed', String(mode === activeMode));
-    }
-  });
-  return root;
-}
-
-/**
  * Closes an expanded horizon control when a click occurs outside its filter bar.
  * @param {HTMLElement} root
  * @param {() => void} [collapseDashboardHorizon]
@@ -202,13 +149,12 @@ export function renderViewModeControl(modes, initialMode, onChange) {
 export function enableHorizonOutsideClickDismissal(root, collapseDashboardHorizon = () => {}) {
   root.addEventListener('click', (event) => {
     const target = event.target;
-    if (!(target instanceof Element)) return;
+    if (!(target instanceof Element) || target.closest('[data-horizon-trigger]')) return;
     const expanded = [...root.querySelectorAll('.filter-bar-expanded')]
       .filter((element) => element instanceof HTMLElement);
     if (expanded.length === 0 || expanded.some((element) => element.contains(target))) return;
     for (const element of expanded) {
       element.dispatchEvent(new Event('dashboard-horizon-collapse'));
-      element.querySelector('.horizon-toggle')?.setAttribute('aria-expanded', 'false');
       element.classList.remove('filter-bar-expanded');
     }
     collapseDashboardHorizon();

@@ -11,10 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/mining"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/sessionexport"
 )
+
+var miningLog = logger.New("cao:adxtrace")
 
 const episodeBindingVersion = "selected-run-attempt-v1"
 const outcomeLabelVersion = mining.OutcomeRuleVersion
@@ -310,6 +313,34 @@ func invalidateMining(state *ledger, r *record, now time.Time) []string {
 	return files
 }
 
+var errMiningRedaction = errors.New("mining metadata requires incompatible identifier redaction")
+
+// miningRequiresRedaction reports whether approved redaction would alter the
+// projected mining metadata. Mining evidence must already be identifier-safe,
+// so any change makes the projection incompatible.
+func miningRequiresRedaction(e miningEvidence, redactPatterns []string) (bool, error) {
+	content, err := json.Marshal(e)
+	if err != nil {
+		return false, err
+	}
+	var fields any
+	if err := decode(content, &fields); err != nil {
+		return false, err
+	}
+	patterns := slices.Clone(builtInSecrets)
+	for _, pattern := range redactPatterns {
+		compiled, err := regexp.Compile(pattern)
+		if err != nil {
+			return false, err
+		}
+		patterns = append(patterns, compiled)
+	}
+	changed := false
+	approvedValue(fields, patterns, &changed)
+	miningLog.Printf("checked mining metadata redaction: patterns=%d changed=%t", len(patterns), changed)
+	return changed, nil
+}
+
 func (w *Worker) stepMining(ctx context.Context, root Objects, state *ledger) (bool, error) {
 	ids := make([]string, 0, len(state.Records))
 	for id := range state.Records {
@@ -359,31 +390,18 @@ func (w *Worker) stepMining(ctx context.Context, root Objects, state *ledger) (b
 		err = checkOutcomeProgress(old, e)
 	}
 	if err == nil {
-		content, marshalErr := json.Marshal(e)
-		if marshalErr != nil {
-			return false, marshalErr
+		changed, checkErr := miningRequiresRedaction(e, w.spool.config.Policy.RedactPatterns)
+		if checkErr != nil {
+			return false, checkErr
 		}
-		var fields any
-		if err := decode(content, &fields); err != nil {
-			return false, err
-		}
-		patterns := slices.Clone(builtInSecrets)
-		for _, pattern := range w.spool.config.Policy.RedactPatterns {
-			compiled, matchErr := regexp.Compile(pattern)
-			if matchErr != nil {
-				return false, matchErr
-			}
-			patterns = append(patterns, compiled)
-		}
-		changed := false
-		approvedValue(fields, patterns, &changed)
 		if changed {
-			err = errors.New("mining metadata requires incompatible identifier redaction")
+			err = errMiningRedaction
 		}
 	}
 	if err != nil {
 		files := invalidateDatasets(state, next.ID)
 		files = append(files, invalidateMining(state, next, w.now())...)
+		miningLog.Printf("mining projection invalidated: files=%d", len(files))
 		next.MiningCheckedAt = w.now()
 		if saveErr := w.spool.save(root, state); saveErr != nil {
 			return false, saveErr

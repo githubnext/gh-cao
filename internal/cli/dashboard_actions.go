@@ -34,6 +34,12 @@ func dashboardActionCommand() *cobra.Command {
 	}}
 	disable.Flags().String("repo", "", "Exact target repository")
 	cmd.AddCommand(disable)
+	enable := &cobra.Command{Use: "enable [workflow]", Args: cobra.MaximumNArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		repository, _ := cmd.Flags().GetString("repo")
+		return ghaw.EnableWorkflowsByNames(cmd.Context(), args, repository)
+	}}
+	enable.Flags().String("repo", "", "Exact target repository")
+	cmd.AddCommand(enable)
 	return cmd
 }
 
@@ -71,7 +77,7 @@ func dashboardActionArgs(args, repositories []string) error {
 		}
 		return nil
 	}
-	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable"}, args[0]) {
+	if len(args) == 0 || !slices.Contains([]string{"upgrade", "update", "disable", "enable"}, args[0]) {
 		return errors.New("only CAO setup, repository enrollment, and gh-aw maintenance commands are supported")
 	}
 	options := args[1:]
@@ -99,8 +105,8 @@ func dashboardActionArgs(args, repositories []string) error {
 			index++
 			repository = strings.ToLower(options[index])
 		case "--create-pull-request":
-			if args[0] == "disable" {
-				return errors.New("disable does not publish a pull request")
+			if args[0] == "disable" || args[0] == "enable" {
+				return errors.New("enable/disable does not publish a pull request")
 			}
 			publish = true
 		case "--pre-releases":
@@ -114,7 +120,7 @@ func dashboardActionArgs(args, repositories []string) error {
 	if !nativeRepositoryOperationsAllowed(repository) {
 		return errors.New("github/gh-aw is excluded from CAO operations")
 	}
-	if (args[0] != "disable" && !publish) || !slices.Contains(repositories, repository) || repository == "" {
+	if (args[0] != "disable" && args[0] != "enable" && !publish) || !slices.Contains(repositories, repository) || repository == "" {
 		return errors.New("maintenance requires pull-request publication within the selected repository scope")
 	}
 	return nil
@@ -172,17 +178,17 @@ func (w *dashboardActionWriter) flush() error {
 	return w.send(dashboardActionEvent{Stream: w.stream, Data: data + "\n"})
 }
 
-func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string, ingest chan<- struct{}) (string, func(), error) {
+func startDashboardActionAdapter(ctx context.Context, repositories []string, cache string, ingest chan<- struct{}, server ...string) (string, func(), error) {
 	executable, err := os.Executable()
 	if err != nil {
 		return "", nil, err
 	}
-	return startDashboardActionAdapterWithExecutable(ctx, repositories, cache, executable, ingest)
+	return startDashboardActionAdapterWithExecutable(ctx, repositories, cache, executable, ingest, server...)
 }
 
 // ingest, when non-nil, receives coalesced operator requests to start an
 // ingestion pass now. It must be buffered; requests never block the adapter.
-func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories []string, cache, executable string, ingest chan<- struct{}) (string, func(), error) {
+func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories []string, cache, executable string, ingest chan<- struct{}, catalogServer ...string) (string, func(), error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", nil, err
@@ -202,6 +208,9 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	active := map[string]context.CancelFunc{}
 	canceled := map[string]bool{}
 	mux := http.NewServeMux()
+	if len(catalogServer) > 0 {
+		mux.HandleFunc("GET "+adapterPrefix+"/marketplace", dashboardMarketplaceHandler(catalogServer[0], policyPath))
+	}
 	mux.HandleFunc("POST "+adapterPrefix+"/repositories/search", dashboardRepositorySearch)
 	mux.HandleFunc("GET "+adapterPrefix+"/repositories/{owner}/{repo}/update-access", func(w http.ResponseWriter, r *http.Request) {
 		repository := strings.ToLower(r.PathValue("owner") + "/" + r.PathValue("repo"))
@@ -312,10 +321,10 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 			childArgs = slices.Clone(args)
 		}
 		child := exec.CommandContext(executionCtx, executable, childArgs...)
-		if args[0] == "disable" {
+		if args[0] == "disable" || args[0] == "enable" {
 			directory, prepareErr := prepareDashboardDisableCheckout(executionCtx, cache, args)
 			if prepareErr != nil {
-				_ = send(dashboardActionEvent{Stream: "stderr", Data: "Exact target checkout could not be prepared; no workflows were disabled.\n"})
+				_ = send(dashboardActionEvent{Stream: "stderr", Data: "Exact target checkout could not be prepared; no workflows were enabled or disabled.\n"})
 				_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
 				return
 			}
@@ -324,7 +333,16 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 		}
 		configureDashboardProcess(child)
 		child.Env = append(os.Environ(), "GH_HOST=github.com")
-		if args[0] == "disable" {
+		if args[0] == "update" || args[0] == "upgrade" {
+			environment, readinessErr := dashboardGitEnvironment(executionCtx, child.Env)
+			if readinessErr != nil {
+				_ = send(dashboardActionEvent{Stream: "stderr", Data: readinessErr.Error() + "; no maintenance command was started.\n"})
+				_ = send(dashboardActionEvent{Complete: true, ExitCode: &code})
+				return
+			}
+			child.Env = environment
+		}
+		if args[0] == "disable" || args[0] == "enable" {
 			child.Env = dashboardDisableEnvironment(os.Environ())
 		}
 		child.WaitDelay = 5 * time.Second
@@ -370,7 +388,8 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	config, err := os.CreateTemp(cache, ".operator-actions-*.json")
 	if err == nil {
 		settings := map[string]any{
-			"adapterUrl": "http://" + listener.Addr().String() + adapterPrefix,
+			"adapterUrl":  "http://" + listener.Addr().String() + adapterPrefix,
+			"marketplace": len(catalogServer) > 0,
 		}
 		if runtime.GOOS != "windows" {
 			settings["operatorActions"] = map[string]any{

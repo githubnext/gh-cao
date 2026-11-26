@@ -33,7 +33,57 @@ dashboard:
 `;
 
 describe('dashboard document validation', () => {
+  it('accepts lazy selection identities and commands from the referenced card row contract', () => {
+    const document = JSON.parse(authoritativeDashboardSource);
+    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
+  });
+
+  it.each([
+    'empty keys',
+    'unknown key',
+    'empty commands',
+    'unmapped command',
+    'duplicate keys',
+    'duplicate commands',
+    'unknown property'
+  ])('rejects lazy selection with %s', (invalid) => {
+    const document = JSON.parse(authoritativeDashboardSource);
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
+    const valid = structuredClone(view.list.selection);
+    const selections = {
+      'empty keys': { key: [], commands: valid.commands },
+      'unknown key': { key: ['missing'], commands: valid.commands },
+      'empty commands': { key: valid.key, commands: [] },
+      'unmapped command': { key: valid.key, commands: ['enable-workflow'] },
+      'duplicate keys': { key: ['repository', 'repository'], commands: valid.commands },
+      'duplicate commands': { key: valid.key, commands: ['disable-repository-workflows', 'disable-repository-workflows'] },
+      'unknown property': { ...valid, unknown: true }
+    };
+    view.list.selection = selections[/** @type {keyof typeof selections} */ (invalid)];
+    expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
+      ok: false,
+      errors: expect.arrayContaining([expect.objectContaining({ path: expect.stringContaining('.list.selection') })])
+    });
+  });
+
+  it('rejects selection on a non-lazy list', () => {
+    const document = JSON.parse(authoritativeDashboardSource);
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
+    view['lazy-list'] = false;
+    expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
+      ok: false,
+      errors: expect.arrayContaining([expect.objectContaining({ path: expect.stringContaining('.list.selection') })])
+    });
+  });
   describe.each(['built-in', 'custom'])('%s page analysis contracts', (kind) => {
+    it('validates explicit page help using the shared tooltip contract', () => {
+      const document = JSON.parse(authoritativeDashboardSource);
+      const page = document.dashboard.pages.find((/** @type {{ kind: string }} */ candidate) => candidate.kind === kind);
+      page.tooltip = { label: 'Page help', description: 'Explain this page.' };
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
+      page.tooltip.description = '';
+      expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    });
     it('accepts omitted optional annotations', () => {
       const document = JSON.parse(authoritativeDashboardSource);
       const page = document.dashboard.pages.find((/** @type {{ kind: string }} */ candidate) => candidate.kind === kind);
@@ -122,7 +172,9 @@ describe('dashboard document validation', () => {
   ])('rejects invalid batch action context $fields', ({ fields }) => {
     const document = JSON.parse(authoritativeDashboardSource);
     const page = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
-    page.views[0].list['action-context'] = fields;
+    page.views[0].mark = 'list';
+    delete page.views[0]['lazy-list'];
+    page.views[0].list = { style: 'cards', icon: 'repo', action: 'upgrade-repository', 'action-context': fields };
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
       ok: false, errors: expect.arrayContaining([expect.objectContaining({
         path: expect.stringContaining('.list.action-context')
@@ -133,8 +185,8 @@ describe('dashboard document validation', () => {
   it('rejects a batch action against an incrementally loaded list', () => {
     const document = JSON.parse(authoritativeDashboardSource);
     const page = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
-    page.views[0].list.action = 'upgrade-repository';
-    page.views[0].list['action-context'] = ['repository'];
+    page.views[0].mark = 'list';
+    page.views[0].list = { style: 'entity-cards', card: 'maintenance-repository', icon: 'repo', action: 'upgrade-repository', 'action-context': ['repository'] };
     page.views[0]['lazy-list'] = true;
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({ ok: false });
   });
@@ -686,24 +738,21 @@ describe('dashboard document validation', () => {
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
   });
 
-  it('validates declarative factory element source role rebinding', () => {
+  it.each([
+    { floorSources: { campaigns: 'overview-factory-station' }, headerSources: undefined, valid: true },
+    { floorSources: { onboarding: 'overview-onboarding-state' }, headerSources: undefined, valid: true },
+    { floorSources: { issues: 'overview-issue-station', 'value-gains': 'overview-value-station' }, headerSources: undefined, valid: true },
+    { floorSources: { workers: 'overview-worker-summary' }, headerSources: undefined, valid: false },
+    { floorSources: undefined, headerSources: { onboarding: 'overview-onboarding-state', presentation: 'overview-header-presentation' }, valid: true },
+    { floorSources: undefined, headerSources: { status: 'overview-factory-status' }, valid: false }
+  ])('validates declarative factory source rebinding %#', ({ floorSources, headerSources, valid }) => {
     const document = JSON.parse(authoritativeDashboardSource);
     const overview = document.dashboard.pages.find((/** @type {{ id?: string }} */ page) => page.id === 'overview');
     const floor = overview.views.find((/** @type {{ element?: string }} */ view) => view.element === 'factory-floor');
     const header = overview.views.find((/** @type {{ element?: string }} */ view) => view.element === 'factory-header');
-    floor.config.sources = { campaigns: 'overview-factory-station' };
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
-    floor.config.sources = { onboarding: 'overview-onboarding-state' };
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
-    floor.config.sources = { issues: 'overview-issue-station', 'value-gains': 'overview-value-station' };
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
-    floor.config.sources = { workers: 'overview-worker-summary' };
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
-    delete floor.config.sources;
-    header.config = { sources: { onboarding: 'overview-onboarding-state', presentation: 'overview-header-presentation' } };
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
-    header.config.sources = { status: 'overview-factory-status' };
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
+    if (floorSources) floor.config.sources = floorSources;
+    if (headerSources) header.config = { sources: headerSources };
+    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(valid);
   });
 
   it.each(['browser-first-load', 'data-status'])('allows %s presentation only as a boolean on the factory header', (key) => {
@@ -1193,7 +1242,6 @@ describe('dashboard document validation', () => {
     const runsPage = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'workflow-runs');
     const runsView = runsPage.views.find((/** @type {{ id: string }} */ view) => view.id === 'workflow-runs-table');
     const detailsView = runsPage.views.find((/** @type {{ id: string }} */ view) => view.id === 'workflow-run-details');
-    const runsPageIndex = document.dashboard.pages.indexOf(runsPage);
     expect(runsView).toMatchObject({
       description: expect.any(String),
       controls: 'static',
@@ -1245,47 +1293,31 @@ describe('dashboard document validation', () => {
       when: { field: 'run-conclusion', equals: 'failure' }
     }]);
     expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(true);
-
-    detailsView.encoding.actions[0].presentation = 'copy-command';
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
-    detailsView.encoding.actions[0].presentation = 'copy-prompt';
-
-    detailsView.encoding.actions[0].action = 'update-campaign';
-    expect(validateDashboardDocument(JSON.stringify(document)).ok).toBe(false);
-    detailsView.encoding.actions[0].action = 'create-agent-task';
-
-    detailsView.encoding.actions[0].context.push('not-a-run-field');
-    const invalidContext = validateDashboardDocument(JSON.stringify(document));
-    expect(invalidContext.ok).toBe(false);
-    if (!invalidContext.ok) {
-      expect(invalidContext.errors).toContainEqual(expect.objectContaining({
-        code: 'DLS-E010',
-        path: `$.dashboard.pages[${runsPageIndex}].views[${runsPage.views.indexOf(detailsView)}].encoding.actions[0].context[9]`
-      }));
-    }
-    detailsView.encoding.actions[0].context.pop();
-
-    detailsView.encoding.actions[0].context.push('run');
-    const duplicateContext = validateDashboardDocument(JSON.stringify(document));
-    expect(duplicateContext.ok).toBe(false);
-    if (!duplicateContext.ok) {
-      expect(duplicateContext.errors).toContainEqual(expect.objectContaining({
-        code: 'DLS-E003',
-        path: `$.dashboard.pages[${runsPageIndex}].views[${runsPage.views.indexOf(detailsView)}].encoding.actions[0].context[9]`
-      }));
-    }
-    detailsView.encoding.actions[0].context.pop();
-
-    detailsView.encoding.actions[0].when.field = 'not-a-run-field';
-    const rejected = validateDashboardDocument(JSON.stringify(document));
-    expect(rejected.ok).toBe(false);
-    if (!rejected.ok) {
-      expect(rejected.errors).toContainEqual(expect.objectContaining({
-        code: 'DLS-E010',
-        path: `$.dashboard.pages[${runsPageIndex}].views[${runsPage.views.indexOf(detailsView)}].encoding.actions[0].when.field`
-      }));
-    }
   });
+
+  it.each(['presentation', 'action', 'unknown context', 'duplicate context', 'condition'])(
+    'rejects invalid declarative table intent %s',
+    (scenario) => {
+      const document = JSON.parse(authoritativeDashboardSource);
+      const runsPage = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'workflow-runs');
+      const detailsView = runsPage.views.find((/** @type {{ id: string }} */ view) => view.id === 'workflow-run-details');
+      const action = detailsView.encoding.actions[0];
+      if (scenario === 'presentation') action.presentation = 'copy-command';
+      if (scenario === 'action') action.action = 'update-campaign';
+      if (scenario === 'unknown context') action.context.push('not-a-run-field');
+      if (scenario === 'duplicate context') action.context.push('run');
+      if (scenario === 'condition') action.when.field = 'not-a-run-field';
+      const rejected = validateDashboardDocument(JSON.stringify(document));
+      expect(rejected.ok).toBe(false);
+      if (!rejected.ok && ['unknown context', 'duplicate context', 'condition'].includes(scenario)) {
+        const field = scenario === 'condition' ? 'when.field' : 'context[9]';
+        expect(rejected.errors).toContainEqual(expect.objectContaining({
+          code: scenario === 'duplicate context' ? 'DLS-E003' : 'DLS-E010',
+          path: `$.dashboard.pages[${document.dashboard.pages.indexOf(runsPage)}].views[${runsPage.views.indexOf(detailsView)}].encoding.actions[0].${field}`
+        }));
+      }
+    }
+  );
 
   it('defines workflow route composition through a reusable workflow-route-page element', () => {
     const document = JSON.parse(authoritativeDashboardSource);

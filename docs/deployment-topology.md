@@ -56,11 +56,11 @@ silently substitute SQLite or volatile memory. VM runtime activation, disk
 setup, schema bootstrap, TLS and evidence ingestion are explicit runbook steps.
 Existing vaults are external prerequisites, not free or verified resources.
 
-The supported profiles use Actions snapshots. Container Apps may additionally
+The supported profiles allow explicitly selected verified snapshots. Container Apps may additionally
 stage explicitly selected archive and gateway infrastructure; the base profile
 does not support collector acquisition, OTLP or base ADX analytics.
 Incompatible combinations fail rather than carrying hidden full-stack services.
-These are operational artifacts acquired with authorized Actions access, not
+These are explicitly acquired operational inputs, not
 the public synthetic Pages demo. Production serves the complete Go/PostgreSQL
 application on one origin; local Go/PostgreSQL uses the same views over a real
 read-only snapshot. No topology uses Pages as an operational data host.
@@ -105,7 +105,7 @@ do not execute or verify jobs. Follow the generated runbook for exact outputs,
 OAuth callback registration, deployed digest checks and application readiness;
 TCP platform probes establish only listener availability.
 
-This profile currently supports public OAuth ingress and Actions snapshots only.
+This profile currently supports public OAuth ingress and explicitly selected snapshots only.
 Unsupported optional features fail closed. Azure Functions runtime, deployment
 commands, receipts and local harness support are retired; there is no native
 apply command. Operators execute the reviewed templates separately.
@@ -211,7 +211,7 @@ list are supplied when omitted; allow at least one organization, team or user.
 `azure.secrets` maps secure parameter names to secret names under
 `azure.secretVaultId`. Optional secure parameters use the same mechanism.
 
-The Container Apps profile supports public OAuth ingress and Actions snapshots,
+The Container Apps profile supports public OAuth ingress and explicitly selected snapshots,
 not collector acquisition, private ingress, OTLP or base ADX analytics.
 Optional archive/gateway infrastructure has its own explicit activation gates
 and does not broaden this runtime contract.

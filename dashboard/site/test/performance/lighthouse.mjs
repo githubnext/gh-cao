@@ -53,7 +53,7 @@ async function startServer(retentionAsOf) {
       const [, state, ...segments] = decodeURIComponent(url.pathname).split('/');
       if (!['empty', 'full'].includes(state)) { response.writeHead(404).end(); return; }
       const relative = segments.join('/') || 'index.html';
-      const root = state === 'empty' && relative.startsWith('demo-data/') ? emptyRoot : siteRoot;
+      const root = state === 'empty' ? emptyRoot : siteRoot;
       const path = resolve(root, relative);
       if (!path.startsWith(`${root}${sep}`)) { response.writeHead(403).end(); return; }
       const details = await stat(path);
@@ -239,9 +239,12 @@ async function main() {
         ), null, { timeout: 900_000 });
         const refresh = await page.evaluate(() => Reflect.get(window, '__dashboardPerformanceRefresh'));
         if (refresh.status !== 'completed') throw new Error(`${state} ingestion failed: ${JSON.stringify(refresh)}`);
-        const counts = await canonicalCounts(page);
+        const counts = await canonicalCounts(page, state === 'full' ? {
+          repositories: dataset.expected.repositories,
+          sampleVersion: dataset.sampleVersion, retentionAsOf
+        } : undefined);
         states[state] = { ingestionMs: performance.now() - started, counts, refresh, journeys: [] };
-        assertCanonicalCounts(state, counts, state === 'full' ? dataset.shards : 2, dataset.expected);
+        assertCanonicalCounts(state, counts, state === 'full' ? 1 : 2, dataset.expected);
         await page.evaluate(() => navigator.serviceWorker.ready);
         for (const profile of ['desktop', 'mobile']) {
           await page.setViewportSize(profile === 'desktop' ? { width: 1440, height: 900 } : { width: 390, height: 844 });

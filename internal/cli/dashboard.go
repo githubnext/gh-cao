@@ -69,8 +69,12 @@ CAO_POSTGRES_URL is supplied, a local PostgreSQL container is pulled, started
 and provisioned automatically using Docker or Podman (Docker is tried first).
 Pass --container-engine docker|podman (or set CAO_CONTAINER_ENGINE) to use only
 that engine. Data stays in the ignored local dashboard cache.
-GitHub CLI authentication and an installed gh-aw extension supporting
-'gh aw logs --format jsonl' are required for collection. Existing
+Missing or unusable container engines produce OS-specific package-manager
+and startup guidance for Windows 11+, macOS, and Linux; these checks do not
+install dependencies. A separate PostgreSQL installation is not required
+when using Docker or Podman.
+Authenticate the GitHub CLI before starting. Before collection, the dashboard
+checks for 'gh aw logs --format jsonl' support and installs gh-aw ` + dashboardLogsVersion + ` if needed. Existing
 gh-aw artifact caches are reused. The evidence window defaults to seven days;
 the server lifetime defaults to 48 hours. Bounded background passes resume
 historical discovery while reserving GitHub API quota for other work.
@@ -115,6 +119,9 @@ the dashboard cache; read them through the loopback session-archive API.`,
 		}
 		repositories, cache, err := resolveDashboardOptions(cmd, options, gh)
 		if err != nil {
+			return err
+		}
+		if err := ensureDashboardLogs(cmd.Context(), gh); err != nil {
 			return err
 		}
 		return serveDashboard(cmd, version, repositories, cache, *options, gh, logs)
@@ -230,6 +237,11 @@ func currentDashboardRepository(ctx context.Context, gh ghExecutor) (string, err
 }
 
 func boundedDashboardGH(ctx context.Context, args ...string) (string, string, error) {
+	// gh-aw can print successful help on stderr. Keep diagnostics withheld
+	// for all repository reads; only the local capability probe needs them.
+	if slices.Equal(args, []string{"aw", "logs", "--help"}) {
+		return ghcli.Exec(ctx, args...)
+	}
 	value, err := ghcli.ExecBounded(ctx, 32<<20, args...)
 	return value, "", err
 }

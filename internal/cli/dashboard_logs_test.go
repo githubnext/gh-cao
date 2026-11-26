@@ -496,6 +496,9 @@ func TestDashboardLogsPrerequisite(t *testing.T) {
 				return "", "", nil
 			})
 			wantError := mode == "install-fails" || mode == "still-unsupported" || mode == "canceled"
+			if mode == "install-fails" && (err == nil || !strings.Contains(err.Error(), "gh extension install github/gh-aw --pin "+dashboardLogsVersion+" --force")) {
+				t.Fatalf("missing manual recovery command: %v", err)
+			}
 			if (err != nil) != wantError || err != nil && strings.Contains(err.Error(), "PRIVATE_DIAGNOSTIC") {
 				t.Fatalf("unexpected prerequisite result: %v", err)
 			}

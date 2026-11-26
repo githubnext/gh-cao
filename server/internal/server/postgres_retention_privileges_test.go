@@ -147,7 +147,7 @@ func TestPostgresProvisioningRequiredBeforeRuntime(t *testing.T) {
 	}
 	// Missing an upcoming partition is detected before serving, not when
 	// ingestion first crosses that day. Owner maintenance repairs the window.
-	future := time.Now().UTC().AddDate(0, 0, 21)
+	future := time.Now().UTC().AddDate(0, 0, 1)
 	partition := pgx.Identifier{f.schema, "runs_d" + future.Format("20060102")}.Sanitize()
 	if _, err := f.admin.ExecContext(ctx, "DROP TABLE "+partition+" CASCADE"); err != nil {
 		t.Fatal(err)

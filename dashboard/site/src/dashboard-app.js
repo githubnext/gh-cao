@@ -6,6 +6,7 @@
       import { loadDashboardQuerySources, processDashboardQueries, subscribeWorkerLoadingProgress } from "./data-processor.js";
       import { startDashboardData } from "./data/startup.js";
       import { renderDashboardCurrentStatus, notifyRefreshError } from "./components/refresh-error.js";
+      import { bindStatusToHorizon } from "./components/dashboard-horizon.js";
       import { resolveNotification } from "./notification-service.js";
       import { startDashboardAppUpdates } from "./dashboard-data-updates.js";
       import { attachCliActions, setDeclaredCliActions } from "./components/cli-actions.js";
@@ -285,14 +286,17 @@
           dashboard.classList.add("dashboard-stale");
         }
         if (snapshot || usesRemoteDataBackend(document) || dashboardDocument.dashboard["data-status"]) {
-          dashboard.querySelector(".dashboard-horizon")?.after(renderDashboardCurrentStatus(snapshot, {
+          const horizon = dashboard.querySelector(".dashboard-horizon");
+          const currentStatus = renderDashboardCurrentStatus(snapshot, {
             refreshing: state === "cached",
             failed: state === "stale" || Boolean(retryRefresh && state === "loading"),
             configuration: dashboardDocument.dashboard["data-status"],
             sources,
             loadPageSources,
             mobileHeader: dashboard
-          }));
+          });
+          horizon?.after(currentStatus);
+          if (horizon instanceof HTMLElement) bindStatusToHorizon(currentStatus, horizon);
         }
         if (retryRefresh && (state === "stale" || (state === "loading" && !snapshot))) {
           notifyRefreshError(retryRefresh, { snapshot });
@@ -341,7 +345,7 @@
         if (!document.querySelector('meta[name="dashboard-data-backend"][content="server-http"]')) {
           renderSources({}, "loading");
         }
-        const sourceUrl = new URL(DEMO_MODE ? "./demo-data/payload-hashes.json" : "./payload-hashes.json", window.location.href).href;
+        const sourceUrl = new URL(DEMO_MODE ? "./demo-data/" : "./payload-hashes.json", window.location.href).href;
         try {
           await startDashboardData({
             browserWindow: window,

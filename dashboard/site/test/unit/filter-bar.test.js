@@ -7,7 +7,6 @@ import {
   isTimeWindowFilterActive,
   relativeTimeWindow,
   renderFilterBar,
-  renderViewModeControl,
   setTimeWindowFilter,
   setTimeWindowRange
 } from '../../src/components/filter-bar.js';
@@ -126,26 +125,6 @@ describe('time-window filter bar', () => {
     expect(onChange).toHaveBeenCalledOnce();
   });
 
-  describe('view-mode control', () => {
-    it('keeps mode labels ordered and supports consistent keyboard navigation', () => {
-      const onChange = vi.fn();
-      const control = renderViewModeControl(['chart', 'card', 'table'], 'chart', onChange);
-      document.body.append(control);
-      const buttons = /** @type {HTMLButtonElement[]} */ ([...control.querySelectorAll('button')]);
-
-      expect(buttons.map((button) => button.textContent)).toEqual(['Chart', 'Cards', 'Table']);
-      expect(buttons.map((button) => button.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
-
-      buttons[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
-      expect(onChange).toHaveBeenLastCalledWith('table');
-      expect(document.activeElement).toBe(buttons[2]);
-
-      buttons[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
-      expect(onChange).toHaveBeenLastCalledWith('chart');
-      expect(document.activeElement).toBe(buttons[0]);
-    });
-  });
-
   it('emits preset and custom start/end windows', async () => {
     const onChange = vi.fn();
     const filterBar = renderFilterBar(onChange, {
@@ -219,28 +198,22 @@ describe('time-window filter bar', () => {
     }
   });
 
-  it('toggles tuning controls from the horizon text', () => {
+  it('toggles tuning controls from horizon toggle events and collapses on Escape', () => {
     const filterBar = renderFilterBar(vi.fn(), { defaultRange: '24h' });
-    const toggle = document.createElement('button');
-    toggle.className = 'horizon-toggle';
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.textContent = 'Horizon 1 day';
-    filterBar.prepend(toggle);
+    const expanded = vi.fn();
+    filterBar.addEventListener('dashboard-horizon-expanded', (event) => expanded(/** @type {CustomEvent} */ (event).detail));
     document.body.append(filterBar);
 
-    expect(toggle.textContent).toContain('Horizon');
     expect(filterBar.querySelector('.count-badge')?.textContent).toBe('3');
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(filterBar.classList.contains('filter-bar-expanded')).toBe(false);
 
-    toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    filterBar.dispatchEvent(new Event('dashboard-horizon-toggle'));
     expect(filterBar.classList.contains('filter-bar-expanded')).toBe(true);
+    expect(expanded).toHaveBeenLastCalledWith(true);
 
     filterBar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(filterBar.classList.contains('filter-bar-expanded')).toBe(false);
-    expect(document.activeElement).toBe(toggle);
+    expect(expanded).toHaveBeenLastCalledWith(false);
   });
 
   it('keeps the filter count badge text and accessible label in sync as filters change', async () => {
@@ -260,33 +233,33 @@ describe('time-window filter bar', () => {
     expect(badge?.getAttribute('aria-label')).toBe('4 filters');
   });
 
-  it('closes the horizon controls when clicking outside the filter bar', () => {
+  it('closes the horizon controls when clicking outside the filter bar but not on its trigger', () => {
     const filterBar = renderFilterBar(vi.fn(), { defaultRange: '24h' });
-    const toggle = document.createElement('button');
-    toggle.className = 'horizon-toggle';
-    toggle.setAttribute('aria-expanded', 'false');
-    filterBar.prepend(toggle);
+    const trigger = document.createElement('button');
+    trigger.dataset.horizonTrigger = '';
+    trigger.addEventListener('click', () => filterBar.dispatchEvent(new Event('dashboard-horizon-toggle')));
     const dashboard = document.createElement('main');
-    dashboard.append(filterBar, document.createElement('button'));
+    dashboard.append(filterBar, trigger, document.createElement('button'));
     document.body.append(dashboard);
     const collapseDashboardHorizon = vi.fn();
     enableHorizonOutsideClickDismissal(dashboard, collapseDashboardHorizon);
 
-    toggle.click();
+    trigger.click();
     filterBar.querySelector('[aria-label="Current filters"]')?.dispatchEvent(
       new MouseEvent('click', { bubbles: true })
     );
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(filterBar.classList.contains('filter-bar-expanded')).toBe(true);
 
     dashboard.lastElementChild?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(filterBar.classList.contains('filter-bar-expanded')).toBe(false);
     expect(collapseDashboardHorizon).toHaveBeenCalledOnce();
 
-    toggle.click();
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    trigger.click();
     expect(filterBar.classList.contains('filter-bar-expanded')).toBe(true);
+    trigger.click();
+    expect(filterBar.classList.contains('filter-bar-expanded')).toBe(false);
   });
+
 
   it('reports no active time filter by default', () => {
     expect(isTimeWindowFilterActive()).toBe(false);

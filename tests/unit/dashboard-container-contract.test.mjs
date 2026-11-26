@@ -32,7 +32,8 @@ test("dashboard image is multi-stage, non-root, versioned, and health checked", 
 
   assert.match(dockerfile, /FROM node:24-alpine@sha256:[0-9a-f]{64} AS dashboard-build/);
   assert.match(dockerfile, /FROM golang:1\.27\.3-alpine@sha256:[0-9a-f]{64} AS server-build/);
-  assert.match(dockerfile, /FROM alpine:3\.22@sha256:[0-9a-f]{64} AS dashboard-runtime/);
+  assert.match(dockerfile, /^FROM alpine:3\.24@sha256:[0-9a-f]{64} AS go-service-runtime$/m);
+  assert.match(dockerfile, /^FROM go-service-runtime AS dashboard-runtime$/m);
   assert.match(dockerfile, /ARG CAO_PROFILE=cao\.json/);
   assert.match(dockerfile, /ARG VERSION=dev/);
   assert.match(dockerfile, /ARG REVISION=unknown/);
@@ -53,7 +54,7 @@ test("collector image contains the Go worker, reviewed policy and Git without a 
   const dockerfile = await text("server/Dockerfile");
   const collector = dockerfile.split(/(?=^FROM )/m).find((stage) => stage.includes(" AS collector-runtime"));
   assert.ok(collector);
-  assert.match(collector, /^FROM alpine:3\.22@sha256:[0-9a-f]{64} AS collector-runtime$/m);
+  assert.match(collector, /^FROM alpine:3\.24@sha256:[0-9a-f]{64} AS collector-runtime$/m);
   assert.match(collector, /apk add --no-cache ca-certificates git/);
   assert.match(collector, /COPY --from=server-build --chown=cao:cao \/out\/cao-dashboard \/app\/cao-dashboard/);
   assert.match(collector, /\/workspace\/\.github\/workflows\/cao\.json \/app\/\.github\/workflows\/cao\.json/);

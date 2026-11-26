@@ -9,6 +9,26 @@ import { prepareDashboardPages } from "../../scripts/simulate-dashboard-pages.mj
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const execute = promisify(execFile);
 
+export async function waitForSyntheticPopulation(page, { timeout = 480_000 } = {}) {
+  await page.waitForFunction(async () => {
+    const descriptor = (await indexedDB.databases()).find(({ name }) => name?.startsWith("gh-aw-cao-dashboard-data:synthetic-demo"));
+    if (!descriptor?.name) return false;
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open(descriptor.name, descriptor.version);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      const receipt = await new Promise((resolve, reject) => {
+        const request = database.transaction("transactions").objectStore("transactions").get("synthetic-demo:population");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      return receipt?.kind === "synthetic-demo-complete" && receipt.complete === true;
+    } finally { database.close(); }
+  }, null, { polling: 1_000, timeout });
+}
+
 export async function startDashboardPagesPreview({ basePath = "/gh-cao/", experimental = false, ...unsupported } = {}) {
   if (Object.keys(unsupported).length) throw new Error("Pages preview accepts only the synthetic enterprise demo");
   const scratch = join(root, ".tmp");

@@ -123,8 +123,13 @@ listener. Externally owned listeners and multiple replicas
 are rejected for this initial profile. Do not autoscale, overlap deployments,
 or enable broker request/response-body capture in a reverse proxy or APM system.
 Only explicitly trusted push, schedule and manual-dispatch execution is
-supported; pull requests, reusable workflows, environment-based subjects and
-identities lacking signed `check_run_id` job evidence fail closed.
+supported; signed `ref_type` must match the enrolled branch/tag and signed
+`runner_environment` must be `github-hosted`. Missing runner claims and
+self-hosted runners are denied; this profile has no operator-attested ephemeral
+self-hosted runner enrollment. Pull requests, reusable workflows,
+environment-based subjects and identities lacking signed `check_run_id` job
+evidence fail closed. JWT headers `jku`, `x5u`, `jwk`, and `x5c` are rejected,
+even when the token is otherwise signed by the trusted issuer.
 Cleanup uses gh-aw's fresh-OIDC `invalidate` request to revoke only that job's
 issued tokens; graceful shutdown also attempts revocation. A crash can lose
 cleanup state while GitHub tokens remain usable until their actual expiry
@@ -133,13 +138,22 @@ cleanup state while GitHub tokens remain usable until their actual expiry
 For compatible gh-aw releases, opt in with `token-broker.copilot-request: true`
 and set `GH_AW_TOKEN_BROKER_URL` to that exact endpoint. Do not also set
 `permissions.copilot-requests: write`. As of the upstream experimental
-[broker specification](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/specs/token-broker-specification.md),
+[broker specification v2.0.0 (2026-11-19)](https://github.com/github/gh-aw/blob/main/docs/src/content/docs/specs/token-broker-specification.md),
 bounded threat-detection/evals consumers are wired; main-agent inference still
 requires renewable AWF credential support. Existing compiled workflows are not
 changed here. Before claiming integrated support, test real GitHub OIDC
 exchange, authorized Copilot inference, renewal, key rotation and job-scoped
 invalidation with your selected gh-aw version and organization entitlements.
 Offline tests or a token-shaped response do not establish that acceptance.
+
+Exchange and invalidation accept an optional string `job_id`, as sent by v2
+clients. It is diagnostic metadata only: neither it, baggage, nor trace headers
+authorize issuance or select cleanup scope. Requests without it remain valid.
+The only supported capability is `copilot-request`; known `copilot-task` and
+`github-app` requests return 501 only after identity and enrollment checks.
+No GitHub tools or safe-output credential issuance is enabled. Trusted
+job-completion webhook cleanup (SV-37, a SHOULD) is not implemented; runner loss
+still leaves credentials usable until downstream expiry.
 
 The supported deployment is:
 

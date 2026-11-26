@@ -1653,7 +1653,6 @@
         {
           "id": "marketplace-packages",
           "title": "Campaign packages for agentic operations",
-          "description": "Explore packages from your configured registries. Select one to review it and copy an immutable gh cao add command. Adding a package does not use AI; workflows use AI when they run.",
           "data": {
             "source": "marketplace-directory",
             "query-context": false
@@ -1698,7 +1697,7 @@
               }
             ]
           },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No marketplace packages were resolved."
         }
       ]
@@ -1734,7 +1733,7 @@
               }
             ]
           },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": {
             "style": "entity-cards",
             "appearance": "marketplace",
@@ -1755,7 +1754,7 @@
               }
             ]
           },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "Package unavailable."
         },
         {
@@ -1909,9 +1908,9 @@
           "acceptance": "Display retained shard paths, kind, status, import times, record counts and hashes. Unknown fields remain unknown and successful imports do not establish upstream freshness.",
           "description": "Retained shard receipts show the source path, import time, committed records and payload hash. Importing an old shard does not make its workflow evidence current.",
           "data": { "source": "indexing-shards", "query-context": false },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": { "style": "entity-cards", "card": "ingested-shard", "icon": "database" },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No shard import receipts are available. Shard coverage and freshness are unknown.",
           "encoding": {
             "columns": [
@@ -1934,9 +1933,9 @@
           "acceptance": "Display process-local counts and last-observed timestamps; missing or unauthorized evidence is unavailable, not zero. Acknowledged pings do not prove current GitHub registration and acknowledgements do not mean collection has completed.",
           "description": "Live counters for this server process, refreshed every 30 seconds while this view is open. Reset on restart; not aggregated across replicas. Verified means valid HMAC, acknowledged means HTTP acceptance, and duplicate and ping counts overlap acknowledgements. A ping does not prove current GitHub-side registration.",
           "data": { "source": "ingestion-webhook-status", "query-context": false, "limit": 1 },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": { "style": "entity-cards", "card": "webhook-status", "icon": "broadcast" },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "Live webhook counters are unavailable. No traffic or registration state can be inferred.",
           "encoding": {
             "columns": [
@@ -1988,8 +1987,8 @@
           "data": {
             "source": "ingestion-health"
           },
-          "mark": "table",
-          "layout": "full",
+          "mark": "table", "lazy-list": true,
+          "layout": "full-view",
           "empty-message": "Live collection health is available when connected to a server-side collection profile.",
           "encoding": {
             "columns": [
@@ -2096,13 +2095,13 @@
               }
             ]
           },
-          "mark": "list",
+          "mark": "list", "lazy-list": true,
           "list": {
             "style": "entity-cards",
             "card": "ingestion-transaction",
             "icon": "database"
           },
-          "layout": "full",
+          "layout": "full-view",
           "empty-message": "No ingestion transactions have been retained.",
           "encoding": {
             "columns": [
@@ -2565,11 +2564,16 @@
     {
       "id": "maintenance",
       "kind": "custom",
+      "view-mode-control": false,
       "intent": "Maintain workflow sources and compiler tooling or disable Agentic Workflows in an exact repository.",
       "subject": "Repository workflow compiler versions and retained upgrade-confidence evidence.",
       "objective": "Prioritize safe compiler upgrades using known version provenance and explain incomplete evidence.",
       "acceptance": "Preserve unknown compiler evidence and expose recommended upgrades only for known outdated evidence. Exact repository identities support source updates and disabling independently of compiler evidence. Disable cancels in-progress runs before disabling all Agentic Workflows in that repository. Every execution requires approval.",
       "title": "Repository maintenance",
+      "tooltip": {
+        "label": "About repository maintenance",
+        "description": "Installed and latest stable gh-aw compiler versions observed for each repository, including why retained evidence is unavailable."
+      },
       "navigation-label": "Repositories",
       "navigation-indicator": {
         "label": "updates available",
@@ -2584,11 +2588,40 @@
         {
           "id": "maintenance-repositories",
           "title": "Repository compiler status",
-          "description": "Installed and latest stable gh-aw compiler versions observed for each repository, including why retained evidence is unavailable.",
           "data": {
             "source": "maintenance-repositories"
           },
           "mark": "list",
+          "lazy-list": true,
+          "list": {
+            "style": "entity-cards", "card": "maintenance-repository", "icon": "repo",
+            "selection": { "key": ["repository"], "commands": ["update-repository-sources", "enable-repository-workflows", "disable-repository-workflows"] }
+          },
+          "filter-bar": {
+            "filters": [
+              {
+                "id": "update",
+                "label": "Update",
+                "groups": [
+                  { "label": "Compiler update", "field": "upgrade-state", "source": "maintenance-repository-upgrade-options", "value-field": "upgrade-state" }
+                ]
+              },
+              {
+                "id": "state",
+                "label": "State",
+                "groups": [
+                  { "label": "Agentic Workflows", "field": "workflow-state", "source": "maintenance-repository-workflow-state-options", "value-field": "workflow-state" }
+                ]
+              },
+              {
+                "id": "version",
+                "label": "Version",
+                "groups": [
+                  { "label": "Installed gh-aw", "field": "gh-aw-version", "source": "maintenance-repository-version-options", "value-field": "gh-aw-version" }
+                ]
+              }
+            ]
+          },
           "empty-message": "No Agentic Workflow compiler versions were observed.",
           "encoding": {
             "columns": [
@@ -2614,32 +2647,30 @@
                 "display": "status"
               },
               {
-                "field": "upgrade-status-reason",
+                "field": "workflow-state",
                 "type": "nominal",
-                "title": "Evidence"
+                "title": "Agentic Workflows",
+                "display": "status"
               }
             ]
           },
-          "layout": "full",
-          "list": {
-            "style": "entity-cards",
-            "card": "maintenance-repository",
-            "icon": "repo",
-            "action": "upgrade-repository",
-            "action-context": ["repository"],
-            "actions": ["add-repository"]
-          }
+          "layout": "full-view"
         }
       ]
     },
     {
       "id": "maintenance-campaigns",
       "kind": "custom",
+      "view-mode-control": false,
       "intent": "Review installed campaign packages for source updates or disabling.",
       "subject": "Campaign package coordinates, revisions, registration and update-confidence evidence.",
       "objective": "Choose evidence-backed workflow-source maintenance without inventing campaign membership or expanding rollout.",
       "acceptance": "Retain exact package coordinates and gate updates on source evidence. Keep existing campaign activation and disabling semantics and approval; disabling future campaign runs does not cancel active runs. Individual workflows are maintained on Workflows.",
       "title": "Campaign maintenance",
+      "tooltip": {
+        "label": "About campaign maintenance",
+        "description": "Installed campaign packages with exact retained package coordinates and upstream revision evidence."
+      },
       "navigation-label": "Campaigns",
       "navigation-indicator": {
         "label": "updates available",
@@ -2650,34 +2681,35 @@
       "class-name": "maintenance-page",
       "views": [
         {
-          "id": "maintenance-campaign-sweep",
-          "title": "Update all campaign sources",
-          "description": "Run gh aw update for every retained campaign source below, including sources whose latest revision is unknown. Packages without source provenance are excluded. Review all commands before approval.",
-          "data": { "source": "maintenance-campaign-sweep" },
-          "mark": "list",
-          "empty-message": "No campaign packages with retained source provenance are available to update.",
-          "encoding": {
-            "columns": [
-              { "field": "campaign-name", "type": "nominal", "title": "Campaign" },
-              { "field": "campaign-source", "type": "nominal", "title": "Source" }
-            ]
-          },
-          "layout": "full",
-          "list": {
-            "style": "cards",
-            "icon": "sync",
-            "action": "update-repository",
-            "action-context": ["campaign-source", "campaign-name"]
-          }
-        },
-        {
           "id": "maintenance-campaigns",
           "title": "Campaign packages",
-          "description": "Installed campaign packages with exact retained package coordinates and upstream revision evidence.",
           "data": {
             "source": "maintenance-campaign-packages"
           },
           "mark": "list",
+          "lazy-list": true,
+          "list": {
+            "style": "entity-cards", "card": "maintenance-campaign", "icon": "workflow",
+            "selection": { "key": ["campaign"], "commands": ["update-campaign", "enable-campaign", "disable-campaign"] }
+          },
+          "filter-bar": {
+            "filters": [
+              {
+                "id": "update",
+                "label": "Update",
+                "groups": [
+                  { "label": "Update availability", "field": "campaign-update-filter", "source": "maintenance-campaign-update-options", "value-field": "campaign-update-filter" }
+                ]
+              },
+              {
+                "id": "status",
+                "label": "Status",
+                "groups": [
+                  { "label": "Registration", "field": "campaign-activity", "source": "maintenance-campaign-activity-options", "value-field": "campaign-activity" }
+                ]
+              }
+            ]
+          },
           "empty-message": "No campaign packages were observed.",
           "encoding": {
             "columns": [
@@ -2710,23 +2742,23 @@
               }
             ]
           },
-          "layout": "full",
-          "list": {
-            "style": "entity-cards",
-            "card": "maintenance-campaign",
-            "icon": "workflow"
-          }
+          "layout": "full-view"
         }
       ]
     },
     {
       "id": "maintenance-workflows",
       "kind": "custom",
+      "view-mode-control": false,
       "intent": "Maintain an individual workflow in its exact canonical repository.",
       "subject": "Campaign-owned and standalone Markdown workflow identities and retained source evidence.",
       "objective": "Review an exact upstream source target or disable a workflow without substituting a package or foreign repository.",
       "acceptance": "Source updates require known provenance and revisions; approval discloses gh-aw package sibling/assets reconciliation and shared repository maintenance. Local or unknown workflows remain disableable. Disable cancels in-progress runs first. Every execution requires existing approval.",
       "title": "Workflow maintenance",
+      "tooltip": {
+        "label": "About workflow maintenance",
+        "description": "The command selects an exact workflow; gh-aw may also reconcile package-manifest siblings/assets and shared repository references/generated files. Disable cancels in-progress runs before disabling future runs, including for local or unknown-source workflows."
+      },
       "navigation-label": "Workflows",
       "navigation-indicator": {
         "label": "updates available",
@@ -2737,34 +2769,28 @@
       "class-name": "maintenance-page",
       "views": [
         {
-          "id": "maintenance-workflow-sweep",
-          "title": "Update all workflow sources",
-          "description": "Run gh aw update for every source-managed Markdown workflow below, including sources whose latest revision is unknown. Local and unknown-source workflows are excluded. gh-aw may reconcile package siblings/assets and shared repository files.",
-          "data": { "source": "maintenance-workflow-sweep" },
-          "mark": "list",
-          "empty-message": "No Markdown workflows with retained source provenance are available to update.",
-          "encoding": {
-            "columns": [
-              { "field": "workflow", "type": "nominal", "title": "Workflow" },
-              { "field": "repository-coordinate", "type": "nominal", "title": "Repository" }
-            ]
-          },
-          "layout": "full",
-          "list": {
-            "style": "cards",
-            "icon": "sync",
-            "action": "update-workflows",
-            "action-context": ["workflow", "repository-coordinate"]
-          }
-        },
-        {
           "id": "maintenance-standalone-workflows",
           "title": "Individual workflows",
-          "description": "The command selects an exact workflow; gh-aw may also reconcile package-manifest siblings/assets and shared repository references/generated files. Disable cancels in-progress runs before disabling future runs, including for local or unknown-source workflows.",
           "data": {
             "source": "maintenance-workflows"
           },
           "mark": "list",
+          "lazy-list": true,
+          "list": {
+            "style": "entity-cards", "card": "maintenance-standalone-workflow", "icon": "workflow",
+            "selection": { "key": ["repository-coordinate", "workflow"], "commands": ["update-workflow-source", "enable-workflow", "disable-workflow"] }
+          },
+          "filter-bar": {
+            "filters": [
+              {
+                "id": "state",
+                "label": "State",
+                "groups": [
+                  { "label": "Workflow state", "field": "workflow-state", "source": "maintenance-workflow-state-options", "value-field": "workflow-state" }
+                ]
+              }
+            ]
+          },
           "empty-message": "No Markdown workflows were observed.",
           "encoding": {
             "columns": [
@@ -2772,11 +2798,6 @@
                 "field": "workflow-name",
                 "type": "nominal",
                 "title": "Workflow"
-              },
-              {
-                "field": "workflow-source",
-                "type": "nominal",
-                "title": "Source"
               },
               {
                 "field": "workflow-source-version",
@@ -2789,19 +2810,10 @@
                 "title": "Latest"
               },
               { "field": "repository-coordinate", "type": "nominal", "title": "Repository" },
-              {
-                "field": "workflow-update-status-reason",
-                "type": "nominal",
-                "title": "Evidence"
-              }
+              { "field": "workflow-state", "type": "nominal", "title": "State", "display": "status" }
             ]
           },
-          "layout": "full",
-          "list": {
-            "style": "entity-cards",
-            "card": "maintenance-standalone-workflow",
-            "icon": "workflow"
-          }
+          "layout": "full-view"
         }
       ]
     },

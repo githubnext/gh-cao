@@ -418,6 +418,11 @@ export function validateDashboard(dashboard, dashboardNode, errors) {
     getValueNodeByKey(dashboardNode, 'card-templates'),
     errors
   );
+  state.declaredCardDefinitions = new Map(
+    (Array.isArray(dashboard['card-templates']) ? dashboard['card-templates'] : [])
+      .filter((template) => isPlainObject(template) && typeof template.id === 'string')
+      .map((template) => [template.id, template])
+  );
   state.declaredViews = validateReusableViews(
     dashboard.views,
     getValueNodeByKey(dashboardNode, 'views'),
@@ -544,8 +549,8 @@ export function validateDashboard(dashboard, dashboardNode, errors) {
         } catch (error) {
           errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField, error instanceof Error ? error.message : 'Invalid dialog selector.', `${path}.selector`));
         }
-        if (action.level !== 'operate' || action.placement !== 'view' || action['copy-only'] === true) {
-          errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField, 'Selector actions must be executable, view-placed operate actions.', `${path}.selector`));
+        if (action.level !== 'operate' || (action.placement !== 'view' && action.placement !== 'toolbar') || action['copy-only'] === true) {
+          errors.push(createError(ERROR_CODES.missingOrInvalidRequiredField, 'Selector actions must be executable operate actions placed in a view or toolbar.', `${path}.selector`));
         }
       }
       if (typeof action.command === 'string') {

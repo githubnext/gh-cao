@@ -82,7 +82,7 @@ describe('cli-actions debug logging', () => {
     startAgentTask(disabled);
     await vi.waitFor(() => expect(queue.attach).toHaveBeenCalledTimes(1));
     startBatch(disabled);
-    await vi.waitFor(() => expect(window.location.hash).toBe('#page-commands'));
+    await vi.waitFor(() => expect(document.body.textContent).toContain('commands queued.'));
     expect(disabled.output.debug).not.toHaveBeenCalled();
 
     const otherCategory = await loadCliActions('?debug=cli-action-template,-cli-actions');

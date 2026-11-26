@@ -322,7 +322,6 @@ describe('DLS-CONF-004 scaffold gates', () => {
     const headerLayer = zIndex('\\.app-main > \\.top-nav');
 
     expect(panelLayer).toBeGreaterThan(headerLayer);
-    expect(styles).toContain('.filter-bar-expanded :is(.horizon-summary:hover, .horizon-summary:focus-within) .horizon-tooltip { visibility: hidden; opacity: 0; }');
   });
 
   it('spaces the filter count badge from the eye icon and control boundary', () => {

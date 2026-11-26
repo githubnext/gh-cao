@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { expect, test } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -84,7 +85,7 @@ async function selectTable(page, mobile) {
     await page.getByRole('button', { name: 'Switch to Cards view' }).click();
     await page.getByRole('button', { name: 'Switch to Table view' }).click();
   } else {
-    await page.getByRole('button', { name: 'Table', exact: true }).click();
+    await selectViewMode(page, 'table');
   }
 }
 

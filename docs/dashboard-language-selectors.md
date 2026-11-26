@@ -4,11 +4,11 @@ description: Declarative repository selection, wildcard enrollment, and bounded 
 ---
 
 This section extends the [Dashboard Language Specification](./dashboard-language-specification.md)
-with the contract for view-placed CLI action selectors.
+with the contract for view- or toolbar-placed CLI action selectors.
 
 ## Configuration
 
-A view-placed `operate` CLI action may declare a reusable `selector` dialog
+An `operate` CLI action placed in a view or toolbar may declare a reusable `selector` dialog
 configuration: `label`, optional `placeholder` and `allow-patterns`, `debounce-ms` (100–2000),
 `query: { command: "gh search repos", fields: [...], limit: 1–50 }`, and
 `mapping: { value, label, description?, target }`. Mapping fields must be selected
@@ -18,9 +18,10 @@ by the query; `target` must name one command template token. For example:
 {
   "id": "add-repository",
   "level": "operate",
+  "verb": "add",
   "label": "Add repository",
   "icon": "plus",
-  "placement": "view",
+  "placement": "toolbar",
   "command": "gh cao repos add {{repository}}",
   "selector": {
     "label": "Repository",

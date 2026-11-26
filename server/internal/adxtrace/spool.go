@@ -12,7 +12,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/githubnext/gh-cao/server/internal/logger"
 )
+
+var spoolLog = logger.New("cao:adxtrace")
 
 var ErrBusy = errors.New("trace spool is busy")
 var ErrCapacity = errors.New("trace spool budget reached")
@@ -210,6 +214,15 @@ func (s *spool) withObjects(root Objects, action func(Objects, *ledger) error) e
 			d.Delivered = ""
 		}
 	}
+	if err := reconcileObjects(root, &state); err != nil {
+		return err
+	}
+	return action(root, &state)
+}
+
+// reconcileObjects removes uncommitted temporary files and unreferenced trace
+// objects, and rejects any other unexpected file in the spool.
+func reconcileObjects(root Objects, state *ledger) error {
 	// Only this process can own the file lock. Temporary/orphan files are
 	// uncommitted writes, never an alternative source of authority.
 	entries, err := root.List()
@@ -230,17 +243,21 @@ func (s *spool) withObjects(root Objects, action func(Objects, *ledger) error) e
 			referenced[item.File] = true
 		}
 	}
+	removed := 0
 	for _, entry := range entries {
 		name := entry.Key
 		if strings.HasSuffix(name, ".tmp") || (strings.HasSuffix(name, ".trace") || strings.HasSuffix(name, ".dataset") || strings.HasSuffix(name, ".mining")) && !referenced[name] {
 			if err := root.Remove(name); err != nil {
 				return err
 			}
+			removed++
 		} else if !referenced[name] {
+			spoolLog.Printf("spool reconciliation rejected: reason=unexpected_file objects=%d", len(entries))
 			return errors.New("trace directory contains an unexpected file")
 		}
 	}
-	return action(root, &state)
+	spoolLog.Printf("reconciled spool objects: objects=%d referenced=%d removed=%d", len(entries), len(referenced), removed)
+	return nil
 }
 
 func (s *spool) save(root Objects, state *ledger) error {

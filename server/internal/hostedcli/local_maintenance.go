@@ -30,7 +30,7 @@ func PlanLocalMaintenance(command string) (Plan, error) {
 	if hasPrefix(tokens, "gh", "aw", "upgrade") {
 		return planUpgrade(tokens[3:])
 	}
-	if !hasPrefix(tokens, "gh", "aw", "update") && !hasPrefix(tokens, "gh", "aw", "disable") {
+	if !hasPrefix(tokens, "gh", "aw", "update") && !hasPrefix(tokens, "gh", "aw", "disable") && !hasPrefix(tokens, "gh", "aw", "enable") {
 		return Plan{}, ErrNotHosted
 	}
 	operation, args := tokens[2], tokens[3:]
@@ -58,9 +58,9 @@ func PlanLocalMaintenance(command string) (Plan, error) {
 		return Plan{Kind: KindGhAwUpdate, Program: "gh-aw", Args: append(normalized, args...), Repository: values["--repo"]}, nil
 	}
 	if len(args) != 2 || args[0] != "--repo" || !ValidRepository(args[1]) || strings.Contains(args[1], "..") {
-		return Plan{}, errors.New("disable requires only one exact repository")
+		return Plan{}, errors.New("enable/disable requires only one exact repository")
 	}
-	normalized := []string{"disable"}
+	normalized := []string{operation}
 	if target != "" {
 		normalized = append(normalized, strings.TrimSuffix(path.Base(target), ".md"))
 	}

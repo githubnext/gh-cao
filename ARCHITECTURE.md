@@ -222,12 +222,30 @@ discovers a legacy dashboard bundle or bootstraps empty operational evidence.
 
 Production uses the same-origin Go/PostgreSQL host. Local development uses the
 same Go handler, PostgreSQL adapters and declarative views. Pages is only a
-synthetic enterprise demo: generated raw samples pass
+synthetic enterprise demo: raw samples generated on demand in the browser pass
 through production normalization, canonical ingestion, worker queries, and the
 same views. It has no real-data input option, SQLite download, agent summary, or
 live services. Its declarative **Synthetic enterprise demo** Overview callout identifies
-the evidence. Browser download, ingestion, persistence, and queries run in a
-dedicated Web Worker. Demo data URLs are under `demo-data/`, not the former
+the evidence. Synthesis, ingestion, persistence, and queries run in a
+dedicated Web Worker, in bounded batches rather than downloading a pregenerated
+enterprise snapshot. The sample contains 1,000 repositories, exactly 5,000
+runs, three campaigns, and 4,000 installed agentic workflows across all
+repositories. A log-normal activity distribution allocates the run budget with
+at least one run per repository. Fleet inventory is ingested first, followed by
+seeded, activity-weighted sampling without replacement. Randomly positioned
+coverage reservations put every repository into the first 3,000 runs, while
+busier repositories can recur naturally in partial results.
+Raw activity is normalized in batches of at most 100 runs.
+Four-word repository names come from a predefined 256-word safe vocabulary through
+a collision-free 32-bit permutation. Workflow display names vary across 64 safe
+labels while keeping inventory, run, and Value identities aligned. A small
+three-day-old coverage cohort guarantees 128 distinct blocked `.invalid` domains
+in retained firewall evidence; remaining blocked activity is probabilistic.
+Completed samples are reused within the same UTC day. A new day or incompatible
+generator/schema resets only the scoped demo database before regeneration, so
+regenerated runs cannot inherit stale outcomes or aggregate receipts. Interrupted
+samples resume committed inventory, installation, and activity batches.
+The demo source namespace remains under `demo-data/`, not the former
 root `payload-hashes.json`; browser storage keys carry `synthetic-demo` and
 service-worker caches use `demo`. Changing data URLs as well as storage keys
 prevents old same-origin service-worker responses from supplying real evidence.
@@ -294,9 +312,10 @@ against explicitly configured PostgreSQL storage; `serve-hosted` retains the rev
 PostgreSQL/OAuth host. Explicit `serve-pages` serves a prepared synthetic Pages
 artifact unchanged, including repository base paths, so the browser exercises
 IndexedDB rather than the hosted HTTP backend. The local Pages preparation
-command, `npm run dashboard:pages:build`, generates synthetic enterprise raw
-samples and runs production normalization and Dashboard building. It accepts no
-operational snapshot input and publishes neither SQLite nor agent summaries.
+command, `npm run dashboard:pages:build`, builds the Dashboard and its browser
+synthesizer without pregenerating sample evidence. Browser synthesis uses
+production normalization and canonical ingestion. The builder accepts no
+operational snapshot input and publishes neither data shards, SQLite nor agent summaries.
 `npm run dashboard:pages` remains a demo-only preview. Daily `docs.yml` builds
 refresh the demo independently of operational collection or artifact freshness.
 
@@ -413,12 +432,9 @@ frozen function and bounded collector pass verification, the skill stages that
 registration automatically with `value enable --if-absent`, preserving existing
 registrations and explicit `enabled: false` disables. Mere function presence
 never grants execution authority. Reviewed local collectors and policy deploy
-together. Remote collectors also declare a reviewed request ceiling. Actions
-Activity finishes ordinary owner-scoped collection first, admits the full
-ceiling only above the selected credential's protected reserve, and persists a
-secret-free grant that is consumed before every uncached REST, search, artifact
-or GraphQL request. Missing enforcement, insufficient capacity and exhaustion
-fail closed without replacing accepted evidence. Optional hosted App collector
+together. Remote collectors also declare a reviewed request ceiling.
+Missing enforcement, insufficient capacity and exhaustion fail closed without
+replacing accepted evidence. Optional hosted App collector
 deployments turn verified issue, pull-request, completed-run and default-branch
 push deliveries into durable, debounced repository Value invalidations; an
 independent daily sweep repairs missed deliveries without treating a webhook as
@@ -429,7 +445,7 @@ before forwarding GitHub API calls. Unknown quota, changed policy or scope,
 incomplete evidence and failed acquisition retain the previous capture. Only
 validated original packets are published atomically in PostgreSQL; private
 proof and per-pair API, time and byte costs survive refreshes and are erased
-on withdrawal. The default Actions profile has no inbound webhooks. Due
+on withdrawal. Explicit snapshot ingestion does not provide inbound webhooks. Due
 collectors run
 only within effective collection scope and frozen cadence. They continue from
 the retained proof/cutoff, reuse immutable receipts, merged implementations,
@@ -728,8 +744,11 @@ Actions OIDC identities for dedicated organization App installation tokens with
 only `organization_copilot_requests: read`. Its protected
 `control-plane.token-broker.copilot-requests.workflows` policy pins immutable
 owner/repository IDs, workflow reference and revision; signed job context
-isolates issuance and invalidation. It never grants rollout, admission, or
-repository-write authority and does not implement Copilot tasks. Private keys
+isolates issuance and invalidation. The gh-aw v2 optional diagnostic `job_id`
+does not participate in that binding. Signed branch/tag type and GitHub-hosted
+runner evidence are required; self-hosted runner attestation is unsupported.
+It never grants rollout, admission, or repository-write authority and does not
+issue `copilot-task` or `github-app` credentials. Private keys
 are read from Azure Key Vault using managed identity, never from policy or
 caller inputs. This initial HTTPS, process-owned, explicitly single-replica
 profile keeps a bounded process-local credential registry for revocation;
@@ -1123,6 +1142,17 @@ Execution does not require an interactive terminal. Cancellation remains scoped
 to the owned process tree; unsupported platforms fail closed. Ordinary local
 serving and hosted administration are unchanged.
 
+Before local update/upgrade publication, the native adapter checks Git and the
+active GitHub CLI authentication, resolves author/committer identity from an
+explicit non-secret root `git.name`/`git.email` pair in `cao.json`, existing Git
+settings, or the authenticated user's public profile and GitHub noreply address,
+in that order, and validates it through Git. Identity and the host-scoped
+`gh auth git-credential` helper and GitHub SSH-to-HTTPS URL rewrites are passed
+only to the maintenance command tree;
+no Git configuration or credential is persisted. Failure blocks maintenance
+with actionable diagnostics. This is local execution metadata, not rollout
+authority, and does not change the hosted App bot identity contract.
+
 The native owner watches local `cao.json` configuration, validates complete
 documents, and republishes exact configured repository identities through the
 existing inventory snapshot and canonical ingestion boundary. The checkout and
@@ -1215,8 +1245,8 @@ As an alternative, the server itself collects evidence from GitHub App
 installations through bounded native Go acquisition and epoch-fenced PostgreSQL
 publication. It does not execute `gh cao`, stage an Activity lake,
 or schedule snapshot replacement. Native recovery replays durable PostgreSQL
-publications; the default Actions profile independently ingests verified
-published snapshots. The separately selected `NativeValueService` owns reviewed
+publications; explicit snapshot ingestion independently validates its selected
+input. The separately selected `NativeValueService` owns reviewed
 Value execution without a snapshot Projector or its dirty-generation lifecycle.
 Configuring both profiles fails at startup: a canonical
 database has one writer. The collection profile also persists allowlisted
@@ -1284,11 +1314,7 @@ native quota pool; unlabelled or mismatched calls remain isolated. Reuse never c
 repository, installation, API origin, policy snapshot or collection invocation;
 each collector keeps its own request grant, proof, timeout, starting-packet
 check and publication CAS. Legacy registrations without a manifest remain
-isolated. Actions Activity may admit a reviewed collector only after
-ordinary collection and only when its complete request ceiling fits above the
-protected reserve. It durably counts each uncached GitHub request before
-execution and retains accepted packets/proof on missing capacity or exhaustion.
-Hosted cycles use the same shared quota services and count cache hits separately
+isolated. Hosted cycles use shared quota services and count cache hits separately
 from metered requests. Accepted remote proof is stored as bounded private
 PostgreSQL files keyed by the exact repository/workflow deployment, restored
 into an invocation-local workspace, and replaced in the same transaction as
@@ -1307,15 +1333,13 @@ contract exists. Such deployments remain explicitly `unconfigured`; the system
 does not fabricate a generic Value metric. Adding enterprise coverage means
 adding reviewed workflow-specific contracts and database-local evaluators, not
 deriving outcome claims from runtime success.
-Bounded cache-only/local computation remains independent:
-Actions runs it only after a successful eligible Activity snapshot, while the
-hosted worker uses its own single-owner lease and verified private snapshot.
-Both use the reviewed local-only standard adapter, explicit local-capability
+Bounded cache-only/local computation remains independent. The hosted worker
+uses its own single-owner lease and verified private snapshot. It uses the
+reviewed local-only standard adapter, explicit local-capability
 modules or exact versioned cache reuse, no target credentials or automatic
 backfill, and a two-minute batch/thirty-second adapter budget. Scope, explicit
-disables, fast, public-only and API-limited gates remain enforced. A later
-ordinary snapshot imports completed results; optional work does not acquire
-the projection lease, hold a long core evidence lock, or initiate a
+disables, fast, public-only and API-limited gates remain enforced. Optional work
+does not acquire the projection lease, hold a long core evidence lock, or initiate a
 compute/publication retry loop. Hosted final publication rechecks enrollment
 and the starting generation, manifest, policy and retained-result identities;
 changed inputs defer publication rather than overwrite concurrent evidence.
@@ -1337,7 +1361,11 @@ references secret names, never secret values. Activity resolves registries
 during static precomputation and publishes safe normalized package metadata into
 the canonical IndexedDB path. The hosted Go server resolves the same contract
 on demand and caches safe results in Redis. Registry credentials remain in the
-trusted resolver in both profiles. Marketplace views consume only the existing
+trusted resolver in both profiles. The on-demand local dashboard delegates
+resolution through its private native operator adapter to a short-lived resolver
+subprocess; its web server receives only safe catalog metadata, never registry
+credentials. The adapter invalidates its TTL-bound catalog cache when local
+policy changes or becomes unavailable. Marketplace views consume only the existing
 data-worker query boundary and render declarative package cards and copy-only
 CAO add commands; browsers never fetch registries or install packages.
 The browser materializes bounded runtime and failure-scope results by
@@ -2164,8 +2192,8 @@ not authorize cross-repository evidence access.
   The internet-facing dashboard holds the webhook secret but no collection
   private key. Unexposed collector and idempotent backfill services hold the
   read-only GitHub App key. The collection profile leaves
-  `CAO_SOURCE_DIRECTORY` unset; a separately selected Actions snapshot profile
-  can still mount a verified activity artifact read-only.
+  `CAO_SOURCE_DIRECTORY` unset; separately selected snapshot ingestion
+  can still mount a verified operational snapshot read-only.
   Locally source-built images are not admitted through the package workflow's vulnerability scans,
   hardening check, SBOM, or artifact attestations; those guarantees continue
   to apply only to published packages.
@@ -2231,8 +2259,8 @@ not authorize cross-repository evidence access.
   executable PATH or legacy files. Doctor shares native setting and selected
   Value dependency validation, and does not probe legacy lakes or projection
   locks for native deployments. App-backed collection without native selection
-  now fails at startup; only the no-App Actions snapshot profile remains the
-  default. Unsupported Value collector registrations fail closed rather than
+  now fails at startup; without an App, snapshot ingestion requires an explicitly
+  selected source. Unsupported Value collector registrations fail closed rather than
   launching the former JavaScript runtime.
   See `specs/server-ingestion.md` section 2.4.
 - Browsers and external clients never receive Redis or Postgres endpoints or

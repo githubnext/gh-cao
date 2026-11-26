@@ -413,6 +413,27 @@ func TestHostedCLIAdmissionRequiresAndRebindsAccountIdentity(t *testing.T) {
 	}
 }
 
+func TestHostedCLIRetainsDashboardOriginAcrossDetailAndRetry(t *testing.T) {
+	fixture := newHostedCLIFixture(t, []string{"octocat"})
+	body := strings.TrimSuffix(strings.TrimSpace(hostedUpgradeRequest), "}") + `,"origin":"#page-maintenance?repository=octo%2Fapp"}`
+	if response := fixture.do(t, http.MethodPost, "/__cli_commands", body, true); response.Code != http.StatusAccepted ||
+		!strings.Contains(response.Body.String(), `"origin":"#page-maintenance?repository=octo%2Fapp"`) {
+		t.Fatalf("enqueue = %d: %s", response.Code, response.Body.String())
+	}
+	fixture.queue.commands[1].Status = operational.CLICommandFailed
+	if response := fixture.do(t, http.MethodPost, "/__cli_commands/1/retry", `{}`, true); response.Code != http.StatusAccepted {
+		t.Fatalf("retry = %d: %s", response.Code, response.Body.String())
+	}
+	retried, err := fixture.queue.Detail(t.Context(), 2)
+	if err != nil || retried.Origin != "#page-maintenance?repository=octo%2Fapp" {
+		t.Fatalf("retry origin = %+v, %v", retried, err)
+	}
+	invalid := strings.TrimSuffix(strings.TrimSpace(hostedUpgradeRequest), "}") + `,"origin":"https://example.com/"}`
+	if response := fixture.do(t, http.MethodPost, "/__cli_commands", invalid, true); response.Code != http.StatusBadRequest {
+		t.Fatalf("external origin = %d: %s", response.Code, response.Body.String())
+	}
+}
+
 func TestReadHostedCLIJSONRequiresBoundedSingleDocument(t *testing.T) {
 	valid := `{"value":"accepted"}`
 	for _, test := range []struct {

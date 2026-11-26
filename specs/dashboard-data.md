@@ -1,7 +1,7 @@
 ---
 title: Central Agentic Ops Dashboard Data Architecture Specification
 description: Canonical data model, ingestion, IndexedDB persistence, consistency, recovery, and scale requirements for the gh-cao dashboard.
-version: 1.8.5
+version: 1.8.6
 status: Working Draft
 editors:
   - GitHub Next
@@ -9,7 +9,7 @@ editors:
 
 # Central Agentic Ops Dashboard Data Architecture Specification
 
-**Version:** 1.8.5
+**Version:** 1.8.6
 **Status:** Working Draft
 **Repository:** `githubnext/gh-cao`
 **Target implementation:** Dashboard data subsystem
@@ -436,12 +436,62 @@ through one Go/PostgreSQL origin. Local development SHALL use the same Go
 serving/query boundary and PostgreSQL storage, ingesting explicitly acquired
 operational artifacts. Neither profile SHALL fall back to Pages or browser ingestion.
 
-Pages SHALL contain only a synthetic enterprise sample. Its build SHALL
-generate raw sample evidence and pass it through the production normalization,
+Pages SHALL contain only a synthetic enterprise sample. Its browser data worker SHALL
+generate raw sample evidence on demand and pass it through the production normalization,
 canonical ingestion, Dashboard Language queries, and shared declarative views.
-It SHALL NOT substitute presenter fixtures, JavaScript-derived view rows, or
-a separate demo query implementation. A declarative **Synthetic enterprise demo**
-callout SHALL identify the sample; live services SHALL be unavailable.
+Generation and writes SHALL be bounded, never retaining the enterprise population
+in memory. Defaults SHALL be 1,000 repositories, exactly 5,000 runs, three campaigns,
+and 4,000 installed agentic workflows fleet-wide.
+Repository, catalog, and run identities SHALL use the synthetic organization `contoso`.
+Repository names SHALL use four hyphen-separated words from a predefined 256-word
+safe vocabulary, selected collision-free by a deterministic unsigned 32-bit
+bijection: a naming space, not a secret or security token.
+Installed workflow display names SHALL come from 64 predefined safe names across
+four behavior archetypes, consistent across inventory, Runs, and Value evidence.
+Generation SHALL reserve one run per repository when budget permits, allocating
+the remainder proportionally to deterministic log-normal repository activity rates.
+Workflow/day allocation SHALL preserve heterogeneous Poisson bursts, weekday/weekend
+and partial-current-day cadence: illustrative, not empirical enterprise estimates.
+Run identities SHALL remain stable across partitions.
+The worker SHALL publish fleet inventory first, then sample repositories without
+replacement proportionally to remaining allocated runs via a deterministic keyed
+random stream. One run per active repository SHALL occupy a random position within
+the first min(three times active repositories, total budget) runs. This bounded
+window SHALL prevent starvation without uniform round-robin order: busy repositories
+MAY recur in early results. Normalization batches SHALL contain at most 100 raw
+activity runs or 100 raw Value-only records.
+Synthetic runs SHALL include bounded multi-turn version-1 unified sessions through
+the production parser, with correlated tool calls, per-request usage and cache
+growth, phase-scoped accounting, and outcome-appropriate lifecycle and safe outputs.
+Retained firewall evidence SHALL cover at least 100 distinct blocked `.invalid`
+domains by default. A deterministic cohort SHALL reserve one run per domain for
+128 domains three days before the sample day, across repositories and workflow
+archetypes; other blocked activity SHALL remain probabilistic.
+Retained sessions SHALL include at least eight distinct public approved domains and
+15 distinct MCP tool names across GitHub and workflow-observability servers, with
+public identifiers informed by bounded live evidence and illustrative request volumes.
+Network request volume SHALL scale with generated tool activity and bounded
+background traffic. Value throughput SHALL use the allocated workflow run rate,
+not an independent per-repository activity multiplier, so detail volume remains
+within the browser storage budget without evicting the configured run population.
+The run ledger SHALL span 21 UTC days, with ordinary seven-day detail retention,
+so complete recent sessions coexist with the full 5,000-run historical population.
+Pending and approval-gated runs SHALL NOT acquire invented
+completion, evaluation, or output events. Live repository evidence MAY inform
+illustrative shapes and distributions during development; the demo SHALL NOT
+copy transcripts, prompts, tool payloads, private identifiers, or runtime data
+acquisition into its published sample.
+Builds SHALL publish only the synthesizer. Reuse compatible same-UTC-day
+data; resume committed inventory, installation and interleaved activity batches
+without re-ingesting them or claiming completion. New days or incompatible
+generators/schemas SHALL reset only demo storage, including activity/count receipts.
+Population/upgrades SHALL NOT open loading dialogs. Commits SHALL refresh active
+worker queries in bounded five-second windows, initially immediate and partial
+until success. PostgreSQL revision pushes SHALL share this window; progress-only
+events SHALL NOT query. View abort SHALL cancel pending/in-flight work.
+No presenter fixtures, JavaScript-derived rows or separate demo queries.
+The declarative **Synthetic enterprise demo** callout SHALL identify
+the sample; live services SHALL be unavailable.
 
 `npm run dashboard:pages:build` SHALL accept no real-data input option.
 Its published output SHALL contain neither SQLite nor an operational agent
@@ -458,7 +508,7 @@ No Actions workflow publishes an operational snapshot artifact; native
 Operational downloaders SHALL reject synthetic manifests and manifests without
 canonical shard checksums. No canvas acquisition or serving path is supported.
 
-The demo SHALL put data files under `demo-data/`, not root
+The demo SHALL keep its source namespace under `demo-data/`, not root
 `payload-hashes.json`, suffix browser storage keys with `synthetic-demo`,
 and use the `demo` service-worker cache namespace. Changed data URLs SHALL
 prevent reuse of real-data responses from old same-origin service-worker caches.
@@ -652,7 +702,7 @@ The implementation profile defined by this specification is:
 | --- | ---: | --- |
 | Canonical model | 37 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Output Lifecycle, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
 | Browser IndexedDB | 50 | Twenty-one canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
-| Go server Postgres sources | Canonical model 19 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
+| Go server Postgres sources | Canonical model 20 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
 | Static SQL export | 3 | Versioned JSON interchange produced from upstream SQL tables or views |
 
 ### 5.1.1 Independent statistical run projection
@@ -892,6 +942,15 @@ storage using owner credentials; query and ingestion processes SHALL receive
 only the non-owner runtime login and the reviewed privilege contracts.
 An explicit `--postgres-url` or `CAO_POSTGRES_URL` SHALL bypass container
 management and automatic provisioning, without fallback after connection failure.
+Before workflow discovery or artifact acquisition, both `gh cao dashboard` and
+`gh cao dashboard collect` MUST probe for `gh aw logs --format jsonl` support and,
+when it is unavailable, MUST install the pinned gh-aw release (currently
+`v1.2.3`) with `gh extension install github/gh-aw --pin <version> --force`.
+Installation MUST NOT change workflows or CAO policy. The adapter MUST fail
+before collection when installation fails or the installed gh-aw still lacks
+that support, and MUST return cancellation or timeout errors unchanged.
+Diagnostics from the capability probe, but not from repository reads, MAY be
+inspected because gh-aw can print successful help on standard error.
 The adapter MUST use an installed gh-aw collector supporting
 `gh aw logs --format jsonl` and canonical repository,
 workflow, and repository-scoped Run identities; fresh Actions observations MUST
@@ -1122,6 +1181,22 @@ the approved repository's checkout for both Markdown inventory and ambient
 GitHub cancellation scope. An individual workflow target MUST be exact, never a
 substring, wildcard, package update, or implicit repository-wide operation.
 This exception MUST NOT extend hosted execution authority.
+Before starting a local `update` or `upgrade` command, the native maintenance
+adapter MUST verify that Git is available and that the active `github.com` GitHub
+CLI authentication is usable. It MUST resolve the author and committer identity
+from, in order, the root `git.name` and `git.email` pair of the local CAO
+configuration, the child environment's `GIT_AUTHOR_*` and `GIT_COMMITTER_*`
+variables, existing Git `user.name` and `user.email` settings, and finally the
+authenticated user's public profile name and email, falling back to the login
+and the GitHub noreply address `<id>+<login>@users.noreply.github.com`. The
+profile is read only when an earlier source leaves a value unresolved. Git MUST
+accept the resolved identity. The adapter MUST pass the identity, the
+`gh auth git-credential` helper for `https://github.com`, and rewrites of GitHub
+SSH remotes to HTTPS only through the environment of that command tree, and MUST
+NOT persist Git configuration or credentials. When any check fails, the adapter
+MUST report an actionable diagnostic, start no maintenance command, and
+complete the action with a nonzero exit code. The `git` identity is local
+execution metadata and MUST NOT grant rollout, repository or hosted authority.
 The native maintenance adapter SHALL be independent of presentation and
 require ordinary server bearer authentication plus same-origin mutation checks.
 Credentials and subprocesses MUST remain in the owning CLI, not the read-only
@@ -1381,14 +1456,14 @@ Maintenance SHALL provide separate Repository, Workflow, and Campaign pages
 under the Updates navigation section, preserving the existing Repository
 maintenance route. Each page SHALL have its own navigation entry and
 evidence-backed update indicator, without shared maintenance tabs.
-Each page SHALL provide a full-sweep action using existing gh-aw CLI commands
-with explicit approval and pull-request publication: repository upgrades for
-every listed repository, source updates for every source-managed Markdown
-workflow with retained provenance, and package updates for every campaign with
-a retained source coordinate. Sweep queries SHALL return complete ordered
-target sets without limits or pagination; unknown latest revisions SHALL NOT
-exclude a known source. Local or unknown-source entities remain visible in
-the inventory but SHALL NOT become source-update targets.
+Each page SHALL use a full-view, card-only lazy list with bounded canonical
+query pages and SHALL NOT render a table. Scrolling SHALL load further pages,
+with an accessible manual load control. Updates pages SHALL NOT provide update-all or
+upgrade-all controls or eagerly load complete inventories to build browser-side
+command batches; fleet-wide maintenance belongs in CLI commands. Per-row
+maintenance SHALL retain explicit approval and pull-request publication.
+Local or unknown-source entities remain visible in the inventory but SHALL NOT
+become source-update targets.
 Workflow maintenance
 SHALL include campaign-owned and standalone Markdown workflows. Individual
 source updates SHALL use the exact workflow identity in its canonical Repository,
@@ -1445,10 +1520,12 @@ concurrent GitHub API pressure and reuse shared analysis state. The consolidated
 The `gh-aw-logs-shards/` directory SHALL retain the authoritative collection
 transport within the operational cache. Artifact publication SHALL provide
 compacted normalized run-information and record JSONL plus
-`payload-hashes.json`, as specified in §5. Pages SHALL generate equivalent
-transport solely from synthetic raw samples. Browsers SHALL use manifest
-identities to skip unchanged demo downloads and imports, and SHALL NOT fall
-back to raw source shards or operational artifacts.
+`payload-hashes.json`, as specified in §5. Pages SHALL instead generate raw
+synthetic samples locally in the browser worker and use the production
+normalization and canonical ingestion contracts without downloading a sample
+snapshot. The worker SHALL distinguish incomplete generation from a completed
+compatible sample, honor cancellation, and SHALL NOT fall back to operational
+artifacts.
 
 ### 5.4.1 Canonical join contract
 
@@ -1523,10 +1600,10 @@ explicit when evidence is incomplete, incomparable, unmatured, or unavailable.
 
 ### 5.5.1 Authoritative sources and grain
 
-Token-optimization evidence SHALL enter through the Activity publication and
-the existing source-adapter boundary. An optimizer or dashboard MUST NOT
-independently redownload the same run corpus when the Activity generation is
-complete for its scope and window.
+Token-optimization evidence SHALL enter through the canonical ingestion and
+source-adapter boundary. An optimizer or dashboard MUST NOT independently
+redownload the same run corpus when the acquired evidence is complete for its
+scope and window.
 
 The current source authority for gh-aw runtime fields is
 [`logs-jsonl.schema.json`](https://github.com/github/gh-aw/blob/main/schemas/logs-jsonl.schema.json).
@@ -2244,7 +2321,7 @@ grains are not necessarily reconstructible: Run status and conclusion,
 requested and resolved models, friction and total Run costs, token classes,
 call and outcome events, and execution and dispatched-target repositories
 retain their separate meanings. Browser schema upgrades SHALL follow §5.1,
-preserving compatible stores during additive version 44/45 upgrades and
+preserving compatible stores during additive version 44, 45, and 46 upgrades and
 rebuilding incompatible projections; PostgreSQL requires a fresh schema matching TypeSpec.
 Retained row counts SHALL be calculated from namespace-scoped entity tables
 in the same read snapshot, not persisted in `cao_quality`.
@@ -2563,7 +2640,7 @@ reads at most 25 objects; additional work is requeued. Lifecycle hints retain a
 15-minute repository debounce, the existing 200,000-task queue backpressure,
 and delivery deduplication. An hourly scope-repair pass SHALL enqueue only
 repositories with lifecycle state older than 24 hours, providing daily repair
-when webhooks are absent or lost. The Actions profile remains valid without an
+when webhooks are absent or lost. Explicit snapshot ingestion remains valid without an
 inbound receiver.
 
 The private `cao_acquisition_outcomes` operational table MAY retain at most
@@ -3592,11 +3669,11 @@ the same metric version SHALL fail. Original accepted-event dates, native values
 and immutable references SHALL remain evidence, not recalculated report state.
 Existing `operationalValues` semantics and retention SHALL remain unchanged.
 
-Static Activity publication MAY accept an original packet only through a
-reviewed workflow-Value registration that names a confined regular file under
+A reviewed workflow-Value registration MAY name an original packet in a
+confined regular file under
 the trusted checkout's `.github/value-evidence/` directory and pins the SHA-256
 of the decoded schema-v2 envelope. Runtime URLs and network retrieval SHALL NOT
-be accepted. Before replacing retained evidence, Activity SHALL validate the
+be accepted. Before replacing retained evidence, the consumer SHALL validate the
 envelope schema and bounds, digest, repository/workflow/source identity, current
 reviewed Activity scope, frozen contract and accepted history. An exact retry is
 idempotent; conflicting content at the same packet/capture identity, a changed
@@ -3804,20 +3881,11 @@ the same decision and attempt facts in browser and PostgreSQL storage.
 This bounded current-fact contract does not introduce a complete event ledger,
 historical conflict quarantine, or the proposed three-tier storage policy.
 
-Optional Value acquisition MUST NOT delay ordinary Activity publication, consume
-its protected API headroom, or hold the hosted projection lease. A separate job
-or process alone does not isolate GitHub quota. Actions Activity SHALL finish its
-ordinary owner-scoped collection first and MAY then invoke an exact reviewed
-remote collector only when its full `api-requests` ceiling fits above the
-selected credential's protected core reserve. It SHALL persist a bounded,
-secret-free grant and durably consume one unit before each uncached REST,
-search, artifact or GraphQL request. Cached responses consume no new unit.
-Consumption SHALL be fail-closed: a failed or interrupted request MAY remain
-counted but no request may execute before its count is persisted. Exhaustion,
-invalid state, missing enforcement or insufficient admission SHALL retain prior
-evidence and publish a deferral without collector invocation where possible.
-Observed API exhaustion, fast mode and public-only mode retain their precise
-deferral reasons. Git transport SHALL remain under its separate immutable
+Optional Value acquisition MUST NOT consume protected API headroom or hold the
+hosted projection lease. A separate job or process alone does not isolate
+GitHub quota. Exhaustion, invalid state, missing enforcement or insufficient
+admission SHALL retain prior evidence and publish a deferral without collector
+invocation where possible. Git transport SHALL remain under its separate immutable
 inventory/blob bounds and SHALL NOT consume GitHub API request units.
 
 Only the explicitly selected hosted GitHub App collector profile MAY use
@@ -3830,7 +3898,7 @@ SHALL also revisit enabled registrations when deliveries are missed. Value
 work SHALL have bounded per-worker concurrency and a distributed
 single-owner lease per repository, and SHALL NOT
 hold the Activity projection or repository lease across collector execution.
-The default Actions profile has no inbound webhook receiver.
+Explicit snapshot ingestion has no inbound webhook receiver.
 
 The hosted collector SHALL keep installation credentials outside its confined
 collector subprocess. Every uncached API call SHALL use the existing shared
@@ -3873,25 +3941,19 @@ explicitly declare their local capability; other modules may reuse exact,
 version-matched retained observations but SHALL NOT acquire missing inputs.
 Existing fast, public-only and API-limited snapshot gates SHALL remain intact.
 
-Actions SHALL complete Activity publication before starting the optional local
-workflow. A later Activity snapshot may import its validated, bounded results.
 The hosted worker SHALL use its own single-owner lease and a verified private
 snapshot, not the projection lease or a long-held core evidence lock. Computation
 SHALL be bounded to two minutes per batch and thirty seconds per adapter.
 Local output and retained imports SHALL remain within 16 MiB; the hosted private
 snapshot SHALL remain within 256 MiB with individual inputs bounded to 16 MiB.
-An optional result import failure MUST retain accepted evidence without failing
-ordinary Activity publication.
 Completed local results SHALL wait for the next ordinary projection, not create
 a compute/publication retry loop. Computation SHALL use a frozen copy of policy.
 A final short publication rechecks enrollment and compares the completed input
 generation, manifest, policy and retained-result identity with the computation's
 starting state. Changed inputs or accepted evidence SHALL defer publication,
-not overwrite concurrent work. Optional Actions imports SHALL reject conflicting
-measurements at the same observation identity without changing retained evidence.
-Failure, timeout or withdrawal MUST NOT replace accepted evidence or hold up
-ordinary Activity publication. These bounds do not claim isolation from unrelated
-host CPU/I/O consumers, Actions transport requests, or external API consumers.
+not overwrite concurrent work. Failure, timeout or withdrawal MUST NOT replace
+accepted evidence or hold up ordinary evidence ingestion. These bounds do not
+claim isolation from unrelated host CPU/I/O or external API consumers.
 
 Resuming automatic acquisition requires request-accounted shared admission,
 protected core headroom and bounded requests, elapsed time and concurrency,
@@ -5593,6 +5655,15 @@ set or enumerate unrelated worker partitions.
 ---
 
 # 74. Change Log
+
+## Version 1.8.6 — Local gh-aw bootstrap and maintenance Git readiness
+
+* Specified that the local dashboard and `dashboard collect` install the pinned
+  gh-aw release before workflow discovery when JSONL streaming support is
+  missing, and fail closed when installation does not provide it.
+* Specified the Git and GitHub CLI readiness check, commit-identity precedence,
+  command-scoped credential configuration, and fail-before-start behavior for
+  local `update` and `upgrade` maintenance commands.
 
 ## Version 1.8.4 — Bounded browser ingestion fetch retry
 

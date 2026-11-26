@@ -1172,6 +1172,40 @@
             { "field": "campaign-action-state" },
             { "value": "update-available" }
           ]
+        },
+        {
+          "as": "campaign-update-available",
+          "function": "equals-any",
+          "args": [
+            { "field": "campaign-update-state" },
+            { "value": "update-available" }
+          ]
+        },
+        {
+          "as": "campaign-update-filter",
+          "function": "if",
+          "args": [
+            { "field": "campaign-update-available" },
+            { "value": "Update available" },
+            { "value": "No update available" }
+          ]
+        },
+        {
+          "as": "campaign-active",
+          "function": "equals-any",
+          "args": [
+            { "field": "campaign-registration" },
+            { "value": "true" }
+          ]
+        },
+        {
+          "as": "campaign-activity",
+          "function": "if",
+          "args": [
+            { "field": "campaign-active" },
+            { "value": "Active" },
+            { "value": "Inactive" }
+          ]
         }
       ],
       "select": [
@@ -1185,21 +1219,37 @@
         { "field": "campaign-update-state" },
         { "field": "campaign-registration" },
         { "field": "campaign-source-unavailable" },
-        { "field": "campaign-update-action-visible" }
+        { "field": "campaign-update-action-visible" },
+        { "field": "campaign-update-filter" },
+        { "field": "campaign-activity" }
       ],
       "order-by": [
         { "field": "campaign-name", "direction": "asc" }
       ]
     },
     {
-      "name": "maintenance-campaign-sweep",
-      "subject": "All installed campaign packages with exact retained upstream coordinates.",
-      "objective": "Let gh-aw refresh every sourced package without requiring cached update or revision evidence.",
-      "acceptance": "Exclude absent or unknown source coordinates, preserve package identities, and return the complete ordered target set without pagination or limits.",
+      "name": "maintenance-campaign-update-options",
+      "subject": "List observed update-availability values for the campaign maintenance Update filter.",
+      "objective": "Choose campaigns with or without a newer upstream revision without scanning presented cards.",
+      "acceptance": "Return distinct observed values in ascending order; unknown update evidence is grouped with no update available and never presented as available.",
       "from": "maintenance-campaign-packages",
-      "filter": { "predicates": [{ "field": "campaign-source-unavailable", "equals": false }] },
-      "select": [{ "field": "campaign-source" }, { "field": "campaign-name" }],
-      "order-by": [{ "field": "campaign-name", "direction": "asc" }, { "field": "campaign-source", "direction": "asc" }]
+      "aggregate": {
+        "by": ["campaign-update-filter"],
+        "values": [{ "field": "campaign", "as": "items", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "campaign-update-filter", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-campaign-activity-options",
+      "subject": "List observed registration states for the campaign maintenance Status filter.",
+      "objective": "Choose active or inactive campaigns from retained registration evidence.",
+      "acceptance": "Return distinct observed Active and Inactive values in ascending order; registration is not inferred from run activity.",
+      "from": "maintenance-campaign-packages",
+      "aggregate": {
+        "by": ["campaign-activity"],
+        "values": [{ "field": "campaign", "as": "items", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "campaign-activity", "direction": "asc" }]
     },
     {
       "name": "maintenance-workflow-operation-flags",
@@ -1354,6 +1404,7 @@
         { "field": "workflow-source-version" },
         { "field": "workflow-source-current-version" },
         { "field": "workflow-source-update-state" },
+        { "field": "workflow-active" },
         { "field": "workflow-update-state" },
         { "field": "workflow-update-status-reason" },
         { "field": "workflow-update-action-visible" }
@@ -1384,11 +1435,16 @@
         { "as": "installed-action-visible", "function": "if", "args": [{ "field": "installed-unavailable" }, { "value": false }, { "field": "revision-action-visible" }] },
         { "as": "source-action-visible", "function": "if", "args": [{ "field": "source-unavailable" }, { "value": false }, { "field": "installed-action-visible" }] },
         { "as": "maintenance-update-action-visible", "function": "if", "args": [{ "field": "source-managed" }, { "field": "source-action-visible" }, { "value": false }] },
-        { "as": "maintenance-update-status-reason", "function": "if", "args": [{ "field": "maintenance-update-action-visible" }, { "value": "Retained source and revisions support a workflow-targeted command; gh-aw may reconcile package siblings/assets and shared repository files." }, { "value": "Source update unavailable; compiler upgrades apply to the whole repository." }] }
+        { "as": "maintenance-update-status-reason", "function": "if", "args": [{ "field": "maintenance-update-action-visible" }, { "value": "Retained source and revisions support a workflow-targeted command; gh-aw may reconcile package siblings/assets and shared repository files." }, { "value": "Source update unavailable; compiler upgrades apply to the whole repository." }] },
+        { "as": "workflow-enabled", "function": "equals-any", "args": [{ "field": "workflow-active" }, { "value": "true" }] },
+        { "as": "workflow-disabled", "function": "equals-any", "args": [{ "field": "workflow-active" }, { "value": "false" }] },
+        { "as": "workflow-state-disabled-or-unknown", "function": "if", "args": [{ "field": "workflow-disabled" }, { "value": "Disabled" }, { "value": "Unknown" }] },
+        { "as": "workflow-state", "function": "if", "args": [{ "field": "workflow-enabled" }, { "value": "Enabled" }, { "field": "workflow-state-disabled-or-unknown" }] }
       ],
       "select": [
         { "field": "workflow-is-markdown" },
         { "field": "repository-coordinate" }, { "field": "workflow" }, { "field": "workflow-name" },
+        { "field": "workflow-state" },
         { "field": "maintenance-source-kind", "as": "workflow-source-kind" }, { "field": "workflow-source" }, { "field": "workflow-source-version" }, { "field": "workflow-source-current-version" },
         { "field": "source-unavailable", "as": "workflow-source-unavailable" },
         { "field": "maintenance-update-action-visible", "as": "workflow-update-action-visible" }, { "field": "maintenance-update-status-reason", "as": "workflow-update-status-reason" }
@@ -1405,14 +1461,16 @@
       "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
     },
     {
-      "name": "maintenance-workflow-sweep",
-      "subject": "All source-managed Markdown workflows with retained upstream coordinates.",
-      "objective": "Let gh-aw refresh exact workflow targets without requiring cached update or revision evidence.",
-      "acceptance": "Exclude local, registry and unknown-source workflows, preserve exact canonical repository and workflow identities, and return every target without pagination or limits.",
+      "name": "maintenance-workflow-state-options",
+      "subject": "List observed workflow enablement states for the workflow maintenance State filter.",
+      "objective": "Narrow Markdown workflows to enabled, disabled, or unknown registry state.",
+      "acceptance": "Return distinct workflow-state values in ascending order; Unknown remains distinct from Enabled and Disabled.",
       "from": "maintenance-workflows",
-      "filter": { "predicates": [{ "field": "workflow-source-kind", "equals": "source-managed" }, { "field": "workflow-source-unavailable", "equals": false }] },
-      "select": [{ "field": "workflow" }, { "field": "repository-coordinate" }],
-      "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
+      "aggregate": {
+        "by": ["workflow-state"],
+        "values": [{ "field": "workflow", "as": "workflows", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "workflow-state", "direction": "asc" }]
     },
     {
       "name": "maintenance-observed-repository-versions",
@@ -1575,6 +1633,18 @@
             "field": "current-version-unavailable-value",
             "as": "current-version-unavailable",
             "reducer": "max"
+          },
+          {
+            "field": "workflow",
+            "as": "enabled-workflow-count",
+            "reducer": "count",
+            "filter": { "predicates": [{ "field": "workflow-active", "equals": "true" }] }
+          },
+          {
+            "field": "workflow",
+            "as": "disabled-workflow-count",
+            "reducer": "count",
+            "filter": { "predicates": [{ "field": "workflow-active", "equals": "false" }] }
           }
         ]
       }
@@ -1615,7 +1685,9 @@
           { "field": "current-version-count", "as": "observed-current-version-count" },
           { "field": "upgrade-required", "as": "observed-upgrade-required" },
           { "field": "installed-version-unavailable", "as": "observed-installed-version-unavailable" },
-          { "field": "current-version-unavailable", "as": "observed-current-version-unavailable" }
+          { "field": "current-version-unavailable", "as": "observed-current-version-unavailable" },
+          { "field": "enabled-workflow-count", "as": "observed-enabled-workflow-count" },
+          { "field": "disabled-workflow-count", "as": "observed-disabled-workflow-count" }
         ]
       }],
       "compute": [
@@ -1623,7 +1695,9 @@
         { "as": "current-version-count", "function": "coalesce", "args": [{ "field": "observed-current-version-count" }, { "value": 0 }] },
         { "as": "upgrade-required", "function": "coalesce", "args": [{ "field": "observed-upgrade-required" }, { "value": 0 }] },
         { "as": "installed-version-unavailable", "function": "coalesce", "args": [{ "field": "observed-installed-version-unavailable" }, { "value": 1 }] },
-        { "as": "current-version-unavailable", "function": "coalesce", "args": [{ "field": "observed-current-version-unavailable" }, { "value": 1 }] }
+        { "as": "current-version-unavailable", "function": "coalesce", "args": [{ "field": "observed-current-version-unavailable" }, { "value": 1 }] },
+        { "as": "enabled-workflow-count", "function": "coalesce", "args": [{ "field": "observed-enabled-workflow-count" }, { "value": 0 }] },
+        { "as": "disabled-workflow-count", "function": "coalesce", "args": [{ "field": "observed-disabled-workflow-count" }, { "value": 0 }] }
       ]
     },
     {
@@ -1641,6 +1715,7 @@
             { "field": "repository-coordinate" }
           ]
         },
+        { "as": "repository-link", "function": "link", "args": [{ "field": "repository-url" }, { "field": "repository-coordinate" }] },
         {
           "as": "should-upgrade",
           "function": "equals-any",
@@ -1835,7 +1910,11 @@
             { "field": "gh-aw-current-version" },
             { "value": "unknown" }
           ]
-        }
+        },
+        { "as": "has-enabled-workflows", "function": "greater-than", "args": [{ "field": "enabled-workflow-count" }, { "value": 0 }] },
+        { "as": "has-disabled-workflows", "function": "greater-than", "args": [{ "field": "disabled-workflow-count" }, { "value": 0 }] },
+        { "as": "workflow-state-disabled-or-unknown", "function": "if", "args": [{ "field": "has-disabled-workflows" }, { "value": "Disabled" }, { "value": "Unknown" }] },
+        { "as": "workflow-state", "function": "if", "args": [{ "field": "has-enabled-workflows" }, { "value": "Enabled" }, { "field": "workflow-state-disabled-or-unknown" }] }
       ],
       "select": [
         {
@@ -1845,6 +1924,7 @@
         {
           "field": "repository-url"
         },
+        { "field": "repository-link" },
         {
           "field": "gh-aw-version-label",
           "as": "gh-aw-version"
@@ -1864,7 +1944,8 @@
         },
         {
           "field": "upgrade-status-reason"
-        }
+        },
+        { "field": "workflow-state" }
       ],
       "order-by": [
         {
@@ -1872,6 +1953,42 @@
           "direction": "asc"
         }
       ]
+    },
+    {
+      "name": "maintenance-repository-upgrade-options",
+      "subject": "List observed upgrade states for the repository maintenance Update filter.",
+      "objective": "Narrow repositories to those with an available compiler update, current compilers, or unavailable evidence.",
+      "acceptance": "Return distinct upgrade-state values in ascending order; unavailable evidence remains distinct from Current.",
+      "from": "maintenance-repositories",
+      "aggregate": {
+        "by": ["upgrade-state"],
+        "values": [{ "field": "repository", "as": "repositories", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "upgrade-state", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-repository-workflow-state-options",
+      "subject": "List observed Agentic Workflow enablement states for the repository maintenance State filter.",
+      "objective": "Narrow repositories to those with enabled, disabled, or unknown Agentic Workflow registration.",
+      "acceptance": "Return distinct workflow-state values in ascending order; Unknown remains distinct from Enabled and Disabled.",
+      "from": "maintenance-repositories",
+      "aggregate": {
+        "by": ["workflow-state"],
+        "values": [{ "field": "repository", "as": "repositories", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "workflow-state", "direction": "asc" }]
+    },
+    {
+      "name": "maintenance-repository-version-options",
+      "subject": "List observed installed gh-aw compiler version labels for the repository maintenance Version filter.",
+      "objective": "Narrow repositories to an exact installed compiler version label.",
+      "acceptance": "Return distinct installed gh-aw-version labels in descending order; mixed version lists and unknown remain distinct labels.",
+      "from": "maintenance-repositories",
+      "aggregate": {
+        "by": ["gh-aw-version"],
+        "values": [{ "field": "repository", "as": "repositories", "reducer": "count" }]
+      },
+      "order-by": [{ "field": "gh-aw-version", "direction": "desc" }]
     },
     {
       "name": "maintenance-campaign-updates",
@@ -1945,7 +2062,7 @@
       "data": {
         "source": "repository-activity"
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "repository",
@@ -1991,7 +2108,7 @@
       "data": {
         "source": "entity-workflows"
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "workflow",
@@ -2069,7 +2186,7 @@
       "data": {
         "source": "entity-runs"
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "run",
@@ -2180,7 +2297,7 @@
       "data": {
         "source": "entity-events"
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "event",
@@ -2275,7 +2392,7 @@
           }
         ]
       },
-      "mark": "list",
+      "mark": "list", "lazy-list": true,
       "list": {
         "style": "entity-cards",
         "card": "issue",

@@ -407,7 +407,7 @@ test('notifications move in at the lower right and center on mobile', async ({ p
   expect(Math.abs((bounds?.x ?? 0) + (bounds?.width ?? 0) / 2 - 195)).toBeLessThan(1);
 });
 
-test('full-view content keeps a responsive horizontal inset', async ({ page }) => {
+test('full-view content fills the available width without outer gutters', async ({ page }) => {
   const styles = await page.evaluate(async (stylesUrl) => {
     const { getPrimerStyles } = await import(stylesUrl);
     return getPrimerStyles();
@@ -445,8 +445,8 @@ test('full-view content keeps a responsive horizontal inset', async ({ page }) =
   await page.setViewportSize({ width: 1200, height: 800 });
   await expect(page.locator('.org-sidebar')).toHaveCSS('margin-bottom', '0px');
   await expect.poll(contentLayout).toEqual({
-    left: 24,
-    right: 24,
+    left: 0,
+    right: 0,
     top: 0,
     bottom: 0,
     scrollbarGutter: 'auto'
@@ -461,8 +461,8 @@ test('full-view content keeps a responsive horizontal inset', async ({ page }) =
     return main.getBoundingClientRect().top - sidebar.getBoundingClientRect().bottom;
   })).toBe(8);
   await expect.poll(contentLayout).toEqual({
-    left: 14,
-    right: 14,
+    left: 0,
+    right: 0,
     top: 0,
     bottom: 0,
     scrollbarGutter: 'auto'
@@ -471,7 +471,7 @@ test('full-view content keeps a responsive horizontal inset', async ({ page }) =
   await expect(page.locator('.org-sidebar')).toHaveCSS('margin-bottom', '0px');
 });
 
-test('full-view chart, card, and table content share the page inset', async ({ page }) => {
+test('full-view tables and card lists are edge-to-edge without changing ordinary view padding', async ({ page }) => {
   const styles = await page.evaluate(async (stylesUrl) => {
     const { getPrimerStyles } = await import(stylesUrl);
     return getPrimerStyles();
@@ -487,6 +487,7 @@ test('full-view chart, card, and table content share the page inset', async ({ p
               <section class="custom-view chart-view-swimlane"><div data-view-content>Chart</div></section>
               <section class="custom-view"><div data-view-content>Cards</div></section>
               <section class="custom-view" data-view-layout="full-view"><div class="table-region"><div data-view-content>Table</div></div></section>
+              <section class="custom-view" data-view-layout="full-view"><ul class="document-list entity-card-list"><li data-view-content>Card list</li></ul></section>
             </div>
           </main>
         </div>
@@ -494,17 +495,23 @@ test('full-view chart, card, and table content share the page inset', async ({ p
     </div>
   `);
 
-  const [contentInsets, expectedInset] = await Promise.all([
-    page.locator('[data-view-content]').evaluateAll((elements) => (
+  for (const width of [1440, 775, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const main = page.locator('main.dashboard-prototype');
+    const bounds = await main.boundingBox();
+    if (!bounds) throw new Error('Expected main content bounds.');
+    const inset = await main.evaluate((element) => Number.parseFloat(getComputedStyle(element).getPropertyValue('--dashboard-page-padding-inline')));
+    const contentInsets = await page.locator('[data-view-content]').evaluateAll((elements) => (
       elements.map((element) => element.getBoundingClientRect().x)
-    )),
-    page.locator('main.dashboard-prototype').evaluate((main) => {
-      const pageInset = Number.parseFloat(getComputedStyle(main).getPropertyValue('--dashboard-page-padding-inline'));
-      return main.getBoundingClientRect().x + (pageInset * 2);
-    })
-  ]);
-
-  expect(contentInsets).toEqual([expectedInset, expectedInset, expectedInset]);
+    ));
+    expect(contentInsets).toEqual([bounds.x + inset, bounds.x + inset, bounds.x, bounds.x]);
+    for (const view of await page.locator('[data-view-layout="full-view"]').all()) {
+      const box = await view.boundingBox();
+      expect(box?.x).toBe(bounds.x);
+      expect(box?.width).toBe(bounds.width);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+  }
 });
 
 test('full-view chart mode scrolls without shrinking or overlapping chart sections', async ({ page }) => {

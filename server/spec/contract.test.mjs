@@ -151,6 +151,14 @@ test('token broker exposes only the OIDC exchange and exact credential response'
   assert.equal(openapi.components.schemas.CopilotRequestExchange.properties.token_type.enum[0], 'copilot-request')
   assert.equal(openapi.components.schemas.CopilotRequestExchange.properties.provider.enum[0], 'github')
   assert.equal(openapi.components.schemas.TokenBrokerInvalidation.properties.operation.enum[0], 'invalidate')
+  assert.equal(openapi.components.schemas.UnsupportedGitHubAppExchange.properties.token_type.enum[0], 'github-app')
+  for (const name of ['CopilotRequestExchange', 'UnsupportedCopilotTaskExchange', 'UnsupportedGitHubAppExchange', 'TokenBrokerInvalidation']) {
+    const schema = openapi.components.schemas[name]
+    assert.equal(schema.properties.job_id.type, 'string')
+    assert.equal(schema.required.includes('job_id'), false)
+    assert.deepEqual(schema.unevaluatedProperties, { not: {} })
+  }
+  assert.equal(openapi.components.schemas.UnsupportedGitHubAppExchange.properties.provider, undefined)
 })
 
 test('private archive queries preserve explicit full-content authority and the shared event contract', () => {

@@ -43,6 +43,9 @@ work. This measures wall time, not CPU time or exhaustive upstream coverage.`,
 		ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 		defer cancel()
 		start := time.Now()
+		if err := ensureDashboardLogs(ctx, gh); err != nil {
+			return err
+		}
 		server, site, cleanup, err := dashboardServerAssets(*options)
 		if err != nil {
 			return err

@@ -23,8 +23,8 @@ publication machinery may live in the CAO control repository.
    `operational_value` records carry compact repository measurements. Richer
    schema-v2 `operational_value_evidence` packets retain report facts such as
    snapshots, accepted-change lineage and drilldowns.
-3. **Let dashboard ingestion display it.** Activity publication or hosted
-   publication ingests the original evidence into canonical storage. Dashboard
+3. **Let dashboard ingestion display it.** Explicit or hosted publication
+   ingests the original evidence into canonical storage. Dashboard
    Language selects the latest primary result for **Value** automatically. No
    workflow-specific dashboard JSON or JavaScript is required.
 
@@ -214,17 +214,8 @@ stages the exact opt-in registration. Keep explicit disables and Activity
 scope unchanged. Arbitrary intent text is not executable scoring logic and
 does not by itself establish a measurable outcome.
 
-Any verified contract's original envelope can use the shared native importer;
-File Diet's recomputation example calls this same implementation:
-
-```sh
-node .github/skills/add-operational-value/scripts/prepare-native-value.mjs \
-  --input REPORT-evidence.jsonl --sha256 VERIFIED_SHA256 \
-  --output .tmp/workflow-native-value
-```
-
 Ordinary batch evaluators do not need `collectEvents` or an artificial accepted
-change ledger. Run the same verified module with `evaluate.mjs --native`; its
+change ledger. Run `evaluate.mjs --native` against the verified contract; its
 `WORKFLOW-measurements.jsonl` is normal canonical `operational_value` data.
 `--native` omits standalone HTML and Actions-run acquisition. The existing
 `--report` option also emits native measurements for contracts with explicit

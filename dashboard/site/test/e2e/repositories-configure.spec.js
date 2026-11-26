@@ -1,3 +1,4 @@
+import { selectViewMode } from './helpers/smoke-fixtures.js';
 import { createServer } from 'node:http';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -66,6 +67,17 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       await page.setExtraHTTPHeaders({});
       await page.context().clearCookies();
       const add = page.getByRole('button', { name: 'Add repository', exact: true });
+      const addMenu = page.locator('.cli-actions-add-menu');
+      const addToggle = addMenu.locator('summary');
+      await expect(addToggle).toBeVisible({ timeout: 30_000 });
+      await expect(page.locator('.custom-view').getByRole('button', { name: 'Add repository', exact: true })).toHaveCount(0);
+      if (width <= 700) await expect(page.locator('.sidebar-header > .cli-actions-add-menu')).toBeVisible();
+      else await expect(page.locator('.report-actions > .cli-actions-add-menu')).toBeVisible();
+      expect(await addMenu.evaluate((menu) => {
+        const status = menu.parentElement?.querySelector('.mobile-ingestion-indicator, .dashboard-current-status');
+        return !status || Boolean(menu.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING);
+      })).toBe(true);
+      await addToggle.click();
       await expect(add).toBeVisible({ timeout: 30_000 });
       await page.screenshot({ path: testInfo.outputPath(`repositories-${width}.png`), fullPage: true });
       await testInfo.attach(`repositories-${width}`, { path: testInfo.outputPath(`repositories-${width}.png`), contentType: 'image/png' });
@@ -73,8 +85,10 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
         await page.getByRole('button', { name: 'Switch to Cards view', exact: true }).click();
         await page.getByRole('button', { name: 'Switch to Table view', exact: true }).click();
       } else {
-        await page.getByRole('button', { name: 'Table', exact: true }).click();
+        await selectViewMode(page, 'table');
       }
+      await expect(addMenu).not.toHaveAttribute('open');
+      await addToggle.click();
       await expect(add).toBeVisible({ timeout: 30_000 });
       await add.click();
       const dialog = page.getByRole('dialog', { name: 'Approve Add repository' });
@@ -117,6 +131,9 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       await expect.poll(() => lookups.at(-1)?.text).toBe('octo/slow-close');
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect.poll(() => canceledLookups).toContain('octo/slow-close');
+      await expect(addMenu).not.toHaveAttribute('open');
+      await expect(addToggle).toBeFocused();
+      await addToggle.click();
       await add.click();
       await input.fill('octo/service-*');
       await dialog.getByRole('button', { name: /octo\/service-\* Use wildcard/ }).click();
@@ -126,6 +143,15 @@ for (const { width, empty = false } of [{ width: 1440 }, { width: 390 }, { width
       expect((await queued).status()).toBe(202);
       await expect.poll(() => executions).toBe(1);
       await page.goto(`${preview.url}/#page-maintenance`);
+      await expect(addToggle).toBeVisible();
+      await addToggle.click();
+      await add.click({ trial: true });
+      await page.keyboard.press('Escape');
+      await page.setViewportSize({ width: width <= 700 ? 1440 : 390, height: 900 });
+      await expect(page.locator(width <= 700 ? '.report-actions > .cli-actions-add-menu' : '.sidebar-header > .cli-actions-add-menu')).toBeVisible();
+      await page.setViewportSize({ width, height: 900 });
+      await expect(addToggle).toBeVisible();
+      await expect(addMenu).toHaveCount(1);
       const repositories = page.locator('[data-view-id="maintenance-repositories"]');
       await expect(repositories).not.toContainText('octo/new-configured');
       await writeServerArtifact(snapshotDirectory, { sources: {
