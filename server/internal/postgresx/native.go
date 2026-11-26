@@ -37,27 +37,28 @@ func IsCanonicalCollection(name string) bool {
 }
 
 func entityFieldValue(row model.Row, path string) (any, bool) {
-	parts := strings.Split(path, ".")
-	value, present := row[parts[0]]
-	if len(parts) == 1 {
+	field, child, nested := strings.Cut(path, ".")
+	value, present := row[field]
+	if !nested {
 		return value, present
 	}
-	if text, ok := value.(string); ok && (strings.HasSuffix(parts[0], "Link") || strings.HasSuffix(parts[0], "-link")) {
-		switch parts[1] {
+	child, _, _ = strings.Cut(child, ".")
+	if text, ok := value.(string); ok && (strings.HasSuffix(field, "Link") || strings.HasSuffix(field, "-link")) {
+		switch child {
 		case "href":
 			return text, present
 		case "relation":
-			return strings.TrimSuffix(strings.TrimSuffix(parts[0], "Link"), "-link"), present
+			return strings.TrimSuffix(strings.TrimSuffix(field, "Link"), "-link"), present
 		default:
 			return nil, false
 		}
 	}
 	if value, ok := value.(map[string]any); ok {
-		field, exists := value[parts[1]]
+		field, exists := value[child]
 		return field, exists
 	}
 	if value, ok := value.(model.Row); ok {
-		field, exists := value[parts[1]]
+		field, exists := value[child]
 		return field, exists
 	}
 	return nil, false
