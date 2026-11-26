@@ -5,6 +5,8 @@ import path from "node:path";
 const maximumSize = 256 * 1024;
 // gh-aw lock files are compiler output; GitHub does not start runs for workflow files above 500 KB.
 const maximumGeneratedWorkflowSize = 500 * 1024;
+// Keep the authoritative dashboard data contract in one bounded document.
+const maximumDashboardDataSpecSize = 300 * 1024;
 const maximumLines = 3000;
 const imageExtensions = new Set([".avif", ".gif", ".ico", ".jpeg", ".jpg", ".png", ".svg", ".webp"]);
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
@@ -53,12 +55,16 @@ const oversizedFiles = trackedFiles.filter((file) => {
   const size = ignoreMissing(() => statSync(filePath).size);
   if (size === undefined) return [];
   const isGeneratedWorkflow = file.startsWith(".github/workflows/") && file.endsWith(".lock.yml");
-  const limit = isGeneratedWorkflow ? maximumGeneratedWorkflowSize : maximumSize;
+  const limit = isGeneratedWorkflow
+    ? maximumGeneratedWorkflowSize
+    : file === "specs/dashboard-data.md"
+      ? maximumDashboardDataSpecSize
+      : maximumSize;
   return size > limit ? [{ file, size, limit }] : [];
 });
 
 if (oversizedFiles.length > 0) {
-  console.error(`Tracked files must not exceed 256 KiB (${maximumSize} bytes); generated .github/workflows/*.lock.yml files must not exceed 500 KiB (${maximumGeneratedWorkflowSize} bytes):`);
+  console.error(`Tracked files must not exceed 256 KiB (${maximumSize} bytes), except specs/dashboard-data.md (300 KiB, ${maximumDashboardDataSpecSize} bytes) and generated .github/workflows/*.lock.yml files (500 KiB, ${maximumGeneratedWorkflowSize} bytes):`);
   for (const { file, size, limit } of oversizedFiles) {
     console.error(`- ${file} (${size} bytes, limit ${limit} bytes)`);
   }
