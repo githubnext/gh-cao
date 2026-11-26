@@ -505,6 +505,33 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatal(err)
 		}
 	})
+	t.Run("delivery-reservation-outlives-commit", func(t *testing.T) {
+		deliveries := services.Deliveries
+		const id = "reservation-outlives-commit"
+		if reserved, err := deliveries.ReserveDelivery(ctx, id, time.Hour); err != nil || reserved != operational.DeliveryReserved {
+			t.Fatalf("reserve: %d, %v", reserved, err)
+		}
+		// Only the holder's release ends the reservation; committing or
+		// forgetting the durable marker must not hand it to another caller.
+		if fresh, err := deliveries.RememberDelivery(ctx, id, time.Hour); err != nil || !fresh {
+			t.Fatalf("commit: %t, %v", fresh, err)
+		}
+		if err := deliveries.ForgetDelivery(ctx, id); err != nil {
+			t.Fatal(err)
+		}
+		if reserved, err := deliveries.ReserveDelivery(ctx, id, time.Hour); err != nil || reserved != operational.DeliveryInProgress {
+			t.Fatalf("reserve after commit and forget: %d, %v", reserved, err)
+		}
+		if err := deliveries.ReleaseDeliveryReservation(ctx, id); err != nil {
+			t.Fatal(err)
+		}
+		if reserved, err := deliveries.ReserveDelivery(ctx, id, time.Hour); err != nil || reserved != operational.DeliveryReserved {
+			t.Fatalf("reserve after release: %d, %v", reserved, err)
+		}
+		if err := deliveries.ReleaseDeliveryReservation(ctx, id); err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestCapabilitiesRejectInvalidServices(t *testing.T) {
