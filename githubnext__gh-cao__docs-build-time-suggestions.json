@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T13:53:06Z",
-      "worker_run_id": "45832902316",
-      "correlation_id": "45831960573-4872",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45831960573-4872; worker run 45832902316. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 13:52Z unchanged. Build documentation median 12 s p90 14 (16.4 pct of exec median 73 s); 15 pct gate 10.95 s needs 91 pct of step removed. main 3bc68af vs 9bcc8c1 changes only uk-ai-advisory/implementation-status.md (outside Astro root ./docs). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance."
-    },
     {
       "evaluated_at": "2026-11-26T14:22:35Z",
       "worker_run_id": "45837786189",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45910707681-4901; worker run 45911187190. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 23:3x unchanged, none queued; main 19f2ae6 (policy sha) has no docs.yml-trigger change in window; root and dashboard/site locks unchanged since 7c8faf4 (2026-11-13). Stored rows recomputed (n=20, nearest-rank p90): setup 3.5 (p90 6), install 8 (p90 10), post 0 (max 1); setup+install+post median 13 (p90 15) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.03 s unmet even if the whole phase were removed at zero replacement cost; 60 s gate unmet. Trusted cache metadata: single exact-key entry node-cache-Linux-x64-npm-7808ecf8 (created 2026-11-13T20:57Z, ref main, 263412733 B, lastAccessed 23:28Z) with no later save under that key, so no main miss since 11-13. Push install median 8 vs schedule 8.5. Rejected again: node_modules cache (net 3-6 s, unmeasured); root omit-dev (about 3 s, unmeasured). Watch only, not a speed suggestion: dashboard/site/package-lock.json is not in the cache key. Open label-scoped issues: #20815 only. Next: Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-11-26T23:51:52Z",
+      "worker_run_id": "45913063732",
+      "correlation_id": "45912633909-4902",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45912633909-4902; worker run 45913063732. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live run list at 23:50Z unchanged, none queued or in progress; source 19f2ae6 = workspace HEAD (clean), no docs.yml run after 21:24Z. Stored rows recomputed (n=20, nearest-rank p90): Build documentation median 12 s p90 14 (16.3 pct of exec median 73.5 s); push 12 vs schedule 11 s. 15 pct gate 11.03 s needs 92 pct of that step removed; 60 s gate unreachable. Validation and integration test inside docs:build cannot reach the gate without removing the Astro build itself; sub-step split not needed and job-log reads stay 403 DIFC (not retried). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. No issue created."
     }
   ],
   "docs_cache_model": {
@@ -2053,11 +2053,11 @@
     "status": "build job logs for 45562958524 (job 139030808661) return HTTP 403 DIFC (difc_forbidden) again; sub-step split remains unmeasured; not retried or bypassed"
   },
   "astro_step_latest": {
-    "verified_at": "2026-11-26T22:19:17Z",
-    "worker_run_id": "45903606097",
-    "correlation_id": "45902985385-4897",
-    "window": "45897897785 (push, 57e7490) .. 45117916746 (schedule, 9edb6bb); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; unchanged at 22:1x live run list; source 57e7490 = workspace HEAD",
-    "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); live gh run list plus one issue metadata read; no Jobs or log API calls",
+    "verified_at": "2026-11-26T23:51:52Z",
+    "worker_run_id": "45913063732",
+    "correlation_id": "45912633909-4902",
+    "window": "45897897785 (push, 57e7490) .. 45117916746 (schedule, 9edb6bb); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; unchanged at 23:50Z live run list; source 19f2ae6",
+    "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); live gh run list only; no Jobs or log API calls",
     "build_docs_s": {
       "median": 12,
       "p90": 14,
@@ -2072,11 +2072,11 @@
     "build_docs_share_exec_median_pct": 16.3,
     "gate_15pct_s": 11.03,
     "required_step_removal_pct_for_15pct_gate": 92,
-    "push_vs_schedule_build_docs_median_s": {
+    "push_vs_schedule_build_docs_s": {
       "push": 12,
       "schedule": 11
     },
-    "verdict": "not actionable (unchanged): docs:build = astro build && validate-agent-docs && agent-docs-discovery test; validation and discovery test are correctness gates before deploy; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasured (job logs HTTP 403 DIFC, not retried)"
+    "verdict": "not actionable (unchanged): the step total is 12 s, so the 15 pct gate needs the Astro build itself removed; validation and tests cannot reach it; no suggestion recorded"
   },
   "scheduling_reverified": {
     "verified_at": "2026-11-26T23:18:43Z",
