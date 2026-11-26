@@ -1,37 +1,7 @@
 {
   "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T17:16:10Z",
-      "worker_run_id": "45662340955",
-      "correlation_id": "45661554391-4811",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45661554391-4811; worker run 45662340955. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 17:16Z: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha. Recomputed from stored immutable rows (n=20, nearest-rank p90): setup_node median 3.5 p90 6; install median 8 p90 10; post 0-1 s in all 20 (no cache save, exact-key hit inferred); setup+install+post median 13 p90 16 = 17.7 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet. Live caches API 17:16Z: node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57:12Z, 263412733 B, ref main, last accessed 2026-11-25T17:13:42Z); root lock unchanged since 7c8faf4. No new candidate: install phase is required by the Astro build; node_modules restore or npm --no-audit/--no-fund variants are bounded by the 8 s install median and unmeasured, so below gate. Next category: Astro documentation generation."
-    },
     {
       "evaluated_at": "2026-11-25T17:34:00Z",
       "worker_run_id": "45665312580",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45747387452-4840; worker run 45747955951. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 03:20Z: same 20 IDs, all completed, none queued or in progress; HEAD 16a88ce = source_sha. Recomputed from stored run_timings (n=20, nearest-rank p90): exec median 73.5 p90 87; queue median 3 p90 4; schedule exec median 73 vs push 74; 0 created/updated overlaps, min gap 299 s; same-day same-commit redundant schedules 2 of 20 (45553538993, 44989298582), mean saving about 7.3 s per window run; 0 avoidable push heads; 60 s and 15 pct (11.0 s) gates unmet. Schedule kept for synthetic-date freshness (scripts/simulate-dashboard-pages.mjs generatedAt=Date.now()). Reopen only at three or more same-day redundant schedules in a 20-run window or a synthetic-date design change. Next category: dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-26T03:37:39Z",
+      "worker_run_id": "45749559636",
+      "correlation_id": "45749030171-4841",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216",
+        "45117916746",
+        "45249995178",
+        "45282794439",
+        "45293283576",
+        "45333239050"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce) .. 44798156216 (push, 826c4f4); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live run list: same 20 IDs, none newer or queued; HEAD 16a88ce = source_sha. Stored rows recomputed (n=20, nearest-rank p90): setup_node median 3.5 p90 6; install 8 p90 10; post 0 p90 1 (all 20 <=1 s, exact-key hits); setup+install+post median 13 p90 16 = 17.7 pct of exec median 73.5. 15 pct gate 11.0 s needs about 85 pct of that phase removed; only full removal of restore and npm ci would reach it, which no concrete change delivers. 60 s gate unmet. Caches API: node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57:12Z, 263412733 B, last accessed 2026-11-26T03:30:36Z). Lock files root and dashboard/site last changed 7c8faf4 (2026-11-13T20:56:33Z), before entry creation; watch item not triggered (install median 8 s < 11.4 s). No issue created or searched. Next category: Astro documentation generation."
     }
   ],
   "docs_cache_model": {
@@ -915,7 +915,7 @@
     "install_shape": "root npm ci (765 entries) then npm --prefix dashboard/site ci --omit=dev --ignore-scripts; both inside Install dependencies; split unmeasurable (logs HTTP 403 DIFC)",
     "log_access": "23:18Z: job logs API HTTP 403 DIFC (not bypassed)",
     "seeding_correction": "failed run 43506161539 did not seed 7808ecf8 (its post step was skipped); creator unknown",
-    "live_entry_last_accessed": "2026-11-25T18:44:08Z (caches API at worker 45679168670; created 2026-11-13T20:57:12Z; 263412733 B)",
+    "live_entry_last_accessed": "2026-11-26T03:30:36Z (caches API at worker 45749559636; created 2026-11-13T20:57:12Z; 263412733 B)",
     "window_2026_11_15T1930Z": {
       "n_success": 8,
       "setup_node_median_s": 4,
@@ -1980,10 +1980,10 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-26T01:53:42Z",
-    "worker_run_id": "45738360508",
-    "correlation_id": "45737750674-4836",
-    "verdict": "not actionable (unchanged): window 45625202695..44798156216; setup+install+post per-run median 13 s (p90 16) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.0 s; cache 7808ecf8 live (last accessed 01:44Z), post 0-1 s in all successes; no concrete change reaches gate."
+    "evaluated_at": "2026-11-26T03:37:39Z",
+    "worker_run_id": "45749559636",
+    "correlation_id": "45749030171-4841",
+    "verdict": "not actionable (unchanged): window 45625202695..44798156216 unchanged; setup+install+post median 13 s (p90 16) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.0 s; cache 7808ecf8 live (last accessed 03:30Z), post <=1 s in all 20 runs; lock files unchanged since 7c8faf4; no concrete change reaches gate."
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
