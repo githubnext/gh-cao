@@ -1,37 +1,7 @@
 {
   "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T13:55:07Z",
-      "worker_run_id": "45627772472",
-      "correlation_id": "45626657546-4801",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "45117916746",
-        "45249995178",
-        "45282794439",
-        "45293283576",
-        "45333239050"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 45333239050 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Dashboard generation is the Build synthetic enterprise demo step: median 1 s (p90 2, max 3), 1.4 pct of exec median 73.5 s; removable maximum 3 s, 15 pct gate 11.0 s and 60 s gate unmet. Cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76) and docs.yml runs the step every build. Checkout tail 67 s is outside this category; #20815 still the only tracked item, not re-proposed."
-    },
     {
       "evaluated_at": "2026-11-25T14:19:10Z",
       "worker_run_id": "45632056938",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Live docs.yml list 00:34Z: same 20 IDs, none queued or in progress; source 16a88ce = source_sha. Recomputed build_docs_s (n=20, nearest-rank p90): median 12, p90 15, min 9, max 15; push median 12, schedule median 12; exec median 73.5 (p90 87). 15 pct gate 11.0 s needs 92 pct of the step removed; 60 s gate unreachable. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasured: job log read for 45562958524 returned 403 DIFC again at 00:35Z, not retried or bypassed. No issue created. Next category: reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-11-26T01:02:15Z",
+      "worker_run_id": "45732529835",
+      "correlation_id": "45731813214-4833",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 01:01Z: same 20 IDs, none newer or queued; HEAD 16a88ce = source_sha. Dashboard generation lives only in the 'Build synthetic enterprise demo' step (scripts/simulate-dashboard-pages.mjs -> dashboard/site/scripts/build.mjs esbuild bundle, plus cp); stored demo_s n=20 median 1, p90 2, max 3 (1.4 pct of exec median 73.5). Ceiling saving 1 s median; 15 pct gate 11 s and 60 s gate unmet even at full removal. Cross-run reuse blocked: output embeds synthetic Date.now generatedAt and commit version metadata. No job-level dashboard exists (job_topology_note)."
     }
   ],
   "docs_cache_model": {
@@ -1759,9 +1759,9 @@
     "ceiling_saving_s": 3,
     "reuse_blocker": "cross-run reuse would pin synthetic dates (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt); docs.yml runs the step every build",
     "verdict": "not actionable: demo step median 1 s (1.4 percent of exec median), p90 2 s, max 3 s; 15 percent and 60 s gates unmet even at full removal.",
-    "last_reverified_note": "2026-11-25 worker 45685862666 (correlation 45684747986-4818): live docs.yml list unchanged (no run newer than 45625202695); HEAD 16a88ce = source_sha; live Jobs read of 45625202695 demo 1 s; stored demo_s recomputed median 1, p90 2, max 3; not actionable.",
-    "last_reverified_at": "2026-11-25T19:34:26Z",
-    "last_reverified_worker_run_id": "45685862666"
+    "last_reverified_note": "2026-11-26T01:02:15Z worker 45732529835 (correlation 45731813214-4833): live docs.yml list unchanged (no run newer than 45625202695); HEAD 16a88ce = source_sha; stored demo_s median 1, p90 2, max 3; not actionable.",
+    "last_reverified_at": "2026-11-26T01:02:15Z",
+    "last_reverified_worker_run_id": "45732529835"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
