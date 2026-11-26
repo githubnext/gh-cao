@@ -6,6 +6,15 @@
   "labels": ["Repositories", "Workflows", "Campaigns"],
   "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-workflows"],
   "card-lists": ["maintenance-repositories", "maintenance-standalone-workflows", "maintenance-campaigns"],
+  "inventory-sync": {
+    "element": "inventory-sync",
+    "view-ids": ["repository-inventory-sync", "workflow-inventory-sync", "campaign-inventory-sync"],
+    "sources": [],
+    "label": "Sync",
+    "endpoint": "/api/admin/collection/refresh",
+    "method": "POST",
+    "accepted": { "queued": true }
+  },
   "page-size": 25,
   "selection-commands": [
     ["update-repository-sources", "enable-repository-workflows", "disable-repository-workflows"],

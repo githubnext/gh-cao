@@ -77,7 +77,7 @@ type CollectorConfig struct {
 	// RecoverDeliveries enables webhook delivery replay for gap recovery.
 	RecoverDeliveries bool
 	// RepositoryRefreshInterval repairs repository membership even when lifecycle
-	// webhooks are missed. Zero selects one hour.
+	// webhooks are missed. Zero selects one hour; larger values cap at 24 hours.
 	RepositoryRefreshInterval time.Duration
 	// QueueMaxLength applies backpressure to the outstanding task stream.
 	QueueMaxLength int

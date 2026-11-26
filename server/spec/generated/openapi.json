@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "4.3.0",
+    "version": "4.4.0",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -299,6 +299,96 @@
           },
           {
             "LocalCLIResourceSession": []
+          }
+        ]
+      }
+    },
+    "/api/admin/collection/refresh": {
+      "post": {
+        "operationId": "Operations_refreshCollection",
+        "description": "Requests a durable asynchronous repository/workflow inventory reread within the existing enrollment, without changing collection scope or reviewed campaign/policy authority. Hosted deployments require an administrator session and CSRF; admission-only servers use the same durable queue as separate credential-owning collection workers. Local native dashboards queue work for their credential-owning CLI, including rereading local campaign declarations; ordinary snapshot servers are unavailable. Local compiler/version coverage remains unknown. Reviewed hosted campaign metadata stays pinned to the selected deployment snapshot. Manual requests are bounded to one per minute per authenticated rate-limit subject and queue capacity; repeated requests return 429 rather than silently skip a forced reread. Acceptance is not completion. Active native workers and local native dashboards schedule inventory repair at least daily; quota exhaustion and provider failures defer work, never claim freshness.",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The request has been accepted for processing, but processing has not yet completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "queued": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "queued"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ingestion and administration"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
           }
         ]
       }

@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '4.3.0')
+  assert.equal(openapi.info.version, '4.4.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -77,6 +77,13 @@ test('the generated contract describes the implemented security and wire formats
   assert.ok(mcp.responses['202'])
   assert.ok(mcp.responses['404'])
   assert.ok(openapi.paths['/api/admin/rebuild'].post.responses['202'])
+  const refresh = openapi.paths['/api/admin/collection/refresh'].post
+  assert.ok(refresh.security.some(entry => 'BearerAuth' in entry))
+  assert.ok(refresh.security.some(entry => 'ApiKeyAuth' in entry))
+  assert.ok(refresh.parameters.some(parameter => parameter.name === 'X-CSRF-Token'))
+  assert.deepEqual(refresh.responses['202'].content['application/json'].schema.properties.queued.enum, [true])
+  assert.ok(refresh.responses['503'])
+  assert.match(refresh.description, /Reviewed hosted campaign metadata stays pinned/)
   const logs = openapi.paths['/api/admin/logs'].get
   assert.ok(logs.security.some(entry => 'BearerAuth' in entry))
   assert.ok(logs.security.some(entry => 'ApiKeyAuth' in entry))

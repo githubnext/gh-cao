@@ -250,6 +250,26 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 			w.WriteHeader(http.StatusAccepted)
 		})
 	}
+	inventoryRequests, _ := ctx.Value(dashboardInventoryRefreshKey{}).(chan dashboardInventoryRefreshRequest)
+	if inventoryRequests != nil {
+		mux.HandleFunc("POST "+adapterPrefix+"/inventory/refresh", func(w http.ResponseWriter, r *http.Request) {
+			request := dashboardInventoryRefreshRequest{done: make(chan error, 1)}
+			select {
+			case inventoryRequests <- request:
+			case <-r.Context().Done():
+				return
+			}
+			select {
+			case err := <-request.done:
+				if err != nil {
+					http.Error(w, "inventory refresh failed; previous evidence retained", http.StatusServiceUnavailable)
+					return
+				}
+				w.WriteHeader(http.StatusNoContent)
+			case <-r.Context().Done():
+			}
+		})
+	}
 	mux.HandleFunc("POST "+adapterPrefix+"/execute", func(w http.ResponseWriter, r *http.Request) {
 		var args []string
 		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&args) != nil {
@@ -388,8 +408,9 @@ func startDashboardActionAdapterWithExecutable(ctx context.Context, repositories
 	config, err := os.CreateTemp(cache, ".operator-actions-*.json")
 	if err == nil {
 		settings := map[string]any{
-			"adapterUrl":  "http://" + listener.Addr().String() + adapterPrefix,
-			"marketplace": len(catalogServer) > 0,
+			"adapterUrl":       "http://" + listener.Addr().String() + adapterPrefix,
+			"marketplace":      len(catalogServer) > 0,
+			"inventoryRefresh": inventoryRequests != nil,
 		}
 		if runtime.GOOS != "windows" {
 			settings["operatorActions"] = map[string]any{

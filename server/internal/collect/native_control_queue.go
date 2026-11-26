@@ -17,6 +17,61 @@ const (
 	nativeControlDead    = "collect:native-control-dead"
 )
 
+// RequestInventoryRefresh admits only committed enrollment epochs. It does not
+// enumerate GitHub or require credentials in an admission-only HTTP process.
+func (q Queue) RequestInventoryRefresh(ctx context.Context, enrollment Enrollment) (int, error) {
+	if enrollment.Authority == nil {
+		return 0, collectnative.ErrUnsupported
+	}
+	installations, err := enrollment.Installations(ctx)
+	if err != nil {
+		return 0, err
+	}
+	queued, count := 0, 0
+	for _, installation := range installations {
+		for cursor := ""; ; {
+			names, next, err := enrollment.Authority.ScanRepositories(ctx, installation, cursor, 100)
+			if err != nil {
+				return queued, err
+			}
+			count += len(names)
+			if count > 100000 {
+				return queued, collectnative.ErrCapacity
+			}
+			for _, name := range names {
+				scope, err := enrollment.Authority.CurrentScope(ctx, name)
+				if errors.Is(err, collectnative.ErrIdentity) {
+					continue
+				}
+				if err != nil {
+					return queued, err
+				}
+				if scope.InstallationID != installation {
+					continue
+				}
+				result, err := q.enqueueNativeControl(ctx, Task{
+					Repository: scope.Repository, InstallationID: installation, ScopeEpoch: scope.Epoch,
+					InventoryRefresh: true, Reason: "manual-inventory-refresh", EnqueuedAt: time.Now().UTC(),
+				}, IntentOutcome, "", 0)
+				if err != nil {
+					return queued, err
+				}
+				if result.Enqueued {
+					queued++
+				}
+			}
+			if next == "" {
+				break
+			}
+			if next <= cursor {
+				return queued, collectnative.ErrIdentity
+			}
+			cursor = next
+		}
+	}
+	return queued, nil
+}
+
 func validNativeControl(task Task) bool {
 	name, err := NormalizeRepository(task.Repository)
 	if err != nil || name != task.Repository || task.InstallationID <= 0 || task.Attempt < 0 || task.Erase {

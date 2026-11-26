@@ -169,6 +169,8 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 	ctx, cancel := context.WithTimeout(ctx, options.duration)
 	defer cancel()
 	ingestRequests := make(chan struct{}, 1)
+	inventoryRequests := make(chan dashboardInventoryRefreshRequest)
+	ctx = context.WithValue(ctx, dashboardInventoryRefreshKey{}, inventoryRequests)
 	actionsConfig, stopActions, err := startDashboardActionAdapter(ctx, repositories, cache, ingestRequests, server)
 	if err != nil {
 		return err
@@ -407,10 +409,26 @@ func serveDashboard(cmd *cobra.Command, _ string, repositories []string, cache s
 				}
 			}
 			pass()
+		case request := <-inventoryRequests:
+			refreshErr := refreshDashboardInventory(ctx, repositories, cache, options, gh)
+			if refreshErr == nil {
+				refreshErr = refreshDashboardConfigurationSnapshot(ctx, cache)
+			}
+			if refreshErr == nil {
+				refreshErr = ingest()
+			}
+			request.done <- refreshErr
 		case <-ticker.C:
 			pass()
 		}
+
 	}
+}
+
+type dashboardInventoryRefreshKey struct{}
+
+type dashboardInventoryRefreshRequest struct {
+	done chan error
 }
 
 // dashboardEmptyRefresh is the retry interval while the snapshot has no runs,

@@ -7,6 +7,7 @@ import {
   refreshRemoteDashboard,
   subscribeRemoteRevision,
   usesRemoteDataBackend,
+  requestInventoryRefresh,
 } from "../../src/remote-data-backend.js";
 import { authoritativeDashboard } from "../authoritative-dashboard.js";
 import { localIngestionProgress } from "../../src/dashboard-data-status.js";
@@ -20,6 +21,38 @@ afterEach(() => {
 });
 
 describe("remote dashboard data backend", () => {
+  it("requests inventory acquisition using the existing local bearer transport, not query refresh", async () => {
+    localStorage.setItem("cao-dashboard-access-token", "test-local-owner");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ queued: true }), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = new AbortController();
+    await expect(requestInventoryRefresh(controller.signal)).resolves.toEqual({ queued: true });
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/admin/collection/refresh"), expect.objectContaining({
+      method: "POST", signal: controller.signal, credentials: "omit",
+      headers: expect.objectContaining({ Authorization: ["Bearer", "test-local-owner"].join(" ") })
+    }));
+  });
+
+  it("uses the hosted session and CSRF header for inventory sync and rejects unconfirmed acceptance", async () => {
+    const meta = document.createElement("meta");
+    meta.name = "cao-auth-mode";
+    meta.content = "github";
+    document.head.append(meta);
+    document.cookie = "cao_csrf=test-csrf; Path=/";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ queued: false }), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(requestInventoryRefresh()).rejects.toThrow("did not confirm");
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/admin/collection/refresh"), expect.objectContaining({
+      method: "POST", credentials: "same-origin",
+      headers: expect.objectContaining({ "X-CSRF-Token": "test-csrf" })
+    }));
+  });
+
+  it("rejects an inventory response that is not accepted even when queued is true", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ queued: true }), { status: 200 })));
+    await expect(requestInventoryRefresh()).rejects.toThrow("did not accept");
+  });
+
   it("shares local WebSocket progress without issuing queries and cleans up on unsubscribe", () => {
     const meta = document.createElement("meta");
     meta.name = "dashboard-live-transport";

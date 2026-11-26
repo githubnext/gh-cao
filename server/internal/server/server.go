@@ -533,6 +533,9 @@ func (a *App) start(startupCtx, runtimeCtx context.Context) error {
 	if a.hostedCLI != nil && a.hostedCLI.local != nil {
 		a.startTask(func() { a.runOperatorCommands(runCtx) })
 	}
+	if a.localInventoryRefreshConfigured() {
+		a.startTask(func() { a.runLocalInventoryRefresh(runCtx) })
+	}
 	if a.oauth != nil {
 		a.startTask(func() { a.oauth.runRevocationWorker(runCtx) })
 	}
@@ -847,6 +850,7 @@ func (a *App) Handler() http.Handler {
 	register("POST /api/admin/rebuild", a.rebuild)
 	register("GET /api/admin/rebuild/status", a.rebuildStatus)
 	register("GET /api/admin/collection/status", a.collectionStatus)
+	register("POST /api/admin/collection/refresh", a.collectionRefresh)
 	if a.logs != nil {
 		register("GET /api/admin/logs", a.serverLogs)
 	}
@@ -2173,6 +2177,9 @@ func (a *App) serveIndex(response http.ResponseWriter, request *http.Request, ac
 				HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode,
 			})
 		}
+	}
+	if a.inventoryRefreshConfigured() && (a.oauth == nil && accessToken != "" || a.oauth != nil && a.adminAuthorized(request)) {
+		injections += `<script>globalThis.__INVENTORY_REFRESH__ = true;</script>`
 	}
 	if a.oauth != nil {
 		injections += `<meta name="cao-auth-mode" content="github">`

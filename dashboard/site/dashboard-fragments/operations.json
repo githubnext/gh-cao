@@ -2586,6 +2586,14 @@
       "description": "Review exact repository source updates, compiler upgrades, or disabling that cancels in-progress runs before stopping future runs.",
       "views": [
         {
+          "id": "repository-inventory-sync",
+          "title": "Sync inventory",
+          "description": "Evidence marks cannot express this asynchronous, authenticated command; the shared control owns request, busy, unavailable and error states without changing rollout or running updates.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync"
+        },
+        {
           "id": "maintenance-repositories",
           "title": "Repository compiler status",
           "data": {
@@ -2681,6 +2689,14 @@
       "class-name": "maintenance-page",
       "views": [
         {
+          "id": "campaign-inventory-sync",
+          "title": "Sync inventory",
+          "description": "Request the same authorized server inventory refresh as repository Updates. The interaction-only shared control consumes no evidence rows and never grants campaign execution authority.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync"
+        },
+        {
           "id": "maintenance-campaigns",
           "title": "Campaign packages",
           "data": {
@@ -2768,6 +2784,14 @@
       "icon": "workflow",
       "class-name": "maintenance-page",
       "views": [
+        {
+          "id": "workflow-inventory-sync",
+          "title": "Sync inventory",
+          "description": "Request an authorized server refresh of repository and workflow inventory and local campaign information in the configured scope. Unsupported version evidence stays unavailable; this is not a workflow update or a browser detail-query refresh.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync"
+        },
         {
           "id": "maintenance-standalone-workflows",
           "title": "Individual workflows",

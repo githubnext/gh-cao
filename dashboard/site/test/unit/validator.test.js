@@ -48,7 +48,8 @@ describe('dashboard document validation', () => {
     'unknown property'
   ])('rejects lazy selection with %s', (invalid) => {
     const document = JSON.parse(authoritativeDashboardSource);
-    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views
+      .find((/** @type {{ id: string }} */ view) => view.id === 'maintenance-repositories');
     const valid = structuredClone(view.list.selection);
     const selections = {
       'empty keys': { key: [], commands: valid.commands },
@@ -68,7 +69,8 @@ describe('dashboard document validation', () => {
 
   it('rejects selection on a non-lazy list', () => {
     const document = JSON.parse(authoritativeDashboardSource);
-    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views
+      .find((/** @type {{ id: string }} */ view) => view.id === 'maintenance-repositories');
     view['lazy-list'] = false;
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
       ok: false,
@@ -172,9 +174,10 @@ describe('dashboard document validation', () => {
   ])('rejects invalid batch action context $fields', ({ fields }) => {
     const document = JSON.parse(authoritativeDashboardSource);
     const page = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
-    page.views[0].mark = 'list';
-    delete page.views[0]['lazy-list'];
-    page.views[0].list = { style: 'cards', icon: 'repo', action: 'upgrade-repository', 'action-context': fields };
+    const view = page.views.find((/** @type {{ id: string }} */ view) => view.id === 'maintenance-repositories');
+    view.mark = 'list';
+    delete view['lazy-list'];
+    view.list = { style: 'cards', icon: 'repo', action: 'upgrade-repository', 'action-context': fields };
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
       ok: false, errors: expect.arrayContaining([expect.objectContaining({
         path: expect.stringContaining('.list.action-context')
@@ -185,9 +188,10 @@ describe('dashboard document validation', () => {
   it('rejects a batch action against an incrementally loaded list', () => {
     const document = JSON.parse(authoritativeDashboardSource);
     const page = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
-    page.views[0].mark = 'list';
-    page.views[0].list = { style: 'entity-cards', card: 'maintenance-repository', icon: 'repo', action: 'upgrade-repository', 'action-context': ['repository'] };
-    page.views[0]['lazy-list'] = true;
+    const view = page.views.find((/** @type {{ id: string }} */ view) => view.id === 'maintenance-repositories');
+    view.mark = 'list';
+    view.list = { style: 'entity-cards', card: 'maintenance-repository', icon: 'repo', action: 'upgrade-repository', 'action-context': ['repository'] };
+    view['lazy-list'] = true;
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({ ok: false });
   });
 

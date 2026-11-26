@@ -25,10 +25,11 @@ type LocalOperatorActionsConfig struct {
 // LocalOperatorConfig binds queue-authorized maintenance independently of
 // the canonical PostgreSQL ingestion connection.
 type LocalOperatorConfig struct {
-	AdapterURL      string                      `json:"adapterUrl"`
-	OperatorActions *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
-	ManagedUpdates  bool                        `json:"managedUpdates,omitempty"`
-	Marketplace     bool                        `json:"marketplace,omitempty"`
+	AdapterURL       string                      `json:"adapterUrl"`
+	OperatorActions  *LocalOperatorActionsConfig `json:"operatorActions,omitempty"`
+	ManagedUpdates   bool                        `json:"managedUpdates,omitempty"`
+	Marketplace      bool                        `json:"marketplace,omitempty"`
+	InventoryRefresh bool                        `json:"inventoryRefresh,omitempty"`
 }
 
 func (c *LocalOperatorActionsConfig) allows(repository string) bool {

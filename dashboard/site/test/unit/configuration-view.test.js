@@ -86,11 +86,12 @@ describe('Configuration dashboard view', () => {
     };
     const views = maintenanceNavigationContract.navigation.pages.flatMap((id) => {
       const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === id);
+      const cardViews = page.views.filter((/** @type {{ mark: string }} */ view) => view.mark === 'list');
       const bindings = dashboardPagePaginatedSourceBindings(authoritativeDashboard, id);
-      expect(Object.values(bindings).map((binding) => binding.viewId)).toEqual(page.views.map((/** @type {{ id: string }} */ view) => view.id));
+      expect(Object.values(bindings).map((binding) => binding.viewId)).toEqual(cardViews.map((/** @type {{ id: string }} */ view) => view.id));
       expect(page['view-mode-control']).toBe(false);
-      for (const view of page.views) expect(view).toMatchObject({ mark: 'list', layout: 'full-view', 'lazy-list': true, list: { style: 'entity-cards' } });
-      return page.views;
+      for (const view of cardViews) expect(view).toMatchObject({ mark: 'list', layout: 'full-view', 'lazy-list': true, list: { style: 'entity-cards' } });
+      return cardViews;
     });
     expect(views.map((/** @type {{ id: string }} */ view) => view.id)).toEqual(maintenanceNavigationContract['card-lists']);
     const page = dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance');
@@ -108,7 +109,7 @@ describe('Configuration dashboard view', () => {
     expect(bound.rows).toHaveLength(maintenanceNavigationContract['page-size']);
     expect(bound.rows).toEqual(complete.rows.slice(0, 25));
     expect(loadPage).toHaveBeenCalledTimes(1);
-    const view = page.views[0];
+    const view = page.views.find((/** @type {{ mark: string }} */ view) => view.mark === 'list');
     const root = renderDataView(view.mark, {
       pageId: page.id, title: view.title, view, sourceName: view.data.source,
       cardTemplates: Object.fromEntries(dashboard['card-templates'].map((/** @type {{ id: string }} */ template) => [template.id, template])),
@@ -174,11 +175,11 @@ describe('Configuration dashboard view', () => {
     const dashboard = authoritativeDashboard.dashboard;
     for (const [index, id] of maintenanceNavigationContract.navigation.pages.entries()) {
       const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === id);
-      expect(page.views).toHaveLength(1);
-      expect(page.views[0].list.action).toBeUndefined();
-      expect(page.views[0].actions ?? []).not.toEqual(expect.arrayContaining(['upgrade-repository']));
-      expect(page.views[0].data.source).not.toMatch(/sweep/);
-      const view = page.views[0];
+      expect(page.views).toHaveLength(2);
+      const view = page.views.find((/** @type {{ mark: string }} */ view) => view.mark === 'list');
+      expect(view.list.action).toBeUndefined();
+      expect(view.actions ?? []).not.toEqual(expect.arrayContaining(['upgrade-repository']));
+      expect(view.data.source).not.toMatch(/sweep/);
       expect(view.list.selection.commands).toEqual(maintenanceNavigationContract['selection-commands'][index]);
       const card = dashboard['card-templates'].find((/** @type {{ id: string }} */ candidate) => candidate.id === view.list.card);
       for (const command of view.list.selection.commands) {
@@ -243,7 +244,7 @@ describe('Configuration dashboard view', () => {
         vi.stubGlobal('__CLI_QUEUE__', true);
         setDeclaredCliActions(dashboard['cli-actions']);
         try {
-          const view = page.views[0];
+          const view = page.views.find((/** @type {{ mark: string }} */ view) => view.mark === 'list');
           const rendered = renderDataView(view.mark, {
             pageId: page.id, title: view.title, view,
             sourceName: view.data.source, rows: result.rows,
@@ -271,7 +272,7 @@ describe('Configuration dashboard view', () => {
   it('filters campaign packages by update availability and registration through the worker query', () => {
     const page = authoritativeDashboard.dashboard.pages.find((/** @type {{ id: string }} */ candidate) =>
       candidate.id === 'maintenance-campaigns');
-    const [view] = page.views;
+    const view = page.views.find((/** @type {{ mark: string }} */ view) => view.mark === 'list');
     expect(view['filter-bar'].filters.map((/** @type {{ id: string }} */ control) => control.id))
       .toEqual(['update', 'status']);
     const campaigns = [...maintenanceNavigationContract.campaigns, {
@@ -322,6 +323,7 @@ describe('Configuration dashboard view', () => {
         'maintenance-standalone-workflows': [2, 2, 3]
       };
       for (const owner of [page, workflowPage]) for (const view of owner.views) {
+        if (view.mark !== 'list') continue;
         const payload = compileDashboardViewPayloadQueries(owner, owner.id, {
           viewId: view.id, sourceNames: [view.data.source], queries: dashboard.queries
         });
@@ -587,7 +589,8 @@ describe('Configuration dashboard view', () => {
     const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance');
     const campaigns = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance-campaigns');
     const workflows = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === 'maintenance-workflows');
-    const views = [...campaigns.views, ...workflows.views, ...page.views];
+    const views = [...campaigns.views, ...workflows.views, ...page.views]
+      .filter((/** @type {{ mark: string }} */ view) => view.mark === 'list');
     const manageNavigation = dashboard.navigation.find((/** @type {{ label?: string }} */ candidate) => candidate.label === 'Maintenance');
 
     expect(page.title).toBe('Repository maintenance');
@@ -597,11 +600,11 @@ describe('Configuration dashboard view', () => {
     expect(updatesNavigation).toEqual(maintenanceNavigationContract.navigation);
     expect(page.route).toBeUndefined();
     expect(campaigns.route).toBeUndefined();
-    expect(page.views).toHaveLength(1);
-    expect(campaigns.views).toHaveLength(1);
-    expect(workflows.views).toHaveLength(1);
+    expect(page.views).toHaveLength(2);
+    expect(campaigns.views).toHaveLength(2);
+    expect(workflows.views).toHaveLength(2);
     expect(workflows.route).toBeUndefined();
-    expect([page.views[0].data.source, campaigns.views.at(-1).data.source, workflows.views.at(-1).data.source])
+    expect([page.views.at(-1).data.source, campaigns.views.at(-1).data.source, workflows.views.at(-1).data.source])
       .toEqual(maintenanceNavigationContract.sources);
     expect(manageNavigation.pages).not.toContain('maintenance');
     expect(manageNavigation.pages).not.toContain('maintenance-campaigns');

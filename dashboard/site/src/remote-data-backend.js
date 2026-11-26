@@ -78,6 +78,15 @@ export function fetchServerLogs(signal) {
   return apiRequest("/api/admin/logs", {}, signal);
 }
 
+/** Request inventory acquisition, not a retained-data query refresh.
+ * @param {AbortSignal} [signal]
+ */
+export async function requestInventoryRefresh(signal) {
+  const result = await apiRequest("/api/admin/collection/refresh", { method: "POST" }, signal, 202);
+  if (result?.queued !== true) throw new Error("The server did not confirm an inventory refresh request.");
+  return result;
+}
+
 
 /** @param {string} path */
 function apiUrl(path) {
@@ -123,8 +132,9 @@ export function githubWorkerBackendConfiguration() {
  * @param {string} path
  * @param {RequestInit} [init]
  * @param {AbortSignal} [signal]
+ * @param {number} [expectedStatus]
  */
-async function apiRequest(path, init = {}, signal) {
+async function apiRequest(path, init = {}, signal, expectedStatus) {
   const oauth = usesGitHubAuthentication();
   const token = oauth ? "" : accessToken();
   const method = (init.method ?? "GET").toUpperCase();
@@ -183,6 +193,9 @@ async function apiRequest(path, init = {}, signal) {
       traceId,
       spanId
     );
+  }
+  if (expectedStatus !== undefined && response.status !== expectedStatus) {
+    throw new Error("The server did not accept the request.");
   }
   const result = await response.json();
   debugRemoteBackend({

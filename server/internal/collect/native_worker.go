@@ -68,7 +68,7 @@ func (w NativeWorker) interval() time.Duration {
 	if w.RefreshInterval <= 0 {
 		return time.Hour
 	}
-	return w.RefreshInterval
+	return min(w.RefreshInterval, 24*time.Hour)
 }
 
 func (w NativeWorker) Run(ctx context.Context) error {

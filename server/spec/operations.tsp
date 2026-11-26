@@ -183,6 +183,13 @@ namespace Operations {
   @route("/api/admin/collection/status")
   @get op collectionStatus(): CollectionStatus | Unauthorized | Forbidden | Unavailable;
 
+  /** Requests a durable asynchronous repository/workflow inventory reread within the existing enrollment, without changing collection scope or reviewed campaign/policy authority. Hosted deployments require an administrator session and CSRF; admission-only servers use the same durable queue as separate credential-owning collection workers. Local native dashboards queue work for their credential-owning CLI, including rereading local campaign declarations; ordinary snapshot servers are unavailable. Local compiler/version coverage remains unknown. Reviewed hosted campaign metadata stays pinned to the selected deployment snapshot. Manual requests are bounded to one per minute per authenticated rate-limit subject and queue capacity; repeated requests return 429 rather than silently skip a forced reread. Acceptance is not completion. Active native workers and local native dashboards schedule inventory repair at least daily; quota exhaustion and provider failures defer work, never claim freshness. */
+  @useAuth(DashboardAuth)
+  @route("/api/admin/collection/refresh")
+  @post op refreshCollection(@header("X-CSRF-Token") csrfToken?: string):
+    { @statusCode code: 202; @body body: { queued: true } } |
+    Unauthorized | Forbidden | TooManyRequests | Unavailable;
+
   /** Alias for the administrative collection status endpoint. */
   @useAuth(DashboardAuth)
   @route("/api/v1/ingestion/health")

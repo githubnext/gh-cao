@@ -278,9 +278,11 @@ func (g GitHub) BuildInventory(ctx context.Context, scope EnrollmentScope, snaps
 				}
 			}
 		}
-		version := inventoryText(declared, "gh-aw-version")
+		// The compiled repository revision is fresh installation evidence;
+		// the reviewed declaration remains the campaign/authority boundary.
+		version := inventoryText(registry, "gh-aw-version")
 		if version == "" || version == "unknown" {
-			version = inventoryText(registry, "gh-aw-version")
+			version = inventoryText(declared, "gh-aw-version")
 		}
 		merged["gh-aw-version"], merged["gh-aw-current-version"] = inventoryUnknown(version), inventoryUnknown(latest)
 		merged["gh-aw-update-state"] = inventoryVersionState(version, latest)
