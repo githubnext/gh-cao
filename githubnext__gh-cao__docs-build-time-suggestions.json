@@ -1,37 +1,7 @@
 {
   "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T17:52:51Z",
-      "worker_run_id": "45668655523",
-      "correlation_id": "45667797861-4813",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "45117916746",
-        "45249995178",
-        "45282794439",
-        "45293283576",
-        "45333239050"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Live docs.yml list this run: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha. Demo step (simulate-dashboard-pages.mjs -> dashboard/site/scripts/build.mjs esbuild bundle) from stored rows: median 1 s, p90 2, max 3 = 1.4 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet even at full removal; cross-run reuse blocker unchanged. Watch only (no suggestion): checkout 40 s (45562958524) and 67 s (45625202695) are the two newest rows, above p90 32; median 25 unchanged; #20815 is the only open scoped issue (OPEN, 0 comments), not re-proposed. No issue created. Next category: artifact transfer and Pages packaging."
-    },
     {
       "evaluated_at": "2026-11-25T18:20:59Z",
       "worker_run_id": "45673566318",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45750781132-4842; worker run 45751242580. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 03:52Z: same 20 IDs, none queued; HEAD 16a88ce = source_sha. Stored build_docs_s recomputed (n=20, nearest-rank p90): median 12, p90 15, min 9, max 15 = 16.3 pct of exec median 73.5; 15 pct gate 11.0 s needs about 92 pct of the step removed. Per trigger: push exec median 74 / build_docs 12; schedule exec median 73 / build_docs 12. Hypotheticals on stored rows (gross, before restore/save cost): same-commit schedule skip moves workflow median 1.0-1.5 s; removing the docs build from every run would move it 13 s (17.7 pct) but is not a correctness-preserving change because the Pages artifact must be built from the deployed commit. Sub-step split unmeasured (build job logs HTTP 403 DIFC; not retried or bypassed). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. No issue created or searched. Next category: reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-11-26T04:21:48Z",
+      "worker_run_id": "45754257182",
+      "correlation_id": "45753697745-4843",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45753697745-4843; worker run 45754257182. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 04:20Z: same 20 IDs, none newer or queued; HEAD 16a88ce = source_sha. Live Jobs spot-check of 45625202695: Build synthetic enterprise demo 1 s. Stored demo_s recomputed (n=20, nearest-rank p90): median 1, p90 2, min 1, max 3 = 1.4 pct of exec median 73.5; 15 pct gate 11.0 s and 60 s gate unmet even at full removal; removal would also drop the synthetic Pages artifact. Step is buildDashboardSite plus marker inside scripts/simulate-dashboard-pages.mjs (no separate dashboard job). Open issue search (label and keyword): #20815 only, not this category; no issue created. Next category: artifact transfer and Pages packaging."
     }
   ],
   "docs_cache_model": {
@@ -1759,9 +1759,9 @@
     "ceiling_saving_s": 3,
     "reuse_blocker": "cross-run reuse would pin synthetic dates (scripts/simulate-dashboard-pages.mjs:67,76 Date.now generatedAt); docs.yml runs the step every build",
     "verdict": "not actionable: demo step median 1 s (1.4 percent of exec median), p90 2 s, max 3 s; 15 percent and 60 s gates unmet even at full removal.",
-    "last_reverified_note": "2026-11-26T02:36:38Z worker 45743204423 (correlation 45742562165-4838): live docs.yml list unchanged (no run newer than 45625202695); HEAD 16a88ce = source_sha; stored demo_s median 1, p90 2, max 3; not actionable.",
-    "last_reverified_at": "2026-11-26T02:36:38Z",
-    "last_reverified_worker_run_id": "45743204423"
+    "last_reverified_note": "2026-11-26T04:20Z worker 45754257182 (correlation 45753697745-4843): live docs.yml list unchanged (no run newer than 45625202695); HEAD 16a88ce = source_sha; live Jobs spot-check 45625202695 demo 1 s; stored demo_s median 1, p90 2, max 3; not actionable.",
+    "last_reverified_at": "2026-11-26T04:21:48Z",
+    "last_reverified_worker_run_id": "45754257182"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
@@ -2108,12 +2108,12 @@
       "n": 20
     },
     "exec_median_s": 73.5,
-    "gate_15pct_s": 11.0,
+    "gate_15pct_s": 11,
     "schedule_same_commit_skip_median_delta_s": [
-      1.0,
+      1,
       1.5
     ],
-    "all_runs_docs_removed_median_delta_s": 13.0,
+    "all_runs_docs_removed_median_delta_s": 13,
     "verdict": "not actionable; re-open only if Pages reuse can be proven commit-correct or build_docs median exceeds about 13 s with repeated runs"
   }
 }
