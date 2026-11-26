@@ -1,37 +1,7 @@
 {
   "source_sha": "9bcc8c1faf9edca32a59bebb0bd6ce3b7e43dd1c",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T01:02:15Z",
-      "worker_run_id": "45732529835",
-      "correlation_id": "45731813214-4833",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed,..."
-    },
     {
       "evaluated_at": "2026-11-26T01:20:26Z",
       "worker_run_id": "45734581218",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 9bcc8c1 (main unchanged; live window unchanged). Stored build_docs_s n=20: median 12, nearest-rank p90 14, min 9, max 15; exec median 73. Live Jobs spot-checks: 45762538888 Build documentation 12 s, 45761522067 (schedule) 11 s. 15 pct gate 10.95 s needs 91 pct of the step removed; 60 s gate unreachable; whole-step removal would still need dist/ for deploy. Pages reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Sub-step split of docs:build (astro build, validate-agent-docs, agent-docs-discovery test) not measured; job-log reads previously returned HTTP 403 DIFC and were not retried. Open #20815 (blobless checkout) not re-proposed. No issue created."
+    },
+    {
+      "evaluated_at": "2026-11-26T10:52:57Z",
+      "worker_run_id": "45804920569",
+      "correlation_id": "45804000766-4863",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45804000766-4863; worker run 45804920569. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 10:52Z: same 20 IDs, none queued; main 9bcc8c1 = source_sha; docs.yml last changed 063cbe9 (2026-11-12, before window). Stored demo_s recomputed (n=20, nearest-rank p90): median 1, p90 2, max 3 = 1.4 pct of exec median 73 s; 10.95 s gate unmet even at full removal; 60 s gate unreachable; cross-run reuse blocked by Date.now/generatedAt in scripts/simulate-dashboard-pages.mjs and saves at most about 1 s. No issue searched or created (no candidate). Next category: artifact transfer and Pages packaging."
     }
   ],
   "docs_cache_model": {
@@ -1813,8 +1813,8 @@
     "ceiling_saving_s": 2,
     "reuse_blocker": "cross-run reuse would pin synthetic dates: scripts/simulate-dashboard-pages.mjs:67 (now = Date.now()) and :76 (generatedAt); docs.yml runs the step every build",
     "verdict": "not actionable: demo step median 1 s, p90 2 s, max 3 s (1.4 percent of exec median); 15 percent gate unmet even at full removal; 60 s gate unreachable",
-    "last_reverified_at": "2026-11-26T05:53:39Z",
-    "last_reverified_worker_run_id": "45763985638"
+    "last_reverified_at": "2026-11-26T10:52:57Z",
+    "last_reverified_worker_run_id": "45804920569"
   },
   "astro_output_reuse": {
     "verified_at": "2026-11-16T06:36:53Z",
@@ -2174,9 +2174,9 @@
     "verdict": "not actionable; re-open only if Pages reuse can be proven commit-correct or build_docs median exceeds about 13 s with repeated runs"
   },
   "dashboard_generation_last_checked": {
-    "evaluated_at": "2026-11-26T09:21:18Z",
-    "worker_run_id": "45790605286",
-    "correlation_id": "45789755258-4858",
-    "verdict": "not actionable (unchanged): demo step 1 s median, p90 2 s; 1.4 pct of exec median; window unchanged at 09:20Z"
+    "evaluated_at": "2026-11-26T10:52:57Z",
+    "worker_run_id": "45804920569",
+    "correlation_id": "45804000766-4863",
+    "verdict": "not actionable (unchanged): demo step 1 s median, p90 2 s; 1.4 pct of exec median; window and main 9bcc8c1 unchanged at 10:52Z"
   }
 }
