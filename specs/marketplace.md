@@ -46,6 +46,18 @@ and diagnostics. GitHub credentials remain excluded from the web server.
 The adapter caches safe results for the configured registry TTL and invalidates
 them when the local policy changes or becomes unavailable.
 
+The web server MUST call the private adapter only when its configured URL is
+plain `http` on a numeric loopback address with an explicit port and a
+48-character lowercase hexadecimal path prefix, and has no user information,
+query, or fragment. The request MUST NOT use an ambient proxy and MUST NOT
+follow redirects; a redirect response is not a successful resolution. The
+request has a two-minute deadline. The response MUST be a `200` containing one
+complete JSON document read within a 32 MiB bound; any other status, an
+undecodable or oversized document, trailing content, a transport failure, or an invalid
+adapter URL MUST degrade to an empty source whose availability is
+`unavailable` and whose completeness and freshness are `unknown`, without
+failing the enclosing query.
+
 Canonical package queries preserve the published inventory's completeness,
 freshness, and timestamps on every lazy page, including when its logical source
 name differs from the canonical store name. Unknown completeness remains unknown.
