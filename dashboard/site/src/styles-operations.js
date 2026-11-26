@@ -99,7 +99,7 @@ export const operationStyles = `.dashboard-next-work-page .custom-view-grid { di
 .work-card-workers > summary { min-height: 32px; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 5px 8px; border: 1px dashed var(--border); border-radius: 6px; background: var(--canvas-inset); color: var(--fg); font-size: .6875rem; font-weight: 700; cursor: pointer; list-style: none; }
 .work-card-workers > summary::-webkit-details-marker { display: none; }
 .work-card-workers > summary:hover { border-style: solid; background: var(--canvas-subtle); }
-.work-card-workers > summary small { color: var(--muted); font-size: .625rem; font-weight: 500; }
+.work-card-workers > summary small { color: var(--muted); font-size: .75rem; font-weight: 500; }
 .work-card-workers-chevron { color: var(--muted); transition: transform 120ms ease; }
 .work-card-workers-chevron .octicon { width: 12px; height: 12px; }
 .work-card-workers[open] .work-card-workers-chevron { transform: rotate(90deg); }
@@ -218,14 +218,14 @@ export const operationStyles = `.dashboard-next-work-page .custom-view-grid { di
 .work-roadmap-quarters span { color: var(--success); }
 .work-roadmap-periods span { color: var(--muted); }
 .work-roadmap-ticks { height: 30px; top: 58px; background-image: linear-gradient(to right, var(--border-muted) 1px, transparent 1px); background-size: calc(100% / var(--roadmap-divisions)) 100%; }
-.work-roadmap-ticks time { position: absolute; left: var(--tick-position); padding: 8px 0 0 6px; color: var(--muted); font-size: .625rem; font-variant-numeric: tabular-nums; white-space: nowrap; transform: translateX(-1px); }
+.work-roadmap-ticks time { position: absolute; left: var(--tick-position); padding: 8px 0 0 6px; color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; white-space: nowrap; transform: translateX(-1px); }
 .work-roadmap-lane { min-height: 40px; border-top: 1px solid var(--border); }
 .work-roadmap-calendar + .work-roadmap-lane { border-top: 0; }
 .work-roadmap-label { min-width: 0; display: grid; grid-template-columns: 30px 20px minmax(0, 1fr); align-items: center; gap: 7px; position: sticky; z-index: 4; left: 0; padding: 5px 10px 5px 4px; border-right: 1px solid var(--border); background: var(--canvas); }
 .work-roadmap-index { color: var(--muted); font-size: .6875rem; font-variant-numeric: tabular-nums; text-align: right; }
 .work-roadmap-label .work-avatar { width: 20px; height: 20px; flex-basis: 20px; border: 0; background: transparent; }
 .work-roadmap-label-copy { min-width: 0; display: grid; gap: 1px; }
-.work-roadmap-label-copy small { overflow: hidden; color: var(--muted); font-size: .625rem; text-overflow: ellipsis; white-space: nowrap; }
+.work-roadmap-label-copy small { overflow: hidden; color: var(--muted); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
 .work-roadmap-track { min-width: 0; position: relative; overflow: hidden; background-color: var(--canvas); background-image: linear-gradient(to right, var(--border) 1px, transparent 1px); background-size: calc(100% / var(--roadmap-divisions)) 100%; }
 .work-roadmap-bar { height: 26px; min-width: 44px; display: flex; align-items: center; gap: 6px; position: absolute; z-index: 2; top: 7px; left: var(--work-start); width: var(--work-width); max-width: calc(100% - var(--work-start)); padding: 0 7px; overflow: hidden; border: 1px solid var(--border); border-radius: 4px; background: var(--canvas); color: var(--fg); box-shadow: 0 1px 2px color-mix(in srgb, var(--fg) 12%, transparent); }
 .work-roadmap-bar.work-roadmap-point { width: max-content; min-width: 28px; max-width: min(280px, calc(100% - var(--work-start))); padding: 0 7px 0 4px; transform: translateX(-10px); }

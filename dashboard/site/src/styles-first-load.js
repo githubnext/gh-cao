@@ -50,7 +50,7 @@ export const firstLoadStyles = `
 .first-load-agentic-rider { position: absolute; top: 0; left: 0; width: 36px; height: 30px; opacity: 0; animation: first-load-rider-cruise 19.8s linear infinite; }
 .first-load-agentic-rider-octocat { animation-delay: -13.2s; }
 .first-load-agentic-rider-copilot { animation-delay: -6.6s; }
-.first-load-agentic-caption { display: grid; gap: 1px; color: var(--muted); font-size: .625rem; font-weight: 600; letter-spacing: .12em; text-align: center; text-transform: uppercase; }
+.first-load-agentic-caption { display: grid; gap: 1px; color: var(--muted); font-size: .75rem; font-weight: 600; letter-spacing: .12em; text-align: center; text-transform: uppercase; }
 .first-load-agentic-caption strong { color: var(--fg); font-size: .8125rem; letter-spacing: normal; text-transform: none; }
 @keyframes first-load-bar-wave { 0%, 100% { opacity: .5; transform: scaleY(.28); } 50% { opacity: .9; transform: scaleY(.82); } }
 @keyframes first-load-rider-cruise {

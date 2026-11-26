@@ -104,7 +104,7 @@ ${overviewGridStyles}
 }
 .factory-rhythm-bar-pair .factory-rhythm-baseline { width: 58%; border: 1px solid var(--border); background: var(--canvas-subtle); }
 .factory-rhythm-bar-pair .factory-rhythm-current { z-index: 1; width: 58%; background: color-mix(in srgb, var(--success) 72%, var(--accent)); }
-.factory-rhythm-bars small { color: var(--muted); font-size: .625rem; font-style: normal; }
+.factory-rhythm-bars small { color: var(--muted); font-size: .75rem; font-style: normal; }
 .factory-rhythm-pending .factory-rhythm-bars { border-radius: 6px; background: linear-gradient(90deg, var(--canvas-subtle) 25%, var(--neutral-muted) 50%, var(--canvas-subtle) 75%); background-size: 200% 100%; animation: dashboard-skeleton-pulse 1.5s ease-in-out infinite; }
 .factory-rhythm-pending .factory-rhythm-bars > * { visibility: hidden; }
 @media (max-width: 900px) {
