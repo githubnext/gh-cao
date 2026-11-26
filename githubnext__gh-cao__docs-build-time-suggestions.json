@@ -1,37 +1,7 @@
 {
   "source_sha": "9bcc8c1faf9edca32a59bebb0bd6ce3b7e43dd1c",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T01:34:23Z",
-      "worker_run_id": "45736231881",
-      "correlation_id": "45735599289-4835",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "45117916746",
-        "45249995178",
-        "45282794439",
-        "45293283576",
-        "45333239050"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45735599289-4835; worker run 45736231881. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T1..."
-    },
     {
       "evaluated_at": "2026-11-26T01:53:42Z",
       "worker_run_id": "45738360508",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 11:17Z same 20 IDs, none queued; HEAD 9bcc8c1 = source_sha. Window-only stored rows (n=20, nearest-rank p90): removable (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet; only 2 of 20 runs reach 10.95 s. Merge-deploy ceiling about 9 s, still below gate and previously rejected (github-pages environment and id-token boundary). No Jobs API calls this run."
+    },
+    {
+      "evaluated_at": "2026-11-26T11:35:00Z",
+      "worker_run_id": "45811359727",
+      "correlation_id": "45810267384-4865",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45810267384-4865; worker run 45811359727. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 11:34Z: same 20 IDs, none in progress; only queued 37642403569 (2026-10-07, stale, outside window). main 9bcc8c1 = source_sha; commits after 5ddfe67 (93ce1f5, 4b68f03, 9bcc8c1) produced no docs run (specs/ and server/ only, verified earlier). Stored run_timings recomputed (n=20): queue median 3 s, p90 4, max 36 (single wait, not repeated); exec median 73 s (push 74, schedule 72). 5 schedule runs still required for synthetic-date freshness; 15 pct gate 10.95 s and 60 s gate unmet. Next category: dependency installation and caching."
     }
   ],
   "docs_cache_model": {
@@ -2113,12 +2113,12 @@
     "verdict": "not actionable (unchanged): docs:build = astro build + validate-agent-docs + agent-docs-discovery test; 15 pct gate needs 91 pct of the step removed; 60 s gate unreachable; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance."
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-26T09:53:01Z",
-    "worker_run_id": "45795486055",
-    "correlation_id": "45794644706-4860",
+    "verified_at": "2026-11-26T11:35:00Z",
+    "worker_run_id": "45811359727",
+    "correlation_id": "45810267384-4865",
     "window": "45762538888 .. 44952052187 unchanged (20 completed; 15 push, 5 schedule; 0 failed, 0 cancelled); source 9bcc8c1",
-    "live_check": "gh run list at 09:51Z: no in-progress docs.yml run; queued only 37642403569 (2026-10-07, stale); commits after window head touch specs/ or server/ only",
-    "verdict": "not actionable (unchanged): queue median 3 s, one 36 s concurrency wait not repeated; no change in evidence"
+    "live_check": "gh run list at 11:34Z: no in-progress docs.yml run; queued only 37642403569 (2026-10-07, stale); main HEAD 9bcc8c1 unchanged",
+    "verdict": "not actionable (unchanged): queue median 3 s, one 36 s concurrency wait not repeated; exec median 73 s; no change in evidence"
   },
   "head_path_filter_check": {
     "verified_at": "2026-11-25T04:36:14Z",
