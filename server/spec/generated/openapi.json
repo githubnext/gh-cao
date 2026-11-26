@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "CAO dashboard server",
-    "version": "4.3.0",
+    "version": "4.4.0",
     "description": "The Go dashboard server HTTP contract. Local mode uses a loopback bearer capability; hosted mode uses an authorized GitHub OAuth session and X-CSRF-Token on protected mutations. The optional MCP HTTP transport is covered, but its protocol messages and tool schemas are owned by the MCP contract; dashboard static assets are outside this contract."
   },
   "tags": [
@@ -330,6 +330,106 @@
             }
           },
           "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ingestion and administration"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/collection/sync": {
+      "post": {
+        "operationId": "Operations_collectionSync",
+        "description": "Administrator-only asynchronous repository and campaign metadata refresh within committed enrollment. Takes no request body. Local bearer or a freshly assured hosted administrator session with CSRF is required. Admits inventory-only tasks to the durable collection queue, coalescing repeated pending requests; does not query GitHub inline, reconcile enrollment, collect run history or execute Value. Admission-only frontends may queue work for separate workers. Uses the explicitly provisioned reviewed inventory, never replaces policy or widens authority. Native workers also refresh existing inventory automatically on their repository repair schedule: one hour by default, with configured intervals limited to at most 24 hours. Acceptance does not mean refresh has completed. Missing native collection, unavailable scope/queue capability or admission backpressure returns 503; partial admission may already have queued bounded work and retries coalesce it.",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The request has been accepted for processing, but processing has not yet completed.",
+            "headers": {
+              "cache-control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionSyncAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "429": {
             "description": "An error response. The message is diagnostic, not a stable error code.",
             "content": {
               "application/json": {
@@ -4092,6 +4192,26 @@
             }
           }
         }
+      },
+      "CollectionSyncAccepted": {
+        "type": "object",
+        "required": [
+          "queued"
+        ],
+        "properties": {
+          "queued": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Durable admission succeeded or an inventory refresh is already pending; not collection completion."
+          }
+        },
+        "examples": [
+          {
+            "queued": true
+          }
+        ]
       },
       "ComputedField": {
         "type": "object",

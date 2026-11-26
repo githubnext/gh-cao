@@ -6,6 +6,53 @@ import { expect, test } from '@playwright/test';
 const { startDashboardServer } = await import(new URL('../../../../tests/helpers/dashboard-server.mjs', import.meta.url).href);
 
 for (const width of [1440, 390]) {
+  test(`Updates inventory Sync is accessible at ${width}px`, async ({ page }, testInfo) => {
+    test.setTimeout(120_000);
+    const preview = await startDashboardServer({
+      repository: 'acme/control',
+      prepareSnapshot: async (/** @type {string} */ destination) => {
+        const metadata = { 'as-of': new Date().toISOString(), availability: 'available', completeness: 'complete', freshness: 'fresh' };
+        await writeServerArtifact(destination, { sources: {
+          repositories: { metadata, rows: [{ organization: 'octo', repository: 'inventory' }] },
+          workflows: { metadata, rows: [{ organization: 'octo', repository: 'inventory', workflow: 'review.md', 'workflow-name': 'Inventory review', 'workflow-source-kind': 'local' }] },
+          campaigns: { metadata, rows: [{ campaign: 'inventory', 'campaign-name': 'Inventory campaign', 'campaign-registration': 'true' }] }
+        } });
+      }
+    });
+    try {
+      await page.setExtraHTTPHeaders(preview.headers);
+      await page.setViewportSize({ width, height: 900 });
+      for (const [pageId, viewId] of [
+        ['maintenance', 'maintenance-repositories'],
+        ['maintenance-workflows', 'maintenance-standalone-workflows'],
+        ['maintenance-campaigns', 'maintenance-campaigns']
+      ]) {
+        await page.goto(`${preview.url}/#page-${pageId}`);
+        await expect(page.locator(`[data-view-id="${viewId}"] .entity-card-list-card`)).toHaveCount(1);
+        const sync = page.getByRole('button', { name: 'Sync', exact: true });
+        await expect(sync).toBeVisible();
+        await sync.focus();
+        const admission = page.waitForResponse(response => response.url().endsWith('/api/admin/collection/sync'));
+        await page.keyboard.press('Enter');
+        const response = await admission;
+        expect(response.request().method()).toBe('POST');
+        expect(response.request().postData()).toBeNull();
+        expect(response.status()).toBe(503);
+        await expect(page.locator('.inventory-sync [role="status"]')).toContainText('not confirmed');
+        await expect(sync).toBeEnabled();
+        await expect(sync).toBeFocused();
+        if (pageId === 'maintenance') {
+          const screenshot = testInfo.outputPath(`updates-sync-${width}.png`);
+          await page.screenshot({ path: screenshot, fullPage: true });
+          await testInfo.attach(`updates-sync-${width}`, { path: screenshot, contentType: 'image/png' });
+        }
+      }
+    } finally {
+      await page.goto('about:blank').catch(() => {});
+      await preview.close();
+    }
+  });
+
   test(`Updates checkbox selection follows the filtered query at ${width}px`, async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     const preview = await startDashboardServer({

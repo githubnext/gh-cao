@@ -51,7 +51,7 @@ test('agent discovery describes public GET and body-free HEAD responses', () => 
 
 test('the generated contract describes the implemented security and wire formats', () => {
   assert.equal(openapi.openapi, '3.1.0')
-  assert.equal(openapi.info.version, '4.3.0')
+  assert.equal(openapi.info.version, '4.4.0')
   for (const path of ['/api/runs/{id}/jobs', '/api/runs/{id}/sessions', '/api/sessions/{id}/events']) {
     assert.equal(openapi.paths[path], undefined)
   }
@@ -109,6 +109,22 @@ test('the generated contract describes the implemented security and wire formats
     },
     { type: 'string', format: 'date-time' }
   )
+})
+
+test('collection sync admits body-free inventory work with administrator authentication', () => {
+  const operation = openapi.paths['/api/admin/collection/sync'].post
+  assert.ok(operation.security.some(entry => 'BearerAuth' in entry))
+  assert.ok(operation.security.some(entry => 'ApiKeyAuth' in entry))
+  assert.ok(operation.parameters.some(parameter => parameter.name === 'X-CSRF-Token'))
+  assert.equal(operation.requestBody, undefined)
+  const response = operation.responses['202']
+  assert.equal(response.content['application/json'].schema.$ref, '#/components/schemas/CollectionSyncAccepted')
+  assert.deepEqual(response.headers['cache-control'].schema.enum, ['no-store'])
+  assert.deepEqual(openapi.components.schemas.CollectionSyncAccepted.required, ['queued'])
+  assert.deepEqual(openapi.components.schemas.CollectionSyncAccepted.properties.queued.enum, [true])
+  for (const status of ['400', '401', '403', '429', '503']) assert.ok(operation.responses[status])
+  assert.match(operation.description, /does not query GitHub inline/)
+  assert.match(operation.description, /at most 24 hours/)
 })
 
 test('repository suggestions use the bounded local native selector contract', () => {

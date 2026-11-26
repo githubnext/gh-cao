@@ -103,6 +103,9 @@ func (config *CollectorConfig) validateNative() error {
 		config.RepositoryRefreshInterval < 0 || config.CollectionTimeout < 0 || config.MinValueInterval < 0 {
 		return errors.New("native collection limits and intervals must not be negative")
 	}
+	if config.RepositoryRefreshInterval > 24*time.Hour {
+		return errors.New("native repository refresh interval must not exceed 24 hours")
+	}
 	if config.RunLimit != 0 || config.MaxStorageMB != 0 || config.RequestTimeoutMinutes != 0 {
 		return fmt.Errorf("%w: native collection does not use legacy RunLimit, MaxStorageMB or RequestTimeoutMinutes; use its bounded discovery contract and CollectionTimeout",
 			collectnative.ErrUnsupported)

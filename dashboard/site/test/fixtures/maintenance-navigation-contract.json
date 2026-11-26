@@ -6,6 +6,7 @@
   "labels": ["Repositories", "Workflows", "Campaigns"],
   "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-workflows"],
   "card-lists": ["maintenance-repositories", "maintenance-standalone-workflows", "maintenance-campaigns"],
+  "sync-controls": ["repository-inventory-sync", "workflow-inventory-sync", "campaign-inventory-sync"],
   "page-size": 25,
   "selection-commands": [
     ["update-repository-sources", "enable-repository-workflows", "disable-repository-workflows"],

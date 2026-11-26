@@ -733,7 +733,9 @@ independent of activity replay.
 - Collection workers MUST reconcile the App's active installation list on startup
   and periodically (default one hour), independently of webhook delivery.
   `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL` MUST allow operators to configure
-  this cadence using a positive Go duration.
+  this cadence using a positive Go duration no greater than 24 hours. The
+  periodic reconciliation MUST refresh repository and campaign inventory for
+  currently enrolled repositories, independently of dashboard navigation.
   A shared operational lease and persisted admission timestamp MUST coordinate
   replicas and restarts. Each pass MUST queue the ordinary quota-governed scope
   refreshes and missing-installation withdrawals. Failed App enumeration MUST
@@ -743,6 +745,18 @@ independent of activity replay.
   `cao-dashboard backfill --repositories-only`. The command reports admitted
   work; collection workers apply the queued reconciliation. Unchanged active
   repositories MUST NOT be recollected just because their list was refreshed.
+- The Updates pages MUST expose a **Sync** control that requests
+  `POST /api/admin/collection/sync` without a request body. The endpoint MUST
+  require existing administrative authorization and hosted-session CSRF
+  protection. It MUST admit inventory-only tasks for current committed
+  repository scopes, without acquiring GitHub evidence inline, changing
+  enrollment or rollout policy, or requesting historical runs or Value work.
+  Outstanding requests for the same repository scope MUST coalesce durably;
+  terminal completion MUST permit a later fresh request. A `202` response with
+  `queued: true` confirms admission, not completed collection. Missing native
+  collection or failed admission MUST return an unavailable response, and the
+  static demo MUST NOT offer live collection. Active views observe publication
+  through their existing canonical revision subscriptions.
 - After downtime or dead-lettered work, the implementation MUST recover missing
   events by listing App webhook deliveries from the last processed delivery and
   requesting redelivery of missing or failed deliveries.

@@ -78,6 +78,18 @@ export function fetchServerLogs(signal) {
   return apiRequest("/api/admin/logs", {}, signal);
 }
 
+/**
+ * Requests inventory-only collection, not workflow execution or query-cache refresh.
+ * Admission is not completion; later canonical revisions refresh subscribed views.
+ * @param {AbortSignal} [signal]
+ */
+export async function syncRemoteInventory(signal) {
+  if (!usesRemoteDataBackend()) throw new Error("Inventory sync requires a configured dashboard server.");
+  const result = await apiRequest("/api/admin/collection/sync", { method: "POST" }, signal);
+  if (result?.queued !== true) throw new Error("The server did not confirm that inventory sync was queued.");
+  return result;
+}
+
 
 /** @param {string} path */
 function apiUrl(path) {
