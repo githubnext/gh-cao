@@ -17,6 +17,18 @@ const (
 	nativeControlDead    = "collect:native-control-dead"
 )
 
+// RequestInventoryRefresh admits inventory-only work for an already committed
+// enrollment epoch. Execution rechecks that epoch before acquiring evidence.
+func (q Queue) RequestInventoryRefresh(ctx context.Context, scope collectnative.EnrollmentScope) (Admission, error) {
+	now := time.Now().UTC().Truncate(time.Minute)
+	return q.enqueueNativeControl(ctx, Task{
+		Repository: scope.Repository, InstallationID: scope.InstallationID,
+		ScopeEpoch: scope.Epoch, InventoryRefresh: true, Reason: "manual-inventory-refresh",
+		EnqueuedAt: now,
+	}, IntentWorkflowRefresh, "manual-inventory-refresh:"+scope.Repository+":"+
+		strconv.FormatInt(scope.InstallationID, 10)+":"+strconv.FormatInt(scope.Epoch, 10)+":"+
+		now.Format(time.RFC3339), 2*time.Minute)
+}
 func validNativeControl(task Task) bool {
 	name, err := NormalizeRepository(task.Repository)
 	if err != nil || name != task.Repository || task.InstallationID <= 0 || task.Attempt < 0 || task.Erase {

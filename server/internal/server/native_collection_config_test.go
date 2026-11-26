@@ -34,6 +34,7 @@ func TestNativeCollectionConfigurationHasFeatureSpecificDependencies(t *testing.
 		{"negative-window", func(c *CollectorConfig) { c.WindowDays = -1 }},
 		{"negative-timeout", func(c *CollectorConfig) { c.CollectionTimeout = -time.Second }},
 		{"negative-refresh", func(c *CollectorConfig) { c.RepositoryRefreshInterval = -time.Second }},
+		{"slower-than-daily-refresh", func(c *CollectorConfig) { c.RepositoryRefreshInterval = 24*time.Hour + time.Second }},
 		{"missing-value-assets", func(c *CollectorConfig) { c.NativeValues, c.CatalogRoot = true, "" }},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {

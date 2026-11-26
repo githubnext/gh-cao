@@ -41,7 +41,11 @@ func (a *App) startIngestion(response http.ResponseWriter, request *http.Request
 		return
 	}
 	serverLog.PrintfContext(request.Context(), "local ingestion requested")
-	writeJSON(response, http.StatusAccepted, map[string]any{"requested": true})
+	resultBody := map[string]any{"requested": true}
+	if request.URL.Path == "/api/v1/ingestion/refresh" {
+		resultBody["mode"] = "local-collection"
+	}
+	writeJSON(response, http.StatusAccepted, resultBody)
 }
 
 func validOperatorAdapterURL(value string) bool {

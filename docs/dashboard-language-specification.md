@@ -66,6 +66,11 @@ worker's queue transport. Queue history, status filtering, ordering and counts
 remain declarative queries over the registered operational sources. Published
 dashboards neither enable this transport nor request queue data.
 
+The interaction-only `inventory-sync` element declares `data.sources: []` and
+requests the server's authenticated asynchronous inventory refresh task. It
+does not query or derive data, and is unavailable in the synthetic demo. Its
+named element is necessary because ordinary controls do not submit server tasks.
+
 The `storage-info` element also declares `data.sources: []`. It presents deployment
 configuration rather than activity evidence: browser-local IndexedDB, local-server
 or server PostgreSQL. Unknown server configuration remains unknown; this
@@ -559,7 +564,7 @@ Published dashboards **MUST NOT** request these providers.
   have no observed operational provenance and **MUST NOT** be represented as
   measured activity.
 
-- **DLS-SEM-017:** Views **MUST** use only §5.1 tables/projection, §5.4 sources, `simulation-days`, or declared queries. `metric`/`table`/`list`/`chart` `data.source` names exactly one; `element` `data.sources` lists unique sources, nonempty except for `query-editor`, `command-terminal`, `environment-defaults`, `prompt-wizard`, `storage-info`. Optional `data.route-field` **MUST** name a source field.
+- **DLS-SEM-017:** Views **MUST** use only §5.1 tables/projection, §5.4 sources, `simulation-days`, or declared queries. `metric`/`table`/`list`/`chart` `data.source` names exactly one; `element` `data.sources` lists unique sources, nonempty except for `query-editor`, `command-terminal`, `environment-defaults`, `prompt-wizard`, `storage-info`, `inventory-sync`. Optional `data.route-field` **MUST** name a source field.
 - **DLS-SEM-018:** Each database table **MUST** preserve the grain declared in Section 5.1; duplicated observations **MUST** retain distinct observation identifiers in provenance.
 - **DLS-SEM-019:** A `usage` row **MUST** represent one model invocation and **MUST NOT** repeat invocation-level AIC across token-class rows.
 - **DLS-SEM-020:** Grader values, operational-grader results, eval results, AIC, each raw-token measure, outcome states, and operational value **MUST** remain separately named throughout filtering, aggregation, and presentation.
@@ -1884,7 +1889,7 @@ Disclosure changes presentation only. It does not change data processing, data s
 ### 11.4 Normative Custom-View Requirements
 
 - **DLS-VIEW-001:** A custom page **MUST** contain `id`, `kind: custom`, and a non-empty `views` sequence; an omitted title **MUST** default from its page ID.
-- **DLS-VIEW-002:** Every view **MUST** contain a unique `id`, a `data` mapping, and one allowed `mark`. A `metric`, `table`, `list`, or `chart` view **MUST** contain one canonical `data.source` and an `encoding` mapping. An `element` view **MUST** contain one or more unique canonical `data.sources`, one allowed `element`, and no `encoding`; only the interaction-only `query-editor`, `command-terminal`, `environment-defaults` and `prompt-wizard` elements and deployment-only `storage-info` element **MAY** declare empty `data.sources`.
+- **DLS-VIEW-002:** Every view **MUST** contain a unique `id`, a `data` mapping, and one allowed `mark`. A `metric`, `table`, `list`, or `chart` view **MUST** contain one canonical `data.source` and an `encoding` mapping. An `element` view **MUST** contain one or more unique canonical `data.sources`, one allowed `element`, and no `encoding`; only the interaction-only `query-editor`, `command-terminal`, `environment-defaults`, `prompt-wizard` and `inventory-sync` elements and deployment-only `storage-info` element **MAY** declare empty `data.sources`.
 - **DLS-VIEW-003:** `metric` **MUST** encode exactly one `value` field and **MAY** encode `href`; it **MUST NOT** encode chart or table channels.
 - **DLS-VIEW-004:** `table` **MUST** encode non-empty `columns` and **MAY** encode `href`; it **MUST NOT** encode `value`, `x`, `y`, or `color`.
 - **DLS-VIEW-004b:** A table **MAY** declare `data.partial-source` as a distinct, previously declared query to render an initial inventory projection on the static data-worker backend. The partial query **MUST** preserve the final query's row identities and link fields without implying that absent computed values are zero or complete. Its metadata **MUST** mark `projection-state: pending` separately from evidence completeness; absent computed cells **MUST** render as pending, not zero. The worker **MUST** publish it before evaluating the complete query, then replace it with the complete view projection at the same data revision; a canceled or superseded subscription **MUST NOT** publish stale rows. Interactive filters, search, or ordering that depend on deferred fields **MUST** wait for the complete query. Hosted backends **MAY** return only the complete result.

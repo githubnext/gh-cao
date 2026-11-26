@@ -28,6 +28,9 @@
       "name": "Repository memory"
     },
     {
+      "name": "Ingestion"
+    },
+    {
       "name": "Ingestion and administration"
     },
     {
@@ -2236,6 +2239,103 @@
         },
         "tags": [
           "Ingestion and administration"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ingestion/refresh": {
+      "post": {
+        "operationId": "InventoryRefresh_request",
+        "description": "Request an asynchronous repository, workflow and campaign inventory refresh. Requires a local bearer or hosted administrator session with current step-up assurance and CSRF. Native admission reads only committed enrollment, queues epoch-fenced inventory tasks and never calls GitHub or enumerates run history inline. Repeated native requests within one minute coalesce per repository and epoch. A local CLI without a collector uses its existing scoped, coalesced collection pass. Missing collector and local adapter fails closed. Acceptance does not imply completed collection.",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The request has been accepted for processing, but processing has not yet completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryRefreshResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An error response. The message is diagnostic, not a stable error code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailureBody"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Ingestion"
         ],
         "security": [
           {
@@ -4600,6 +4700,34 @@
             }
           }
         ]
+      },
+      "InventoryRefreshResponse": {
+        "type": "object",
+        "required": [
+          "requested",
+          "mode"
+        ],
+        "properties": {
+          "requested": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "inventory",
+              "local-collection"
+            ],
+            "description": "Native queues refresh only current enrolled inventory; the local CLI adapter requests its existing bounded collection pass."
+          },
+          "queued": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Native tasks admitted now, excluding coalesced requests. Absent for the local adapter."
+          }
+        }
       },
       "Join": {
         "type": "object",

@@ -5,6 +5,25 @@ using TypeSpec.Http;
 using TypeSpec.JsonSchema;
 namespace Cao;
 
+@jsonSchema
+model InventoryRefreshResponse {
+  requested: true;
+  /** Native queues refresh only current enrolled inventory; the local CLI adapter requests its existing bounded collection pass. */
+  mode: "inventory" | "local-collection";
+  /** Native tasks admitted now, excluding coalesced requests. Absent for the local adapter. */
+  queued?: int32;
+}
+
+@tag("Ingestion")
+@useAuth(DashboardAuth)
+namespace InventoryRefresh {
+  /** Request an asynchronous repository, workflow and campaign inventory refresh. Requires a local bearer or hosted administrator session with current step-up assurance and CSRF. Native admission reads only committed enrollment, queues epoch-fenced inventory tasks and never calls GitHub or enumerates run history inline. Repeated native requests within one minute coalesce per repository and epoch. A local CLI without a collector uses its existing scoped, coalesced collection pass. Missing collector and local adapter fails closed. Acceptance does not imply completed collection. */
+  @route("/api/v1/ingestion/refresh")
+  @post op request(@header("X-CSRF-Token") csrfToken?: string):
+    { @statusCode statusCode: 202; @body body: InventoryRefreshResponse } |
+    Unauthorized | Forbidden | NotFound | { @statusCode statusCode: 502; error: string } | Unavailable;
+}
+
 model RebuildStatus {
   state: string;
   required: boolean;

@@ -731,13 +731,16 @@ enumerating workflow runs across the enrollment set. Repository-list repair is
 independent of activity replay.
 
 - Collection workers MUST reconcile the App's active installation list on startup
-  and periodically (default one hour), independently of webhook delivery.
+  and periodically (default one hour, maximum 24 hours), independently of webhook delivery.
   `CAO_COLLECT_REPOSITORY_REFRESH_INTERVAL` MUST allow operators to configure
-  this cadence using a positive Go duration.
+  this cadence using a positive Go duration no greater than 24 hours.
+  Each successful repair MUST refresh existing repository, workflow and campaign
+  inventory as well as reconcile membership.
   A shared operational lease and persisted admission timestamp MUST coordinate
   replicas and restarts. Each pass MUST queue the ordinary quota-governed scope
   refreshes and missing-installation withdrawals. Failed App enumeration MUST
   NOT infer withdrawals or advance the successful-admission timestamp.
+
 - An operator MUST be able to force the same repository-list repair without
   replaying publication intents or enumerating historical workflow runs:
   `cao-dashboard backfill --repositories-only`. The command reports admitted
@@ -754,6 +757,18 @@ independent of activity replay.
   operator-triggered repair.
 - When a gap cannot be recovered, the implementation MUST record the gap in
   completeness metadata rather than present the window as complete.
+
+The Updates pages MAY request `POST /api/v1/ingestion/refresh`. Hosted requests
+MUST require an administrator session, current step-up assurance and CSRF;
+local requests MUST require the local bearer capability. Native admission MUST
+scan only current committed enrollment and queue inventory-only tasks carrying
+the installation and enrollment epoch. It MUST NOT discover repositories, call
+GitHub inline, enumerate run history or execute updates. Repeated requests within
+one minute coalesce per repository and epoch; workers MUST discard stale epochs.
+Acceptance means queued work, not fresh evidence. Missing collection capability
+MUST fail closed. A local CLI without a native server collector requests its
+existing scoped, coalesced collection pass through the loopback adapter instead;
+its periodic local collection schedule remains independent.
 
 ## 10. Rate-limit governance
 

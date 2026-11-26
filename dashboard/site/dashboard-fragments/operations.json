@@ -2586,6 +2586,16 @@
       "description": "Review exact repository source updates, compiler upgrades, or disabling that cancels in-progress runs before stopping future runs.",
       "views": [
         {
+          "id": "repository-inventory-sync",
+          "title": "Sync repository information",
+          "description": "Request fresh repository, workflow and campaign information from the server without changing rollout or running updates.",
+          "objective": "Queue a scoped asynchronous refresh. A named source-free element is needed because Dashboard Language controls cannot submit server tasks.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync",
+          "layout": "full"
+        },
+        {
           "id": "maintenance-repositories",
           "title": "Repository compiler status",
           "data": {
@@ -2681,6 +2691,16 @@
       "class-name": "maintenance-page",
       "views": [
         {
+          "id": "campaign-inventory-sync",
+          "title": "Sync campaign information",
+          "description": "Request fresh repository, workflow and campaign information from the server without changing rollout or running updates.",
+          "objective": "Queue a scoped asynchronous refresh. A named source-free element is needed because Dashboard Language controls cannot submit server tasks.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync",
+          "layout": "full"
+        },
+        {
           "id": "maintenance-campaigns",
           "title": "Campaign packages",
           "data": {
@@ -2768,6 +2788,16 @@
       "icon": "workflow",
       "class-name": "maintenance-page",
       "views": [
+        {
+          "id": "workflow-inventory-sync",
+          "title": "Sync workflow information",
+          "description": "Request fresh repository, workflow and campaign information from the server without changing rollout or running updates.",
+          "objective": "Queue a scoped asynchronous refresh. A named source-free element is needed because Dashboard Language controls cannot submit server tasks.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync",
+          "layout": "full"
+        },
         {
           "id": "maintenance-standalone-workflows",
           "title": "Individual workflows",

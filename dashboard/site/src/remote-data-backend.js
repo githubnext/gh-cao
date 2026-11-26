@@ -78,6 +78,15 @@ export function fetchServerLogs(signal) {
   return apiRequest("/api/admin/logs", {}, signal);
 }
 
+/** @param {AbortSignal} [signal] */
+export async function requestInventoryRefresh(signal) {
+  const result = await apiRequest("/api/v1/ingestion/refresh", { method: "POST" }, signal);
+  if (result?.requested !== true || !["inventory", "local-collection"].includes(result.mode)) {
+    throw new Error("The server did not accept the inventory refresh.");
+  }
+  return result;
+}
+
 
 /** @param {string} path */
 function apiUrl(path) {

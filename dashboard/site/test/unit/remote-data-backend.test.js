@@ -5,6 +5,7 @@ import {
   queryRemoteDashboard,
   queryRemoteRepositoryMemory,
   refreshRemoteDashboard,
+  requestInventoryRefresh,
   subscribeRemoteRevision,
   usesRemoteDataBackend,
 } from "../../src/remote-data-backend.js";
@@ -20,6 +21,37 @@ afterEach(() => {
 });
 
 describe("remote dashboard data backend", () => {
+  it.each(["inventory", "local-collection"])("requests %s refresh with the local capability and cancellation", async (mode) => {
+    localStorage.setItem("cao-dashboard-access-token", "local-test-capability");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ requested: true, mode }), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = new AbortController();
+    await expect(requestInventoryRefresh(controller.signal)).resolves.toMatchObject({ requested: true, mode });
+    expect(new URL(fetchMock.mock.calls[0][0]).pathname).toBe("/api/v1/ingestion/refresh");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: "POST", signal: controller.signal,
+      headers: expect.objectContaining({ Authorization: expect.stringContaining("local-test-capability") })
+    });
+  });
+
+  it("requests hosted inventory refresh with CSRF and never a stale bearer", async () => {
+    document.head.innerHTML = '<meta name="cao-auth-mode" content="github">';
+    document.cookie = "cao_csrf=inventory-csrf; Path=/";
+    localStorage.setItem("cao-dashboard-access-token", "stale-capability");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ requested: true, mode: "inventory" }), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await requestInventoryRefresh();
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: "same-origin", headers: expect.objectContaining({ "X-CSRF-Token": "inventory-csrf" })
+    });
+    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty("Authorization");
+  });
+
+  it("does not treat a revision check as accepted inventory refresh", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ revision: 1, changed: false }))));
+    await expect(requestInventoryRefresh()).rejects.toThrow("did not accept");
+  });
+
   it("shares local WebSocket progress without issuing queries and cleans up on unsubscribe", () => {
     const meta = document.createElement("meta");
     meta.name = "dashboard-live-transport";

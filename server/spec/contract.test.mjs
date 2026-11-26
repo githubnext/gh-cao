@@ -23,6 +23,16 @@ test('every registered HTTP route has a TypeSpec operation (except static assets
   assert.deepEqual(documented, registered)
 })
 
+test('inventory refresh is an authenticated asynchronous task, not a revision check', () => {
+  const operation = openapi.paths['/api/v1/ingestion/refresh'].post
+  assert.ok(operation.security)
+  assert.ok(operation.parameters.some(parameter => parameter.name === 'X-CSRF-Token'))
+  for (const status of ['202', '401', '403', '404', '502', '503']) assert.ok(operation.responses[status])
+  assert.match(operation.description, /never calls GitHub or enumerates run history inline/)
+  assert.deepEqual(openapi.components.schemas.InventoryRefreshResponse.properties.mode.enum, ['inventory', 'local-collection'])
+  assert.match(openapi.paths['/api/v1/refresh'].post.description, /does not itself rebuild or mutate/)
+})
+
 test('agent discovery describes public GET and body-free HEAD responses', () => {
   const operations = openapi.paths['/llms.txt']
   assert.ok(operations)
@@ -526,14 +536,14 @@ test('the separate server-only session data lake tool preserves the analytical c
 })
 
 test('selected JSON Schemas and nullable responses are emitted', () => {
-  for (const schema of ['AdmissionRequest', 'AdmissionAllowances', 'ConclusionRequest', 'SessionCompaction', 'QueryRequest', 'QueryResponse', 'QueryDefinition', 'RevisionEvent', 'SessionArchiveQuery', 'SessionArchiveResult', 'SessionArchiveStatus', 'WebhookAcknowledgement']) {
+  for (const schema of ['AdmissionRequest', 'AdmissionAllowances', 'ConclusionRequest', 'InventoryRefreshResponse', 'SessionCompaction', 'QueryRequest', 'QueryResponse', 'QueryDefinition', 'RevisionEvent', 'SessionArchiveQuery', 'SessionArchiveResult', 'SessionArchiveStatus', 'WebhookAcknowledgement']) {
     const document = JSON.parse(readFileSync(join(directory, 'generated/schemas', `${schema}.json`), 'utf8'))
     assert.equal(document.$schema, 'https://json-schema.org/draft/2020-12/schema')
     assert.ok(document.properties)
   }
   assert.deepEqual(
     readdirSync(join(directory, 'generated/schemas')).sort(),
-    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'LocalIngestionProgressEvent.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionArchiveDefinition.json', 'SessionArchiveQuery.json', 'SessionArchiveResult.json', 'SessionArchiveStatus.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
+    ['AdmissionAllowances.json', 'AdmissionRequest.json', 'ConclusionRequest.json', 'InventoryRefreshResponse.json', 'LocalIngestionProgressEvent.json', 'QueryDefinition.json', 'QueryRequest.json', 'QueryResponse.json', 'RevisionEvent.json', 'SessionArchiveDefinition.json', 'SessionArchiveQuery.json', 'SessionArchiveResult.json', 'SessionArchiveStatus.json', 'SessionCompaction.json', 'WebhookAcknowledgement.json']
   )
   const campaign = openapi.paths['/api/v1/memory/{campaign}'].get.responses['200'].content['application/json'].schema
   assert.ok(campaign.anyOf.some(branch => branch.type === 'null'))

@@ -833,6 +833,7 @@ func (a *App) Handler() http.Handler {
 	register("GET /api/v1/memory/{campaign}", a.repositoryMemoryCampaign)
 	register("GET /api/v1/memory/{campaign}/content", a.repositoryMemoryContent)
 	register("POST /api/v1/refresh", a.refresh)
+	register("POST /api/v1/ingestion/refresh", a.refreshInventory)
 	if a.oauth == nil {
 		register("POST /api/v1/ingestion/start", a.startIngestion)
 		if a.hostedCLI != nil && a.hostedCLI.local != nil {

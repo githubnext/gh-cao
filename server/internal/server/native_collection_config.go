@@ -107,6 +107,9 @@ func (config *CollectorConfig) validateNative() error {
 		return fmt.Errorf("%w: native collection does not use legacy RunLimit, MaxStorageMB or RequestTimeoutMinutes; use its bounded discovery contract and CollectionTimeout",
 			collectnative.ErrUnsupported)
 	}
+	if config.RepositoryRefreshInterval > 24*time.Hour {
+		return errors.New("native repository refresh interval must not exceed 24 hours")
+	}
 	if config.NativeInventoryDigest != "" {
 		if len(config.NativeInventoryDigest) != 64 {
 			return errors.New("native inventory digest must be a lowercase SHA-256 digest")
