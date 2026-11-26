@@ -1,37 +1,7 @@
 {
-  "source_sha": "9bcc8c1faf9edca32a59bebb0bd6ce3b7e43dd1c",
-  "next_category": "dependency installation and caching",
+  "source_sha": "3bc68af2417a5b3de40cc5c6930f2c76475c82d4",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T03:37:39Z",
-      "worker_run_id": "45749559636",
-      "correlation_id": "45749030171-4841",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "45117916746",
-        "45249995178",
-        "45282794439",
-        "45293283576",
-        "45333239050"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce) .. 44798156216 (push, 826c4f4); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live run list: same 20 IDs, none newer or queued; HEAD 16a88ce = source_sha. Stored rows recomputed (n=20, nearest-rank p90): setup_node median 3.5 p90 6; install 8 p90 10; post 0 p90 1 (all 20 <=1 s, exact-key hits); setup+install+post median 13 p90 16 = 17.7 pct of exec median 73.5. 15 pct gate 11.0 s needs about 85 pct of that phase removed; only full removal of restore and npm ci would reach it, which no concrete change delivers. 60 s gate unmet. Caches API: node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57:12Z, 263412733 B, last accessed 2026-11-26T03:30:36Z). Lock files root and dashboard/site last changed 7c8faf4 (2026-11-13T20:56:33Z), before entry creation; watch item not triggered (install median 8 s < 11.4 s). No issue created or searched. Next category: Astro documentation generation."
-    },
     {
       "evaluated_at": "2026-11-26T03:53:45Z",
       "worker_run_id": "45751242580",
@@ -60,7 +30,7 @@
         "44798156216"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45750781132-4842; worker run 45751242580. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 03:52Z: same 20 IDs, none queued; HEAD 16a88ce = source_sha. Stored build_docs_s recomputed (n=20, nearest-rank p90): median 12, p90 15, min 9, max 15 = 16.3 pct of exec median 73.5; 15 pct gate 11.0 s needs about 92 pct of the step removed. Per trigger: push exec median 74 / build_docs 12; schedule exec median 73 / build_docs 12. Hypotheticals on stored rows (gross, before restore/save cost): same-commit schedule skip moves workflow median 1.0-1.5 s; removing the docs build from every run would move it 13 s (17.7 pct) but is not a correctness-preserving change because the Pages artifact must be built from the deployed commit. Sub-step split unmeasured (build job logs HTTP 403 DIFC; not retried or bypassed). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. No issue created or searched. Next category: reusable dashboard generation."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45750781132-4842; worker run 45751242580. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T04:21:48Z",
@@ -90,7 +60,7 @@
         "44798156216"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45753697745-4843; worker run 45754257182. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 04:20Z: same 20 IDs, none newer or queued; HEAD 16a88ce = source_sha. Live Jobs spot-check of 45625202695: Build synthetic enterprise demo 1 s. Stored demo_s recomputed (n=20, nearest-rank p90): median 1, p90 2, min 1, max 3 = 1.4 pct of exec median 73.5; 15 pct gate 11.0 s and 60 s gate unmet even at full removal; removal would also drop the synthetic Pages artifact. Step is buildDashboardSite plus marker inside scripts/simulate-dashboard-pages.mjs (no separate dashboard job). Open issue search (label and keyword): #20815 only, not this category; no issue created. Next category: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45753697745-4843; worker run 45754257182. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T04:36:15Z",
@@ -119,7 +89,7 @@
         "44812654835",
         "44798156216"
       ],
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45755308006-4844; worker run 45755870424. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Live gh run list (30) at 04:35Z: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha. Stored transfer_model rows recomputed (n=20, nearest-rank p90): removable median 9 p90 10 max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.0 s and 60 s gate unmet even at full removal. Live Jobs read of 45562958524 matched stored row (handoff 5, configure 0, upload 3, deploy setup 1, Deploy Pages 7 excluded). Open issues: #20815 only (checkout). No issue created. Next category: scheduling, concurrency, and avoidable rebuilds.",
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45755308006-4844; worker run 45755870424. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 …",
       "suggestion_fingerprint": null
     },
     {
@@ -150,7 +120,7 @@
         "44798156216"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 04:53Z: same 20 IDs, none newer or queued; HEAD 16a88ce = source_sha. Run-level exec median 77 s (push 77, schedule 77); 0 overlapping executions; concurrency documentation-pages (cancel-in-progress false) referenced only by docs.yml. Same-day same-commit schedules 2 of 5 (44989298582 after push 44974265341; 45553538993 after push 45551175273), about 75 s each = mean 7.5 s per window run, median unchanged; 60 s and 15 pct (11.0 s) gates unmet; skip would weaken the daily synthetic-date refresh and need actions:read. Stored job queue median 3 s. Watch only."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 04:53Z: …"
     },
     {
       "evaluated_at": "2026-11-26T05:19:19Z",
@@ -180,7 +150,7 @@
         "44798156216"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45759859643-4846; worker run 45760367512. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. setup+install+post median 13 s (p90 16) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.0 s; install median 8 s, so even full install removal misses the gate. Live cache 7808ecf8 hit (last_accessed 05:17Z); package-lock.json and dashboard/site/package-lock.json unchanged since 7c8faf4; docs.yml unchanged since 063cbe9; open issues: #20815 only."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45759859643-4846; worker run 45760367512. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T05:35:36Z",
@@ -210,7 +180,7 @@
         "44812654835"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45761522067 (schedule, 16a88ce, 2026-11-26T05:25:39Z) .. 44812654835 (push, 3bd1058, 2026-11-20T20:34:54Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled; 44798156216 displaced. One live Jobs read of 45761522067 (Build documentation 11 s, build job 59 s, exec 72 s); other 19 rows reused. build_docs median 12 s p90 15; exec median 73.5 s p90 87; share 16.3 pct; 15 pct gate 11.0 s needs about 92 pct of the step removed; 60 s gate unreachable. Pages output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT. Sub-step split unmeasured (build logs not read). Next category: reusable dashboard generation."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45761522067 (schedule, 16a88ce, 2026-11-26T05:25:39Z) .. 44812654835 (push, 3bd1058, 2026-11-20T20:34:54Z); 14 push, 6 schedule, 20 success, 0 failed, 0 cancelled; 44798156216 displaced. …"
     },
     {
       "evaluated_at": "2026-11-26T05:53:39Z",
@@ -240,7 +210,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45763466767-4848; worker run 45763985638. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44940649662, 44870776753, 44812654835 displaced. Three new Jobs API reads (45762538888 queue 36 s behind run 45762476442 under documentation-pages concurrency; 45762476442; 45762342616); other 17 rows reused. Demo step median 1 s, p90 2 s, max 3 s (1.4 pct of exec median 73 s); 15 pct gate 10.9 s unmet even at full removal; cross-run reuse blocked by Date.now generatedAt (scripts/simulate-dashboard-pages.mjs:67,76). Next category: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45763466767-4848; worker run 45763985638. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T06:27:37Z",
@@ -270,7 +240,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45767260372-4849; worker run 45767868629. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Removable (handoff+Configure Pages+Upload artifact+deploy Set up job) median 9 s, p90 10 s, max 12 s = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet even if all removable time were eliminated. Four window runs lacked transfer rows and were read live from Jobs API. Source 4b68f03 unchanged."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45767260372-4849; worker run 45767868629. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T06:47:10Z",
@@ -300,7 +270,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 4b68f03 (docs.yml unchanged since 16a88ce). Queue median 3 s p90 4; one 36 s queue (45762538888 waited for 45762476442 build+deploy under documentation-pages group; live Jobs verified). Exec median 73 s p90 87. Avoidable push rebuilds 0 of 15 (newest heads 5ddfe67, 098f44c, a9c67cb all build-consumed). Build-only cancel saves 36 s once (median 0); schedule skip averages 7.5 s/run and breaks date freshness; below 11 s gate. Next: dependency installation and caching."
+      "outcome": "complete, not actionable. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 4b68f03 (docs.yml unchanged since …"
     },
     {
       "evaluated_at": "2026-11-26T06:57:33Z",
@@ -330,7 +300,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45770727377-4851; worker run 45771291934. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; no newer docs.yml run at evaluation; source 4b68f03 (docs.yml last changed 063cbe9). Stored immutable rows recomputed: setup-node median 3.5 s (p90 6), install median 8 s (p90 10), post-setup 0 s (p90 1); setup+install+post median 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s; 60 s gate unreachable. Cache: live main entry node-cache-Linux-x64-npm-7808ecf8 (263412733 B, created 2026-11-13T20:57Z) last_accessed 06:52Z; post steps 0-1 s => exact-key hits. Candidates: node_modules cache (replaces setup restore + npm ci) needs its restore to cost at most 0.55 s to reach the gate, impossible vs a 263 MB restore inside a 3.5 s median; dashboard lock in cache-dependency-path has zero median effect; npm flag tuning unmeasurable (logs 403 DIFC) and far below gate. No suggestion; next: Astro documentation generation."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45770727377-4851; worker run 45771291934. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T07:21:22Z",
@@ -360,7 +330,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list at 07:20Z identical, no newer docs run. build_docs median 12 s, p90 14 (nearest-rank); 16.4 pct of exec median 73 s; 15 pct gate 10.95 s needs about 91 pct of the step removed; 60 s gate unreachable. Schedule build_docs median 11 vs push 12. Pages output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT. Checkout (not Astro) median 25.5 s p90 32 is covered by open #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); median moved 25 to 25.5 s, not material; not re-proposed. docs.yml last changed 063cbe9 (2026-11-12). Sub-step split unmeasured (job logs 403 DIFC, not bypassed). No issue created; no live Jobs reads needed (completed rows immutable)."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list at 07:20Z …"
     },
     {
       "evaluated_at": "2026-11-26T07:35:09Z",
@@ -390,7 +360,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; unchanged since 05:53Z evaluation. demo step median 1 s, p90 2, max 3 = 1.4 pct of exec median 73 s; 15 pct gate 10.95 s unmet even if removed; reuse blocked by Date.now/generatedAt (scripts/simulate-dashboard-pages.mjs:67,:76). Source 9bcc8c1: commits since 5ddfe67 touch server/ and specs/ only (no docs.yml trigger or build input)."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; unchanged since 05:53Z …"
     },
     {
       "evaluated_at": "2026-11-26T07:53:26Z",
@@ -420,7 +390,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45777559815-4854; worker run 45778195021. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list identical, none queued; source 9bcc8c1 (2 commits since 5ddfe67, 0 docs trigger paths; docs.yml last changed 063cbe9). Stored immutable transfer rows, window-filtered n=20 (four displaced rows excluded): removable (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet even at full removal. Handoff median 6, upload 2, deploy Pages (GitHub-managed) 6.5 excluded; merging deploy into build rejected (id-token and github-pages environment boundary). Open issues: #20815 only for this area (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); not re-proposed. No issue created. Next category: scheduling, concurrency, and avoidable rebuilds."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45777559815-4854; worker run 45778195021. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T08:23:55Z",
@@ -450,7 +420,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; queue median 3 s p90 4 max 36 (only 45762538888, behind in-flight 45762476442 in documentation-pages group); exec median 73 p90 87; 0 of 15 push heads avoidable; 5 schedule runs needed for synthetic-date freshness; no docs.yml run after 45762538888; post-window commits 93ce1f5, 4b68f03, 9bcc8c1 touch no docs.yml trigger path."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; queue median 3 s p90 4 max …"
     },
     {
       "evaluated_at": "2026-11-26T08:37:38Z",
@@ -480,7 +450,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45783450792-4856; worker run 45784182411. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; no docs.yml run newer than 45762538888 at 08:36Z; source 9bcc8c1 = HEAD and touches no docs trigger path since 5ddfe67. Stored immutable rows recomputed (n=20, nearest-rank p90): setup_node median 3.5 p90 6; install 8 p90 10; post 0 p90 1; setup+install+post median 13 p90 16 = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s needs about 84 pct of the phase removed, which would require eliminating the npm install itself. One live caches read at 08:31Z: node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57Z, last accessed 08:31Z); post-setup 0-1 s on all 20 rows = exact-key hits. Root and dashboard/site package.json have no prepare/postinstall/install scripts. Candidates rejected: node_modules cache (263 MB restore inside a 3.5 s median); dashboard lock in cache-dependency-path (zero median effect; install median 8 s below the 11.4 s watch threshold); npm flag tuning (unmeasurable, job logs HTTP 403 DIFC, far below gate); parallel installs (bounded by the 8 s install median). Exec medians push 74 / schedule 72. Next category: Astro documentation generation."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45783450792-4856; worker run 45784182411. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T08:53:21Z",
@@ -510,7 +480,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45785673301-4857; worker run 45786265159. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list at 08:51Z identical, none queued or in progress; HEAD 9bcc8c1 has no docs.yml run after 5ddfe67. Stored rows recomputed (n=20, nearest-rank p90): build_docs_s median 12 p90 14 min 9 max 15 = 16.4 pct of exec median 73 s; 15 pct gate 10.95 s needs about 91 pct of the step removed. Push median 12, schedule median 11. Live Jobs spot-check 45761522067: Build documentation 11 s, matches row. docs:build still runs astro build plus validate-agent-docs and agent-docs-discovery test, so the step cannot be removed without dropping gates; sub-step split unmeasured (job logs HTTP 403 DIFC, not retried); Pages reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. No issue created. Next category: reusable dashboard generation."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45785673301-4857; worker run 45786265159. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T09:21:18Z",
@@ -540,7 +510,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45789755258-4858; worker run 45790605286. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list at 09:20Z identical, none queued or in progress; HEAD 9bcc8c1 unchanged. Stored rows recomputed (n=20, nearest-rank p90): demo_s median 1 p90 2 max 3 = 1.4 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unreachable; cross-run reuse blocked by Date.now() synthetic dates (scripts/simulate-dashboard-pages.mjs:67,76). Open issue search: #20815 only (other category); no issue created. Next category: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45789755258-4858; worker run 45790605286. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T09:34:38Z",
@@ -570,7 +540,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45791929080-4859; worker run 45792647871. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live run list at 09:33Z: same 20 IDs, none queued or in progress; HEAD 9bcc8c1 = source_sha. Compare 5ddfe67...9bcc8c1: 4b68f03 specs/ only, 9bcc8c1 server/internal/postgresx/ only; no docs.yml trigger path. Stored transfer_model rows recomputed (n=20, nearest-rank p90): handoff median 6 p90 6; configure 1/1; upload 2/3; deploy setup 1/1; removable median 9 p90 10 max 12 = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet; deploy Pages (GitHub-managed) excluded; merge-deploy still rejected (github-pages environment and id-token boundary). Open #20815 unchanged (OPEN, 0 comments); not re-proposed. Next category: scheduling, concurrency, and avoidable rebuilds."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45791929080-4859; worker run 45792647871. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T09:53:01Z",
@@ -600,7 +570,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45794644706-4860; worker run 45795486055. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 9bcc8c1; docs.yml unchanged since 2026-11-12. Queue median 3 s, p90 4 s, max 36 s (single 36 s wait, not repeated). Exec median 73 s (15 pct gate 10.95 s). Live check: no in-progress docs run; only queued 37642403569 (2026-10-07, stale, 0 jobs, outside window). Commits after window head (93ce1f5, 4b68f03, 9bcc8c1) touch specs/ or server/ only, no trigger. Cancel-in-progress false kept; 0 of 15 push heads avoidable; 5 schedule runs required for synthetic-date freshness; same-commit schedule reuse median effect 1-1.5 s (not net). Verdict: not actionable; no issue."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45794644706-4860; worker run 45795486055. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T10:20:26Z",
@@ -630,7 +600,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45798849519-4861; worker run 45799743973. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 9bcc8c1 (main HEAD unchanged). Live: no in-progress docs run; only stale queued 37642403569 (2026-10-07). Cache: root and dashboard locks last changed 7c8faf4 (2026-11-13T20:56Z), before node-cache-Linux-x64-npm-7808ecf8 was created (2026-11-13T20:57Z); entry last accessed 2026-11-26T10:17Z, so exact-key hits expected (job logs not read). Stored medians (n=20): setup-node 3.5 s, install 8 s, setup+install+post 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s. Removing setup-node and install entirely (sum of medians 11.5 s) would only just reach the gate and the build needs both; node_modules caching nets about 3-6 s. No npm lifecycle install hooks (install:gh-aw is a plain script). Verdict: not actionable; no issue."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45798849519-4861; worker run 45799743973. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T10:34:49Z",
@@ -660,7 +630,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 9bcc8c1 (main unchanged; live window unchanged). Stored build_docs_s n=20: median 12, nearest-rank p90 14, min 9, max 15; exec median 73. Live Jobs spot-checks: 45762538888 Build documentation 12 s, 45761522067 (schedule) 11 s. 15 pct gate 10.95 s needs 91 pct of the step removed; 60 s gate unreachable; whole-step removal would still need dist/ for deploy. Pages reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Sub-step split of docs:build (astro build, validate-agent-docs, agent-docs-discovery test) not measured; job-log reads previously returned HTTP 403 DIFC and were not retried. Open #20815 (blobless checkout) not re-proposed. No issue created."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 9bcc8c1 (main …"
     },
     {
       "evaluated_at": "2026-11-26T10:52:57Z",
@@ -690,7 +660,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45804000766-4863; worker run 45804920569. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 10:52Z: same 20 IDs, none queued; main 9bcc8c1 = source_sha; docs.yml last changed 063cbe9 (2026-11-12, before window). Stored demo_s recomputed (n=20, nearest-rank p90): median 1, p90 2, max 3 = 1.4 pct of exec median 73 s; 10.95 s gate unmet even at full removal; 60 s gate unreachable; cross-run reuse blocked by Date.now/generatedAt in scripts/simulate-dashboard-pages.mjs and saves at most about 1 s. No issue searched or created (no candidate). Next category: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45804000766-4863; worker run 45804920569. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T11:17:45Z",
@@ -720,7 +690,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 11:17Z same 20 IDs, none queued; HEAD 9bcc8c1 = source_sha. Window-only stored rows (n=20, nearest-rank p90): removable (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet; only 2 of 20 runs reach 10.95 s. Merge-deploy ceiling about 9 s, still below gate and previously rejected (github-pages environment and id-token boundary). No Jobs API calls this run."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 11:17Z same …"
     },
     {
       "evaluated_at": "2026-11-26T11:35:00Z",
@@ -750,7 +720,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45810267384-4865; worker run 45811359727. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 11:34Z: same 20 IDs, none in progress; only queued 37642403569 (2026-10-07, stale, outside window). main 9bcc8c1 = source_sha; commits after 5ddfe67 (93ce1f5, 4b68f03, 9bcc8c1) produced no docs run (specs/ and server/ only, verified earlier). Stored run_timings recomputed (n=20): queue median 3 s, p90 4, max 36 (single wait, not repeated); exec median 73 s (push 74, schedule 72). 5 schedule runs still required for synthetic-date freshness; 15 pct gate 10.95 s and 60 s gate unmet. Next category: dependency installation and caching."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45810267384-4865; worker run 45811359727. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T11:52:34Z",
@@ -780,7 +750,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 11:52Z: same 20 IDs, none newer; HEAD 9bcc8c1 = source_sha. Stored rows recomputed (n=20, nearest-rank p90): setup_node 3.5 p90 6; install 8 p90 10; post 0 p90 1 (20/20 exact-key hits); phase median 13 p90 16 = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s needs about 84 pct of phase removed; 60 s gate unmet. Live Jobs read of 45762538888 matched stored row (setup 9, install 9, post 0). Caches API: node-cache-Linux-x64-npm-7808ecf8 on main, 263412733 B, created 2026-11-13, last_accessed 11:43Z. docs.yml last changed 063cbe9; lock files last changed 7c8faf4 (no dashboard-only lock change; watch item not triggered). No issue created or searched. Next category: Astro documentation generation."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 11:52Z: …"
     },
     {
       "evaluated_at": "2026-11-26T12:24:29Z",
@@ -810,7 +780,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45817847995-4867; worker run 45818740681. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 12:23Z: same 20 IDs, none newer or queued; HEAD 9bcc8c1 = source_sha. Stored build_docs_s recomputed (n=20, nearest-rank p90): median 12, p90 14, min 9, max 15 = 16.4 pct of exec median 73 s; 15 pct gate 10.95 s needs about 91 pct of the step removed; 60 s gate unreachable. Per trigger: push build median 12 (exec 74), schedule build median 11 (exec 72). Validators and discovery test run after astro build on dist/, so no provable overlap saving. Sub-step split unmeasured (build job logs HTTP 403 DIFC; not retried or bypassed). Pages output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT. Open issues: #20815 only (checkout, other category). No issue created. Next category: reusable dashboard generation."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45817847995-4867; worker run 45818740681. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T12:40:47Z",
@@ -840,7 +810,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45820420863-4868; worker run 45821357872. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list at 12:39Z: same 20 IDs, none newer or queued; main 9bcc8c1 = source_sha; docs.yml last changed 063cbe9 (2026-11-12). Stored demo_s recomputed (n=20, nearest-rank p90): median 1, p90 2, min 1, max 3 = 1.4 pct of exec median 73; 15 pct gate 10.95 s unmet even at full removal; 60 s gate unreachable. Cross-run reuse blocked by Date.now() synthetic dates (scripts/simulate-dashboard-pages.mjs:67,:76). #20815 (blobless checkout) still OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z; not re-proposed. No issue created. Next category: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45820420863-4868; worker run 45821357872. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
     },
     {
       "evaluated_at": "2026-11-26T12:54:19Z",
@@ -870,7 +840,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888..44952052187 unchanged (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled); newest created 05:34:57Z, none queued; main 9bcc8c1 = source_sha. Live Jobs spot-check of 45762538888 matched stored row (handoff 5, configure 1, upload 3, deploy setup 1, Deploy Pages 6). Recomputed from stored transfer_model rows (n=20, nearest-rank p90): removable median 9 s, p90 10, max 12 = 12.3 pct of exec median 73 s; handoff median 6, upload median 2, Deploy Pages median 6.5 (GitHub-managed, excluded). 15 pct gate 10.95 s and 60 s gate unmet even at full removal; build+deploy merge stays rejected (github-pages environment and id-token boundary). Open #20815 remains the only tracked item; no issue. Next category: scheduling, concurrency, and avoidable rebuilds."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888..44952052187 unchanged (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled); newest created 05:34:57Z, none queued; main 9bcc8c1 = source_sha. Live Jobs spot-check of …"
     },
     {
       "evaluated_at": "2026-11-26T13:18:56Z",
@@ -900,7 +870,37 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45826546159-4870; worker run 45827292926. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 13:17Z: same 20 IDs, none queued or in progress (only stale 37642403569 from 2026-10-07, outside window). Stored rows recomputed (n=20, nearest-rank p90): exec median 73 s p90 87; queue median 3 s p90 4 max 36 (45762538888 waited behind 45762476442). Push exec median 74, schedule 72. 15 pct gate 10.95 s and 60 s gate unmet. Avoidable push rebuilds 0 of 15. Same-commit schedule rebuilds: 4 of 5 earlier-built; skip averages about 7.5 s per window run, below gate and would weaken daily synthetic-date refresh. Source: docs.yml last changed 063cbe9 (commits API); main now 3bc68af (13:18Z) changes only uk-ai-advisory/implementation-status.md, not a docs.yml trigger. Open-issue search: #20815 only (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); no issue created. Next category: dependency installation and caching."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45826546159-4870; worker run 45827292926. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+    },
+    {
+      "evaluated_at": "2026-11-26T13:36:07Z",
+      "worker_run_id": "45829869683",
+      "correlation_id": "45829046995-4871",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "45117916746",
+        "45249995178",
+        "45282794439",
+        "45293283576",
+        "45333239050",
+        "45761522067"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45829046995-4871; worker run 45829869683. Window 45762538888..44952052187 (15 push, 5 schedule; 20 success, 0 failed, 0 cancelled); live gh run list 13:33Z unchanged, none queued. Stored rows recomputed (n=20): setup-node median 3.5 p90 6; install median 8 p90 10; post 0-1 s (exact-key hit inferred); setup+install+post median 13 p90 16 = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet. Live cache node-cache-Linux-x64-npm-7808ecf8 present (263412733 B, created 2026-11-13T20:57Z, last_accessed 13:28Z); local root lock hashes to 7808ecf8 at main 3bc68af. Rejected: node_modules cache (net 3-6 s); root npm ci --omit=dev (about 282 dev-only entries; devDependencies include typescript, eslint, @playwright/test; linear estimate about 3 s, unmeasured, needs usage audit); dashboard/site install is 8 prod packages. Next category: Astro documentation generation."
     }
   ],
   "docs_cache_model": {
@@ -2033,10 +2033,11 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-26T11:52:34Z",
-    "worker_run_id": "45813975108",
-    "correlation_id": "45813261805-4866",
-    "verdict": "not actionable (unchanged): window 45762538888..44952052187 (source 9bcc8c1); setup+install+post median 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s; install median 8 s; live main cache 7808ecf8 present (last_accessed 11:43Z); no concrete change reaches gate."
+    "evaluated_at": "2026-11-26T13:36:07Z",
+    "worker_run_id": "45829869683",
+    "correlation_id": "45829046995-4871",
+    "source_sha": "3bc68af2417a5b3de40cc5c6930f2c76475c82d4",
+    "verdict": "not actionable (unchanged): setup+install+post median 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s; install median 8 s; live cache 7808ecf8 present and matches root lock hash; rejected candidates: node_modules cache net 3-6 s, root omit-dev about 3 s unmeasured, dashboard install 8 prod packages"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
