@@ -190,7 +190,10 @@ starlight-toc h2,
   color: var(--sl-color-text-invert);
   background-color: var(--sl-color-text-accent);
   box-shadow: var(--sl-shadow-lg);
-  outline: 3px solid #1f6feb;
+  /* The skip link's shadow fills the gap between the element and its 3px offset
+     outline, so the outline needs 3:1 against that shadowed edge (WCAG 1.4.11).
+     #1f6feb measured 2.41:1 there; #0a57c7 measures 3.41:1. */
+  outline: 3px solid #0a57c7;
   outline-offset: 3px;
   border-radius: 0.5rem;
 }
