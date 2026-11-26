@@ -1,37 +1,7 @@
 {
   "source_sha": "57e74905db3ce3cf7fa3a1c6c8aaea65010e077e",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T12:24:29Z",
-      "worker_run_id": "45818740681",
-      "correlation_id": "45817847995-4867",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45817847995-4867; worker run 45818740681. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
-    },
     {
       "evaluated_at": "2026-11-26T12:40:47Z",
       "worker_run_id": "45821357872",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45897897785 (push, 57e7490, 21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live list 21:52Z unchanged. Stored rows recomputed (n=20): setup 3.5 (p90 6), install 8 (p90 10), post 0 (max 1); setup+install+post median 13 (p90 15, max 18) = 17.7 pct of exec median 73.5; 15 pct gate 11.03 s unmet; install alone (8 s) cannot clear it; 60 s gate unmet. Compare 4ad992d..57e7490 (7 commits) touches no lock, package.json, or docs.yml; root cache key 7808ecf8 unchanged and live (last accessed 21:43Z). Root package.json has no install/prepare lifecycle scripts. Open issues: #20815 only (checkout, unchanged). Rejected: node_modules cache (net 3-6 s, unmeasured); root omit-dev (about 3 s, unmeasured). Next: Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-11-26T22:19:17Z",
+      "worker_run_id": "45903606097",
+      "correlation_id": "45902985385-4897",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict; window refreshed). Correlation 45902985385-4897; worker run 45903606097. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live run list shows no newer docs.yml run. Stored rows recomputed (n=20, nearest-rank p90): build_docs median 12 p90 14 (16.3 pct of exec median 73.5 s); 15 pct gate 11.03 s needs 92 pct of step removed; 60 s gate unreachable. Push build_docs median 12 vs schedule 11. docs:build = astro build && validate-agent-docs && agent-docs-discovery test; sub-step split unmeasured (job logs HTTP 403 DIFC, not retried). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. #20877 (Astro-family dependabot planner) still OPEN, unchanged since 2026-11-25T08:39:51Z. Label-scoped open issues: #20815 only; no issue created. Next: reusable dashboard generation."
     }
   ],
   "docs_cache_model": {
@@ -2098,11 +2098,11 @@
     "status": "build job logs for 45562958524 (job 139030808661) return HTTP 403 DIFC (difc_forbidden) again; sub-step split remains unmeasured; not retried or bypassed"
   },
   "astro_step_latest": {
-    "verified_at": "2026-11-26T20:33:10Z",
-    "worker_run_id": "45891505479",
-    "correlation_id": "45890873047-4892",
-    "window": "45762538888 .. 44952052187 (20 completed; 15 push, 5 schedule; 0 failed, 0 cancelled); unchanged at 20:33Z live run list; source 4ad992d = main",
-    "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); live gh run list only; no Jobs or log API calls",
+    "verified_at": "2026-11-26T22:19:17Z",
+    "worker_run_id": "45903606097",
+    "correlation_id": "45902985385-4897",
+    "window": "45897897785 (push, 57e7490) .. 45117916746 (schedule, 9edb6bb); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; unchanged at 22:1x live run list; source 57e7490 = workspace HEAD",
+    "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); live gh run list plus one issue metadata read; no Jobs or log API calls",
     "build_docs_s": {
       "median": 12,
       "p90": 14,
@@ -2111,13 +2111,17 @@
       "n": 20
     },
     "exec_s": {
-      "median": 73,
-      "p90": 87
+      "median": 73.5,
+      "p90": 83
     },
-    "build_docs_share_exec_median_pct": 16.4,
-    "gate_15pct_s": 10.95,
-    "required_step_removal_pct_for_15pct_gate": 91,
-    "verdict": "not actionable (unchanged): build step is required to produce dist/ for deploy; post-build validate and discovery steps are static checks; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasured (job logs HTTP 403 DIFC, not bypassed)"
+    "build_docs_share_exec_median_pct": 16.3,
+    "gate_15pct_s": 11.03,
+    "required_step_removal_pct_for_15pct_gate": 92,
+    "push_vs_schedule_build_docs_median_s": {
+      "push": 12,
+      "schedule": 11
+    },
+    "verdict": "not actionable (unchanged): docs:build = astro build && validate-agent-docs && agent-docs-discovery test; validation and discovery test are correctness gates before deploy; output reuse blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; sub-step split unmeasured (job logs HTTP 403 DIFC, not retried)"
   },
   "scheduling_reverified": {
     "verified_at": "2026-11-26T19:51:22Z",
