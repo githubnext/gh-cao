@@ -1,37 +1,7 @@
 {
   "source_sha": "16a88ce97c36c1bf5dda840eacb9e0458769f5a3",
-  "next_category": "Astro documentation generation",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T15:19:51Z",
-      "worker_run_id": "45643287981",
-      "correlation_id": "45642174897-4805",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45642174897-4805; worker run 45643287981. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; 44767894115 displaced. Live docs.yml list 15:19Z: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha. Stored build_docs_s rows recomputed (n=20, nearest-rank p90): median 12, p90 15, min 9, max 15; exec median 73.5 (p90 87); build_docs share of exec median 16.3 pct; 15 pct gate 11.0 s needs about 92 pct of the step removed; 60 s gate unreachable. Push median 12, schedule median 12. Outlier 45625202695 exec 126 s is checkout (67 s), not Astro (14 s). No package.json, package-lock.json or astro.config.mjs commit since 2026-11-18 (542db96 predates window); astro pinned 7.4.2 at HEAD; dependabot #20877 still OPEN (updated 2026-11-25T08:39Z), unmerged. Sub-step split still blocked (job logs HTTP 403 DIFC, not bypassed); output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; validators and node --test are correctness gates reading dist/. No issue created; issue search not needed."
-    },
     {
       "evaluated_at": "2026-11-25T15:33:35Z",
       "worker_run_id": "45645884615",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45737750674-4836; worker run 45738360508. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list 01:52Z: same 20 IDs, none queued or in progress; HEAD 16a88ce = source_sha. Stored run_timings recomputed (n=20, nearest-rank p90): setup_node 3.5 (p90 6), install 8 (p90 10), post 0-1 s (exact-key hit); setup+install+post median 13 (p90 16) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.0 s. Live caches API 01:52Z: node-cache-Linux-x64-npm-7808ecf8 live (created 2026-11-13T20:57:12Z, last accessed 2026-11-26T01:44:13Z); root lock unchanged since 7c8faf4. Whole dependency phase is required by the Astro build; a node_modules cache would replace the 8 s install with an unmeasured restore, so savings stay below gate and it is not validated. Open label-scoped issues: #20815 only (checkout, 0 comments, not re-proposed). Window unchanged since 2026-11-25T13:35Z; this evaluation repeats prior verdicts. No issue created. Next category: Astro documentation generation."
+    },
+    {
+      "evaluated_at": "2026-11-26T02:22:57Z",
+      "worker_run_id": "45741561507",
+      "correlation_id": "45741057476-4837",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187",
+        "44940649662",
+        "44870776753",
+        "44812654835",
+        "44798156216"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live docs.yml list 02:21Z: same 20 IDs, none newer, queued or in progress; HEAD 16a88ce = source_sha. Recomputed stored build_docs_s (n=20, nearest-rank p90): median 12, p90 15, min 9, max 15 = 16.3 pct of exec median 73.5 s; 15 pct gate 11.0 s needs about 92 pct of the step removed; 60 s gate unreachable. Outliers disclosed: 45625202695 exec 126 s (checkout 67 s, Astro 14 s), 45562958524 exec 98 s (checkout 40 s). Same-commit reuse on schedule runs checked (see astro_same_commit_schedule_reuse): not actionable. Sub-step split unmeasured (job logs HTTP 403 DIFC, not retried). No issue created. Next category: reusable dashboard generation."
     }
   ],
   "docs_cache_model": {
@@ -2090,5 +2090,11 @@
     "median_s": 25,
     "p90_s": 32,
     "note": "Two newest rows exceed p90; median unchanged. Not a suggestion. Re-evaluate #20815 (blobless checkout, still open) only if the checkout median moves materially over the next window (e.g., above about 30 s) or further runs exceed 60 s."
+  },
+  "astro_same_commit_schedule_reuse": {
+    "verified_at": "2026-11-26T02:22:57Z",
+    "worker_run_id": "45741561507",
+    "correlation_id": "45741057476-4837",
+    "finding": "4 of 5 window schedule runs (45553538993, 44989298582, 45117916746, 45333239050) had a same-commit docs build earlier in the window; 44870776753 (bb9a74f) did not. Gross build_docs saving on those 4 is 11-14 s (median 11.5 s) before restore and push-side save costs, both unmeasured. Schedule exec median 73 s; workflow median 73.5 s and push runs carry no saving, so the workflow median does not move and the 15 pct gate (11.0 s) is not met net. Verdict: not actionable; re-open only if restore and save costs are measured and net saving on the workflow median reaches 11 s."
   }
 }
