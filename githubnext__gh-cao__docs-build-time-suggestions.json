@@ -1,37 +1,7 @@
 {
   "source_sha": "57e74905db3ce3cf7fa3a1c6c8aaea65010e077e",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T11:52:34Z",
-      "worker_run_id": "45813975108",
-      "correlation_id": "45813261805-4866",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 11:52Z: …"
-    },
     {
       "evaluated_at": "2026-11-26T12:24:29Z",
       "worker_run_id": "45818740681",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (verdict unchanged; evidence updated). Window 45897897785 (push, 57e7490, created 21:24:14Z) .. 45117916746 (schedule, 9edb6bb); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; source 57e7490 (compare 4ad992d..57e7490: 7 commits, no docs.yml change; docs/** pushes only). Recomputed n=20: queue median 3 p90 4 max 45; exec median 73.5 p90 83 max 126. Two superseding in-flight pushes in window (45762476442 at ~32 s of build when 45762538888 arrived; 45897824716 at ~34 s when 45897897785 arrived): build-only cancel would save ~33 s and ~42 s compute and cut queue 36 s and 45 s. Expected per-run saving ~3.8 s, median 0 s; 15 pct gate 11.0 s and 60 s per-event gate unmet; no deploy-safety change proposed. Re-open if superseded in-flight builds reach about 6 per 20 runs or a single superseded build saves at least 60 s. Next: dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-26T21:55:00Z",
+      "worker_run_id": "45900753546",
+      "correlation_id": "45900141406-4896",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Window 45897897785 (push, 57e7490, 21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live list 21:52Z unchanged. Stored rows recomputed (n=20): setup 3.5 (p90 6), install 8 (p90 10), post 0 (max 1); setup+install+post median 13 (p90 15, max 18) = 17.7 pct of exec median 73.5; 15 pct gate 11.03 s unmet; install alone (8 s) cannot clear it; 60 s gate unmet. Compare 4ad992d..57e7490 (7 commits) touches no lock, package.json, or docs.yml; root cache key 7808ecf8 unchanged and live (last accessed 21:43Z). Root package.json has no install/prepare lifecycle scripts. Open issues: #20815 only (checkout, unchanged). Rejected: node_modules cache (net 3-6 s, unmeasured); root omit-dev (about 3 s, unmeasured). Next: Astro documentation generation."
     }
   ],
   "docs_cache_model": {
@@ -2039,11 +2039,11 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-26T20:17:31Z",
-    "worker_run_id": "45889597542",
-    "correlation_id": "45889002529-4891",
-    "source_sha": "4ad992d6f1e7490a44d9830de634d17ffe48f700",
-    "verdict": "not actionable (unchanged): setup+install+post median 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s; install median 8 s; live cache 7808ecf8 present (last accessed 20:16Z); only node_modules cache (net 3-6 s) considered and rejected"
+    "evaluated_at": "2026-11-26T21:55:00Z",
+    "worker_run_id": "45900753546",
+    "correlation_id": "45900141406-4896",
+    "source_sha": "57e74905db3ce3cf7fa3a1c6c8aaea65010e077e",
+    "verdict": "not actionable (unchanged): setup+install+post median 13 s (p90 15) = 17.7 pct of exec median 73.5; 15 pct gate 11.03 s; install median 8 s; live cache 7808ecf8 present (last accessed 21:43Z); lock unchanged since 4ad992d"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
