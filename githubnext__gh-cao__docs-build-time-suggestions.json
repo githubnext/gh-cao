@@ -1,37 +1,7 @@
 {
   "source_sha": "9bcc8c1faf9edca32a59bebb0bd6ce3b7e43dd1c",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-25T21:33:40Z",
-      "worker_run_id": "45704840639",
-      "correlation_id": "45704026548-4824",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216",
-        "45117916746",
-        "45249995178",
-        "45282794439",
-        "45293283576",
-        "45333239050"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45704026548-4824; worker run 45704840639. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T1..."
-    },
     {
       "evaluated_at": "2026-11-25T21:53:13Z",
       "worker_run_id": "45707784922",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; unchanged since 05:53Z evaluation. demo step median 1 s, p90 2, max 3 = 1.4 pct of exec median 73 s; 15 pct gate 10.95 s unmet even if removed; reuse blocked by Date.now/generatedAt (scripts/simulate-dashboard-pages.mjs:67,:76). Source 9bcc8c1: commits since 5ddfe67 touch server/ and specs/ only (no docs.yml trigger or build input)."
+    },
+    {
+      "evaluated_at": "2026-11-26T07:53:26Z",
+      "worker_run_id": "45778195021",
+      "correlation_id": "45777559815-4854",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45777559815-4854; worker run 45778195021. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list identical, none queued; source 9bcc8c1 (2 commits since 5ddfe67, 0 docs trigger paths; docs.yml last changed 063cbe9). Stored immutable transfer rows, window-filtered n=20 (four displaced rows excluded): removable (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet even at full removal. Handoff median 6, upload 2, deploy Pages (GitHub-managed) 6.5 excluded; merging deploy into build rejected (id-token and github-pages environment boundary). Open issues: #20815 only for this area (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z); not re-proposed. No issue created. Next category: scheduling, concurrency, and avoidable rebuilds."
     }
   ],
   "docs_cache_model": {
@@ -2043,13 +2043,13 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-26T07:35:09Z",
-    "worker_run_id": "45775929857",
+    "verified_at": "2026-11-26T07:53:26Z",
+    "worker_run_id": "45778195021",
     "issue": 20815,
     "state": "OPEN",
     "comments": 0,
     "updatedAt": "2026-11-13T17:41:19Z",
-    "note": "Blobless checkout suggestion still represented by open #20815 (title prefix [self-care:docs-build-time-investigator]; OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z at 07:34Z). Not re-proposed; no change in evidence."
+    "note": "Blobless checkout suggestion still represented by open #20815 (OPEN, 0 comments, updatedAt unchanged at check). Not re-proposed; no change in evidence."
   },
   "scheduling_deploy_handoff": {
     "verified_at": "2026-11-19T23:53:15Z",
@@ -2132,10 +2132,10 @@
     "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
   },
   "artifact_transfer_last_checked": {
-    "evaluated_at": "2026-11-26T06:27:37Z",
-    "worker_run_id": "45767868629",
-    "correlation_id": "45767260372-4849",
-    "result": "not actionable (unchanged): window 45762538888..44952052187 (source 4b68f03); removable median 9 s, p90 10 s, max 12 s = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet; handoff median 6 s; deploy Pages (GitHub-managed) excluded; merging deploy into build rejected (id-token and github-pages environment boundary)."
+    "evaluated_at": "2026-11-26T07:53:26Z",
+    "worker_run_id": "45778195021",
+    "correlation_id": "45777559815-4854",
+    "result": "not actionable (unchanged): window 45762538888..44952052187 (source 9bcc8c1); removable median 9 s, p90 10 s, max 12 s = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet; handoff median 6 s; upload median 2 s; deploy Pages (GitHub-managed) excluded; merging deploy into build rejected (id-token and github-pages environment boundary)."
   },
   "checkout_watch": {
     "observed_at": "2026-11-26T07:21:22Z",
