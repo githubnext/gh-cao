@@ -55,7 +55,7 @@ func TestLocalObjectsListRejectsUnsafeEntries(t *testing.T) {
 			if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.Chmod(path, 0o640); err != nil {
+			if err := os.Chmod(path, 0o640); err != nil { // #nosec G302 -- Test rejection of group-readable files in a private temporary directory.
 				t.Fatal(err)
 			}
 		}},
@@ -64,7 +64,7 @@ func TestLocalObjectsListRejectsUnsafeEntries(t *testing.T) {
 			if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.Chmod(path, 0o604); err != nil {
+			if err := os.Chmod(path, 0o604); err != nil { // #nosec G302 -- Test rejection of world-readable files in a private temporary directory.
 				t.Fatal(err)
 			}
 		}},
@@ -124,7 +124,7 @@ func TestPrivateObjectInfoDescribesEntry(t *testing.T) {
 	if want := (ObjectInfo{Key: "one.trace", Bytes: 4}); got != want {
 		t.Fatalf("privateObjectInfo = %v, want %v", got, want)
 	}
-	if err := os.Chmod(filepath.Join(dir, "one.trace"), 0o666); err != nil {
+	if err := os.Chmod(filepath.Join(dir, "one.trace"), 0o666); err != nil { // #nosec G302 -- Test rejection of world-writable files in a private temporary directory.
 		t.Fatal(err)
 	}
 	fresh, err := os.ReadDir(dir)
