@@ -26,6 +26,11 @@ The fail-closed policy/authority kernel for the control-plane subset of
   With `CAO_POSTGRES_URL` set, operational connectivity is probed live; canonical data does not
   exist yet, so both endpoints still report 503/unavailable. Without it both report everything unavailable.
   Other routes return 404.
+- `dashboard` package: Dashboard Language 0.1.0 *document validator* (`DashboardValidator`): safe YAML loading
+  (no aliases/anchors/tags), vocabulary, identifiers, pages, views, units, scope/time/filters and the structural
+  rules of declarative queries, with Appendix B error codes. It executes nothing, reads no data and does not check
+  field references against schemas, so a pass is not a conformance claim; results list unchecked members.
+  Run: `java -cp "experiments/java-backend/target/classes:experiments/java-backend/target/lib/*" org.cao.backend.dashboard.ValidateMain path/to/dashboard.yml` (exit 0 valid, 1 invalid, 2 usage).
 - `Dockerfile`: non-root, provider-neutral; no data or credentials baked in.
 
 Provision (schema owner only, once) then run (after `verify`):

@@ -1,11 +1,11 @@
 # Implementation status
 
-Source SHA: `7cb5134de200cd5d27125613422c3ecc7abdf846` (previous slices authored at `93614994…` / `2fbe39c5…` / `a19872d3…`)
-Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
+Source SHA: `4ad992d6f1e7490a44d9830de634d17ffe48f700` (previous slices authored at `7cb5134d…` / `93614994…` / `2fbe39c5…` / `a19872d3…`)
+Governing contracts: `docs/dashboard-language-specification.md` (Working Draft 0.1.0, Dashboard Language validator slice); `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
 `specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the storage slice.
 `.github/workflows/shared/*`, `server/internal/operational/**` and `server/postgres/operational-grants.sql` are comparison evidence only.
 
-## Implemented and verified (`mvn verify`: 73 tests, 0 failures, 0 skipped; baseline was 41)
+## Implemented and verified (`mvn verify`: 85 tests, 0 failures, 0 skipped; baseline at this SHA was 73)
 
 | Spec reference | Behavior |
 | --- | --- |
@@ -26,9 +26,12 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 | Same — runtime/owner separation | `open` runs no DDL and fails closed when the namespace is unprovisioned, at another schema version, or its stored capacity config differs; `OperationalBootstrap` (owner only, `BootstrapMain`) creates the audit subset of the Go schema (append-only trigger, owner-only namespace delete guard, `cao_operational_retain_audit` SECURITY DEFINER with pinned search path, PUBLIC revoked). Tests prove a SELECT/INSERT-only runtime role cannot run DDL, UPDATE/DELETE audit rows, delete namespaces or call retention; retention deletes a contiguous oldest prefix (≤ 512, ≥ 400 days kept, newest row always kept) |
 | Same — transport | `PostgresEndpoint`: `postgres://` only, one TCP host, non-loopback requires `sslmode=verify-full` (`require`/`verify-ca`/`prefer` rejected), unknown URL parameters and Unix sockets rejected, password absent from `toString()` and errors |
 | `/api/health`, `/api/readiness` with the real store | `PostgresServiceState` probes the store on each request: connected when the namespace is provisioned and reachable; stopping the database flips `operational.connected`/`recoveryReady` to false. Data stays unavailable (503) because canonical storage is not implemented. `Main` opens `CAO_POSTGRES_URL` (namespace `CAO_OPERATIONAL_NAMESPACE`, else `CAO_DATABASE_NAMESPACE`, else `hosted-dashboard`) and exits non-zero for an insecure, invalid or unprovisioned store |
+| `docs/dashboard-language-specification.md` — `dashboard` package (`DashboardValidator`, `ValidateMain`) | Structural validator for Dashboard Language 0.1.0 documents, no data read and nothing executed. DLS-SAFE-001/DLS-DOC-001: safe loading from parser events only (no object construction); anchors, aliases and tags other than `!!str` rejected (DLS-E008); multiple documents, non-mapping root, invalid YAML/UTF-8, size/depth bounds. DLS-DOC-002..008/010/011/012: exact root, quoted `"0.1.0"`, canonical ids, unknown/duplicate keys (DLS-E004), github-url-base, repository slug. DLS-DOC-013/DLS-UNIT-004/005 units; DLS-DOC-014/015/016 horizon, callouts, navigation; §6/DLS-CTX-002/009 scope, time (range xor start/end, start < end), filters, `rollout-mode`; DLS-PAGE-001/016 built-in page names and flags; DLS-VIEW-001/002/003/004/005 (mark/encoding presence, forbidden channels), 006, 008..011 (views must not declare joins/expressions: DLS-E008), DLS-SEM-017 source names, DLS-AGG-002/009/010 (`sum` only on raw-token measures and `aic`, `as` only with an aggregate, unique aggregate output ids), DLS-UNIT-001, DLS-VAL-005 (DLS-E013 essential-view bound), DLS-VAL-006 (DLS-E015 unreachable query). DLS-QUERY-001..011/021/024..027/032: key vocabulary, non-empty `subject`, 512-char metadata bound, name uniqueness/shadowing, earlier-only `from`/`union`/`join` references (forward/self rejected), ≤ 4 joins with equality keys, computed-function vocabulary and arity, exactly-one-of argument, parameter declaration/use, aggregate-local filter bounds, predict method/predictor/order rules, limit ≤ 100000, unique output names. DLS-SAFE-004/005: non-https/credentialed URIs and token/private-key patterns rejected; DLS-VAL-001/004: coded, path-addressed errors that never echo document values. The four `.github/skills/generate-dashboard-ir/corpus/examples/*.dashboard.yml` documents are accepted read-only; Appendix C.2 behavior reproduced by `ValidateMain` (exit 0/1/2) |
 | Packaging (`Dockerfile`) | Non-root uid 10001, env-configured port, shutdown hook. Image NOT built (no Docker); not deployed |
 
 ## Partial
+
+- Dashboard Language validator: `ok == true` is **not** a conformance claim (DLS-CONF-001/005). Results list `limitations` for accepted-but-unvalidated members (`card-templates`, `cli-actions`, `views` fragments, page `route`/`form`/`requires`/`navigation-indicator`/`tooltip`, view `config`/`facet`/`treemap`/`scatter`/`layer`/`metric`/`tree`/`title-link`/`filter-bar`, `temporal-series`/`window`/`facet` query clauses). `DashboardValidator.notImplemented()` lists spec areas never checked: field references against source schemas (DLS-QUERY-012/019, DLS-VIEW-007, DLS-E010/E011), Octicon names, href/link-field compatibility (DLS-E009), chart-widget type rules (DLS-VIEW-005 x/y type constraints), element config (DLS-DOC-009a), route-bound pages. Vocabulary is transcribed from the specification text; where the §4.2 table omits keys defined in prose (`retain-on-navigation`, `prompt`, `prompt-level`, `disclosure-label`, `data-status` children) they are accepted and noted in `DashboardVocabulary`. The JS validator was comparison evidence only; a JS-vs-Java differential corpus does not exist beyond the four shared examples.
 
 - Operational adapter covers only the `AuditLog` service and its tables. Capabilities in health/readiness remain `unsupported` because no other operational service (cache, limiter, sessions, revocations, leases, queue, quota, CLI commands) exists; the Go `Audit` capability has no field in the OpenAPI `OperationalCapabilities`.
 - Audit: no `admin.rebuild.*` lifecycle callers, no atomic audited operations, no evidence-reader/retention role provisioning (`operational-grants.sql` is only mirrored for the audit grants in tests), no `RetainAudit` Java wrapper (retention SQL is exercised directly), no connection pool (bounded per-call connections, max 4), no cancellation propagation beyond JDBC query timeouts, and the fixed default capacity config is the only accepted one.
@@ -42,6 +45,7 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 
 ## Not implemented
 
+Dashboard Language execution (query engine, data states, presenter, DLS-DATA/DLS-AGG runtime semantics), the `/api/v1/query` route, dashboard-document storage/serving,
 Orchestrator/standalone effective records, standalone workflows and operations,
 `inventory`, `web.host`, host extensions, `target-authority`, authority envelopes,
 exact-SHA policy fetch, canonical ingestion/storage (PostgreSQL), Dashboard Language
@@ -53,7 +57,8 @@ None. Environment note: the sandbox JDK truststore was empty and `~/.m2` unwrita
 
 ## Next bounded slice
 
-Canonical PostgreSQL storage: read `server/spec/storage.tsp` and `specs/dashboard-data.md` §§ on ingestion,
-bring up a separate canonical namespace/adapter, ingest a synthetic canonical JSONL fixture through a Java ingestion
-contract, and drive `data.available`/`evaluatedAt` from the published revision. Alternatively, orchestrator/standalone
-effective records (control-architecture §6.3).
+Schema-aware Dashboard Language validation: transcribe the §5.1 table field schemas (read-only from the specification, cross-checked against `server/spec/storage.tsp`), derive query output schemas, and implement DLS-QUERY-012/019 and DLS-VIEW-007 (DLS-E010/E011) with negative tests. Then canonical PostgreSQL storage and ingestion (`specs/dashboard-data.md`, `specs/server-ingestion.md`) so queries have data to execute.
+
+## Environment notes for this run
+
+`~/.m2` was root-owned and the JDK truststore empty: Maven ran with `-Dmaven.repo.local=/tmp/...` and a PKCS12 truststore built from the system CA bundle (`MAVEN_OPTS`). New pinned dependency: `org.snakeyaml:snakeyaml-engine:2.10` (YAML 1.2 event parser, used only for events; no object construction).
