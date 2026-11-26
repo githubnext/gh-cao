@@ -35,3 +35,24 @@ func TestDatabaseScopeValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestAdminDatabaseURL(t *testing.T) {
+	env := func(value string) func(string) string {
+		return func(key string) string {
+			if key != "CAO_DATABASE_ADMIN_URL" {
+				t.Fatalf("read unexpected variable %q", key)
+			}
+			return value
+		}
+	}
+	got, err := adminDatabaseURL(env("  postgres://admin@127.0.0.1/cao  \n"))
+	if err != nil || got != "postgres://admin@127.0.0.1/cao" {
+		t.Fatalf("padded endpoint = %q, %v", got, err)
+	}
+	for _, value := range []string{"", " \t\n"} {
+		got, err := adminDatabaseURL(env(value))
+		if err == nil || !strings.Contains(err.Error(), "CAO_DATABASE_ADMIN_URL is required") || got != "" {
+			t.Fatalf("endpoint %q = %q, %v; want required error", value, got, err)
+		}
+	}
+}
