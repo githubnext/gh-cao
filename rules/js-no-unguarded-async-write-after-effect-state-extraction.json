@@ -503,6 +503,11 @@
   "last_updated_target_repo": "githubnext/gh-cao",
   "likely_false_positives": "An async handler that calls `.set()` after `await` but whose component is never removed from the DOM during that async work (e.g. a top-level page-scoped singleton that outlives all navigation) does not need the guard; the rule should only fire when the enclosing scope is created via `createFactoryScope()`/bound to a removable node, i.e. an abort signal is already available in scope but unused after an await preceding a `.set()` call.",
   "mechanical_correction": "After every `await` inside an async handler that subsequently calls `state.set(...)`, check `if (scope.signal.aborted) return;` (or the component's equivalent abort signal) before performing the write, mirroring the guard already present in #15419, #15463, and #15483.",
+  "normalization": {
+    "relationship": "repaired",
+    "txn_id": "librarian-45803339589-1",
+    "reason": "Restored the missing normalization block. Librarian decision librarian-43345587277-1 recorded resulting_status ready, but the latest githubnext/gh-cao evaluation (refiner-45569573578-1) and every later outcome except one early ready are needs-work, so the stale ready decision is superseded. Status unchanged at needs-work."
+  },
   "occurrence_count": 6,
   "rule_key": "js-no-unguarded-async-write-after-effect-state-extraction",
   "status": "needs-work",
