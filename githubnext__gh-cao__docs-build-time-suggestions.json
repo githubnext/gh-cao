@@ -1,37 +1,7 @@
 {
   "source_sha": "3bc68af2417a5b3de40cc5c6930f2c76475c82d4",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T04:21:48Z",
-      "worker_run_id": "45754257182",
-      "correlation_id": "45753697745-4843",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "44940649662",
-        "44870776753",
-        "44812654835",
-        "44798156216"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45753697745-4843; worker run 45754257182. Window 45625202695 (push, 16a88ce, 2026-11-25T13:35:48Z) .. 44798156216 (push, 826c4f4, 2026-11-20T19:00:55Z); 15 push, 5 schedule, 20 …"
-    },
     {
       "evaluated_at": "2026-11-26T04:36:15Z",
       "worker_run_id": "45755870424",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45831960573-4872; worker run 45832902316. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 13:52Z unchanged. Build documentation median 12 s p90 14 (16.4 pct of exec median 73 s); 15 pct gate 10.95 s needs 91 pct of step removed. main 3bc68af vs 9bcc8c1 changes only uk-ai-advisory/implementation-status.md (outside Astro root ./docs). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance."
+    },
+    {
+      "evaluated_at": "2026-11-26T14:22:35Z",
+      "worker_run_id": "45837786189",
+      "correlation_id": "45836443305-4873",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45836443305-4873; worker run 45837786189. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; unchanged per gh run list at 2026-11-26T14:22:35Z with no docs.yml run after 05:34Z. Source 3bc68af unchanged. Demo step (buildDashboardSite copy plus small esbuild bundle) median 1 s, p90 2 s, max 3 s = 1.4 pct of exec median 73 s; 15 pct gate 10.95 s unmet even at full removal. Open #20815 unchanged; not re-proposed."
     }
   ],
   "docs_cache_model": {
@@ -2044,13 +2044,13 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-26T09:34:38Z",
-    "worker_run_id": "45792647871",
+    "verified_at": "2026-11-26T14:22:35Z",
+    "worker_run_id": "45837786189",
     "issue": 20815,
     "state": "OPEN",
     "comments": 0,
     "updatedAt": "2026-11-13T17:41:19Z",
-    "note": "Blobless checkout suggestion still represented by open #20815 (OPEN, 0 comments, updatedAt unchanged at check). Not re-proposed; no change in evidence."
+    "note": "Blobless checkout suggestion still represented by open #20815 (OPEN, 0 comments, updatedAt 2026-11-13T17:41:19Z unchanged at check). Not re-proposed; no change in evidence."
   },
   "scheduling_deploy_handoff": {
     "verified_at": "2026-11-19T23:53:15Z",
@@ -2175,9 +2175,9 @@
     "verdict": "not actionable; re-open only if Pages reuse can be proven commit-correct or build_docs median exceeds about 13 s with repeated runs"
   },
   "dashboard_generation_last_checked": {
-    "evaluated_at": "2026-11-26T12:40:47Z",
-    "worker_run_id": "45821357872",
-    "correlation_id": "45820420863-4868",
-    "verdict": "not actionable (unchanged): demo step 1 s median, p90 2 s; 1.4 pct of exec median 73 s; window and main 9bcc8c1 unchanged at 12:39Z"
+    "evaluated_at": "2026-11-26T14:22:35Z",
+    "worker_run_id": "45837786189",
+    "correlation_id": "45836443305-4873",
+    "verdict": "not actionable (unchanged): demo step 1 s median, p90 2 s; 1.4 pct of exec median 73 s; window and source 3bc68af unchanged at 2026-11-26T14:22:35Z"
   }
 }
