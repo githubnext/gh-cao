@@ -1,37 +1,7 @@
 {
   "source_sha": "4ad992d6f1e7490a44d9830de634d17ffe48f700",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T08:37:38Z",
-      "worker_run_id": "45784182411",
-      "correlation_id": "45783450792-4856",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "44989298582",
-        "44974265341",
-        "44952052187",
-        "45117916746",
-        "45249995178",
-        "45282794439",
-        "45293283576",
-        "45333239050",
-        "45761522067"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45783450792-4856; worker run 45784182411. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
-    },
     {
       "evaluated_at": "2026-11-26T08:53:21Z",
       "worker_run_id": "45786265159",
@@ -60,7 +30,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45785673301-4857; worker run 45786265159. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45785673301-4857; worker run 45786265159. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T09:21:18Z",
@@ -90,7 +60,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45789755258-4858; worker run 45790605286. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45789755258-4858; worker run 45790605286. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T09:34:38Z",
@@ -120,7 +90,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45791929080-4859; worker run 45792647871. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45791929080-4859; worker run 45792647871. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T09:53:01Z",
@@ -150,7 +120,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45794644706-4860; worker run 45795486055. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45794644706-4860; worker run 45795486055. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T10:20:26Z",
@@ -180,7 +150,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45798849519-4861; worker run 45799743973. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45798849519-4861; worker run 45799743973. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T10:34:49Z",
@@ -210,7 +180,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 9bcc8c1 (main …"
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 9bcc8c1 (main \u2026"
     },
     {
       "evaluated_at": "2026-11-26T10:52:57Z",
@@ -240,7 +210,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45804000766-4863; worker run 45804920569. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45804000766-4863; worker run 45804920569. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T11:17:45Z",
@@ -270,7 +240,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 11:17Z same …"
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 11:17Z same \u2026"
     },
     {
       "evaluated_at": "2026-11-26T11:35:00Z",
@@ -300,7 +270,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45810267384-4865; worker run 45811359727. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45810267384-4865; worker run 45811359727. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T11:52:34Z",
@@ -330,7 +300,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 11:52Z: …"
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Live gh run list 11:52Z: \u2026"
     },
     {
       "evaluated_at": "2026-11-26T12:24:29Z",
@@ -360,7 +330,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45817847995-4867; worker run 45818740681. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45817847995-4867; worker run 45818740681. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T12:40:47Z",
@@ -390,7 +360,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45820420863-4868; worker run 45821357872. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45820420863-4868; worker run 45821357872. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T12:54:19Z",
@@ -420,7 +390,7 @@
         "44952052187"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888..44952052187 unchanged (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled); newest created 05:34:57Z, none queued; main 9bcc8c1 = source_sha. Live Jobs spot-check of …"
+      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888..44952052187 unchanged (15 push, 5 schedule, 20 success, 0 failed, 0 cancelled); newest created 05:34:57Z, none queued; main 9bcc8c1 = source_sha. Live Jobs spot-check of \u2026"
     },
     {
       "evaluated_at": "2026-11-26T13:18:56Z",
@@ -450,7 +420,7 @@
         "45761522067"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45826546159-4870; worker run 45827292926. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 …"
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45826546159-4870; worker run 45827292926. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 \u2026"
     },
     {
       "evaluated_at": "2026-11-26T13:36:07Z",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (scheduling category, unchanged verdict). Correlation 45874002991-4885; worker run 45874719391. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 2026-11-26T18:21:42Z unchanged, none queued; source 4ad992d = main. Queue median 3 p90 4 max 36 (45762538888 waited for 45762476442 execution; earlier live Jobs read shows no concurrent execution). Avoidable push rebuilds 0 of 15 (commit_paths). Schedule runs 5 of 5 had a same-head push earlier in window; gaps 0.34, 3.36, 5.45, 15.83, 27.41 h; skipping schedules weakens synthetic-date freshness (documented purpose) and needs actions read permission; median exec 73 s, 15 pct gate 10.95 s and 60 s gate unmet. Cancel-in-progress candidate not repeated: no pending run superseded in window. Next category: dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-26T18:37:02Z",
+      "worker_run_id": "45876831866",
+      "correlation_id": "45876065205-4886",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746",
+        "44989298582",
+        "44974265341",
+        "44952052187"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45876065205-4886; worker run 45876831866. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; source 4ad992d = main, unchanged. Recomputed from stored immutable run_timings: setup_node median 3.5 s (p90 6), install median 8 s (p90 10), post 0 s; setup+install+post median 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet. Live: caches API shows node-cache-Linux-x64-npm-7808ecf8 present (created 2026-11-13T20:57:12Z, 263412733 B, unchanged); run 45762538888 jobs API step timings match stored row (Set up Node 9 s, Install 9 s). Rejected again: node_modules cache (net 3-6 s estimate), root omit-dev (about 3 s, unmeasured, Astro build needs devDependencies), dashboard install already --omit=dev --ignore-scripts. Build-job logs remain HTTP 403 DIFC; not retried or bypassed. Next category: Astro documentation generation."
     }
   ],
   "docs_cache_model": {
@@ -2039,9 +2039,9 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-26T16:53:25Z",
-    "worker_run_id": "45862305644",
-    "correlation_id": "45861419693-4881",
+    "evaluated_at": "2026-11-26T18:37:02Z",
+    "worker_run_id": "45876831866",
+    "correlation_id": "45876065205-4886",
     "source_sha": "4ad992d6f1e7490a44d9830de634d17ffe48f700",
     "verdict": "not actionable (unchanged): setup+install+post median 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s; install median 8 s; live cache 7808ecf8 present and unchanged; rejected candidates: node_modules cache net 3-6 s, root omit-dev about 3 s unmeasured, dashboard install already --omit=dev --ignore-scripts"
   },
