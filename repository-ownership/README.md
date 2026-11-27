@@ -1,9 +1,11 @@
 # Repository Ownership
 
-**Status: mapping contract only; no operational campaign exists.** There is no
-campaign manifest, policy registration, orchestrator, worker, or live evidence
-producer. Do not register or enable this campaign until the missing
-deterministic controls below are implemented and independently reviewed.
+**Status: disabled campaign draft, not operational.** The catalog manifest
+and control policy declare an orchestrator and discovery and enforcement
+workers, but their activation gates are deliberately blocked. There is no
+live evidence producer. Do not enable the campaign or remove those gates until
+the missing deterministic controls below are implemented and independently
+reviewed.
 
 The intended outcome is for maintainers to maintain reviewed ownership for
 active repositories already enrolled within the existing CAO policy. CAO
@@ -88,3 +90,13 @@ No mapping, test fixture, or workflow run is operational ownership evidence.
 
 An operational-value evaluator is not supplied: there is no independently
 observable worker outcome or verified evidence producer to measure yet.
+
+## Review-mode proof
+
+After the prerequisites above have been implemented and reviewed, select one
+explicitly enrolled repository and use the CAO control repository to run the
+orchestrator with `target_repo`, `max_repos=1`, and
+`safe_output_mode=review`. Verify the selected target, worker dispatches,
+review destination, and unchanged target before considering any wider rollout.
+No such execution has been performed for this draft. The current policy keeps
+both workers and the campaign disabled and caps their mode at `review`.
