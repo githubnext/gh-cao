@@ -1,37 +1,7 @@
 {
  "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
- "next_category": "artifact transfer and Pages packaging",
+ "next_category": "scheduling, concurrency, and avoidable rebuilds",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-26T19:32:26Z",
-   "worker_run_id": "45883957706",
-   "correlation_id": "45883376689-4889",
-   "category": "artifact transfer and Pages packaging",
-   "evidence_run_ids": [
-    "45762538888",
-    "45762476442",
-    "45762342616",
-    "45761522067",
-    "45625202695",
-    "45562958524",
-    "45553538993",
-    "45551175273",
-    "45483718747",
-    "45473261375",
-    "45472166796",
-    "45470904895",
-    "45333239050",
-    "45293283576",
-    "45282794439",
-    "45249995178",
-    "45117916746",
-    "44989298582",
-    "44974265341",
-    "44952052187"
-   ],
-   "suggestion_fingerprint": null,
-   "outcome": "complete, not actionable (unchanged verdict). Correlation 45883376689-4889; worker run 45883957706. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 19:31Z unchanged, no docs.yml run after 05:34Z; local checkout 4ad992d = source_sha. Live Jobs spot-check 45762538888 matched stored rows (handoff 5, configure 1, upload 3, deploy setup 1; removable 10 s). Stored rows recomputed: removable median 9 s, p90 10, max 12 = 12.3 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet. Deploy-job merge rejected (about 7 s; id-token/environment boundary). Open #20815 (checkout) unchanged, not re-proposed. Next: scheduling, concurrency, and avoidable rebuilds."
-  },
   {
    "evaluated_at": "2026-11-26T19:51:22Z",
    "worker_run_id": "45886367364",
@@ -900,6 +870,36 @@
    ],
    "suggestion_fingerprint": null,
    "outcome": "complete, not actionable (reusable dashboard generation, unchanged verdict). Correlation 45945754525-4918; worker run 45946288135. Window 45945806016 (schedule, 19f2ae6, created 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; displaced 45117916746 (schedule, 9edb6bb) by live schedule 45945806016 (19f2ae6 = HEAD = source_sha). Live gh run list at 2026-11-27T05:36:03Z showed new schedule 45945806016 (success, 05:26Z); window rolled (dropped 45117916746). Stored rows plus one live Jobs read for 45945806016. Demo step (Build synthetic enterprise demo: dashboard:pages:build + cp) median 1 s, p90 2 s, max 3 s, n=20; 1.4 pct of exec median 73.5 s; 15 percent gate 11.03 s unmet even at full removal; 60 s gate unreachable. Cross-run reuse still blocked by synthetic dates (scripts/simulate-dashboard-pages.mjs Date.now). Next category: artifact transfer and Pages packaging."
+  },
+  {
+   "evaluated_at": "2026-11-27T05:52:30Z",
+   "worker_run_id": "45948058777",
+   "correlation_id": "45947543899-4919",
+   "category": "artifact transfer and Pages packaging",
+   "evidence_run_ids": [
+    "45945806016",
+    "45897897785",
+    "45897824716",
+    "45897525384",
+    "45762538888",
+    "45762476442",
+    "45762342616",
+    "45761522067",
+    "45625202695",
+    "45562958524",
+    "45553538993",
+    "45551175273",
+    "45483718747",
+    "45473261375",
+    "45472166796",
+    "45470904895",
+    "45333239050",
+    "45293283576",
+    "45282794439",
+    "45249995178"
+   ],
+   "suggestion_fingerprint": null,
+   "outcome": "complete, not actionable (artifact transfer, unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list unchanged at 05:52Z. Recomputed from stored immutable transfer_model rows: removable (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet. Deploy Pages (GitHub-managed) median 6.5 s; upload median 2 s; artifact 7.4-9.3 MB. Open #20815 (checkout) unchanged, not re-proposed; no new issue."
   }
  ],
  "docs_cache_model": {
@@ -1682,7 +1682,7 @@
    "deploy_pages_median_s": 6.5,
    "deploy_pages_p90_s": 7,
    "ceiling_full_removal_s": 9.0,
-   "decision": "not actionable (not re-evaluated this run; summary recomputed on window roll)"
+   "decision": "not actionable (re-evaluated 2026-11-27T05:52:30Z worker 45948058777; recomputed from stored rows, unchanged)"
   },
   "artifact_bytes": {
    "44336140223": 7456414,
@@ -2120,10 +2120,10 @@
   "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
  },
  "artifact_transfer_last_checked": {
-  "evaluated_at": "2026-11-27T04:20:51Z",
-  "worker_run_id": "45939037720",
-  "correlation_id": "45938524089-4914",
-  "result": "not actionable (unchanged): window 45897897785..45117916746 (16 push, 4 schedule, 20 success) matches live list; source 19f2ae6; removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet"
+  "evaluated_at": "2026-11-27T05:52:30Z",
+  "worker_run_id": "45948058777",
+  "correlation_id": "45947543899-4919",
+  "result": "not actionable (unchanged): window 45945806016..45249995178 (16 push, 4 schedule, 20 success) matches live gh run list at 05:52Z; source 19f2ae6; removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet"
  },
  "checkout_watch": {
   "observed_at": "2026-11-26T07:21:22Z",
