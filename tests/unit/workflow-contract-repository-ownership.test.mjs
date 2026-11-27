@@ -96,6 +96,10 @@ test("source and lock fail closed before activation independently of CAO admissi
 
 test("orchestrator and workers import shared control with exact roles and bounded routing", () => {
   const orchestrator = source(campaign).frontmatter;
+  assert.equal(orchestrator.on.schedule, undefined, "blocked draft must not run on a schedule");
+  assert.ok(orchestrator.on.workflow_dispatch, "manual dispatch remains available for diagnostics");
+  assert.equal(lock(campaign).on.schedule, undefined, "compiled draft must not schedule runs");
+  assert.ok(lock(campaign).on.workflow_dispatch, "compiled draft retains manual dispatch");
   assert.equal(orchestrator.on.workflow_dispatch.inputs.safe_output_mode.default, "review");
   assert.equal(orchestrator.on.workflow_dispatch.inputs.max_repos.default, 1);
   const dispatch = orchestrator["safe-outputs"]["dispatch-workflow"];

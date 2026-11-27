@@ -7,7 +7,6 @@ max-daily-ai-credits: -1
 timeout-minutes: 15
 
 on:
-  schedule: hourly
   workflow_dispatch:
     inputs:
       target_repo:
