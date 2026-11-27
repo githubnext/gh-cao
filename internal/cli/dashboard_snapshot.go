@@ -365,8 +365,12 @@ func mergeDashboardHistory(previous, incoming map[string][]map[string]any) (map[
 			if collection == "runs" && rejected[nativeText(row["id"])] || rejected[nativeText(row["runId"])] {
 				continue
 			}
+			if collection == "workflows" {
+				row = mergeDashboardWorkflowCompiler(merged[collection][nativeText(row["id"])], row)
+			}
 			merged[collection][nativeText(row["id"])] = row
 		}
+
 	}
 	for id, row := range merged["runs"] {
 		if created, err := time.Parse(time.RFC3339Nano, nativeText(row["createdAt"])); err == nil && created.Before(retainAfter) {
@@ -387,6 +391,54 @@ func mergeDashboardHistory(previous, incoming map[string][]map[string]any) (map[
 		}
 	}
 	return batch, nil
+}
+
+func mergeDashboardWorkflowCompiler(previous, incoming map[string]any) map[string]any {
+	if previous == nil {
+		return incoming
+	}
+	result := maps.Clone(incoming)
+	known := func(value any) bool {
+		text := strings.TrimSpace(nativeText(value))
+		return text != "" && !strings.EqualFold(text, "unknown")
+	}
+	for _, prefix := range []string{"ghAwRun", "ghAwInventory"} {
+		version, observed := prefix+"Version", prefix+"VersionObservedAt"
+		source := incoming
+		if !known(incoming[version]) || math.IsInf(nativeTimestamp(incoming[observed]), -1) ||
+			known(previous[version]) && nativeTimestamp(previous[observed]) > nativeTimestamp(incoming[observed]) {
+			source = previous
+		}
+		fields := []string{version, observed}
+		if prefix == "ghAwRun" {
+			fields = append(fields, "ghAwRunVersionRunId")
+		} else {
+			fields = append(fields, "ghAwInventoryUpdateState")
+		}
+		for _, field := range fields {
+			delete(result, field)
+			if value, ok := source[field]; ok {
+				result[field] = value
+			}
+		}
+	}
+	runAt, inventoryAt := nativeTimestamp(result["ghAwRunVersionObservedAt"]), nativeTimestamp(result["ghAwInventoryVersionObservedAt"])
+	if known(result["ghAwRunVersion"]) && !math.IsInf(runAt, -1) &&
+		(!known(result["ghAwInventoryVersion"]) || runAt >= inventoryAt) {
+		result["ghAwVersion"], result["ghAwVersionSource"], result["ghAwUpdateState"] = result["ghAwRunVersion"], "run", "unknown"
+		if nativeText(result["ghAwRunVersion"]) == nativeText(result["ghAwInventoryVersion"]) && result["ghAwInventoryUpdateState"] != nil {
+			result["ghAwUpdateState"] = result["ghAwInventoryUpdateState"]
+		}
+	} else if known(result["ghAwInventoryVersion"]) && !math.IsInf(inventoryAt, -1) {
+		result["ghAwVersion"], result["ghAwVersionSource"], result["ghAwUpdateState"] = result["ghAwInventoryVersion"], "inventory", result["ghAwInventoryUpdateState"]
+	} else if known(previous["ghAwVersion"]) && !known(incoming["ghAwVersion"]) {
+		for _, field := range []string{"ghAwVersion", "ghAwVersionSource", "ghAwUpdateState"} {
+			if value, ok := previous[field]; ok {
+				result[field] = value
+			}
+		}
+	}
+	return result
 }
 
 func dashboardHistoryCutoff(incoming map[string][]map[string]any) (time.Time, error) {

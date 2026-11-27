@@ -154,8 +154,13 @@ describe('dashboard source ingestion queries', () => {
       registryState: 'active',
       createdAt: '2026-09-01T00:00:00Z',
       updatedAt: '2026-09-08T00:00:00Z',
-      ghAwVersion: '0.88.8',
-      ghAwUpdateState: 'update-available',
+      ghAwVersion: '0.89.1',
+      ghAwVersionSource: 'run',
+      ghAwRunVersion: '0.89.1',
+      ghAwRunVersionRunId: 'github:run:githubnext/gh-cao:12345',
+      ghAwInventoryVersion: '0.88.8',
+      ghAwInventoryUpdateState: 'update-available',
+      ghAwUpdateState: 'unknown',
       campaignId: batch.campaigns[0].id,
       role: 'worker'
     });

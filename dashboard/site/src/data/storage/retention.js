@@ -4,6 +4,7 @@ import { createDebug } from '../../debug.js';
 import { mergeOperationalValueEvidence } from '../model/operational-value-evidence.js';
 import { mergeWorkflowValueCollection } from '../model/workflow-value-collection.js';
 import { mergeOutputLifecycle } from '../model/safe-output-lifecycle.js';
+import { mergeWorkflowCompilerEvidence } from '../model/fields.js';
 
 const debugRetention = createDebug('retention');
 
@@ -119,7 +120,7 @@ export function mergeActivityStructuralRecord(storeName, existing, incoming) {
   const preserved = Object.fromEntries(inventoryFields
     .filter((field) => existing[field] !== undefined)
     .map((field) => [field, existing[field]]));
-  return { ...existing, ...incoming, ...preserved };
+  return { ...mergeWorkflowCompilerEvidence(existing, incoming), ...preserved };
 }
 
 /** @param {Record<string, unknown>} record */
@@ -349,7 +350,7 @@ function upsertRecords(
           continue;
         }
       }
-      records.set(id, storeName === 'operationalValueEvidence'
+      records.set(id, storeName === 'workflows' ? mergeWorkflowCompilerEvidence(records.get(id), record) : storeName === 'operationalValueEvidence'
         ? mergeOperationalValueEvidence(records.get(id), record) : storeName === 'workflowValueCollections'
         ? mergeWorkflowValueCollection(records.get(id), record) : storeName === 'outputLifecycles'
         ? mergeOutputLifecycle(records.get(id), record) : EVIDENCE_DEFINITION_STORES.has(storeName)

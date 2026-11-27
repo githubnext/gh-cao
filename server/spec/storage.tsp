@@ -60,8 +60,15 @@ model workflows {
   createdAt?: utcDateTime;
   externalLink?: Values.Link;
   ghAwCurrentVersion?: string;
+  ghAwInventoryVersion?: string;
+  ghAwInventoryVersionObservedAt?: utcDateTime;
+  ghAwInventoryUpdateState?: string;
+  ghAwRunVersion?: string;
+  ghAwRunVersionObservedAt?: utcDateTime;
+  ghAwRunVersionRunId?: string;
   ghAwUpdateState?: string;
   ghAwVersion?: string;
+  ghAwVersionSource?: string;
   githubId?: string;
   id: string;
   inventoryReady?: boolean;

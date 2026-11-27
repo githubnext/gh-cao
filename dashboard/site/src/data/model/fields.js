@@ -116,3 +116,48 @@ export function mergeCanonicalRun(existing, incoming) {
   }
   return merged;
 }
+
+/** @param {unknown} value */
+function knownCompilerVersion(value) {
+  return typeof value === 'string' && value.trim() !== '' && value.trim().toLowerCase() !== 'unknown';
+}
+
+/**
+ * @param {Record<string, unknown> | undefined} existing
+ * @param {Record<string, unknown>} incoming
+ */
+export function mergeWorkflowCompilerEvidence(existing, incoming) {
+  const result = { ...existing, ...incoming };
+  for (const prefix of ['ghAwInventory', 'ghAwRun']) {
+    const version = `${prefix}Version`;
+    const observed = `${version}ObservedAt`;
+    const previousAt = Date.parse(String(existing?.[observed] ?? ''));
+    const incomingAt = Date.parse(String(incoming[observed] ?? ''));
+    const takeIncoming = knownCompilerVersion(incoming[version]) && Number.isFinite(incomingAt)
+      && (!knownCompilerVersion(existing?.[version]) || !Number.isFinite(previousAt) || incomingAt >= previousAt);
+    const source = takeIncoming ? incoming : existing;
+    for (const field of [version, observed, ...(prefix === 'ghAwRun'
+      ? ['ghAwRunVersionRunId'] : ['ghAwInventoryUpdateState'])]) {
+      if (source?.[field] !== undefined) result[field] = source[field];
+      else delete result[field];
+    }
+  }
+  const runAt = Date.parse(String(result.ghAwRunVersionObservedAt ?? ''));
+  const inventoryAt = Date.parse(String(result.ghAwInventoryVersionObservedAt ?? ''));
+  if (knownCompilerVersion(result.ghAwRunVersion) && Number.isFinite(runAt)
+      && (!knownCompilerVersion(result.ghAwInventoryVersion) || !Number.isFinite(inventoryAt) || runAt >= inventoryAt)) {
+    result.ghAwVersion = result.ghAwRunVersion;
+    result.ghAwVersionSource = 'run';
+    result.ghAwUpdateState = result.ghAwRunVersion === result.ghAwInventoryVersion
+      ? result.ghAwInventoryUpdateState ?? 'unknown' : 'unknown';
+  } else if (knownCompilerVersion(result.ghAwInventoryVersion) && Number.isFinite(inventoryAt)) {
+    result.ghAwVersion = result.ghAwInventoryVersion;
+    result.ghAwVersionSource = 'inventory';
+    result.ghAwUpdateState = result.ghAwInventoryUpdateState ?? 'unknown';
+  } else if (existing && knownCompilerVersion(existing.ghAwVersion) && !knownCompilerVersion(incoming.ghAwVersion)) {
+    result.ghAwVersion = existing.ghAwVersion;
+    result.ghAwUpdateState = existing.ghAwUpdateState;
+    result.ghAwVersionSource = existing.ghAwVersionSource;
+  }
+  return result;
+}

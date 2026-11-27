@@ -8,6 +8,7 @@ import {
   workflowSourcePath
 } from '../model/ids.js';
 import { canonicalTimestamp, OPERATIONAL_VALUE_PERIOD_FIELDS, operationalValuePeriod, requiredString } from '../model/schema.js';
+import { mergeWorkflowCompilerEvidence } from '../model/fields.js';
 import { validateOperationalValueEvidence } from '../model/operational-value-evidence.js';
 import { validateWorkflowValueCollection } from '../model/workflow-value-collection.js';
 import cachedJsonlExpression from '../ingest/expressions/gh-aw-logs-v2.json' with { type: 'json' };
@@ -927,6 +928,14 @@ export function adaptGhAwLogs(input) {
           if (nativeRun.data[field] != null) target.data[field] = nativeRun.data[field];
         }
       }
+      const sourceWorkflow = adapted.observations.find((record) => record.kind === 'workflow');
+      const targetWorkflow = observations.find((record) => record.kind === 'workflow');
+      if (sourceWorkflow && targetWorkflow) {
+        const { ghAwRunVersion, ghAwRunVersionObservedAt, ghAwRunVersionRunId } = sourceWorkflow.data;
+        targetWorkflow.data = mergeWorkflowCompilerEvidence(targetWorkflow.data, {
+          ghAwRunVersion, ghAwRunVersionObservedAt, ghAwRunVersionRunId
+        });
+      }
     }
     observations.push(...adapted.observations.filter((record) =>
       ['experiment', 'experiment-assignment', 'grader', 'grader-observation', 'eval', 'eval-observation'].includes(record.kind)
@@ -1130,6 +1139,8 @@ function createCachedGhAwJsonlAccumulator(options) {
 
   /** @type {Map<string, CachedRun>} */
   const enrichedRuns = new Map();
+  /** @type {Map<string, { version: string, observedAt: string }>} */
+  const compilerByAttempt = new Map();
   /** @type {{ envelope: Record<string, unknown>, line: number }[]} */
   const rateLimitEnvelopes = [];
   /** @type {Map<string, { value: Record<string, unknown>, line: number }[]>} */
@@ -1268,6 +1279,14 @@ function createCachedGhAwJsonlAccumulator(options) {
         workflowName,
         workflowPath
       };
+      const version = runMetadata(sessionRunEvidence(run)).ghAwVersion;
+      if (version && version.toLowerCase() !== 'unknown') {
+        const key = `${id}:${runAttempt}`;
+        const previous = compilerByAttempt.get(key);
+        if (!previous || Date.parse(observedAt) >= Date.parse(previous.observedAt)) {
+          compilerByAttempt.set(key, { version, observedAt });
+        }
+      }
       enrichedRuns.set(id, enrichedRuns.has(id)
         ? preferNewer(/** @type {CachedRun} */ (enrichedRuns.get(id)), candidate)
         : candidate);
@@ -1513,13 +1532,13 @@ function createCachedGhAwJsonlAccumulator(options) {
       source: OBSERVATION_SOURCE,
       sourceId: `workflow:${workflowCoordinate}`,
       observedAt: candidate.observedAt,
-      data: {
+      data: mergeWorkflowCompilerEvidence(workflows.get(workflow)?.data, {
         id: workflow,
         repositoryId: repository,
         name: candidate.workflowName,
         path: canonicalWorkflowPath,
         state: 'unknown'
-      }
+      })
     });
     return { repository, workflow };
   };
@@ -1542,6 +1561,9 @@ function createCachedGhAwJsonlAccumulator(options) {
       `${id}.attempt`
     );
     const metadata = runMetadata(enrichedValue);
+    const compiler = enriched && (!raw || Number(raw.value.attempt ?? 1) === Number(enriched.value.run_attempt ?? 1))
+      ? compilerByAttempt.get(`${id}:${attempt}`) : undefined;
+    if (compiler) metadata.ghAwVersion = compiler.version;
     const failure = runFailureMetadata(rawValue, enrichedValue);
     const aggregates = runAggregates(enrichedValue);
     const reportIncomplete = reportIncompleteRunIds.has(`${id}:${attempt}`);
@@ -1561,6 +1583,12 @@ function createCachedGhAwJsonlAccumulator(options) {
     const observedAt = raw && enriched
       ? (Date.parse(raw.observedAt) >= Date.parse(enriched.observedAt) ? raw.observedAt : enriched.observedAt)
       : /** @type {CachedRun} */ (raw ?? enriched).observedAt;
+    if (compiler) {
+      const parent = workflows.get(workflow);
+      if (parent) parent.data = mergeWorkflowCompilerEvidence(parent.data, {
+        ghAwRunVersion: compiler.version, ghAwRunVersionObservedAt: compiler.observedAt, ghAwRunVersionRunId: id
+      });
+    }
     observations.push({
       kind: 'run',
       source: OBSERVATION_SOURCE,

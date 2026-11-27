@@ -177,8 +177,21 @@ func (a Acquisition) PublishInventory(ctx context.Context, claim collectnative.I
 			if err := a.store.rebindInventoryIdentity(ctx, tx, name, row, raw); err != nil {
 				return err
 			}
+			version, _ := row["ghAwVersion"].(string)
+			updateState, _ := row["ghAwUpdateState"].(string)
+			if name == "workflows" {
+				for _, field := range []string{"ghAwVersion", "ghAwUpdateState", "ghAwInventoryVersion", "ghAwInventoryVersionObservedAt", "ghAwInventoryUpdateState"} {
+					delete(row, field)
+				}
+			}
 			if err := a.store.upsertNativeInventory(ctx, tx, "$"+name, row, evidence.ObservedAt); err != nil {
 				return err
+			}
+			if name == "workflows" {
+				if err := a.store.recordWorkflowCompilerVersion(ctx, tx, row["id"].(string), "inventory", version,
+					evidence.ObservedAt.UTC().Format(time.RFC3339Nano), "", updateState); err != nil {
+					return err
+				}
 			}
 		}
 		if err := a.store.inventoryQuality(ctx, tx, "$"+name, evidence.Sources[name].Metadata); err != nil {

@@ -86,6 +86,83 @@ afterEach(() => {
 });
 
 describe('database table ingestion and queries', () => {
+  it('retains compiler evidence from runs and inventory and selects the latest known observation', async () => {
+    /** @param {string} version @param {string} at @param {string} [state] */
+    const scan = async (version, at, state = 'up-to-date') => {
+      const input = structuredClone(sources);
+      Object.assign(input.workflows.rows[0], {
+        'gh-aw-version': version, 'gh-aw-update-state': state, 'observed-at': at
+      });
+      input.workflows.metadata = { 'as-of': at, 'artifact-generation': at };
+      await ingestDashboardSources(indexedDB, input, { now: Date.parse('2026-09-10T00:00:00Z') });
+    };
+    /** @param {number} id @param {string} version @param {string} at */
+    const run = async (id, version, at) => {
+      const content = `${JSON.stringify({ schema_version: 5, kind: 'run', run: {
+        run_id: id, run_attempt: 1, organization: 'githubnext', repository: 'gh-cao',
+        workflow_name: 'Dashboard', workflow_path: '.github/workflows/dashboard.lock.yml',
+        status: 'completed', created_at: at, updated_at: at, cli_version: version
+      } })}\n`;
+      await ingestCachedGhAwJsonl(indexedDB, content, { now: Date.parse('2026-09-10T00:00:00Z') });
+    };
+    const workflow = async () => (await readCanonicalBatch(indexedDB)).workflows[0];
+    await scan('v1.0.0', '2026-09-09T01:00:00Z');
+    await run(303, 'v1.1.0', '2026-09-09T02:00:00Z');
+    expect(await workflow()).toMatchObject({
+      ghAwVersion: 'v1.1.0', ghAwVersionSource: 'run', ghAwUpdateState: 'unknown',
+      ghAwInventoryVersion: 'v1.0.0', ghAwRunVersion: 'v1.1.0',
+      ghAwRunVersionRunId: 'github:run:githubnext/gh-cao:303'
+    });
+    await scan('v1.2.0', '2026-09-09T03:00:00Z', 'update-available');
+    await run(304, 'v0.9.0', '2026-09-09T00:00:00Z');
+    await scan('unknown', '2026-09-09T04:00:00Z');
+    expect(await workflow()).toMatchObject({
+      ghAwVersion: 'v1.2.0', ghAwVersionSource: 'inventory', ghAwUpdateState: 'update-available',
+      ghAwInventoryVersion: 'v1.2.0', ghAwRunVersion: 'v1.1.0'
+    });
+  });
+
+  it('projects dashboard-source run compiler observations onto their workflow', async () => {
+    const input = structuredClone(sources);
+    Object.assign(input.workflows.rows[0], {
+      'gh-aw-version': 'v1.0.0', 'gh-aw-update-state': 'up-to-date',
+      'observed-at': '2026-09-09T01:00:00Z'
+    });
+    Object.assign(input.runs.rows[0], {
+      'gh-aw-version': 'v1.1.0', 'ended-at': '2026-09-09T02:00:00Z'
+    });
+    await ingestDashboardSources(indexedDB, input);
+    expect((await readCanonicalBatch(indexedDB)).workflows[0]).toMatchObject({
+      ghAwVersion: 'v1.1.0', ghAwVersionSource: 'run', ghAwUpdateState: 'unknown',
+      ghAwInventoryVersion: 'v1.0.0', ghAwRunVersion: 'v1.1.0'
+    });
+  });
+
+  it('uses the compiler evidence clock and preserves known evidence across sparse revisions', async () => {
+    /** @param {number} id @param {string | null} version @param {string} at */
+    const run = (id, version, at) => ({ schema_version: 5, kind: 'run', run: {
+      run_id: id, run_attempt: 1, organization: 'githubnext', repository: 'gh-cao',
+      workflow_name: 'Dashboard', workflow_path: '.github/workflows/dashboard.lock.yml',
+      status: 'completed', created_at: at, updated_at: at, cli_version: version
+    } });
+    const content = [
+      run(303, 'v1.0.0', '2026-09-09T01:00:00Z'),
+      run(303, null, '2026-09-09T02:00:00Z'),
+      run(304, 'v1.1.0', '2026-09-09T03:00:00Z'),
+      { schema_version: 5, kind: 'workflow_runs', request: { repository: 'githubnext/gh-cao' },
+        payload: [{ databaseId: 303, attempt: 1, workflowName: 'Dashboard', workflowPath: '.github/workflows/dashboard.lock.yml',
+          createdAt: '2026-09-09T01:00:00Z', updatedAt: '2026-09-09T04:00:00Z' }] }
+    ].map((row) => JSON.stringify(row)).join('\n') + '\n';
+    await ingestCachedGhAwJsonl(indexedDB, content, { now: Date.parse('2026-09-10T00:00:00Z') });
+    const batch = await readCanonicalBatch(indexedDB);
+    expect(batch.runs.find((row) => row.githubRunId === '303')).toMatchObject({ ghAwVersion: 'v1.0.0' });
+    expect(batch.workflows[0]).toMatchObject({
+      ghAwVersion: 'v1.1.0', ghAwRunVersion: 'v1.1.0',
+      ghAwRunVersionObservedAt: '2026-09-09T03:00:00.000Z',
+      ghAwRunVersionRunId: 'github:run:githubnext/gh-cao:304'
+    });
+  });
+
   it('keeps cached credit enrichment when only the raw run-list shard changes', async () => {
     const options = { now: Date.parse('2026-10-10T00:00:00Z') };
     const measured = JSON.stringify({

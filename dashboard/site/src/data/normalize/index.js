@@ -1,6 +1,6 @@
 import { issueCoordinates, issueId, operationalValueId, repositoryId, runId, sourceId, workflowId } from '../model/ids.js';
 import { canonicalTimestamp, requiredString } from '../model/schema.js';
-import { mergeCanonicalRun, pruneCanonicalRecord } from '../model/fields.js';
+import { mergeCanonicalRun, mergeWorkflowCompilerEvidence, pruneCanonicalRecord } from '../model/fields.js';
 import { createDebug } from '../../debug.js';
 import { curateBatchAudits } from '../model/audit-curation.js';
 import { mergeOperationalValueEvidence } from '../model/operational-value-evidence.js';
@@ -220,6 +220,7 @@ export function normalize(observations, options = {}) {
       ? mergeOutputLifecycle(entities[collection].get(id), incoming) : null;
     entities[collection].set(id, {
       ...(collection === 'runs' ? mergeCanonicalRun(current, incoming)
+        : collection === 'workflows' ? mergeWorkflowCompilerEvidence(current, incoming)
         : evidenceRecord ?? { ...current, ...incoming }),
       ...definitionRange,
       id,

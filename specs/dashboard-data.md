@@ -40,7 +40,7 @@ Audit retains typed routing identifiers,
 classifier labels, request identities, sub-agent ownership, token classes,
 per-response AIC and collection receipts. It MUST NOT retain prompts, bodies,
 free-form errors/reasons, raw tool payloads or content-derived hashes.
-The canonical model is version 37. IndexedDB version 50 SHALL rebuild
+The canonical model is version 38. IndexedDB version 51 SHALL rebuild
 incompatible older browser projections so every retained Run receives the
 disposable statistical range keys and indexes defined in §5.1 and every retained
 Workflow receives the disposable subject key used for cursor paging. The Campaign
@@ -700,8 +700,8 @@ The implementation profile defined by this specification is:
 
 | Layer | Version | Physical structure |
 | --- | ---: | --- |
-| Canonical model | 37 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Output Lifecycle, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
-| Browser IndexedDB | 50 | Twenty-one canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
+| Canonical model | 38 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Output Lifecycle, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
+| Browser IndexedDB | 51 | Twenty-one canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
 | Go server Postgres sources | Canonical model 20 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
 | Static SQL export | 3 | Versioned JSON interchange produced from upstream SQL tables or views |
 
@@ -1002,10 +1002,10 @@ Every emitted native snapshot shard SHALL declare the canonical schema version
 of its embedded normalizer; current lifecycle rows MUST NOT trigger legacy
 lifecycle synthesis. Final gh-aw summaries SHALL use the same 16-Run publication
 bound as streamed Run events.
-Unversioned native shard indexes emitted by the schema-37 normalizer SHALL
-undergo a one-time rewrite of all retained shard headers before groups are
-reused. A versioned native index with an unsupported canonical schema SHALL
-fail explicitly rather than relabeling its rows.
+Unversioned and versioned schema-37 native shard indexes SHALL undergo a
+one-time rewrite of retained shards to schema 38 before groups are reused.
+Other unsupported canonical schemas SHALL fail explicitly rather than
+relabeling their rows.
 
 The local recovery producer MAY partition canonical evidence into immutable,
 content-addressed Run groups of at most 16 Runs, with byte-targeted JSONL shards
@@ -1430,6 +1430,18 @@ Repository maintenance projections MUST group that evidence by canonical
 Repository identity. A repository requires an upgrade when at least one
 workflow reports `update-available`; mixed workflow versions MUST remain
 visible and MUST NOT be collapsed to a fabricated single version.
+
+Workflow compiler observations from runs and inventory scans SHALL be retained
+separately as `ghAwRunVersion` and `ghAwInventoryVersion`, with their respective
+`ghAwRunVersionObservedAt` and `ghAwInventoryVersionObservedAt` clocks. The run
+observation also retains `ghAwRunVersionRunId`. The most recently observed
+known version determines `ghAwVersion` and `ghAwVersionSource` (`run` or
+`inventory`); a run wins an equal-clock tie. Missing or unknown versions MUST
+NOT erase a known observation. Replay of an older observation MUST NOT replace
+a newer one. `ghAwInventoryUpdateState` retains the scan's comparison; when a
+run wins with a different version, `ghAwUpdateState` is `unknown` rather than
+attributing the scan's comparison to that run. These observations are evidence,
+not policy or activation authority.
 
 Standalone workflow inventory MAY additionally report
 `workflow-source-kind`, `workflow-source`, `workflow-source-version`,
@@ -3365,7 +3377,7 @@ The canonical browser database SHALL use:
 
 ```js
 const DATABASE_NAME = "gh-aw-cao-dashboard-data";
-const DATABASE_VERSION = 50;
+const DATABASE_VERSION = 51;
 ```
 
 The logical name SHALL be scoped by the `synthetic-demo` suffix and deployment
@@ -3379,7 +3391,7 @@ additive upgrade; incompatible older projections are recreated from inputs.
 
 # 27. Object Stores
 
-IndexedDB version 50 SHALL define:
+IndexedDB version 51 SHALL define:
 
 ```text
 campaigns

@@ -2,7 +2,7 @@
 
 -- Fresh database only. Opaque artifacts remain external.
 
--- Inventory normalization contract: 406ed2701b5a31c492406aacfc7b9eeb42c6a2e625981050341a5ade0916f456
+-- Inventory normalization contract: 4583e08995e9a921d2989f179ca8af5ab1d6869508f69323e0707eb9b5a3902a
 
 CREATE TABLE IF NOT EXISTS cao_github_resources (
   namespace TEXT NOT NULL,
@@ -411,8 +411,15 @@ CREATE TABLE IF NOT EXISTS workflows (
   external_link_href TEXT,
   external_link_label TEXT,
   gh_aw_current_version TEXT,
+  gh_aw_inventory_version TEXT,
+  gh_aw_inventory_version_observed_at TIMESTAMPTZ,
+  gh_aw_inventory_update_state TEXT,
+  gh_aw_run_version TEXT,
+  gh_aw_run_version_observed_at TIMESTAMPTZ,
+  gh_aw_run_version_run_id TEXT,
   gh_aw_update_state TEXT,
   gh_aw_version TEXT,
+  gh_aw_version_source TEXT,
   github_id TEXT,
   id TEXT NOT NULL CHECK (id <> ''),
   inventory_ready BOOLEAN,
@@ -446,7 +453,7 @@ CREATE TABLE IF NOT EXISTS workflows (
 
   PRIMARY KEY (namespace, id),
   UNIQUE (namespace, ordinal),
-  CHECK (bit_length(present_fields) = 41),
+  CHECK (bit_length(present_fields) = 48),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
   FOREIGN KEY (namespace, campaign_id) REFERENCES campaigns(namespace, id) DEFERRABLE INITIALLY DEFERRED,
   CHECK (repository_id IS NOT NULL AND repository_id <> ''),
@@ -1632,7 +1639,7 @@ CREATE TABLE IF NOT EXISTS cao_sample_campaigns (
 CREATE TABLE IF NOT EXISTS cao_sample_workflows (
   namespace TEXT NOT NULL REFERENCES cao_state(namespace) ON DELETE CASCADE,
   ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
-  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 41),
+  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 48),
   admission_reason TEXT,
   admission_status TEXT,
   campaign_id TEXT,
@@ -1642,8 +1649,15 @@ CREATE TABLE IF NOT EXISTS cao_sample_workflows (
   external_link_href TEXT,
   external_link_label TEXT,
   gh_aw_current_version TEXT,
+  gh_aw_inventory_version TEXT,
+  gh_aw_inventory_version_observed_at TIMESTAMPTZ,
+  gh_aw_inventory_update_state TEXT,
+  gh_aw_run_version TEXT,
+  gh_aw_run_version_observed_at TIMESTAMPTZ,
+  gh_aw_run_version_run_id TEXT,
   gh_aw_update_state TEXT,
   gh_aw_version TEXT,
+  gh_aw_version_source TEXT,
   github_id TEXT,
   id TEXT NOT NULL CHECK (id <> ''),
   inventory_ready BOOLEAN,
