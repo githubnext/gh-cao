@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T14:55:51Z",
-      "worker_run_id": "45843032775",
-      "correlation_id": "45842025097-4875",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45842025097-4875; worker run 45843032775. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list at 2026-11-26T14:55:51Z: none queued or in progress; main = 3bc68af (compare identical). Queue median 3 s p90 4 max 36 (one wait: 45762538888 behind 45762476442 in the 05:34Z burst; 0 overlapping executions). Exec median 73 s p90 87; push 74 vs schedule 72. All 15 push heads build-consumed (6 newly classified). Rejected: build-stage cancel-in-progress (median saving 0 s; about 3.5 s mean per run); skipping same-commit schedule builds (11-14 s gross on 4 of 5 schedules, median unmoved; schedules needed for Date.now synthetic refresh). Next: dependency installation and caching."
-    },
     {
       "evaluated_at": "2026-11-26T15:18:16Z",
       "worker_run_id": "45847126764",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live docs.yml list at 01:00Z matches; no run in progress; only stale queued 37642403569 (2026-10-07); main 19f2ae6 = source_sha. Removable transfer (handoff + configure + upload + deploy setup) recomputed from stored transfer_model rows: median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; full-removal ceiling 9 s. One live Jobs read of 45897897785 reproduced its stored row (handoff 5, configure 0, upload 3, deploy setup 1, Deploy Pages 7 GitHub-managed). Deploy-job merge (about 6-7 s) still rejected: it would move id-token write and the github-pages environment into the build job. Corrects the stale 45762538888..44952052187 window label used by some late-evening notes."
+    },
+    {
+      "evaluated_at": "2026-11-27T01:21:07Z",
+      "worker_run_id": "45921704708",
+      "correlation_id": "45921136273-4905",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45921136273-4905; worker run 45921704708. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh list at 01:20Z: none queued or in progress (only stale 37642403569, 2026-10-07, outside window); source 19f2ae6 = precompute policy sha. Stored rows recomputed (n=20): exec median 73.5 (p90 83, max 126); queue median 3 (p90 4, max 45); push exec median 75 vs schedule 71.5; 0 overlapping executions; 0 of 16 push heads avoidable; 4 schedule runs needed for synthetic-date freshness (scripts/simulate-dashboard-pages.mjs Date.now); cancel-in-progress not repeated (no pending run superseded in window; expected about 3.8 s per run); 11.03 s and 60 s gates unmet. Next: dependency installation and caching."
     }
   ],
   "docs_cache_model": {
@@ -2080,13 +2080,13 @@
     "verdict": "not actionable (unchanged): the step total is 12 s, so the 15 pct gate needs the Astro build itself removed; validation and tests cannot reach it; no suggestion recorded"
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-26T23:18:43Z",
-    "worker_run_id": "45909750626",
-    "correlation_id": "45909224165-4900",
+    "verified_at": "2026-11-27T01:21:07Z",
+    "worker_run_id": "45921704708",
+    "correlation_id": "45921136273-4905",
     "window": "45897897785 (push, 57e7490) .. 45117916746 (schedule, 9edb6bb); 16 push, 4 schedule, 20 success",
-    "live_check": "docs.yml in_progress and queued lists checked at 23:1x; only stale 37642403569 (2026-10-07) queued; main 19f2ae6 = precompute policy sha",
-    "stored_recompute": "exec median 73.5 p90 83 max 126; queue median 3 p90 4 max 45; push median 75 (n=16) vs schedule median 71.5 (n=4); 0 overlaps; queue waits only 45897897785 (45 s behind 45897824716) and 45762538888 (36 s behind 45762476442)",
-    "verdict": "not actionable (unchanged): 0 of 16 push heads avoidable; schedule skip would trade synthetic-date freshness (scripts/simulate-dashboard-pages.mjs Date.now); gates unmet"
+    "live_check": "docs.yml queued and in_progress lists empty at 01:20Z (only stale 37642403569 queued, 2026-10-07); cancelled list latest 43991812013 outside window",
+    "stored_recompute": "exec median 73.5 p90 83 max 126; queue median 3 p90 4 max 45; push 75 (n=16) vs schedule 71.5 (n=4); 0 overlaps; 0 of 16 push heads avoidable",
+    "verdict": "not actionable (unchanged)"
   },
   "head_path_filter_check": {
     "verified_at": "2026-11-25T04:36:14Z",
