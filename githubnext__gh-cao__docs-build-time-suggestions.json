@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-26T15:18:16Z",
-      "worker_run_id": "45847126764",
-      "correlation_id": "45846367651-4876",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746",
-        "44989298582",
-        "44974265341",
-        "44952052187"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled. Recomputed from stored run_timings: setup+install+post median 13 s (p90 16) = 17.8 pct of exec median 73 s; 15 pct gate 10.95 s and 60 s gate unmet; live cache node-cache-Linux-x64-npm-7808ecf8 unchanged (263412733 B, created 2026-11-13T20:57:12Z); HEAD 4ad992d touches only scripts/check-file-sizes.mjs (lint only, not docs.yml paths or docs/dashboard builds); open #20815 unchanged."
-    },
     {
       "evaluated_at": "2026-11-26T15:34:45Z",
       "worker_run_id": "45849874858",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45921136273-4905; worker run 45921704708. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh list at 01:20Z: none queued or in progress (only stale 37642403569, 2026-10-07, outside window); source 19f2ae6 = precompute policy sha. Stored rows recomputed (n=20): exec median 73.5 (p90 83, max 126); queue median 3 (p90 4, max 45); push exec median 75 vs schedule 71.5; 0 overlapping executions; 0 of 16 push heads avoidable; 4 schedule runs needed for synthetic-date freshness (scripts/simulate-dashboard-pages.mjs Date.now); cancel-in-progress not repeated (no pending run superseded in window; expected about 3.8 s per run); 11.03 s and 60 s gates unmet. Next: dependency installation and caching."
+    },
+    {
+      "evaluated_at": "2026-11-27T01:33:52Z",
+      "worker_run_id": "45922880809",
+      "correlation_id": "45922435168-4906",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178",
+        "45117916746"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45922435168-4906; worker run 45922880809. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live docs.yml list at 01:31Z unchanged, all completed; source 19f2ae6 unchanged. Stored run_timings recomputed (n=20, nearest-rank p90): setup-node+install+post median 13 s (p90 15, max 18) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.03 s; setup-node median 3.5 s (p90 6); install median 8 s (p90 10). Live gh cache list: exact key node-cache-Linux-x64-npm-7808ecf8 is still the single main entry (created 2026-11-13T20:57:12Z, 263412733 B, lastAccessed 01:28Z); local root package-lock.json still hashes to 7808ecf8 (no key change). Dashboard lock hash unchanged (36b11d9f). No measured change reaches 11.03 s or 60 s; the only single cut that would meet 15 pct removes the whole phase, which is not achievable without an unmeasured cache mechanism. Sub-step log split still HTTP 403 DIFC (not retried). No issue created; open #20815 untouched."
     }
   ],
   "docs_cache_model": {
@@ -1995,11 +1995,11 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-26T23:33:00Z",
-    "worker_run_id": "45911187190",
-    "correlation_id": "45910707681-4901",
+    "evaluated_at": "2026-11-27T01:33:52Z",
+    "worker_run_id": "45922880809",
+    "correlation_id": "45922435168-4906",
     "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-    "verdict": "not actionable (unchanged): setup+install+post median 13 s (p90 15) = 17.7 pct of exec median 73.5; 15 pct gate 11.03 s; install median 8 s; cache key 7808ecf8 single entry (created 2026-11-13, no later save = no main miss); locks unchanged since 7c8faf4"
+    "verdict": "not actionable (unchanged): setup+install+post median 13 s (p90 15) = 17.7 pct of exec median 73.5; 15 pct gate 11.03 s; install median 8 s; cache key 7808ecf8 single main entry (created 2026-11-13, lastAccessed 01:28Z); root lock hash still 7808ecf8"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
@@ -2173,10 +2173,10 @@
     "verdict": "not actionable: expected saving below 11.0 s gate and 60 s per-event gate; median unchanged"
   },
   "cache_entry_metadata": {
-    "verified_at": "2026-11-26T23:33:00Z",
-    "worker_run_id": "45911187190",
-    "method": "gh cache list (trusted Actions metadata); no job-log reads",
-    "exact_key_entries": "node-cache-Linux-x64-npm-7808ecf8: 1 entry, created 2026-11-13T20:57:12Z, ref refs/heads/main, 263412733 B, lastAccessed 2026-11-26T23:28Z",
-    "other_npm_entries": "12 feature-ref entries; 13 total, 3.35 GB (below 10 GB repo limit)"
+    "verified_at": "2026-11-27T01:33:52Z",
+    "worker_run_id": "45922880809",
+    "method": "gh cache list --key node-cache-Linux-x64-npm (trusted Actions metadata); local lock hash check; no job-log reads",
+    "exact_key_entries": "node-cache-Linux-x64-npm-7808ecf8: 1 main entry, created 2026-11-13T20:57:12Z, ref refs/heads/main, 263412733 B, lastAccessed 2026-11-27T01:28Z",
+    "other_entries": "other keys are feature-ref or other-workflow caches; none keyed to docs.yml's root lock hash"
   }
 }
