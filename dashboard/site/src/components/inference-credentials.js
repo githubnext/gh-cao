@@ -14,11 +14,13 @@ const link = (href, label) => h('a', { href, target: '_blank', rel: 'noopener no
 /** @param {string} title @param {...HTMLElement} body */
 const section = (title, ...body) => h('details', null, h('summary', null, title), ...body);
 
-/** @param {string} repositoryUrl @param {string} name */
-const secret = (repositoryUrl, name) => link(`${repositoryUrl}/settings/secrets/actions/new`, `Add ${name} in GitHub`);
+/** @param {string} repositoryUrl @param {string} organizationUrl @param {string} name */
+const secret = (repositoryUrl, organizationUrl, name) => h('span', null,
+  link(`${repositoryUrl}/settings/secrets/actions/new`, `Add ${name} in GitHub`),
+  ' · ', link(`${organizationUrl}/settings/secrets/actions`, `Share ${name} with selected repositories`));
 
-/** @param {string} repositoryUrl */
-function copilotSetup(repositoryUrl) {
+/** @param {string} repositoryUrl @param {string} organizationUrl */
+function copilotSetup(repositoryUrl, organizationUrl) {
   return section('GitHub Copilot',
     section('Organization billing (no secret)',
       h('p', null, 'Use an organization-owned repository with Copilot billing enabled. The reviewed workflow must grant ',
@@ -27,7 +29,7 @@ function copilotSetup(repositoryUrl) {
     section('Fine-grained personal access token',
       h('p', null, 'For a custom gh-aw workflow approved for PAT-based inference, create a fine-grained PAT with the Copilot Requests account permission set to Read. The workflow must omit ',
         h('code', null, 'copilot-requests: write'), '. Bundled CAO workflows do not fall back to a PAT.'),
-      h('p', null, secret(repositoryUrl, 'COPILOT_GITHUB_TOKEN'), ' · ', link(`${GH_AW_AUTH}#copilot_github_token`, 'PAT setup requirements'))),
+      h('p', null, secret(repositoryUrl, organizationUrl, 'COPILOT_GITHUB_TOKEN'), ' · ', link(`${GH_AW_AUTH}#copilot_github_token`, 'PAT setup requirements'))),
     section('GitHub App for inference',
       h('p', null, 'Use a dedicated organization App with Copilot Requests: Read for a compatible server-to-server integration. An installation token is not a valid ',
         h('code', null, 'COPILOT_GITHUB_TOKEN'), '. Do not reuse the read-only repository App for inference. CAO’s App-backed path is the token broker below.'),
@@ -37,31 +39,33 @@ function copilotSetup(repositoryUrl) {
       link(BROKER_SETUP, 'Token broker setup and limitations')));
 }
 
-/** @param {string} engine @param {string} repositoryUrl */
-function engineSetup(engine, repositoryUrl) {
-  if (engine === 'copilot') return copilotSetup(repositoryUrl);
+/** @param {string} engine @param {string} repositoryUrl @param {string} organizationUrl */
+function engineSetup(engine, repositoryUrl, organizationUrl) {
+  if (engine === 'copilot') return copilotSetup(repositoryUrl, organizationUrl);
   if (engine === 'claude') return section('Anthropic (Claude Code)',
     h('p', null, 'For API-key authentication, create an Anthropic key and save it under ',
       h('code', null, 'ANTHROPIC_API_KEY'), ' unless the reviewed workflow references a different name. Workload identity configurations may not require a key.'),
-    h('p', null, secret(repositoryUrl, 'ANTHROPIC_API_KEY'), ' · ', link(`${GH_AW_AUTH}#anthropic_api_key`, 'Anthropic setup requirements')));
+    h('p', null, secret(repositoryUrl, organizationUrl, 'ANTHROPIC_API_KEY'), ' · ', link(`${GH_AW_AUTH}#anthropic_api_key`, 'Anthropic setup requirements')));
   if (engine === 'codex') return section('OpenAI (Codex)',
     h('p', null, 'For API-key authentication, create an OpenAI key and save it under ',
       h('code', null, 'OPENAI_API_KEY'), ' unless the reviewed workflow references a different name. Workload identity configurations may not require a key.'),
-    h('p', null, secret(repositoryUrl, 'OPENAI_API_KEY'), ' · ', link(`${GH_AW_AUTH}#openai_api_key`, 'OpenAI setup requirements')));
+    h('p', null, secret(repositoryUrl, organizationUrl, 'OPENAI_API_KEY'), ' · ', link(`${GH_AW_AUTH}#openai_api_key`, 'OpenAI setup requirements')));
   return section(engine, h('p', null, 'No dedicated setup is available for this engine. Check the reviewed workflow for its credential references.'),
     link(GH_AW_AUTH, 'gh-aw authentication reference'));
 }
 
-/** @param {string} repositoryUrl */
-function githubReadSetup(repositoryUrl) {
+/** @param {string} repositoryUrl @param {string} organizationUrl */
+function githubReadSetup(repositoryUrl, organizationUrl) {
   return section('Read-only GitHub App access',
     h('p', null, 'Use a private App with only the required read permissions. Install it on the exact repositories it must inspect. In the repository running the workflow, create the Actions variable ',
       h('code', null, 'GH_AW_GITHUB_READ_APP_ID'), ' with the App client ID and store the PEM as ',
       h('code', null, 'GH_AW_GITHUB_READ_APP_PRIVATE_KEY'), '.'),
     h('p', null, 'Verify the workflow binds these values for read-only GitHub tools (for example via ',
       h('code', null, 'tools.github.github-app'), '). For shared CAO control workflows, review the control-plane App authentication profile before changing its mode. Do not use this App for safe-output writes or inference.'),
+    h('p', null, 'For shared App setup, give the organization variable and private key the same reviewed repository access list. The App installation and CAO policy still determine which repositories it can inspect.'),
     h('p', null, link(`${repositoryUrl}/settings/variables/actions`, 'Open Actions variables'), ' · ',
-      secret(repositoryUrl, 'GH_AW_GITHUB_READ_APP_PRIVATE_KEY'), ' · ',
+      link(`${organizationUrl}/settings/variables/actions`, 'Open organization Actions variables'), ' · ',
+      secret(repositoryUrl, organizationUrl, 'GH_AW_GITHUB_READ_APP_PRIVATE_KEY'), ' · ',
       link(`${CAO_AUTH}#runtime-credential-selection`, 'CAO read/write credential separation')));
 }
 
@@ -104,14 +108,20 @@ export function renderInferenceCredentials(context) {
     if (!isSafeRepositorySlug(coordinate) || coordinate.endsWith('/.')) {
       return h('p', null, 'Repository settings are unavailable for this inventory entry.');
     }
-    const repositoryUrl = `${base.replace(/\/$/, '')}/${coordinate}`;
+    const github = base.replace(/\/$/, '');
+    const repositoryUrl = `${github}/${coordinate}`;
+    const owner = coordinate.split('/')[0];
+    const organizationUrl = `${github}/organizations/${owner}`;
     const engines = typeof row.engines === 'string' && row.engines ? row.engines.split(', ') : [];
     return [
       h('p', null, 'Detected engines: ', engines.join(', ') || 'none confirmed', '.'),
       ...(Number(row['unknown-engine-count']) > 0
         ? [h('p', null, `${row['unknown-engine-count']} workflow(s) have no engine metadata. Check the reviewed workflow; do not assume an engine.`)] : []),
-      ...engines.map((engine) => engineSetup(engine, repositoryUrl)),
-      githubReadSetup(repositoryUrl)
+      section(`Share credentials across ${owner} repositories`,
+        h('p', null, 'For organization-owned repositories, use the sharing links below to create or update one organization Actions secret. In GitHub, choose ', h('strong', null, 'Selected repositories'), ' and review the exact repositories that should receive it. Repeat for each organization; use repository secrets for personal repositories.'),
+        h('p', null, 'Share only with repositories whose reviewed workflows need the credential. Check existing repository or environment secrets with the same name: they take precedence over the organization secret. Organization secrets are not available to private repositories on GitHub Free.')),
+      ...engines.map((engine) => engineSetup(engine, repositoryUrl, organizationUrl)),
+      githubReadSetup(repositoryUrl, organizationUrl)
     ];
   }, { signal: scope.signal });
   scope.bind(root);

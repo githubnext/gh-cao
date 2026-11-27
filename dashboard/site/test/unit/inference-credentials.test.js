@@ -51,6 +51,10 @@ describe('inference credentials', () => {
       expect(root.textContent).toContain('GitHub App for inference');
       expect(root.textContent).toContain('CAO token broker');
       expect(root.querySelector('a[href="https://example.ghe.com/octo/agents/settings/secrets/actions/new"]')).not.toBeNull();
+      const bulkAnthropic = [...root.querySelectorAll('a')].find((link) =>
+        link.textContent === 'Share ANTHROPIC_API_KEY with selected repositories');
+      expect(bulkAnthropic?.getAttribute('href')).toBe('https://example.ghe.com/organizations/octo/settings/secrets/actions');
+      expect(bulkAnthropic?.getAttribute('rel')).toBe('noopener noreferrer');
       expect(root.textContent).not.toContain('OPENAI_API_KEY');
       select.selectedIndex = 2;
       select.dispatchEvent(new Event('change'));
