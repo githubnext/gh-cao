@@ -102,12 +102,22 @@ func (s *Store) replaceTask(ctx context.Context, r operational.Replacement, rece
 		if r.Capacity > 0 && count >= r.Capacity {
 			return operational.ErrCapacity
 		}
+		var original task
+		if _, err := t.json(key{"task", r.Source, r.ID}, &original); err != nil {
+			return err
+		}
 		// Removing first releases accounting; rollback preserves the original
 		// task and every lease if the replacement cannot be admitted.
 		if err := t.complete(r.Source, r.ID); err != nil {
 			return err
 		}
 		next := task{Fields: r.Fields, Created: t.now}
+		if r.Source == r.Destination && original.PendingIdentity != "" {
+			next.PendingIdentity = original.PendingIdentity
+			if err := t.put(key{"pending-identity", r.Source, original.PendingIdentity}, []byte{1}, time.Time{}); err != nil {
+				return err
+			}
+		}
 		if !r.Due.IsZero() {
 			next.Delayed = r.Delayed
 			next.Due = roundUpMillis(r.Due)
@@ -137,7 +147,7 @@ func (s *Store) PromoteTasks(ctx context.Context, delayed, queue string, at time
 			if err := t.remove(c.record.key); err != nil {
 				return err
 			}
-			if err := t.addTask(queue, task{Fields: c.task.Fields, Created: t.now}); err != nil {
+			if err := t.addTask(queue, task{Fields: c.task.Fields, Created: t.now, PendingIdentity: c.task.PendingIdentity}); err != nil {
 				return err
 			}
 			promoted++

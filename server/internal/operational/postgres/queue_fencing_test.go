@@ -96,3 +96,81 @@ func TestFencedTaskReplacementCapacityRollsBackReceipt(t *testing.T) {
 		t.Fatalf("failed replacement destroyed the current lease: %v", err)
 	}
 }
+
+func TestPendingTaskIdentitySurvivesRetryAndReleasesOnTerminalSettlement(t *testing.T) {
+	first, dsn := testStore(t, Config{})
+	second, err := Open(t.Context(), dsn, first.namespace, Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = second.Close() })
+	ctx := t.Context()
+	request := operational.EnqueueRequest{Queue: "sync", Delayed: "later", Capacity: 1,
+		Fields: operational.TaskFields{Task: "inventory-only"}}
+	enqueue := func(store *Store, want bool) {
+		t.Helper()
+		if got, err := store.EnqueuePendingTask(ctx, request, "repo:epoch"); err != nil || got != want {
+			t.Fatalf("pending enqueue = %v, %v; want %v", got, err, want)
+		}
+	}
+	if err := first.EnsureQueue(ctx, "sync", "workers"); err != nil {
+		t.Fatal(err)
+	}
+	enqueue(first, true)
+	enqueue(second, false)
+	read := operational.QueueRead{Queue: "sync", Group: "workers", Consumer: "same-consumer", Count: 1}
+	original, err := first.ReadTasks(ctx, read)
+	if err != nil || len(original) != 1 {
+		t.Fatalf("read: %v %v", original, err)
+	}
+	current, err := second.ClaimTasks(ctx, read, 0)
+	if err != nil || len(current) != 1 {
+		t.Fatalf("reclaim: %v %v", current, err)
+	}
+	if err := first.CompleteTaskFenced(ctx, "sync", "workers", original[0].ID, original[0].Receipt); !errors.Is(err, operational.ErrTaskLeaseLost) {
+		t.Fatalf("stale completion = %v", err)
+	}
+	enqueue(first, false)
+	replacement := operational.Replacement{Source: "sync", Group: "workers", ID: current[0].ID,
+		Destination: "sync", Delayed: "later", Due: time.Now().Add(time.Hour), Capacity: 1, Fields: request.Fields}
+	if err := first.ReplaceTaskFenced(ctx, replacement, original[0].Receipt); !errors.Is(err, operational.ErrTaskLeaseLost) {
+		t.Fatalf("stale retry = %v", err)
+	}
+	if err := second.ReplaceTaskFenced(ctx, replacement, current[0].Receipt); err != nil {
+		t.Fatal(err)
+	}
+	enqueue(first, false)
+	if promoted, err := first.PromoteTasks(ctx, "later", "sync", time.Now().Add(2*time.Hour), 1); err != nil || promoted != 1 {
+		t.Fatalf("promote = %d %v", promoted, err)
+	}
+	enqueue(second, false)
+	retried, err := first.ReadTasks(ctx, read)
+	if err != nil || len(retried) != 1 {
+		t.Fatalf("retry read: %v %v", retried, err)
+	}
+	if err := second.CompleteTaskFenced(ctx, "sync", "workers", retried[0].ID, retried[0].Receipt); err != nil {
+		t.Fatal(err)
+	}
+	enqueue(first, true)
+	fresh, err := first.ReadTasks(ctx, read)
+	if err != nil || len(fresh) != 1 {
+		t.Fatalf("fresh read: %v %v", fresh, err)
+	}
+	replacement.ID, replacement.Destination, replacement.Due = fresh[0].ID, "dead", time.Time{}
+	if _, err := first.EnqueueTask(ctx, operational.EnqueueRequest{Queue: "dead", Fields: request.Fields}); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.ReplaceTaskFenced(ctx, replacement, fresh[0].Receipt); !errors.Is(err, operational.ErrCapacity) {
+		t.Fatalf("failed terminal replacement = %v", err)
+	}
+	enqueue(second, false)
+	replacement.Capacity = 2
+	if err := first.ReplaceTaskFenced(ctx, replacement, fresh[0].Receipt); err != nil {
+		t.Fatal(err)
+	}
+	enqueue(second, true)
+	if err := first.CompleteTaskFenced(ctx, "sync", "workers", fresh[0].ID, fresh[0].Receipt); !errors.Is(err, operational.ErrTaskLeaseLost) {
+		t.Fatalf("old terminal receipt = %v", err)
+	}
+	enqueue(first, false)
+}

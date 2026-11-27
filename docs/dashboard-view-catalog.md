@@ -145,6 +145,7 @@ Named elements own specialized DOM, accessibility, interaction, local state, and
 | `markdown` | Presents retained Markdown from a declared source field with safe repository-relative links. |
 | `command-terminal` | Replays and follows durable local CLI output by command ID, with explicit Cancel and Retry actions through the data worker; detachment never cancels execution. |
 | `storage-info` | Identifies the configured dashboard storage engine and location without querying activity evidence; supports browser IndexedDB, local or hosted PostgreSQL, and unknown configuration. |
+| `inventory-sync` | Requests an authorized server-side repository and campaign inventory refresh from Updates, with pending, queued, unavailable, and error feedback; does not execute workflows or query activity evidence. |
 
 ## Testing standard
 

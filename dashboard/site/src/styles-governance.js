@@ -1,4 +1,8 @@
-export const governanceStyles = `.environment-defaults { display: grid; gap: 16px; min-width: 0; padding: 20px; }
+export const governanceStyles = `.inventory-sync { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px; }
+.inventory-sync button { min-height: 44px; }
+.inventory-sync button[aria-busy="true"] { cursor: wait; }
+.inventory-sync [role="status"] { color: var(--muted); overflow-wrap: anywhere; }
+.environment-defaults { display: grid; gap: 16px; min-width: 0; padding: 20px; }
 .environment-defaults p { margin: 0; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
 .environment-defaults-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .environment-defaults label { display: grid; align-content: start; gap: 6px; min-width: 0; font-weight: 600; }

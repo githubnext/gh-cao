@@ -847,6 +847,7 @@ func (a *App) Handler() http.Handler {
 	register("POST /api/admin/rebuild", a.rebuild)
 	register("GET /api/admin/rebuild/status", a.rebuildStatus)
 	register("GET /api/admin/collection/status", a.collectionStatus)
+	register("POST /api/admin/collection/sync", a.collectionSync)
 	if a.logs != nil {
 		register("GET /api/admin/logs", a.serverLogs)
 	}

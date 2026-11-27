@@ -14,6 +14,7 @@ import { h } from '../dom.js';
 import { createDebug } from '../debug.js';
 import { renderCommandTerminal } from './command-terminal.js';
 import { renderStorageInfo } from './storage-info.js';
+import { renderInventorySync } from './inventory-sync.js';
 
 const debugUiElements = createDebug('ui-elements');
 
@@ -51,7 +52,8 @@ const ELEMENT_RENDERERS = new Map([
   ['link-button-list', renderLinkButtonList],
   ['markdown', renderMarkdownElement],
   ['command-terminal', renderCommandTerminal],
-  ['storage-info', renderStorageInfo]
+  ['storage-info', renderStorageInfo],
+  ['inventory-sync', renderInventorySync]
 ]);
 
 /** Elements that load declared sources independently of the active page subscription. */
@@ -118,6 +120,7 @@ const EMPTY_AWARE_ELEMENTS = new Set([
   'workflow-value-snapshot',
   'command-terminal',
   'storage-info',
+  'inventory-sync',
   'environment-defaults',
   'prompt-wizard'
 ]);

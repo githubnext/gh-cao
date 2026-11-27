@@ -11,11 +11,14 @@ import (
 )
 
 type task struct {
-	Fields  operational.TaskFields
-	Created time.Time
-	Delayed string
-	Due     time.Time
+	Fields          operational.TaskFields
+	Created         time.Time
+	Delayed         string
+	Due             time.Time
+	PendingIdentity string `json:",omitempty"`
 }
+
+var _ operational.PendingTaskQueue = (*Store)(nil)
 
 func fieldsValid(f operational.TaskFields) error {
 	size := len(f.Repository) + len(f.Task) + len(f.Key) + len(f.Reason) + len(f.RecordedAt)
@@ -138,6 +141,42 @@ func (s *Store) EnqueueUniqueTask(ctx context.Context, queue, identity string, c
 			return err
 		}
 		if err := t.enqueue(r); err != nil {
+			return err
+		}
+		if err := t.put(k, []byte{1}, time.Time{}); err != nil {
+			return err
+		}
+		enqueued = true
+		return nil
+	})
+	return enqueued && err == nil, err
+}
+
+func (s *Store) EnqueuePendingTask(ctx context.Context, r operational.EnqueueRequest, identity string) (bool, error) {
+	if err := enqueueInput(r); err != nil {
+		return false, err
+	}
+	if err := names(identity); err != nil {
+		return false, err
+	}
+	if r.Debounce != "" {
+		return false, invalid("pending identity cannot use timed debounce")
+	}
+	enqueued := false
+	err := s.transact(ctx, func(t *transaction) error {
+		k := key{"pending-identity", r.Queue, identity}
+		value, err := t.get(k)
+		if err != nil || value != nil {
+			return err
+		}
+		count, err := t.outstanding(r.Queue)
+		if err != nil {
+			return err
+		}
+		if r.Capacity > 0 && count >= r.Capacity {
+			return operational.ErrCapacity
+		}
+		if err := t.addTask(r.Queue, task{Fields: r.Fields, Created: t.now, PendingIdentity: identity}); err != nil {
 			return err
 		}
 		if err := t.put(k, []byte{1}, time.Time{}); err != nil {
@@ -347,6 +386,14 @@ func (s *Store) ClaimTasks(ctx context.Context, r operational.QueueRead, idle ti
 }
 
 func (t *transaction) complete(queue, id string) error {
+	var data task
+	if found, err := t.json(key{"task", queue, id}, &data); err != nil {
+		return err
+	} else if found && data.PendingIdentity != "" {
+		if err := t.remove(key{"pending-identity", queue, data.PendingIdentity}); err != nil {
+			return err
+		}
+	}
 	groups, err := t.list("group", queue)
 	if err != nil {
 		return err

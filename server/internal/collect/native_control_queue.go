@@ -55,6 +55,15 @@ func (q Queue) enqueueNativeControl(ctx context.Context, task Task, kind IntentK
 	request := operational.EnqueueRequest{Queue: nativeControlStream, Delayed: nativeControlDelayed,
 		Debounce: debounce, DebounceTTL: debounceTTL,
 		Capacity: q.MaxLength, Fields: taskFields(name, content)}
+	if task.InventoryRefresh && task.Reason == "inventory-sync" {
+		pending, ok := q.Tasks.(operational.PendingTaskQueue)
+		if !ok || delivery != "" {
+			return Admission{}, collectnative.ErrUnsupported
+		}
+		identity := "inventory-sync:" + task.Repository + ":" + strconv.FormatInt(task.ScopeEpoch, 10)
+		enqueued, err := pending.EnqueuePendingTask(ctx, request, identity)
+		return Admission{Kind: kind, Enqueued: enqueued}, err
+	}
 	if delivery == "" {
 		enqueued, err := q.Tasks.EnqueueTask(ctx, request)
 		return Admission{Kind: kind, Enqueued: enqueued}, err
@@ -71,6 +80,49 @@ func (q Queue) enqueueNativeControl(ctx context.Context, task Task, kind IntentK
 	}
 	return Admission{Kind: kind, Enqueued: result == operational.DeliveryEnqueued,
 		Duplicate: result == operational.DeliveryDuplicate}, err
+}
+
+// SyncInventory admits only current committed repository scopes. It does not
+// need App credentials and never performs provider acquisition or enrollment.
+func (q Queue) SyncInventory(ctx context.Context, enrollment Enrollment) error {
+	if enrollment.Authority == nil {
+		return collectnative.ErrUnsupported
+	}
+	if _, ok := q.Tasks.(operational.PendingTaskQueue); !ok {
+		return collectnative.ErrUnsupported
+	}
+	for cursor, count := "", 0; ; {
+		names, next, err := enrollment.Authority.ScanRepositories(ctx, 0, cursor, 100)
+		if err != nil {
+			return err
+		}
+		count += len(names)
+		if count > 100000 {
+			return collectnative.ErrCapacity
+		}
+		for _, name := range names {
+			scope, err := enrollment.Authority.CurrentScope(ctx, name)
+			if errors.Is(err, collectnative.ErrIdentity) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if _, err := q.enqueueNativeControl(ctx, Task{
+				Repository: scope.Repository, InstallationID: scope.InstallationID, ScopeEpoch: scope.Epoch,
+				Reason: "inventory-sync", InventoryRefresh: true,
+			}, IntentWorkflowRefresh, "", 0); err != nil {
+				return err
+			}
+		}
+		if next == "" {
+			return nil
+		}
+		if next <= cursor {
+			return collectnative.ErrIdentity
+		}
+		cursor = next
+	}
 }
 
 func (q Queue) nativeControlLease(ctx context.Context, consumer string, idle time.Duration) ([]Lease, error) {

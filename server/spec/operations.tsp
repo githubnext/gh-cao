@@ -69,6 +69,11 @@ model CollectionStatus {
   lastSuccessAt?: string;
   rateLimits?: { installationId: int64; remaining: int32; parkedUntil?: string }[];
 }
+@example(#{queued: true})
+model CollectionSyncAccepted {
+  /** Durable admission succeeded or an inventory refresh is already pending; not collection completion. */
+  queued: true;
+}
 model QuotaBucket { app: string; installation: int64; resource: string; }
 model QuotaPoint {
   time: utcDateTime;
@@ -182,6 +187,13 @@ namespace Operations {
   @useAuth(DashboardAuth)
   @route("/api/admin/collection/status")
   @get op collectionStatus(): CollectionStatus | Unauthorized | Forbidden | Unavailable;
+
+  /** Administrator-only asynchronous repository and campaign metadata refresh within committed enrollment. Takes no request body. Local bearer or a freshly assured hosted administrator session with CSRF is required. Admits inventory-only tasks to the durable collection queue, coalescing repeated pending requests; does not query GitHub inline, reconcile enrollment, collect run history or execute Value. Admission-only frontends may queue work for separate workers. Uses the explicitly provisioned reviewed inventory, never replaces policy or widens authority. Native workers also refresh existing inventory automatically on their repository repair schedule: one hour by default, with configured intervals limited to at most 24 hours. Acceptance does not mean refresh has completed. Missing native collection, unavailable scope/queue capability or admission backpressure returns 503; partial admission may already have queued bounded work and retries coalesce it. */
+  @useAuth(DashboardAuth)
+  @route("/api/admin/collection/sync")
+  @post op collectionSync(@header("X-CSRF-Token") csrfToken?: string):
+    { @statusCode code: 202; @header cacheControl: "no-store"; @body body: CollectionSyncAccepted } |
+    BadRequest | Unauthorized | Forbidden | TooManyRequests | Unavailable;
 
   /** Alias for the administrative collection status endpoint. */
   @useAuth(DashboardAuth)

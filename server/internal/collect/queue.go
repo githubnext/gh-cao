@@ -328,6 +328,9 @@ func (q Queue) leases(ctx context.Context, messages []operational.TaskMessage) (
 // enqueue a follow-up task rather than being silently collapsed into a
 // collection that already started.
 func (q Queue) Admit(ctx context.Context, task Task) error {
+	if task.InventoryRefresh && task.Reason == "inventory-sync" {
+		return nil
+	}
 	key := task.debounceKey()
 	if key == "" {
 		return nil

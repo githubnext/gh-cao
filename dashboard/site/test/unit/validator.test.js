@@ -48,7 +48,8 @@ describe('dashboard document validation', () => {
     'unknown property'
   ])('rejects lazy selection with %s', (invalid) => {
     const document = JSON.parse(authoritativeDashboardSource);
-    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance')
+      .views.find((/** @type {{ id: string }} */ view) => view.id === 'maintenance-repositories');
     const valid = structuredClone(view.list.selection);
     const selections = {
       'empty keys': { key: [], commands: valid.commands },
@@ -68,7 +69,8 @@ describe('dashboard document validation', () => {
 
   it('rejects selection on a non-lazy list', () => {
     const document = JSON.parse(authoritativeDashboardSource);
-    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance').views[0];
+    const view = document.dashboard.pages.find((/** @type {{ id: string }} */ page) => page.id === 'maintenance')
+      .views.find((/** @type {{ id: string }} */ view) => view.id === 'maintenance-repositories');
     view['lazy-list'] = false;
     expect(validateDashboardDocument(JSON.stringify(document))).toMatchObject({
       ok: false,

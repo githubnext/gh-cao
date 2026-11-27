@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -77,7 +78,8 @@ type CollectorConfig struct {
 	// RecoverDeliveries enables webhook delivery replay for gap recovery.
 	RecoverDeliveries bool
 	// RepositoryRefreshInterval repairs repository membership even when lifecycle
-	// webhooks are missed. Zero selects one hour.
+	// webhooks are missed, refreshing existing inventory as well. Zero selects
+	// one hour; configured intervals must not exceed 24 hours.
 	RepositoryRefreshInterval time.Duration
 	// QueueMaxLength applies backpressure to the outstanding task stream.
 	QueueMaxLength int
@@ -120,6 +122,35 @@ var _ Reconciler = (*Collector)(nil)
 var _ EventAdmitter = (*Collector)(nil)
 
 const collectionHealthSourceName = "collection-health"
+
+type collectionSyncAccepted struct {
+	Queued bool `json:"queued"`
+}
+
+func (a *App) collectionSync(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("Cache-Control", "no-store")
+	if !a.adminAuthorized(request) {
+		a.writeAdminDenied(response, request, "administrative authorization is required")
+		return
+	}
+	if request.Body != nil {
+		var first [1]byte
+		if _, err := io.ReadFull(request.Body, first[:]); !errors.Is(err, io.EOF) {
+			writeError(request.Context(), response, http.StatusBadRequest, "collection sync takes no request body")
+			return
+		}
+	}
+	collector, ok := a.reconciler.(*Collector)
+	if !ok || collector == nil || collector.native == nil {
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "native collection is not configured")
+		return
+	}
+	if err := collector.queue.SyncInventory(request.Context(), collector.enrollment); err != nil {
+		writeError(request.Context(), response, http.StatusServiceUnavailable, "inventory sync admission is unavailable")
+		return
+	}
+	writeJSON(response, http.StatusAccepted, collectionSyncAccepted{Queued: true})
+}
 
 // NewCollector assembles the collection profile from configuration.
 func NewCollector(
