@@ -237,8 +237,8 @@ ownership. Unknown kinds and unsupported non-empty schema versions fail explicit
 
 The complete normative [cached gh-aw JSONL mapping](https://github.com/githubnext/gh-cao/blob/main/specs/dashboard-gh-aw-jsonl-mapping.md) describes source fields, canonical entities, identity, ownership, and accounting.
 
-The canonical model is version 37. The browser database is
-logically `gh-aw-cao-dashboard-data`, IndexedDB version 50. Pages storage keys
+The canonical model is version 38. The browser database is
+logically `gh-aw-cao-dashboard-data`, IndexedDB version 51. Pages storage keys
 carry the `synthetic-demo` suffix and deployment scope; service-worker caches
 use `demo`. The demo source namespace remains under `demo-data/`, not the old root
 manifest URL, preventing old same-origin cached real data from being reused.

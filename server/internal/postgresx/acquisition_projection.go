@@ -321,7 +321,12 @@ func (s *Store) recordWorkflowCompilerVersion(ctx context.Context, tx *sql.Tx, i
 		args = append(args, bound)
 		updates = append(updates, fmt.Sprintf("%s=$%d", query.SQLIdentifier(column.name), len(args)))
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE workflows SET "+strings.Join(updates, ",")+" WHERE namespace=$1 AND id=$2", args...)
+	statement, _, err := sqlbuilder.Build("UPDATE {} SET {} WHERE namespace=$1 AND id=$2",
+		sqlbuilder.Identifier(table.name), sqlbuilder.Fragment(strings.Join(updates, ",")))
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, statement, args...)
 	return err
 }
 

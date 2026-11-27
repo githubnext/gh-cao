@@ -116,7 +116,7 @@ func readDashboardShardIndex(ctx context.Context, cache string, manifest map[str
 		return index, "", err
 	}
 	if index.Version != 1 || len(index.Shared) == 0 ||
-		index.SchemaVersion != 0 && index.SchemaVersion != dashboardingest.SchemaVersion {
+		index.SchemaVersion != 0 && index.SchemaVersion != 37 && index.SchemaVersion != dashboardingest.SchemaVersion {
 		return index, "", errors.New("local dashboard shard index is invalid")
 	}
 	shards, runs, issues := map[string]bool{}, map[string]bool{}, map[string]bool{}
@@ -179,9 +179,8 @@ func writeDashboardIncrementalSnapshot(ctx context.Context, cache string, incomi
 		return err
 	}
 	previous := map[string][]map[string]any{}
-	if indexName == "" || index.SchemaVersion == 0 {
-		// Unversioned native indexes used schema-37 rows without shard headers.
-		// Rewrite them once so full reconciliation cannot synthesize duplicates.
+	if indexName == "" || index.SchemaVersion != dashboardingest.SchemaVersion {
+		// Rewrite older native shards before publishing the current schema.
 		previous, err = readDashboardArtifactBatch(ctx, cache)
 		if err != nil {
 			return err

@@ -321,6 +321,14 @@
       }
     },
     {
+      "query": "ingest-runs", "input": "$runs", "kind": "workflow", "sourceId": "_source-id", "observedAt": "_observed-at", "required": ["_owner", "_repository", "_path", "_github-run-id"],
+      "data": {
+        "id": { "field": "_workflow-id" }, "repositoryId": { "field": "_repository-id" },
+        "ghAwRunVersion": { "field": "gh-aw-version" }, "ghAwRunVersionObservedAt": { "field": "_observed-at" },
+        "ghAwRunVersionRunId": { "field": "_id" }
+      }
+    },
+    {
       "query": "domain-records", "input": "$domains", "chunkInputs": ["$published-runs"], "kind": "domain", "sourceId": "event", "observedAt": "_observed-at", "required": ["event", "event-timestamp", "event-source", "event-type"],
       "data": {}
     },

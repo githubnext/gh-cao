@@ -35,6 +35,81 @@ func dashboardShardTestBatch(count int, now time.Time) map[string][]map[string]a
 	return batch
 }
 
+func TestDashboardWorkflowCompilerHistory(t *testing.T) {
+	inventory := map[string]any{
+		"id": "workflow:1", "ghAwVersion": "v1.0.0", "ghAwVersionSource": "inventory",
+		"ghAwInventoryVersion": "v1.0.0", "ghAwInventoryVersionObservedAt": "2026-09-09T01:00:00Z",
+		"ghAwInventoryUpdateState": "up-to-date",
+	}
+	run := map[string]any{
+		"id": "workflow:1", "ghAwRunVersion": "v1.1.0",
+		"ghAwRunVersionObservedAt": "2026-09-09T02:00:00Z", "ghAwRunVersionRunId": "run:303",
+	}
+	got := mergeDashboardWorkflowCompiler(inventory, run)
+	if got["ghAwVersion"] != "v1.1.0" || got["ghAwVersionSource"] != "run" ||
+		got["ghAwUpdateState"] != "unknown" || got["ghAwInventoryVersion"] != "v1.0.0" {
+		t.Fatalf("run observation lost inventory evidence: %+v", got)
+	}
+	scan := map[string]any{
+		"id": "workflow:1", "ghAwInventoryVersion": "v1.2.0",
+		"ghAwInventoryVersionObservedAt": "2026-09-09T03:00:00Z", "ghAwInventoryUpdateState": "update-available",
+	}
+	got = mergeDashboardWorkflowCompiler(got, scan)
+	got = mergeDashboardWorkflowCompiler(got, map[string]any{
+		"id": "workflow:1", "ghAwRunVersion": "v0.9.0", "ghAwRunVersionObservedAt": "2026-09-09T00:00:00Z",
+	})
+	if got["ghAwVersion"] != "v1.2.0" || got["ghAwVersionSource"] != "inventory" ||
+		got["ghAwUpdateState"] != "update-available" || got["ghAwRunVersion"] != "v1.1.0" {
+		t.Fatalf("history replay replaced newer compiler evidence: %+v", got)
+	}
+}
+
+func TestDashboardIncrementalSnapshotUpgradesVersionedSchema37(t *testing.T) {
+	ctx, cache, now := t.Context(), t.TempDir(), time.Now().UTC()
+	if err := writeDashboardSnapshot(ctx, cache, dashboardShardTestBatch(33, now), true); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	index, indexName, err := readDashboardShardIndex(ctx, cache, manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	index.SchemaVersion = 37
+	content, err := json.Marshal(index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	delete(manifest, indexName)
+	if _, err := writeDashboardImmutablePayload(ctx, cache, dashboardIndexPath, ".json", content, manifest); err != nil {
+		t.Fatal(err)
+	}
+	content, err = json.Marshal(manifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cache, "payload-hashes.json"), content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeDashboardSnapshot(ctx, cache, dashboardShardTestBatch(1, now), true); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err = readDashboardSnapshotManifest(ctx, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	index, _, err = readDashboardShardIndex(ctx, cache, manifest)
+	if err != nil || index.SchemaVersion != dashboardingest.SchemaVersion {
+		t.Fatalf("snapshot index was not upgraded: %+v %v", index, err)
+	}
+	recovered, err := readDashboardArtifactBatch(ctx, cache)
+	if err != nil || len(recovered["runs"]) != 33 || len(recovered["tools"]) != 33 {
+		t.Fatalf("snapshot upgrade lost retained evidence: %v", err)
+	}
+}
+
 func TestDashboardIncrementalSnapshotPublishesOnlyIngestionReceipt(t *testing.T) {
 	for _, legacy := range []bool{false, true} {
 		t.Run(fmt.Sprintf("legacy=%t", legacy), func(t *testing.T) {

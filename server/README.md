@@ -286,7 +286,7 @@ relaxing that fence, aborting history discovery or waiting for the normal
 five-minute failure retry. Final JSONL summaries remain bounded to 16 Runs per
 publication. Snapshot headers carry the embedded normalizer's generated schema
 version so current lifecycle rows are not also synthesized as legacy evidence.
-Existing unversioned schema-37 native shard indexes are rewritten once before
+Existing unversioned and versioned schema-37 native shard indexes are rewritten once before
 untouched groups can be reused. Final canonical queries must retain all tool
 evidence, the shared Issue and both delivery lifecycles.
 History must finish within 150 seconds; the unchanged active page must observe
