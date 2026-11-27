@@ -1,37 +1,7 @@
 {
  "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
- "next_category": "dependency installation and caching",
+ "next_category": "Astro documentation generation",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-26T23:33:00Z",
-   "worker_run_id": "45911187190",
-   "correlation_id": "45910707681-4901",
-   "category": "dependency installation and caching",
-   "evidence_run_ids": [
-    "45897897785",
-    "45897824716",
-    "45897525384",
-    "45762538888",
-    "45762476442",
-    "45762342616",
-    "45761522067",
-    "45625202695",
-    "45562958524",
-    "45553538993",
-    "45551175273",
-    "45483718747",
-    "45473261375",
-    "45472166796",
-    "45470904895",
-    "45333239050",
-    "45293283576",
-    "45282794439",
-    "45249995178",
-    "45117916746"
-   ],
-   "suggestion_fingerprint": null,
-   "outcome": "complete, not actionable (unchanged verdict). Correlation 45910707681-4901; worker run 45911187190. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 23:3x unchanged, none queued; main 19f2ae6 (policy sha) has no docs.yml-trigger change in window; root and dashboard/site locks unchanged since 7c8faf4 (2026-11-13). Stored rows recomputed (n=20, nearest-rank p90): setup 3.5 (p90 6), install 8 (p90 10), post 0 (max 1); setup+install+post median 13 (p90 15) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.03 s unmet even if the whole phase were removed at zero replacement cost; 60 s gate unmet. Trusted cache metadata: single exact-key entry node-cache-Linux-x64-npm-7808ecf8 (created 2026-11-13T20:57Z, ref main, 263412733 B, lastAccessed 23:28Z) with no later save under that key, so no main miss since 11-13. Push install median 8 vs schedule 8.5. Rejected again: node_modules cache (net 3-6 s, unmeasured); root omit-dev (about 3 s, unmeasured). Watch only, not a speed suggestion: dashboard/site/package-lock.json is not in the cache key. Open label-scoped issues: #20815 only. Next: Astro documentation generation."
-  },
   {
    "evaluated_at": "2026-11-26T23:51:52Z",
    "worker_run_id": "45913063732",
@@ -900,6 +870,36 @@
    ],
    "suggestion_fingerprint": null,
    "outcome": "complete, not actionable (scheduling category, unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live at 09:3xZ: main = 19f2ae6 = workspace HEAD; no docs.yml run in progress; only queued run 37642403569 (2026-10-07, outside window, stale). Stored run_timings recomputed (n=20, nearest-rank p90): queue median 3 p90 4 max 45; exec median 73.5 p90 83 max 126; push 75 (n=16) vs schedule 71.5 (n=4); 0 overlapping executions. 0 of 16 push heads avoidable. Schedules needed for synthetic-date refresh (scripts/simulate-dashboard-pages.mjs). Skipping the 3 same-commit schedule repeats saves about 11 s on those runs and leaves the workflow median at 73.5 s. Cancel-in-progress candidate: superseded builds 33-42 s compute, about 3.8 s per run on average; below gates. 60 s and 15 pct (11.03 s) gates unmet. Open #20815 (blobless checkout) represents the checkout item; not re-proposed. Next: dependency installation and caching."
+  },
+  {
+   "evaluated_at": "2026-11-27T09:52:31Z",
+   "worker_run_id": "45976776864",
+   "correlation_id": "45976092111-4931",
+   "category": "dependency installation and caching",
+   "evidence_run_ids": [
+    "45945806016",
+    "45897897785",
+    "45897824716",
+    "45897525384",
+    "45762538888",
+    "45762476442",
+    "45762342616",
+    "45761522067",
+    "45625202695",
+    "45562958524",
+    "45553538993",
+    "45551175273",
+    "45483718747",
+    "45473261375",
+    "45472166796",
+    "45470904895",
+    "45333239050",
+    "45293283576",
+    "45282794439",
+    "45249995178"
+   ],
+   "suggestion_fingerprint": null,
+   "outcome": "complete, not actionable (unchanged verdict). Correlation 45976092111-4931; worker run 45976776864. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 09:5xZ: window unchanged, none queued or in progress; origin main 19f2ae6 = source_sha. Root lock key 7808ecf8 reproduces locally; exact-key entry created 2026-11-13T20:57:12Z still listed; package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z). Recomputed stored rows (n=20, nearest-rank p90): setup 3.5 (p90 6), install 8.5 (p90 10), post 0 (max 1); setup+install+post median 13 (p90 15) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.03 s; zero-cost removal of install alone = 11.6 pct (8.5 s), below gate; node_modules cache net 3-6 s (unmeasured) below gate; 60 s gate unmet. Next: Astro documentation generation."
   }
  ],
  "docs_cache_model": {
@@ -1995,33 +1995,12 @@
   "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
  },
  "dependency_phase_last_checked": {
-  "evaluated_at": "2026-11-27T08:22:20Z",
-  "worker_run_id": "45964752558",
-  "correlation_id": "45964088711-4926",
+  "evaluated_at": "2026-11-27T09:52:31Z",
+  "worker_run_id": "45976776864",
+  "correlation_id": "45976092111-4931",
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "window": "45945806016..45249995178 (16 push, 4 schedule, 20 success)",
-  "setup_node_s": {
-   "median": 3.5,
-   "p90": 6
-  },
-  "install_s": {
-   "median": 8.5,
-   "p90": 10
-  },
-  "post_setup_node_s": {
-   "median": 0,
-   "p90": 0,
-   "max": 1
-  },
-  "setup_install_post_s": {
-   "median": 13,
-   "p90": 15,
-   "min": 10,
-   "max": 18
-  },
-  "share_of_exec_median_pct": 17.7,
-  "gate_15pct_s": 11.03,
-  "verdict": "not actionable (unchanged): cache-restore floor 3.5 s leaves net at most 9.5 s; 60 s gate unreachable"
+  "window": "45945806016..45249995178 (unchanged; 16 push, 4 schedule, 20 success)",
+  "verdict": "not actionable (unchanged)"
  },
  "job_topology_note": {
   "verified_at": "2026-11-18T22:20:34Z",
