@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T04:35:54Z",
-      "worker_run_id": "45940464616",
-      "correlation_id": "45940032998-4915",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (scheduling category, unchanged verdict). Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedul..."
-    },
     {
       "evaluated_at": "2026-11-27T04:52:39Z",
       "worker_run_id": "45942117870",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 14:19Z unchanged; main 19f2ae6 = source_sha. Recomputed stored transfer_model rows: removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; ceiling full removal 9 s. Scheduler handoff 5 s and Deploy Pages 6.5 s are not workflow-removable. Open #20815 (blobless checkout) unchanged; not re-proposed."
+    },
+    {
+      "evaluated_at": "2026-11-27T14:35:06Z",
+      "worker_run_id": "46016619861",
+      "correlation_id": "46015700210-4945",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (scheduling, concurrency, and avoidable rebuilds; unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 14:33Z unchanged, none in progress; HEAD 19f2ae6 touches server/ only (no docs.yml trigger). Queue median 3 s (p90 4); two queue waits over 10 s from superseded builds (45897897785 45 s, 45762538888 36 s), expected saving about 3.8 s per run; schedule same-commit skips give no median gain and weaken daily freshness; exec median 73.5 s (gate 11.03 s, 60 s absolute) unmet."
     }
   ],
   "docs_cache_model": {
@@ -2082,11 +2082,11 @@
     "verdict": "not actionable (unchanged): build step must be removed almost entirely to meet the 15 pct gate, and dist/ from astro build is required by deploy; validate-agent-docs and discovery test are correctness gates, so removing them would weaken correctness; sub-step split still unmeasured (logs 403 DIFC)"
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-27T12:53:22Z",
-    "worker_run_id": "46001780231",
-    "correlation_id": "46001151724-4940",
-    "window": "45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success",
-    "live_check": "gh run list at 12:52Z: window unchanged; none in progress; one stale queued run 37642403569 (2026-10-07, outside window); labelled open issues: #20815 only",
+    "verified_at": "2026-11-27T14:35:06Z",
+    "worker_run_id": "46016619861",
+    "correlation_id": "46015700210-4945",
+    "window": "45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success; unchanged at 14:33Z",
+    "live_check": "gh run list docs.yml at 14:33Z: window unchanged; none in progress; HEAD 19f2ae6 changes server/ only (no docs.yml trigger; commit files fetched once)",
     "same_commit_schedule_repeats": "45761522067 (16a88ce), 45553538993 (87b57a9), 45333239050 (12c41c7)",
     "freshness_source": "scripts/simulate-dashboard-pages.mjs:67 now=Date.now(); :76 generatedAt from now; schedule is the daily synthetic-date refresh",
     "counterfactual": "skip 3 repeats: all-run exec median 73.5 -> 74 (no gain); freshness weakened",
