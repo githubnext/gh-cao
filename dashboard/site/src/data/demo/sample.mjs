@@ -1,3 +1,4 @@
+import { createDebug } from "../../debug.js";
 import { demoSha256 as sha } from "./hash.mjs";
 import { enterpriseSessionEvents } from "./session.mjs";
 import { buildInventoryDashboardSources } from "../../../../report/inventory-sources.mjs";
@@ -5,6 +6,8 @@ import { parsePackageManifest } from "../../../../report/package-manifest.mjs";
 import { parseUnifiedSessionDocument } from "../adapters/unified-session.js";
 import { operationalValueEvidenceId } from "../model/operational-value-evidence.js";
 import { VALUE_COLLECTION_REASONS, workflowValueCollectionId } from "../model/workflow-value-collection.js";
+
+const debugSample = createDebug("sample");
 
 const owner = "contoso";
 export const enterpriseRepositoryVocabulary = Object.freeze(`
@@ -611,6 +614,7 @@ export function* enterpriseActivityBatches(now, {
     }));
   const total = fleet.reduce((sum, member) => sum + member.remaining, 0);
   const coverage = fleet.filter(member => member.remaining > 0);
+  debugSample({ event: "activity-plan", repositories: fleet.length, covered: coverage.length, runs: total });
   const coverageWindow = Math.min(total, coverage.length * 3);
   const reserved = new Set(shuffle(Array.from({ length: coverageWindow }, (_, index) => index),
     "fleet-ingestion-coverage").slice(0, coverage.length));
@@ -627,7 +631,10 @@ export function* enterpriseActivityBatches(now, {
     } else {
       let draw = sample.random() * available;
       member = fleet.find(candidate => (draw -= candidate.remaining) < 0);
-      if (!member) throw new Error("Synthetic activity sampler exhausted its run allocation.");
+      if (!member) {
+        debugSample({ event: "sampler-exhausted", emitted, runs: total, repositories: fleet.length });
+        throw new Error("Synthetic activity sampler exhausted its run allocation.");
+      }
       member.remaining--;
       available--;
     }
@@ -696,5 +703,6 @@ export function enterpriseSample(now, {
       runCount += batch.runs;
     }
   }
+  debugSample({ event: "sample-generated", repositories: repositoryCount, runs: runCount, records: records.length, includeHistory });
   return { generatedAt, sources, records, repositories: repositoryCount, runs: runCount, memory: enterpriseMemory(now) };
 }
