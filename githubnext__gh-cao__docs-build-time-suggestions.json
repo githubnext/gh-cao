@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T02:51:57Z",
-      "worker_run_id": "45930556464",
-      "correlation_id": "45930006972-4910",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (scheduling category, unchanged verdict). Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedul..."
-    },
     {
       "evaluated_at": "2026-11-27T03:22:16Z",
       "worker_run_id": "45933326175",
@@ -419,7 +389,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 07:20Z: same 20 IDs, none added since 05:36Z; local checkout 19f2ae6 clean. Demo step (scripts/simulate-dashboard-pages.mjs via dashboard:pages:build) stored n=20: median 1 s, p90 2 s, max 3 s = 1.4 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet even at full removal. Cross-run reuse blocked (simulate script uses Date.now() at :67 and generatedAt at :76; step runs every build). Next category: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list 07:..."
     },
     {
       "evaluated_at": "2026-11-27T07:33:55Z",
@@ -449,7 +419,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Correlation 45958453081-4924; worker run 45958879394. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 07:32Z: same 20 IDs, none queued or in progress; main = 19f2ae6 = source_sha; open label-scoped issues: #20815 only. Stored transfer_model rows recomputed (n=20, no API reads): removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s (p90 83); 15 pct gate 11.03 s and 60 s gate unmet even at full removal (ceiling 9 s). Push removable median 9.5 (n=16), schedule 8.5 (n=4). Deploy Pages (GitHub-managed) median 6.5 s, not removable. Next category: scheduling, concurrency, and avoidable rebuilds."
+      "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Correlation 45958453081-4924; worker run 45958879394. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-1..."
     },
     {
       "evaluated_at": "2026-11-27T07:54:52Z",
@@ -479,7 +449,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45960524754-4925; worker run 45961252098. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh docs.yml list at 07:5xZ unchanged, none queued or in progress; compare 57e7490...19f2ae6 = 4 server/ files, no docs.yml trigger path. Recomputed from stored rows (n=20, nearest-rank p90): queue median 3 (p90 4, max 45); exec median 73.5 (p90 83, max 126); push exec median 75 (n=16) vs schedule 71.5 (n=4); 0 overlapping executions; 0 of 16 push heads avoidable (all build-consumed). Schedule: 3 of 4 (16a88ce, 87b57a9, 12c41c7) rebuilt a commit already built by a push in window; gross build_docs saving 11-12 s on those runs (schedule-only exec median 71.5 to 60.5 gross) but workflow median unchanged (0 s) and restore/save cost unmeasured; 19f2ae6 is the first build of its commit. Schedule still needed for synthetic-date freshness (Date.now in scripts/simulate-dashboard-pages.mjs:67,76). cancel-in-progress false kept for deploy safety; build-only cancel expected about 3.8 s per run. 15 pct gate 11.03 s and 60 s gate unmet. Open label-scoped issues: #20815 only; no issue created. Next: dependency installation and caching."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45960524754-4925; worker run 45961252098. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 2..."
     },
     {
       "evaluated_at": "2026-11-27T08:22:20Z",
@@ -509,7 +479,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 08:2xZ unchanged, none queued or in progress. Stored rows recomputed (n=20, nearest-rank p90): setup-node 3.5 (p90 6), install 8.5 (p90 10), post 0 (max 1); phase 13 (p90 15) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.03 s unmet even at zero-cost removal of the whole phase; 60 s gate unmet. Trusted cache list: exact key node-cache-Linux-x64-npm-7808ecf8 single main entry (created 2026-11-13T20:57Z, lastAccessed 08:20Z), no later main save; local root lock hashes to 7808ecf8 at 19f2ae6 (workspace clean). Open label-scoped issues: #20815 only (checkout, out of category, unchanged). Rejected again: node_modules cache (net 3-6 s, unmeasured); root omit-dev (about 3 s, unmeasured). Next: Astro documentation generation."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 08:2xZ unchanged, none queued or in progress..."
     },
     {
       "evaluated_at": "2026-11-27T08:36:00Z",
@@ -539,7 +509,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (Astro documentation generation; unchanged verdict). Correlation 45965906778-4927; worker run 45966512981. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 08:36Z: same 20 IDs, none queued or in progress; git HEAD = source_sha = policy sha 19f2ae6. Stored build_docs rows recomputed locally (n=20, nearest-rank p90): median 12 s, p90 14, min 9, max 15 = 16.3 pct of exec median 73.5 s; 15 pct gate 11.03 s needs 92 pct of the step removed; 60 s gate unreachable. Sub-step split unmeasured (last build-log read 2026-11-26T00:35Z returned 403 DIFC; not retried). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance; same-commit schedule reuse nets ~1 s on workflow median. Label-scoped open issues: #20815 only (already recorded; not re-proposed). Next category: reusable dashboard generation."
+      "outcome": "complete, not actionable (Astro documentation generation; unchanged verdict). Correlation 45965906778-4927; worker run 45966512981. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19..."
     },
     {
       "evaluated_at": "2026-11-27T08:51:59Z",
@@ -569,7 +539,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 08:51Z matches window, none queued or in progress; source 19f2ae6 = workspace HEAD. Stored demo_s recomputed (n=20): median 1, p90 2, max 3 = 1.4 pct of exec median 73.5; 15 pct gate 11.03 s and 60 s gate unmet even at full removal. Open label-scoped issues: #20815 only. Next category: artifact transfer and Pages packaging."
+      "outcome": "complete, not actionable (unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 08:51Z matches window,..."
     },
     {
       "evaluated_at": "2026-11-27T09:21:16Z",
@@ -599,7 +569,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Correlation 45971640922-4929; worker run 45972413534. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live docs.yml list at 09:20Z matches window, none queued or in progress; main = HEAD = source 19f2ae6. Stored transfer rows recomputed (n=20, nearest-rank p90): removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; full-removal ceiling 9 s. No Jobs or log API calls (immutable rows reused). Largest phase is checkout (median 25.5 s, p90 34 = 34.7 pct of exec median), but it is the blobless suggestion already tracked by open #20815 (OPEN, 0 comments, re-verified 09:2xZ); median below the 30 s re-evaluation trigger, so no duplicate issue. Deploy-job merge still rejected (id-token and github-pages environment boundary). Next: scheduling, concurrency, and avoidable rebuilds."
+      "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Correlation 45971640922-4929; worker run 45972413534. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-1..."
     },
     {
       "evaluated_at": "2026-11-27T09:35:37Z",
@@ -629,7 +599,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (scheduling category, unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live at 09:3xZ: main = 19f2ae6 = workspace HEAD; no docs.yml run in progress; only queued run 37642403569 (2026-10-07, outside window, stale). Stored run_timings recomputed (n=20, nearest-rank p90): queue median 3 p90 4 max 45; exec median 73.5 p90 83 max 126; push 75 (n=16) vs schedule 71.5 (n=4); 0 overlapping executions. 0 of 16 push heads avoidable. Schedules needed for synthetic-date refresh (scripts/simulate-dashboard-pages.mjs). Skipping the 3 same-commit schedule repeats saves about 11 s on those runs and leaves the workflow median at 73.5 s. Cancel-in-progress candidate: superseded builds 33-42 s compute, about 3.8 s per run on average; below gates. 60 s and 15 pct (11.03 s) gates unmet. Open #20815 (blobless checkout) represents the checkout item; not re-proposed. Next: dependency installation and caching."
+      "outcome": "complete, not actionable (scheduling category, unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled...."
     },
     {
       "evaluated_at": "2026-11-27T09:52:31Z",
@@ -659,7 +629,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45976092111-4931; worker run 45976776864. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 09:5xZ: window unchanged, none queued or in progress; origin main 19f2ae6 = source_sha. Root lock key 7808ecf8 reproduces locally; exact-key entry created 2026-11-13T20:57:12Z still listed; package-lock.json last changed 7c8faf4 (2026-11-13T20:56:33Z). Recomputed stored rows (n=20, nearest-rank p90): setup 3.5 (p90 6), install 8.5 (p90 10), post 0 (max 1); setup+install+post median 13 (p90 15) = 17.7 pct of exec median 73.5 s; 15 pct gate 11.03 s; zero-cost removal of install alone = 11.6 pct (8.5 s), below gate; node_modules cache net 3-6 s (unmeasured) below gate; 60 s gate unmet. Next: Astro documentation generation."
+      "outcome": "complete, not actionable (unchanged verdict). Correlation 45976092111-4931; worker run 45976776864. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 2..."
     },
     {
       "evaluated_at": "2026-11-27T10:19:32Z",
@@ -689,7 +659,7 @@
         "45249995178"
       ],
       "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (Astro category, unchanged verdict). Correlation 45979817414-4932; worker run 45980506766. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh list at 10:17Z unchanged, none queued or in progress (stale 37642403569 outside window). Build documentation median 12 s, p90 14, min 9, max 15 (stored rows; live Jobs spot-check of 45945806016=15 s and 45249995178=14 s matched). 16.3 pct of exec median 73.5 s; 15 pct gate 11.03 s needs 92 pct of step removed, and full removal would give only 16.3 pct. Same-commit schedule skip (45761522067, 45553538993, 45333239050) recomputed on stored rows: exec median 73.5 -> 73.5 (delta 0). Push 12 vs schedule 11.5 s. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Outlier 45625202695 (exec 126 s, checkout 67 s) disclosed; its Astro step was normal (14 s). Open #20815 (blobless checkout, not Astro) unchanged, not repeated. No issue created. Next: reusable dashboard generation."
+      "outcome": "complete, not actionable (Astro category, unchanged verdict). Correlation 45979817414-4932; worker run 45980506766. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 pus..."
     },
     {
       "evaluated_at": "2026-11-27T10:34:14Z",
@@ -900,6 +870,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (unchanged verdict). Correlation 45999260919-4939; worker run 45999968932. Window 45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 12:38Z matches stored rows. Removable transfer (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; ceiling full removal 9 s. No create_issue; open #20815 is checkout-scoped, not this work."
+    },
+    {
+      "evaluated_at": "2026-11-27T12:53:22Z",
+      "worker_run_id": "46001780231",
+      "correlation_id": "46001151724-4940",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (scheduling, concurrency, and avoidable rebuilds; unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live 12:52Z: same 20 IDs; none in progress; stale queued 37642403569 (workflow_run, 2026-10-07) outside window; HEAD 19f2ae6 = source_sha. Job-level build starts confirm 0 execution overlap (45762538888 build 05:35:33 after 45762476442 deploy 05:35:30); run-level startedAt overlaps are concurrency waits. Queue median 3, p90 4, max 45; exec median 73.5, p90 83. Skipping 3 same-commit schedule repeats (16a88ce, 87b57a9, 12c41c7) leaves the all-run exec median at 74 (no gain) and removes the daily Date.now synthetic refresh (scripts/simulate-dashboard-pages.mjs:67,76): freshness required. Build-only cancel rejected (about 3.8 s per run). No create_issue; open labelled issue #20815 is checkout-scoped. Next: dependency installation and caching."
     }
   ],
   "docs_cache_model": {
@@ -2039,14 +2039,14 @@
     "note": "label-scoped open search (self-care:docs-build-time-investigator): #20815 only (blobless checkout); no new issue created"
   },
   "stale_queued_run": {
-    "observed_at": "2026-11-23T23:34:31Z",
+    "observed_at": "2026-11-27T12:53:22Z",
     "run_id": "37642403569",
     "event": "workflow_run",
     "created_at": "2026-10-07T15:12:12Z",
     "status": "queued",
     "jobs": 0,
     "head": "6206962",
-    "effect": "none observed; outside 14-day window and sample; not a concurrency blocker (window runs start at creation). Re-check only if a newer docs run stays queued."
+    "effect": "none observed; outside window; still queued at 12:52Z"
   },
   "astro_log_access": {
     "verified_at": "2026-11-26T00:35:02Z",
@@ -2082,13 +2082,14 @@
     "verdict": "not actionable (unchanged, re-checked 2026-11-27T10:19:32Z): build_docs median 12 p90 14 n=20; 15 pct gate needs 92 pct of the step removed; same-commit schedule skip leaves exec median unchanged"
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-27T11:18:15Z",
-    "worker_run_id": "45988886364",
-    "correlation_id": "45988141558-4935",
+    "verified_at": "2026-11-27T12:53:22Z",
+    "worker_run_id": "46001780231",
+    "correlation_id": "46001151724-4940",
     "window": "45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success",
-    "live_check": "gh run list at 11:17Z: window unchanged; none queued or in progress; checkout HEAD 19f2ae6; labelled open issues: #20815 only",
-    "same_commit_schedule_repeats": "45761522067 (16a88ce), 45553538993 (87b57a9), 45333239050 (12c41c7); 45945806016 is a new commit (19f2ae6)",
-    "counterfactual": "skip 3 repeats: gross schedule-only exec median 71.5 to 60.5; workflow median 73.5 unchanged; schedule is freshness-required",
+    "live_check": "gh run list at 12:52Z: window unchanged; none in progress; one stale queued run 37642403569 (2026-10-07, outside window); labelled open issues: #20815 only",
+    "same_commit_schedule_repeats": "45761522067 (16a88ce), 45553538993 (87b57a9), 45333239050 (12c41c7)",
+    "freshness_source": "scripts/simulate-dashboard-pages.mjs:67 now=Date.now(); :76 generatedAt from now; schedule is the daily synthetic-date refresh",
+    "counterfactual": "skip 3 repeats: all-run exec median 73.5 -> 74 (no gain); freshness weakened",
     "verdict": "not actionable (unchanged)"
   },
   "head_path_filter_check": {
