@@ -1,37 +1,7 @@
 {
   "source_sha": "6a6cfda82f0cecb5cf80e42abb36156347cbb36",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T06:45:00Z",
-      "worker_run_id": "45953440389",
-      "correlation_id": "45952915992-4921",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45945806016",
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (dependency installation and caching; unchanged verdict). Correlation 45952915992-4921; worker run 45953440389. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) ....."
-    },
     {
       "evaluated_at": "2026-11-27T06:56:47Z",
       "worker_run_id": "45954722106",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (scheduling, concurrency, and avoidable rebuilds; unchanged verdict). Window 46032342667 (push, 6a6cfda, 2026-11-27T16:17Z) .. 45282794439 (push, 8fb9650, 2026-11-23T22:46Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; 45249995178 excluded (21st run). Queue median 2 s p90 3; concurrency overlaps 0; build-to-deploy handoff median 0 s; deploy pickup median 5 s; total wall median 76 s p90 97 (n=20). Avoidable push rebuilds 0 of 15 verified heads; 6a6cfda file list HTTP 403 DIFC, its HEAD createDebug sits in build-consumed dashboard/site/src. Same-commit schedule repeats kept for daily synthetic-date freshness; skipping them raises median 76 to 78. No job logs read; no issue created."
+    },
+    {
+      "evaluated_at": "2026-11-27T16:38:37Z",
+      "worker_run_id": "46034373827",
+      "correlation_id": "46033566374-4951",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "46032342667",
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (dependency installation and caching; unchanged verdict). Window 46032342667 (push, 6a6cfda, 2026-11-27T16:17Z) .. 45282794439 (push, 8fb9650, 2026-11-23T22:46Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. setup_node median 4 (p90 7), install median 8.5 (p90 10), post 0-1 s (exact-key hit); setup+install+post median 13 = 17.7 pct of exec median 73.5; 15 pct gate 11.03 s unmet; install ceiling 8.5 s. Live cache 7808ecf8 present; compare 19f2ae6..6a6cfda has no package lock change."
     }
   ],
   "docs_cache_model": {
@@ -1045,8 +1045,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-27T05:36:03Z",
-    "window": "45945806016 (schedule, 19f2ae6, created 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; displaced 45117916746 (schedule, 9edb6bb) by live schedule 45945806016",
+    "evaluated_at": "2026-11-27T16:38:37Z",
+    "window": "46032342667 (push, 6a6cfda, created 2026-11-27T16:17:27Z) .. 45282794439 (push, 8fb9650, 2026-11-23T22:46Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; displaced 45249995178 (push, eb19410) by live push 46032342667",
     "columns": [
       "run",
       "event",
@@ -1064,8 +1064,25 @@
       "deploy_job_s",
       "exec_s"
     ],
-    "note": "Rows updated 2026-11-27T05:36:03Z (worker run 45946288135, correlation 45945754525-4918): added 45945806016 from live Jobs API (queue = build start minus run creation; exec = build + handoff + deploy); dropped 45117916746. Other rows immutable and reused. n=20 medians: exec 73.5 (p90 83, max 126); queue 3 (p90 4, max 45); build_job 59 (p90 71); checkout 25.5 (p90 34); setup_node 3.5 (p90 6); install 8.5 (p90 10); build_docs 12 (p90 14); demo 1 (p90 2, max 3); deploy 9 (p90 11).",
+    "note": "Rows updated 2026-11-27T05:36:03Z (worker run 45946288135, correlation 45945754525-4918): added 45945806016 from live Jobs API (queue = build start minus run creation; exec = build + handoff + deploy); dropped 45117916746. Rows updated 2026-11-27T16:38:37Z (worker run 46034373827, correlation 46033566374-4951): added 46032342667 from live Jobs API (exec = build + handoff + deploy = 79+6+9); dropped 45249995178. Other rows immutable and reused. n=20 medians: exec 73.5 (p90 83 nearest-rank 94 with new row, max 126); queue 3 (p90 4); build_job 59.5 (p90 79); checkout 26 (p90 34); setup_node 4 (p90 7); install 8.5 (p90 10); build_docs 12 (p90 15); demo 1 (p90 2); deploy 9 (p90 11).",
     "rows": [
+      [
+        "46032342667",
+        "push",
+        "success",
+        "6a6cfda",
+        4,
+        79,
+        34,
+        8,
+        11,
+        0,
+        15,
+        2,
+        3,
+        9,
+        94
+      ],
       [
         "45945806016",
         "schedule",
@@ -1388,23 +1405,6 @@
         2,
         8,
         67
-      ],
-      [
-        "45249995178",
-        "push",
-        "success",
-        "eb19410",
-        3,
-        59,
-        24,
-        3,
-        10,
-        0,
-        14,
-        2,
-        2,
-        9,
-        74
       ]
     ]
   },
@@ -1996,12 +1996,13 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-27T14:53:33Z",
-    "worker_run_id": "46019345418",
-    "correlation_id": "46018543159-4946",
-    "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-    "window": "45945806016..45249995178 (unchanged; 16 push, 4 schedule, 20 success)",
-    "verdict": "not actionable (unchanged): setup_node median 3.5, install median 8.5, post 0; setup+install+post median 13 = 17.7 pct of exec median 73.5; full install removal below 11.03 s gate; live exact-key cache present (lastAccessed 14:43Z)"
+    "evaluated_at": "2026-11-27T16:38:37Z",
+    "worker_run_id": "46034373827",
+    "correlation_id": "46033566374-4951",
+    "source_sha": "6a6cfda82f0cecb5cf80e42abb36156347cbb36",
+    "window": "46032342667..45282794439 (16 push, 4 schedule, 20 success)",
+    "verdict": "not actionable (unchanged): setup_node median 4 (p90 7), install median 8.5 (p90 10, max 11), post 0 (all 20 exact-key hits); setup+install+post median 13 = 17.7 pct of exec median 73.5; install ceiling 8.5 s < 11.03 s gate and < 60 s gate; node_modules cache net saving est. 3-6 s, not validated",
+    "method": "Jobs API step timings of 46032342667 (live, once) + stored immutable run_timings rows; gh cache list (live); gh api compare 19f2ae6...6a6cfda (3 commits, 7 files, no package.json/package-lock.json)"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
@@ -2212,10 +2213,10 @@
     "verdict": "not actionable: expected saving below 11.0 s gate and 60 s per-event gate; median unchanged"
   },
   "cache_entry_metadata": {
-    "verified_at": "2026-11-27T14:53:33Z",
-    "worker_run_id": "46019345418",
+    "verified_at": "2026-11-27T16:38:37Z",
+    "worker_run_id": "46034373827",
     "method": "gh cache list --key node-cache-Linux-x64-npm (trusted Actions metadata); local hashFiles check of root and dashboard locks at 19f2ae6; no job-log reads",
-    "exact_key_entries": "node-cache-Linux-x64-npm-7808ecf8: 1 main entry, created 2026-11-13T20:57:12Z, ref refs/heads/main, 263412733 B, lastAccessed 2026-11-27T14:43Z; root hash 7808ecf8 and dashboard hash 36b11d9f reproduced locally at HEAD",
+    "exact_key_entries": "node-cache-Linux-x64-npm-7808ecf8: 1 main entry, created 2026-11-13T20:57:12Z, ref refs/heads/main, 263412733 B, lastAccessed 2026-11-27T16:37Z; live gh cache list at worker run; no job-log reads",
     "other_entries": "other node-cache keys are feature-ref or other-workflow caches (including aaf3a193 root+dashboard combined key, not used by docs.yml); none keyed to docs.yml root lock on main"
   },
   "astro_upgrade_check": {
@@ -2236,8 +2237,8 @@
     "files": "server/ only; docs.yml trigger and docs-build inputs unchanged; source_sha kept at 19f2ae6"
   },
   "head_6a6cfda_note": {
-    "verified_at": "2026-11-27T16:23:24Z",
-    "worker_run_id": "46032363291",
-    "note": "commit file list unavailable via commits API (HTTP 403 DIFC); classified by HEAD content only; re-verify if the API becomes readable"
+    "verified_at": "2026-11-27T16:38:37Z",
+    "worker_run_id": "46034373827",
+    "note": "compare API 19f2ae6...6a6cfda returns 7 files (ahead_by 3): dashboard safe-output-lifecycle.js and test, normalize.generated.js.gz, server/ files, marketplace; no package.json, package-lock.json, or docs.yml; supersedes earlier 403 DIFC note"
   }
 }
