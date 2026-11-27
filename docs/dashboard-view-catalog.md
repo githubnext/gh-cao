@@ -146,6 +146,7 @@ Named elements own specialized DOM, accessibility, interaction, local state, and
 | `command-terminal` | Replays and follows durable local CLI output by command ID, with explicit Cancel and Retry actions through the data worker; detachment never cancels execution. |
 | `storage-info` | Identifies the configured dashboard storage engine and location without querying activity evidence; supports browser IndexedDB, local or hosted PostgreSQL, and unknown configuration. |
 | `inventory-sync` | Requests an authorized server-side repository and campaign inventory refresh from Updates, with pending, queued, unavailable, and error feedback; does not execute workflows or query activity evidence. |
+| `inference-credentials` | Shows setup options for compiled workflow engines in a selected repository, identifies missing evidence, and links to GitHub settings without accepting secret values. |
 
 ## Testing standard
 
