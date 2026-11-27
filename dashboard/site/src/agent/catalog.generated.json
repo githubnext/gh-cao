@@ -1151,8 +1151,11 @@
     {
       "id": "inference-credentials",
       "title": "Inference credentials",
-      "description": "Set up inference for the engines found in your compiled workflows. Credential values are entered in GitHub or the approved credential store, never in CAO.",
+      "description": "Choose a workflow repository to configure inference and read-only GitHub access without entering credential values in CAO.",
       "intent": "Help repository administrators configure credentials for detected agentic workflow engines and separate read-only GitHub access.",
+      "subject": "Compiled agentic workflow engine inventory by repository.",
+      "objective": "Choose the inference and read-only GitHub access setup for an exact workflow repository.",
+      "acceptance": "Show known engines and missing evidence separately; hand off secret entry to GitHub or the approved credential store without changing workflows.",
       "experimental": false,
       "parameters": [],
       "queries": [
