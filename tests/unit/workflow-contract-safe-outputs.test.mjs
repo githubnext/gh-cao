@@ -567,7 +567,7 @@ test("repository PR automation remains bounded and adapted to CAO", () => {
   assert.match(sousChef, /Chrome for Testing/);
   assert.match(sousChef, /if and only if the pushed commit modifies one or more `\.lock\.yml` files/);
   assert.doesNotMatch(sousChef, /mention `@copilot`/);
-  assert.match(sousChef, /fromJSON\(github\.event\.inputs\.aw_context \|\| '\{\}'\)\.item_number/);
+  assert.match(sousChef, /\/souschef` invocation, inspect only the pull request that received the command/);
 
   assert.equal([...mattReviewer.matchAll(/mattpocock\/skills\/[\w-]+@[0-9a-f]{40}/g)].length, 5);
   assert.match(reviewContext, /emitted < 3000/);
@@ -586,4 +586,29 @@ test("repository PR automation remains bounded and adapted to CAO", () => {
     assert.match(decisionGate, new RegExp(`\`${section}\``));
   }
   assert.match(decisionGate, /Not inferable from current pull request evidence/);
+});
+
+test("PR Sous Chef fails closed on incomplete queue, idle, validation, and publication evidence", () => {
+  const source = workflow("pr-sous-chef.md");
+  const config = parse(/^---\n([\s\S]*?)\n---/.exec(source)[1]);
+  const compiled = parse(workflow("pr-sous-chef.lock.yml"));
+  const handler = compiled.jobs.safe_outputs.steps.find(
+    (step) => step.env?.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG,
+  );
+  const outputs = JSON.parse(handler.env.GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG);
+  assert.equal(config.concurrency["cancel-in-progress"], false);
+  assert.equal(config.concurrency.queue, "max");
+  assert.equal(compiled.concurrency.queue, "max");
+  assert.deepEqual(outputs.add_comment.required_labels, ["sous-chef"]);
+  assert.deepEqual(outputs.push_to_pull_request_branch.required_labels, ["sous-chef"]);
+  const queueStep = config.steps.find((step) => step.name === "Build bounded pull request queue");
+  assert.match(queueStep.run, /set -euo pipefail/);
+  assert.match(queueStep.run, /gh pr list/);
+  assert.doesNotMatch(queueStep.run, /printf.*\[\]|if ! gh pr list/);
+  assert.match(source, /at least ten minutes without a commit/);
+  assert.match(source, /Skip active coding-agent or finisher runs/);
+  assert.match(source, /fetch failed job logs/);
+  assert.match(source, /without credentials accessible to PR code/);
+  assert.match(source, /atomic conditional update against the pinned head SHA/);
+  assert.match(source, /If that evidence cannot be read or recorded, call `report_incomplete` and do not repair/);
 });
