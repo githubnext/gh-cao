@@ -47,7 +47,9 @@ authorization to suppress work. Missing mapping means unknown, not unowned.
 
 `mapping.mjs` provides an offline parser and time classifier using the
 repository's existing `yaml` dependency. It checks document structure,
-duplicate keys, aliases, limits, identities, and timestamps. It does **not**
+duplicate keys, aliases, limits, identities, and timestamps. It accepts YAML
+1.2 with string mapping keys; aliases, explicit tags, and parser warnings are
+rejected. It does **not**
 verify identities, protected-branch review history, repository enrollment,
 credentials, evidence freshness, or exemption authority. No workflow loads
 it. An installed control repository must provision a verified,

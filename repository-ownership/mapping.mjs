@@ -1,4 +1,4 @@
-import { parseDocument } from "yaml";
+import { isAlias, isMap, isScalar, isSeq, parseDocument } from "yaml";
 
 const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98})\/[A-Za-z0-9_.-]{1,100}$/;
 const IDENTITIES = {
@@ -30,6 +30,34 @@ function timestamp(value, location) {
   return parsed;
 }
 
+// YAML's built-in uniqueKeys check compares keys pairwise. Check resolved
+// string keys with a Set instead, before toJS can collapse duplicate keys or
+// coerce complex keys. Iteration avoids recursing on attacker-controlled depth.
+function validateYamlTree(root) {
+  const pending = [root];
+  while (pending.length) {
+    const node = pending.pop();
+    if (node == null) continue;
+    if (isAlias(node) || node.tag) throw new Error("YAML aliases and explicit tags are not supported");
+    if (isMap(node)) {
+      const keys = new Set();
+      for (const pair of node.items) {
+        const key = pair.key;
+        if (!isScalar(key) || key.tag || typeof key.value !== "string") {
+          throw new Error("YAML mapping keys must be untagged strings");
+        }
+        if (keys.has(key.value)) throw new Error(`duplicate YAML key: ${key.value}`);
+        keys.add(key.value);
+        pending.push(pair.value);
+      }
+    } else if (isSeq(node)) {
+      for (const item of node.items) pending.push(item);
+    } else if (!isScalar(node)) {
+      throw new Error("unsupported YAML node");
+    }
+  }
+}
+
 /**
  * Validate a human-authored YAML mapping. This does not verify identities,
  * review history, repository eligibility, or create operational evidence.
@@ -38,8 +66,12 @@ export function parseMapping(source) {
   if (typeof source !== "string" || Buffer.byteLength(source, "utf8") > 262144) {
     throw new Error("mapping must be text no larger than 256 KiB");
   }
-  const document = parseDocument(source, { uniqueKeys: true });
-  if (document.errors.length) throw new Error(`invalid YAML: ${document.errors[0].message}`);
+  const document = parseDocument(source, { uniqueKeys: false });
+  if (document.errors.length || document.warnings.length) {
+    throw new Error(`invalid YAML: ${(document.errors[0] ?? document.warnings[0]).message}`);
+  }
+  if (document.directives.yaml.version !== "1.2") throw new Error("only YAML 1.2 is supported");
+  validateYamlTree(document.contents);
   const mapping = document.toJS({ maxAliasCount: 0 });
   object(mapping, ["version", "repositories"], ["version", "repositories"], "mapping");
   if (mapping.version !== 1 || !Array.isArray(mapping.repositories) || mapping.repositories.length > 10000) {
@@ -61,7 +93,7 @@ export function parseMapping(source) {
     const owners = new Set();
     for (const owner of entry.owners) {
       object(owner, ["kind", "id"], ["kind", "id"], "owner");
-      if (!Object.hasOwn(IDENTITIES, owner.kind) || typeof owner.id !== "string" || !IDENTITIES[owner.kind].test(owner.id)) {
+      if (typeof owner.kind !== "string" || !Object.hasOwn(IDENTITIES, owner.kind) || typeof owner.id !== "string" || !IDENTITIES[owner.kind].test(owner.id)) {
         throw new Error(`invalid owner identity in ${entry.repository}`);
       }
       const ownerKey = owner.id.toLowerCase();
