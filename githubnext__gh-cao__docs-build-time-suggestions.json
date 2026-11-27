@@ -1,37 +1,7 @@
 {
-  "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "scheduling, concurrency, and avoidable rebuilds",
+  "source_sha": "6a6cfda82f0cecb5cf80e42abb36156347cbb36",
+  "next_category": "dependency installation and caching",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T06:28:39Z",
-      "worker_run_id": "45951597615",
-      "correlation_id": "45951006841-4920",
-      "category": "scheduling, concurrency, and avoidable rebuilds",
-      "evidence_run_ids": [
-        "45945806016",
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (verdict unchanged). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 fail..."
-    },
     {
       "evaluated_at": "2026-11-27T06:45:00Z",
       "worker_run_id": "45953440389",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Correlation 46027470449-4949; worker run 46028232945. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 15:51Z unchanged, none queued or in progress; source 19f2ae6 = latest docs.yml head; main 87ba0a4 is 2 commits ahead, server/ files only (no docs.yml trigger). Live Jobs read of 45945806016 matched stored row (handoff 5, configure 1, upload 2, deploy setup 1, Deploy Pages 6). Recomputed stored transfer_model rows: removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; ceiling full removal 9 s. Folding Deploy into build would save about 6 s and grant id-token write to the build job; rejected. Open #20815 (blobless checkout) unchanged; not re-proposed. Next: scheduling, concurrency, and avoidable rebuilds."
+    },
+    {
+      "evaluated_at": "2026-11-27T16:23:24Z",
+      "worker_run_id": "46032363291",
+      "correlation_id": "46031455287-4950",
+      "category": "scheduling, concurrency, and avoidable rebuilds",
+      "evidence_run_ids": [
+        "46032342667",
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (scheduling, concurrency, and avoidable rebuilds; unchanged verdict). Window 46032342667 (push, 6a6cfda, 2026-11-27T16:17Z) .. 45282794439 (push, 8fb9650, 2026-11-23T22:46Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; 45249995178 excluded (21st run). Queue median 2 s p90 3; concurrency overlaps 0; build-to-deploy handoff median 0 s; deploy pickup median 5 s; total wall median 76 s p90 97 (n=20). Avoidable push rebuilds 0 of 15 verified heads; 6a6cfda file list HTTP 403 DIFC, its HEAD createDebug sits in build-consumed dashboard/site/src. Same-commit schedule repeats kept for daily synthetic-date freshness; skipping them raises median 76 to 78. No job logs read; no issue created."
     }
   ],
   "docs_cache_model": {
@@ -2082,15 +2082,49 @@
     "verdict": "not actionable (unchanged): build step must be removed almost entirely to meet the 15 pct gate; dist/ from astro build is required by deploy; validate-agent-docs and discovery test are correctness gates; sub-step split still unmeasured (logs 403 DIFC)"
   },
   "scheduling_reverified": {
-    "verified_at": "2026-11-27T14:35:06Z",
-    "worker_run_id": "46016619861",
-    "correlation_id": "46015700210-4945",
-    "window": "45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success; unchanged at 14:33Z",
-    "live_check": "gh run list docs.yml at 14:33Z: window unchanged; none in progress; HEAD 19f2ae6 changes server/ only (no docs.yml trigger; commit files fetched once)",
-    "same_commit_schedule_repeats": "45761522067 (16a88ce), 45553538993 (87b57a9), 45333239050 (12c41c7)",
-    "freshness_source": "scripts/simulate-dashboard-pages.mjs:67 now=Date.now(); :76 generatedAt from now; schedule is the daily synthetic-date refresh",
-    "counterfactual": "skip 3 repeats: all-run exec median 73.5 -> 74 (no gain); freshness weakened",
-    "verdict": "not actionable (unchanged)"
+    "verified_at": "2026-11-27T16:23:24Z",
+    "worker_run_id": "46032363291",
+    "correlation_id": "46031455287-4950",
+    "window": "46032342667 (push, 6a6cfda) .. 45282794439 (push, 8fb9650); 16 push, 4 schedule, 20 success",
+    "queue_s": {
+      "median": 2,
+      "p90": 3,
+      "max": 4
+    },
+    "concurrency": "0 overlaps (no build created while an earlier run was active); cancel-in-progress false kept",
+    "handoff_s": {
+      "median": 0,
+      "p90": 1
+    },
+    "deploy_pickup_s": {
+      "median": 5,
+      "p90": 6
+    },
+    "total_wall_s": {
+      "median": 76,
+      "p90": 97,
+      "min": 67,
+      "max": 129,
+      "n": 20
+    },
+    "push_total_median_s": 78,
+    "schedule_total_median_s": 73.5,
+    "exec_median_s": {
+      "build": 59.5,
+      "deploy": 9
+    },
+    "step_medians_s": {
+      "checkout": 26,
+      "setup_node": 4,
+      "install": 8.5,
+      "build_docs": 12,
+      "demo": 1,
+      "upload": 2
+    },
+    "avoidable_push_rebuilds": "0 of 15 verified heads; 6a6cfda file list HTTP 403 DIFC (not bypassed); HEAD createDebug in dashboard/site/src/data/model/safe-output-lifecycle.js (build-consumed); no createDebug under .github/workflows/shared",
+    "schedule_same_commit_repeats": "45761522067 (16a88ce), 45553538993 (87b57a9), 45333239050 (12c41c7) kept; scripts/simulate-dashboard-pages.mjs:67 now=Date.now() synthetic-date refresh; skip counterfactual median 76 -> 78",
+    "policy_build_input": "dashboard/site/scripts/build.mjs imports .github/workflows/shared/policy.mjs (build-consumed); other shared control files are not build inputs",
+    "verdict": "not actionable (unchanged); 60 s and 15% (10.2 s of exec median 68) gates not met; max scheduling overhead median 7 s (queue 2 + handoff 0 + deploy pickup 5)"
   },
   "head_path_filter_check": {
     "verified_at": "2026-11-25T04:36:14Z",
@@ -2200,5 +2234,10 @@
       "87ba0a4"
     ],
     "files": "server/ only; docs.yml trigger and docs-build inputs unchanged; source_sha kept at 19f2ae6"
+  },
+  "head_6a6cfda_note": {
+    "verified_at": "2026-11-27T16:23:24Z",
+    "worker_run_id": "46032363291",
+    "note": "commit file list unavailable via commits API (HTTP 403 DIFC); classified by HEAD content only; re-verify if the API becomes readable"
   }
 }
