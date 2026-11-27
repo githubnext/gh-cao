@@ -81,6 +81,16 @@ public final class PolicyResolver {
                 policy.digest());
     }
 
+    /** Owner-only scope check for evidence that is not a single target (e.g. an inventory owner). */
+    static void validateOwner(ControlPolicy.Scope scope, String controlRepository, String owner) {
+        List<String> owners = scope.owners().isEmpty()
+                ? List.of(controlRepository.substring(0, controlRepository.indexOf('/')))
+                : scope.owners();
+        if (owners.stream().noneMatch(candidate -> candidate.equalsIgnoreCase(owner))) {
+            throw new PolicyException("owner is outside control-plane.scope.allowed-owners");
+        }
+    }
+
     /** Owners default to the control repository owner; owner and repository lists are cumulative. */
     static void validateScope(ControlPolicy.Scope scope, String controlRepository, String target) {
         String normalized = target.toLowerCase(Locale.ROOT);

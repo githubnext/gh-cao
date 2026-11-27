@@ -8,6 +8,7 @@ public record ControlPolicy(
         String digest,
         Scope scope,
         Defaults defaults,
+        Inventory inventory,
         Map<String, Campaign> campaigns) {
 
     /** Owner and repository allow-lists; empty means "not restricted by this list". */
@@ -15,6 +16,13 @@ public record ControlPolicy(
 
     /** Nullable members mean the declaration is absent. */
     public record Defaults(Mode mode, Integer maxRepositories, Integer rolloutPercent) { }
+
+    /** Resolved scan, cell and batch ceilings (§5.3); schema defaults are already applied. */
+    public record Inventory(int maxScanRepositories, int cellCount, int cellIndex, int batchSize, int batchIndex) {
+        public static Inventory defaults() {
+            return new Inventory(1000, 1, 0, 100_000, 0);
+        }
+    }
 
     public record Worker(String workflow, boolean enabled, Mode maxMode) { }
 

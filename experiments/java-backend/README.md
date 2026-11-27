@@ -17,6 +17,12 @@ The fail-closed policy/authority kernel for the control-plane subset of
   default, exact-target and worker-ceiling narrowing, and narrowing-only dispatch
   requests (widening throws `PolicyException`; expected denials return stable reasons).
 
+- `inventory` package: `InventorySource` read-only contract (no GitHub-backed implementation yet),
+  `InventoryPartitioner` (deterministic id-modulo cells, contiguous batches, `sha256:` inventory version
+  asserted against digests produced by the Node.js comparison code) and fail-closed identity checks.
+- `OrchestratorAdmission` (§4.4, §5.3, §6.2-6.3): resolves policy, reads inventory only after an authorized
+  resolution, caps admitted repositories by policy, rollout and dispatch budget, reports worker eligibility,
+  and emits the orchestrator effective record or an honest `inventory-unavailable` record. It dispatches nothing.
 - `operational` package: PostgreSQL adapter for the operational `AuditLog`
   (`specs/server-operational-storage.md`): tamper-evident SHA-256 hash chain compatible with the Go
   canonical record bytes, anchors, namespace isolation, runtime-versus-owner separation

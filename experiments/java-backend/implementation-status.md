@@ -1,11 +1,11 @@
 # Implementation status
 
-Source SHA: `7cb5134de200cd5d27125613422c3ecc7abdf846` (previous slices authored at `93614994…` / `2fbe39c5…` / `a19872d3…`)
-Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel;
+Source SHA: `2d5a4fce8f694d4046b5fc1a25bc092a1f48253b` (previous slices authored at `7cb5134d…` / `93614994…` / `2fbe39c5…` / `a19872d3…`)
+Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for the policy kernel and orchestrator admission;
 `specs/server-operational-storage.md` (PostgreSQL operational adapter, `AuditLog`) for the storage slice.
 `.github/workflows/shared/*`, `server/internal/operational/**` and `server/postgres/operational-grants.sql` are comparison evidence only.
 
-## Implemented and verified (`mvn verify`: 73 tests, 0 failures, 0 skipped; baseline was 41)
+## Implemented and verified (`mvn verify`: 98 tests, 0 failures, 0 skipped; baseline at this SHA was 73)
 
 | Spec reference | Behavior |
 | --- | --- |
@@ -18,6 +18,9 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 | §6.4, T-RES-004/005 | `WorkerRevalidator`: current policy intersected with the parent `DispatchEnvelope`; narrowing/revocation honored, broadening never widens; identity/target mismatch fatal |
 | §6.3, T-RES-006/007 (worker only) | `EffectiveRecord`: worker/denial record with status, reason, identity, mode, repo, workflow SHA, policy digest, schema version, time, envelope |
 | CAO-EXE-004, §6.3, T-EXE-002..005 (evidence-model level) | `ManualDebugAdmission`: single-run debug worker admitted only for `workflow_dispatch`, human non-bot actor equal to triggering actor, write/maintain/admin permission, matching target/output repos, `debug` event mode, no dispatcher correlation inputs; policy resolution (identity, enablement, scope, limits) still applies; record carries `launch_kind: manual-debug`, `debug_actor`, `safe_outputs_staged: true`, empty correlation fields, no envelope, empty candidate/worker lists. Missing evidence fails closed. Expected denials return a plain denial record |
+| §5.3 inventory table | `control-plane.inventory` parsed strictly: only the five documented keys, ranges 1..100000 / 1..1000 / 1..100000 / ≥0, `cell-index < cell-count`, schema defaults (1000, 1, 0, 100000, 0) applied; `InventoryRepository` rejects non-owner/repo names and ids outside 1..2^53-1 |
+| §5.3 "partitioning MUST be deterministic" | `InventoryPartitioner`: unique repositories sorted by id; cell = `id % cell-count == cell-index`; contiguous `batch-size` slices; empty cell has 0 batches; `batch-index` past the last batch fails; version `sha256:` over the `JSON.stringify` bytes, asserted equal to digests computed by the Node.js `inventoryDigest` (including escapes, null fields, U+2028); identical duplicates collapse, conflicting evidence for one id or one name under two ids throws |
+| CAO-EXE-001, §6.2 steps 4-5/7, §6.3 orchestrator record, §7 (T-RES-007 orchestrator fields) | `OrchestratorAdmission`: policy resolved first (denials return a record and never read inventory); allow-list scope selects exactly the enrolled repositories else owner inventory; source output verified (no repository outside owner/enrollment; an unread enrolled repository or scan overflow is unavailable); `effective_max_repos = min(policy cap, ceil(candidates*rollout/100) (0 if none), floor(dispatch_max / min(eligible workers, dispatch_max)))`; per-candidate mode from exact target policy narrowed by a requested mode; worker eligibility with the comparison implementation's skip reasons; unavailable inventory yields `authorized`, `activation_ready:false`, `reason: inventory-unavailable`, empty candidates/workers and a fixed message that never echoes source error text |
 | §7, Appendix B | `campaign-undeclared`, `campaign-disabled`, `worker-disabled` denials; unknown worker fatal; policy SHA-256 digest recorded |
 | `server/spec/generated/openapi.json` `/api/health`, `/api/readiness` | JDK `HttpServer` on numeric loopback (non-loopback needs `CAO_ALLOW_NON_LOOPBACK=true`); HealthResponse/ReadinessResponse/OperationalState/DataState shapes; 503 when operational store or canonical data is missing (always today: `ServiceState.unconfigured()`); all capabilities `unsupported`; 404/405 otherwise; `Cache-Control: no-store`; 503 once shutdown begins; env config validation |
 | `specs/server-operational-storage.md` — PostgreSQL operational adapter, `AuditLog` | `PostgresOperationalStore` implements the audit service over real PostgreSQL (tested against a disposable loopback PostgreSQL 18 started by the tests, never skipped): append serializes on the locked `cao_operational_namespaces` row, gap-free per-namespace sequence, database `clock_timestamp()` truncated to ms, `hash = SHA-256(prev_hash ‖ record)` over the stored canonical record; `list` (filter by event/actor/after-sequence, limit ≤ 1000); `verify` (repeatable-read read-only) detects edits, gaps, broken chain, indexed-column divergence, anchor mismatch and head truncation; anchors before the retained window count as expired |
@@ -38,12 +41,13 @@ Governing contracts: `specs/control-architecture.md` (working draft v1.0.0) for 
 - Health/readiness: no per-client rate limiting (429), no authorized `revision`/`counts` details. curl smoke of the packaged jar was denied by the sandbox; only startup (`listening on 127.0.0.1:18080`) was observed. HTTP behavior is verified by in-process tests over real loopback sockets.
 
 - Debug mode: admission logic takes caller-supplied `ManualDebugEvidence`; nothing yet reads the authoritative GitHub event or checks permission live (T-RES-008 recheck at precompute is the caller's duty), and gh-aw staging (T-GHA-004) is out of scope. Ordinary `PolicyResolver` still rejects `debug`; persistent debug policy stays invalid.
-- Policy schema: only `scope`, `defaults`, `campaigns` (mode, caps, targets, workers). Not a full JSON Schema validation.
+- Orchestrator admission takes caller-supplied, unverified `Context` (workflow SHA, compiled worker list, workflow states, `dispatch_max`) and an `InventorySource`; only in-memory test sources exist, so no live repository evidence was exercised. Archived/disabled repositories are carried in `candidate_repositories` as the comparison implementation does for orchestrators (filtering happens at dispatch time there; here no dispatch exists). Cell-by-id for a single `target_repo` shortcut is not implemented (orchestrators have no target).
+- Policy schema: only `scope`, `inventory`, `defaults`, `campaigns` (mode, caps, targets, workers). Not a full JSON Schema validation.
 
 ## Not implemented
 
-Orchestrator/standalone effective records, standalone workflows and operations,
-`inventory`, `web.host`, host extensions, `target-authority`, authority envelopes,
+Standalone workflows and operations (standalone records reuse the partitioner but are not built),
+any GitHub-backed `InventorySource` (listing, pagination, archive/disabled evidence, rate limits), review-destination privacy/accessibility checks (`OrchestratorAdmission` rejects a non-control review destination instead of accepting it), `web`/`web.host`, host extensions, `target-authority`, authority envelopes,
 exact-SHA policy fetch, canonical ingestion/storage (PostgreSQL), Dashboard Language
 execution, all other HTTP routes, authentication, operational state beyond `AuditLog` (sessions, revocations, leases, queues, quota, rate limiting, CLI commands), canonical PostgreSQL adapter, container image build verification.
 
@@ -53,7 +57,6 @@ None. Environment note: the sandbox JDK truststore was empty and `~/.m2` unwrita
 
 ## Next bounded slice
 
-Canonical PostgreSQL storage: read `server/spec/storage.tsp` and `specs/dashboard-data.md` §§ on ingestion,
+Either canonical PostgreSQL storage: read `server/spec/storage.tsp` and `specs/dashboard-data.md` §§ on ingestion,
 bring up a separate canonical namespace/adapter, ingest a synthetic canonical JSONL fixture through a Java ingestion
-contract, and drive `data.available`/`evaluatedAt` from the published revision. Alternatively, orchestrator/standalone
-effective records (control-architecture §6.3).
+contract, and drive `data.available`/`evaluatedAt` from the published revision. Or a standalone-workflow effective record (§4.5, §6.3) reusing `InventoryPartitioner`, or a GitHub-backed `InventorySource` against recorded synthetic API responses.
