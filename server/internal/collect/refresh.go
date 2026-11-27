@@ -7,8 +7,11 @@ import (
 
 	"github.com/githubnext/gh-cao/server/internal/githubapp"
 	"github.com/githubnext/gh-cao/server/internal/githubquota"
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/postgresx"
 )
+
+var refreshLog = logger.New("cao:collect:refresh")
 
 // RepositoryEnumerator keeps installation discovery paginated and quota-governed.
 type RepositoryEnumerator interface {
@@ -49,22 +52,19 @@ func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, que
 			}
 			count += len(items)
 			if count > limit {
+				refreshLog.Printf("repository discovery exceeded bound: limit=%d", limit)
 				return errors.New("installation repository discovery exceeds the configured bound")
 			}
 			if next != 0 && next <= page {
+				refreshLog.Printf("repository discovery page did not advance: page=%d", page)
 				return errors.New("repository discovery returned a non-advancing page")
 			}
-			for _, item := range items {
-				if item.Archived {
-					continue
-				}
-				name, err := NormalizeRepository(item.FullName)
-				if err != nil {
-					return fmt.Errorf("normalize discovered repository: %w", err)
-				}
-				repositories = append(repositories, name)
-				identifiers = append(identifiers, item.ID)
+			names, ids, err := activeRepositories(items)
+			if err != nil {
+				return err
 			}
+			repositories = append(repositories, names...)
+			identifiers = append(identifiers, ids...)
 			page = next
 		}
 		// Publish only a complete successful enumeration. A partial page set
@@ -73,18 +73,9 @@ func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, que
 		if err != nil {
 			return err
 		}
-		current := make(map[string]bool, len(repositories))
-		for _, name := range repositories {
-			current[name] = true
-		}
-		var removed []string
-		previousSet := make(map[string]bool, len(previous))
-		for _, name := range previous {
-			previousSet[name] = true
-			if !current[name] {
-				removed = append(removed, name)
-			}
-		}
+		removed, previousSet := diffRepositories(previous, repositories)
+		refreshLog.Printf("repository discovery complete: discovered=%d previous=%d removed=%d",
+			len(repositories), len(previous), len(removed))
 		if enrollment.Authority == nil {
 			admitter := Admitter{Queue: queue}
 			if err := admitter.queueErasures(ctx, installationID, removed); err != nil {
@@ -115,4 +106,41 @@ func (r ScopeRefresher) discover(ctx context.Context, enrollment Enrollment, que
 		}
 		return nil
 	})
+}
+
+// activeRepositories drops archived repositories and returns the normalized
+// names with their identifiers, in discovery order.
+func activeRepositories(items []githubapp.Repository) ([]string, []int64, error) {
+	var names []string
+	var identifiers []int64
+	for _, item := range items {
+		if item.Archived {
+			continue
+		}
+		name, err := NormalizeRepository(item.FullName)
+		if err != nil {
+			return nil, nil, fmt.Errorf("normalize discovered repository: %w", err)
+		}
+		names = append(names, name)
+		identifiers = append(identifiers, item.ID)
+	}
+	return names, identifiers, nil
+}
+
+// diffRepositories returns the previously enrolled repositories absent from
+// current, in previous order, and the set of all previous repositories.
+func diffRepositories(previous, current []string) ([]string, map[string]bool) {
+	present := make(map[string]bool, len(current))
+	for _, name := range current {
+		present[name] = true
+	}
+	var removed []string
+	previousSet := make(map[string]bool, len(previous))
+	for _, name := range previous {
+		previousSet[name] = true
+		if !present[name] {
+			removed = append(removed, name)
+		}
+	}
+	return removed, previousSet
 }

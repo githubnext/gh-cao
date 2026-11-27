@@ -125,6 +125,16 @@ func TestNativeInventoryColdStartPreparesControlBeforeReplay(t *testing.T) {
 		t.Fatalf("source-first scoped preparation changed: %v", provider.calls)
 	}
 	nativeCanonicalCount(t, data, "$runs", 1)
+	// Restart with the existing durable historical tasks still outstanding.
+	// Their deduplication must not suppress fresh startup inventory acquisition.
+	provider.calls = nil
+	state, err = backfill.Run(t.Context())
+	if err != nil || state.QueuedEnumerations != 0 || state.Phase != "collecting" {
+		t.Fatalf("resumed backfill replaced outstanding historical discovery: %+v %v", state, err)
+	}
+	if len(provider.calls) != 2 || provider.calls[0] != "octo/z-control" || provider.calls[1] != "octo/api" {
+		t.Fatalf("resumed backfill skipped fresh source-first inventory: %v", provider.calls)
+	}
 	provider.failure = errors.New("GitHub unavailable again")
 	if _, err := backfill.Replay(t.Context()); err != nil || len(provider.calls) != 2 {
 		t.Fatalf("direct replay was not credential-free: %v %v", provider.calls, err)

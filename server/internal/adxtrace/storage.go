@@ -48,16 +48,27 @@ func (o localObjects) List() ([]ObjectInfo, error) {
 	}
 	result := make([]ObjectInfo, 0, len(entries))
 	for _, entry := range entries {
-		info, err := entry.Info()
+		object, err := privateObjectInfo(entry)
 		if err != nil {
 			return nil, err
 		}
-		if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
-			return nil, errors.New("trace object is not a private regular file")
-		}
-		result = append(result, ObjectInfo{Key: entry.Name(), Bytes: info.Size()})
+		result = append(result, object)
 	}
 	return result, nil
+}
+
+// privateObjectInfo describes a spool entry, rejecting anything that is not a
+// regular file readable only by its owner.
+func privateObjectInfo(entry fs.DirEntry) (ObjectInfo, error) {
+	info, err := entry.Info()
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
+		spoolLog.Printf("trace object rejected: reason=not_private_regular dir=%t", info.IsDir())
+		return ObjectInfo{}, errors.New("trace object is not a private regular file")
+	}
+	return ObjectInfo{Key: entry.Name(), Bytes: info.Size()}, nil
 }
 
 func readBounded(objects Objects, key string, limit int64) ([]byte, error) {

@@ -43,6 +43,82 @@ func (emptyNativeHistory) DiscoveryRuns(context.Context, collectnative.Enrollmen
 	return nil, 0, errors.New("empty workflow inventory cannot discover runs")
 }
 
+type scheduledNativeInventory struct {
+	nativeRuntimeHooks
+	refreshed chan collectnative.EnrollmentScope
+}
+
+func (h scheduledNativeInventory) RefreshInventory(ctx context.Context, scope collectnative.EnrollmentScope) error {
+	select {
+	case h.refreshed <- scope:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+type inventoryRepairHistory struct {
+	emptyNativeHistory
+	discovered chan collectnative.EnrollmentScope
+}
+
+func (h inventoryRepairHistory) DiscoveryWorkflows(ctx context.Context, scope collectnative.EnrollmentScope, _ int) ([]int64, int, error) {
+	select {
+	case h.discovered <- scope:
+		return nil, 0, nil
+	case <-ctx.Done():
+		return nil, 0, ctx.Err()
+	}
+}
+
+func TestNativeWorkerSchedulesInventoryAndRunDiscoveryOnStartupAndPeriodically(t *testing.T) {
+	data := testutil.Postgres(t, t.Context(), "CAO_TEST_POSTGRES_URL", "POSTGRES_URL")
+	queue := nativeEventQueue(t)
+	enrollment := nativeEnrollmentFixture(t, data, queue)
+	if err := enrollment.AddRepositories(t.Context(), 7, []string{"octo/api"}); err != nil {
+		t.Fatal(err)
+	}
+	scope := nativeScope(t, enrollment, "octo/api")
+	hooks := scheduledNativeInventory{refreshed: make(chan collectnative.EnrollmentScope, 4)}
+	history := inventoryRepairHistory{discovered: make(chan collectnative.EnrollmentScope, 4)}
+	worker := nativeEventWorker(queue, enrollment, &nativeRefreshFixture{})
+	worker.Inventory = hooks
+	worker.RefreshInterval = time.Second
+	worker.Runs = RunWorker{
+		Collector: runAttemptFunc(func(context.Context, collectnative.Identity) error {
+			return errors.New("inventory repair must not invent exact attempts")
+		}),
+		Discovery: history, Publications: data.Acquisition(),
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	stopped := make(chan error, 1)
+	go func() { stopped <- worker.Run(ctx) }()
+	defer func() {
+		cancel()
+		if err := <-stopped; !errors.Is(err, context.Canceled) {
+			t.Errorf("native scheduler did not join on shutdown: %v", err)
+		}
+	}()
+	for _, phase := range []string{"startup", "periodic"} {
+		select {
+		case got := <-hooks.refreshed:
+			if got != scope {
+				t.Fatalf("%s inventory refreshed outside committed enrollment: %+v", phase, got)
+			}
+		case <-ctx.Done():
+			t.Fatalf("%s inventory refresh did not run", phase)
+		}
+		select {
+		case got := <-history.discovered:
+			if got != scope {
+				t.Fatalf("%s run discovery escaped committed enrollment: %+v", phase, got)
+			}
+		case <-ctx.Done():
+			t.Fatalf("%s run discovery did not run alongside inventory repair", phase)
+		}
+	}
+}
+
 func TestNativePeriodicRepairDeduplicatesAcrossReplicasAndUsesNewObservation(t *testing.T) {
 	data := testutil.Postgres(t, t.Context(), "CAO_TEST_POSTGRES_URL", "POSTGRES_URL")
 	queue := nativeEventQueue(t)

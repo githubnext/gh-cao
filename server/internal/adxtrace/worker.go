@@ -14,9 +14,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 	"github.com/githubnext/gh-cao/server/internal/sessionexport"
 )
+
+var frameLog = logger.New("cao:adxtrace")
 
 type Sink interface {
 	Capacity(context.Context) error
@@ -334,48 +337,10 @@ func (w *Worker) freeze(root Objects, state *ledger) error {
 		if w.now().Before(cutoff) {
 			continue
 		}
-		f := &frame{ID: id, Repository: records[0].Repository, Day: records[0].Day, Cutoff: w.now(),
-			State: "pending", Members: map[string]string{}}
-		eligible := make([]*record, 0, len(records))
-		for _, r := range records {
-			switch r.State {
-			case "eligible":
-				eligible = append(eligible, r)
-			case "excluded":
-				f.Excluded++
-			default:
-				f.SourceGaps++
-			}
-		}
-		f.Population = len(eligible)
-		slices.SortFunc(eligible, func(a, b *record) int {
-			ra, rb := w.rank(id, a.ID), w.rank(id, b.ID)
-			if ra < rb {
-				return -1
-			}
-			if ra > rb {
-				return 1
-			}
-			if a.ID < b.ID {
-				return -1
-			}
-			if a.ID > b.ID {
-				return 1
-			}
-			return 0
-		})
-		count := len(eligible)
-		if w.spool.config.Mode == "sample" {
-			count = min(count, w.spool.config.SampleCount)
-		}
-		for _, r := range eligible[:count] {
-			f.Members[r.ID] = r.Version
-		}
-		membership, err := json.Marshal(f.Members)
+		f, err := w.newFrame(id, records)
 		if err != nil {
 			return err
 		}
-		f.MembershipDigest = digest(membership)
 		state.Revision++
 		f.Revision = state.Revision
 		state.Frames[id] = f
@@ -385,6 +350,57 @@ func (w *Worker) freeze(root Objects, state *ledger) error {
 		return w.spool.save(root, state)
 	}
 	return nil
+}
+
+// newFrame freezes the sampling frame for one repository day from its records:
+// it counts non-eligible outcomes, ranks eligible records by the seeded HMAC
+// and selects the whole population or the configured sample.
+func (w *Worker) newFrame(id string, records []*record) (*frame, error) {
+	f := &frame{ID: id, Repository: records[0].Repository, Day: records[0].Day, Cutoff: w.now(),
+		State: "pending", Members: map[string]string{}}
+	eligible := make([]*record, 0, len(records))
+	for _, r := range records {
+		switch r.State {
+		case "eligible":
+			eligible = append(eligible, r)
+		case "excluded":
+			f.Excluded++
+		default:
+			f.SourceGaps++
+		}
+	}
+	f.Population = len(eligible)
+	slices.SortFunc(eligible, func(a, b *record) int {
+		ra, rb := w.rank(id, a.ID), w.rank(id, b.ID)
+		if ra < rb {
+			return -1
+		}
+		if ra > rb {
+			return 1
+		}
+		if a.ID < b.ID {
+			return -1
+		}
+		if a.ID > b.ID {
+			return 1
+		}
+		return 0
+	})
+	count := len(eligible)
+	if w.spool.config.Mode == "sample" {
+		count = min(count, w.spool.config.SampleCount)
+	}
+	for _, r := range eligible[:count] {
+		f.Members[r.ID] = r.Version
+	}
+	membership, err := json.Marshal(f.Members)
+	if err != nil {
+		return nil, err
+	}
+	f.MembershipDigest = digest(membership)
+	frameLog.Printf("trace frame frozen: mode=%s population=%d selected=%d source_gaps=%d excluded=%d",
+		w.spool.config.Mode, f.Population, len(f.Members), f.SourceGaps, f.Excluded)
+	return f, nil
 }
 
 func (w *Worker) rank(frameID, id string) string {
