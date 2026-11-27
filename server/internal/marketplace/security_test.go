@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -106,6 +107,53 @@ func TestRegistryDiagnosticRowOmitsPackagesCountWhenUnavailable(t *testing.T) {
 func TestLoadConfigFileDegradesGracefullyOnAMissingFile(t *testing.T) {
 	if _, err := LoadConfigFile(filepath.Join(t.TempDir(), "does-not-exist.json")); err == nil {
 		t.Fatal("expected a missing policy file to return an error the caller can degrade on")
+	}
+}
+
+func TestLoadConfigFileRejectsOversizedPolicyWithoutMaterializingIt(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cao.json")
+	file, err := os.Create(path) // #nosec G304 -- test-owned temporary path.
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A sparse file far above the limit costs no disk but would cost its full
+	// size in memory if read before the limit check.
+	const fileBytes = 128 << 20
+	if err := file.Truncate(fileBytes); err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+	_, err = LoadConfigFile(path)
+	runtime.ReadMemStats(&after)
+
+	if err == nil || !strings.Contains(err.Error(), "exceeds") {
+		t.Fatalf("expected an oversized policy rejection, got: %v", err)
+	}
+	if allocated := after.TotalAlloc - before.TotalAlloc; allocated > fileBytes/4 {
+		t.Fatalf("oversized policy was materialized: allocated %d bytes for a %d byte limit", allocated, maxPolicyBytes)
+	}
+}
+
+func TestLoadConfigFileAcceptsPolicyAtTheSizeLimit(t *testing.T) {
+	prefix, suffix := `{"padding":"`, `"}`
+	padding := strings.Repeat("x", maxPolicyBytes-len(prefix)-len(suffix))
+	path := filepath.Join(t.TempDir(), "cao.json")
+	if err := os.WriteFile(path, []byte(prefix+padding+suffix), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	config, err := LoadConfigFile(path)
+	if err != nil {
+		t.Fatalf("a policy exactly at the limit must be accepted: %v", err)
+	}
+	if len(config.Registries) != 0 {
+		t.Fatalf("unexpected registries: %#v", config.Registries)
 	}
 }
 
