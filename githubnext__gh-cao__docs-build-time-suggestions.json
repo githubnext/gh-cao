@@ -1,37 +1,7 @@
 {
-  "source_sha": "6a6cfda82f0cecb5cf80e42abb36156347cbb36",
-  "next_category": "Astro documentation generation",
+  "source_sha": "53b944e78861c010557a61eeb52ee29852391ad5",
+  "next_category": "reusable dashboard generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T06:56:47Z",
-      "worker_run_id": "45954722106",
-      "correlation_id": "45954201337-4922",
-      "category": "Astro documentation generation",
-      "evidence_run_ids": [
-        "45945806016",
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (Astro documentation generation; unchanged verdict). Correlation 45954201337-4922; worker run 45954722106. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 4524..."
-    },
     {
       "evaluated_at": "2026-11-27T07:20:26Z",
       "worker_run_id": "45957436492",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (dependency installation and caching; unchanged verdict). Window 46032342667 (push, 6a6cfda, 2026-11-27T16:17Z) .. 45282794439 (push, 8fb9650, 2026-11-23T22:46Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. setup_node median 4 (p90 7), install median 8.5 (p90 10), post 0-1 s (exact-key hit); setup+install+post median 13 = 17.7 pct of exec median 73.5; 15 pct gate 11.03 s unmet; install ceiling 8.5 s. Live cache 7808ecf8 present; compare 19f2ae6..6a6cfda has no package lock change."
+    },
+    {
+      "evaluated_at": "2026-11-27T16:53:31Z",
+      "worker_run_id": "46036754991",
+      "correlation_id": "46036035668-4952",
+      "category": "Astro documentation generation",
+      "evidence_run_ids": [
+        "46035260702",
+        "46032342667",
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (Astro documentation generation; unchanged verdict). Correlation 46036035668-4952; worker run 46036754991. Window 46035260702 (push, 53b944e, 2026-11-27T16:38:06Z) .. 45293283576 (push, 12c41c7, 2026-11-23T23:58Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; displaced 45282794439 by live push 46035260702. One live Jobs read (46035260702) plus stored immutable rows. build_docs median 12 (p90 15, max 15) = 16.0 pct of exec median 75 (p90 94); 15 pct gate 11.25 s needs about 94 pct of the step removed, leaving under 1 s for the Astro build, so the 60 s gate is unreachable. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT (docs/components/SiteFooter.astro:9; scripts/validate-agent-docs.mjs:571). Build-job logs not read (403 DIFC; not retried). 53b944e touched docs/marketplace.md only. Label-scoped open issues: #20815 only (blobless checkout; not re-proposed); no create_issue. Next: reusable dashboard generation."
     }
   ],
   "docs_cache_model": {
@@ -1045,8 +1045,8 @@
     }
   ],
   "run_timings": {
-    "evaluated_at": "2026-11-27T16:38:37Z",
-    "window": "46032342667 (push, 6a6cfda, created 2026-11-27T16:17:27Z) .. 45282794439 (push, 8fb9650, 2026-11-23T22:46Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; displaced 45249995178 (push, eb19410) by live push 46032342667",
+    "evaluated_at": "2026-11-27T16:53:31Z",
+    "window": "46035260702 (push, 53b944e, created 2026-11-27T16:38:06Z) .. 45293283576 (push, 12c41c7, 2026-11-23T23:58Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; displaced 45282794439 (push, 8fb9650) by live push 46035260702",
     "columns": [
       "run",
       "event",
@@ -1064,8 +1064,25 @@
       "deploy_job_s",
       "exec_s"
     ],
-    "note": "Rows updated 2026-11-27T05:36:03Z (worker run 45946288135, correlation 45945754525-4918): added 45945806016 from live Jobs API (queue = build start minus run creation; exec = build + handoff + deploy); dropped 45117916746. Rows updated 2026-11-27T16:38:37Z (worker run 46034373827, correlation 46033566374-4951): added 46032342667 from live Jobs API (exec = build + handoff + deploy = 79+6+9); dropped 45249995178. Other rows immutable and reused. n=20 medians: exec 73.5 (p90 83 nearest-rank 94 with new row, max 126); queue 3 (p90 4); build_job 59.5 (p90 79); checkout 26 (p90 34); setup_node 4 (p90 7); install 8.5 (p90 10); build_docs 12 (p90 15); demo 1 (p90 2); deploy 9 (p90 11).",
+    "note": "Rows updated 2026-11-27T05:36:03Z (worker run 45946288135, correlation 45945754525-4918): added 45945806016 from live Jobs API (queue = build start minus run creation; exec = build + handoff + deploy); dropped 45117916746. Rows updated 2026-11-27T16:38:37Z (worker run 46034373827, correlation 46033566374-4951): added 46032342667 from live Jobs API (exec = build + handoff + deploy = 79+6+9); dropped 45249995178. Other rows immutable and reused. n=20 medians: exec 73.5 (p90 83 nearest-rank 94 with new row, max 126); queue 3 (p90 4); build_job 59.5 (p90 79); checkout 26 (p90 34); setup_node 4 (p90 7); install 8.5 (p90 10); build_docs 12 (p90 15); demo 1 (p90 2); deploy 9 (p90 11). Rows updated 2026-11-27T16:53:31Z (worker run 46036754991, correlation 46036035668-4952): added 46035260702 from live Jobs API (queue 3 = build start minus creation; build_job 60; checkout 25; setup_node 3; install 11; post 0; build_docs 15; demo 1; upload 1; deploy 12; exec = 60+6+12 = 78); dropped 45282794439. n=20 medians now: exec 75 (p90 94, max 126); build_docs 12 (p90 15, max 15).",
     "rows": [
+      [
+        "46035260702",
+        "push",
+        "success",
+        "53b944e",
+        3,
+        60,
+        25,
+        3,
+        11,
+        0,
+        15,
+        1,
+        1,
+        12,
+        78
+      ],
       [
         "46032342667",
         "push",
@@ -1388,23 +1405,6 @@
         2,
         10,
         76
-      ],
-      [
-        "45282794439",
-        "push",
-        "success",
-        "8fb9650",
-        4,
-        53,
-        24,
-        4,
-        7,
-        0,
-        9,
-        1,
-        2,
-        8,
-        67
       ]
     ]
   },
@@ -2057,25 +2057,25 @@
     "status": "build job logs for 45562958524 (job 139030808661) return HTTP 403 DIFC (difc_forbidden) again; sub-step split remains unmeasured; not retried or bypassed"
   },
   "astro_step_latest": {
-    "verified_at": "2026-11-27T15:17:54Z",
-    "worker_run_id": "46023046193",
-    "correlation_id": "46022374708-4947",
-    "window": "45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); unchanged at 15:17Z",
-    "method": "stored immutable run_timings rows recomputed (nearest-rank p90, n=20); IDs verified equal to live gh run list; package.json and package-lock.json commit lists checked (none since 2026-11-22); no job-log calls",
+    "verified_at": "2026-11-27T16:53:31Z",
+    "worker_run_id": "46036754991",
+    "correlation_id": "46036035668-4952",
+    "window": "46035260702 (push, 53b944e) .. 45293283576 (push, 12c41c7); 20 success, 0 failed, 0 cancelled",
+    "method": "stored immutable run_timings rows plus one live Jobs API read of 46035260702 (nearest-rank p90, n=20); no job-log calls",
     "build_docs_s": {
       "median": 12,
-      "p90": 14,
+      "p90": 15,
       "min": 9,
       "max": 15,
       "n": 20
     },
     "exec_s": {
-      "median": 73.5,
-      "p90": 83
+      "median": 75,
+      "p90": 94
     },
-    "build_docs_share_exec_median_pct": 16.3,
-    "gate_15pct_s": 11.03,
-    "required_step_removal_pct_for_15pct_gate": 92,
+    "build_docs_share_exec_median_pct": 16,
+    "gate_15pct_s": 11.25,
+    "required_step_removal_pct_for_15pct_gate": 94,
     "push_vs_schedule_build_docs_s": {
       "push": 12,
       "schedule": 11.5
