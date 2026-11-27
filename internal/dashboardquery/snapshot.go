@@ -11,7 +11,7 @@ import (
 )
 
 const DatabaseName = "gh-aw-cao-dashboard-data"
-const DatabaseVersion = 50
+const DatabaseVersion = 51
 
 var ErrSnapshotInputBudget = errors.New("snapshot input budget exceeded")
 
