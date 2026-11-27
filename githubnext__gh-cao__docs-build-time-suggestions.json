@@ -1,37 +1,7 @@
 {
  "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
- "next_category": "reusable dashboard generation",
+ "next_category": "artifact transfer and Pages packaging",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-26T17:30:56Z",
-   "worker_run_id": "45868001675",
-   "correlation_id": "45867460766-4883",
-   "category": "reusable dashboard generation",
-   "evidence_run_ids": [
-    "45762538888",
-    "45762476442",
-    "45762342616",
-    "45761522067",
-    "45625202695",
-    "45562958524",
-    "45553538993",
-    "45551175273",
-    "45483718747",
-    "45473261375",
-    "45472166796",
-    "45470904895",
-    "45333239050",
-    "45293283576",
-    "45282794439",
-    "45249995178",
-    "45117916746",
-    "44989298582",
-    "44974265341",
-    "44952052187"
-   ],
-   "suggestion_fingerprint": null,
-   "outcome": "complete, not actionable (unchanged verdict). Correlation 45867460766-4883; worker run 45868001675. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live run list 17:30Z: none in progress, only stale queued 37642403569 (2026-10-07, outside window); source 4ad992d = main, no docs.yml-trigger path change since. Live Jobs spot-check 45762538888 matches stored row (demo step 1 s). Stored rows recomputed (n=20): demo_s median 1 p90 2 max 3 (1.4 pct of exec median 73 s); 15 pct gate 10.95 s and 60 s gate unmet even at full removal; cross-run reuse blocked (synthetic dates, scripts/simulate-dashboard-pages.mjs:67,:76). Next: artifact transfer and Pages packaging."
-  },
   {
    "evaluated_at": "2026-11-26T17:53:28Z",
    "worker_run_id": "45870935175",
@@ -900,6 +870,36 @@
    ],
    "suggestion_fingerprint": null,
    "outcome": "complete, not actionable (Astro category, unchanged verdict). Correlation 45934295343-4912; worker run 45934788358. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 03:35Z matches the window; source 19f2ae6 unchanged. Build documentation step (docs:build = astro build + static validate-agent-docs + discovery test) build_docs_s median 12, p90 14 (nearest rank), max 15, n=20; exec median 73.5 s; share 16.3 pct; 15 pct gate 11.03 s needs 92 pct of the step removed. No package.json or lockfile change in 9edb6bb..19f2ae6 (compare, 34 commits), so the Astro-upgrade re-verify trigger for #20877 is unmet; #20877 still OPEN. Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance. Re-open trigger (median above about 13 s with repeated runs) unmet. No new job logs read (DIFC 403 path not retried)."
+  },
+  {
+   "evaluated_at": "2026-11-27T03:52:44Z",
+   "worker_run_id": "45936342521",
+   "correlation_id": "45935867377-4913",
+   "category": "reusable dashboard generation",
+   "evidence_run_ids": [
+    "45897897785",
+    "45897824716",
+    "45897525384",
+    "45762538888",
+    "45762476442",
+    "45762342616",
+    "45761522067",
+    "45625202695",
+    "45562958524",
+    "45553538993",
+    "45551175273",
+    "45483718747",
+    "45473261375",
+    "45472166796",
+    "45470904895",
+    "45333239050",
+    "45293283576",
+    "45282794439",
+    "45249995178",
+    "45117916746"
+   ],
+   "suggestion_fingerprint": null,
+   "outcome": "complete, not actionable (unchanged verdict). Correlation 45935867377-4913; worker run 45936342521. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list unchanged (no docs.yml run since 21:24Z); source 19f2ae6 = HEAD. Stored rows recomputed (n=20): demo_s median 1 p90 2 max 3 (1.4 pct of exec median 73.5 s); 15 pct gate 11.03 s and 60 s gate unmet even at full removal. Jobs spot-check 45483718747 matched stored row (install 8, build docs 11, demo 3). Cross-run reuse still blocked (scripts/simulate-dashboard-pages.mjs:67,:76). Next: artifact transfer and Pages packaging."
   }
  ],
  "docs_cache_model": {
@@ -1765,8 +1765,8 @@
   "ceiling_saving_s": 2,
   "reuse_blocker": "cross-run reuse would pin synthetic dates: scripts/simulate-dashboard-pages.mjs:67 (now = Date.now()) and :76 (generatedAt); docs.yml runs the step every build",
   "verdict": "not actionable: demo step median 1 s, p90 2 s, max 3 s (1.4 percent of exec median); 15 percent gate unmet even at full removal; 60 s gate unreachable",
-  "last_reverified_at": "2026-11-27T02:23:31Z",
-  "last_reverified_worker_run_id": "45927670087"
+  "last_reverified_at": "2026-11-27T03:52:44Z",
+  "last_reverified_worker_run_id": "45936342521"
  },
  "astro_output_reuse": {
   "verified_at": "2026-11-16T06:36:53Z",
@@ -2164,10 +2164,10 @@
   "verdict": "not actionable; re-open only if Pages reuse can be proven commit-correct or build_docs median exceeds about 13 s with repeated runs"
  },
  "dashboard_generation_last_checked": {
-  "evaluated_at": "2026-11-27T02:23:31Z",
-  "worker_run_id": "45927670087",
-  "correlation_id": "45927136503-4908",
-  "verdict": "not actionable (unchanged): demo step median 1 s, p90 2 s, max 3 s; 1.4 pct of exec median 73.5 s; window and source 19f2ae6 unchanged at 02:23Z live list"
+  "evaluated_at": "2026-11-27T03:52:44Z",
+  "worker_run_id": "45936342521",
+  "correlation_id": "45935867377-4913",
+  "verdict": "not actionable (unchanged): demo step median 1 s, p90 2 s, max 3 s; 1.4 pct of exec median 73.5 s; window and source 19f2ae6 unchanged at live list"
  },
  "superseding_builds": {
   "evaluated_at": "2026-11-26T21:32:19Z",
