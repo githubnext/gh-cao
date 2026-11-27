@@ -50,6 +50,10 @@ test("ownership package and policy declare disabled review-capped workers", () =
   assert.equal(policy.enabled, false);
   assert.equal(policy.mode, "review");
   assert.equal(policy["max-repositories"], 1);
+  assert.deepEqual(policy.targets, {
+    "githubnext/gh-aw-wizard": { mode: "review" },
+    "githubnext/gh-aw-workshop": { mode: "review" },
+  });
   assert.deepEqual(Object.keys(policy.workers).sort(), workers.toSorted());
   for (const worker of workers) {
     assert.deepEqual(policy.workers[worker], {

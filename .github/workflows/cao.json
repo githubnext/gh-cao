@@ -108,6 +108,14 @@
             "enabled": false,
             "max-mode": "review"
           }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
         }
       },
       "modernization": {
