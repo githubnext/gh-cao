@@ -92,6 +92,32 @@
       }
     },
     "campaigns": {
+      "repository-ownership": {
+        "icon": "key",
+        "enabled": false,
+        "mode": "review",
+        "max-repositories": 1,
+        "workers": {
+          "discovery": {
+            "workflow": "repository-ownership-discovery",
+            "enabled": false,
+            "max-mode": "review"
+          },
+          "enforcement": {
+            "workflow": "repository-ownership-enforcement",
+            "enabled": false,
+            "max-mode": "review"
+          }
+        },
+        "targets": {
+          "githubnext/gh-aw-wizard": {
+            "mode": "review"
+          },
+          "githubnext/gh-aw-workshop": {
+            "mode": "review"
+          }
+        }
+      },
       "modernization": {
         "icon": "workflow",
         "enabled": false,

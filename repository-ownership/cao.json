@@ -1,0 +1,8 @@
+{
+  "campaign": "repository-ownership",
+  "orchestrator": "repository-ownership",
+  "workers": {
+    "discovery": "repository-ownership-discovery",
+    "enforcement": "repository-ownership-enforcement"
+  }
+}
