@@ -1,37 +1,7 @@
 {
  "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-26T19:51:22Z",
-   "worker_run_id": "45886367364",
-   "correlation_id": "45885759465-4890",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "45762538888",
-    "45762476442",
-    "45762342616",
-    "45625202695",
-    "45562958524",
-    "45553538993",
-    "45551175273",
-    "45483718747",
-    "45473261375",
-    "45472166796",
-    "45470904895",
-    "44989298582",
-    "44974265341",
-    "44952052187",
-    "45117916746",
-    "45249995178",
-    "45282794439",
-    "45293283576",
-    "45333239050",
-    "45761522067"
-   ],
-   "suggestion_fingerprint": null,
-   "outcome": "complete, not actionable (unchanged verdict). Correlation 45885759465-4890; worker run 45886367364. Window 45762538888 (push, 5ddfe67, 2026-11-26T05:34:57Z) .. 44952052187 (push, 22d22e4, 2026-11-21T21:32:22Z); 15 push, 5 schedule, 20 success, 0 failed, 0 cancelled; live 19:51Z: 20-run window unchanged, source main 4ad992d, queued run 37642403569 is the stale 2026-10-07 entry. Exec median 73 s (p90 87), queue median 3 s (p90 4, max 36; one concurrency wait, no other overlap). 15 pct gate 10.95 s. Schedule exec median 72 vs push 74; 5 of 5 window schedules rebuild a commit built earlier, gaps 0.3-27 h, so skipping would weaken synthetic-date freshness and saves 0 s on the median. Commits since 05:34Z touch no docs.yml trigger path."
-  },
   {
    "evaluated_at": "2026-11-26T20:17:31Z",
    "worker_run_id": "45889597542",
@@ -900,6 +870,36 @@
    ],
    "suggestion_fingerprint": null,
    "outcome": "complete, not actionable (artifact transfer, unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list unchanged at 05:52Z. Recomputed from stored immutable transfer_model rows: removable (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet. Deploy Pages (GitHub-managed) median 6.5 s; upload median 2 s; artifact 7.4-9.3 MB. Open #20815 (checkout) unchanged, not re-proposed; no new issue."
+  },
+  {
+   "evaluated_at": "2026-11-27T06:28:39Z",
+   "worker_run_id": "45951597615",
+   "correlation_id": "45951006841-4920",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "45945806016",
+    "45897897785",
+    "45897824716",
+    "45897525384",
+    "45762538888",
+    "45762476442",
+    "45762342616",
+    "45761522067",
+    "45625202695",
+    "45562958524",
+    "45553538993",
+    "45551175273",
+    "45483718747",
+    "45473261375",
+    "45472166796",
+    "45470904895",
+    "45333239050",
+    "45293283576",
+    "45282794439",
+    "45249995178"
+   ],
+   "suggestion_fingerprint": null,
+   "outcome": "complete, not actionable (verdict unchanged). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 2026-11-27T06:28:39Z matches, none queued or in progress; source 19f2ae6 = local HEAD. Stored rows recomputed: exec median 73.5 (p90 83, max 126); queue median 3 (p90 4, max 45); push exec 75 vs schedule 71.5. Fresh file-list check of all 16 push heads: each touches docs/** or dashboard/site/**, so 0 avoidable push rebuilds. 3 of 4 schedule runs (45761522067, 45553538993, 45333239050) repeat a commit built earlier in window; skipping them (212 s exec) leaves median 73.5 (0 s; 15 pct gate 11.0 s unmet) and weakens synthetic-date refresh. Two superseded-build queue waits (36 s, 45 s), cancel-in-progress false kept; prior rejection stands. Open issues: #20815 only (OPEN, 0 comments); not re-proposed. Next: dependency installation and caching."
   }
  ],
  "docs_cache_model": {
@@ -1668,7 +1668,7 @@
    ]
   ],
   "summary": {
-   "removable_median_s": 9.0,
+   "removable_median_s": 9,
    "removable_p90_s": 10,
    "removable_max_s": 12,
    "removable_mean_s": 9.3,
@@ -1677,11 +1677,11 @@
    "removable_pct_of_exec_median": 12.2,
    "gate_15pct_s": 11.03,
    "gate_60s_absolute": "not met",
-   "handoff_median_s": 5.0,
-   "upload_median_s": 2.0,
+   "handoff_median_s": 5,
+   "upload_median_s": 2,
    "deploy_pages_median_s": 6.5,
    "deploy_pages_p90_s": 7,
-   "ceiling_full_removal_s": 9.0,
+   "ceiling_full_removal_s": 9,
    "decision": "not actionable (re-evaluated 2026-11-27T05:52:30Z worker 45948058777; recomputed from stored rows, unchanged)"
   },
   "artifact_bytes": {
@@ -2101,12 +2101,14 @@
   "verdict": "not actionable (unchanged, re-checked 2026-11-27T05:19:38Z): build_docs median 12 p90 14 n=20; 15 pct gate needs 92 pct of the step removed; no zero-cost path"
  },
  "scheduling_reverified": {
-  "verified_at": "2026-11-27T02:51:57Z",
-  "worker_run_id": "45930556464",
-  "correlation_id": "45930006972-4910",
-  "window": "45897897785 (push, 57e7490) .. 45117916746 (schedule, 9edb6bb); 16 push, 4 schedule, 20 success",
-  "live_check": "gh run list at 02:51Z: window unchanged, none queued or in progress",
-  "stored_recompute": "queue median 3 p90 4 max 45; exec median 73.5 p90 83 max 126; 0 overlaps; same-commit schedule docs-build removal leaves median 73.5",
+  "verified_at": "2026-11-27T06:28:39Z",
+  "worker_run_id": "45951597615",
+  "correlation_id": "45951006841-4920",
+  "window": "45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success",
+  "live_check": "gh run list at 2026-11-27T06:28:39Z: window unchanged vs run_timings, none queued or in progress; open issues label-scoped: #20815 only",
+  "window_push_heads_file_check": "16/16 build-consumed (docs/** or dashboard/site/** match): 57e7490 a794462 9503d6a 5ddfe67 098f44c a9c67cb 16a88ce 779b82f 87b57a9 69a4cbc a973b6b 8313ff5 3a1cef8 12c41c7 8fb9650 eb19410",
+  "same_commit_schedule_repeats": "45761522067 (16a88ce), 45553538993 (87b57a9), 45333239050 (12c41c7); 45945806016 is a new commit (19f2ae6)",
+  "counterfactual": "skip 3 repeats at 3 s: exec median 73.5 unchanged",
   "verdict": "not actionable (unchanged)"
  },
  "head_path_filter_check": {
