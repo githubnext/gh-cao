@@ -100,14 +100,7 @@ $credential$`); err != nil {
 		return errors.New("cannot open the managed PostgreSQL schema owner")
 	}
 	defer func() { _ = owner.Close() }()
-	replacer := strings.NewReplacer(`:"schema"`, `"cao"`, `:"runtime"`, `"cao_runtime"`,
-		`:"retention"`, `"cao_retention"`, `:"reader"`, `"cao_evidence"`)
-	for _, contract := range []string{grants.CanonicalGrants, grants.OperationalGrants} {
-		if _, err := owner.ExecContext(ctx, replacer.Replace(contract)); err != nil {
-			return errors.New("cannot apply managed PostgreSQL runtime privilege contracts")
-		}
-	}
-	return nil
+	return applyLocalGrants(ctx, owner)
 }
 
 // parseLocalProvisionTarget validates the loopback administrator endpoint, the
@@ -147,4 +140,28 @@ func localOwnerAddress(admin *url.URL) string {
 	parameters.Set("search_path", "cao")
 	owner.RawQuery = parameters.Encode()
 	return owner.String()
+}
+
+// localGrantReplacer binds the psql-style variables of the packaged grant
+// contracts to the fixed local runtime roles and the cao schema.
+var localGrantReplacer = strings.NewReplacer(`:"schema"`, `"cao"`, `:"runtime"`, `"cao_runtime"`,
+	`:"retention"`, `"cao_retention"`, `:"reader"`, `"cao_evidence"`)
+
+// renderLocalGrants returns the contract with every role variable bound.
+func renderLocalGrants(contract string) string {
+	return localGrantReplacer.Replace(contract)
+}
+
+// applyLocalGrants applies the canonical and operational runtime privilege
+// contracts as the schema owner, stopping at the first failure.
+func applyLocalGrants(ctx context.Context, owner *sql.DB) error {
+	contracts := []string{grants.CanonicalGrants, grants.OperationalGrants}
+	localDatabaseLog.Printf("applying runtime privilege contracts: contracts=%d", len(contracts))
+	for index, contract := range contracts {
+		if _, err := owner.ExecContext(ctx, renderLocalGrants(contract)); err != nil {
+			localDatabaseLog.Printf("runtime privilege contract failed: index=%d", index)
+			return errors.New("cannot apply managed PostgreSQL runtime privilege contracts")
+		}
+	}
+	return nil
 }

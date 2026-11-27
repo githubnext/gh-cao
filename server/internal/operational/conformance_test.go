@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"math"
 	"math/bits"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -288,6 +290,35 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("rejected quota writes changed state: %+v, %v", state, err)
 		}
 	})
+	t.Run("request-limiter-rejects-invalid-arguments", func(t *testing.T) {
+		limiter := services.RequestLimiter
+		const name = "limiter-invalid-arguments"
+		limit := func(_ operational.RateLimitResult, err error) error { return err }
+		rejected := map[string]error{
+			"empty name":      limit(limiter.TakeRateLimitTokens(ctx, "", 3, time.Hour, 1)),
+			"blank name":      limit(limiter.TakeRateLimitTokens(ctx, " ", 3, time.Hour, 1)),
+			"NUL name":        limit(limiter.TakeRateLimitTokens(ctx, "a\x00b", 3, time.Hour, 1)),
+			"oversized name":  limit(limiter.TakeRateLimitTokens(ctx, strings.Repeat("n", 1025), 3, time.Hour, 1)),
+			"zero capacity":   limit(limiter.TakeRateLimitTokens(ctx, name, 0, time.Hour, 1)),
+			"zero cost":       limit(limiter.TakeRateLimitTokens(ctx, name, 3, time.Hour, 0)),
+			"cost > capacity": limit(limiter.TakeRateLimitTokens(ctx, name, 3, time.Hour, 4)),
+			"sub-ms period":   limit(limiter.TakeRateLimitTokens(ctx, name, 3, time.Microsecond, 1)),
+			"huge period":     limit(limiter.TakeRateLimitTokens(ctx, name, 3, time.Duration(math.MaxInt64), 1)),
+			"single empty":    limit(limiter.TakeRateLimitToken(ctx, "", 3, time.Hour)),
+		}
+		if bits.UintSize == 64 {
+			rejected["oversized capacity"] = limit(limiter.TakeRateLimitTokens(ctx, name, int(1<<40+1), time.Hour, 1))
+		}
+		for label, err := range rejected {
+			if err == nil {
+				t.Errorf("%s was accepted", label)
+			}
+		}
+		result, err := limiter.TakeRateLimitTokens(ctx, name, 3, time.Hour, 1)
+		if err != nil || !result.Allowed || result.Remaining != 2 {
+			t.Fatalf("rejected requests changed bucket state: %+v, %v", result, err)
+		}
+	})
 	t.Run("in-flight-blocking-read-cancellation", func(t *testing.T) {
 		queue := services.Queue
 		if err := queue.EnsureQueue(ctx, "cancel-blocking-read", "workers"); err != nil {
@@ -502,6 +533,33 @@ func conformance(t *testing.T, store operational.Store) {
 			t.Fatalf("committed reserve: %d, %v", reserved, err)
 		}
 		if err := deliveries.ForgetDelivery(ctx, "reserved-delivery"); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("delivery-reservation-outlives-commit", func(t *testing.T) {
+		deliveries := services.Deliveries
+		const id = "reservation-outlives-commit"
+		if reserved, err := deliveries.ReserveDelivery(ctx, id, time.Hour); err != nil || reserved != operational.DeliveryReserved {
+			t.Fatalf("reserve: %d, %v", reserved, err)
+		}
+		// Only the holder's release ends the reservation; committing or
+		// forgetting the durable marker must not hand it to another caller.
+		if fresh, err := deliveries.RememberDelivery(ctx, id, time.Hour); err != nil || !fresh {
+			t.Fatalf("commit: %t, %v", fresh, err)
+		}
+		if err := deliveries.ForgetDelivery(ctx, id); err != nil {
+			t.Fatal(err)
+		}
+		if reserved, err := deliveries.ReserveDelivery(ctx, id, time.Hour); err != nil || reserved != operational.DeliveryInProgress {
+			t.Fatalf("reserve after commit and forget: %d, %v", reserved, err)
+		}
+		if err := deliveries.ReleaseDeliveryReservation(ctx, id); err != nil {
+			t.Fatal(err)
+		}
+		if reserved, err := deliveries.ReserveDelivery(ctx, id, time.Hour); err != nil || reserved != operational.DeliveryReserved {
+			t.Fatalf("reserve after release: %d, %v", reserved, err)
+		}
+		if err := deliveries.ReleaseDeliveryReservation(ctx, id); err != nil {
 			t.Fatal(err)
 		}
 	})

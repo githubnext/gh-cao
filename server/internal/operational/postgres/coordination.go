@@ -133,9 +133,6 @@ func (s *Store) RememberDelivery(ctx context.Context, id string, ttl time.Durati
 		if err := t.put(k, []byte{1}, t.now.Add(ttl)); err != nil {
 			return err
 		}
-		if err := t.remove(key{"delivery-reservation", id, ""}); err != nil {
-			return err
-		}
 		fresh = true
 		return nil
 	})

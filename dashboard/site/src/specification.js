@@ -122,6 +122,7 @@ export const VIEW_ELEMENT_VALUES = [
   'markdown',
   'command-terminal',
   'storage-info',
+  'inventory-sync',
   'environment-defaults',
   'prompt-wizard'
 ];

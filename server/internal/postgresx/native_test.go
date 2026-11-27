@@ -18,7 +18,7 @@ import (
 	"github.com/githubnext/gh-cao/server/internal/testutil/pgtemplate"
 )
 
-func nativeTestStore(t *testing.T) (*Store, *pgx.ConnConfig) {
+func nativeTestStore(t testing.TB) (*Store, *pgx.ConnConfig) {
 	t.Helper()
 	endpoint := os.Getenv("POSTGRES_URL")
 	if endpoint == "" {

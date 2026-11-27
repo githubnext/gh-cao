@@ -16,8 +16,10 @@ package without one simply shows no README preview.
 Agentics workflow previews use their matching `docs/NAME.md` documentation, or
 the workflow prompt body when no documentation is available.
 
-The dashboard does not contact registries or install packages. Its **Add**
-action only copies the canonical command:
+The browser never contacts registries, and the dashboard never installs
+packages. Local and hosted resolvers read registries only through their trusted
+server-side adapters; the local dashboard's web server receives only normalized
+catalog metadata. Its **Add** action only copies the canonical command:
 
 ```sh
 gh cao add OWNER/REPOSITORY[/PATH]@COMMIT
@@ -112,7 +114,7 @@ Registry authentication is scoped to that registry:
   `installation-id-secret`.
 
 Configuration contains secret names, never secret values. Make those referenced
-secrets available only to the trusted Activity or hosted resolver. Credentials,
+secrets available only to the trusted Activity, local, or hosted resolver. Credentials,
 installation tokens, and authentication headers are excluded from marketplace
 rows, browser storage, dashboard state, and diagnostics.
 
@@ -121,10 +123,20 @@ GitHub API override.
 
 ## Resolution modes
 
-Both dashboard backends expose the same package fields through the data worker:
+All dashboard backends expose the same package fields through the data worker:
 
 - The Activity backend resolves registries during data collection and retains
   normalized rows in the dashboard's IndexedDB database.
+- The local `gh cao dashboard` server resolves registries on demand through a
+  private operator adapter. A short-lived `__marketplace` resolver subprocess
+  receives the configured registry environment; the web server receives only
+  normalized packages and diagnostics. The adapter caches the whole resolver
+  output for `cache-ttl-seconds` (five minutes when unset) and drops it when the
+  policy file changes. The web server calls this adapter only over plain `http`
+  on a numeric loopback address with an explicit port. The request does not use
+  an ambient proxy, does not follow redirects, and has a two-minute deadline. Any
+  status other than `200`, an oversized or malformed response, or a transport
+  failure shows the local marketplace as unavailable without failing the page.
 - The hosted Go backend resolves registries at runtime and caches safe,
   normalized results in Redis. Cache entries are isolated by registry and
   source generation.

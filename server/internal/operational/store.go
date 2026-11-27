@@ -415,6 +415,14 @@ type FencedTaskQueue interface {
 	ReplaceTaskFenced(context.Context, Replacement, string) error
 }
 
+// PendingTaskQueue coalesces an identity only while its task is outstanding.
+// Fenced retries preserve that identity; terminal completion releases it
+// atomically. Unlike EnqueueUniqueTask, a later fresh task may be admitted.
+type PendingTaskQueue interface {
+	FencedTaskQueue
+	EnqueuePendingTask(context.Context, EnqueueRequest, string) (bool, error)
+}
+
 type DeliveryAdmissionStore interface {
 	AdmitDelivery(context.Context, DeliveryRequest) (DeliveryAdmission, error)
 }

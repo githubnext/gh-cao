@@ -668,6 +668,31 @@ func (e actionsEnvironment) present() string {
 		e.Token != "", e.Actor != "", e.Repository != "", e.APIURL != "")
 }
 
+func configureLocalCollection(config *server.Config) error {
+	collector, err := server.CollectorConfigFromEnv()
+	if err != nil {
+		return err
+	}
+	if collector == nil {
+		return nil
+	}
+	if strings.TrimSpace(config.SourceDirectory) != "" || strings.TrimSpace(os.Getenv("CAO_SOURCE_DIRECTORY")) != "" {
+		return errors.New("collection and snapshot ingestion are alternatives; configure only one")
+	}
+	webhookSecret := os.Getenv("CAO_GITHUB_WEBHOOK_SECRET")
+	if len(webhookSecret) < 32 {
+		return errors.New("CAO_GITHUB_WEBHOOK_SECRET must contain at least 32 characters")
+	}
+	// Local serving owns its acquisition loop unless workers were explicitly
+	// configured or this process was selected as an admission-only gateway.
+	if !collector.AdmitOnly && strings.TrimSpace(os.Getenv("CAO_COLLECT_WORKERS")) == "" {
+		collector.Workers = 1
+	}
+	config.Collector = collector
+	config.WebhookSecret = webhookSecret
+	return nil
+}
+
 func newServeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
@@ -771,6 +796,9 @@ func newServeCommand() *cobra.Command {
 				// Ambient local credentials are not an Actions identity
 				// admitted through the MCP endpoint.
 				config.GitHubActionsToken, config.GitHubActionsActor = "", ""
+			}
+			if err := configureLocalCollection(&config); err != nil {
+				return server.Config{}, err
 			}
 			return config, nil
 		}

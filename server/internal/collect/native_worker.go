@@ -57,7 +57,8 @@ type NativeWorker struct {
 func (w NativeWorker) validate() error {
 	if w.Enrollment.Authority == nil || w.Client == nil || w.ScopeRefresher.Client == nil ||
 		w.Inventory == nil || w.Values == nil ||
-		w.WindowDays < 0 || w.WindowDays > 365 || w.RefreshInterval < 0 || w.InventoryRetryInterval < 0 {
+		w.WindowDays < 0 || w.WindowDays > 365 || w.RefreshInterval < 0 || w.RefreshInterval > 24*time.Hour ||
+		w.InventoryRetryInterval < 0 {
 		return collectnative.ErrUnsupported
 	}
 	_, err := w.Queue.fencedRunQueue()

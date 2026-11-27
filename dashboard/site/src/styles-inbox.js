@@ -24,7 +24,7 @@ export const inboxStyles = `.notifications-inbox { min-width: 0; display: grid; 
 .home-momentum-panel > header > div, .home-mini-chart > header { display: flex; align-items: center; gap: 9px; }
 .home-momentum-panel h3, .home-mini-chart h3 { margin: 0; font-size: .8125rem; }
 .home-momentum-panel > header > strong { font-size: 1rem; text-align: right; }
-.home-momentum-panel > header > small { grid-column: 2; color: var(--muted); font-size: .625rem; }
+.home-momentum-panel > header > small { grid-column: 2; color: var(--muted); font-size: .75rem; }
 .home-momentum-chart { width: 100%; height: 150px; margin-top: 10px; overflow: visible; }
 .home-chart-grid { stroke: var(--border-muted); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .home-chart-delivered { fill: var(--success); }
@@ -38,7 +38,7 @@ export const inboxStyles = `.notifications-inbox { min-width: 0; display: grid; 
 .home-work-now { display: grid; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 14px; margin-top: 14px; }
 .home-work-ring { width: 76px; aspect-ratio: 1; display: grid; place-content: center; border-radius: 50%; background: radial-gradient(circle, var(--canvas) 55%, transparent 57%), conic-gradient(var(--accent) 0 var(--running), var(--attention) var(--running) var(--review), var(--border-muted) var(--review)); text-align: center; }
 .home-work-ring strong { font-size: 1.125rem; line-height: 1; }
-.home-work-ring span { color: var(--muted); font-size: .625rem; }
+.home-work-ring span { color: var(--muted); font-size: .75rem; }
 .home-work-now dl { display: grid; gap: 7px; margin: 0; }
 .home-work-now dl div { display: flex; justify-content: space-between; gap: 10px; font-size: .6875rem; }
 .home-work-now dt { color: var(--muted); }

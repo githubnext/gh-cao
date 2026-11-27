@@ -1,7 +1,7 @@
 ---
 title: Central Agentic Ops Dashboard Data Architecture Specification
 description: Canonical data model, ingestion, IndexedDB persistence, consistency, recovery, and scale requirements for the gh-cao dashboard.
-version: 1.8.5
+version: 1.8.6
 status: Working Draft
 editors:
   - GitHub Next
@@ -9,7 +9,7 @@ editors:
 
 # Central Agentic Ops Dashboard Data Architecture Specification
 
-**Version:** 1.8.5
+**Version:** 1.8.6
 **Status:** Working Draft
 **Repository:** `githubnext/gh-cao`
 **Target implementation:** Dashboard data subsystem
@@ -702,7 +702,7 @@ The implementation profile defined by this specification is:
 | --- | ---: | --- |
 | Canonical model | 37 | Campaign, Repository, Workflow, Run, Domain, Tool, Skill, Friction, Audit, Issue, Output Lifecycle, Operational Value, Operational Value Evidence, Workflow Value Collection, Marketplace Package, Experiment, Experiment Assignment, Grader, Grader Observation, Eval, and Eval Observation records |
 | Browser IndexedDB | 50 | Twenty-one canonical entity stores, `transactions`, disposable `storageShards` accounting, and three separate daily run-count projection stores |
-| Go server Postgres sources | Canonical model 19 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
+| Go server Postgres sources | Canonical model 20 | Fresh TypeSpec-defined entity and input tables with query-required native columns, compact presence bits, entity-owned relational child values, and transactional diagnostics/revision state; no stored JSON documents or duplicate scalar row formats |
 | Static SQL export | 3 | Versioned JSON interchange produced from upstream SQL tables or views |
 
 ### 5.1.1 Independent statistical run projection
@@ -942,6 +942,15 @@ storage using owner credentials; query and ingestion processes SHALL receive
 only the non-owner runtime login and the reviewed privilege contracts.
 An explicit `--postgres-url` or `CAO_POSTGRES_URL` SHALL bypass container
 management and automatic provisioning, without fallback after connection failure.
+Before workflow discovery or artifact acquisition, both `gh cao dashboard` and
+`gh cao dashboard collect` MUST probe for `gh aw logs --format jsonl` support and,
+when it is unavailable, MUST install the pinned gh-aw release (currently
+`v1.2.3`) with `gh extension install github/gh-aw --pin <version> --force`.
+Installation MUST NOT change workflows or CAO policy. The adapter MUST fail
+before collection when installation fails or the installed gh-aw still lacks
+that support, and MUST return cancellation or timeout errors unchanged.
+Diagnostics from the capability probe, but not from repository reads, MAY be
+inspected because gh-aw can print successful help on standard error.
 The adapter MUST use an installed gh-aw collector supporting
 `gh aw logs --format jsonl` and canonical repository,
 workflow, and repository-scoped Run identities; fresh Actions observations MUST
@@ -1172,6 +1181,22 @@ the approved repository's checkout for both Markdown inventory and ambient
 GitHub cancellation scope. An individual workflow target MUST be exact, never a
 substring, wildcard, package update, or implicit repository-wide operation.
 This exception MUST NOT extend hosted execution authority.
+Before starting a local `update` or `upgrade` command, the native maintenance
+adapter MUST verify that Git is available and that the active `github.com` GitHub
+CLI authentication is usable. It MUST resolve the author and committer identity
+from, in order, the root `git.name` and `git.email` pair of the local CAO
+configuration, the child environment's `GIT_AUTHOR_*` and `GIT_COMMITTER_*`
+variables, existing Git `user.name` and `user.email` settings, and finally the
+authenticated user's public profile name and email, falling back to the login
+and the GitHub noreply address `<id>+<login>@users.noreply.github.com`. The
+profile is read only when an earlier source leaves a value unresolved. Git MUST
+accept the resolved identity. The adapter MUST pass the identity, the
+`gh auth git-credential` helper for `https://github.com`, and rewrites of GitHub
+SSH remotes to HTTPS only through the environment of that command tree, and MUST
+NOT persist Git configuration or credentials. When any check fails, the adapter
+MUST report an actionable diagnostic, start no maintenance command, and
+complete the action with a nonzero exit code. The `git` identity is local
+execution metadata and MUST NOT grant rollout, repository or hosted authority.
 The native maintenance adapter SHALL be independent of presentation and
 require ordinary server bearer authentication plus same-origin mutation checks.
 Credentials and subprocesses MUST remain in the owning CLI, not the read-only
@@ -5630,6 +5655,15 @@ set or enumerate unrelated worker partitions.
 ---
 
 # 74. Change Log
+
+## Version 1.8.6 — Local gh-aw bootstrap and maintenance Git readiness
+
+* Specified that the local dashboard and `dashboard collect` install the pinned
+  gh-aw release before workflow discovery when JSONL streaming support is
+  missing, and fail closed when installation does not provide it.
+* Specified the Git and GitHub CLI readiness check, commit-identity precedence,
+  command-scoped credential configuration, and fail-before-start behavior for
+  local `update` and `upgrade` maintenance commands.
 
 ## Version 1.8.4 — Bounded browser ingestion fetch retry
 

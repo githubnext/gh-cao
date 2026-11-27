@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"sort"
@@ -221,7 +222,14 @@ func ParseConfig(data []byte) (*Config, error) {
 func LoadConfigFile(path string) (*Config, error) {
 	// #nosec G304 -- path is an operator-controlled policy location (a flag/env
 	// default), not user input.
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("read CAO policy %q: %w", path, err)
+	}
+	defer func() { _ = file.Close() }()
+	// Read one byte past the limit so an oversized file is rejected without
+	// materializing it; ParseConfig enforces the limit on the bytes read.
+	data, err := io.ReadAll(io.LimitReader(file, maxPolicyBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("read CAO policy %q: %w", path, err)
 	}

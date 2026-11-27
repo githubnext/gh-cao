@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/url"
 	"strings"
 	"testing"
+
+	grants "github.com/githubnext/gh-cao/server/postgres"
 )
 
 const localTestPassword = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -75,5 +78,57 @@ func TestProvisionLocalDatabaseRejectsInvalidTargetBeforeConnecting(t *testing.T
 	err := provisionLocalDatabase(context.Background(), "postgres://cao_bootstrap@10.0.0.5/cao_dashboard", localTestPassword, "local")
 	if err == nil || !strings.Contains(err.Error(), "requires its local administrator") {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestRenderLocalGrantsBindsEveryRoleVariable(t *testing.T) {
+	for name, contract := range map[string]string{"canonical": grants.CanonicalGrants, "operational": grants.OperationalGrants} {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(contract, `:"schema"`) {
+				t.Fatalf("packaged %s contract no longer uses the schema variable", name)
+			}
+			rendered := renderLocalGrants(contract)
+			for _, variable := range []string{`:"schema"`, `:"runtime"`, `:"retention"`, `:"reader"`} {
+				if strings.Contains(rendered, variable) {
+					t.Fatalf("rendered %s contract still contains %s", name, variable)
+				}
+			}
+			if !strings.Contains(rendered, `"cao"`) || !strings.Contains(rendered, `"cao_runtime"`) {
+				t.Fatalf("rendered %s contract does not bind the cao schema and runtime role", name)
+			}
+		})
+	}
+	if got := renderLocalGrants("GRANT USAGE ON SCHEMA :\"schema\" TO :\"reader\""); got != `GRANT USAGE ON SCHEMA "cao" TO "cao_evidence"` {
+		t.Fatalf("rendered = %q", got)
+	}
+}
+
+func TestApplyLocalGrantsReportsGenericFailure(t *testing.T) {
+	owner, err := sql.Open("pgx", "postgres://cao_owner@127.0.0.1:1/cao_dashboard")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := owner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	err = applyLocalGrants(context.Background(), owner)
+	if err == nil || err.Error() != "cannot apply managed PostgreSQL runtime privilege contracts" {
+		t.Fatalf("error = %v", err)
+	}
+	if strings.Contains(err.Error(), "127.0.0.1") {
+		t.Fatalf("error %q leaks the endpoint", err)
+	}
+}
+
+func TestApplyLocalGrantsHonorsCanceledContext(t *testing.T) {
+	owner, err := sql.Open("pgx", "postgres://cao_owner@127.0.0.1:1/cao_dashboard")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = owner.Close() }()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := applyLocalGrants(ctx, owner); err == nil || strings.Contains(err.Error(), "127.0.0.1") {
+		t.Fatalf("error = %v; want a generic failure", err)
 	}
 }

@@ -3,6 +3,7 @@ package redisx
 import (
 	"context"
 	"errors"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -171,3 +172,33 @@ func TestLegacyRateLimitRejectsInvalidArgumentsBeforeRedis(t *testing.T) {
 }
 
 func second(_ int, err error) error { return err }
+
+func TestTakeRateLimitTokensRejectsInvalidArgumentsBeforeRedis(t *testing.T) {
+	client := &rateLimitCommandClient{value: []any{int64(1), int64(0), int64(0), int64(0)}}
+	store := NewStore(client, "rate-test")
+	cases := map[string]func() error{
+		"empty name": func() error { _, err := store.TakeRateLimitToken(t.Context(), "", 3, time.Hour); return err },
+		"blank name": func() error { _, err := store.TakeRateLimitToken(t.Context(), " ", 3, time.Hour); return err },
+		"NUL name":   func() error { _, err := store.TakeRateLimitToken(t.Context(), "a\x00b", 3, time.Hour); return err },
+		"oversized name": func() error {
+			_, err := store.TakeRateLimitToken(t.Context(), strings.Repeat("n", 1025), 3, time.Hour)
+			return err
+		},
+		"oversized capacity": func() error {
+			_, err := store.TakeRateLimitToken(t.Context(), "subject", int(maxRateLimitValue+1), time.Hour)
+			return err
+		},
+		"huge period": func() error {
+			_, err := store.TakeRateLimitToken(t.Context(), "subject", 3, time.Duration(math.MaxInt64))
+			return err
+		},
+	}
+	for name, call := range cases {
+		if err := call(); !errors.Is(err, ErrInvalid) {
+			t.Errorf("%s error = %v, want ErrInvalid", name, err)
+		}
+	}
+	if client.command != nil {
+		t.Fatalf("invalid arguments reached Redis: %#v", client.command)
+	}
+}

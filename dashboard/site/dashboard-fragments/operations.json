@@ -2586,6 +2586,16 @@
       "description": "Review exact repository source updates, compiler upgrades, or disabling that cancels in-progress runs before stopping future runs.",
       "views": [
         {
+          "id": "repository-inventory-sync",
+          "title": "Sync inventory",
+          "show-title": false,
+          "objective": "Request a server-side repository and campaign inventory refresh without executing workflow mutations. HTTP admission and local pending feedback require an interaction-only element, not a CLI action or evidence query.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync",
+          "prompt": "none"
+        },
+        {
           "id": "maintenance-repositories",
           "title": "Repository compiler status",
           "data": {
@@ -2681,6 +2691,16 @@
       "class-name": "maintenance-page",
       "views": [
         {
+          "id": "campaign-inventory-sync",
+          "title": "Sync inventory",
+          "show-title": false,
+          "objective": "Request a server-side repository and campaign inventory refresh without executing workflow mutations. HTTP admission and local pending feedback require an interaction-only element, not a CLI action or evidence query.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync",
+          "prompt": "none"
+        },
+        {
           "id": "maintenance-campaigns",
           "title": "Campaign packages",
           "data": {
@@ -2768,6 +2788,16 @@
       "icon": "workflow",
       "class-name": "maintenance-page",
       "views": [
+        {
+          "id": "workflow-inventory-sync",
+          "title": "Sync inventory",
+          "show-title": false,
+          "objective": "Request a server-side repository and campaign inventory refresh without executing workflow mutations. HTTP admission and local pending feedback require an interaction-only element, not a CLI action or evidence query.",
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync",
+          "prompt": "none"
+        },
         {
           "id": "maintenance-standalone-workflows",
           "title": "Individual workflows",

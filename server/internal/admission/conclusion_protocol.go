@@ -49,14 +49,43 @@ var compactUsageFields = []string{
 }
 
 func decodeConclusion(data []byte) (ConclusionRequest, error) {
+	result, reason := parseConclusion(data)
+	if reason != "" {
+		admissionLog.Printf("conclusion denied: reason=%s", reason)
+		return ConclusionRequest{}, ErrDenied
+	}
+	return result, nil
+}
+
+// parseConclusion decodes a conclusion payload and returns a fixed reason code
+// for the first structural or bounds violation, or "" when the payload is valid.
+func parseConclusion(data []byte) (ConclusionRequest, string) {
 	var fields map[string]json.RawMessage
 	if len(data) > MaxConclusionBytes || strictJSON(data, &fields) != nil || len(fields) != 13 {
-		return ConclusionRequest{}, ErrDenied
+		return ConclusionRequest{}, "envelope"
 	}
 	var result ConclusionRequest
 	if strictJSON(data, &result) != nil {
-		return ConclusionRequest{}, ErrDenied
+		return ConclusionRequest{}, "envelope"
 	}
+	if !validConclusionIdentity(fields) {
+		return ConclusionRequest{}, "identity"
+	}
+	if reason := conclusionCompactionShapeViolation(fields); reason != "" {
+		return ConclusionRequest{}, reason
+	}
+	if reason := conclusionBoundsViolation(result); reason != "" {
+		return ConclusionRequest{}, reason
+	}
+	if reason := compactSessionViolation(result.Session, result.SessionCompaction.IncludedEvents); reason != "" {
+		return ConclusionRequest{}, reason
+	}
+	return result, ""
+}
+
+// validConclusionIdentity reports whether the non-conclusion fields form a
+// bounded, valid admission request identity.
+func validConclusionIdentity(fields map[string]json.RawMessage) bool {
 	identity := make(map[string]json.RawMessage, 10)
 	identityBytes := 1
 	for name, value := range fields {
@@ -69,36 +98,32 @@ func decodeConclusion(data []byte) (ConclusionRequest, error) {
 	}
 	encoded, err := json.Marshal(identity)
 	if err != nil || identityBytes > 8192 {
-		return ConclusionRequest{}, ErrDenied
+		return false
 	}
-	if _, err := decodeRequest(encoded); err != nil {
-		return ConclusionRequest{}, ErrDenied
-	}
+	_, err = decodeRequest(encoded)
+	return err == nil
+}
+
+// conclusionCompactionShapeViolation returns a fixed reason code when the
+// session_compaction object lacks exactly its six counters or any top-level
+// field is an explicit null, which must not become a Go zero value.
+func conclusionCompactionShapeViolation(fields map[string]json.RawMessage) string {
 	var compaction map[string]json.RawMessage
 	if strictJSON(fields["session_compaction"], &compaction) != nil || len(compaction) != 6 {
-		return ConclusionRequest{}, ErrDenied
+		return "compaction_shape"
 	}
-	// Explicit nulls must not become Go zero values, including false counters.
 	for _, value := range fields {
 		if string(value) == "null" {
-			return ConclusionRequest{}, ErrDenied
+			return "explicit_null"
 		}
 	}
 	for _, name := range []string{"version", "included_events", "omitted_events", "oversized_lines", "scan_truncated", "truncated"} {
 		value, exists := compaction[name]
 		if !exists || string(value) == "null" {
-			return ConclusionRequest{}, ErrDenied
+			return "compaction_shape"
 		}
 	}
-	if reason := conclusionBoundsViolation(result); reason != "" {
-		admissionLog.Printf("conclusion denied: reason=%s", reason)
-		return ConclusionRequest{}, ErrDenied
-	}
-	if reason := compactSessionViolation(result.Session, result.SessionCompaction.IncludedEvents); reason != "" {
-		admissionLog.Printf("conclusion denied: reason=%s", reason)
-		return ConclusionRequest{}, ErrDenied
-	}
-	return result, nil
+	return ""
 }
 
 // conclusionBoundsViolation returns a fixed reason code for the first numeric,

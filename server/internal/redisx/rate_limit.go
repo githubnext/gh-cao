@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -39,8 +40,13 @@ func (s *Store) TakeRateLimitTokens(
 	refillPeriod time.Duration,
 	cost int,
 ) (RateLimitResult, error) {
-	if capacity <= 0 || refillPeriod < time.Millisecond || cost <= 0 || cost > capacity {
-		return RateLimitResult{}, errors.New("rate limit capacity and cost must be positive, cost must not exceed capacity, and refill period must be at least one millisecond")
+	if err := collectionName(key); err != nil {
+		return RateLimitResult{}, err
+	}
+	// The bounds match the memory and PostgreSQL adapters.
+	if capacity <= 0 || int64(capacity) > maxRateLimitValue || cost <= 0 || cost > capacity ||
+		refillPeriod < time.Millisecond || refillPeriod > time.Duration(math.MaxInt64/2) {
+		return RateLimitResult{}, fmt.Errorf("rate limit capacity and cost must be positive and bounded, cost must not exceed capacity, and refill period must be between one millisecond and the supported maximum: %w", ErrInvalid)
 	}
 	script := `
 local current = redis.call("TIME")

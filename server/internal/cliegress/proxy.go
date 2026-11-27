@@ -62,15 +62,42 @@ func (safeLogWriter) Write(p []byte) (int, error) {
 type proxy struct {
 	policy *Policy
 	lookup lookupFunc
-	dial   func(context.Context, string, string) (net.Conn, error)
+	dial   dialFunc
 	slots  chan struct{}
 }
 
+type dialFunc func(context.Context, string, string) (net.Conn, error)
+
+// isTunnelRequest reports whether r is a bare CONNECT with an authority-form
+// target and no body, the only request shape the proxy tunnels.
+func isTunnelRequest(r *http.Request) bool {
+	return r.Method == http.MethodConnect && r.URL != nil && r.URL.Host == r.Host &&
+		r.URL.User == nil && r.URL.RawQuery == "" && r.URL.Path == "" &&
+		r.URL.Scheme == "" && r.URL.Opaque == "" && r.URL.Fragment == "" &&
+		r.ContentLength <= 0 && len(r.TransferEncoding) == 0
+}
+
+// dialFirstAvailable dials the validated numeric addresses in order and returns
+// the first connection. It stops early once ctx ends so one deadline bounds the
+// whole attempt.
+func dialFirstAvailable(ctx context.Context, dial dialFunc, addresses []string) (net.Conn, error) {
+	err := errors.New("no egress addresses to dial")
+	for _, address := range addresses {
+		var conn net.Conn
+		conn, err = dial(ctx, "tcp", address)
+		if err == nil {
+			return conn, nil
+		}
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, err
+}
+
 func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodConnect || r.URL == nil || r.URL.Host != r.Host ||
-		r.URL.User != nil || r.URL.RawQuery != "" || r.URL.Path != "" ||
-		r.URL.Scheme != "" || r.URL.Opaque != "" || r.URL.Fragment != "" ||
-		r.ContentLength > 0 || len(r.TransferEncoding) != 0 {
+	if !isTunnelRequest(r) {
+		relayLog.Printf("egress request rejected: reason=not_tunnel_request")
 		http.Error(w, "HTTPS CONNECT required", http.StatusForbidden)
 		return
 	}
@@ -78,6 +105,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case p.slots <- struct{}{}:
 		defer func() { <-p.slots }()
 	default:
+		relayLog.Printf("egress request rejected: reason=capacity limit=%d", cap(p.slots))
 		http.Error(w, "egress capacity unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -91,15 +119,10 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dialCtx, dialCancel := context.WithTimeout(ctx, 10*time.Second)
-	var upstream net.Conn
-	for _, address := range addresses {
-		upstream, err = p.dial(dialCtx, "tcp", address)
-		if err == nil || dialCtx.Err() != nil {
-			break
-		}
-	}
+	upstream, err := dialFirstAvailable(dialCtx, p.dial, addresses)
 	dialCancel()
 	if err != nil {
+		relayLog.Printf("egress dial failed: addresses=%d", len(addresses))
 		http.Error(w, "egress destination unavailable", http.StatusBadGateway)
 		return
 	}

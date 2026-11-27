@@ -247,6 +247,10 @@ func (w *Writer) stageRunBundles(ctx context.Context, input RunBundlePublication
 }
 
 func (w *Writer) selectRunBundles(ctx context.Context) (int64, error) {
+	// Autovacuum cannot analyze temporary tables; joins must see the bounded input.
+	if _, err := w.tx.Exec(ctx, "ANALYZE runs_stage"); err != nil {
+		return 0, err
+	}
 	// The receipt is consulted only after matching the canonical publication
 	// revision. Its Runs rows give one namespace-local partition locator.
 	_, err := w.tx.Exec(ctx, `CREATE TEMP TABLE run_bundle_candidates ON COMMIT DROP AS
@@ -287,6 +291,9 @@ func (w *Writer) selectRunBundles(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	if _, err := w.tx.Exec(ctx, "CREATE UNIQUE INDEX ON affected_runs(id)"); err != nil {
+		return 0, err
+	}
+	if _, err := w.tx.Exec(ctx, "ANALYZE affected_runs"); err != nil {
 		return 0, err
 	}
 	return tag.RowsAffected(), nil
