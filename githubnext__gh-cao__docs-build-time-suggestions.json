@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "dependency installation and caching",
+  "next_category": "Astro documentation generation",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T04:52:39Z",
-      "worker_run_id": "45942117870",
-      "correlation_id": "45941678657-4916",
-      "category": "dependency installation and caching",
-      "evidence_run_ids": [
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 fail..."
-    },
     {
       "evaluated_at": "2026-11-27T05:19:38Z",
       "worker_run_id": "45944769569",
@@ -901,6 +871,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (scheduling, concurrency, and avoidable rebuilds; unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 14:33Z unchanged, none in progress; HEAD 19f2ae6 touches server/ only (no docs.yml trigger). Queue median 3 s (p90 4); two queue waits over 10 s from superseded builds (45897897785 45 s, 45762538888 36 s), expected saving about 3.8 s per run; schedule same-commit skips give no median gain and weaken daily freshness; exec median 73.5 s (gate 11.03 s, 60 s absolute) unmet."
+    },
+    {
+      "evaluated_at": "2026-11-27T14:53:33Z",
+      "worker_run_id": "46019345418",
+      "correlation_id": "46018543159-4946",
+      "category": "dependency installation and caching",
+      "evidence_run_ids": [
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (dependency installation and caching; unchanged verdict). Window 45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 14:52Z unchanged, none in progress; HEAD 19f2ae6 = source_sha. Recomputed from stored immutable run_timings (no Jobs or log reads): setup_node median 3.5 (p90 6), install median 8.5 (p90 10), post 0 in 20/20 (exact-key hit); setup+install+post median 13 (p90 15) = 17.7 pct of exec median 73.5. Full install removal (8.5 s) stays below the 11.03 s gate; setup+install+post would need 85 pct removal. Live cache node-cache-Linux-x64-npm-7808ecf8 present (main, lastAccessed 14:43Z); root lock hash unchanged. Open label-scoped issue: #20815 (checkout), not re-proposed; no create_issue."
     }
   ],
   "docs_cache_model": {
@@ -1996,12 +1996,12 @@
     "last_reverified_note": "Window 45483718747..44567910334 re-summed at 2026-11-25T04:21:51Z: removable median 9 p90 10 max 11 (12.2 pct of exec median 74); 15 pct gate 11.1 s and 60 s gate unmet; live Jobs spot check 45333239050 matched; not actionable."
   },
   "dependency_phase_last_checked": {
-    "evaluated_at": "2026-11-27T13:19:05Z",
-    "worker_run_id": "46005634199",
-    "correlation_id": "46004742408-4941",
+    "evaluated_at": "2026-11-27T14:53:33Z",
+    "worker_run_id": "46019345418",
+    "correlation_id": "46018543159-4946",
     "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
     "window": "45945806016..45249995178 (unchanged; 16 push, 4 schedule, 20 success)",
-    "verdict": "not actionable (unchanged): install median 8.5 s, setup+install+post median 13 s; live exact-key cache entry node-cache-Linux-x64-npm-7808ecf8 present (lastAccessed 13:16Z)"
+    "verdict": "not actionable (unchanged): setup_node median 3.5, install median 8.5, post 0; setup+install+post median 13 = 17.7 pct of exec median 73.5; full install removal below 11.03 s gate; live exact-key cache present (lastAccessed 14:43Z)"
   },
   "job_topology_note": {
     "verified_at": "2026-11-18T22:20:34Z",
@@ -2178,11 +2178,11 @@
     "verdict": "not actionable: expected saving below 11.0 s gate and 60 s per-event gate; median unchanged"
   },
   "cache_entry_metadata": {
-    "verified_at": "2026-11-27T06:45:00Z",
-    "worker_run_id": "45953440389",
+    "verified_at": "2026-11-27T14:53:33Z",
+    "worker_run_id": "46019345418",
     "method": "gh cache list --key node-cache-Linux-x64-npm (trusted Actions metadata); local hashFiles check of root and dashboard locks at 19f2ae6; no job-log reads",
-    "exact_key_entries": "node-cache-Linux-x64-npm-7808ecf8: 1 main entry, created 2026-11-13T20:57:12Z, ref refs/heads/main, 263412733 B, lastAccessed 2026-11-27T06:41Z",
-    "other_entries": "other node-cache keys are feature-ref or other-workflow caches; none keyed to docs.yml's root lock hash on main"
+    "exact_key_entries": "node-cache-Linux-x64-npm-7808ecf8: 1 main entry, created 2026-11-13T20:57:12Z, ref refs/heads/main, 263412733 B, lastAccessed 2026-11-27T14:43Z; root hash 7808ecf8 and dashboard hash 36b11d9f reproduced locally at HEAD",
+    "other_entries": "other node-cache keys are feature-ref or other-workflow caches (including aaf3a193 root+dashboard combined key, not used by docs.yml); none keyed to docs.yml root lock on main"
   },
   "astro_upgrade_check": {
     "verified_at": "2026-11-27T03:35:40Z",
