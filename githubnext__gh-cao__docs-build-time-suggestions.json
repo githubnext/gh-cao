@@ -1,37 +1,7 @@
 {
  "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
- "next_category": "scheduling, concurrency, and avoidable rebuilds",
+ "next_category": "dependency installation and caching",
  "evaluations": [
-  {
-   "evaluated_at": "2026-11-26T23:18:43Z",
-   "worker_run_id": "45909750626",
-   "correlation_id": "45909224165-4900",
-   "category": "scheduling, concurrency, and avoidable rebuilds",
-   "evidence_run_ids": [
-    "45897897785",
-    "45897824716",
-    "45897525384",
-    "45762538888",
-    "45762476442",
-    "45762342616",
-    "45761522067",
-    "45625202695",
-    "45562958524",
-    "45553538993",
-    "45551175273",
-    "45483718747",
-    "45473261375",
-    "45472166796",
-    "45470904895",
-    "45333239050",
-    "45293283576",
-    "45282794439",
-    "45249995178",
-    "45117916746"
-   ],
-   "suggestion_fingerprint": null,
-   "outcome": "complete, not actionable (unchanged verdict; window refreshed). Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live at 23:1x: none queued or in progress except stale 37642403569 (2026-10-07, outside window); main 19f2ae6; compare 57e7490..19f2ae6 = 2 server-only commits, no trigger path. Recomputed from stored rows (n=20): queue median 3 p90 4 max 45; exec median 73.5 p90 83 max 126; push 75 (n=16) vs schedule 71.5 (n=4); 0 overlapping executions (model). 0 of 16 push heads avoidable (newly classified 57e7490 docs/styles/branding.css, a794462 docs/marketplace.md, 9503d6a docs/glossary.md; all docs/**). Schedule builds required for synthetic-date freshness. 60 s gate and 15 pct gate (11.03 s) unmet. Next: dependency installation and caching."
-  },
   {
    "evaluated_at": "2026-11-26T23:33:00Z",
    "worker_run_id": "45911187190",
@@ -900,6 +870,36 @@
    ],
    "suggestion_fingerprint": null,
    "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Correlation 45971640922-4929; worker run 45972413534. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live docs.yml list at 09:20Z matches window, none queued or in progress; main = HEAD = source 19f2ae6. Stored transfer rows recomputed (n=20, nearest-rank p90): removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; full-removal ceiling 9 s. No Jobs or log API calls (immutable rows reused). Largest phase is checkout (median 25.5 s, p90 34 = 34.7 pct of exec median), but it is the blobless suggestion already tracked by open #20815 (OPEN, 0 comments, re-verified 09:2xZ); median below the 30 s re-evaluation trigger, so no duplicate issue. Deploy-job merge still rejected (id-token and github-pages environment boundary). Next: scheduling, concurrency, and avoidable rebuilds."
+  },
+  {
+   "evaluated_at": "2026-11-27T09:35:37Z",
+   "worker_run_id": "45974450147",
+   "correlation_id": "45973672867-4930",
+   "category": "scheduling, concurrency, and avoidable rebuilds",
+   "evidence_run_ids": [
+    "45945806016",
+    "45897897785",
+    "45897824716",
+    "45897525384",
+    "45762538888",
+    "45762476442",
+    "45762342616",
+    "45761522067",
+    "45625202695",
+    "45562958524",
+    "45553538993",
+    "45551175273",
+    "45483718747",
+    "45473261375",
+    "45472166796",
+    "45470904895",
+    "45333239050",
+    "45293283576",
+    "45282794439",
+    "45249995178"
+   ],
+   "suggestion_fingerprint": null,
+   "outcome": "complete, not actionable (scheduling category, unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled. Live at 09:3xZ: main = 19f2ae6 = workspace HEAD; no docs.yml run in progress; only queued run 37642403569 (2026-10-07, outside window, stale). Stored run_timings recomputed (n=20, nearest-rank p90): queue median 3 p90 4 max 45; exec median 73.5 p90 83 max 126; push 75 (n=16) vs schedule 71.5 (n=4); 0 overlapping executions. 0 of 16 push heads avoidable. Schedules needed for synthetic-date refresh (scripts/simulate-dashboard-pages.mjs). Skipping the 3 same-commit schedule repeats saves about 11 s on those runs and leaves the workflow median at 73.5 s. Cancel-in-progress candidate: superseded builds 33-42 s compute, about 3.8 s per run on average; below gates. 60 s and 15 pct (11.03 s) gates unmet. Open #20815 (blobless checkout) represents the checkout item; not re-proposed. Next: dependency installation and caching."
   }
  ],
  "docs_cache_model": {
@@ -2102,11 +2102,11 @@
   "verdict": "not actionable (unchanged, re-checked 2026-11-27T05:19:38Z): build_docs median 12 p90 14 n=20; 15 pct gate needs 92 pct of the step removed; no zero-cost path"
  },
  "scheduling_reverified": {
-  "verified_at": "2026-11-27T07:54:52Z",
-  "worker_run_id": "45961252098",
-  "correlation_id": "45960524754-4925",
+  "verified_at": "2026-11-27T09:35:37Z",
+  "worker_run_id": "45974450147",
+  "correlation_id": "45973672867-4930",
   "window": "45945806016 (schedule, 19f2ae6) .. 45249995178 (push, eb19410); 16 push, 4 schedule, 20 success",
-  "live_check": "gh run list at 2026-11-27T07:54:52Z: window unchanged vs run_timings, none queued or in progress; open label-scoped issues: #20815 only; compare 57e7490...19f2ae6 = 4 server/ files",
+  "live_check": "gh run list and origin main at 2026-11-27T09:35:37Z: window unchanged, none queued or in progress; main 19f2ae6; open label-scoped issues: #20815 only",
   "same_commit_schedule_repeats": "45761522067 (16a88ce), 45553538993 (87b57a9), 45333239050 (12c41c7); 45945806016 is a new commit (19f2ae6)",
   "counterfactual": "skip 3 repeats: gross schedule-only exec median 71.5 to 60.5; workflow median 73.5 unchanged",
   "verdict": "not actionable (unchanged)"
