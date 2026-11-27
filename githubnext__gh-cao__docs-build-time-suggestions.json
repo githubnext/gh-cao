@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "artifact transfer and Pages packaging",
+  "next_category": "scheduling, concurrency, and avoidable rebuilds",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T01:01:30Z",
-      "worker_run_id": "45919716492",
-      "correlation_id": "45919267298-4904",
-      "category": "artifact transfer and Pages packaging",
-      "evidence_run_ids": [
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-23T05:27:44Z); 16 push, 4 schedule, 20 success, 0 fail..."
-    },
     {
       "evaluated_at": "2026-11-27T01:21:07Z",
       "worker_run_id": "45921704708",
@@ -900,6 +870,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (reusable dashboard generation; unchanged verdict). Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at worker time matches window, none queued; main 19f2ae6 = source_sha. Recomputed stored demo_s (n=20, nearest-rank p90): median 1, p90 2, max 3 = 1.4 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet even at full removal (ceiling 1 s). docs:build (astro, validate-agent-docs) does not invoke the dashboard-site build; the only dashboard generation is the Build synthetic enterprise demo step (dashboard:pages:build). Cross-run reuse would pin synthetic dates (scripts/simulate-dashboard-pages.mjs:67 now=Date.now, :76 generatedAt). Label-scoped open issues: #20815 only (blobless checkout, not dashboard); no create_issue. Next: artifact transfer and Pages packaging."
+    },
+    {
+      "evaluated_at": "2026-11-27T10:52:24Z",
+      "worker_run_id": "45985297067",
+      "correlation_id": "45984593199-4934",
+      "category": "artifact transfer and Pages packaging",
+      "evidence_run_ids": [
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (artifact transfer and Pages packaging; unchanged verdict). Correlation 45984593199-4934; worker run 45985297067. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 2026-11-27T10:52:24Z matched window, none newer. Removable (handoff+configure+upload+deploy setup) median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; ceiling full removal 9 s; no create_issue; open label-scoped issue #20815 is blobless checkout (not re-proposed)."
     }
   ],
   "docs_cache_model": {
@@ -2007,13 +2007,13 @@
     "note": "docs.yml has jobs build and deploy only; the dashboard generation is the 'Build synthetic enterprise demo' step inside build. Treat any 'dashboard' job named in a prompt as the build step, not a separate job."
   },
   "pending_open_issue": {
-    "verified_at": "2026-11-27T10:19:32Z",
-    "worker_run_id": "45980506766",
-    "correlation_id": "45979817414-4932",
+    "verified_at": "2026-11-27T10:52:24Z",
+    "worker_run_id": "45985297067",
+    "correlation_id": "45984593199-4934",
     "issue": 20815,
     "state": "OPEN",
     "comments": 0,
-    "note": "Blobless checkout suggestion (checkout median 25.5 s, p90 34; below 30 s re-evaluation trigger) still represented by open #20815; label-scoped open search returns #20815 only; not re-proposed; no create_issue. Only create_issue is configured, so no update of #20815."
+    "note": "Label-scoped open search at 2026-11-27T10:52:24Z returns #20815 only (blobless checkout); not re-proposed; no create_issue."
   },
   "scheduling_deploy_handoff": {
     "verified_at": "2026-11-19T23:53:15Z",
@@ -2102,10 +2102,11 @@
     "note": "docs/*.md reference specs/ only via absolute GitHub URLs; astro.config.mjs, scripts/, dashboard/site/src, dashboard/report have no specs/ refs"
   },
   "artifact_transfer_last_checked": {
-    "evaluated_at": "2026-11-27T09:21:16Z",
-    "worker_run_id": "45972413534",
-    "correlation_id": "45971640922-4929",
-    "result": "not actionable (unchanged): window 45945806016..45249995178 (16 push, 4 schedule, 20 success) matches live gh run list at 09:20Z; source 19f2ae6 = main; removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet"
+    "evaluated_at": "2026-11-27T10:52:24Z",
+    "worker_run_id": "45985297067",
+    "correlation_id": "45984593199-4934",
+    "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
+    "result": "not actionable (unchanged): window 45945806016..45249995178 (16 push, 4 schedule, 20 success) matches live gh run list at 2026-11-27T10:52:24Z; removable median 9 s, p90 10, max 12 = 12.2 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet; ceiling full removal 9 s"
   },
   "checkout_watch": {
     "observed_at": "2026-11-26T07:21:22Z",
