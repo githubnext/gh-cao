@@ -51,6 +51,86 @@ func nativeInventoryFixture(t *testing.T, name string) (collectnative.InventoryS
 	return snapshot, evidence
 }
 
+func TestNativeWorkflowCompilerObservations(t *testing.T) {
+	store, _ := nativeTestStore(t)
+	a := store.Acquisition()
+	snapshot, evidence := nativeInventoryFixture(t, "Security")
+	if err := a.SetEnrollment(t.Context(), "octo/api", 7); err != nil {
+		t.Fatal(err)
+	}
+	scope, err := a.CurrentScope(t.Context(), "octo/api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	evidence.Scope = scope
+	if err := a.PinInventoryConfiguration(t.Context(), snapshot); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Now().UTC().Truncate(time.Second).Add(-time.Hour)
+	scan := func(version string, at time.Time, state string) {
+		t.Helper()
+		evidence.ObservedAt = at
+		evidence.Sources["workflows"].Rows[0]["gh-aw-version"] = version
+		evidence.Sources["workflows"].Rows[0]["gh-aw-update-state"] = state
+		claim, err := a.BeginInventoryRefresh(t.Context(), scope, snapshot.Digest)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.PublishInventory(t.Context(), claim, evidence); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run := func(id int64, version string, at time.Time) {
+		t.Helper()
+		identity := collectnative.Identity{Repository: "octo/api", InstallationID: 7, RunID: id, Attempt: 1}
+		atText := at.Format(time.RFC3339)
+		envelope := collectnative.Evidence{Version: 1, Identity: identity, Run: map[string]any{
+			"repository": "octo/api", "run_id": id, "run_attempt": 1,
+			"workflow_path": ".github/workflows/test.lock.yml", "cli_version": version,
+			"created_at": atText, "updated_at": atText, "status": "completed",
+		}}
+		claim, err := a.Claim(t.Context(), identity, time.Minute)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.Publish(t.Context(), claim, envelope); err != nil {
+			t.Fatal(err)
+		}
+		_, digest, err := a.Pending(t.Context(), identity)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := a.Activate(t.Context(), AcquisitionPublication{Identity: identity, Epoch: claim.Epoch, Digest: digest}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	check := func(want map[string]any) {
+		t.Helper()
+		results, _, err := store.ExecuteSQLPlan(t.Context(), []query.Definition{{Name: "workflows", From: "$workflows"}}, []string{"workflows"})
+		if err != nil || len(results["workflows"].Rows) != 1 {
+			t.Fatalf("workflow query: %+v %v", results, err)
+		}
+		row := results["workflows"].Rows[0]
+		for key, value := range want {
+			if row[key] != value {
+				t.Errorf("%s=%v, want %v", key, row[key], value)
+			}
+		}
+		if row["role"] != "worker" || row["inventoryReady"] != false {
+			t.Fatalf("run changed inventory-owned policy evidence: %+v", row)
+		}
+	}
+	scan("v1.0.0", base, "up-to-date")
+	run(303, "v1.1.0", base.Add(time.Minute))
+	check(map[string]any{"ghAwVersion": "v1.1.0", "ghAwVersionSource": "run", "ghAwRunVersion": "v1.1.0",
+		"ghAwRunVersionRunId": "github:run:octo/api:303", "ghAwInventoryVersion": "v1.0.0", "ghAwUpdateState": "unknown"})
+	scan("v1.2.0", base.Add(2*time.Minute), "update-available")
+	run(304, "v0.9.0", base.Add(-time.Minute))
+	scan("unknown", base.Add(3*time.Minute), "unknown")
+	check(map[string]any{"ghAwVersion": "v1.2.0", "ghAwVersionSource": "inventory", "ghAwRunVersion": "v1.1.0",
+		"ghAwInventoryVersion": "v1.2.0", "ghAwUpdateState": "update-available"})
+}
+
 func TestNativeInventoryPostgresReplicaFencesAndReadiness(t *testing.T) {
 	first, config := nativeTestStore(t)
 	second, err := NewConfig(t.Context(), config)

@@ -2,4 +2,4 @@
 
 package dashboardingest
 
-const SchemaVersion = 37
+const SchemaVersion = 38

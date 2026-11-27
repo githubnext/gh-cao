@@ -8,6 +8,7 @@ import {
   workflowSourcePath
 } from '../model/ids.js';
 import { canonicalTimestamp, OPERATIONAL_VALUE_PERIOD_FIELDS, operationalValuePeriod, requiredString } from '../model/schema.js';
+import { mergeWorkflowCompilerEvidence } from '../model/fields.js';
 import { validateOperationalValueEvidence } from '../model/operational-value-evidence.js';
 import { validateWorkflowValueCollection } from '../model/workflow-value-collection.js';
 import cachedJsonlExpression from '../ingest/expressions/gh-aw-logs-v2.json' with { type: 'json' };
@@ -927,6 +928,14 @@ export function adaptGhAwLogs(input) {
           if (nativeRun.data[field] != null) target.data[field] = nativeRun.data[field];
         }
       }
+      const sourceWorkflow = adapted.observations.find((record) => record.kind === 'workflow');
+      const targetWorkflow = observations.find((record) => record.kind === 'workflow');
+      if (sourceWorkflow && targetWorkflow) {
+        const { ghAwRunVersion, ghAwRunVersionObservedAt, ghAwRunVersionRunId } = sourceWorkflow.data;
+        targetWorkflow.data = mergeWorkflowCompilerEvidence(targetWorkflow.data, {
+          ghAwRunVersion, ghAwRunVersionObservedAt, ghAwRunVersionRunId
+        });
+      }
     }
     observations.push(...adapted.observations.filter((record) =>
       ['experiment', 'experiment-assignment', 'grader', 'grader-observation', 'eval', 'eval-observation'].includes(record.kind)
@@ -1513,13 +1522,13 @@ function createCachedGhAwJsonlAccumulator(options) {
       source: OBSERVATION_SOURCE,
       sourceId: `workflow:${workflowCoordinate}`,
       observedAt: candidate.observedAt,
-      data: {
+      data: mergeWorkflowCompilerEvidence(workflows.get(workflow)?.data, {
         id: workflow,
         repositoryId: repository,
         name: candidate.workflowName,
         path: canonicalWorkflowPath,
         state: 'unknown'
-      }
+      })
     });
     return { repository, workflow };
   };
@@ -1561,6 +1570,12 @@ function createCachedGhAwJsonlAccumulator(options) {
     const observedAt = raw && enriched
       ? (Date.parse(raw.observedAt) >= Date.parse(enriched.observedAt) ? raw.observedAt : enriched.observedAt)
       : /** @type {CachedRun} */ (raw ?? enriched).observedAt;
+    if (metadata.ghAwVersion) {
+      const parent = workflows.get(workflow);
+      if (parent) parent.data = mergeWorkflowCompilerEvidence(parent.data, {
+        ghAwRunVersion: metadata.ghAwVersion, ghAwRunVersionObservedAt: observedAt, ghAwRunVersionRunId: id
+      });
+    }
     observations.push({
       kind: 'run',
       source: OBSERVATION_SOURCE,

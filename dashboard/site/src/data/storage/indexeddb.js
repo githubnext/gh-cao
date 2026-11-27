@@ -20,7 +20,7 @@ const debug = createDebug('data:indexeddb');
 
 export { canonicalDatabaseName, DATABASE_NAME, deleteCanonicalDatabase } from './canonical-database.js';
 
-export const DATABASE_VERSION = 50;
+export const DATABASE_VERSION = 51;
 const WORKFLOW_SUBJECT_STATE_ID = 'workflow-subject-state';
 
 /** @param {string} storeName @param {Record<string, unknown>} record */

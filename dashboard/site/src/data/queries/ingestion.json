@@ -273,6 +273,8 @@
         "registryState": { "field": "workflow-registry-state", "trim": true, "omitEmpty": true },
         "createdAt": { "field": "created-at", "trim": true, "omitEmpty": true }, "updatedAt": { "field": "updated-at", "trim": true, "omitEmpty": true },
         "ghAwVersion": { "field": "gh-aw-version", "default": "unknown" }, "ghAwCurrentVersion": { "field": "gh-aw-current-version", "default": "unknown" },
+        "ghAwInventoryVersion": { "field": "gh-aw-version" }, "ghAwInventoryVersionObservedAt": { "field": "_observed-at" },
+        "ghAwInventoryUpdateState": { "field": "gh-aw-update-state", "default": "unknown" },
         "ghAwUpdateState": { "field": "gh-aw-update-state", "default": "unknown" },
         "sourceKind": { "field": "workflow-source-kind", "default": "registry" },
         "sourceCoordinate": { "field": "workflow-source", "default": "" },

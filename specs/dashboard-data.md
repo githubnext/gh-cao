@@ -1431,6 +1431,18 @@ Repository identity. A repository requires an upgrade when at least one
 workflow reports `update-available`; mixed workflow versions MUST remain
 visible and MUST NOT be collapsed to a fabricated single version.
 
+Workflow compiler observations from runs and inventory scans SHALL be retained
+separately as `ghAwRunVersion` and `ghAwInventoryVersion`, with their respective
+`ghAwRunVersionObservedAt` and `ghAwInventoryVersionObservedAt` clocks. The run
+observation also retains `ghAwRunVersionRunId`. The most recently observed
+known version determines `ghAwVersion` and `ghAwVersionSource` (`run` or
+`inventory`); a run wins an equal-clock tie. Missing or unknown versions MUST
+NOT erase a known observation. Replay of an older observation MUST NOT replace
+a newer one. `ghAwInventoryUpdateState` retains the scan's comparison; when a
+run wins with a different version, `ghAwUpdateState` is `unknown` rather than
+attributing the scan's comparison to that run. These observations are evidence,
+not policy or activation authority.
+
 Standalone workflow inventory MAY additionally report
 `workflow-source-kind`, `workflow-source`, `workflow-source-version`,
 `workflow-source-current-version`, and `workflow-source-update-state`.

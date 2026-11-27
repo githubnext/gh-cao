@@ -1,5 +1,5 @@
 import { EVIDENCE_DEFINITION_STORES, mergeEvidenceDefinition, timestampMilliseconds } from '../model/schema.js';
-import { mergeCanonicalRun } from '../model/fields.js';
+import { mergeCanonicalRun, mergeWorkflowCompilerEvidence } from '../model/fields.js';
 import { DAILY_RUN_COUNT_STORES, evictDailyRunCounts, readProtectedRunCountBytes, reconcileDailyRunCountsBatch, reconcileRunCountRecord } from '../model/daily-run-counts.js';
 import { mergeOperationalValueEvidence } from '../model/operational-value-evidence.js';
 import { mergeWorkflowValueCollection } from '../model/workflow-value-collection.js';
@@ -127,7 +127,11 @@ export async function writeAccountedRecords(transaction, storeName, records, rem
       runCountCandidates.set(String(record.id), reconciled.run);
       if (reconciled.conflict) runCountConflicts.add(String(record.id));
     }
-    unique.set(String(record.id), previous && storeName === 'runs'
+    unique.set(String(record.id), previous && storeName === 'workflows'
+      ? withStorageMetadata(storeName, mergeWorkflowCompilerEvidence(
+          withoutStorageMetadata(previous), withoutStorageMetadata(record)
+        ))
+      : previous && storeName === 'runs'
       ? mergeStoredRun(previous, record)
       : previous && EVIDENCE_DEFINITION_STORES.has(storeName)
       ? withStorageMetadata(storeName, mergeEvidenceDefinition(
@@ -178,7 +182,11 @@ export async function writeAccountedRecords(transaction, storeName, records, rem
     if (referencesAudits && typeof existing?.auditId === 'string' && existing.auditId !== record.auditId) {
       dirtyAudits.add(existing.auditId);
     }
-    if (storeName === 'runs' && existing) {
+    if (storeName === 'workflows' && existing) {
+      record = withStorageMetadata(storeName, mergeWorkflowCompilerEvidence(
+        withoutStorageMetadata(existing), withoutStorageMetadata(record)
+      ));
+    } else if (storeName === 'runs' && existing) {
       record = mergeStoredRun(existing, record);
     } else if (storeName === 'operationalValueEvidence') {
       record = withStorageMetadata(storeName, mergeOperationalValueEvidence(

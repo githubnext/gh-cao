@@ -112,8 +112,19 @@ func (s *Store) projectAcquisition(ctx context.Context, tx *sql.Tx, projection *
 		parent["id"] = run["repositoryId"]
 		if collection == "workflows" {
 			parent["id"] = run["workflowId"]
+			for field := range parent {
+				if strings.HasPrefix(field, "ghAw") {
+					delete(parent, field)
+				}
+			}
 		}
 		if err := s.fillAcquisitionParent(ctx, tx, "$"+collection, parent); err != nil {
+			return err
+		}
+	}
+	if version, ok := run["ghAwVersion"].(string); ok {
+		if err := s.recordWorkflowCompilerVersion(ctx, tx, run["workflowId"].(string), "run", version,
+			fmt.Sprint(run["observedAt"]), projection.RunID, ""); err != nil {
 			return err
 		}
 	}
@@ -246,6 +257,71 @@ func (s *Store) fillAcquisitionParent(ctx context.Context, tx *sql.Tx, source st
 		return err
 	}
 	_, err = tx.ExecContext(ctx, statement, args...)
+	return err
+}
+
+// Compiler observations are independent of inventory-owned workflow metadata.
+// Compare their recorded clocks, rather than publication order, so replay and
+// out-of-order collection cannot make an older run look current.
+func (s *Store) recordWorkflowCompilerVersion(ctx context.Context, tx *sql.Tx, id, source, version, clock, runID, state string) error {
+	version = strings.TrimSpace(version)
+	if version == "" || strings.EqualFold(version, "unknown") {
+		return nil
+	}
+	at, err := time.Parse(time.RFC3339Nano, clock)
+	if err != nil {
+		return errors.New("workflow compiler observation requires a valid timestamp")
+	}
+	var runVersion, inventoryVersion, inventoryState sql.NullString
+	var runAt, inventoryAt sql.NullTime
+	err = tx.QueryRowContext(ctx, `SELECT gh_aw_run_version,gh_aw_run_version_observed_at,
+		gh_aw_inventory_version,gh_aw_inventory_version_observed_at,gh_aw_inventory_update_state
+		FROM workflows WHERE namespace=$1 AND id=$2 FOR UPDATE`, s.namespace, id).
+		Scan(&runVersion, &runAt, &inventoryVersion, &inventoryAt, &inventoryState)
+	if err != nil {
+		return err
+	}
+	row := model.Row{}
+	if source == "run" && (!runAt.Valid || !at.Before(runAt.Time)) {
+		runVersion = sql.NullString{String: version, Valid: true}
+		runAt = sql.NullTime{Time: at, Valid: true}
+		row["ghAwRunVersion"], row["ghAwRunVersionObservedAt"], row["ghAwRunVersionRunId"] = version, at, runID
+	} else if source == "inventory" && (!inventoryAt.Valid || !at.Before(inventoryAt.Time)) {
+		if state == "" {
+			state = "unknown"
+		}
+		inventoryVersion = sql.NullString{String: version, Valid: true}
+		inventoryAt = sql.NullTime{Time: at, Valid: true}
+		inventoryState = sql.NullString{String: state, Valid: true}
+		row["ghAwInventoryVersion"], row["ghAwInventoryVersionObservedAt"], row["ghAwInventoryUpdateState"] = version, at, state
+	}
+	if len(row) == 0 {
+		return nil
+	}
+	if runVersion.Valid && runAt.Valid && (!inventoryVersion.Valid || !inventoryAt.Valid || !runAt.Time.Before(inventoryAt.Time)) {
+		row["ghAwVersion"], row["ghAwVersionSource"], row["ghAwUpdateState"] = runVersion.String, "run", "unknown"
+		if inventoryVersion.Valid && runVersion.String == inventoryVersion.String && inventoryState.Valid {
+			row["ghAwUpdateState"] = inventoryState.String
+		}
+	} else if inventoryVersion.Valid && inventoryAt.Valid {
+		row["ghAwVersion"], row["ghAwVersionSource"], row["ghAwUpdateState"] = inventoryVersion.String, "inventory", inventoryState.String
+	}
+	table := entityTables["$workflows"]
+	args := []any{s.namespace, id, stringPresence(table, row)}
+	updates := []string{"present_fields=present_fields | $3::bit varying"}
+	for _, column := range table.columns {
+		value, present := row[column.field]
+		if !present {
+			continue
+		}
+		bound, err := column.bind(value)
+		if err != nil {
+			return err
+		}
+		args = append(args, bound)
+		updates = append(updates, fmt.Sprintf("%s=$%d", query.SQLIdentifier(column.name), len(args)))
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE workflows SET "+strings.Join(updates, ",")+" WHERE namespace=$1 AND id=$2", args...)
 	return err
 }
 

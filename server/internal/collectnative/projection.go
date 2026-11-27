@@ -305,6 +305,12 @@ func ProjectCanonical(ctx context.Context, evidence Evidence, published time.Tim
 		run["agenticDurationSeconds"] = max(0, end.Sub(start).Seconds())
 	}
 	p.add("runs", fmt.Sprintf("run:%d:%d", i.RunID, i.Attempt), at, run)
+	if version, ok := run["ghAwVersion"].(string); ok && version != "unknown" {
+		workflow := p.Collections["workflows"][0]
+		workflow["ghAwRunVersion"], workflow["ghAwRunVersionObservedAt"] = version, at
+		workflow["ghAwRunVersionRunId"], workflow["ghAwVersion"] = p.RunID, version
+		workflow["ghAwVersionSource"], workflow["ghAwUpdateState"] = "run", "unknown"
+	}
 	events := array(session["events"])
 	if len(events)+len(persisted.Gaps) > limits.Entries {
 		return Projection{}, ErrCapacity
