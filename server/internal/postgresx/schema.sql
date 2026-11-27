@@ -2,7 +2,7 @@
 
 -- Fresh database only. Opaque artifacts remain external.
 
--- Inventory normalization contract: d97e5bf4726493419e0957c4c5edd5ce0a09314777ad9c513d753775bbe4268c
+-- Inventory normalization contract: 4583e08995e9a921d2989f179ca8af5ab1d6869508f69323e0707eb9b5a3902a
 
 CREATE TABLE IF NOT EXISTS cao_github_resources (
   namespace TEXT NOT NULL,

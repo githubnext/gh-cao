@@ -7,7 +7,7 @@ import { createDebug } from '../../debug.js';
 import { tidy } from '../../data-operations.js';
 import {
   STORAGE_SHARD_STORE, maintainStorageShards, rebuildStorageShards,
-  withStorageMetadata, writeAccountedRecords
+  withStorageMetadata, writeAccountedRecords, utf8BytewiseTupleKey
 } from './shards.js';
 import {
   AUDIT_CURATION_TRANSACTION_ID,
@@ -258,35 +258,7 @@ export function prepareCanonicalRecord(storeName, record) {
         ? [[name, JSON.stringify(values)]] : [];
     }))
   });
-  if (storeName !== 'workflows') return stored;
-  return {
-    ...stored,
-    _storage: {
-      ...stored._storage,
-      workflowSubject: utf8BytewiseTupleKey([
-        record.repositoryId,
-        record.path ?? '',
-        record.id
-      ])
-    }
-  };
-}
-
-/**
- * Maps bytes to code units 1-256 and reserves NUL as a tuple separator, so
- * IndexedDB string ordering matches the declared UTF-8 bytewise tuple order.
- * @param {unknown[]} values
- */
-function utf8BytewiseTupleKey(values) {
-  const encoder = new TextEncoder();
-  let key = '';
-  for (const value of values) {
-    for (const byte of encoder.encode(String(value ?? ''))) {
-      key += String.fromCharCode(byte + 1);
-    }
-    key += '\0';
-  }
-  return key;
+  return stored;
 }
 
 /**

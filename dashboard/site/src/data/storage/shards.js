@@ -47,6 +47,22 @@ function withoutStorageMetadata(record) {
   return canonical;
 }
 
+/**
+ * Maps UTF-8 bytes to ordered code units with NUL tuple separators.
+ * @param {unknown[]} values
+ */
+export function utf8BytewiseTupleKey(values) {
+  const encoder = new TextEncoder();
+  let key = '';
+  for (const value of values) {
+    for (const byte of encoder.encode(String(value ?? ''))) {
+      key += String.fromCharCode(byte + 1);
+    }
+    key += '\0';
+  }
+  return key;
+}
+
 /** @param {string} storeName @param {Record<string, unknown>} record @param {boolean} [failureLogPruned] */
 export function withStorageMetadata(storeName, record, failureLogPruned = false) {
   const stored = { ...record };
@@ -62,6 +78,9 @@ export function withStorageMetadata(storeName, record, failureLogPruned = false)
       timestamp,
       bytes: new TextEncoder().encode(JSON.stringify(stored)).byteLength + 512,
       ...statistical,
+      ...(storeName === 'workflows' ? {
+        workflowSubject: utf8BytewiseTupleKey([stored.repositoryId, stored.path ?? '', stored.id])
+      } : {}),
       ...(failureLogPruned ? { failureLogPruned: true } : {})
     }
   };
