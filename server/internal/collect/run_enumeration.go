@@ -67,11 +67,7 @@ func (b Backfill) enqueueNativeHistory(ctx context.Context, repositories []enrol
 	if before.IsZero() {
 		before = time.Now().UTC()
 	}
-	before = before.UTC().Truncate(time.Second)
-	after := time.Unix(0, 0).UTC()
-	if b.WindowDays > 0 {
-		after = before.Add(-time.Duration(b.WindowDays) * 24 * time.Hour)
-	}
+	after, before := enumerationWindow(before, b.WindowDays)
 	queued := 0
 	for _, repository := range repositories {
 		scope, err := b.AcquisitionScopes.CurrentScope(ctx, repository.name)
@@ -95,7 +91,46 @@ func (b Backfill) enqueueNativeHistory(ctx context.Context, repositories []enrol
 			queued++
 		}
 	}
+	backfillLog.Printf("native history enumeration enqueued: repositories=%d queued=%d window_days=%d", len(repositories), queued, b.WindowDays)
 	return queued, 0, nil
+}
+
+// enumerationWindow freezes the query window: before is truncated to whole
+// seconds in UTC and after is the epoch for an unbounded (zero-day) window.
+func enumerationWindow(before time.Time, windowDays int) (after, frozenBefore time.Time) {
+	frozenBefore = before.UTC().Truncate(time.Second)
+	after = time.Unix(0, 0).UTC()
+	if windowDays > 0 {
+		after = frozenBefore.Add(-time.Duration(windowDays) * 24 * time.Hour)
+	}
+	return after, frozenBefore
+}
+
+// validNextPage reports whether a discovery response may continue after page:
+// zero ends the listing, otherwise the cursor must strictly advance within bounds.
+func validNextPage(next, page int) bool {
+	return next == 0 || next > page && next <= 10000
+}
+
+// advanceEnumeration returns the cursor that follows a fully processed page, or
+// nil when the immutable query is exhausted. next is the discovery cursor for
+// the current listing (0 when that listing has no further pages).
+func advanceEnumeration(e RunEnumeration, next int) *RunEnumeration {
+	if next != 0 {
+		e.Page = next
+		return &e
+	}
+	switch {
+	case len(e.RemainingWorkflows) > 0:
+		e.WorkflowID, e.RemainingWorkflows = e.RemainingWorkflows[0], e.RemainingWorkflows[1:]
+		e.Page = 1
+	case e.NextWorkflowPage > 0:
+		e.WorkflowID, e.Page, e.NextWorkflowPage = 0, e.NextWorkflowPage, 0
+	default:
+		workerLog.Printf("native run enumeration exhausted: window_days=%d", e.WindowDays)
+		return nil
+	}
+	return &e
 }
 
 func (w RunWorker) enumerationScope(ctx context.Context, task RunTask) (collectnative.EnrollmentScope, error) {
@@ -140,7 +175,7 @@ func (w RunWorker) enumerate(ctx context.Context, task RunTask) (*RunEnumeration
 		if err != nil {
 			return nil, err
 		}
-		if next != 0 && (next <= e.Page || next > 10000) {
+		if !validNextPage(next, e.Page) {
 			return nil, collectnative.ErrIdentity
 		}
 		if len(workflows) != 0 {
@@ -170,7 +205,7 @@ func (w RunWorker) enumerate(ctx context.Context, task RunTask) (*RunEnumeration
 	if err != nil {
 		return nil, err
 	}
-	if next != 0 && (next <= e.Page || next > 10000) {
+	if !validNextPage(next, e.Page) {
 		return nil, collectnative.ErrIdentity
 	}
 	if _, err := w.enumerationScope(ctx, task); err != nil {
@@ -181,19 +216,5 @@ func (w RunWorker) enumerate(ctx context.Context, task RunTask) (*RunEnumeration
 			return nil, err
 		}
 	}
-	if next == 0 {
-		switch {
-		case len(e.RemainingWorkflows) > 0:
-			e.WorkflowID, e.RemainingWorkflows = e.RemainingWorkflows[0], e.RemainingWorkflows[1:]
-			e.Page = 1
-		case e.NextWorkflowPage > 0:
-			e.WorkflowID, e.Page, e.NextWorkflowPage = 0, e.NextWorkflowPage, 0
-		default:
-			//nolint:nilnil // A nil cursor marks successful exhaustion of the immutable query.
-			return nil, nil
-		}
-		return &e, nil
-	}
-	e.Page = next
-	return &e, nil
+	return advanceEnumeration(e, next), nil
 }
