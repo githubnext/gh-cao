@@ -1,37 +1,7 @@
 {
   "source_sha": "19f2ae685d01b88ab228e3a8941f25633d993965",
-  "next_category": "reusable dashboard generation",
+  "next_category": "artifact transfer and Pages packaging",
   "evaluations": [
-    {
-      "evaluated_at": "2026-11-27T02:23:31Z",
-      "worker_run_id": "45927670087",
-      "correlation_id": "45927136503-4908",
-      "category": "reusable dashboard generation",
-      "evidence_run_ids": [
-        "45897897785",
-        "45897824716",
-        "45897525384",
-        "45762538888",
-        "45762476442",
-        "45762342616",
-        "45761522067",
-        "45625202695",
-        "45562958524",
-        "45553538993",
-        "45551175273",
-        "45483718747",
-        "45473261375",
-        "45472166796",
-        "45470904895",
-        "45333239050",
-        "45293283576",
-        "45282794439",
-        "45249995178",
-        "45117916746"
-      ],
-      "suggestion_fingerprint": null,
-      "outcome": "complete, not actionable (unchanged verdict). Correlation 45927136503-4908; worker run 45927670087. Window 45897897785 (push, 57e7490, 2026-11-26T21:24:14Z) .. 45117916746 (schedule, 9edb6bb, 2026-11-..."
-    },
     {
       "evaluated_at": "2026-11-27T02:37:05Z",
       "worker_run_id": "45929017923",
@@ -900,6 +870,36 @@
       ],
       "suggestion_fingerprint": null,
       "outcome": "complete, not actionable (Astro documentation generation; unchanged verdict). Correlation 45992860895-4937; worker run 45993460565. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh run list at 11:51Z returned the same 20 IDs, none queued or in progress; origin main 19f2ae6 = source_sha. Recomputed stored rows (n=20, nearest-rank p90): build_docs median 12 s (p90 14, min 9, max 15) = 16.3 pct of exec median 73.5 s; 15 pct gate 11.03 s needs 92 pct of the step removed; full removal ceiling 12 s (16.3 pct) is below gate. docs:build = astro build && validate-agent-docs && node --test agent-docs-discovery, so trimming validation or tests would save at most a few seconds. Same-commit schedule skip: exec median delta 0 (push runs carry no saving). Output reuse still blocked by PUBLIC_PAGES_BUILD_COMMIT provenance (docs/components/SiteFooter.astro:9; scripts/validate-agent-docs.mjs:571). Job logs not read (previous HTTP 403 DIFC; not retried). Label-scoped open issues: #20815 only (blobless checkout; not re-proposed); no create_issue. Next: reusable dashboard generation."
+    },
+    {
+      "evaluated_at": "2026-11-27T12:23:56Z",
+      "worker_run_id": "45997844876",
+      "correlation_id": "45997089182-4938",
+      "category": "reusable dashboard generation",
+      "evidence_run_ids": [
+        "45945806016",
+        "45897897785",
+        "45897824716",
+        "45897525384",
+        "45762538888",
+        "45762476442",
+        "45762342616",
+        "45761522067",
+        "45625202695",
+        "45562958524",
+        "45553538993",
+        "45551175273",
+        "45483718747",
+        "45473261375",
+        "45472166796",
+        "45470904895",
+        "45333239050",
+        "45293283576",
+        "45282794439",
+        "45249995178"
+      ],
+      "suggestion_fingerprint": null,
+      "outcome": "complete, not actionable (reusable dashboard generation; unchanged verdict). Correlation 45997089182-4938; worker run 45997844876. Window 45945806016 (schedule, 19f2ae6, 2026-11-27T05:26:18Z) .. 45249995178 (push, eb19410, 2026-11-23T19:32:26Z); 16 push, 4 schedule, 20 success, 0 failed, 0 cancelled; live gh docs.yml list at worker time identical (none queued or in progress); origin main 19f2ae6 = source_sha. Recomputed stored demo_s (n=20, nearest-rank p90): median 1 s, p90 2 s, max 3 s = 1.4 pct of exec median 73.5 s; 15 pct gate 11.03 s and 60 s gate unmet even at full removal (ceiling 3 s). Step is scripts/simulate-dashboard-pages.mjs (Date.now at :67 and generatedAt at :76 block cross-run reuse). Next category: artifact transfer and Pages packaging."
     }
   ],
   "docs_cache_model": {
@@ -2146,9 +2146,9 @@
     "verdict": "not actionable; re-open only if Pages reuse can be proven commit-correct or build_docs median exceeds about 13 s with repeated runs"
   },
   "dashboard_generation_last_checked": {
-    "evaluated_at": "2026-11-27T10:34:14Z",
-    "worker_run_id": "45982695421",
-    "correlation_id": "45981924272-4933",
+    "evaluated_at": "2026-11-27T12:23:56Z",
+    "worker_run_id": "45997844876",
+    "correlation_id": "45997089182-4938",
     "verdict": "not actionable (unchanged): demo step median 1 s, p90 2 s, max 3 s; 1.4 pct of exec median 73.5 s; window unchanged since 05:26Z (19f2ae6); no dashboard-site build in docs:build"
   },
   "superseding_builds": {
