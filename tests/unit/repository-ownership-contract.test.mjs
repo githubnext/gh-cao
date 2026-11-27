@@ -70,6 +70,33 @@ test("owner kinds must be strings and validated mappings are deeply immutable", 
   assert.throws(() => { mapping.repositories[0].exemption.reason = "changed"; });
 });
 
+test("GitHub user and organization logins reject invalid hyphens and length", () => {
+  const valid = ["a", "ALICE", "a-1-B", "x".repeat(39)];
+  const invalid = ["-alice", "alice-", "alice--bob", "x".repeat(40), "alice_bob", "alice.bob"];
+  for (const login of valid) {
+    const person = entry.replace("github:user:alice", `github:user:${login}`);
+    const team = entry.replace("github:team:example/maintainers", `github:team:${login}/maintainers`);
+    const repository = entry.replace("repository: example/repo", `repository: ${login}/repo`);
+    assert.doesNotThrow(() => parseMapping(person), `valid user ${login}`);
+    assert.doesNotThrow(() => parseMapping(team), `valid organization ${login}`);
+    const mapping = parseMapping(repository);
+    assert.equal(mappingStatus(mapping, `${login}/repo`, "2026-01-01T00:00:00Z").status, "current");
+  }
+  for (const login of invalid) {
+    const person = entry.replace("github:user:alice", `github:user:${login}`);
+    const team = entry.replace("github:team:example/maintainers", `github:team:${login}/maintainers`);
+    const repository = entry.replace("repository: example/repo", `repository: ${login}/repo`);
+    assert.throws(() => parseMapping(person), undefined, `invalid user ${login}`);
+    assert.throws(() => parseMapping(team), undefined, `invalid organization ${login}`);
+    assert.throws(() => parseMapping(repository), undefined, `invalid repository owner ${login}`);
+    assert.throws(() => mappingStatus(parseMapping(entry), `${login}/repo`, "2026-01-01T00:00:00Z"));
+  }
+  // Team slugs and service namespaces are not GitHub account logins.
+  assert.doesNotThrow(() => parseMapping(entry
+    .replace("github:team:example/maintainers", "github:team:example/team--slug")
+    .replace("service:example/deployer", "service:example_namespace/deployer")));
+});
+
 test("bounded many-key YAML rejects within a subprocess time budget", () => {
   const moduleUrl = new URL("../../repository-ownership/mapping.mjs", import.meta.url).href;
   const script = `

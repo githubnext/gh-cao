@@ -37,7 +37,9 @@ The root and entry fields shown are required except `exemption`, whose fields
 are required when present. Owner lists have 1–100 entries. Identities are
 `github:team:<org>/<slug>`, `github:user:<login>`, or
 `service:<namespace>/<id>`. GitHub names and slugs can change; they are not
-immutable provider IDs. A service ID is a human-managed identifier, not
+immutable provider IDs. GitHub user and organization logins, including
+repository owners, are 1–39 ASCII letters, digits, or single interior hyphens.
+These checks do not establish that a login exists. A service ID is a human-managed identifier, not
 proof that a GitHub account or service exists. Names and identities are
 deduplicated case-insensitively. Timestamps are quoted `YYYY-MM-DDTHH:mm:ssZ`;
 the due date and exemption expiry must be after the review timestamp. A

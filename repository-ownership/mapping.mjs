@@ -1,6 +1,7 @@
 import { isAlias, isMap, isScalar, isSeq, parseDocument } from "yaml";
 
 const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98})\/[A-Za-z0-9_.-]{1,100}$/;
+const GITHUB_LOGIN = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
 const IDENTITIES = {
   team: /^github:team:[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/,
   person: /^github:user:[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/,
@@ -8,6 +9,15 @@ const IDENTITIES = {
 };
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 const validatedMappings = new WeakSet();
+
+function validGithubLogin(login) {
+  return login.length <= 39 && GITHUB_LOGIN.test(login);
+}
+
+function validRepository(repository) {
+  return typeof repository === "string" && REPOSITORY.test(repository)
+    && validGithubLogin(repository.split("/")[0]);
+}
 
 function object(value, keys, required, location) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -81,7 +91,7 @@ export function parseMapping(source) {
   for (const entry of mapping.repositories) {
     object(entry, ["repository", "owners", "reviewed_at", "review_due_at", "exemption"],
       ["repository", "owners", "reviewed_at", "review_due_at"], "repository entry");
-    if (typeof entry.repository !== "string" || !REPOSITORY.test(entry.repository)) {
+    if (!validRepository(entry.repository)) {
       throw new Error("invalid repository name");
     }
     const key = entry.repository.toLowerCase();
@@ -95,6 +105,10 @@ export function parseMapping(source) {
       object(owner, ["kind", "id"], ["kind", "id"], "owner");
       if (typeof owner.kind !== "string" || !Object.hasOwn(IDENTITIES, owner.kind) || typeof owner.id !== "string" || !IDENTITIES[owner.kind].test(owner.id)) {
         throw new Error(`invalid owner identity in ${entry.repository}`);
+      }
+      if (owner.kind !== "service") {
+        const login = owner.id.slice(owner.kind === "team" ? "github:team:".length : "github:user:".length).split("/")[0];
+        if (!validGithubLogin(login)) throw new Error(`invalid owner identity in ${entry.repository}`);
       }
       const ownerKey = owner.id.toLowerCase();
       if (owners.has(ownerKey)) throw new Error(`duplicate owner in ${entry.repository}`);
@@ -132,7 +146,7 @@ export function parseMapping(source) {
  */
 export function mappingStatus(mapping, repository, at) {
   if (!validatedMappings.has(mapping)) throw new Error("mapping must be parsed and validated first");
-  if (typeof repository !== "string" || !REPOSITORY.test(repository)) throw new Error("invalid repository name");
+  if (!validRepository(repository)) throw new Error("invalid repository name");
   const now = timestamp(at, "at");
   const entry = mapping.repositories.find(item => item.repository.toLowerCase() === repository.toLowerCase());
   if (!entry) return { status: "unmapped", exemption: "none" };
