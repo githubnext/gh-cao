@@ -35,9 +35,6 @@ func newDatabaseAction(action string) *cobra.Command {
 	storeKind := cmd.Flags().String("store", "", "canonical or operational (required)")
 	namespace := cmd.Flags().String("namespace", "", "exact deployment namespace (required)")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
-		if *storeKind != "canonical" && *storeKind != "operational" {
-			return errors.New("--store must be canonical or operational")
-		}
 		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		scope := databaseScope{
@@ -47,9 +44,9 @@ func newDatabaseAction(action string) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		dsn := strings.TrimSpace(os.Getenv("CAO_DATABASE_ADMIN_URL"))
-		if dsn == "" {
-			return errors.New("CAO_DATABASE_ADMIN_URL is required; do not mount it in runtime processes")
+		dsn, err := adminDatabaseURL(os.Getenv)
+		if err != nil {
+			return err
 		}
 		removed, err := runDatabaseAction(ctx, dsn, *storeKind, *namespace, action)
 		if err != nil {
@@ -59,6 +56,17 @@ func newDatabaseAction(action string) *cobra.Command {
 		return json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]any{"action": action, "store": *storeKind, "backend": backend, "audit_events_removed": removed})
 	}
 	return cmd
+}
+
+// adminDatabaseURL returns the separately supplied administrator endpoint. It
+// is read only for explicit maintenance commands and never logged.
+func adminDatabaseURL(getenv func(string) string) (string, error) {
+	dsn := strings.TrimSpace(getenv("CAO_DATABASE_ADMIN_URL"))
+	if dsn == "" {
+		databaseLog.Printf("database administrator endpoint rejected: reason=missing")
+		return "", errors.New("CAO_DATABASE_ADMIN_URL is required; do not mount it in runtime processes")
+	}
+	return dsn, nil
 }
 
 // databaseScope is the validated-before-I/O flag set of a database action.
