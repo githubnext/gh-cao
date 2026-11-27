@@ -186,25 +186,40 @@ func (v *Verifier) key(ctx context.Context, kid string) (*rsa.PublicKey, error) 
 		return nil, ErrUnavailable
 	}
 	now := time.Now()
+	key, refresh, err := v.lookupKey(kid, now)
+	if !refresh {
+		return key, err
+	}
+	return observeOperation(ctx, telemetry.SpanAdmissionKeys, func(ctx context.Context) (*rsa.PublicKey, error) {
+		return v.refreshKey(ctx, kid, now)
+	})
+}
+
+// lookupKey resolves kid from the cached signing keys or decides whether the
+// caller may refresh them. It returns refresh=true only when a JWKS fetch is
+// admitted, after recording the throttles that bound unknown-key and overall
+// refresh traffic. The caller must hold the verifier gate.
+func (v *Verifier) lookupKey(kid string, now time.Time) (key *rsa.PublicKey, refresh bool, err error) {
 	if now.Sub(v.refreshed) < 5*time.Minute {
 		if key := v.keys[kid]; key != nil {
-			return key, nil
+			return key, false, nil
 		}
 		if kid == v.missing && now.Sub(v.lastRefresh) < 30*time.Second {
-			return nil, ErrDenied
+			admissionLog.Printf("token signing key refresh skipped: reason=known_missing")
+			return nil, false, ErrDenied
 		}
 		if now.Sub(v.unknownRefresh) < 30*time.Second {
-			return nil, ErrUnavailable
+			admissionLog.Printf("token signing key refresh skipped: reason=unknown_key_throttled")
+			return nil, false, ErrUnavailable
 		}
 		v.unknownRefresh = now
 	}
 	if now.Sub(v.lastRefresh) < time.Second {
-		return nil, ErrUnavailable
+		admissionLog.Printf("token signing key refresh skipped: reason=refresh_throttled")
+		return nil, false, ErrUnavailable
 	}
 	v.lastRefresh = now
-	return observeOperation(ctx, telemetry.SpanAdmissionKeys, func(ctx context.Context) (*rsa.PublicKey, error) {
-		return v.refreshKey(ctx, kid, now)
-	})
+	return nil, true, nil
 }
 
 func (v *Verifier) refreshKey(ctx context.Context, kid string, now time.Time) (*rsa.PublicKey, error) {
