@@ -1,8 +1,11 @@
+import { createDebug, diagnosticErrorName } from '../debug.js';
 import { h } from '../dom.js';
 import { effect, state } from '../reactive.js';
 import { publishNotification } from '../notification-service.js';
 import { syncRemoteInventory, usesRemoteDataBackend } from '../remote-data-backend.js';
 import { createFactoryScope } from './factory-elements.js';
+
+const debugInventorySync = createDebug('inventory-sync');
 
 /**
  * Interaction-only: Dashboard Language declares placement and no data sources.
@@ -24,15 +27,18 @@ export function renderInventorySync(context) {
     onclick: async () => {
       if (!available || pending.get() || scope.signal.aborted) return;
       pending.set(true);
+      debugInventorySync({ event: 'requested' });
       message.set('Requesting inventory sync…');
       try {
         await syncRemoteInventory(scope.signal);
         if (scope.signal.aborted) return;
+        debugInventorySync({ event: 'queued' });
         const queued = 'Inventory sync queued. Updates will appear as collection progresses; workflows are not changed.';
         message.set(queued);
         publishNotification({ tone: 'info', message: queued });
-      } catch {
+      } catch (error) {
         if (scope.signal.aborted) return;
+        debugInventorySync({ event: 'failed', errorName: diagnosticErrorName(error) });
         const failed = 'Inventory sync was not confirmed. Check your administrator access and server collection configuration, then retry.';
         message.set(failed);
         publishNotification({ tone: 'error', message: failed });
