@@ -86,6 +86,7 @@ var entityTables = map[string]entityTable{
 		{field: "sourceVersion", name: "source_version", kind: "", sql: "TEXT"},
 		{field: "state", name: "state", kind: "", sql: "TEXT"},
 		{field: "updatedAt", name: "updated_at", kind: "timestamp", sql: "TIMESTAMPTZ"},
+		{field: "workflowEngine", name: "workflow_engine", kind: "", sql: "TEXT"},
 		{field: "workflowLink", name: "workflow_link_object", kind: "object", sql: "BOOLEAN"},
 		{field: "workflowLink.relation", name: "workflow_link_relation", kind: "", sql: "TEXT"},
 		{field: "workflowLink.href", name: "workflow_link_href", kind: "", sql: "TEXT"},
@@ -1073,6 +1074,7 @@ var statisticalTables = map[string]entityTable{
 		{field: "sourceVersion", name: "source_version", kind: "", sql: "TEXT"},
 		{field: "state", name: "state", kind: "", sql: "TEXT"},
 		{field: "updatedAt", name: "updated_at", kind: "timestamp", sql: "TIMESTAMPTZ"},
+		{field: "workflowEngine", name: "workflow_engine", kind: "", sql: "TEXT"},
 		{field: "workflowLink", name: "workflow_link_object", kind: "object", sql: "BOOLEAN"},
 		{field: "workflowLink.relation", name: "workflow_link_relation", kind: "", sql: "TEXT"},
 		{field: "workflowLink.href", name: "workflow_link_href", kind: "", sql: "TEXT"},
@@ -1660,6 +1662,7 @@ var inventoryBindings = map[string][]inventoryBinding{
 	"workflows": {
 		{field: "githubId", inputs: []string{"workflow-id"}, trim: true, omitEmpty: true},
 		{field: "name", inputs: []string{"workflow-name","workflow"}, defaultPresent: true, defaultValue: ""},
+		{field: "workflowEngine", inputs: []string{"workflow-engine"}},
 		{field: "registryState", inputs: []string{"workflow-registry-state"}, trim: true, omitEmpty: true},
 		{field: "createdAt", inputs: []string{"created-at"}, trim: true, omitEmpty: true},
 		{field: "updatedAt", inputs: []string{"updated-at"}, trim: true, omitEmpty: true},

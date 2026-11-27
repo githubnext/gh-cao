@@ -1006,7 +1006,7 @@ function renderCustomPage(page, title, sources, units, dashboardDefaults, cardTe
             h('span', { className: 'sr-only' }, `Loading ${getViewTitle(view, index)}`)
           ], headingTag)
         : renderCustomView(page.id, view, index, readySources, units, cardTemplates, headingTag, routeParameter, queryContext,
-            binding?.viewSubscriptions === true);
+            binding?.viewSubscriptions === true, promptContext.githubUrlBase);
       const fullPie = isPlainObject(view) && view.mark === 'chart' && view.chart === 'pie' && view.layout === 'full';
       const pieState = fullPie ? rendered.querySelector(':scope > .view-state-card') : null;
       if (fullPie) rendered.classList.add('chart-view', 'chart-view-pie');
@@ -2561,11 +2561,12 @@ function summarizeDataState(pageSources) {
  * @param {string} [routeParameter]
  * @param {PageSourceLoadOptions['queryContext']} [queryContext]
  * @param {boolean} [sourcesSubscribed]
+ * @param {string} [githubUrlBase]
  * @returns {HTMLElement}
  */
-function renderCustomView(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext, sourcesSubscribed = false) {
+function renderCustomView(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext, sourcesSubscribed = false, githubUrlBase) {
   const root = renderCustomViewContent(
-    pageId, view, index, sources, units, cardTemplates, headingTag, routeParameter, queryContext, sourcesSubscribed
+    pageId, view, index, sources, units, cardTemplates, headingTag, routeParameter, queryContext, sourcesSubscribed, githubUrlBase
   );
   const actions = (isPlainObject(view) && Array.isArray(view.actions) ? view.actions : [])
     .map((/** @type {string} */ id) => renderDeclaredCliAction(id)).filter(Boolean);
@@ -2581,7 +2582,7 @@ function renderCustomView(pageId, view, index, sources, units, cardTemplates, he
 }
 
 /** @type {typeof renderCustomView} */
-function renderCustomViewContent(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext, sourcesSubscribed = false) {
+function renderCustomViewContent(pageId, view, index, sources, units, cardTemplates, headingTag = 'h3', routeParameter, queryContext, sourcesSubscribed = false, githubUrlBase) {
   const fallbackTitle = `View ${index + 1}`;
   if (!isPlainObject(view)) {
     return renderCustomViewState(pageId, fallbackTitle, null, 'unavailable', ['Invalid custom view definition.'], headingTag);
@@ -2602,7 +2603,7 @@ function renderCustomViewContent(pageId, view, index, sources, units, cardTempla
 
   if (view.mark === 'element') {
     return renderElementView(
-      pageId, title, view, index, sources, contextDetails, headingTag, routeParameter, queryContext, sourcesSubscribed
+      pageId, title, view, index, sources, contextDetails, headingTag, routeParameter, queryContext, sourcesSubscribed, githubUrlBase
     );
   }
   if (view.mark === 'callout') {
@@ -2766,9 +2767,10 @@ function suppressSupplementalTableHeading(rendered, view, index) {
  * @param {string} [routeParameter]
  * @param {PageSourceLoadOptions['queryContext']} [queryContext]
  * @param {boolean} [sourcesSubscribed]
+ * @param {string} [githubUrlBase]
  * @returns {HTMLElement}
  */
-function renderElementView(pageId, title, view, viewIndex, sources, contextDetails, headingTag, routeParameter, queryContext, sourcesSubscribed = false) {
+function renderElementView(pageId, title, view, viewIndex, sources, contextDetails, headingTag, routeParameter, queryContext, sourcesSubscribed = false, githubUrlBase) {
   const elementName = typeof view.element === 'string' ? view.element : '';
   const sourceNames = getViewSources(view);
   const viewData = isPlainObject(view.data) ? view.data : undefined;
@@ -2821,6 +2823,7 @@ function renderElementView(pageId, title, view, viewIndex, sources, contextDetai
     sourceNames,
     sources: selectedSources,
     contextDetails,
+    githubUrlBase,
     scope: isPlainObject(viewData?.scope) ? viewData.scope : undefined,
     time: isPlainObject(viewData?.time) ? viewData.time : undefined,
     titleLink: isPlainObject(view['title-link']) ? view['title-link'] : undefined,

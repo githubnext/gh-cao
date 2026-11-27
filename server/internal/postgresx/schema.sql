@@ -2,7 +2,7 @@
 
 -- Fresh database only. Opaque artifacts remain external.
 
--- Inventory normalization contract: 406ed2701b5a31c492406aacfc7b9eeb42c6a2e625981050341a5ade0916f456
+-- Inventory normalization contract: 0ef2d25d501e0d027059594cf8fa679bc613b06a97892deee14d602b957df00a
 
 CREATE TABLE IF NOT EXISTS cao_github_resources (
   namespace TEXT NOT NULL,
@@ -439,6 +439,7 @@ CREATE TABLE IF NOT EXISTS workflows (
   source_version TEXT,
   state TEXT,
   updated_at TIMESTAMPTZ,
+  workflow_engine TEXT,
   workflow_link_object BOOLEAN,
   workflow_link_relation TEXT,
   workflow_link_href TEXT,
@@ -446,7 +447,7 @@ CREATE TABLE IF NOT EXISTS workflows (
 
   PRIMARY KEY (namespace, id),
   UNIQUE (namespace, ordinal),
-  CHECK (bit_length(present_fields) = 41),
+  CHECK (bit_length(present_fields) = 42),
   FOREIGN KEY (namespace) REFERENCES cao_state(namespace) ON DELETE CASCADE,
   FOREIGN KEY (namespace, campaign_id) REFERENCES campaigns(namespace, id) DEFERRABLE INITIALLY DEFERRED,
   CHECK (repository_id IS NOT NULL AND repository_id <> ''),
@@ -1632,7 +1633,7 @@ CREATE TABLE IF NOT EXISTS cao_sample_campaigns (
 CREATE TABLE IF NOT EXISTS cao_sample_workflows (
   namespace TEXT NOT NULL REFERENCES cao_state(namespace) ON DELETE CASCADE,
   ordinal BIGINT NOT NULL CHECK (ordinal >= 0),
-  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 41),
+  present_fields BIT VARYING NOT NULL CHECK (bit_length(present_fields) = 42),
   admission_reason TEXT,
   admission_status TEXT,
   campaign_id TEXT,
@@ -1670,6 +1671,7 @@ CREATE TABLE IF NOT EXISTS cao_sample_workflows (
   source_version TEXT,
   state TEXT,
   updated_at TIMESTAMPTZ,
+  workflow_engine TEXT,
   workflow_link_object BOOLEAN,
   workflow_link_relation TEXT,
   workflow_link_href TEXT,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/githubnext/gh-cao/internal/dashboardquery/workflowmetadata"
 	"github.com/githubnext/gh-cao/server/internal/logger"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
@@ -67,6 +68,11 @@ func NormalizeInventoryFields(name string, input model.Row) (model.Row, error) {
 	for _, binding := range bindings {
 		if value, present := resolveInventoryField(binding, input); present {
 			row[binding.field] = value
+		}
+	}
+	if name == "workflows" {
+		if engine, _ := row["workflowEngine"].(string); !workflowmetadata.KnownEngine(engine) {
+			delete(row, "workflowEngine")
 		}
 	}
 	inventoryLog.Printf("inventory normalized kind=%s input_fields=%d output_fields=%d", name, len(input), len(row))

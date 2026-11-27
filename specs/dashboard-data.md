@@ -1431,6 +1431,14 @@ Repository identity. A repository requires an upgrade when at least one
 workflow reports `update-available`; mixed workflow versions MUST remain
 visible and MUST NOT be collapsed to a fabricated single version.
 
+Native workflow inventory MAY report `workflow-engine`, stored on canonical
+Workflow records as `workflowEngine`. This optional observation is the
+recognized engine identifier in the compiled `.lock.yml` compiler header
+(`agent_id`), not a runtime engine, model, credential, or authorization grant.
+The hosted collector reads the lockfile at the enrolled repository's pinned
+default-branch commit; the local collector uses a matching checkout when
+available. Missing or unrecognized engine evidence is omitted, not defaulted.
+
 Standalone workflow inventory MAY additionally report
 `workflow-source-kind`, `workflow-source`, `workflow-source-version`,
 `workflow-source-current-version`, and `workflow-source-update-state`.

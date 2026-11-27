@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/internal/dashboardquery/workflowmetadata"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
 
@@ -334,6 +335,12 @@ func ValidateInventoryEvidence(e InventoryEvidence) error {
 					return errors.New("invalid or duplicate native inventory workflow")
 				}
 				seen[key] = true
+				if value, present := row["workflow-engine"]; present {
+					engine, _ := value.(string)
+					if !workflowmetadata.KnownEngine(engine) {
+						return errors.New("invalid native inventory workflow engine")
+					}
+				}
 				campaign := inventoryText(row, "campaign")
 				if campaign == "" {
 					campaign = inventoryText(row, "package")
@@ -357,7 +364,7 @@ func ValidateInventoryEvidence(e InventoryEvidence) error {
 	}
 	mutable := map[string]bool{"workflow": true, "workflow-name": true, "workflow-active": true,
 		"workflow-registry-state": true, "workflow-id": true, "workflow-link": true, "created-at": true, "updated-at": true,
-		"gh-aw-version": true, "gh-aw-current-version": true, "gh-aw-update-state": true, "observed-at": true}
+		"gh-aw-version": true, "gh-aw-current-version": true, "gh-aw-update-state": true, "observed-at": true, "workflow-engine": true}
 	for _, observed := range e.Sources["workflows"].Rows {
 		key := inventoryPath(inventoryText(observed, "workflow"))
 		declared := declaredByPath[key]

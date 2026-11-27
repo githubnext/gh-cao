@@ -269,6 +269,7 @@
       "data": {
         "id": { "field": "_id" }, "githubId": { "field": "workflow-id", "trim": true, "omitEmpty": true },
         "repositoryId": { "field": "_repository-id" }, "name": { "fields": ["workflow-name", "workflow"], "default": "" },
+        "workflowEngine": { "field": "workflow-engine" },
         "path": { "field": "_path" }, "state": { "field": "_state" },
         "registryState": { "field": "workflow-registry-state", "trim": true, "omitEmpty": true },
         "createdAt": { "field": "created-at", "trim": true, "omitEmpty": true }, "updatedAt": { "field": "updated-at", "trim": true, "omitEmpty": true },

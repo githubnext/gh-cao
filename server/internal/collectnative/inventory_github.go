@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/githubnext/gh-cao/internal/dashboardquery/workflowmetadata"
 	"github.com/githubnext/gh-cao/server/internal/model"
 )
 
@@ -205,7 +206,7 @@ func (g GitHub) BuildInventory(ctx context.Context, scope EnrollmentScope, snaps
 			} else if strings.HasPrefix(workflow.State, "disabled_") {
 				active = "false"
 			}
-			version := ""
+			var version, engine string
 			if strings.HasSuffix(strings.ToLower(workflow.Path), ".lock.yml") {
 				var source []byte
 				var err error
@@ -219,7 +220,8 @@ func (g GitHub) BuildInventory(ctx context.Context, scope EnrollmentScope, snaps
 				if ctx.Err() != nil {
 					return evidence, ctx.Err()
 				}
-				version = inventoryCompilerVersion(source)
+				metadata := workflowmetadata.Parse(bytes.NewReader(source))
+				version, engine = inventoryVersion(metadata.CompilerVersion), metadata.Engine
 				if err != nil || version == "" {
 					failures = append(failures, model.Row{"operation": "workflow-version-discovery", "workflow": key, "reason": "compiler-metadata-unavailable"})
 				}
@@ -229,6 +231,9 @@ func (g GitHub) BuildInventory(ctx context.Context, scope EnrollmentScope, snaps
 				"workflow-registry-state": workflow.State, "gh-aw-version": inventoryUnknown(version),
 				"gh-aw-current-version": inventoryUnknown(latest), "gh-aw-update-state": inventoryVersionState(version, latest),
 				"rollout-mode": "unknown", "observed-at": observed}
+			if engine != "" {
+				row["workflow-engine"] = engine
+			}
 			if workflow.ID != "" {
 				row["workflow-id"] = string(workflow.ID)
 			}
@@ -269,10 +274,12 @@ func (g GitHub) BuildInventory(ctx context.Context, scope EnrollmentScope, snaps
 		for field, value := range declared {
 			merged[field] = value
 		}
+		// Only the enrolled repository's compiled file establishes the engine.
+		delete(merged, "workflow-engine")
 		merged["workflow"] = key
 		merged["workflow-active"] = "unknown"
 		if registry != nil {
-			for _, field := range []string{"workflow-name", "workflow-active", "workflow-registry-state", "workflow-id", "workflow-link", "created-at", "updated-at"} {
+			for _, field := range []string{"workflow-name", "workflow-active", "workflow-registry-state", "workflow-id", "workflow-link", "created-at", "updated-at", "workflow-engine"} {
 				if value, ok := registry[field]; ok {
 					merged[field] = value
 				}
@@ -348,21 +355,6 @@ func inventoryVersion(value string) string {
 		normalized += "-" + match[4]
 	}
 	return normalized
-}
-
-func inventoryCompilerVersion(content []byte) string {
-	for _, line := range strings.Split(string(content), "\n") {
-		if metadata, ok := strings.CutPrefix(line, "# gh-aw-metadata: "); ok {
-			var fields struct {
-				Version string `json:"compiler_version"`
-			}
-			if json.Unmarshal([]byte(metadata), &fields) == nil {
-				return inventoryVersion(fields.Version)
-			}
-			return ""
-		}
-	}
-	return ""
 }
 
 func inventoryVersionState(installed, latest string) string {

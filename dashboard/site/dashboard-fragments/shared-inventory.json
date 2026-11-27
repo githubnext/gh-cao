@@ -1461,6 +1461,36 @@
       "order-by": [{ "field": "repository-coordinate", "direction": "asc" }, { "field": "workflow", "direction": "asc" }]
     },
     {
+      "name": "inference-workflow-identities",
+      "subject": "Canonical workflow paths with compiled engine evidence.",
+      "from": "workflows",
+      "compute": [
+        { "as": "repository-coordinate", "function": "concat", "args": [{ "field": "organization" }, { "value": "/" }, { "field": "repository" }] },
+        { "as": "markdown-path", "function": "replace-suffix", "args": [{ "field": "workflow" }, { "value": ".lock.yml" }, { "value": ".md" }] },
+        { "as": "extensionless-path", "function": "replace-suffix", "args": [{ "field": "markdown-path" }, { "value": ".md" }, { "value": "" }] },
+        { "as": "ordinary-workflow", "function": "equals-any", "args": [{ "field": "markdown-path" }, { "field": "extensionless-path" }] },
+        { "as": "inventory-engine", "function": "coalesce", "args": [{ "field": "workflow-engine" }, { "value": "unknown" }] },
+        { "as": "engine-unavailable", "function": "equals-any", "args": [{ "field": "inventory-engine" }, { "value": "unknown" }, { "value": "" }] }
+      ],
+      "select": [{ "field": "repository-coordinate" }, { "field": "markdown-path" }, { "field": "ordinary-workflow" }, { "field": "inventory-engine" }, { "field": "engine-unavailable" }]
+    },
+    {
+      "name": "inference-credential-repositories",
+      "subject": "Compiled agentic workflow engine evidence by repository.",
+      "objective": "Direct administrators to repository-specific inference setup without guessing from model names or run history.",
+      "acceptance": "Group agentic workflow identities by repository; list distinct engine IDs and count workflows with missing engine metadata.",
+      "from": "inference-workflow-identities",
+      "filter": { "predicates": [{ "field": "ordinary-workflow", "equals": false }] },
+      "aggregate": {
+        "by": ["repository-coordinate"],
+        "values": [
+          { "field": "inventory-engine", "as": "engines", "reducer": "distinct-list", "filter": { "predicates": [{ "field": "engine-unavailable", "equals": false }] } },
+          { "field": "markdown-path", "as": "unknown-engine-count", "reducer": "distinct-count", "filter": { "predicates": [{ "field": "engine-unavailable", "equals": true }] } }
+        ]
+      },
+      "order-by": [{ "field": "repository-coordinate", "direction": "asc" }]
+    },
+    {
       "name": "maintenance-workflow-state-options",
       "subject": "List observed workflow enablement states for the workflow maintenance State filter.",
       "objective": "Narrow Markdown workflows to enabled, disabled, or unknown registry state.",

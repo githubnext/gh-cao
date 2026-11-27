@@ -2767,6 +2767,41 @@
       ]
     },
     {
+      "id": "inference-credentials",
+      "kind": "custom",
+      "view-mode-control": false,
+      "intent": "Help repository administrators configure credentials for detected agentic workflow engines and separate read-only GitHub access.",
+      "title": "Inference credentials",
+      "navigation-label": "Inference credentials",
+      "icon": "key",
+      "description": "Set up inference for the engines found in your compiled workflows. Credential values are entered in GitHub or the approved credential store, never in CAO.",
+      "views": [
+        {
+          "id": "inference-inventory-sync",
+          "requires": { "backend": "hosted", "on-unavailable": "hide" },
+          "title": "Refresh engine inventory",
+          "show-title": false,
+          "data": { "sources": [] },
+          "mark": "element",
+          "element": "inventory-sync",
+          "prompt": "none"
+        },
+        {
+          "id": "inference-credential-setup",
+          "requires": { "backend": "hosted", "message": "Workflow credential setup requires a hosted or local CAO dashboard with real repository inventory." },
+          "title": "Credential setup",
+          "description": "Choose a repository to see interactive engine-specific setup and open GitHub settings without entering credential values in CAO.",
+          "subject": "Repository workflow engine inventory and its evidence status.",
+          "objective": "Separate inference billing credentials from read-only GitHub tool credentials.",
+          "acceptance": "Show detected engines and incomplete evidence; select one exact repository; send no credential values or workflow mutations through CAO.",
+          "data": { "sources": ["inference-credential-repositories"] },
+          "mark": "element",
+          "element": "inference-credentials",
+          "prompt": "none"
+        }
+      ]
+    },
+    {
       "id": "maintenance-workflows",
       "kind": "custom",
       "view-mode-control": false,

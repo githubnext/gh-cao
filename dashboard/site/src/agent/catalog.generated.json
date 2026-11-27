@@ -1149,6 +1149,17 @@
       ]
     },
     {
+      "id": "inference-credentials",
+      "title": "Inference credentials",
+      "description": "Set up inference for the engines found in your compiled workflows. Credential values are entered in GitHub or the approved credential store, never in CAO.",
+      "intent": "Help repository administrators configure credentials for detected agentic workflow engines and separate read-only GitHub access.",
+      "experimental": false,
+      "parameters": [],
+      "queries": [
+        "inference-credential-repositories"
+      ]
+    },
+    {
       "id": "maintenance-workflows",
       "title": "Workflow maintenance",
       "description": "Select a workflow source update or disabling, with approval disclosing package sibling source replacement and shared repository maintenance.",
@@ -2493,6 +2504,44 @@
       ],
       "used-by-pages": [
         "maintenance-workflows"
+      ],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "inference-workflow-identities",
+      "subject": "Canonical workflow paths with compiled engine evidence.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "workflows"
+      ],
+      "used-by-pages": [],
+      "execution": {
+        "local": true,
+        "backend": "postgres",
+        "requirements": [
+          "workflows"
+        ]
+      }
+    },
+    {
+      "id": "inference-credential-repositories",
+      "subject": "Compiled agentic workflow engine evidence by repository.",
+      "objective": "Direct administrators to repository-specific inference setup without guessing from model names or run history.",
+      "acceptance": "Group agentic workflow identities by repository; list distinct engine IDs and count workflows with missing engine metadata.",
+      "description": "",
+      "parameters": [],
+      "sources": [
+        "inference-workflow-identities"
+      ],
+      "used-by-pages": [
+        "inference-credentials"
       ],
       "execution": {
         "local": true,

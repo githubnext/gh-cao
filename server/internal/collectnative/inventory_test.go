@@ -78,7 +78,7 @@ func inventoryTestGitHub(t *testing.T, partial bool) (GitHub, *atomic.Int64) {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			encoded := base64.StdEncoding.EncodeToString([]byte("# gh-aw-metadata: {\"compiler_version\":\"v1.1.0\"}\n"))
+			encoded := base64.StdEncoding.EncodeToString([]byte("# gh-aw-metadata: {\"compiler_version\":\"v1.1.0\",\"agent_id\":\"pi\"}\n"))
 			_, _ = fmt.Fprintf(w, `{"type":"file","encoding":"base64","content":%q}`, encoded)
 		default:
 			t.Errorf("unexpected inventory scope/request: %s", r.URL)
@@ -105,8 +105,11 @@ func TestNativeInventorySourceBoundNoSubprocess(t *testing.T) {
 	if workflow["workflow-role"] != "worker" || workflow["campaign"] != "security" ||
 		workflow["inventory-ready"] != false || workflow["admission-status"] != "blocked" ||
 		workflow["workflow-active"] != "false" || workflow["gh-aw-version"] != "v1.1.0" ||
-		workflow["gh-aw-update-state"] != "update-available" {
+		workflow["gh-aw-update-state"] != "update-available" || workflow["workflow-engine"] != "pi" {
 		t.Fatalf("reviewed campaign metadata or remote compiler evidence lost: %+v", workflow)
+	}
+	if _, known := evidence.Sources["workflows"].Rows[0]["workflow-engine"]; known {
+		t.Fatal("ordinary YAML workflow was assigned an engine")
 	}
 	document, _ := snapshot.document()
 	if !reflect.DeepEqual(evidence.Sources["configuration-policy"].Rows, document.Sources["configuration-policy"].Rows) {
@@ -137,6 +140,9 @@ func TestNativeInventoryPartialEvidenceAndFailClosedPolicy(t *testing.T) {
 	for _, row := range evidence.Sources["workflows"].Rows {
 		if row["gh-aw-version"] != "unknown" || row["gh-aw-current-version"] != "unknown" || row["gh-aw-update-state"] != "unknown" {
 			t.Fatalf("unresolved maintenance evidence invented: %+v", row)
+		}
+		if _, known := row["workflow-engine"]; known {
+			t.Fatal("missing compiler metadata was assigned an engine")
 		}
 	}
 	ctx, cancel := context.WithCancel(t.Context())
@@ -226,6 +232,10 @@ console.log(JSON.stringify({snapshot:{version:1,controlRepository:"octo/api",sou
 		for i := range actual {
 			if name == "workflows" && actual[i]["workflow-source-kind"] == "registry" {
 				actual[i]["observed-at"] = "2026-10-01T00:00:00Z"
+			}
+			if name == "workflows" && actual[i]["workflow"] == ".github/workflows/test.md" {
+				// Engine evidence is native-only; the legacy Activity input does not read the lockfile.
+				delete(actual[i], "workflow-engine")
 			}
 		}
 		got, _ := json.Marshal(actual)

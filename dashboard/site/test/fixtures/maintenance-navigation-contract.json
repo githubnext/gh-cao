@@ -1,9 +1,9 @@
 {
   "navigation": {
     "label": "Updates",
-    "pages": ["maintenance", "maintenance-workflows", "maintenance-campaigns"]
+    "pages": ["maintenance", "maintenance-workflows", "maintenance-campaigns", "inference-credentials"]
   },
-  "labels": ["Repositories", "Workflows", "Campaigns"],
+  "labels": ["Repositories", "Workflows", "Campaigns", "Inference credentials"],
   "sources": ["maintenance-repositories", "maintenance-campaign-packages", "maintenance-workflows"],
   "card-lists": ["maintenance-repositories", "maintenance-standalone-workflows", "maintenance-campaigns"],
   "sync-controls": ["repository-inventory-sync", "workflow-inventory-sync", "campaign-inventory-sync"],

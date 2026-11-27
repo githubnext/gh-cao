@@ -15,6 +15,7 @@ import { createDebug } from '../debug.js';
 import { renderCommandTerminal } from './command-terminal.js';
 import { renderStorageInfo } from './storage-info.js';
 import { renderInventorySync } from './inventory-sync.js';
+import { renderInferenceCredentials } from './inference-credentials.js';
 
 const debugUiElements = createDebug('ui-elements');
 
@@ -26,6 +27,7 @@ const debugUiElements = createDebug('ui-elements');
  *   sourceNames: string[],
  *   sources: Record<string, import('../presenter.js').LogicalSourceInput>,
  *   contextDetails: string[],
+ *   githubUrlBase?: string,
  *   scope?: Record<string, unknown>,
  *   time?: Record<string, unknown>,
  *   routeParameter?: string,
@@ -53,7 +55,8 @@ const ELEMENT_RENDERERS = new Map([
   ['markdown', renderMarkdownElement],
   ['command-terminal', renderCommandTerminal],
   ['storage-info', renderStorageInfo],
-  ['inventory-sync', renderInventorySync]
+  ['inventory-sync', renderInventorySync],
+  ['inference-credentials', renderInferenceCredentials]
 ]);
 
 /** Elements that load declared sources independently of the active page subscription. */
@@ -121,10 +124,11 @@ const EMPTY_AWARE_ELEMENTS = new Set([
   'command-terminal',
   'storage-info',
   'inventory-sync',
+  'inference-credentials',
   'environment-defaults',
   'prompt-wizard'
 ]);
-const UNAVAILABLE_AWARE_ELEMENTS = new Set(['configuration-policy', 'problem-detail', 'campaign-route', 'workflow-value-report', 'workflow-value-snapshot']);
+const UNAVAILABLE_AWARE_ELEMENTS = new Set(['configuration-policy', 'problem-detail', 'campaign-route', 'workflow-value-report', 'workflow-value-snapshot', 'inference-credentials']);
 
 /**
  * Builds a lazy element renderer that dynamically imports a module on first

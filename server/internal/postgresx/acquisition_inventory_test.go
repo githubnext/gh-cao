@@ -274,6 +274,7 @@ func TestNativeInventoryPreservesExistingCanonicalParentIDs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	evidence.Sources["workflows"].Rows[0]["workflow-engine"] = "pi"
 	if err := a.PublishInventory(t.Context(), claim, evidence); err != nil {
 		t.Fatal(err)
 	}
@@ -294,10 +295,10 @@ func TestNativeInventoryPreservesExistingCanonicalParentIDs(t *testing.T) {
 	if repositories != 1 || workflows != 1 || repositoryID != "repository" || workflowID != "workflow" {
 		t.Fatalf("inventory duplicated or rebound existing run parents: %d %d %s %s", repositories, workflows, repositoryID, workflowID)
 	}
-	var role, campaignID string
-	if err := store.db.QueryRowContext(t.Context(), `SELECT role,campaign_id FROM workflows WHERE namespace=$1 AND id='workflow'`,
-		store.namespace).Scan(&role, &campaignID); err != nil || role != "worker" || campaignID == "" {
-		t.Fatalf("inventory failed to enrich existing identity: %s %s %v", role, campaignID, err)
+	var role, campaignID, engine string
+	if err := store.db.QueryRowContext(t.Context(), `SELECT role,campaign_id,workflow_engine FROM workflows WHERE namespace=$1 AND id='workflow'`,
+		store.namespace).Scan(&role, &campaignID, &engine); err != nil || role != "worker" || campaignID == "" || engine != "pi" {
+		t.Fatalf("inventory failed to enrich existing identity: role %q campaign %q engine %q: %v", role, campaignID, engine, err)
 	}
 }
 
@@ -307,6 +308,24 @@ func TestNativeInventoryUnsupportedIntelligenceFailsClosed(t *testing.T) {
 		t.Fatalf("unrepresentable intelligence envelope was silently dropped: %v", err)
 	}
 }
+
+func TestNativeWorkflowEngineNormalization(t *testing.T) {
+	for _, input := range []struct {
+		raw  model.Row
+		want any
+	}{
+		{model.Row{"workflow-engine": "pi"}, "pi"},
+		{model.Row{"workflow-engine": "unrecognized"}, nil},
+		{model.Row{}, nil},
+	} {
+		row, err := normalizeNativeInventory("workflows", input.raw)
+		got, present := row["workflowEngine"]
+		if err != nil || got != input.want || present != (input.want != nil) {
+			t.Fatalf("engine = %v (present %v), want %v; err %v", got, present, input.want, err)
+		}
+	}
+}
+
 func TestNativeInventoryPostgresConfigurationAndAtomicFailure(t *testing.T) {
 	store, _ := nativeTestStore(t)
 	a := store.Acquisition()

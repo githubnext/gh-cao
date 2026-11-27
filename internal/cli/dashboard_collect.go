@@ -31,6 +31,7 @@ type dashboardRepositoryEvidence struct {
 	Workflows  []dashboardWorkflow
 	// AgenticWorkflows holds lowercase workflow IDs reported by `gh aw list`.
 	AgenticWorkflows map[string]bool
+	WorkflowEngines  map[string]string
 	// Campaigns are declared by the local checkout of this repository only.
 	Campaigns   []dashboardCampaign
 	Runs        []map[string]any
@@ -199,12 +200,14 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			return nil, fmt.Errorf("cannot read agentic workflow list for %s; previous snapshot preserved: %w", repository, err)
 		}
 		var campaigns []dashboardCampaign
+		var engines map[string]string
 		if options.localRepository == repository {
 			// Remote repositories expose no checkout, so their membership stays unknown.
 			campaigns, err = detectDashboardCampaigns(".")
 			if err != nil {
 				return nil, fmt.Errorf("cannot read campaign declarations for %s; previous snapshot preserved: %w", repository, err)
 			}
+			engines = dashboardCheckoutEngines(".", workflows)
 		}
 		raw, _, err := gh(ctx, "run", "list", "--repo", target, "--created", ">="+cutoff.Format(time.RFC3339),
 			"--limit", strconv.Itoa(options.count), "--json",
@@ -349,7 +352,8 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 			onRuns := func(streamCtx context.Context, records []map[string]any) error {
 				source := dashboardRepositoryEvidence{
 					Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Campaigns: campaigns, Directory: directory,
-					GithubID: resolved.ID, Enriched: map[string]map[string]any{},
+					WorkflowEngines: engines,
+					GithubID:        resolved.ID, Enriched: map[string]map[string]any{},
 				}
 				for _, record := range records {
 					id := nativeScalar(record["run_id"])
@@ -442,7 +446,8 @@ func collectDashboardPass(ctx context.Context, repositories []string, cache stri
 		runs = slices.DeleteFunc(mergeDashboardCachedRuns(runs, workflows, cached, options.count), dashboardRunNotExecuted)
 		evidence = append(evidence, dashboardRepositoryEvidence{
 			Repository: repository, Workflows: workflows, AgenticWorkflows: agentic, Campaigns: campaigns, Runs: runs, Enriched: cached.Enriched,
-			Directory: directory, SafeOutputs: cached.SafeOutputs,
+			WorkflowEngines: engines,
+			Directory:       directory, SafeOutputs: cached.SafeOutputs,
 			GithubID: resolved.ID,
 		})
 		state.Cursors[repository] = nextCursor
@@ -773,6 +778,9 @@ func projectDashboardEvidence(evidence []dashboardRepositoryEvidence, cutoff, no
 				"repositoryLink":   "https://github.com/" + source.Repository,
 				"workflowLink":     "https://github.com/" + source.Repository + "/actions/workflows/" + filepath.Base(workflow.Path),
 				"provenance":       map[string]any{"source": "local-dashboard", "sourceId": workflow.Path, "observedAt": observed},
+			}
+			if engine := source.WorkflowEngines[workflow.Path]; engine != "" {
+				record["workflowEngine"] = engine
 			}
 			// gh aw list exposes no source provenance, so sourceKind stays unset (unknown).
 			id := strings.TrimSuffix(filepath.Base(path), ".md")

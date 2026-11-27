@@ -133,7 +133,7 @@ describe('Configuration dashboard view', () => {
     }
   });
 
-  it('renders three independent Updates navigation entries with scoped worker-backed indicators', () => {
+  it('renders Updates navigation with credential setup and scoped worker-backed indicators', () => {
     const dashboard = authoritativeDashboard.dashboard;
     const root = renderDashboardNavigation(dashboard.pages, dashboard.title, dashboard.navigation);
     document.body.append(root);
@@ -149,7 +149,7 @@ describe('Configuration dashboard view', () => {
         expect(root.querySelector(`[data-mobile-nav-page-id="${page.id}"]`)?.textContent?.trim())
           .toBe(maintenanceNavigationContract.labels[index]);
       }
-      const sourceNames = pages.flatMap((page) => page['navigation-indicator'].any);
+      const sourceNames = pages.flatMap((page) => page['navigation-indicator']?.any ?? []);
       for (const [index, sources] of [
         { repositories: { source: 'repositories', rows: maintenanceNavigationContract.repositories, metadata },
           workflows: { source: 'workflows', rows: maintenanceNavigationContract['repository-workflows'], metadata } },
@@ -175,8 +175,12 @@ describe('Configuration dashboard view', () => {
     const dashboard = authoritativeDashboard.dashboard;
     for (const [index, id] of maintenanceNavigationContract.navigation.pages.entries()) {
       const page = dashboard.pages.find((/** @type {{ id: string }} */ candidate) => candidate.id === id);
-      expect(page.views).toHaveLength(2);
       const view = page.views.find((/** @type {{ mark: string }} */ view) => view.mark === 'list');
+      if (id === 'inference-credentials') {
+        expect(view).toBeUndefined();
+        continue;
+      }
+      expect(page.views).toHaveLength(2);
       expect(view.list.action).toBeUndefined();
       expect(view.actions ?? []).not.toEqual(expect.arrayContaining(['upgrade-repository']));
       expect(view.data.source).not.toMatch(/sweep/);

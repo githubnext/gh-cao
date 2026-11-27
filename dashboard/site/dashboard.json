@@ -1526,7 +1526,8 @@
         "pages": [
           "maintenance",
           "maintenance-workflows",
-          "maintenance-campaigns"
+          "maintenance-campaigns",
+          "inference-credentials"
         ]
       },
       {

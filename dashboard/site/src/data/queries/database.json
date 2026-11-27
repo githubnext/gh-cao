@@ -798,6 +798,7 @@
       { "field": "path", "as": "workflow" },
       { "field": "githubId", "as": "workflow-id" },
       { "field": "name", "as": "workflow-name" },
+      { "field": "workflowEngine", "as": "workflow-engine" },
       { "field": "workflow-active" },
       { "field": "registryState", "as": "workflow-registry-state" },
       { "field": "admissionStatus", "as": "admission-status" },

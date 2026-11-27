@@ -83,6 +83,8 @@ model workflows {
   sourceVersion?: string;
   state?: string;
   updatedAt?: utcDateTime;
+  /** Non-secret engine identifier from compiled workflow metadata, not runtime evidence. */
+  workflowEngine?: string;
   workflowLink?: Values.Link;
 }
 

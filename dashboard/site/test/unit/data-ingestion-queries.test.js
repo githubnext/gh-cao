@@ -70,6 +70,7 @@ describe('dashboard source ingestion queries', () => {
           'gh-aw-version': '0.88.8',
           'gh-aw-current-version': '0.88.9',
           'gh-aw-update-state': 'update-available',
+          'workflow-engine': 'pi',
           'workflow-link': { relation: 'workflow', href: 'https://github.com/githubnext/gh-cao/actions' },
           'observed-at': '2026-09-09T04:30:00Z'
         }],
@@ -156,6 +157,7 @@ describe('dashboard source ingestion queries', () => {
       updatedAt: '2026-09-08T00:00:00Z',
       ghAwVersion: '0.88.8',
       ghAwUpdateState: 'update-available',
+      workflowEngine: 'pi',
       campaignId: batch.campaigns[0].id,
       role: 'worker'
     });

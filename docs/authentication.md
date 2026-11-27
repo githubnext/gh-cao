@@ -512,6 +512,8 @@ Recheck when scope, campaign APIs, mode, or review destination changes.
 
 CAO installation does not require Copilot organization billing. Bundled workflows do: they use `copilot-requests: write` and the built-in workflow token for inference.
 
+In the hosted or local CAO dashboard, open **Updates → Inference credentials** to choose a workflow repository and see setup instructions for the engines detected in its compiled workflow inventory. Review the workflow's actual credential references before adding secrets in GitHub; the dashboard does not read or store credential values, verify billing, or change workflow authentication. The page also links to separate read-only GitHub App setup for repository access.
+
 For this reason, verifying it up front is completely optional: most user tokens cannot read organization billing, and a granted `copilot-requests: write` permission alone does not ensure model access. Without an entitlement, a bundled workflow fails with HTTP 403 before the agent starts. Customers may author workflows with another gh-aw-supported engine/provider and configure its Actions secrets; that requires an explicit workflow change and compilation. CAO does not support `COPILOT_GITHUB_TOKEN` inference fallback, runtime token precedence, or mixed authentication profiles, and target-access credentials cannot authenticate model inference.
 
 ### Optional Copilot requests broker
