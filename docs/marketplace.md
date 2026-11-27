@@ -132,7 +132,11 @@ All dashboard backends expose the same package fields through the data worker:
   receives the configured registry environment; the web server receives only
   normalized packages and diagnostics. The adapter caches the whole resolver
   output for `cache-ttl-seconds` (five minutes when unset) and drops it when the
-  policy file changes.
+  policy file changes. The web server calls this adapter only over plain `http`
+  on a numeric loopback address with an explicit port. The request does not use
+  an ambient proxy, does not follow redirects, and has a two-minute deadline. Any
+  status other than `200`, an oversized or malformed response, or a transport
+  failure shows the local marketplace as unavailable without failing the page.
 - The hosted Go backend resolves registries at runtime and caches safe,
   normalized results in Redis. Cache entries are isolated by registry and
   source generation.
