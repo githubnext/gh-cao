@@ -588,7 +588,7 @@ main() {
   local policy_path=".github/workflows/cao.json"
   local control_runtime=".github/workflows/shared/control.mjs"
   local required_gh="v2.68.0"
-  local required_gh_aw="v1.2.3"
+  local required_gh_aw="v1.4.1"
   local catalog_source="githubnext/gh-cao"
   local package_source
   local explicit_source=false
