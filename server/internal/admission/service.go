@@ -121,34 +121,13 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) authenticatedRequest(w http.ResponseWriter, r *http.Request, limit int64) (Identity, []byte, int) {
-	if r.Method != http.MethodPost || r.URL.RawQuery != "" || r.URL.ForceQuery ||
-		len(r.Header.Values("Authorization")) != 1 || len(r.Header.Values("Content-Type")) != 1 ||
-		len(r.Header.Get("Authorization")) > (16<<10)+7 || r.ContentLength > limit {
-		return Identity{}, nil, http.StatusForbidden
-	}
-	headerBytes := 0
-	for name, values := range r.Header {
-		if strings.EqualFold(name, "traceparent") || strings.EqualFold(name, "tracestate") || strings.EqualFold(name, "baggage") {
-			continue
-		}
-		for _, value := range values {
-			headerBytes += len(name) + len(value)
-		}
-	}
-	if headerBytes > 32<<10 {
-		return Identity{}, nil, http.StatusForbidden
-	}
-	contentType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil || contentType != "application/json" || len(params) > 1 ||
-		(len(params) == 1 && !strings.EqualFold(params["charset"], "utf-8")) {
-		return Identity{}, nil, http.StatusForbidden
-	}
-	auth := strings.Fields(r.Header.Get("Authorization"))
-	if len(auth) != 2 || !strings.EqualFold(auth[0], "bearer") {
+	credential, reason := requestEnvelopeCredential(r, limit)
+	if reason != "" {
+		admissionLog.Printf("request envelope rejected: reason=%s", reason)
 		return Identity{}, nil, http.StatusForbidden
 	}
 	identity, err := observeOperation(r.Context(), telemetry.SpanAdmissionIdentity, func(ctx context.Context) (Identity, error) {
-		return s.Verifier.Verify(ctx, auth[1])
+		return s.Verifier.Verify(ctx, credential)
 	})
 	if err != nil {
 		if errors.Is(err, ErrUnavailable) {
@@ -161,4 +140,42 @@ func (s *Service) authenticatedRequest(w http.ResponseWriter, r *http.Request, l
 		return Identity{}, nil, http.StatusForbidden
 	}
 	return identity, data, 0
+}
+
+// requestEnvelopeCredential validates the request shape before any credential
+// is verified and returns the single bearer credential. A non-empty reason is a
+// stable code for the first rejected check; it never carries header values.
+func requestEnvelopeCredential(r *http.Request, limit int64) (credential, reason string) {
+	if r.Method != http.MethodPost || r.URL.RawQuery != "" || r.URL.ForceQuery {
+		return "", "method_or_query"
+	}
+	if len(r.Header.Values("Authorization")) != 1 || len(r.Header.Values("Content-Type")) != 1 ||
+		len(r.Header.Get("Authorization")) > (16<<10)+7 {
+		return "", "header_shape"
+	}
+	if r.ContentLength > limit {
+		return "", "body_too_large"
+	}
+	headerBytes := 0
+	for name, values := range r.Header {
+		if strings.EqualFold(name, "traceparent") || strings.EqualFold(name, "tracestate") || strings.EqualFold(name, "baggage") {
+			continue
+		}
+		for _, value := range values {
+			headerBytes += len(name) + len(value)
+		}
+	}
+	if headerBytes > 32<<10 {
+		return "", "headers_too_large"
+	}
+	contentType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || contentType != "application/json" || len(params) > 1 ||
+		(len(params) == 1 && !strings.EqualFold(params["charset"], "utf-8")) {
+		return "", "content_type"
+	}
+	auth := strings.Fields(r.Header.Get("Authorization"))
+	if len(auth) != 2 || !strings.EqualFold(auth[0], "bearer") {
+		return "", "authorization_scheme"
+	}
+	return auth[1], ""
 }
