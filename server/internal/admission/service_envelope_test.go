@@ -1,6 +1,7 @@
 package admission
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,7 +10,7 @@ import (
 
 func envelopeRequest(t *testing.T, mutate func(*http.Request)) *http.Request {
 	t.Helper()
-	r := httptest.NewRequest(http.MethodPost, "/api/admission", strings.NewReader("{}"))
+	r := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/api/admission", strings.NewReader("{}"))
 	r.Header.Set("Authorization", "Bearer credential")
 	r.Header.Set("Content-Type", "application/json")
 	if mutate != nil {
