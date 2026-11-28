@@ -109,7 +109,7 @@ Example: Optimization can be live while `optimization-ai-credit-optimizer` remai
 ```json
 {
 	"version": 1,
-	"gh-aw-version": "v1.2.3",
+	"gh-aw-version": "v1.4.1",
 	"control-plane": {
 		"campaigns": {
 			"optimization": {
