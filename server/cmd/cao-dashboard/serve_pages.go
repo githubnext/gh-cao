@@ -98,6 +98,42 @@ func pagesFileName(basePath, requestPath string) (name string, ok bool) {
 	return name, true
 }
 
+// validatePagesSite requires a built, non-empty index.html and the synthetic
+// demo marker, and rejects any operational export, so the preview can never
+// serve real data. Rejections log only a stable reason code.
+func validatePagesSite(root *os.Root) error {
+	index, err := root.Open("index.html")
+	if err == nil {
+		var info fs.FileInfo
+		info, err = index.Stat()
+		if err == nil && (!info.Mode().IsRegular() || info.Size() == 0) {
+			err = errors.New("index.html must be a non-empty regular file")
+		}
+		_ = index.Close()
+	}
+	if err != nil {
+		pagesLog.Printf("pages site rejected: reason=index_unusable")
+		return fmt.Errorf("pages directory requires a readable built index.html: %w", err)
+	}
+	marker, err := root.ReadFile(".cao-pages-demo.json")
+	var demo struct {
+		Tool      string `json:"tool"`
+		Synthetic bool   `json:"synthetic"`
+	}
+	if err != nil || len(marker) > 4096 || json.Unmarshal(marker, &demo) != nil ||
+		demo.Tool != "cao-pages-demo" || !demo.Synthetic {
+		pagesLog.Printf("pages site rejected: reason=not_synthetic_demo")
+		return errors.New("pages accepts only the synthetic demo; run npm run dashboard:pages:build, or use serve with PostgreSQL for operational data")
+	}
+	for _, name := range []string{"gh-aw-logs.sqlite", "agent-summary.json", "payload-hashes.json"} {
+		if _, err := root.Stat(name); !errors.Is(err, os.ErrNotExist) {
+			pagesLog.Printf("pages site rejected: reason=operational_export")
+			return fmt.Errorf("pages demo must not contain operational export %s", name)
+		}
+	}
+	return nil
+}
+
 func newPagesHandler(directory, basePath string) (*os.Root, *pagesHandler, error) {
 	basePath, err := normalizePagesBasePath(basePath)
 	if err != nil {
@@ -110,34 +146,9 @@ func newPagesHandler(directory, basePath string) (*os.Root, *pagesHandler, error
 	if err != nil {
 		return nil, nil, fmt.Errorf("open Pages directory: %w", err)
 	}
-	index, err := root.Open("index.html")
-	if err == nil {
-		var info fs.FileInfo
-		info, err = index.Stat()
-		if err == nil && (!info.Mode().IsRegular() || info.Size() == 0) {
-			err = errors.New("index.html must be a non-empty regular file")
-		}
-		_ = index.Close()
-	}
-	if err != nil {
+	if err := validatePagesSite(root); err != nil {
 		_ = root.Close()
-		return nil, nil, fmt.Errorf("pages directory requires a readable built index.html: %w", err)
-	}
-	marker, err := root.ReadFile(".cao-pages-demo.json")
-	var demo struct {
-		Tool      string `json:"tool"`
-		Synthetic bool   `json:"synthetic"`
-	}
-	if err != nil || len(marker) > 4096 || json.Unmarshal(marker, &demo) != nil ||
-		demo.Tool != "cao-pages-demo" || !demo.Synthetic {
-		_ = root.Close()
-		return nil, nil, errors.New("pages accepts only the synthetic demo; run npm run dashboard:pages:build, or use serve with PostgreSQL for operational data")
-	}
-	for _, name := range []string{"gh-aw-logs.sqlite", "agent-summary.json", "payload-hashes.json"} {
-		if _, err := root.Stat(name); !errors.Is(err, os.ErrNotExist) {
-			_ = root.Close()
-			return nil, nil, fmt.Errorf("pages demo must not contain operational export %s", name)
-		}
+		return nil, nil, err
 	}
 	pagesLog.Printf("pages handler ready: base_path_depth=%d", strings.Count(basePath, "/")-1)
 	return root, &pagesHandler{root: root, basePath: basePath}, nil
