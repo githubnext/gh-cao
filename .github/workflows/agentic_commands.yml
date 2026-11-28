@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Scripts
-        uses: github/gh-aw-actions/setup@v1.4.1
+        uses: github/gh-aw-actions/setup@367d4dc4e89caf85422092845006e4a4a660d926 # v1.4.1
         with:
           destination: ${{ runner.temp }}/gh-aw/actions
 
