@@ -239,6 +239,14 @@ starlight-toc h2,
   border-color: var(--sl-color-gray-3);
 }
 
+/* The site search dialog's Pagefind input boundary measured 1.52:1 in the light
+   theme and 1.29:1 in the dark theme, below the 3:1 WCAG 1.4.11 requires for a
+   text input boundary. gray-3 keeps the boundary at or above 3:1 in both themes.
+   The dialog selector outranks Pagefind's scoped input rule. */
+dialog[aria-label="Search"] .pagefind-ui__search-input {
+  border-color: var(--sl-color-gray-3);
+}
+
 :root[data-theme="dark"] :where(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), .sl-markdown-content table, .sl-markdown-content pre):focus-visible,
 :root[data-theme="dark"] .sl-skip-link:focus-visible,
 :root[data-theme="dark"] #_top:focus-visible,
