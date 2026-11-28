@@ -286,6 +286,7 @@ func nativeValidatePolicy(document map[string]any) error {
 	}
 	worker := nativePolicyObject(map[string]nativePolicyRule{
 		"workflow": nativePolicyString(slugPattern), "enabled": nativePolicyBool, "max-mode": mode,
+		"max-targets-per-run": nativeInteger(2, 20),
 	}, "workflow")
 	campaign := map[string]nativePolicyRule{
 		"workflow-values": nativeWorkflowValuesRule,

@@ -52,7 +52,7 @@ func TestAddCampaignNative(t *testing.T) {
  "campaigns":{"other":{"mode":"review"},"demo":{"enabled":false,"mode":"review",
  "targets":{"acme/control":{"mode":"review"}},"workers":{
  "second":{"workflow":"old","enabled":false,"max-mode":"review","discard":"old"},
- "first":{"workflow":"old","enabled":true,"max-mode":"live"},
+ "first":{"workflow":"old","enabled":true,"max-mode":"live","max-targets-per-run":3},
  "stale":{"workflow":"old-stale"}}}}}}`
 	writeTestFile(t, policyPath, original)
 	writeTestFile(t, "demo/stale.txt", "must disappear")
@@ -101,7 +101,7 @@ func TestAddCampaignNative(t *testing.T) {
 	workers := demo["workers"].(map[string]any)
 	if want := map[string]any{
 		"second": map[string]any{"workflow": "demo-second", "enabled": false, "max-mode": "review"},
-		"first":  map[string]any{"workflow": "demo-first", "enabled": true, "max-mode": "live"},
+		"first":  map[string]any{"workflow": "demo-first", "enabled": true, "max-mode": "live", "max-targets-per-run": json.Number("3")},
 	}; !reflect.DeepEqual(workers, want) {
 		t.Fatalf("worker policy = %v, want %v", workers, want)
 	}

@@ -87,7 +87,13 @@
           "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
         },
         "enabled": { "type": "boolean" },
-        "max-mode": { "$ref": "#/$defs/mode" }
+        "max-mode": { "$ref": "#/$defs/mode" },
+        "max-targets-per-run": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 20,
+          "description": "Opts the worker into the review-only multi-target worker contract and bounds the repositories one dispatched run may analyze."
+        }
       }
     },
     "targetPolicy": {
